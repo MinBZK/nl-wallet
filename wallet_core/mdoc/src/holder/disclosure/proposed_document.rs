@@ -1,19 +1,20 @@
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
+    errors::Result,
     holder::Mdoc,
     identifiers::AttributeIdentifier,
     iso::{
         basic_sa_ext::Entry,
-        disclosure::IssuerSigned,
+        disclosure::{DeviceSigned, Document, IssuerSigned},
         mdocs::{DocType, NameSpace},
     },
+    utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
 /// for disclosure. Note that this is for internal use of [`DisclosureSession`] only.
-#[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProposedDocument {
     pub private_key_id: String,
     pub doc_type: DocType,
@@ -39,7 +40,7 @@ impl ProposedDocument {
 
         // Collect all `ProposedDocument`s for this `doc_type`,
         // for every `Mdoc` that satisfies the requested attributes.
-        let proposed_documents = mdocs
+        let satisfying_documents = mdocs
             .into_iter()
             .filter(|mdoc| {
                 // Calculate missing attributes for every `Mdoc` and filter it out
@@ -58,9 +59,16 @@ impl ProposedDocument {
 
                 is_satisfying
             })
-            // Convert the matching `Mdoc` to a `ProposedDocument`, based on the requested attributes.
-            .map(|mdoc| ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge.clone()))
             .collect::<Vec<_>>();
+        // Convert the matching `Mdoc` to a `ProposedDocument`, based on the requested attributes.
+        let document_count = satisfying_documents.len();
+        let proposed_documents = satisfying_documents
+            .into_iter()
+            .zip(itertools::repeat_n(device_signed_challenge, document_count))
+            .map(|(mdoc, device_signed_challenge)| {
+                ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge)
+            })
+            .collect();
 
         (proposed_documents, all_missing_attributes)
     }
@@ -126,19 +134,53 @@ impl ProposedDocument {
             })
             .unwrap_or_default()
     }
+
+    /// Convert the [`ProposedDocument`] to a [`Document`] by signing the challenge using the provided `key_factory`.
+    #[allow(dead_code)]
+    pub async fn sign<'a, KF, K>(self, key_factory: &'a KF) -> Result<Document>
+    where
+        KF: KeyFactory<'a, Key = K>,
+        K: MdocEcdsaKey + Sync,
+    {
+        // Extract the public key from the `IssuerSigned`, construct an existing signing key
+        // identifier by `private_key_id` and provide this public key, then use that to sign
+        // the saved challenge bytes asynchronously.
+        let public_key = self.issuer_signed.public_key()?;
+        let private_key = key_factory.generate_existing(&self.private_key_id, public_key);
+        let device_signed = DeviceSigned::new_signature(&private_key, &self.device_signed_challenge).await?;
+
+        let document = Document {
+            doc_type: self.doc_type,
+            issuer_signed: self.issuer_signed,
+            device_signed,
+            errors: None,
+        };
+
+        Ok(document)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{examples::Examples, mock};
+    use assert_matches::assert_matches;
+    use coset::Header;
+    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
 
-    use super::*;
+    use crate::{
+        errors::Error,
+        iso::disclosure::DeviceAuth,
+        mock::{FactorySoftwareEcdsaKeyError, SoftwareKeyFactory},
+        utils::{
+            cose::{self, CoseError},
+            serialization::TaggedBytes,
+        },
+    };
+
+    use super::{super::tests::*, *};
 
     #[test]
     fn test_proposed_document_from_mdoc() {
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
-
+        let mdoc = create_example_mdoc();
         let doc_type = mdoc.doc_type.clone();
         let private_key_id = mdoc.private_key_id.clone();
         let issuer_auth = mdoc.issuer_signed.issuer_auth.clone();
@@ -181,9 +223,7 @@ mod tests {
 
     #[test]
     fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
-        let trust_anchors = Examples::iaca_trust_anchors();
-
-        let mdoc1 = mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc1 = create_example_mdoc();
         let mdoc2 = {
             let mut mdoc = mdoc1.clone();
             let attributes = &mut mdoc
@@ -268,5 +308,60 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["driving_privileges", "issue_date", "expiry_date"]
         );
+    }
+
+    #[tokio::test]
+    async fn test_proposed_document_sign() {
+        // Create a `ProposedDocument` from the example `Mdoc`.
+        let proposed_document = create_example_proposed_document();
+
+        // Collect all of the expected values.
+        let expected_doc_type = proposed_document.doc_type.clone();
+        let expected_issuer_signed = proposed_document.issuer_signed.clone();
+
+        let key = SoftwareEcdsaKey::new(&proposed_document.private_key_id);
+        let expected_cose = cose::sign_cose(
+            &proposed_document.device_signed_challenge,
+            Header::default(),
+            &key,
+            false,
+        )
+        .await
+        .unwrap();
+
+        // Conversion to `Document` by signing should succeed.
+        let document = proposed_document
+            .sign(&SoftwareKeyFactory::default())
+            .await
+            .expect("Could not sign ProposedDocument");
+
+        // Test all of the expected values, including the `DeviceSigned` COSE signature.
+        assert_eq!(document.doc_type, expected_doc_type);
+        assert_eq!(document.issuer_signed, expected_issuer_signed);
+        assert_matches!(document.device_signed, DeviceSigned {
+            name_spaces: TaggedBytes(name_spaces),
+            device_auth: DeviceAuth::DeviceSignature(mdoc_cose)
+        } if name_spaces.is_empty() && mdoc_cose.0 == expected_cose);
+        assert!(document.errors.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_proposed_document_sign_error() {
+        // Set up a `KeyFactory` that returns keys that fail at signing.
+        let proposed_document = create_example_proposed_document();
+        let key_factory = SoftwareKeyFactory {
+            has_generating_error: false,
+            has_key_signing_error: true,
+        };
+
+        // Conversion to `Document` should simply forward the signing error.
+        let error = proposed_document
+            .sign(&key_factory)
+            .await
+            .expect_err("Signing ProposedDocument should have resulted in an error");
+
+        assert_matches!(error, Error::Cose(
+            CoseError::Signing(signing_error)
+        ) if signing_error.is::<FactorySoftwareEcdsaKeyError>());
     }
 }

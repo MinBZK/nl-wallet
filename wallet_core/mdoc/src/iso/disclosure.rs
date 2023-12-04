@@ -111,7 +111,7 @@ pub struct SessionData {
 }
 
 /// Status codes sent along with encrypted mdoc disclosure protocol messages in [`StatusCode`].
-#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SessionStatus {
     EncryptionError = 10,

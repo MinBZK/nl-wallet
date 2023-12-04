@@ -1,4 +1,4 @@
-use wallet::errors::{InstructionError, PidIssuanceError, WalletUnlockError};
+use wallet::errors::{DisclosureError, InstructionError, PidIssuanceError, WalletUnlockError};
 
 pub enum WalletInstructionResult {
     Ok,
@@ -72,6 +72,21 @@ impl TryFrom<Result<(), PidIssuanceError>> for WalletInstructionResult {
                 PidIssuanceError::Instruction(i) => Ok(i.try_into()?),
                 _ => Err(e),
             },
+        }
+    }
+}
+
+impl TryFrom<Result<(), DisclosureError>> for WalletInstructionResult {
+    type Error = DisclosureError;
+
+    fn try_from(value: Result<(), DisclosureError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(_) => Ok(WalletInstructionResult::Ok),
+            Err(DisclosureError::Instruction(instruction_error)) => match instruction_error.try_into() {
+                Ok(result) => Ok(result),
+                Err(instruction_error) => Err(DisclosureError::Instruction(instruction_error)),
+            },
+            Err(error) => Err(error),
         }
     }
 }

@@ -24,6 +24,7 @@ dashmap.workspace = true
 futures.workspace = true
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
+itertools.workspace = true
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
 reqwest = { workspace = true, features = ["json"] }
