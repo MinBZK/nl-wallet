@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/timeline/timeline_section.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../navigation/wallet_routes.dart';
@@ -58,7 +59,7 @@ class CardHistoryScreen extends StatelessWidget {
     List<Widget> slivers = sections
         .map((section) => TimelineSectionSliver(
               section: section,
-              onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId, state.card),
+              onRowPressed: (attribute) => _onTimelineRowPressed(context, attribute, state.card),
             ))
         .toList();
 
@@ -81,13 +82,12 @@ class CardHistoryScreen extends StatelessWidget {
     );
   }
 
-  void _onTimelineRowPressed(BuildContext context, String timelineAttributeId, WalletCard card) {
+  void _onTimelineRowPressed(BuildContext context, TimelineAttribute attribute, WalletCard card) {
     Navigator.restorablePushNamed(
       context,
       WalletRoutes.historyDetailRoute,
       arguments: HistoryDetailScreenArgument(
-        timelineAttributeId: timelineAttributeId,
-        cardId: card.id,
+        timelineAttribute: attribute,
         docType: card.docType,
       ).toMap(),
     );

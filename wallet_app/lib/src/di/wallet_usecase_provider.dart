@@ -14,29 +14,21 @@ import '../domain/usecase/card/impl/get_wallet_card_update_request_usecase_impl.
 import '../domain/usecase/card/impl/get_wallet_card_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_cards_usecase_impl.dart';
 import '../domain/usecase/card/impl/lock_wallet_usecase_impl.dart';
-import '../domain/usecase/card/impl/log_card_interaction_usecase_impl.dart';
-import '../domain/usecase/card/impl/log_card_signing_usecase_impl.dart';
 import '../domain/usecase/card/impl/observe_wallet_card_detail_usecase_impl.dart';
 import '../domain/usecase/card/impl/observe_wallet_card_usecase_impl.dart';
 import '../domain/usecase/card/impl/observe_wallet_cards_usecase_impl.dart';
-import '../domain/usecase/card/impl/wallet_add_issued_cards_usecase_impl.dart';
 import '../domain/usecase/card/lock_wallet_usecase.dart';
-import '../domain/usecase/card/log_card_interaction_usecase.dart';
-import '../domain/usecase/card/log_card_signing_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
-import '../domain/usecase/card/wallet_add_issued_cards_usecase.dart';
 import '../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/reject_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
-import '../domain/usecase/history/get_timeline_attribute_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/history/has_previously_interacted_with_organization_usecase.dart';
-import '../domain/usecase/history/impl/get_timeline_attribute_usecase_impl.dart';
 import '../domain/usecase/history/impl/get_wallet_timeline_attributes_usecase_impl.dart';
 import '../domain/usecase/history/impl/has_previously_interacted_with_organization_usecase_impl.dart';
 import '../domain/usecase/issuance/accept_issuance_usecase.dart';
@@ -132,12 +124,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<GetRequestedAttributesFromWalletUseCase>(
           create: (context) => GetRequestedAttributesFromWalletUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<LogCardInteractionUseCase>(
-          create: (context) => LogCardInteractionUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<LogCardSigningUseCase>(
-          create: (context) => LogCardSigningUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<LockWalletUseCase>(
           create: (context) => LockWalletUseCaseImpl(context.read()),
         ),
@@ -169,17 +155,11 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<DecodeQrUseCase>(
           create: (context) => DecodeQrUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<WalletAddIssuedCardsUseCase>(
-          create: (context) => WalletAddIssuedCardsUseCaseImpl(context.read(), context.read()),
-        ),
         RepositoryProvider<CancelPidIssuanceUseCase>(
           create: (context) => CancelPidIssuanceUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetWalletTimelineAttributesUseCase>(
           create: (context) => GetWalletTimelineAttributesUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<GetTimelineAttributeUseCase>(
-          create: (context) => GetTimelineAttributeUseCaseImpl(context.read()),
         ),
         RepositoryProvider<SetupMockedWalletUseCase>(
           create: (context) => SetupMockedWalletUseCaseImpl(
