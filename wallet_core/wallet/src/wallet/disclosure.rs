@@ -692,7 +692,6 @@ mod tests {
             .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
             .await
             .expect_err("Starting disclosure should have resulted in an error");
-        dbg!(&_error);
         assert!(wallet.disclosure_session.is_some());
 
         // Verify disclosure session is not yet terminated
