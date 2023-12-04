@@ -60,13 +60,14 @@ impl DeviceRequest {
         }
 
         // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
-        // Note that the unwraps are safe, since we checked for the presence of reader authentication above.
         let certificate = self
             .doc_requests
             .iter()
             .zip(itertools::repeat_n(session_transcript, self.doc_requests.len()))
             .try_fold(None, {
                 |result_cert, (doc_request, session_transcript)| -> Result<_> {
+                    // This `.unwrap()` is safe, because `.verify()` will only return `None`
+                    // if `reader_auth` is absent, the presence of which we checked above.
                     let doc_request_cert = doc_request.verify(session_transcript, time, trust_anchors)?.unwrap();
 
                     // If there is a certificate from a previous iteration, compare our certificate to that.
@@ -79,7 +80,7 @@ impl DeviceRequest {
                     Ok(doc_request_cert.into())
                 }
             })?
-            .unwrap();
+            .unwrap(); // This `.unwrap()` is safe for the same reason stated above.
 
         // Extract `ReaderRegistration` from the one certificate.
         let reader_registration = match CertificateType::from_certificate(&certificate).map_err(HolderError::from)? {
