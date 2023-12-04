@@ -432,8 +432,9 @@ mod tests {
             .expect("Could not decrypt and deserialize sent DeviceResponse");
 
         // Check that the attributes contained in the response match those in the request.
-        assert!(device_response.documents.is_some());
-        let documents = device_response.documents.unwrap();
+        let documents = device_response
+            .documents
+            .expect("No documents contained in DeviceResponse");
 
         let response_identifiers = documents
             .iter()
