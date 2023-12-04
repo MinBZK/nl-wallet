@@ -66,7 +66,7 @@ fn pid_issuer_organization() -> Organization {
         kvk: Some(" 27373207".to_owned()),
         city: Some(vec![LocalizedString {
             language: "nl".to_owned(),
-            value: "Bilthoven".to_owned(),
+            value: "'s-Gravenhage".to_owned(),
         }]),
         department: None,
         country_code: Some("nl".to_owned()),
@@ -112,17 +112,27 @@ impl TryFrom<wallet::WalletEvent> for WalletEvent {
             wallet::EventType::Issuance => WalletEvent::Issuance {
                 date_time: source.timestamp.to_rfc3339(),
                 // TODO How to properly detect PID issuer
-                issuer: if "com.example.pid" == &source.doc_type {
-                    pid_issuer_organization()
-                } else {
-                    // TODO How to retrieve organization information for issuance
-                    mock_issuer_organization()
+                issuer: match source.doc_type.as_str() {
+                    "com.example.pid" | "com.example.address" => pid_issuer_organization(),
+                    _ => {
+                        // TODO How to retrieve organization information for issuance
+                        mock_issuer_organization()
+                    }
                 },
                 // TODO extract from WalletEvent after event_log table stores mdoc
                 card: Card {
                     persistence: CardPersistence::InMemory,
-                    doc_type: "com.example.pid".to_string(),
-                    attributes: vec![],
+                    doc_type: source.doc_type.to_owned(),
+                    attributes: vec![CardAttribute {
+                        key: "sample".to_string(),
+                        labels: vec![LocalizedString {
+                            language: "en".to_string(),
+                            value: "Sample label".to_string(),
+                        }],
+                        value: CardValue::String {
+                            value: "Sample value".to_string(),
+                        },
+                    }],
                 },
             },
             wallet::EventType::Disclosure => {
