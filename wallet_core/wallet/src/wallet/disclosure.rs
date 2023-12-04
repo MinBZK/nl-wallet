@@ -19,7 +19,7 @@ use crate::{
     },
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     storage::{Storage, StorageError},
-    EventStatus, EventType, WalletEvent,
+    WalletEvent,
 };
 
 use super::Wallet;
@@ -166,27 +166,18 @@ where
                 .missing_attributes()
                 .iter()
                 .map(|a| {
-                    WalletEvent::new(
-                        EventType::Disclosure,
+                    WalletEvent::disclosure_error(
                         a.doc_type.to_owned(),
                         now,
                         certificate.clone(),
-                        EventStatus::Cancelled, // TODO Reason: missing attrributes
+                        String::from("Wallet does not contain all requested attributes"),
                     )
                 })
                 .collect(),
             MdocDisclosureSessionState::Proposal(proposal) => proposal
                 .proposed_attributes()
                 .keys()
-                .map(|doc_type| {
-                    WalletEvent::new(
-                        EventType::Disclosure,
-                        doc_type.to_owned(),
-                        now,
-                        certificate.clone(),
-                        EventStatus::Cancelled, // TODO Reason: user rejected
-                    )
-                })
+                .map(|doc_type| WalletEvent::disclosure_cancelled(doc_type.to_owned(), now, certificate.clone()))
                 .collect(),
         };
 
@@ -263,7 +254,7 @@ mod tests {
 
     use crate::{
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
-        Attribute, AttributeValue,
+        Attribute, AttributeValue, EventStatus, EventType,
     };
 
     use super::{super::tests::WalletWithMocks, *};

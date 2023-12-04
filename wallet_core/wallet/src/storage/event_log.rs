@@ -73,6 +73,49 @@ impl WalletEvent {
             status,
         }
     }
+
+    pub fn issuance_success(
+        doc_type: DocType,
+        timestamp: DateTime<Utc>,
+        remote_party_certificate: Certificate,
+    ) -> Self {
+        Self::new(
+            EventType::Issuance,
+            doc_type,
+            timestamp,
+            remote_party_certificate,
+            EventStatus::Success,
+        )
+    }
+
+    pub fn disclosure_cancelled(
+        doc_type: DocType,
+        timestamp: DateTime<Utc>,
+        remote_party_certificate: Certificate,
+    ) -> Self {
+        Self::new(
+            EventType::Disclosure,
+            doc_type,
+            timestamp,
+            remote_party_certificate,
+            EventStatus::Cancelled,
+        )
+    }
+
+    pub fn disclosure_error(
+        doc_type: DocType,
+        timestamp: DateTime<Utc>,
+        remote_party_certificate: Certificate,
+        reason: String,
+    ) -> Self {
+        Self::new(
+            EventType::Disclosure,
+            doc_type,
+            timestamp,
+            remote_party_certificate,
+            EventStatus::Error(reason),
+        )
+    }
 }
 
 impl From<Model> for WalletEvent {

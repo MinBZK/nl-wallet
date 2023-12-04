@@ -3,7 +3,6 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
-use entity::event_log::EventType;
 use nl_wallet_mdoc::server_keys::KeysError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
@@ -14,7 +13,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{PidIssuerClient, PidIssuerError},
-    storage::{EventStatus, Storage, StorageError, WalletEvent},
+    storage::{Storage, StorageError, WalletEvent},
 };
 
 use super::Wallet;
@@ -244,17 +243,13 @@ where
             })?;
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
+        let now = Utc::now();
         let events = mdocs
             .iter()
             .flat_map(|mdoc| mdoc.cred_copies.first())
             .map(|mdoc| {
-                WalletEvent::new(
-                    EventType::Issuance,
-                    mdoc.doc_type.to_owned(),
-                    Utc::now(),
-                    mdoc.issuer_certificate().unwrap(), // This should never fail
-                    EventStatus::Success,
-                )
+                let certificate = mdoc.issuer_certificate().unwrap(); // This should never fail after successful issuance
+                WalletEvent::issuance_success(mdoc.doc_type.to_owned(), now, certificate)
             })
             .collect::<Vec<_>>();
 
@@ -287,13 +282,13 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
-    use entity::event_log::EventType;
     use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::HolderError, issuer_shared::IssuanceError, Tdate};
 
     use crate::{
         digid::{MockDigidSession, OpenIdError},
         document::{self, DocumentPersistence},
         wallet::tests,
+        EventStatus, EventType,
     };
 
     use super::{super::tests::WalletWithMocks, *};
