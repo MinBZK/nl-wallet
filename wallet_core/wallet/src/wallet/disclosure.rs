@@ -176,11 +176,11 @@ where
             MdocDisclosureSessionState::MissingAttributes(missing_attributes) => missing_attributes
                 .missing_attributes()
                 .iter()
-                .map(|a| a.doc_type.to_owned())
+                .map(|a| &a.doc_type)
                 .unique()
                 .map(|doc_type| {
                     WalletEvent::disclosure_error(
-                        doc_type,
+                        doc_type.to_owned(),
                         now,
                         certificate.clone(),
                         String::from("Wallet does not contain all requested attributes"),
