@@ -34,21 +34,6 @@ class CoreHistoryRepository extends HistoryRepository implements TimelineAttribu
   }
 
   @override
-  Future<void> create(TimelineAttribute attribute) => throw UnimplementedError();
-
-  @override
-  Future<TimelineAttribute> read({required String timelineAttributeId, String? docType}) async {
-    final all = await readAll();
-    Iterable<TimelineAttribute> filteredAttributes;
-    if (docType != null) {
-      filteredAttributes = all.where((element) => element.attributesByDocType.containsKey(docType));
-    } else {
-      filteredAttributes = all;
-    }
-    return filteredAttributes.firstWhere((attribute) => attribute.id == timelineAttributeId);
-  }
-
-  @override
   Future<List<TimelineAttribute>> readFiltered({required String docType}) async {
     final all = await readAll();
     return all.where((element) => element.attributesByDocType.containsKey(docType)).toList();

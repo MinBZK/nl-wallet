@@ -4,6 +4,7 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
+import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/timeline_section.dart';
 import 'package:wallet/src/feature/common/widget/history/timeline_section_sliver.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -46,7 +47,7 @@ void main() {
           CustomScrollView(
             slivers: [
               TimelineSectionSliver(
-                onRowPressed: (String timelineAttributeId) {},
+                onRowPressed: (TimelineAttribute attribute) {},
                 section: TimelineSection(
                   DateTime(2023, 1),
                   mockAttributes,
@@ -66,7 +67,7 @@ void main() {
           CustomScrollView(
             slivers: [
               TimelineSectionSliver(
-                onRowPressed: (String timelineAttributeId) {},
+                onRowPressed: (TimelineAttribute attribute) {},
                 section: TimelineSection(
                   DateTime(2023, 1),
                   mockAttributes,
@@ -88,7 +89,7 @@ void main() {
         CustomScrollView(
           slivers: [
             TimelineSectionSliver(
-              onRowPressed: (String timelineAttributeId) {},
+              onRowPressed: (TimelineAttribute attribute) {},
               section: TimelineSection(
                 DateTime(2023, 1),
                 mockAttributes,

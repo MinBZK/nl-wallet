@@ -370,8 +370,8 @@ class HistoryDetailScreen extends StatelessWidget {
                 final args = getArgument(settings);
                 context.read<HistoryDetailBloc>().add(
                       HistoryDetailLoadTriggered(
-                        attributeId: args.timelineAttributeId,
-                        docType: args.cardId,
+                        attribute: args.timelineAttribute,
+                        docType: args.docType,
                       ),
                     );
               } else {

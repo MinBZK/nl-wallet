@@ -3,21 +3,21 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
+import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i7;
-import 'package:wallet/src/data/repository/card/wallet_card_repository.dart' as _i12;
-import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart' as _i15;
-import 'package:wallet/src/data/repository/organization/organization_repository.dart' as _i13;
-import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i8;
-import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i10;
+import 'package:mockito/src/dummies.dart' as _i6;
+import 'package:wallet/src/data/repository/card/wallet_card_repository.dart' as _i11;
+import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart' as _i14;
+import 'package:wallet/src/data/repository/organization/organization_repository.dart' as _i12;
+import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i7;
+import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i9;
 import 'package:wallet/src/data/service/navigation_service.dart' as _i19;
-import 'package:wallet/src/domain/model/attribute/data_attribute.dart' as _i9;
-import 'package:wallet/src/domain/model/organization.dart' as _i14;
+import 'package:wallet/src/domain/model/attribute/data_attribute.dart' as _i8;
+import 'package:wallet/src/domain/model/organization.dart' as _i13;
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart' as _i16;
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart' as _i17;
-import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i4;
+import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i15;
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i3;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i22;
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i30;
@@ -26,13 +26,13 @@ import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisi
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i20;
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i26;
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i28;
-import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i11;
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i10;
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i29;
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i21;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i23;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i24;
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i25;
-import 'package:wallet/src/util/mapper/mapper.dart' as _i6;
+import 'package:wallet/src/util/mapper/mapper.dart' as _i5;
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart' as _i18;
 import 'package:wallet_core/core.dart' as _i2;
 
@@ -67,8 +67,8 @@ class _FakeWalletCard_1 extends _i1.SmartFake implements _i3.WalletCard {
         );
 }
 
-class _FakeTimelineAttribute_2 extends _i1.SmartFake implements _i4.TimelineAttribute {
-  _FakeTimelineAttribute_2(
+class _FakeStartDisclosureResult_2 extends _i1.SmartFake implements _i2.StartDisclosureResult {
+  _FakeStartDisclosureResult_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -77,8 +77,8 @@ class _FakeTimelineAttribute_2 extends _i1.SmartFake implements _i4.TimelineAttr
         );
 }
 
-class _FakeStartDisclosureResult_3 extends _i1.SmartFake implements _i2.StartDisclosureResult {
-  _FakeStartDisclosureResult_3(
+class _FakeFuture_3<T1> extends _i1.SmartFake implements _i4.Future<T1> {
+  _FakeFuture_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -87,18 +87,8 @@ class _FakeStartDisclosureResult_3 extends _i1.SmartFake implements _i2.StartDis
         );
 }
 
-class _FakeFuture_4<T1> extends _i1.SmartFake implements _i5.Future<T1> {
-  _FakeFuture_4(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
-}
-
-class _FakeFlutterRustBridgeTaskConstMeta_5 extends _i1.SmartFake implements _i2.FlutterRustBridgeTaskConstMeta {
-  _FakeFlutterRustBridgeTaskConstMeta_5(
+class _FakeFlutterRustBridgeTaskConstMeta_4 extends _i1.SmartFake implements _i2.FlutterRustBridgeTaskConstMeta {
+  _FakeFlutterRustBridgeTaskConstMeta_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -110,21 +100,21 @@ class _FakeFlutterRustBridgeTaskConstMeta_5 extends _i1.SmartFake implements _i2
 /// A class which mocks [Mapper].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMapper<I, O> extends _i1.Mock implements _i6.Mapper<I, O> {
+class MockMapper<I, O> extends _i1.Mock implements _i5.Mapper<I, O> {
   @override
   O map(I? input) => (super.noSuchMethod(
         Invocation.method(
           #map,
           [input],
         ),
-        returnValue: _i7.dummyValue<O>(
+        returnValue: _i6.dummyValue<O>(
           this,
           Invocation.method(
             #map,
             [input],
           ),
         ),
-        returnValueForMissingStub: _i7.dummyValue<O>(
+        returnValueForMissingStub: _i6.dummyValue<O>(
           this,
           Invocation.method(
             #map,
@@ -147,132 +137,132 @@ class MockMapper<I, O> extends _i1.Mock implements _i6.Mapper<I, O> {
 /// A class which mocks [PidRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPidRepository extends _i1.Mock implements _i8.PidRepository {
+class MockPidRepository extends _i1.Mock implements _i7.PidRepository {
   @override
-  _i5.Future<String> getPidIssuanceUrl() => (super.noSuchMethod(
+  _i4.Future<String> getPidIssuanceUrl() => (super.noSuchMethod(
         Invocation.method(
           #getPidIssuanceUrl,
           [],
         ),
-        returnValue: _i5.Future<String>.value(''),
-        returnValueForMissingStub: _i5.Future<String>.value(''),
-      ) as _i5.Future<String>);
+        returnValue: _i4.Future<String>.value(''),
+        returnValueForMissingStub: _i4.Future<String>.value(''),
+      ) as _i4.Future<String>);
 
   @override
-  _i5.Future<List<_i9.DataAttribute>> continuePidIssuance(String? uri) => (super.noSuchMethod(
+  _i4.Future<List<_i8.DataAttribute>> continuePidIssuance(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #continuePidIssuance,
           [uri],
         ),
-        returnValue: _i5.Future<List<_i9.DataAttribute>>.value(<_i9.DataAttribute>[]),
-        returnValueForMissingStub: _i5.Future<List<_i9.DataAttribute>>.value(<_i9.DataAttribute>[]),
-      ) as _i5.Future<List<_i9.DataAttribute>>);
+        returnValue: _i4.Future<List<_i8.DataAttribute>>.value(<_i8.DataAttribute>[]),
+        returnValueForMissingStub: _i4.Future<List<_i8.DataAttribute>>.value(<_i8.DataAttribute>[]),
+      ) as _i4.Future<List<_i8.DataAttribute>>);
 
   @override
-  _i5.Future<void> cancelPidIssuance() => (super.noSuchMethod(
+  _i4.Future<void> cancelPidIssuance() => (super.noSuchMethod(
         Invocation.method(
           #cancelPidIssuance,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> acceptOfferedPid(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.WalletInstructionResult> acceptOfferedPid(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #acceptOfferedPid,
           [pin],
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptOfferedPid,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptOfferedPid,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
-  _i5.Future<void> rejectOfferedPid() => (super.noSuchMethod(
+  _i4.Future<void> rejectOfferedPid() => (super.noSuchMethod(
         Invocation.method(
           #rejectOfferedPid,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [WalletRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockWalletRepository extends _i1.Mock implements _i10.WalletRepository {
+class MockWalletRepository extends _i1.Mock implements _i9.WalletRepository {
   @override
-  _i5.Stream<bool> get isLockedStream => (super.noSuchMethod(
+  _i4.Stream<bool> get isLockedStream => (super.noSuchMethod(
         Invocation.getter(#isLockedStream),
-        returnValue: _i5.Stream<bool>.empty(),
-        returnValueForMissingStub: _i5.Stream<bool>.empty(),
-      ) as _i5.Stream<bool>);
+        returnValue: _i4.Stream<bool>.empty(),
+        returnValueForMissingStub: _i4.Stream<bool>.empty(),
+      ) as _i4.Stream<bool>);
 
   @override
-  _i5.Future<void> validatePin(String? pin) => (super.noSuchMethod(
+  _i4.Future<void> validatePin(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #validatePin,
           [pin],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<void> createWallet(String? pin) => (super.noSuchMethod(
+  _i4.Future<void> createWallet(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #createWallet,
           [pin],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<bool> isRegistered() => (super.noSuchMethod(
+  _i4.Future<bool> isRegistered() => (super.noSuchMethod(
         Invocation.method(
           #isRegistered,
           [],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> unlockWallet(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.WalletInstructionResult> unlockWallet(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #unlockWallet,
           [pin],
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
   void lockWallet() => super.noSuchMethod(
@@ -284,235 +274,187 @@ class MockWalletRepository extends _i1.Mock implements _i10.WalletRepository {
       );
 
   @override
-  _i5.Future<_i11.CheckPinResult> confirmTransaction(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i10.CheckPinResult> confirmTransaction(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #confirmTransaction,
           [pin],
         ),
-        returnValue: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValue: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #confirmTransaction,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValueForMissingStub: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #confirmTransaction,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i11.CheckPinResult>);
+      ) as _i4.Future<_i10.CheckPinResult>);
 
   @override
-  _i5.Future<bool> containsPid() => (super.noSuchMethod(
+  _i4.Future<bool> containsPid() => (super.noSuchMethod(
         Invocation.method(
           #containsPid,
           [],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i5.Future<void> resetWallet() => (super.noSuchMethod(
+  _i4.Future<void> resetWallet() => (super.noSuchMethod(
         Invocation.method(
           #resetWallet,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [WalletCardRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockWalletCardRepository extends _i1.Mock implements _i12.WalletCardRepository {
+class MockWalletCardRepository extends _i1.Mock implements _i11.WalletCardRepository {
   @override
-  _i5.Stream<List<_i3.WalletCard>> observeWalletCards() => (super.noSuchMethod(
+  _i4.Stream<List<_i3.WalletCard>> observeWalletCards() => (super.noSuchMethod(
         Invocation.method(
           #observeWalletCards,
           [],
         ),
-        returnValue: _i5.Stream<List<_i3.WalletCard>>.empty(),
-        returnValueForMissingStub: _i5.Stream<List<_i3.WalletCard>>.empty(),
-      ) as _i5.Stream<List<_i3.WalletCard>>);
+        returnValue: _i4.Stream<List<_i3.WalletCard>>.empty(),
+        returnValueForMissingStub: _i4.Stream<List<_i3.WalletCard>>.empty(),
+      ) as _i4.Stream<List<_i3.WalletCard>>);
 
   @override
-  _i5.Future<bool> exists(String? cardId) => (super.noSuchMethod(
+  _i4.Future<bool> exists(String? cardId) => (super.noSuchMethod(
         Invocation.method(
           #exists,
           [cardId],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i5.Future<void> create(_i3.WalletCard? card) => (super.noSuchMethod(
+  _i4.Future<void> create(_i3.WalletCard? card) => (super.noSuchMethod(
         Invocation.method(
           #create,
           [card],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<List<_i3.WalletCard>> readAll() => (super.noSuchMethod(
+  _i4.Future<List<_i3.WalletCard>> readAll() => (super.noSuchMethod(
         Invocation.method(
           #readAll,
           [],
         ),
-        returnValue: _i5.Future<List<_i3.WalletCard>>.value(<_i3.WalletCard>[]),
-        returnValueForMissingStub: _i5.Future<List<_i3.WalletCard>>.value(<_i3.WalletCard>[]),
-      ) as _i5.Future<List<_i3.WalletCard>>);
+        returnValue: _i4.Future<List<_i3.WalletCard>>.value(<_i3.WalletCard>[]),
+        returnValueForMissingStub: _i4.Future<List<_i3.WalletCard>>.value(<_i3.WalletCard>[]),
+      ) as _i4.Future<List<_i3.WalletCard>>);
 
   @override
-  _i5.Future<_i3.WalletCard> read(String? cardId) => (super.noSuchMethod(
+  _i4.Future<_i3.WalletCard> read(String? cardId) => (super.noSuchMethod(
         Invocation.method(
           #read,
           [cardId],
         ),
-        returnValue: _i5.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
+        returnValue: _i4.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
           this,
           Invocation.method(
             #read,
             [cardId],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
+        returnValueForMissingStub: _i4.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
           this,
           Invocation.method(
             #read,
             [cardId],
           ),
         )),
-      ) as _i5.Future<_i3.WalletCard>);
+      ) as _i4.Future<_i3.WalletCard>);
 
   @override
-  _i5.Future<void> update(_i3.WalletCard? card) => (super.noSuchMethod(
+  _i4.Future<void> update(_i3.WalletCard? card) => (super.noSuchMethod(
         Invocation.method(
           #update,
           [card],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<void> delete(String? cardId) => (super.noSuchMethod(
+  _i4.Future<void> delete(String? cardId) => (super.noSuchMethod(
         Invocation.method(
           #delete,
           [cardId],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [OrganizationRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockOrganizationRepository extends _i1.Mock implements _i13.OrganizationRepository {
+class MockOrganizationRepository extends _i1.Mock implements _i12.OrganizationRepository {
   @override
-  _i5.Future<_i14.Organization?> read(String? organizationId) => (super.noSuchMethod(
+  _i4.Future<_i13.Organization?> read(String? organizationId) => (super.noSuchMethod(
         Invocation.method(
           #read,
           [organizationId],
         ),
-        returnValue: _i5.Future<_i14.Organization?>.value(),
-        returnValueForMissingStub: _i5.Future<_i14.Organization?>.value(),
-      ) as _i5.Future<_i14.Organization?>);
+        returnValue: _i4.Future<_i13.Organization?>.value(),
+        returnValueForMissingStub: _i4.Future<_i13.Organization?>.value(),
+      ) as _i4.Future<_i13.Organization?>);
 
   @override
-  _i5.Future<_i14.Organization?> findIssuer(String? docType) => (super.noSuchMethod(
+  _i4.Future<_i13.Organization?> findIssuer(String? docType) => (super.noSuchMethod(
         Invocation.method(
           #findIssuer,
           [docType],
         ),
-        returnValue: _i5.Future<_i14.Organization?>.value(),
-        returnValueForMissingStub: _i5.Future<_i14.Organization?>.value(),
-      ) as _i5.Future<_i14.Organization?>);
+        returnValue: _i4.Future<_i13.Organization?>.value(),
+        returnValueForMissingStub: _i4.Future<_i13.Organization?>.value(),
+      ) as _i4.Future<_i13.Organization?>);
 }
 
 /// A class which mocks [TimelineAttributeRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineAttributeRepository {
+class MockTimelineAttributeRepository extends _i1.Mock implements _i14.TimelineAttributeRepository {
   @override
-  _i5.Future<void> create(_i4.TimelineAttribute? attribute) => (super.noSuchMethod(
-        Invocation.method(
-          #create,
-          [attribute],
-        ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
-
-  @override
-  _i5.Future<List<_i4.TimelineAttribute>> readAll() => (super.noSuchMethod(
+  _i4.Future<List<_i15.TimelineAttribute>> readAll() => (super.noSuchMethod(
         Invocation.method(
           #readAll,
           [],
         ),
-        returnValue: _i5.Future<List<_i4.TimelineAttribute>>.value(<_i4.TimelineAttribute>[]),
-        returnValueForMissingStub: _i5.Future<List<_i4.TimelineAttribute>>.value(<_i4.TimelineAttribute>[]),
-      ) as _i5.Future<List<_i4.TimelineAttribute>>);
+        returnValue: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
+        returnValueForMissingStub: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
+      ) as _i4.Future<List<_i15.TimelineAttribute>>);
 
   @override
-  _i5.Future<List<_i4.TimelineAttribute>> readFiltered({required String? docType}) => (super.noSuchMethod(
+  _i4.Future<List<_i15.TimelineAttribute>> readFiltered({required String? docType}) => (super.noSuchMethod(
         Invocation.method(
           #readFiltered,
           [],
           {#docType: docType},
         ),
-        returnValue: _i5.Future<List<_i4.TimelineAttribute>>.value(<_i4.TimelineAttribute>[]),
-        returnValueForMissingStub: _i5.Future<List<_i4.TimelineAttribute>>.value(<_i4.TimelineAttribute>[]),
-      ) as _i5.Future<List<_i4.TimelineAttribute>>);
+        returnValue: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
+        returnValueForMissingStub: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
+      ) as _i4.Future<List<_i15.TimelineAttribute>>);
 
   @override
-  _i5.Future<_i4.TimelineAttribute> read({
-    required String? timelineAttributeId,
-    String? docType,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #read,
-          [],
-          {
-            #timelineAttributeId: timelineAttributeId,
-            #docType: docType,
-          },
-        ),
-        returnValue: _i5.Future<_i4.TimelineAttribute>.value(_FakeTimelineAttribute_2(
-          this,
-          Invocation.method(
-            #read,
-            [],
-            {
-              #timelineAttributeId: timelineAttributeId,
-              #docType: docType,
-            },
-          ),
-        )),
-        returnValueForMissingStub: _i5.Future<_i4.TimelineAttribute>.value(_FakeTimelineAttribute_2(
-          this,
-          Invocation.method(
-            #read,
-            [],
-            {
-              #timelineAttributeId: timelineAttributeId,
-              #docType: docType,
-            },
-          ),
-        )),
-      ) as _i5.Future<_i4.TimelineAttribute>);
-
-  @override
-  _i5.Future<_i16.InteractionTimelineAttribute?> readMostRecentInteraction(
+  _i4.Future<_i16.InteractionTimelineAttribute?> readMostRecentInteraction(
     String? docType,
     _i16.InteractionStatus? status,
   ) =>
@@ -524,12 +466,12 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
             status,
           ],
         ),
-        returnValue: _i5.Future<_i16.InteractionTimelineAttribute?>.value(),
-        returnValueForMissingStub: _i5.Future<_i16.InteractionTimelineAttribute?>.value(),
-      ) as _i5.Future<_i16.InteractionTimelineAttribute?>);
+        returnValue: _i4.Future<_i16.InteractionTimelineAttribute?>.value(),
+        returnValueForMissingStub: _i4.Future<_i16.InteractionTimelineAttribute?>.value(),
+      ) as _i4.Future<_i16.InteractionTimelineAttribute?>);
 
   @override
-  _i5.Future<_i17.OperationTimelineAttribute?> readMostRecentOperation(
+  _i4.Future<_i17.OperationTimelineAttribute?> readMostRecentOperation(
     String? docType,
     _i17.OperationStatus? status,
   ) =>
@@ -541,9 +483,9 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
             status,
           ],
         ),
-        returnValue: _i5.Future<_i17.OperationTimelineAttribute?>.value(),
-        returnValueForMissingStub: _i5.Future<_i17.OperationTimelineAttribute?>.value(),
-      ) as _i5.Future<_i17.OperationTimelineAttribute?>);
+        returnValue: _i4.Future<_i17.OperationTimelineAttribute?>.value(),
+        returnValueForMissingStub: _i4.Future<_i17.OperationTimelineAttribute?>.value(),
+      ) as _i4.Future<_i17.OperationTimelineAttribute?>);
 }
 
 /// A class which mocks [TypedWalletCore].
@@ -551,291 +493,291 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i15.TimelineA
 /// See the documentation for Mockito's code generation for more information.
 class MockTypedWalletCore extends _i1.Mock implements _i18.TypedWalletCore {
   @override
-  _i5.Stream<bool> get isLocked => (super.noSuchMethod(
+  _i4.Stream<bool> get isLocked => (super.noSuchMethod(
         Invocation.getter(#isLocked),
-        returnValue: _i5.Stream<bool>.empty(),
-        returnValueForMissingStub: _i5.Stream<bool>.empty(),
-      ) as _i5.Stream<bool>);
+        returnValue: _i4.Stream<bool>.empty(),
+        returnValueForMissingStub: _i4.Stream<bool>.empty(),
+      ) as _i4.Stream<bool>);
 
   @override
-  _i5.Future<_i2.PinValidationResult> isValidPin(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.PinValidationResult> isValidPin(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #isValidPin,
           [pin],
         ),
-        returnValue: _i5.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
-        returnValueForMissingStub: _i5.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
-      ) as _i5.Future<_i2.PinValidationResult>);
+        returnValue: _i4.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
+        returnValueForMissingStub: _i4.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
+      ) as _i4.Future<_i2.PinValidationResult>);
 
   @override
-  _i5.Future<void> register(String? pin) => (super.noSuchMethod(
+  _i4.Future<void> register(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #register,
           [pin],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<bool> isRegistered() => (super.noSuchMethod(
+  _i4.Future<bool> isRegistered() => (super.noSuchMethod(
         Invocation.method(
           #isRegistered,
           [],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i5.Future<void> lockWallet() => (super.noSuchMethod(
+  _i4.Future<void> lockWallet() => (super.noSuchMethod(
         Invocation.method(
           #lockWallet,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> unlockWallet(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.WalletInstructionResult> unlockWallet(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #unlockWallet,
           [pin],
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
-  _i5.Stream<_i2.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
+  _i4.Stream<_i2.FlutterConfiguration> observeConfig() => (super.noSuchMethod(
         Invocation.method(
           #observeConfig,
           [],
         ),
-        returnValue: _i5.Stream<_i2.FlutterConfiguration>.empty(),
-        returnValueForMissingStub: _i5.Stream<_i2.FlutterConfiguration>.empty(),
-      ) as _i5.Stream<_i2.FlutterConfiguration>);
+        returnValue: _i4.Stream<_i2.FlutterConfiguration>.empty(),
+        returnValueForMissingStub: _i4.Stream<_i2.FlutterConfiguration>.empty(),
+      ) as _i4.Stream<_i2.FlutterConfiguration>);
 
   @override
-  _i5.Future<String> createPidIssuanceRedirectUri() => (super.noSuchMethod(
+  _i4.Future<String> createPidIssuanceRedirectUri() => (super.noSuchMethod(
         Invocation.method(
           #createPidIssuanceRedirectUri,
           [],
         ),
-        returnValue: _i5.Future<String>.value(''),
-        returnValueForMissingStub: _i5.Future<String>.value(''),
-      ) as _i5.Future<String>);
+        returnValue: _i4.Future<String>.value(''),
+        returnValueForMissingStub: _i4.Future<String>.value(''),
+      ) as _i4.Future<String>);
 
   @override
-  _i5.Future<_i2.IdentifyUriResult> identifyUri(String? uri) => (super.noSuchMethod(
+  _i4.Future<_i2.IdentifyUriResult> identifyUri(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #identifyUri,
           [uri],
         ),
-        returnValue: _i5.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
-        returnValueForMissingStub: _i5.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
-      ) as _i5.Future<_i2.IdentifyUriResult>);
+        returnValue: _i4.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
+        returnValueForMissingStub: _i4.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
+      ) as _i4.Future<_i2.IdentifyUriResult>);
 
   @override
-  _i5.Future<void> cancelPidIssuance() => (super.noSuchMethod(
+  _i4.Future<void> cancelPidIssuance() => (super.noSuchMethod(
         Invocation.method(
           #cancelPidIssuance,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<List<_i2.Card>> continuePidIssuance(String? uri) => (super.noSuchMethod(
+  _i4.Future<List<_i2.Card>> continuePidIssuance(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #continuePidIssuance,
           [uri],
         ),
-        returnValue: _i5.Future<List<_i2.Card>>.value(<_i2.Card>[]),
-        returnValueForMissingStub: _i5.Future<List<_i2.Card>>.value(<_i2.Card>[]),
-      ) as _i5.Future<List<_i2.Card>>);
+        returnValue: _i4.Future<List<_i2.Card>>.value(<_i2.Card>[]),
+        returnValueForMissingStub: _i4.Future<List<_i2.Card>>.value(<_i2.Card>[]),
+      ) as _i4.Future<List<_i2.Card>>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> acceptOfferedPid(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.WalletInstructionResult> acceptOfferedPid(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #acceptOfferedPid,
           [pin],
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptOfferedPid,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptOfferedPid,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
-  _i5.Future<void> rejectOfferedPid() => (super.noSuchMethod(
+  _i4.Future<void> rejectOfferedPid() => (super.noSuchMethod(
         Invocation.method(
           #rejectOfferedPid,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.StartDisclosureResult> startDisclosure(String? uri) => (super.noSuchMethod(
+  _i4.Future<_i2.StartDisclosureResult> startDisclosure(String? uri) => (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
           [uri],
         ),
-        returnValue: _i5.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
+        returnValue: _i4.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_2(
           this,
           Invocation.method(
             #startDisclosure,
             [uri],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
+        returnValueForMissingStub: _i4.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_2(
           this,
           Invocation.method(
             #startDisclosure,
             [uri],
           ),
         )),
-      ) as _i5.Future<_i2.StartDisclosureResult>);
+      ) as _i4.Future<_i2.StartDisclosureResult>);
 
   @override
-  _i5.Future<void> cancelDisclosure() => (super.noSuchMethod(
+  _i4.Future<void> cancelDisclosure() => (super.noSuchMethod(
         Invocation.method(
           #cancelDisclosure,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> acceptDisclosure(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.WalletInstructionResult> acceptDisclosure(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #acceptDisclosure,
           [pin],
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptDisclosure,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptDisclosure,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
-  _i5.Stream<List<_i2.Card>> observeCards() => (super.noSuchMethod(
+  _i4.Stream<List<_i2.Card>> observeCards() => (super.noSuchMethod(
         Invocation.method(
           #observeCards,
           [],
         ),
-        returnValue: _i5.Stream<List<_i2.Card>>.empty(),
-        returnValueForMissingStub: _i5.Stream<List<_i2.Card>>.empty(),
-      ) as _i5.Stream<List<_i2.Card>>);
+        returnValue: _i4.Stream<List<_i2.Card>>.empty(),
+        returnValueForMissingStub: _i4.Stream<List<_i2.Card>>.empty(),
+      ) as _i4.Stream<List<_i2.Card>>);
 
   @override
-  _i5.Future<void> resetWallet() => (super.noSuchMethod(
+  _i4.Future<void> resetWallet() => (super.noSuchMethod(
         Invocation.method(
           #resetWallet,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<List<_i2.WalletEvent>> getHistory() => (super.noSuchMethod(
+  _i4.Future<List<_i2.WalletEvent>> getHistory() => (super.noSuchMethod(
         Invocation.method(
           #getHistory,
           [],
         ),
-        returnValue: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-        returnValueForMissingStub: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-      ) as _i5.Future<List<_i2.WalletEvent>>);
+        returnValue: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i4.Future<List<_i2.WalletEvent>>);
 
   @override
-  _i5.Future<List<_i2.WalletEvent>> getHistoryForCard(String? docType) => (super.noSuchMethod(
+  _i4.Future<List<_i2.WalletEvent>> getHistoryForCard(String? docType) => (super.noSuchMethod(
         Invocation.method(
           #getHistoryForCard,
           [docType],
         ),
-        returnValue: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-        returnValueForMissingStub: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-      ) as _i5.Future<List<_i2.WalletEvent>>);
+        returnValue: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i4.Future<List<_i2.WalletEvent>>);
 
   @override
-  _i5.Future<T> call<T>(_i5.Future<T> Function(_i2.WalletCore)? runnable) => (super.noSuchMethod(
+  _i4.Future<T> call<T>(_i4.Future<T> Function(_i2.WalletCore)? runnable) => (super.noSuchMethod(
         Invocation.method(
           #call,
           [runnable],
         ),
-        returnValue: _i7.ifNotNull(
-              _i7.dummyValueOrNull<T>(
+        returnValue: _i6.ifNotNull(
+              _i6.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #call,
                   [runnable],
                 ),
               ),
-              (T v) => _i5.Future<T>.value(v),
+              (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_4<T>(
+            _FakeFuture_3<T>(
               this,
               Invocation.method(
                 #call,
                 [runnable],
               ),
             ),
-        returnValueForMissingStub: _i7.ifNotNull(
-              _i7.dummyValueOrNull<T>(
+        returnValueForMissingStub: _i6.ifNotNull(
+              _i6.dummyValueOrNull<T>(
                 this,
                 Invocation.method(
                   #call,
                   [runnable],
                 ),
               ),
-              (T v) => _i5.Future<T>.value(v),
+              (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_4<T>(
+            _FakeFuture_3<T>(
               this,
               Invocation.method(
                 #call,
                 [runnable],
               ),
             ),
-      ) as _i5.Future<T>);
+      ) as _i4.Future<T>);
 }
 
 /// A class which mocks [NavigationService].
@@ -843,7 +785,7 @@ class MockTypedWalletCore extends _i1.Mock implements _i18.TypedWalletCore {
 /// See the documentation for Mockito's code generation for more information.
 class MockNavigationService extends _i1.Mock implements _i19.NavigationService {
   @override
-  _i5.Future<void> handleNavigationRequest(
+  _i4.Future<void> handleNavigationRequest(
     _i20.NavigationRequest? request, {
     bool? queueIfNotReady = false,
   }) =>
@@ -853,19 +795,19 @@ class MockNavigationService extends _i1.Mock implements _i19.NavigationService {
           [request],
           {#queueIfNotReady: queueIfNotReady},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<void> processQueue() => (super.noSuchMethod(
+  _i4.Future<void> processQueue() => (super.noSuchMethod(
         Invocation.method(
           #processQueue,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [DecodeUriUseCase].
@@ -873,26 +815,26 @@ class MockNavigationService extends _i1.Mock implements _i19.NavigationService {
 /// See the documentation for Mockito's code generation for more information.
 class MockDecodeUriUseCase extends _i1.Mock implements _i21.DecodeUriUseCase {
   @override
-  _i5.Future<_i20.NavigationRequest> invoke(Uri? uri) => (super.noSuchMethod(
+  _i4.Future<_i20.NavigationRequest> invoke(Uri? uri) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [uri],
         ),
-        returnValue: _i5.Future<_i20.NavigationRequest>.value(_i7.dummyValue<_i20.NavigationRequest>(
+        returnValue: _i4.Future<_i20.NavigationRequest>.value(_i6.dummyValue<_i20.NavigationRequest>(
           this,
           Invocation.method(
             #invoke,
             [uri],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i20.NavigationRequest>.value(_i7.dummyValue<_i20.NavigationRequest>(
+        returnValueForMissingStub: _i4.Future<_i20.NavigationRequest>.value(_i6.dummyValue<_i20.NavigationRequest>(
           this,
           Invocation.method(
             #invoke,
             [uri],
           ),
         )),
-      ) as _i5.Future<_i20.NavigationRequest>);
+      ) as _i4.Future<_i20.NavigationRequest>);
 }
 
 /// A class which mocks [IsWalletInitializedUseCase].
@@ -900,14 +842,14 @@ class MockDecodeUriUseCase extends _i1.Mock implements _i21.DecodeUriUseCase {
 /// See the documentation for Mockito's code generation for more information.
 class MockIsWalletInitializedUseCase extends _i1.Mock implements _i22.IsWalletInitializedUseCase {
   @override
-  _i5.Future<bool> invoke() => (super.noSuchMethod(
+  _i4.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 }
 
 /// A class which mocks [IsWalletInitializedWithPidUseCase].
@@ -915,14 +857,14 @@ class MockIsWalletInitializedUseCase extends _i1.Mock implements _i22.IsWalletIn
 /// See the documentation for Mockito's code generation for more information.
 class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i23.IsWalletInitializedWithPidUseCase {
   @override
-  _i5.Future<bool> invoke() => (super.noSuchMethod(
+  _i4.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 }
 
 /// A class which mocks [ObserveWalletLockedUseCase].
@@ -930,41 +872,41 @@ class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i23.IsW
 /// See the documentation for Mockito's code generation for more information.
 class MockObserveWalletLockedUseCase extends _i1.Mock implements _i24.ObserveWalletLockedUseCase {
   @override
-  _i5.Stream<bool> invoke() => (super.noSuchMethod(
+  _i4.Stream<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [],
         ),
-        returnValue: _i5.Stream<bool>.empty(),
-        returnValueForMissingStub: _i5.Stream<bool>.empty(),
-      ) as _i5.Stream<bool>);
+        returnValue: _i4.Stream<bool>.empty(),
+        returnValueForMissingStub: _i4.Stream<bool>.empty(),
+      ) as _i4.Stream<bool>);
 }
 
 /// A class which mocks [CheckPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckPinUseCase extends _i1.Mock implements _i11.CheckPinUseCase {
+class MockCheckPinUseCase extends _i1.Mock implements _i10.CheckPinUseCase {
   @override
-  _i5.Future<_i11.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i10.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [pin],
         ),
-        returnValue: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValue: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValueForMissingStub: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i11.CheckPinResult>);
+      ) as _i4.Future<_i10.CheckPinResult>);
 }
 
 /// A class which mocks [SetupMockedWalletUseCase].
@@ -972,14 +914,14 @@ class MockCheckPinUseCase extends _i1.Mock implements _i11.CheckPinUseCase {
 /// See the documentation for Mockito's code generation for more information.
 class MockSetupMockedWalletUseCase extends _i1.Mock implements _i25.SetupMockedWalletUseCase {
   @override
-  _i5.Future<void> invoke() => (super.noSuchMethod(
+  _i4.Future<void> invoke() => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [CheckHasInternetUseCase].
@@ -987,14 +929,14 @@ class MockSetupMockedWalletUseCase extends _i1.Mock implements _i25.SetupMockedW
 /// See the documentation for Mockito's code generation for more information.
 class MockCheckHasInternetUseCase extends _i1.Mock implements _i26.CheckHasInternetUseCase {
   @override
-  _i5.Future<bool> invoke() => (super.noSuchMethod(
+  _i4.Future<bool> invoke() => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 }
 
 /// A class which mocks [PerformPreNavigationActionsUseCase].
@@ -1002,14 +944,14 @@ class MockCheckHasInternetUseCase extends _i1.Mock implements _i26.CheckHasInter
 /// See the documentation for Mockito's code generation for more information.
 class MockPerformPreNavigationActionsUseCase extends _i1.Mock implements _i20.PerformPreNavigationActionsUseCase {
   @override
-  _i5.Future<void> invoke(List<_i20.PreNavigationAction>? actions) => (super.noSuchMethod(
+  _i4.Future<void> invoke(List<_i20.PreNavigationAction>? actions) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [actions],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [CheckNavigationPrerequisitesUseCase].
@@ -1017,14 +959,14 @@ class MockPerformPreNavigationActionsUseCase extends _i1.Mock implements _i20.Pe
 /// See the documentation for Mockito's code generation for more information.
 class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i27.CheckNavigationPrerequisitesUseCase {
   @override
-  _i5.Future<bool> invoke(List<_i20.NavigationPrerequisite>? prerequisites) => (super.noSuchMethod(
+  _i4.Future<bool> invoke(List<_i20.NavigationPrerequisite>? prerequisites) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [prerequisites],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 }
 
 /// A class which mocks [AcceptOfferedPidUseCase].
@@ -1032,26 +974,26 @@ class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i27.C
 /// See the documentation for Mockito's code generation for more information.
 class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i28.AcceptOfferedPidUseCase {
   @override
-  _i5.Future<_i11.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i10.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [pin],
         ),
-        returnValue: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValue: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValueForMissingStub: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i11.CheckPinResult>);
+      ) as _i4.Future<_i10.CheckPinResult>);
 }
 
 /// A class which mocks [AcceptSignAgreementUseCase].
@@ -1059,26 +1001,26 @@ class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i28.AcceptOffered
 /// See the documentation for Mockito's code generation for more information.
 class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i29.AcceptSignAgreementUseCase {
   @override
-  _i5.Future<_i11.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i10.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [pin],
         ),
-        returnValue: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValue: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValueForMissingStub: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i11.CheckPinResult>);
+      ) as _i4.Future<_i10.CheckPinResult>);
 }
 
 /// A class which mocks [AcceptDisclosureUseCase].
@@ -1086,26 +1028,26 @@ class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i29.AcceptSign
 /// See the documentation for Mockito's code generation for more information.
 class MockAcceptDisclosureUseCase extends _i1.Mock implements _i30.AcceptDisclosureUseCase {
   @override
-  _i5.Future<_i11.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i10.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [pin],
         ),
-        returnValue: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValue: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i11.CheckPinResult>.value(_i7.dummyValue<_i11.CheckPinResult>(
+        returnValueForMissingStub: _i4.Future<_i10.CheckPinResult>.value(_i6.dummyValue<_i10.CheckPinResult>(
           this,
           Invocation.method(
             #invoke,
             [pin],
           ),
         )),
-      ) as _i5.Future<_i11.CheckPinResult>);
+      ) as _i4.Future<_i10.CheckPinResult>);
 }
 
 /// A class which mocks [AcceptIssuanceUseCase].
@@ -1113,14 +1055,14 @@ class MockAcceptDisclosureUseCase extends _i1.Mock implements _i30.AcceptDisclos
 /// See the documentation for Mockito's code generation for more information.
 class MockAcceptIssuanceUseCase extends _i1.Mock implements _i31.AcceptIssuanceUseCase {
   @override
-  _i5.Future<void> invoke(Iterable<String>? cardDocTypes) => (super.noSuchMethod(
+  _i4.Future<void> invoke(Iterable<String>? cardDocTypes) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
           [cardDocTypes],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [WalletCore].
@@ -1130,11 +1072,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kInitConstMeta => (super.noSuchMethod(
         Invocation.getter(#kInitConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kInitConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kInitConstMeta),
         ),
@@ -1143,11 +1085,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kIsInitializedConstMeta => (super.noSuchMethod(
         Invocation.getter(#kIsInitializedConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kIsInitializedConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kIsInitializedConstMeta),
         ),
@@ -1156,11 +1098,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta => (super.noSuchMethod(
         Invocation.getter(#kIsValidPinConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kIsValidPinConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kIsValidPinConstMeta),
         ),
@@ -1169,11 +1111,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kSetLockStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kSetLockStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kSetLockStreamConstMeta),
         ),
@@ -1182,11 +1124,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kClearLockStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kClearLockStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kClearLockStreamConstMeta),
         ),
@@ -1195,11 +1137,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kSetConfigurationStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kSetConfigurationStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kSetConfigurationStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kSetConfigurationStreamConstMeta),
         ),
@@ -1208,11 +1150,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kClearConfigurationStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kClearConfigurationStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kClearConfigurationStreamConstMeta),
         ),
@@ -1221,11 +1163,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kSetCardsStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kSetCardsStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kSetCardsStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kSetCardsStreamConstMeta),
         ),
@@ -1234,11 +1176,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kClearCardsStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kClearCardsStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kClearCardsStreamConstMeta),
         ),
@@ -1247,11 +1189,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta => (super.noSuchMethod(
         Invocation.getter(#kUnlockWalletConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kUnlockWalletConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kUnlockWalletConstMeta),
         ),
@@ -1260,11 +1202,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kLockWalletConstMeta => (super.noSuchMethod(
         Invocation.getter(#kLockWalletConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kLockWalletConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kLockWalletConstMeta),
         ),
@@ -1273,11 +1215,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta => (super.noSuchMethod(
         Invocation.getter(#kHasRegistrationConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kHasRegistrationConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kHasRegistrationConstMeta),
         ),
@@ -1286,11 +1228,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kRegisterConstMeta => (super.noSuchMethod(
         Invocation.getter(#kRegisterConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kRegisterConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kRegisterConstMeta),
         ),
@@ -1299,11 +1241,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kIdentifyUriConstMeta => (super.noSuchMethod(
         Invocation.getter(#kIdentifyUriConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kIdentifyUriConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kIdentifyUriConstMeta),
         ),
@@ -1312,11 +1254,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta => (super.noSuchMethod(
         Invocation.getter(#kCreatePidIssuanceRedirectUriConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kCreatePidIssuanceRedirectUriConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kCreatePidIssuanceRedirectUriConstMeta),
         ),
@@ -1325,11 +1267,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kCancelPidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kCancelPidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kCancelPidIssuanceConstMeta),
         ),
@@ -1338,11 +1280,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kContinuePidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kContinuePidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kContinuePidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kContinuePidIssuanceConstMeta),
         ),
@@ -1351,11 +1293,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kAcceptPidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kAcceptPidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kAcceptPidIssuanceConstMeta),
         ),
@@ -1364,11 +1306,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kRejectPidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kRejectPidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kRejectPidIssuanceConstMeta),
         ),
@@ -1377,11 +1319,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta => (super.noSuchMethod(
         Invocation.getter(#kStartDisclosureConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kStartDisclosureConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kStartDisclosureConstMeta),
         ),
@@ -1390,11 +1332,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kCancelDisclosureConstMeta => (super.noSuchMethod(
         Invocation.getter(#kCancelDisclosureConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kCancelDisclosureConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kCancelDisclosureConstMeta),
         ),
@@ -1403,11 +1345,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta => (super.noSuchMethod(
         Invocation.getter(#kAcceptDisclosureConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kAcceptDisclosureConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kAcceptDisclosureConstMeta),
         ),
@@ -1416,11 +1358,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => (super.noSuchMethod(
         Invocation.getter(#kGetHistoryConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kGetHistoryConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kGetHistoryConstMeta),
         ),
@@ -1429,11 +1371,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => (super.noSuchMethod(
         Invocation.getter(#kGetHistoryForCardConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kGetHistoryForCardConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kGetHistoryForCardConstMeta),
         ),
@@ -1442,40 +1384,40 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta => (super.noSuchMethod(
         Invocation.getter(#kResetWalletConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kResetWalletConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
           this,
           Invocation.getter(#kResetWalletConstMeta),
         ),
       ) as _i2.FlutterRustBridgeTaskConstMeta);
 
   @override
-  _i5.Future<void> init({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> init({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #init,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<bool> isInitialized({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<bool> isInitialized({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #isInitialized,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i5.Future<_i2.PinValidationResult> isValidPin({
+  _i4.Future<_i2.PinValidationResult> isValidPin({
     required String? pin,
     dynamic hint,
   }) =>
@@ -1488,78 +1430,78 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
-        returnValueForMissingStub: _i5.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
-      ) as _i5.Future<_i2.PinValidationResult>);
+        returnValue: _i4.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
+        returnValueForMissingStub: _i4.Future<_i2.PinValidationResult>.value(_i2.PinValidationResult.Ok),
+      ) as _i4.Future<_i2.PinValidationResult>);
 
   @override
-  _i5.Stream<bool> setLockStream({dynamic hint}) => (super.noSuchMethod(
+  _i4.Stream<bool> setLockStream({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #setLockStream,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Stream<bool>.empty(),
-        returnValueForMissingStub: _i5.Stream<bool>.empty(),
-      ) as _i5.Stream<bool>);
+        returnValue: _i4.Stream<bool>.empty(),
+        returnValueForMissingStub: _i4.Stream<bool>.empty(),
+      ) as _i4.Stream<bool>);
 
   @override
-  _i5.Future<void> clearLockStream({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> clearLockStream({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #clearLockStream,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Stream<_i2.FlutterConfiguration> setConfigurationStream({dynamic hint}) => (super.noSuchMethod(
+  _i4.Stream<_i2.FlutterConfiguration> setConfigurationStream({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #setConfigurationStream,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Stream<_i2.FlutterConfiguration>.empty(),
-        returnValueForMissingStub: _i5.Stream<_i2.FlutterConfiguration>.empty(),
-      ) as _i5.Stream<_i2.FlutterConfiguration>);
+        returnValue: _i4.Stream<_i2.FlutterConfiguration>.empty(),
+        returnValueForMissingStub: _i4.Stream<_i2.FlutterConfiguration>.empty(),
+      ) as _i4.Stream<_i2.FlutterConfiguration>);
 
   @override
-  _i5.Future<void> clearConfigurationStream({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> clearConfigurationStream({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #clearConfigurationStream,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Stream<List<_i2.Card>> setCardsStream({dynamic hint}) => (super.noSuchMethod(
+  _i4.Stream<List<_i2.Card>> setCardsStream({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #setCardsStream,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Stream<List<_i2.Card>>.empty(),
-        returnValueForMissingStub: _i5.Stream<List<_i2.Card>>.empty(),
-      ) as _i5.Stream<List<_i2.Card>>);
+        returnValue: _i4.Stream<List<_i2.Card>>.empty(),
+        returnValueForMissingStub: _i4.Stream<List<_i2.Card>>.empty(),
+      ) as _i4.Stream<List<_i2.Card>>);
 
   @override
-  _i5.Future<void> clearCardsStream({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> clearCardsStream({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #clearCardsStream,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> unlockWallet({
+  _i4.Future<_i2.WalletInstructionResult> unlockWallet({
     required String? pin,
     dynamic hint,
   }) =>
@@ -1572,7 +1514,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
@@ -1583,7 +1525,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #unlockWallet,
@@ -1594,32 +1536,32 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
-  _i5.Future<void> lockWallet({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> lockWallet({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #lockWallet,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<bool> hasRegistration({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<bool> hasRegistration({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #hasRegistration,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i4.Future<bool>.value(false),
+        returnValueForMissingStub: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 
   @override
-  _i5.Future<void> register({
+  _i4.Future<void> register({
     required String? pin,
     dynamic hint,
   }) =>
@@ -1632,12 +1574,12 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.IdentifyUriResult> identifyUri({
+  _i4.Future<_i2.IdentifyUriResult> identifyUri({
     required String? uri,
     dynamic hint,
   }) =>
@@ -1650,34 +1592,34 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
-        returnValueForMissingStub: _i5.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
-      ) as _i5.Future<_i2.IdentifyUriResult>);
+        returnValue: _i4.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
+        returnValueForMissingStub: _i4.Future<_i2.IdentifyUriResult>.value(_i2.IdentifyUriResult.PidIssuance),
+      ) as _i4.Future<_i2.IdentifyUriResult>);
 
   @override
-  _i5.Future<String> createPidIssuanceRedirectUri({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<String> createPidIssuanceRedirectUri({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #createPidIssuanceRedirectUri,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<String>.value(''),
-        returnValueForMissingStub: _i5.Future<String>.value(''),
-      ) as _i5.Future<String>);
+        returnValue: _i4.Future<String>.value(''),
+        returnValueForMissingStub: _i4.Future<String>.value(''),
+      ) as _i4.Future<String>);
 
   @override
-  _i5.Future<void> cancelPidIssuance({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> cancelPidIssuance({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #cancelPidIssuance,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<List<_i2.Card>> continuePidIssuance({
+  _i4.Future<List<_i2.Card>> continuePidIssuance({
     required String? uri,
     dynamic hint,
   }) =>
@@ -1690,12 +1632,12 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<List<_i2.Card>>.value(<_i2.Card>[]),
-        returnValueForMissingStub: _i5.Future<List<_i2.Card>>.value(<_i2.Card>[]),
-      ) as _i5.Future<List<_i2.Card>>);
+        returnValue: _i4.Future<List<_i2.Card>>.value(<_i2.Card>[]),
+        returnValueForMissingStub: _i4.Future<List<_i2.Card>>.value(<_i2.Card>[]),
+      ) as _i4.Future<List<_i2.Card>>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> acceptPidIssuance({
+  _i4.Future<_i2.WalletInstructionResult> acceptPidIssuance({
     required String? pin,
     dynamic hint,
   }) =>
@@ -1708,7 +1650,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptPidIssuance,
@@ -1719,7 +1661,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptPidIssuance,
@@ -1730,21 +1672,21 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
-  _i5.Future<void> rejectPidIssuance({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> rejectPidIssuance({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #rejectPidIssuance,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.StartDisclosureResult> startDisclosure({
+  _i4.Future<_i2.StartDisclosureResult> startDisclosure({
     required String? uri,
     dynamic hint,
   }) =>
@@ -1757,7 +1699,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
+        returnValue: _i4.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_2(
           this,
           Invocation.method(
             #startDisclosure,
@@ -1768,7 +1710,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_3(
+        returnValueForMissingStub: _i4.Future<_i2.StartDisclosureResult>.value(_FakeStartDisclosureResult_2(
           this,
           Invocation.method(
             #startDisclosure,
@@ -1779,21 +1721,21 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-      ) as _i5.Future<_i2.StartDisclosureResult>);
+      ) as _i4.Future<_i2.StartDisclosureResult>);
 
   @override
-  _i5.Future<void> cancelDisclosure({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> cancelDisclosure({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #cancelDisclosure,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<_i2.WalletInstructionResult> acceptDisclosure({
+  _i4.Future<_i2.WalletInstructionResult> acceptDisclosure({
     required String? pin,
     dynamic hint,
   }) =>
@@ -1806,7 +1748,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptDisclosure,
@@ -1817,7 +1759,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-        returnValueForMissingStub: _i5.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
           this,
           Invocation.method(
             #acceptDisclosure,
@@ -1828,21 +1770,21 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-      ) as _i5.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.WalletInstructionResult>);
 
   @override
-  _i5.Future<List<_i2.WalletEvent>> getHistory({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<List<_i2.WalletEvent>> getHistory({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #getHistory,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-        returnValueForMissingStub: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-      ) as _i5.Future<List<_i2.WalletEvent>>);
+        returnValue: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i4.Future<List<_i2.WalletEvent>>);
 
   @override
-  _i5.Future<List<_i2.WalletEvent>> getHistoryForCard({
+  _i4.Future<List<_i2.WalletEvent>> getHistoryForCard({
     required String? docType,
     dynamic hint,
   }) =>
@@ -1855,18 +1797,18 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-        returnValueForMissingStub: _i5.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
-      ) as _i5.Future<List<_i2.WalletEvent>>);
+        returnValue: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+        returnValueForMissingStub: _i4.Future<List<_i2.WalletEvent>>.value(<_i2.WalletEvent>[]),
+      ) as _i4.Future<List<_i2.WalletEvent>>);
 
   @override
-  _i5.Future<void> resetWallet({dynamic hint}) => (super.noSuchMethod(
+  _i4.Future<void> resetWallet({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #resetWallet,
           [],
           {#hint: hint},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 }

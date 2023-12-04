@@ -9,17 +9,11 @@ import '../../../domain/model/timeline/timeline_attribute.dart';
 /// [TimelineAttribute]s completely in favor of a [WalletEvent] kind of model, to align more with what
 /// the wallet_core provides.
 abstract class TimelineAttributeRepository {
-  /// Creates [TimelineAttribute] entry
-  Future<void> create(TimelineAttribute attribute);
-
   /// Returns all wallet cards [TimelineAttribute]s sorted by date ASC (oldest first)
   Future<List<TimelineAttribute>> readAll();
 
   /// Returns all card specific [TimelineAttribute]s sorted by date ASC (oldest first)
   Future<List<TimelineAttribute>> readFiltered({required String docType});
-
-  /// Returns single [TimelineAttribute] by ID
-  Future<TimelineAttribute> read({required String timelineAttributeId, String? docType});
 
   /// Returns most recent [InteractionTimelineAttribute] for card filtered by [InteractionStatus]
   Future<InteractionTimelineAttribute?> readMostRecentInteraction(String docType, InteractionStatus status);

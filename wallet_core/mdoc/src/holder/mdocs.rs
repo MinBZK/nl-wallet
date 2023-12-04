@@ -1,6 +1,5 @@
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
@@ -18,11 +17,6 @@ use crate::{
 };
 
 use super::{CborHttpClient, HttpClient, IssuanceSessionState};
-
-pub trait MdocRetriever {
-    // TODO returning all copies of all mdocs is very crude and should be refined.
-    fn get(&self, doctype: &DocType) -> Option<Vec<MdocCopies>>;
-}
 
 pub struct Wallet<H = CborHttpClient> {
     pub(crate) session_state: Option<IssuanceSessionState>,
@@ -104,15 +98,6 @@ impl Mdoc {
             .iter()
             .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
             .collect::<IndexMap<_, _>>()
-    }
-
-    pub fn public_key(&self) -> Result<VerifyingKey> {
-        self.issuer_signed
-            .issuer_auth
-            .dangerous_parse_unverified()?
-            .0
-            .device_key_info
-            .try_into()
     }
 
     pub fn issuer_certificate(&self) -> Result<Certificate> {

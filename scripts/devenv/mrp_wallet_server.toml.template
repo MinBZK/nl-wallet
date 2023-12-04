@@ -1,6 +1,8 @@
 # Example config
 
-trust_anchors = []
+trust_anchors = [
+    "${PID_CA_CRT}",
+]
 public_url = 'http://${SERVICES_HOST}:3001/'
 
 [wallet_server]

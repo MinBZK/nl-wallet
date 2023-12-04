@@ -56,4 +56,6 @@ pub enum HolderError {
     MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
     MultipleCandidates(Vec<DocType>),
+    #[error("verifier returned error in response to disclosure: {0:?}")]
+    DisclosureResponse(SessionStatus),
 }

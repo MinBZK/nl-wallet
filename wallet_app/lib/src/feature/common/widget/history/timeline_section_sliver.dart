@@ -8,7 +8,7 @@ import 'timeline_section_header.dart';
 
 class TimelineSectionSliver extends StatelessWidget {
   final TimelineSection section;
-  final Function(String timelineAttributeId) onRowPressed;
+  final Function(TimelineAttribute attribute) onRowPressed;
   final bool showOperationTitle;
 
   const TimelineSectionSliver({
@@ -37,7 +37,7 @@ class TimelineSectionSliver extends StatelessWidget {
                 button: true,
                 child: TimelineAttributeRow(
                   attribute: attribute,
-                  onPressed: () => onRowPressed(attribute.id),
+                  onPressed: () => onRowPressed(attribute),
                   showOperationTitle: showOperationTitle,
                 ),
               );

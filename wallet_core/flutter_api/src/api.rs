@@ -243,20 +243,11 @@ pub async fn cancel_disclosure() -> Result<()> {
 #[async_runtime]
 #[flutter_api_error]
 pub async fn accept_disclosure(pin: String) -> Result<WalletInstructionResult> {
-    // TODO: implement.
+    let mut wallet = wallet().write().await;
 
-    if pin == "000000" {
-        return Ok(WalletInstructionResult::IncorrectPin {
-            leftover_attempts: 3,
-            is_final_attempt: false,
-        });
-    } else if pin == "111111" {
-        return Ok(WalletInstructionResult::Timeout { timeout_millis: 10_000 });
-    } else if pin == "222222" {
-        return Ok(WalletInstructionResult::Blocked {});
-    }
+    let result = wallet.accept_disclosure(pin).await.try_into()?;
 
-    Ok(WalletInstructionResult::Ok)
+    Ok(result)
 }
 
 #[async_runtime]

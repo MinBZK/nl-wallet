@@ -9,7 +9,11 @@ use nl_wallet_mdoc::{
         ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
-    utils::{reader_auth::ReaderRegistration, x509::Certificate},
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        reader_auth::ReaderRegistration,
+        x509::Certificate,
+    },
 };
 
 use crate::utils;
@@ -17,7 +21,7 @@ use crate::utils;
 pub use self::uri::{DisclosureUriData, DisclosureUriError};
 
 #[cfg(any(test, feature = "mock"))]
-pub use self::mock::MockMdocDisclosureSession;
+pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
 
 #[derive(Debug)]
 pub enum MdocDisclosureSessionState<M, P> {
@@ -50,11 +54,15 @@ pub trait MdocDisclosureMissingAttributes {
     fn missing_attributes(&self) -> &[AttributeIdentifier];
 }
 
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
+#[async_trait]
 pub trait MdocDisclosureProposal {
-    #[allow(clippy::needless_lifetimes)]
-    fn return_url<'a>(&'a self) -> Option<&'a Url>;
+    fn return_url(&self) -> Option<&Url>;
     fn proposed_attributes(&self) -> ProposedAttributes;
+
+    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    where
+        KF: KeyFactory<'a, Key = K> + Send + Sync,
+        K: MdocEcdsaKey + Send + Sync;
 }
 
 #[async_trait]
@@ -114,6 +122,7 @@ impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpCli
     }
 }
 
+#[async_trait]
 impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
     fn return_url(&self) -> Option<&Url> {
         self.return_url()
@@ -122,12 +131,20 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
     fn proposed_attributes(&self) -> ProposedAttributes {
         self.proposed_attributes()
     }
+
+    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    where
+        KF: KeyFactory<'a, Key = K> + Send + Sync,
+        K: MdocEcdsaKey + Send + Sync,
+    {
+        self.disclose(key_factory).await
+    }
 }
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
     use std::sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc, Mutex,
     };
 
@@ -142,10 +159,51 @@ mod mock {
     pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
     pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
 
+    // For testing, provide a default for `DisclosureUriData`.
+    impl Default for DisclosureUriData {
+        fn default() -> Self {
+            DisclosureUriData {
+                reader_engagement_bytes: Default::default(),
+                return_url: None,
+                session_type: SessionType::CrossDevice,
+            }
+        }
+    }
+
     // For convenience, the default `SessionState` is a proposal.
     impl Default for SessionState {
         fn default() -> Self {
             MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal::default())
+        }
+    }
+
+    #[derive(Debug, Default)]
+    pub struct MockMdocDisclosureProposal {
+        pub return_url: Option<Url>,
+        pub proposed_attributes: ProposedAttributes,
+        pub disclosure_count: Arc<AtomicUsize>,
+        pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
+    }
+
+    #[async_trait]
+    impl MdocDisclosureProposal for MockMdocDisclosureProposal {
+        fn return_url(&self) -> Option<&Url> {
+            self.return_url.as_ref()
+        }
+
+        fn proposed_attributes(&self) -> ProposedAttributes {
+            self.proposed_attributes.clone()
+        }
+
+        async fn disclose<'a, KF, K>(&self, _key_factory: &'a KF) -> nl_wallet_mdoc::Result<()> {
+            if let Some(error) = self.next_error.lock().unwrap().take() {
+                return Err(error);
+            }
+
+            self.disclosure_count
+                .store(self.disclosure_count.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
+
+            Ok(())
         }
     }
 

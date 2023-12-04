@@ -360,9 +360,9 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     HistoryDetailScreenArgument argument = HistoryDetailScreen.getArgument(settings);
     return BlocProvider<HistoryDetailBloc>(
-      create: (BuildContext context) => HistoryDetailBloc(context.read(), context.read())
+      create: (BuildContext context) => HistoryDetailBloc(context.read())
         ..add(HistoryDetailLoadTriggered(
-          attributeId: argument.timelineAttributeId,
+          attribute: argument.timelineAttribute,
           docType: argument.docType,
         )),
       child: const HistoryDetailScreen(),
