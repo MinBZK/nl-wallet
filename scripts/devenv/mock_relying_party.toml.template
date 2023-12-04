@@ -6,7 +6,7 @@ wallet_server_url = 'http://${SERVICES_HOST}:3002'
 
 [[usecases.driving_license]]
 docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { given_name = false, family_name = true } }
+nameSpaces = { "com.example.pid" = { given_name = false, family_name = true, family_name_birth = true } }
 
 [[usecases.parking_permit]]
 docType = "com.example.address"

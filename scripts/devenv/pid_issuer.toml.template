@@ -34,3 +34,21 @@ street = "Turfmarkt"
 house_number = "147"
 postal_code = "2511 DP"
 city = "Den Haag"
+
+[[mock_data]]
+[mock_data.person]
+bsn = "999991771"
+given_name = "John"
+family_name = "Doe"
+gender = "Male"
+birth_date = "1970-01-01"
+age_over_18 = true
+birth_country = "NL"
+birth_city = "Delft"
+nationality = "NL"
+
+[mock_data.resident]
+street = "Turfmarkt"
+house_number = "147"
+postal_code = "2511 DP"
+city = "Den Haag"
