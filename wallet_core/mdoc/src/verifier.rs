@@ -122,6 +122,7 @@ pub struct Done {
 
 /// The outcome of a session: the disclosed attributes if they have been sucessfully received and verified.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum SessionResult {
     Done { disclosed_attributes: DisclosedAttributes },
     Failed { error: String },
@@ -175,10 +176,11 @@ impl SessionState<Done> {
 
 /// status without the underlying data for Created and Waiting
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "UPPERCASE", tag = "status", content = "result")]
+#[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum StatusResponse {
     Created,
     WaitingForResponse,
+    #[serde(untagged)]
     Done(SessionResult),
 }
 
