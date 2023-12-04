@@ -48,7 +48,7 @@ impl DeviceRequest {
         session_transcript: SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<ReaderRegistration>> {
+    ) -> Result<Option<(Certificate, ReaderRegistration)>> {
         // If there are no doc requests or none of them have reader authentication, return `None`.
         if self.doc_requests.iter().all(|d| d.reader_auth.is_none()) {
             return Ok(None);
@@ -92,7 +92,7 @@ impl DeviceRequest {
         self.verify_requested_attributes(&reader_registration)
             .map_err(HolderError::from)?;
 
-        Ok(reader_registration.into())
+        Ok((certificate, reader_registration).into())
     }
 
     pub(super) async fn match_stored_documents(
@@ -304,7 +304,10 @@ mod tests {
             .verify(session_transcript.clone(), &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
-        assert_eq!(verified_reader_registration, Some(reader_registration));
+        assert_eq!(
+            verified_reader_registration,
+            Some((private_key1.cert_bts.clone(), reader_registration))
+        );
 
         // Verifying a `DeviceRequest` that has no reader auth at all should succeed and return `None`.
         let device_request = DeviceRequest {

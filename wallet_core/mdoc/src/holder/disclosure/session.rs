@@ -14,10 +14,12 @@ use crate::{
     holder::{HolderError, HttpClient},
     identifiers::AttributeIdentifier,
     mdocs::{DocType, NameSpace},
-    utils::{crypto::SessionKey, reader_auth::ReaderRegistration, serialization::CborError},
     utils::{
+        crypto::SessionKey,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization,
+        reader_auth::ReaderRegistration,
+        serialization::{self, CborError},
+        x509::Certificate,
     },
     verifier::SessionType,
 };
@@ -69,6 +71,7 @@ pub struct DisclosureProposal<H> {
 struct DisclosureEndpoint<H> {
     client: H,
     verifier_url: Url,
+    certificate: Certificate,
     reader_registration: ReaderRegistration,
 }
 
@@ -126,7 +129,7 @@ where
         // by calling our helper method. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
-        let (check_result, reader_registration) =
+        let (check_result, certificate, reader_registration) =
             Self::check_verifier_session_data(session_data, transcript, &reader_key, mdoc_data_source, trust_anchors)
                 .or_else(|error| async {
                     // Determine the category of the error, so we can report on it.
@@ -146,6 +149,7 @@ where
         let endpoint = DisclosureEndpoint {
             client,
             verifier_url: verifier_url.clone(),
+            certificate,
             reader_registration,
         };
 
@@ -179,7 +183,7 @@ where
         reader_key: &SessionKey,
         mdoc_data_source: &impl MdocDataSource,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<(VerifierSessionDataCheckResult, ReaderRegistration)> {
+    ) -> Result<(VerifierSessionDataCheckResult, Certificate, ReaderRegistration)> {
         // Decrypt the received `DeviceRequest`.
         let device_request: DeviceRequest = verifier_session_data.decrypt_and_deserialize(reader_key)?;
 
@@ -190,7 +194,7 @@ where
 
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
         // Reader authentication is required to be present at this time.
-        let reader_registration = device_request
+        let (certificate, reader_registration) = device_request
             .verify(session_transcript.clone(), &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
@@ -205,7 +209,7 @@ where
                 // Attributes are missing, return these.
                 let result = VerifierSessionDataCheckResult::MissingAttributes(missing_attributes);
 
-                return Ok((result, reader_registration));
+                return Ok((result, certificate, reader_registration));
             }
         };
 
@@ -227,7 +231,7 @@ where
 
         let result = VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents);
 
-        Ok((result, reader_registration))
+        Ok((result, certificate, reader_registration))
     }
 
     fn endpoint(&self) -> &DisclosureEndpoint<H> {
@@ -239,6 +243,10 @@ where
 
     pub fn reader_registration(&self) -> &ReaderRegistration {
         &self.endpoint().reader_registration
+    }
+
+    pub fn verifier_certificate(&self) -> &Certificate {
+        &self.endpoint().certificate
     }
 
     pub async fn terminate(self) -> Result<()> {
@@ -332,13 +340,16 @@ mod tests {
 
     use crate::{
         identifiers::AttributeIdentifierHolder,
-        iso::disclosure::{DeviceAuth, SessionStatus},
-        iso::engagement::DeviceAuthentication,
+        iso::{
+            disclosure::{DeviceAuth, SessionStatus},
+            engagement::DeviceAuthentication,
+        },
         mock::SoftwareKeyFactory,
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
             serialization::TaggedBytes,
+            x509::CertificateType,
         },
     };
 
@@ -1069,6 +1080,7 @@ mod tests {
             endpoint: DisclosureEndpoint {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
+                certificate: vec![].into(),
                 reader_registration: Default::default(),
             },
             device_key,
@@ -1131,11 +1143,21 @@ mod tests {
             payload_sender,
         };
 
+        let (ca_cert, ca_key) = Certificate::new_ca("test-ca").unwrap();
+        let (certificate, _) = Certificate::new(
+            &ca_cert,
+            &ca_key,
+            "test-certificate",
+            CertificateType::ReaderAuth(Some(Box::default())),
+        )
+        .unwrap();
+
         // Terminating a `DisclosureSession` with missing attributes should succeed.
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             endpoint: DisclosureEndpoint {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
+                certificate: certificate.clone(),
                 reader_registration: Default::default(),
             },
             missing_attributes: Default::default(),
@@ -1157,6 +1179,7 @@ mod tests {
             endpoint: DisclosureEndpoint {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
+                certificate,
                 reader_registration: Default::default(),
             },
             missing_attributes: Default::default(),

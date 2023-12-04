@@ -12,6 +12,7 @@ use nl_wallet_mdoc::{
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         reader_auth::ReaderRegistration,
+        x509::Certificate,
     },
 };
 
@@ -41,6 +42,7 @@ pub trait MdocDisclosureSession<D> {
     where
         Self: Sized;
 
+    fn rp_certificate(&self) -> &Certificate;
     fn reader_registration(&self) -> &ReaderRegistration;
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
 
@@ -89,6 +91,10 @@ where
             trust_anchors,
         )
         .await
+    }
+
+    fn rp_certificate(&self) -> &Certificate {
+        self.verifier_certificate()
     }
 
     fn reader_registration(&self) -> &ReaderRegistration {
@@ -201,9 +207,10 @@ mod mock {
         }
     }
 
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
+        pub certificate: Certificate,
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
         pub was_terminated: Arc<AtomicBool>,
@@ -219,6 +226,18 @@ mod mock {
 
         pub fn next_start_error(error: nl_wallet_mdoc::Error) {
             NEXT_START_ERROR.lock().unwrap().replace(error);
+        }
+    }
+
+    impl Default for MockMdocDisclosureSession {
+        fn default() -> Self {
+            Self {
+                disclosure_uri: Default::default(),
+                certificate: vec![].into(),
+                reader_registration: Default::default(),
+                session_state: Default::default(),
+                was_terminated: Default::default(),
+            }
         }
     }
 
@@ -242,7 +261,7 @@ mod mock {
                 disclosure_uri,
                 reader_registration,
                 session_state,
-                was_terminated: Default::default(),
+                ..Default::default()
             };
 
             Ok(session)
@@ -265,6 +284,10 @@ mod mock {
             self.was_terminated.store(true, Ordering::Relaxed);
 
             Ok(())
+        }
+
+        fn rp_certificate(&self) -> &Certificate {
+            &self.certificate
         }
     }
 }

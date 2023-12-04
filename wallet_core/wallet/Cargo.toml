@@ -21,6 +21,7 @@ ciborium.workspace = true
 futures.workspace = true
 http.workspace = true
 indexmap.workspace = true
+itertools.workspace = true
 libsqlite3-sys = { workspace = true, features = [
     "bundled-sqlcipher-vendored-openssl",
 ] }

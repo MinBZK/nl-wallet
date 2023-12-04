@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
 use async_trait::async_trait;
+use chrono::Utc;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 use url::Url;
@@ -22,6 +24,7 @@ use crate::{
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     storage::{Storage, StorageError},
+    WalletEvent,
 };
 
 use super::Wallet;
@@ -53,12 +56,15 @@ pub enum DisclosureError {
     MdocAttributes(#[source] DocumentMdocError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
+    #[error("could not store history in database: {0}")]
+    HistoryStorage(#[source] StorageError),
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     CR: ConfigurationRepository,
     MDS: MdocDisclosureSession<Self>,
+    S: Storage,
 {
     #[instrument(skip_all)]
     pub async fn start_disclosure(&mut self, uri: &Url) -> Result<DisclosureProposal, DisclosureError> {
@@ -163,7 +169,39 @@ where
         info!("Checking if a disclosure session is present");
         let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
 
+        // Prepare history events from session before terminating session
+        let certificate = session.rp_certificate();
+        let now = Utc::now();
+        let events = match session.session_state() {
+            MdocDisclosureSessionState::MissingAttributes(missing_attributes) => missing_attributes
+                .missing_attributes()
+                .iter()
+                .map(|a| &a.doc_type)
+                .unique()
+                .map(|doc_type| {
+                    WalletEvent::disclosure_error(
+                        doc_type.to_owned(),
+                        now,
+                        certificate.clone(),
+                        String::from("Wallet does not contain all requested attributes"),
+                    )
+                })
+                .collect(),
+            MdocDisclosureSessionState::Proposal(proposal) => proposal
+                .proposed_attributes()
+                .keys()
+                .map(|doc_type| WalletEvent::disclosure_cancelled(doc_type.to_owned(), now, certificate.clone()))
+                .collect(),
+        };
+
         session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
+
+        // Store history events
+        self.storage
+            .get_mut()
+            .log_wallet_events(events)
+            .await
+            .map_err(DisclosureError::HistoryStorage)?;
 
         Ok(())
     }
@@ -295,7 +333,7 @@ mod tests {
 
     use crate::{
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
-        Attribute, AttributeValue,
+        Attribute, AttributeValue, EventStatus, EventType,
     };
 
     use super::{super::tests::WalletWithMocks, *};
@@ -567,20 +605,123 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        // Create a `MockMdocDisclosureSession` and store it on the `Wallet`.
-        // Save and check its `was_terminated` value.
-        let disclosure_session = MockMdocDisclosureSession::default();
-        let was_terminated = Arc::clone(&disclosure_session.was_terminated);
+        // Set up an `MdocDisclosureSession` to be returned with the following values.
+        let reader_registration = ReaderRegistration {
+            id: "1234".to_string(),
+            ..Default::default()
+        };
+        let proposed_attributes = IndexMap::from([(
+            "com.example.pid".to_string(),
+            IndexMap::from([(
+                "com.example.pid".to_string(),
+                vec![Entry {
+                    name: "age_over_18".to_string(),
+                    value: DataElementValue::Bool(true),
+                }],
+            )]),
+        )]);
+        let proposal_session = MockMdocDisclosureProposal {
+            proposed_attributes,
+            ..Default::default()
+        };
 
+        MockMdocDisclosureSession::next_fields(
+            reader_registration,
+            MdocDisclosureSessionState::Proposal(proposal_session),
+        );
+
+        // Start a disclosure session, to ensure a proper session exists that can be cancelled.
+        let _ = wallet
+            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
+            .expect("Could not start disclosure");
+
+        // Verify disclosure session is not yet terminated
+        let was_terminated = Arc::clone(&wallet.disclosure_session.as_ref().unwrap().was_terminated);
         assert!(!was_terminated.load(Ordering::Relaxed));
+
+        // Verify no history events are yet logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert!(events.is_empty());
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure
         // session, while the session that was there should be terminated.
-        wallet.disclosure_session = disclosure_session.into();
         wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
 
+        // Verify disclosure session is terminated
         assert!(wallet.disclosure_session.is_none());
         assert!(was_terminated.load(Ordering::Relaxed));
+
+        // Verify a Disclosure Cancel event is logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            &events[0],
+            WalletEvent {
+                event_type: EventType::Disclosure,
+                doc_type,
+                status: EventStatus::Cancelled,
+                ..
+            } if doc_type == "com.example.pid"
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_wallet_cancel_disclosure_missing_attributes() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
+        let missing_attributes = vec![
+            "com.example.pid/com.example.pid/bsn".parse().unwrap(),
+            "com.example.pid/com.example.pid/age_over_18".parse().unwrap(),
+        ];
+        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
+        missing_attr_session
+            .expect_missing_attributes()
+            .return_const(missing_attributes);
+
+        MockMdocDisclosureSession::next_fields(
+            Default::default(),
+            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+        );
+
+        // Starting disclosure where an unavailable attribute is requested should result in an error.
+        // As an exception, this error should leave the `Wallet` with an active disclosure session.
+        let _error = wallet
+            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+        assert!(wallet.disclosure_session.is_some());
+
+        // Verify disclosure session is not yet terminated
+        let was_terminated = Arc::clone(&wallet.disclosure_session.as_ref().unwrap().was_terminated);
+        assert!(!was_terminated.load(Ordering::Relaxed));
+
+        // Verify no history events are yet logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert!(events.is_empty());
+
+        // Cancelling disclosure should result in a `Wallet` without a disclosure
+        // session, while the session that was there should be terminated.
+        wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+        // Verify disclosure session is terminated
+        assert!(wallet.disclosure_session.is_none());
+        assert!(was_terminated.load(Ordering::Relaxed));
+
+        // Verify a single Disclosure Error event is logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            &events[0],
+            WalletEvent {
+                event_type: EventType::Disclosure,
+                doc_type,
+                status,
+                ..
+            } if doc_type == "com.example.pid" && *status == EventStatus::Error("Wallet does not contain all requested attributes".to_owned())
+        );
     }
 
     #[tokio::test]
