@@ -5,9 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/document.dart';
+import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/start_sign_result/start_sign_result.dart';
-import '../../../domain/usecase/card/log_card_signing_usecase.dart';
 import '../../../domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import '../../../domain/usecase/sign/start_sign_usecase.dart';
 

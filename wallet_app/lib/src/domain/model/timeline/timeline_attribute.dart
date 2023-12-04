@@ -10,8 +10,6 @@ abstract class TimelineAttribute extends Equatable {
   final Organization organization;
   final List<DataAttribute> dataAttributes;
 
-  String get id => dateTime.microsecondsSinceEpoch.toString();
-
   const TimelineAttribute({
     required this.type,
     required this.dateTime,

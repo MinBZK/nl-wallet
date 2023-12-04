@@ -1,26 +1,24 @@
+import '../../../../domain/model/timeline/timeline_attribute.dart';
+
 class HistoryDetailScreenArgument {
-  static const _kTimelineAttributeIdKey = 'timelineAttributeId';
-  static const _kCardIdKey = 'cardId';
+  static const _kTimelineAttributeKey = 'timelineAttribute';
   static const _kCardDocType = 'docType';
 
-  final String timelineAttributeId;
-  final String? cardId;
+  final TimelineAttribute timelineAttribute;
   final String? docType;
 
-  const HistoryDetailScreenArgument({required this.timelineAttributeId, this.cardId, this.docType});
+  const HistoryDetailScreenArgument({required this.timelineAttribute, this.docType});
 
   Map<String, dynamic> toMap() {
     return {
-      _kTimelineAttributeIdKey: timelineAttributeId,
-      _kCardIdKey: cardId,
+      _kTimelineAttributeKey: timelineAttribute,
       _kCardDocType: docType,
     };
   }
 
   static HistoryDetailScreenArgument fromMap(Map<String, dynamic> map) {
     return HistoryDetailScreenArgument(
-      timelineAttributeId: map[_kTimelineAttributeIdKey],
-      cardId: map[_kCardIdKey],
+      timelineAttribute: map[_kTimelineAttributeKey],
       docType: map[_kCardDocType],
     );
   }
@@ -30,15 +28,13 @@ class HistoryDetailScreenArgument {
       identical(this, other) ||
       other is HistoryDetailScreenArgument &&
           runtimeType == other.runtimeType &&
-          timelineAttributeId == other.timelineAttributeId &&
-          cardId == other.cardId &&
+          timelineAttribute == other.timelineAttribute &&
           docType == other.docType;
 
   @override
   int get hashCode => Object.hash(
         runtimeType,
-        timelineAttributeId,
-        cardId,
+        timelineAttribute,
         docType,
       );
 }

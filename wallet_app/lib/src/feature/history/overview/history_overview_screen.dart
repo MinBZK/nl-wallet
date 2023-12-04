@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../domain/model/timeline/timeline_section.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -49,7 +50,7 @@ class HistoryOverviewScreen extends StatelessWidget {
         .map(
           (section) => TimelineSectionSliver(
             section: section,
-            onRowPressed: (timelineAttributeId) => _onTimelineRowPressed(context, timelineAttributeId),
+            onRowPressed: (attribute) => _onTimelineRowPressed(context, attribute),
           ),
         )
         .toList();
@@ -71,12 +72,12 @@ class HistoryOverviewScreen extends StatelessWidget {
     );
   }
 
-  void _onTimelineRowPressed(BuildContext context, String timelineAttributeId) {
-    Navigator.restorablePushNamed(
+  void _onTimelineRowPressed(BuildContext context, TimelineAttribute attribute) {
+    Navigator.pushNamed(
       context,
       WalletRoutes.historyDetailRoute,
       arguments: HistoryDetailScreenArgument(
-        timelineAttributeId: timelineAttributeId,
+        timelineAttribute: attribute,
       ).toMap(),
     );
   }

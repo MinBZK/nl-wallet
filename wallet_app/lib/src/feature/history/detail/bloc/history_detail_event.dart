@@ -5,11 +5,11 @@ abstract class HistoryDetailEvent extends Equatable {
 }
 
 class HistoryDetailLoadTriggered extends HistoryDetailEvent {
-  final String attributeId;
+  final TimelineAttribute attribute;
   final String? docType;
 
-  const HistoryDetailLoadTriggered({required this.attributeId, required this.docType});
+  const HistoryDetailLoadTriggered({required this.attribute, required this.docType});
 
   @override
-  List<Object?> get props => [attributeId, docType];
+  List<Object?> get props => [attribute, docType];
 }
