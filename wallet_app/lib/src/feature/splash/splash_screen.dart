@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -16,7 +17,10 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return DoOnInit(
       key: const Key('splash_screen_on_init'),
-      onInit: (context) => WalletAssets.preloadPidSvgs(),
+      onInit: (context) {
+        FlutterNativeSplash.remove();
+        WalletAssets.preloadPidSvgs();
+      },
       child: BlocListener<SplashBloc, SplashState>(
         listenWhen: (prev, current) => current is SplashLoaded,
         listener: (context, state) {
