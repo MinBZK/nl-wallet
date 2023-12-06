@@ -27,17 +27,7 @@ class WalletEventLog {
       purpose: disclosure.requestPurpose,
       requestedCards: disclosure.map(
         request: (request) => request.requestedCards,
-        requestAttributesMissing: (requestAttributesMissing) {
-          // FIXME: Update the model to provide list of missing attributes without [RequestedCard] wrapper?
-          final missingAttributes = requestAttributesMissing.missingAttributes.map(
-            (missingAttribute) => CardAttribute(
-              key: '',
-              labels: missingAttribute.labels,
-              value: CardValue.string(value: ''),
-            ),
-          );
-          return [RequestedCard(docType: '', attributes: missingAttributes.toList())];
-        },
+        requestAttributesMissing: (requestAttributesMissing) => [],
       ),
       requestPolicy: disclosure.map(
         request: (request) => request.policy,
