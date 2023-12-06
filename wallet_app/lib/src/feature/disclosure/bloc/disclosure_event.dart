@@ -7,15 +7,6 @@ abstract class DisclosureEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class DisclosureLoadRequested extends DisclosureEvent {
-  final String sessionId;
-
-  const DisclosureLoadRequested(this.sessionId);
-
-  @override
-  List<Object?> get props => [sessionId];
-}
-
 class DisclosureOrganizationApproved extends DisclosureEvent {
   const DisclosureOrganizationApproved();
 }
@@ -25,12 +16,7 @@ class DisclosureShareRequestedAttributesApproved extends DisclosureEvent {
 }
 
 class DisclosurePinConfirmed extends DisclosureEvent {
-  final DisclosureFlow? flow;
-
-  const DisclosurePinConfirmed(this.flow);
-
-  @override
-  List<Object?> get props => [flow];
+  const DisclosurePinConfirmed();
 }
 
 class DisclosureBackPressed extends DisclosureEvent {
@@ -38,22 +24,16 @@ class DisclosureBackPressed extends DisclosureEvent {
 }
 
 class DisclosureStopRequested extends DisclosureEvent {
-  final DisclosureFlow? flow;
-
-  const DisclosureStopRequested({this.flow});
-
-  @override
-  List<Object?> get props => [flow];
+  const DisclosureStopRequested();
 }
 
 class DisclosureReportPressed extends DisclosureEvent {
-  final DisclosureFlow? flow;
   final ReportingOption option;
 
-  const DisclosureReportPressed({this.flow, required this.option});
+  const DisclosureReportPressed({required this.option});
 
   @override
-  List<Object?> get props => [flow, option];
+  List<Object?> get props => [option];
 }
 
 class DisclosureUpdateState extends DisclosureEvent {

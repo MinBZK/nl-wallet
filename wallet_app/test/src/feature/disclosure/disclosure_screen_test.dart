@@ -4,15 +4,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
+import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/disclosure/disclosure_screen.dart';
-import 'package:wallet/src/feature/disclosure/model/disclosure_flow.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/mock_data.dart';
+import '../../mocks/wallet_mocks.dart';
 import '../../util/device_utils.dart';
 import '../../util/test_utils.dart';
 import '../pin/pin_page_test.dart';
@@ -25,18 +26,6 @@ class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
 }
 
 void main() {
-  final DisclosureFlow mockFlow = DisclosureFlow(
-    id: 'id',
-    organization: WalletMockData.organization,
-    hasPreviouslyInteractedWithOrganization: false,
-    availableAttributes: {
-      WalletMockData.card: [WalletMockData.textDataAttribute]
-    },
-    requestedAttributes: [MissingAttribute.untranslated(label: 'name', key: 'WalletMockData.textDataAttribute.type')],
-    requestPurpose: 'Purpose goes here'.untranslated,
-    policy: WalletMockData.policy,
-  );
-
   group('goldens', () {
     testGoldens('DisclosureInitial Light', (tester) async {
       await tester.pumpDeviceBuilder(
@@ -74,7 +63,11 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureCheckOrganization.fromFlow(mockFlow),
+              DisclosureCheckOrganization(
+                relyingParty: WalletMockData.organization,
+                requestPurpose: 'requestPurpose'.untranslated,
+                isFirstInteractionWithOrganization: false,
+              ),
             ),
             name: 'check_organization',
           ),
@@ -102,12 +95,12 @@ void main() {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
-            widget: RepositoryProvider<ConfirmTransactionUseCase>.value(
-              value: MockConfirmTransactionUseCase(),
+            widget: RepositoryProvider<AcceptDisclosureUseCase>.value(
+              value: MockAcceptDisclosureUseCase(),
               child: const DisclosureScreen()
                   .withState<DisclosureBloc, DisclosureState>(
                     MockDisclosureBloc(),
-                    DisclosureConfirmPin.fromFlow(mockFlow),
+                    const DisclosureConfirmPin(),
                   )
                   .withState<PinBloc, PinState>(
                     MockPinBloc(),
@@ -127,7 +120,10 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureMissingAttributes.fromFlow(mockFlow),
+              DisclosureMissingAttributes(
+                relyingParty: WalletMockData.organization,
+                missingAttributes: [MissingAttribute(label: 'missing'.untranslated)],
+              ),
             ),
             name: 'missing_attributes',
           ),
@@ -142,7 +138,13 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureConfirmDataAttributes.fromFlow(mockFlow),
+              DisclosureConfirmDataAttributes(
+                relyingParty: WalletMockData.organization,
+                requestedAttributes: {
+                  WalletMockData.card: [WalletMockData.textDataAttribute]
+                },
+                policy: WalletMockData.policy,
+              ),
             ),
             name: 'confirm_data_attributes',
           ),
@@ -157,7 +159,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureSuccess.fromFlow(mockFlow),
+              DisclosureSuccess(relyingParty: WalletMockData.organization),
             ),
             name: 'success',
           ),
@@ -201,7 +203,11 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureCheckOrganization.fromFlow(mockFlow),
+          DisclosureCheckOrganization(
+            relyingParty: WalletMockData.organization,
+            requestPurpose: 'requestPurpose'.untranslated,
+            isFirstInteractionWithOrganization: false,
+          ),
         ),
       );
       // Find and press the close button
@@ -218,7 +224,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureSuccess.fromFlow(mockFlow),
+          DisclosureSuccess(relyingParty: WalletMockData.organization),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
