@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_driver/driver_extension.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'src/di/wallet_dependency_provider.dart';
 import 'src/feature/common/widget/flutter_app_configuration_provider.dart';
@@ -15,16 +16,17 @@ import 'src/wallet_error_handler.dart';
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  // Propagate uncaught errors
-  final errorHandler = WalletErrorHandler();
-  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handlerError(error, stack);
-
   // Appium specific setup
   if (kProfileMode || kDebugMode) {
     enableFlutterDriverExtension();
   }
 
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Propagate uncaught errors
+  final errorHandler = WalletErrorHandler();
+  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handlerError(error, stack);
 
   // Debug specific setup
   if (kDebugMode) {
