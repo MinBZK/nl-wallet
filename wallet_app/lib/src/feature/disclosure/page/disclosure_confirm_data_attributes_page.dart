@@ -23,17 +23,17 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback? onReportIssuePressed;
 
   final Organization relyingParty;
-  final Map<WalletCard, List<DataAttribute>> availableAttributes;
+  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
   final Policy policy;
 
-  int get totalNrOfAttributes => availableAttributes.values.map((attributes) => attributes.length).sum;
+  int get totalNrOfAttributes => requestedAttributes.values.map((attributes) => attributes.length).sum;
 
   const DisclosureConfirmDataAttributesPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
     this.onReportIssuePressed,
     required this.relyingParty,
-    required this.availableAttributes,
+    required this.requestedAttributes,
     required this.policy,
     Key? key,
   }) : super(key: key);
@@ -55,7 +55,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
               title: Text(context.l10n.disclosureConfirmDataAttributesCheckAttributesCta),
               onTap: () => CheckAttributesScreen.show(
                 context,
-                availableAttributes,
+                requestedAttributes,
                 onDataIncorrectPressed: () {
                   Navigator.pop(context);
                   onReportIssuePressed?.call();
@@ -123,13 +123,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   }
 
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
-    final entries = availableAttributes.entries.toList();
+    final entries = requestedAttributes.entries.toList();
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: CardAttributeRow(entry: entries[index]),
       ),
-      childCount: availableAttributes.length,
+      childCount: requestedAttributes.length,
     );
   }
 

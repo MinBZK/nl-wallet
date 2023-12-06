@@ -149,7 +149,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildMissingAttributesPage(BuildContext context, DisclosureMissingAttributes state) {
     return DisclosureMissingAttributesPage(
-      onDecline: () => context.read<DisclosureBloc>().add(DisclosureStopRequested(flow: state.flow)),
+      onDecline: () => context.read<DisclosureBloc>().add(const DisclosureStopRequested()),
       missingAttributes: state.missingAttributes,
       organization: state.relyingParty,
     );
@@ -161,7 +161,7 @@ class DisclosureScreen extends StatelessWidget {
       onAcceptPressed: () => context.read<DisclosureBloc>().add(const DisclosureShareRequestedAttributesApproved()),
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
       relyingParty: state.relyingParty,
-      availableAttributes: state.availableAttributes,
+      requestedAttributes: state.requestedAttributes,
       policy: state.policy,
     );
   }
@@ -169,7 +169,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
     return DisclosureConfirmPinPage(
       bloc: PinBloc(context.read<AcceptDisclosureUseCase>()),
-      onPinValidated: () => context.read<DisclosureBloc>().add(DisclosurePinConfirmed(state.flow)),
+      onPinValidated: () => context.read<DisclosureBloc>().add(const DisclosurePinConfirmed()),
     );
   }
 
@@ -201,7 +201,7 @@ class DisclosureScreen extends StatelessWidget {
     final bloc = context.read<DisclosureBloc>();
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
-      final organizationName = context.read<DisclosureBloc>().state.organization?.displayName ?? '-'.untranslated;
+      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName ?? '-'.untranslated;
       final stopPressed = await DisclosureStopSheet.show(
         context,
         organizationName: organizationName,
@@ -212,7 +212,7 @@ class DisclosureScreen extends StatelessWidget {
                 _onReportIssuePressed(context, availableReportOptions);
               },
       );
-      if (stopPressed) bloc.add(DisclosureStopRequested(flow: bloc.state.flow));
+      if (stopPressed) bloc.add(const DisclosureStopRequested());
     } else {
       Navigator.pop(context);
     }
@@ -222,7 +222,7 @@ class DisclosureScreen extends StatelessWidget {
     final bloc = context.read<DisclosureBloc>();
     final selectedOption = await ReportIssueScreen.show(context, optionsToShow);
     if (selectedOption != null) {
-      bloc.add(DisclosureReportPressed(flow: bloc.state.flow, option: selectedOption));
+      bloc.add(DisclosureReportPressed(option: selectedOption));
     }
   }
 

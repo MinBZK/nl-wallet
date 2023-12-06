@@ -12,7 +12,6 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../report_issue/report_issue_screen.dart';
-import '../model/disclosure_flow.dart';
 
 part 'disclosure_event.dart';
 part 'disclosure_state.dart';
@@ -23,6 +22,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   StartDisclosureResult? _startDisclosureResult;
   StreamSubscription? _startDisclosureStreamSubscription;
+
+  Organization? get relyingParty => _startDisclosureResult?.relyingParty;
 
   DisclosureBloc(
     String disclosureUri,
@@ -45,9 +46,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       add(
         DisclosureUpdateState(
           DisclosureCheckOrganization(
-            _startDisclosureResult!.relyingParty,
-            _startDisclosureResult!.requestPurpose,
-            _startDisclosureResult!.isFirstInteractionWithOrganization,
+            relyingParty: _startDisclosureResult!.relyingParty,
+            requestPurpose: _startDisclosureResult!.requestPurpose,
+            isFirstInteractionWithOrganization: _startDisclosureResult!.isFirstInteractionWithOrganization,
           ),
         ),
       );
@@ -74,9 +75,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
       emit(
         DisclosureCheckOrganization(
-          state.relyingParty,
-          _startDisclosureResult!.requestPurpose,
-          _startDisclosureResult?.isFirstInteractionWithOrganization == true,
+          relyingParty: state.relyingParty,
+          requestPurpose: _startDisclosureResult!.requestPurpose,
+          isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),
       );
@@ -84,9 +85,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
       emit(
         DisclosureCheckOrganization(
-          state.relyingParty,
-          _startDisclosureResult!.requestPurpose,
-          _startDisclosureResult?.isFirstInteractionWithOrganization == true,
+          relyingParty: state.relyingParty,
+          requestPurpose: _startDisclosureResult!.requestPurpose,
+          isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),
       );
@@ -95,9 +96,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       final result = _startDisclosureResult as StartDisclosureReadyToDisclose;
       emit(
         DisclosureConfirmDataAttributes(
-          _startDisclosureResult!.relyingParty,
-          result.requestedAttributes,
-          result.policy,
+          relyingParty: _startDisclosureResult!.relyingParty,
+          requestedAttributes: result.requestedAttributes,
+          policy: result.policy,
           afterBackPressed: true,
         ),
       );
@@ -112,16 +113,16 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       case StartDisclosureReadyToDisclose():
         emit(
           DisclosureConfirmDataAttributes(
-            startDisclosureResult.relyingParty,
-            startDisclosureResult.requestedAttributes,
-            startDisclosureResult.policy,
+            relyingParty: startDisclosureResult.relyingParty,
+            requestedAttributes: startDisclosureResult.requestedAttributes,
+            policy: startDisclosureResult.policy,
           ),
         );
       case StartDisclosureMissingAttributes():
         emit(
           DisclosureMissingAttributes(
-            startDisclosureResult.relyingParty,
-            startDisclosureResult.missingAttributes,
+            relyingParty: startDisclosureResult.relyingParty,
+            missingAttributes: startDisclosureResult.missingAttributes,
           ),
         );
     }
@@ -135,7 +136,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   void _onPinConfirmed(DisclosurePinConfirmed event, emit) {
     assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
-    emit(DisclosureSuccess(_startDisclosureResult!.relyingParty));
+    emit(DisclosureSuccess(relyingParty: _startDisclosureResult!.relyingParty));
   }
 
   @override
