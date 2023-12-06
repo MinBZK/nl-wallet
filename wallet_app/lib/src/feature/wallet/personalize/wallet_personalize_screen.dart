@@ -3,13 +3,13 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:wallet_core/core.dart';
 import 'package:wallet_mock/mock.dart';
 
 import '../../../../environment.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../../../util/mapper/mapper.dart';
 import '../../../util/mapper/pid/pid_attribute_mapper.dart';
 import '../../../wallet_constants.dart';
@@ -213,15 +213,17 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Future<void> _performMockDigidLogin(BuildContext context) async {
     final bloc = context.bloc;
     final walletCore = context.read<TypedWalletCore>();
-    final Mapper<CardAttribute, DataAttribute> attributeMapper = context.read();
+    final Mapper<CardAttributeWithDocType, DataAttribute> attributeMapper = context.read();
+
     // Perform the mock DigiD flow
     final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
     await Future.delayed(kDefaultMockDelay);
     if (loginSucceeded) {
       // FIXME: Still taking some shortcuts here that require knowledge about the mock
       final cards = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
-      final mockPidAttributes = cards.map((e) => e.attributes).flattened.toList();
-      bloc.add(WalletPersonalizeLoginWithDigidSucceeded(attributeMapper.mapList(mockPidAttributes)));
+      final mockPidCardAttributes =
+          cards.map((card) => card.attributes.map((e) => CardAttributeWithDocType(card.docType, e))).flattened.toList();
+      bloc.add(WalletPersonalizeLoginWithDigidSucceeded(attributeMapper.mapList(mockPidCardAttributes)));
     } else {
       bloc.add(const WalletPersonalizeLoginWithDigidFailed());
     }
