@@ -24,8 +24,8 @@ use crate::{
 use super::{proposed_document::ProposedDocument, MdocDataSource};
 
 #[derive(Debug)]
-pub(super) enum DeviceRequestMatch {
-    Candidates(HashMap<DocType, Vec<ProposedDocument>>),
+pub(super) enum DeviceRequestMatch<I> {
+    Candidates(HashMap<DocType, Vec<ProposedDocument<I>>>),
     MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate.
 }
 
@@ -95,11 +95,14 @@ impl DeviceRequest {
         Ok((certificate, reader_registration).into())
     }
 
-    pub(super) async fn match_stored_documents(
+    pub(super) async fn match_stored_documents<S, I>(
         &self,
-        mdoc_data_source: &impl MdocDataSource,
+        mdoc_data_source: &S,
         session_transcript: SessionTranscript,
-    ) -> Result<DeviceRequestMatch> {
+    ) -> Result<DeviceRequestMatch<I>>
+    where
+        S: MdocDataSource<MdocIdentifier = I>,
+    {
         // Make a `HashSet` of doc types from the `DeviceRequest` to account
         // for potential duplicate doc types in the request, then fetch them
         // from our data source.
@@ -109,7 +112,7 @@ impl DeviceRequest {
             .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
             .collect();
 
-        let mdocs = mdoc_data_source
+        let stored_mdocs = mdoc_data_source
             .mdoc_by_doc_types(&doc_types)
             .await
             .map_err(|error| HolderError::MdocDataSource(error.into()))?;
@@ -158,28 +161,28 @@ impl DeviceRequest {
         //   which means that all of them count as missing attributes.
         let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::new();
 
-        let mdocs = mdocs
+        let stored_mdocs = stored_mdocs
             .into_iter()
             .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
             .collect::<Vec<_>>();
 
-        let mdocs_count = mdocs.len();
-        let candidates_by_doc_type = mdocs
+        let mdocs_count = stored_mdocs.len();
+        let candidates_by_doc_type = stored_mdocs
             .into_iter()
             .zip(itertools::repeat_n(session_transcript, mdocs_count))
-            .map(|(doc_type_mdocs, session_transcript)| {
+            .map(|(doc_type_stored_mdocs, session_transcript)| {
                 // First, remove the `IndexSet` of attributes that are required for this
                 // `doc_type` from the global `HashSet`. If this cannot be found, then
                 // `MdocDataSource` did not obey the contract as noted in the comment above.
-                let first_doc_type = doc_type_mdocs.first().unwrap().doc_type.as_str();
+                let first_doc_type = doc_type_stored_mdocs.first().unwrap().mdoc.doc_type.as_str();
                 let (doc_type, requested_attributes) = requested_attributes_by_doc_type
                     .remove_entry(first_doc_type)
                     .expect("Received mdoc candidate with unexpected doc_type from storage");
 
                 // Do another sanity check, all of the remaining `Mdoc`s
                 // in the `Vec` should have the same `doc_type`.
-                for mdoc in &doc_type_mdocs {
-                    if mdoc.doc_type != doc_type {
+                for stored_mdoc in &doc_type_stored_mdocs {
+                    if stored_mdoc.mdoc.doc_type != doc_type {
                         panic!("Received mdoc candidate with inconsistent doc_type from storage");
                     }
                 }
@@ -191,11 +194,12 @@ impl DeviceRequest {
                 let device_signed_challenge = serialization::cbor_serialize(&TaggedBytes(device_authentication))?;
 
                 // Get all the candidates and missing attributes from the provided `Mdoc`s.
-                let (candidates, missing_attributes) = ProposedDocument::candidates_and_missing_attributes_from_mdocs(
-                    doc_type_mdocs,
-                    &requested_attributes,
-                    device_signed_challenge,
-                );
+                let (candidates, missing_attributes) =
+                    ProposedDocument::candidates_and_missing_attributes_from_stored_mdocs(
+                        doc_type_stored_mdocs,
+                        &requested_attributes,
+                        device_signed_challenge,
+                    );
 
                 // If we have multiple `Mdoc`s with missing attributes, just record the first one.
                 // TODO: Report on missing attributes for multiple `Mdoc` candidates.

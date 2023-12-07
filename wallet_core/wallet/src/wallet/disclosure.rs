@@ -7,9 +7,10 @@ use itertools::Itertools;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 use url::Url;
+use uuid::Uuid;
 
 use nl_wallet_mdoc::{
-    holder::{Mdoc, MdocDataSource},
+    holder::{MdocDataSource, StoredMdoc},
     server_keys::KeysError,
     utils::{cose::CoseError, reader_auth::ReaderRegistration},
 };
@@ -299,12 +300,16 @@ where
     PIC: Send + Sync,
     MDS: Send + Sync,
 {
+    type MdocIdentifier = Uuid;
     type Error = StorageError;
 
-    async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error> {
+    async fn mdoc_by_doc_types(
+        &self,
+        doc_types: &HashSet<&str>,
+    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
         // TODO: Retain UUIDs and increment use count on mdoc_copy when disclosure takes place.
 
-        // Build an `IndexMap<>` to group `Mdoc` entries with the same `doc_type`.
+        // Build an `IndexMap<>` to group `StoredMdoc` entries with the same `doc_type`.
         let mdocs_by_doc_type = self
             .storage
             .read()
@@ -314,12 +319,15 @@ where
             .into_iter()
             .fold(
                 IndexMap::<_, Vec<_>>::with_capacity(doc_types.len()),
-                |mut mdocs_by_doc_type, (_, mdoc)| {
+                |mut mdocs_by_doc_type, (id, mdoc)| {
                     // Re-use the `doc_types` string slices, which should contain all `Mdoc` doc types.
                     let doc_type = *doc_types
                         .get(mdoc.doc_type.as_str())
                         .expect("Storage returned mdoc with unexpected doc_type");
-                    mdocs_by_doc_type.entry(doc_type).or_default().push(mdoc);
+                    mdocs_by_doc_type
+                        .entry(doc_type)
+                        .or_default()
+                        .push(StoredMdoc { id, mdoc });
 
                     mdocs_by_doc_type
                 },
@@ -1057,7 +1065,20 @@ mod tests {
 
         // The result should be one copy of each distinct `Mdoc`,
         // while retaining the original insertion order.
-        assert_eq!(mdoc_by_doc_types, vec![vec![mdoc1], vec![mdoc2]]);
+        assert_eq!(mdoc_by_doc_types.len(), 2);
+        assert_eq!(mdoc_by_doc_types[0].len(), 1);
+        assert_eq!(mdoc_by_doc_types[1].len(), 1);
+
+        assert_matches!(&mdoc_by_doc_types[0][0], StoredMdoc { mdoc, .. } if *mdoc == mdoc1);
+        assert_matches!(&mdoc_by_doc_types[1][0], StoredMdoc { mdoc, .. } if *mdoc == mdoc2);
+
+        let unique_ids = mdoc_by_doc_types
+            .into_iter()
+            .flat_map(|stored_mdocs| stored_mdocs.into_iter().map(|stored_mdoc| stored_mdoc.id))
+            .unique()
+            .collect::<Vec<_>>();
+
+        assert_eq!(unique_ids.len(), 2);
     }
 
     #[tokio::test]

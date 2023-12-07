@@ -36,7 +36,7 @@ use crate::{
     verifier::SessionType,
 };
 
-use super::{proposed_document::ProposedDocument, DisclosureSession, MdocDataSource};
+use super::{proposed_document::ProposedDocument, DisclosureSession, MdocDataSource, StoredMdoc};
 
 // Constants for testing.
 pub const RP_CA_CN: &str = "ca.rp.example.com";
@@ -54,6 +54,8 @@ pub const EXAMPLE_ATTRIBUTES: [&str; 5] = [
     "document_number",
     "driving_privileges",
 ];
+
+pub type MdocIdentifier = String;
 
 /// Build an [`ItemsRequest`] from a list of attributes.
 pub fn items_request(
@@ -175,10 +177,11 @@ pub fn create_example_mdoc() -> Mdoc {
 }
 
 /// Create `ProposedDocument` based on the example `Mdoc`.
-pub fn create_example_proposed_document() -> ProposedDocument {
+pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
     let mdoc = create_example_mdoc();
 
     ProposedDocument {
+        source_identifier: "id_1234".to_string(),
         private_key_id: mdoc.private_key_id,
         doc_type: mdoc.doc_type,
         issuer_signed: mdoc.issuer_signed,
@@ -270,15 +273,30 @@ impl Default for MockMdocDataSource {
 
 #[async_trait]
 impl MdocDataSource for MockMdocDataSource {
+    type MdocIdentifier = MdocIdentifier;
     type Error = MdocDataSourceError;
 
-    async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error> {
+    async fn mdoc_by_doc_types(
+        &self,
+        doc_types: &HashSet<&str>,
+    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
         if self.has_error {
             return Err(MdocDataSourceError::Failed);
         }
 
         if doc_types.contains(EXAMPLE_DOC_TYPE) {
-            return Ok(vec![self.mdocs.clone()]);
+            let stored_mdocs = self
+                .mdocs
+                .iter()
+                .cloned()
+                .enumerate()
+                .map(|(index, mdoc)| StoredMdoc {
+                    id: format!("id_{}", index + 1),
+                    mdoc,
+                })
+                .collect();
+
+            return Ok(vec![stored_mdocs]);
         }
 
         Ok(Default::default())
@@ -462,7 +480,7 @@ pub async fn disclosure_session_start<FS, FM, FD>(
     transform_mdoc: FM,
     transform_device_request: FD,
 ) -> Result<(
-    DisclosureSession<MockVerifierSessionClient<FD>>,
+    DisclosureSession<MockVerifierSessionClient<FD>, MdocIdentifier>,
     Arc<MockVerifierSession<FD>>,
     mpsc::Receiver<Vec<u8>>,
 )>

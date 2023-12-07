@@ -2,6 +2,7 @@ mod uri;
 
 use async_trait::async_trait;
 use url::Url;
+use uuid::Uuid;
 
 use nl_wallet_mdoc::{
     holder::{
@@ -66,12 +67,12 @@ pub trait MdocDisclosureProposal {
 }
 
 #[async_trait]
-impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient>
+impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient, Uuid>
 where
-    D: MdocDataSource + Sync,
+    D: MdocDataSource<MdocIdentifier = Uuid> + Sync,
 {
     type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
-    type Proposal = DisclosureProposal<CborHttpClient>;
+    type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
 
     async fn start<'a>(
         disclosure_uri: DisclosureUriData,
@@ -103,8 +104,10 @@ where
 
     fn session_state(
         &self,
-    ) -> MdocDisclosureSessionState<&DisclosureMissingAttributes<CborHttpClient>, &DisclosureProposal<CborHttpClient>>
-    {
+    ) -> MdocDisclosureSessionState<
+        &DisclosureMissingAttributes<CborHttpClient>,
+        &DisclosureProposal<CborHttpClient, Uuid>,
+    > {
         match self {
             DisclosureSession::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
             DisclosureSession::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
@@ -123,7 +126,7 @@ impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpCli
 }
 
 #[async_trait]
-impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
+impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
     fn return_url(&self) -> Option<&Url> {
         self.return_url()
     }

@@ -12,6 +12,7 @@ mod uri;
 mod tests;
 
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
@@ -38,13 +39,13 @@ pub use self::{
 use self::{config::ConfigurationCallback, documents::DocumentsCallback};
 
 pub struct Wallet<
-    CR = HttpConfigurationRepository,           // ConfigurationRepository
-    S = DatabaseStorage<HardwareEncryptionKey>, // Storage
-    PEK = HardwareEcdsaKey,                     // PlatformEcdsaKey
-    APC = HttpAccountProviderClient,            // AccountProviderClient
-    DGS = HttpDigidSession,                     // DigidSession
-    PIC = HttpPidIssuerClient,                  // PidIssuerClient
-    MDS = DisclosureSession<CborHttpClient>,    // MdocDisclosureSession
+    CR = HttpConfigurationRepository,              // ConfigurationRepository
+    S = DatabaseStorage<HardwareEncryptionKey>,    // Storage
+    PEK = HardwareEcdsaKey,                        // PlatformEcdsaKey
+    APC = HttpAccountProviderClient,               // AccountProviderClient
+    DGS = HttpDigidSession,                        // DigidSession
+    PIC = HttpPidIssuerClient,                     // PidIssuerClient
+    MDS = DisclosureSession<CborHttpClient, Uuid>, // MdocDisclosureSession
 > {
     config_repository: CR,
     storage: RwLock<S>,
