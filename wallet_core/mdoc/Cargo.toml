@@ -31,6 +31,7 @@ reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
 rustls-webpki.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
+serde-aux.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 serde_json.workspace = true
 serde_repr.workspace = true
@@ -44,8 +45,6 @@ anyhow = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
 
-fieldnames.path = "./fieldnames"
-fieldnames_derive.path = "./fieldnames_derive"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]

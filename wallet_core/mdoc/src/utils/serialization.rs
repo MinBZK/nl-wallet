@@ -11,6 +11,7 @@ use serde::{
     ser::Serializer,
     Deserialize, Serialize,
 };
+use serde_aux::serde_introspection::serde_introspect;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use url::Url;
@@ -19,8 +20,6 @@ use crate::{
     iso::*,
     utils::cose::{CoseKey, MdocCose},
 };
-use fieldnames::FieldNames;
-
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
 #[derive(thiserror::Error, Debug)]
@@ -166,16 +165,16 @@ where
 }
 impl<'de, T> Deserialize<'de> for CborSeq<T>
 where
-    T: Deserialize<'de> + FieldNames,
+    T: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let values = Vec::<Value>::deserialize(deserializer)?;
 
         Value::Map(
-            T::field_names()
+            serde_introspect::<T>()
                 .iter()
                 .zip(values)
-                .map(|v| (Value::Text(v.0.into()), v.1))
+                .map(|v| (Value::Text(v.0.to_string()), v.1))
                 .collect(),
         )
         .deserialized()
@@ -184,17 +183,17 @@ where
     }
 }
 
-impl<T, const STRING: bool> Serialize for CborIntMap<T, STRING>
+impl<'de, T, const STRING: bool> Serialize for CborIntMap<T, STRING>
 where
-    T: Serialize + FieldNames,
+    T: Serialize + Deserialize<'de>,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let field_name_indices: IndexMap<String, Value> = T::field_names()
+        let field_name_indices: IndexMap<String, Value> = serde_introspect::<T>()
             .iter()
             .enumerate()
             .map(|(index, field_name)| {
                 (
-                    field_name.clone(),
+                    field_name.to_string(),
                     if !STRING {
                         Value::Integer(index.into())
                     } else {
@@ -223,7 +222,7 @@ where
 }
 impl<'de, T, const STRING: bool> Deserialize<'de> for CborIntMap<T, STRING>
 where
-    T: Deserialize<'de> + FieldNames,
+    T: Deserialize<'de>,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let ordered_map = match Value::deserialize(deserializer)? {
@@ -231,7 +230,7 @@ where
             _ => Err(de::Error::custom("CborIntMap::deserialize failed: not a map")),
         }?;
 
-        let fieldnames = T::field_names();
+        let fieldnames = serde_introspect::<T>();
         let with_fieldnames: Vec<(Value, Value)> = ordered_map
             .into_iter()
             .map(|(index, val)| {
@@ -244,9 +243,8 @@ where
                     .map_err(|e| de::Error::custom(format!("CborIntMap::deserialize failed: {e}")))?;
                 let fieldname = fieldnames
                     .get(index)
-                    .ok_or(de::Error::custom("CborIntMap::deserialize failed: index out of bounds"))?
-                    .clone();
-                Ok((Value::Text(fieldname), val))
+                    .ok_or(de::Error::custom("CborIntMap::deserialize failed: index out of bounds"))?;
+                Ok((Value::Text(fieldname.to_string()), val))
             })
             .collect::<Result<_, _>>()?;
 

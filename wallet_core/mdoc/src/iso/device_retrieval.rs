@@ -8,8 +8,6 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-use fieldnames_derive::FieldNames;
-
 use crate::{
     iso::{engagement::*, mdocs::*},
     utils::{
@@ -63,7 +61,7 @@ pub type ReaderAuthenticationBytes = TaggedBytes<ReaderAuthentication>;
 pub type ReaderAuthentication = CborSeq<ReaderAuthenticationKeyed>;
 
 #[cfg_attr(feature = "examples", derive(Deserialize))]
-#[derive(Serialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct ReaderAuthenticationKeyed {
     pub reader_auth_string: RequiredValue<ReaderAuthenticationString>,
     pub session_transcript: SessionTranscript,
