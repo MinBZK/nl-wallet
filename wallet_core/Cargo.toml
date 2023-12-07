@@ -3,8 +3,6 @@ members = [
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "mdoc",
-    "mdoc/fieldnames",
-    "mdoc/fieldnames_derive",
     "mock_relying_party",
     "pid_issuer",
     "platform_support",
@@ -94,6 +92,7 @@ sea-orm = { version = "0.12.3", default-features = false }
 sea-orm-migration = { version = "0.12.3", default-features = false }
 sec1 = "0.7.3"
 serde = { version = "1.0.193", default-features = false }
+serde-aux = "4.2.0"
 serde_bytes = "0.11.7"
 serde_json = { version = "1.0.92", default-features = false }
 serde_repr = "0.1.16"

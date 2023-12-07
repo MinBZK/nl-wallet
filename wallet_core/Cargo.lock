@@ -1445,19 +1445,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fieldnames"
-version = "0.1.0"
-
-[[package]]
-name = "fieldnames_derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.38",
-]
-
-[[package]]
 name = "finl_unicode"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2537,8 +2524,6 @@ dependencies = [
  "ciborium",
  "coset",
  "dashmap",
- "fieldnames",
- "fieldnames_derive",
  "futures",
  "hex",
  "hex-literal",
@@ -2555,6 +2540,7 @@ dependencies = [
  "rstest",
  "rustls-webpki",
  "serde",
+ "serde-aux",
  "serde_bytes",
  "serde_json",
  "serde_repr",
@@ -3796,6 +3782,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25dd9975e68d0cb5aa1120c288333fc98731bd1dd12f561e468ea4728c042b89"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-aux"
+version = "4.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "184eba62ebddb71658697c8b08822edee89970bf318c5362189f0de27f85b498"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

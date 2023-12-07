@@ -6,7 +6,6 @@
 //! [`disclosure`](super::disclosure) module (which contains the holder's signature over [`DeviceAuthentication`]
 //! defined here).
 
-use fieldnames_derive::FieldNames;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -51,7 +50,7 @@ pub type DeviceAuthenticationBytes = TaggedBytes<DeviceAuthentication>;
 /// See [`DeviceAuthentication`].
 // In production code, this struct is never deserialized.
 #[cfg_attr(feature = "examples", derive(Deserialize))]
-#[derive(Serialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct DeviceAuthenticationKeyed {
     pub device_authentication: RequiredValue<DeviceAuthenticationString>,
     pub session_transcript: SessionTranscript,
@@ -59,7 +58,7 @@ pub struct DeviceAuthenticationKeyed {
     pub device_name_spaces_bytes: DeviceNameSpacesBytes,
 }
 
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: DeviceEngagementBytes,
     pub ereader_key_bytes: ESenderKeyBytes,
@@ -123,7 +122,7 @@ pub type DeviceEngagement = CborIntMap<Engagement>;
 pub type ReaderEngagement = CborIntMap<Engagement>;
 
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Engagement {
     pub version: EngagementVersion,
     pub security: Option<Security>,
@@ -164,7 +163,7 @@ pub enum OriginInfoType {
 pub type Security = CborSeq<SecurityKeyed>;
 
 /// The ephemeral public key used for establishing an E2E encrypted protocol channel.
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SecurityKeyed {
     pub cipher_suite_identifier: CipherSuiteIdentifier,
     pub e_sender_key_bytes: ESenderKeyBytes,
@@ -183,7 +182,7 @@ pub type ConnectionMethods = Vec<ConnectionMethod>;
 pub type ConnectionMethod = CborSeq<ConnectionMethodKeyed>;
 
 /// Describes an available connection method.
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ConnectionMethodKeyed {
     pub typ: ConnectionMethodType,
     pub version: ConnectionMethodVersion,
@@ -202,7 +201,7 @@ pub enum ConnectionMethodVersion {
     RestApi = 1,
 }
 
-#[derive(Serialize, Deserialize, FieldNames, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RestApiOptionsKeyed {
     pub uri: Url,
 }
