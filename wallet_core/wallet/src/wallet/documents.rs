@@ -2,7 +2,7 @@ use tracing::info;
 
 use crate::{
     document::{Document, DocumentPersistence},
-    storage::{Storage, StorageError},
+    storage::{Storage, StorageError, UniqueMdoc},
 };
 
 use super::Wallet;
@@ -32,9 +32,9 @@ where
             .fetch_unique_mdocs()
             .await?
             .into_iter()
-            .map(|(id, mdoc)| {
+            .map(|UniqueMdoc { mdoc_id, mdoc, .. }| {
                 Document::from_mdoc_attributes(
-                    DocumentPersistence::Stored(id.to_string()),
+                    DocumentPersistence::Stored(mdoc_id.to_string()),
                     &mdoc.doc_type,
                     mdoc.attributes(),
                 )

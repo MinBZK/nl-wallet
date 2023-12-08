@@ -4,15 +4,12 @@ use async_trait::async_trait;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{
-    holder::{Mdoc, MdocCopies},
-    utils::mdocs_map::MdocsMap,
-};
+use nl_wallet_mdoc::{holder::MdocCopies, utils::mdocs_map::MdocsMap};
 
 use super::{
     data::{KeyedData, RegistrationData},
     event_log::WalletEvent,
-    Storage, StorageResult, StorageState,
+    Storage, StorageResult, StorageState, UniqueMdoc,
 };
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
@@ -118,7 +115,11 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+    async fn increment_mdoc_copies_usage_count(&mut self, _mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()> {
+        Ok(())
+    }
+
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<UniqueMdoc>> {
         self.check_query_error()?;
 
         // Get a single copy of every unique Mdoc, along with a random `Uuid`.
@@ -128,19 +129,23 @@ impl Storage for MockStorage {
             .values()
             .flat_map(|doc_type_mdocs| doc_type_mdocs.values())
             .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
-            .map(|mdoc| (Uuid::new_v4(), mdoc.clone()))
+            .map(|mdoc| UniqueMdoc {
+                mdoc_id: Uuid::new_v4(),
+                mdoc_copy_id: Uuid::new_v4(),
+                mdoc: mdoc.clone(),
+            })
             .collect();
 
         Ok(mdocs)
     }
 
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<UniqueMdoc>> {
         // Get every unique Mdoc and filter them based on the requested doc types.
         let unique_mdocs = self.fetch_unique_mdocs().await?;
 
         let mdocs = unique_mdocs
             .into_iter()
-            .filter(|mdoc| doc_types.contains(mdoc.1.doc_type.as_str()))
+            .filter(|unique_mdoc| doc_types.contains(unique_mdoc.mdoc.doc_type.as_str()))
             .collect();
 
         Ok(mdocs)

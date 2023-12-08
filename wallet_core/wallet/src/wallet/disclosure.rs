@@ -24,7 +24,7 @@ use crate::{
     },
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{Storage, StorageError},
+    storage::{Storage, StorageError, UniqueMdoc},
     WalletEvent,
 };
 
@@ -319,7 +319,7 @@ where
             .into_iter()
             .fold(
                 IndexMap::<_, Vec<_>>::with_capacity(doc_types.len()),
-                |mut mdocs_by_doc_type, (id, mdoc)| {
+                |mut mdocs_by_doc_type, UniqueMdoc { mdoc_copy_id, mdoc, .. }| {
                     // Re-use the `doc_types` string slices, which should contain all `Mdoc` doc types.
                     let doc_type = *doc_types
                         .get(mdoc.doc_type.as_str())
@@ -327,7 +327,7 @@ where
                     mdocs_by_doc_type
                         .entry(doc_type)
                         .or_default()
-                        .push(StoredMdoc { id, mdoc });
+                        .push(StoredMdoc { id: mdoc_copy_id, mdoc });
 
                     mdocs_by_doc_type
                 },
