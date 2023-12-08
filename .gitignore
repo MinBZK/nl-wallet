@@ -11,6 +11,7 @@
 .svn/
 migrate_working_dir/
 .env*
+.ruby-version
 
 # IntelliJ related
 *.iml

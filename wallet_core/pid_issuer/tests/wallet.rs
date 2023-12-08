@@ -6,13 +6,6 @@ use std::{
 use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
-use wallet::{
-    mock::{MockAccountProviderClient, MockStorage},
-    wallet_deps::{DigidSession, HttpDigidSession, HttpPidIssuerClient, LocalConfigurationRepository},
-    Wallet,
-};
-use wallet_common::keys::software::SoftwareEcdsaKey;
-
 use pid_issuer::{
     app::{AttributesLookup, BsnLookup},
     digid::OpenIdClient,
@@ -20,7 +13,12 @@ use pid_issuer::{
     server,
     settings::Settings,
 };
-use wallet::mock::default_configuration;
+use wallet::{
+    mock::{default_configuration, LocalConfigurationRepository, MockAccountProviderClient, MockStorage},
+    wallet_deps::{DigidSession, HttpDigidSession, HttpPidIssuerClient},
+    Wallet,
+};
+use wallet_common::keys::software::SoftwareEcdsaKey;
 
 fn local_base_url(port: u16) -> Url {
     Url::parse(&format!("http://localhost:{}/", port)).expect("Could not create url")
@@ -33,6 +31,8 @@ fn test_wallet_config(base_url: Url) -> LocalConfigurationRepository {
     LocalConfigurationRepository::new(config)
 }
 
+pub type WalletWithMocks =
+    Wallet<LocalConfigurationRepository, MockStorage, SoftwareEcdsaKey, MockAccountProviderClient>;
 /// Create an instance of [`Wallet`].
 async fn create_test_wallet<D: DigidSession>(
     base_url: Url,

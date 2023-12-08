@@ -1,16 +1,14 @@
 use tokio::sync::RwLock;
+use tracing::log::warn;
 
 use platform_support::{
     hw_keystore::{hardware::HardwareEncryptionKey, PlatformEcdsaKey},
-    utils::hardware::HardwareUtilities,
+    utils::{hardware::HardwareUtilities, PlatformUtilities, UtilitiesError},
 };
 
 use crate::{
     account_provider::HttpAccountProviderClient,
-    config::{
-        default_configuration, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository,
-        HttpConfigurationRepository,
-    },
+    config::{ConfigurationError, ConfigurationRepository, FileStorageConfigurationRepository},
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
@@ -24,6 +22,8 @@ const WALLET_KEY_ID: &str = "wallet";
 pub enum WalletInitError {
     #[error("wallet configuration error")]
     Configuration(#[from] ConfigurationError),
+    #[error("platform utilities error: {0}")]
+    Utilities(#[from] UtilitiesError),
     #[error("could not initialize database: {0}")]
     Database(#[from] StorageError),
 }
@@ -33,14 +33,12 @@ impl Wallet {
         #[cfg(feature = "disable_tls_validation")]
         tracing::warn!("TLS validation disabled");
 
-        let storage = DatabaseStorage::<HardwareEncryptionKey>::init::<HardwareUtilities>().await?;
-
-        // todo: retrieve wallet_configuration from disk with fallback to default
-        let config_repo =
-            HttpConfigurationRepository::new(ConfigServerConfiguration::default(), default_configuration());
+        let storage_path = HardwareUtilities::storage_path().await?;
+        let storage = DatabaseStorage::<HardwareEncryptionKey>::init(storage_path.clone());
+        let config_repository = FileStorageConfigurationRepository::init(storage_path).await?;
 
         Self::init_registration(
-            config_repo,
+            config_repository,
             storage,
             HttpAccountProviderClient::default(),
             HttpPidIssuerClient::default(),
@@ -79,13 +77,13 @@ where
 
     /// Initialize the wallet by loading initial state.
     pub async fn init_registration(
-        mut config_repository: CR,
+        config_repository: CR,
         mut storage: S,
         account_provider_client: APC,
         pid_issuer: PIC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
-        Self::fetch_configuration(&mut config_repository).await?;
+        Self::fetch_configuration(&config_repository).await;
 
         let wallet = Self::new(
             config_repository,
@@ -98,22 +96,25 @@ where
         Ok(wallet)
     }
 
-    /// Attempts to fetch the registration data from storage, without creating a database if there is none.
+    /// Attempts to fetch the initial data from storage, without creating a database if there is none.
     async fn fetch_registration(storage: &mut S) -> Result<Option<RegistrationData>, StorageError> {
         match storage.state().await? {
             // If there is no database file, we can conclude early that there is no registration.
-            StorageState::Uninitialized => return Ok(None),
+            StorageState::Uninitialized => return Ok(Default::default()),
             // Open the database, if necessary.
             StorageState::Unopened => storage.open().await?,
             StorageState::Opened => (),
         }
 
-        // Finally, fetch the registration.
-        storage.fetch_data::<RegistrationData>().await
+        let result = storage.fetch_data::<RegistrationData>().await?;
+        Ok(result)
     }
 
-    async fn fetch_configuration(config_repository: &mut CR) -> Result<(), ConfigurationError> {
-        config_repository.fetch().await
+    pub async fn fetch_configuration(config_repository: &CR) {
+        // we want to continue (with default configuration) when the remote configuration can't be fetched
+        if let Err(e) = config_repository.fetch().await {
+            warn!("error fetching configuration: {0}", e);
+        }
     }
 }
 

@@ -19,7 +19,7 @@ use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncrypti
 
 use crate::{
     account_provider::HttpAccountProviderClient,
-    config::HttpConfigurationRepository,
+    config::{FileStorageConfigurationRepository, HttpConfigurationRepository},
     digid::HttpDigidSession,
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
@@ -39,13 +39,13 @@ pub use self::{
 use self::{config::ConfigurationCallback, documents::DocumentsCallback};
 
 pub struct Wallet<
-    CR = HttpConfigurationRepository,              // ConfigurationRepository
-    S = DatabaseStorage<HardwareEncryptionKey>,    // Storage
-    PEK = HardwareEcdsaKey,                        // PlatformEcdsaKey
-    APC = HttpAccountProviderClient,               // AccountProviderClient
-    DGS = HttpDigidSession,                        // DigidSession
-    PIC = HttpPidIssuerClient,                     // PidIssuerClient
-    MDS = DisclosureSession<CborHttpClient, Uuid>, // MdocDisclosureSession
+    CR = FileStorageConfigurationRepository<HttpConfigurationRepository>, // ConfigurationRepository
+    S = DatabaseStorage<HardwareEncryptionKey>,                           // Storage
+    PEK = HardwareEcdsaKey,                                               // PlatformEcdsaKey
+    APC = HttpAccountProviderClient,                                      // AccountProviderClient
+    DGS = HttpDigidSession,                                               // DigidSession
+    PIC = HttpPidIssuerClient,                                            // PidIssuerClient
+    MDS = DisclosureSession<CborHttpClient, Uuid>,                        // MdocDisclosureSession
 > {
     config_repository: CR,
     storage: RwLock<S>,
