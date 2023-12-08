@@ -90,6 +90,11 @@ impl<H: HttpClient> Wallet<H> {
         };
         let request: RequestKeyGenerationMessage = self.client.post(url, &start_issuing_msg).await?;
 
+        // An empty `Vec<UnsignedMdoc>` is useless, so return an error.
+        if request.unsigned_mdocs.is_empty() {
+            return Err(HolderError::NoUnsignedMdocs.into());
+        }
+
         self.session_state.replace(IssuanceSessionState {
             url: url.clone(),
             request,
