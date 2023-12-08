@@ -99,7 +99,21 @@ where
     {
         let database = self.database()?;
 
-        let select = mdoc_copy::Entity::find().group_by(mdoc_copy::Column::MdocId);
+        // As this query only contains one `MIN()` aggregate function, the columns that
+        // do not appear in the `GROUP BY` clause are taken from whichever `mdoc_copy`
+        // row has the lowest disclosure count. This uses the "bare columns in aggregate
+        // queries" feature that SQLite provides.
+        //
+        // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
+        let select = mdoc_copy::Entity::find()
+            .select_only()
+            .columns([
+                mdoc_copy::Column::Id,
+                mdoc_copy::Column::MdocId,
+                mdoc_copy::Column::Mdoc,
+            ])
+            .column_as(mdoc_copy::Column::DisclosureCount.min(), "disclosure_count")
+            .group_by(mdoc_copy::Column::MdocId);
 
         let mdoc_copies = transform_select(select).all(database.connection()).await?;
 
