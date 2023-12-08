@@ -7,6 +7,15 @@ abstract class DisclosureEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+class DisclosureSessionStarted extends DisclosureEvent {
+  final String uri;
+
+  const DisclosureSessionStarted(this.uri);
+
+  @override
+  List<Object?> get props => [uri];
+}
+
 class DisclosureOrganizationApproved extends DisclosureEvent {
   const DisclosureOrganizationApproved();
 }
@@ -34,13 +43,4 @@ class DisclosureReportPressed extends DisclosureEvent {
 
   @override
   List<Object?> get props => [option];
-}
-
-class DisclosureUpdateState extends DisclosureEvent {
-  final DisclosureState state;
-
-  const DisclosureUpdateState(this.state);
-
-  @override
-  List<Object?> get props => [state];
 }
