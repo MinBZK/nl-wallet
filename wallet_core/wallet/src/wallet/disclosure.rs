@@ -57,6 +57,8 @@ pub enum DisclosureError {
     MdocAttributes(#[source] DocumentMdocError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
+    #[error("could not increment usage count of mdoc copies in database: {0}")]
+    IncrementUsageCount(#[source] StorageError),
     #[error("could not store history in database: {0}")]
     HistoryStorage(#[source] StorageError),
 }
@@ -233,7 +235,20 @@ where
             _ => return Err(DisclosureError::SessionState),
         };
 
-        // TODO: Increment the disclosure counts of mdoc copies referenced in the proposal.
+        // Increment the disclosure counts of the mdoc copies referenced in the proposal,
+        // so that for the next disclosure different copies are used.
+
+        // NOTE: If the disclosure fails and is retried, the disclosure count will jump by
+        //       more than 1, since the same copies are shared with the verifier again.
+        //       It is necessary to increment the disclosure count before sending the mdocs
+        //       to the verifier, as we do not know if disclosure fails before or after the
+        //       verifier has received the attributes.
+
+        self.storage
+            .get_mut()
+            .increment_mdoc_copies_usage_count(session_proposal.proposed_source_identifiers())
+            .await
+            .map_err(DisclosureError::IncrementUsageCount)?;
 
         // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
         let config = self.config_repository.config();
@@ -307,8 +322,6 @@ where
         &self,
         doc_types: &HashSet<&str>,
     ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
-        // TODO: Retain UUIDs and increment use count on mdoc_copy when disclosure takes place.
-
         // Build an `IndexMap<>` to group `StoredMdoc` entries with the same `doc_type`.
         let mdocs_by_doc_type = self
             .storage
@@ -351,6 +364,7 @@ mod tests {
         basic_sa_ext::Entry, examples::Examples, holder::HolderError, iso::disclosure::SessionStatus,
         mock as mdoc_mock, verifier::SessionType, DataElementValue,
     };
+    use uuid::uuid;
 
     use crate::{
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
@@ -361,6 +375,7 @@ mod tests {
 
     const DISCLOSURE_URI: &str =
         "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device";
+    const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
     #[tokio::test]
     #[serial]
@@ -383,6 +398,7 @@ mod tests {
             )]),
         )]);
         let proposal_session = MockMdocDisclosureProposal {
+            proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
         };
@@ -424,6 +440,9 @@ mod tests {
                 }
             )
         );
+
+        // Starting disclosure should not cause mdoc copy usage counts to be incremented.
+        assert!(wallet.storage.get_mut().mdoc_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -642,6 +661,7 @@ mod tests {
             )]),
         )]);
         let proposal_session = MockMdocDisclosureProposal {
+            proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
         };
@@ -662,7 +682,7 @@ mod tests {
         assert!(!was_terminated.load(Ordering::Relaxed));
 
         // Verify no history events are yet logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert!(events.is_empty());
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure
@@ -674,7 +694,7 @@ mod tests {
         assert!(was_terminated.load(Ordering::Relaxed));
 
         // Verify a Disclosure Cancel event is logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
@@ -685,6 +705,9 @@ mod tests {
                 ..
             } if doc_type == "com.example.pid"
         );
+
+        // Cancelling disclosure should not cause mdoc copy usage counts to be incremented.
+        assert!(wallet.storage.get_mut().mdoc_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -720,7 +743,7 @@ mod tests {
         assert!(!was_terminated.load(Ordering::Relaxed));
 
         // Verify no history events are yet logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert!(events.is_empty());
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure
@@ -732,7 +755,7 @@ mod tests {
         assert!(was_terminated.load(Ordering::Relaxed));
 
         // Verify a single Disclosure Error event is logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
@@ -813,6 +836,7 @@ mod tests {
             )]),
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
+            proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
         };
@@ -843,7 +867,7 @@ mod tests {
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
 
         // Verify a single Disclosure Success event is logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
@@ -853,6 +877,19 @@ mod tests {
                 status: EventStatus::Success,
                 ..
             } if doc_type == "com.example.pid"
+        );
+
+        // Test that the usage count got incremented for the proposed mdoc copy id.
+        assert_eq!(wallet.storage.get_mut().mdoc_copies_usage_counts.len(), 1);
+        assert_eq!(
+            wallet
+                .storage
+                .get_mut()
+                .mdoc_copies_usage_counts
+                .get(&PROPOSED_ID)
+                .copied()
+                .unwrap_or_default(),
+            1
         );
     }
 
@@ -879,6 +916,9 @@ mod tests {
             }
             _ => unreachable!(),
         };
+
+        // The mdoc copy usage counts should not be incremented.
+        assert!(wallet.storage.get_mut().mdoc_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -929,6 +969,9 @@ mod tests {
 
         assert_matches!(error, DisclosureError::SessionState);
         assert!(wallet.disclosure_session.is_some());
+
+        // The mdoc copy usage counts should not be incremented.
+        assert!(wallet.storage.get_mut().mdoc_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -938,6 +981,7 @@ mod tests {
 
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+                proposed_source_identifiers: vec![PROPOSED_ID],
                 next_error: Mutex::new(
                     nl_wallet_mdoc::Error::Holder(HolderError::DisclosureResponse(SessionStatus::DecodingError)).into(),
                 ),
@@ -963,6 +1007,20 @@ mod tests {
             _ => unreachable!(),
         };
 
+        // Test that the usage count got incremented for the proposed mdoc copy id.
+        assert_eq!(wallet.storage.get_mut().mdoc_copies_usage_counts.len(), 1);
+        assert_eq!(
+            wallet
+                .storage
+                .get_mut()
+                .mdoc_copies_usage_counts
+                .get(&PROPOSED_ID)
+                .copied()
+                .unwrap_or_default(),
+            1
+        );
+
+        // Set up the disclosure session to return a different error.
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
                 proposal
@@ -991,6 +1049,19 @@ mod tests {
             }
             _ => unreachable!(),
         };
+
+        // Test that the usage count got incremented again for the proposed mdoc copy id.
+        assert_eq!(wallet.storage.get_mut().mdoc_copies_usage_counts.len(), 1);
+        assert_eq!(
+            wallet
+                .storage
+                .get_mut()
+                .mdoc_copies_usage_counts
+                .get(&PROPOSED_ID)
+                .copied()
+                .unwrap_or_default(),
+            2
+        );
     }
 
     #[tokio::test]
@@ -1000,6 +1071,7 @@ mod tests {
 
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+                proposed_source_identifiers: vec![PROPOSED_ID],
                 next_error: Mutex::new(
                     nl_wallet_mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(InstructionError::Blocked).into(),
@@ -1027,6 +1099,19 @@ mod tests {
             }
             _ => unreachable!(),
         };
+
+        // Test that the usage count got incremented for the proposed mdoc copy id.
+        assert_eq!(wallet.storage.get_mut().mdoc_copies_usage_counts.len(), 1);
+        assert_eq!(
+            wallet
+                .storage
+                .get_mut()
+                .mdoc_copies_usage_counts
+                .get(&PROPOSED_ID)
+                .copied()
+                .unwrap_or_default(),
+            1
+        );
     }
 
     #[tokio::test]
@@ -1099,10 +1184,10 @@ mod tests {
     #[tokio::test]
     async fn test_mdoc_by_doc_types_error() {
         // Prepare a wallet in initial state.
-        let wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::default();
 
         // Set up `MockStorage` to return an error when performing a query.
-        wallet.storage.write().await.has_query_error = true;
+        wallet.storage.get_mut().has_query_error = true;
 
         // Calling the `MdocDataSource.mdoc_by_doc_types()` method
         // on the `Wallet` should forward the `StorageError`.

@@ -18,6 +18,7 @@ pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, String>,
     pub mdocs: MdocsMap,
+    pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
 }
@@ -36,6 +37,7 @@ impl MockStorage {
             state,
             data,
             mdocs,
+            mdoc_copies_usage_counts: HashMap::new(),
             event_log: vec![],
             has_query_error: false,
         }
@@ -115,7 +117,13 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn increment_mdoc_copies_usage_count(&mut self, _mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()> {
+    async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()> {
+        mdoc_copy_ids.into_iter().for_each(|mdoc_copy_id| {
+            let usage_count = self.mdoc_copies_usage_counts.entry(mdoc_copy_id).or_default();
+
+            *usage_count += 1;
+        });
+
         Ok(())
     }
 
