@@ -51,6 +51,10 @@ async fn database_connection(settings: &Settings) -> DatabaseConnection {
         .await
         .expect("Could not open database connection")
 }
+
+pub type WalletWithMocks =
+    Wallet<HttpConfigurationRepository, MockStorage, SoftwareEcdsaKey, HttpAccountProviderClient, MockDigidSession>;
+
 /// Create an instance of [`Wallet`].
 async fn create_test_wallet(
     config_base_url: Url,
@@ -73,10 +77,10 @@ async fn create_test_wallet(
         wallet_config.pid_issuance.pid_issuer_url = pid_base_url;
     }
 
-    let config_repo = HttpConfigurationRepository::new(config_server, wallet_config);
+    let config_repository = HttpConfigurationRepository::new(config_server, wallet_config);
 
     Wallet::init_registration(
-        config_repo,
+        config_repository,
         MockStorage::default(),
         HttpAccountProviderClient::default(),
         pid_issuer_client,

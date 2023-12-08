@@ -42,8 +42,8 @@ pub mod wallet_deps {
     pub use crate::{
         account_provider::{AccountProviderClient, HttpAccountProviderClient},
         config::{
-            ConfigServerConfiguration, ConfigurationRepository, HttpConfigurationRepository,
-            LocalConfigurationRepository,
+            ConfigServerConfiguration, ConfigurationRepository, FileStorageConfigurationRepository,
+            HttpConfigurationRepository,
         },
         digid::{DigidSession, HttpDigidSession},
         disclosure::{
@@ -57,7 +57,11 @@ pub mod wallet_deps {
 #[cfg(feature = "mock")]
 pub mod mock {
     pub use crate::{
-        account_provider::MockAccountProviderClient, config::default_configuration, digid::MockDigidSession,
-        disclosure::MockMdocDisclosureSession, pid_issuer::MockPidIssuerClient, storage::MockStorage,
+        account_provider::MockAccountProviderClient,
+        config::{default_configuration, LocalConfigurationRepository},
+        digid::MockDigidSession,
+        disclosure::MockMdocDisclosureSession,
+        pid_issuer::MockPidIssuerClient,
+        storage::MockStorage,
     };
 }

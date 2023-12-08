@@ -1,7 +1,10 @@
 mod client;
+mod config_file;
 mod data;
-mod http;
-mod local;
+mod file_repository;
+mod http_repository;
+#[cfg(any(test, feature = "mock"))]
+mod mock;
 
 use std::sync::Arc;
 
@@ -11,10 +14,14 @@ use url::ParseError;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 pub use self::{
+    config_file::ConfigFileError,
     data::{default_configuration, ConfigServerConfiguration},
-    http::HttpConfigurationRepository,
-    local::LocalConfigurationRepository,
+    file_repository::FileStorageConfigurationRepository,
+    http_repository::HttpConfigurationRepository,
 };
+
+#[cfg(any(test, feature = "mock"))]
+pub use self::mock::LocalConfigurationRepository;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigurationError {
@@ -24,6 +31,8 @@ pub enum ConfigurationError {
     Response(#[source] reqwest::Error, String),
     #[error("could not parse base URL: {0}")]
     BaseUrl(#[from] ParseError),
+    #[error("could not store or load configuration: {0}")]
+    ConfigFile(#[from] ConfigFileError),
 }
 
 #[async_trait]

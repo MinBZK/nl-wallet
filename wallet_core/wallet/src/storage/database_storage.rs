@@ -15,10 +15,8 @@ use entity::{
 };
 use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
-    utils::serialization::CborError,
-    utils::serialization::{cbor_deserialize, cbor_serialize},
+    utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
 };
-use platform_support::utils::PlatformUtilities;
 use wallet_common::keys::SecureEncryptionKey;
 
 use super::{
@@ -54,19 +52,12 @@ pub struct DatabaseStorage<K> {
 }
 
 impl<K> DatabaseStorage<K> {
-    pub async fn init<U>() -> StorageResult<Self>
-    where
-        U: PlatformUtilities,
-    {
-        let storage_path = U::storage_path().await?;
-
-        let storage = DatabaseStorage {
+    pub fn init(storage_path: PathBuf) -> Self {
+        DatabaseStorage {
             storage_path,
             database: None,
             _key: PhantomData,
-        };
-
-        Ok(storage)
+        }
     }
 }
 
@@ -325,7 +316,7 @@ mod tests {
 
     use entity::event_log::EventType;
     use nl_wallet_mdoc::{examples::Examples, mock as mdoc_mock, utils::x509::Certificate};
-    use platform_support::utils::software::SoftwareUtilities;
+    use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
     use wallet_common::{
         account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
     };
@@ -341,9 +332,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_database_open_encrypted_database() {
-        let storage = DatabaseStorage::<SoftwareEncryptionKey>::init::<SoftwareUtilities>()
-            .await
-            .unwrap();
+        let storage = DatabaseStorage::<SoftwareEncryptionKey>::init(SoftwareUtilities::storage_path().await.unwrap());
 
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
@@ -368,9 +357,8 @@ mod tests {
     }
 
     async fn open_test_database_storage() -> DatabaseStorage<SoftwareEncryptionKey> {
-        let mut storage = DatabaseStorage::<SoftwareEncryptionKey>::init::<SoftwareUtilities>()
-            .await
-            .unwrap();
+        let mut storage =
+            DatabaseStorage::<SoftwareEncryptionKey>::init(SoftwareUtilities::storage_path().await.unwrap());
 
         // Create a test database, override the database field on Storage.
         let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
