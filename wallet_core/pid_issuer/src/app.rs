@@ -31,6 +31,8 @@ pub enum Error {
     Digid(#[from] digid::Error),
     #[error("starting mdoc session failed: {0}")]
     StartMdoc(#[source] nl_wallet_mdoc::Error),
+    #[error("could not find attributes for BSN")]
+    NoAttributesFound,
     #[error("mdoc session error: {0}")]
     Mdoc(#[source] nl_wallet_mdoc::Error),
 }
@@ -39,13 +41,19 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         warn!("error result: {:?}", self);
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self)).into_response()
+
+        let status_code = match self {
+            Error::NoAttributesFound => StatusCode::NOT_FOUND,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
+        (status_code, format!("{}", self)).into_response()
     }
 }
 
 /// Given a BSN, determine the attributes to be issued. Contract for the BRP query.
 pub trait AttributesLookup {
-    fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc>;
+    fn attributes(&self, bsn: &str) -> Option<Vec<UnsignedMdoc>>;
 }
 
 /// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`](crate::openid::Client).
@@ -129,7 +137,10 @@ where
 
     // Start the session, and return the initial mdoc protocol message (containing the URL at which the wallet can
     // find us) to the wallet
-    let attributes = state.attributes_lookup.attributes(&bsn);
+    let attributes = state
+        .attributes_lookup
+        .attributes(&bsn)
+        .ok_or(Error::NoAttributesFound)?;
     let service_engagement = state.issuer.new_session(attributes).map_err(Error::StartMdoc).await?;
 
     Ok(Json(service_engagement))
