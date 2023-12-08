@@ -10,6 +10,8 @@ import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
+import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
+import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
@@ -58,6 +60,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<AcceptSignAgreementUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptIssuanceUseCase>()])
+@GenerateNiceMocks([MockSpec<StartDisclosureUseCase>()])
+@GenerateNiceMocks([MockSpec<CancelDisclosureUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])
@@ -65,13 +69,13 @@ export 'wallet_mocks.mocks.dart';
 /// Constants
 const kMockPidIssuanceUrl = 'https://example.org';
 
-/// Class that provides the generated mocks with a very
-/// basic or no stubbing. Stubs can be overwritten or the mocks
-/// can always be instantiated directly. The main intention here
-/// allow us to instantiate classes under tests in a simple way,
+/// Class that provides the generated mocks with very
+/// basic, or no stubbing. Stubs can be overwritten or the mocks
+/// can always be instantiated directly. The main intention here is
+/// to allow us to instantiate classes under tests in a simple way,
 /// i.e. `xxRepository(Mocks.create(), Mocks.create(), Mocks.create())`
 /// When you need more control over what a mock returns you should
-/// most likely instantiate the mock directly in your test class.
+/// probably instantiate the mock directly in your test class.
 class Mocks {
   Mocks._();
 
@@ -99,6 +103,8 @@ class Mocks {
       return mock;
     });
     sl.registerFactory<AcceptOfferedPidUseCase>(() => MockAcceptOfferedPidUseCase());
+    sl.registerFactory<StartDisclosureUseCase>(() => MockStartDisclosureUseCase());
+    sl.registerFactory<CancelDisclosureUseCase>(() => MockCancelDisclosureUseCase());
 
     // Repositories
     sl.registerFactory<PidRepository>(() => getMockPidRepository());
