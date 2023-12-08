@@ -28,6 +28,8 @@ pub enum HolderError {
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]
     ReaderAuthsInconsistent,
+    #[error("no unsigned mdocs received from issuer")]
+    NoUnsignedMdocs,
     #[error("issuer not trusted for doctype {0}")]
     UntrustedIssuer(DocType),
     #[error("certificate error: {0}")]
