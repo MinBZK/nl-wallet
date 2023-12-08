@@ -26,35 +26,32 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   Organization? get relyingParty => _startDisclosureResult?.relyingParty;
 
   DisclosureBloc(
-    String disclosureUri,
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
   ) : super(DisclosureLoadInProgress()) {
-    on<DisclosureUpdateState>((event, emit) => emit(event.state));
+    on<DisclosureSessionStarted>(_onSessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
     on<DisclosureBackPressed>(_onBackPressed);
     on<DisclosureOrganizationApproved>(_onOrganizationApproved);
     on<DisclosureShareRequestedAttributesApproved>(_onShareRequestedAttributesApproved);
     on<DisclosurePinConfirmed>(_onPinConfirmed);
-
-    _initDisclosure(disclosureUri);
+    on<DisclosureReportPressed>(_onReportPressed);
   }
 
-  void _initDisclosure(String disclosureUri) async {
+  void _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
     try {
-      _startDisclosureResult = await _startDisclosureUseCase.invoke(disclosureUri);
-      add(
-        DisclosureUpdateState(
-          DisclosureCheckOrganization(
-            relyingParty: _startDisclosureResult!.relyingParty,
-            requestPurpose: _startDisclosureResult!.requestPurpose,
-            isFirstInteractionWithOrganization: _startDisclosureResult!.isFirstInteractionWithOrganization,
-          ),
+      _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri);
+      emit(
+        DisclosureCheckOrganization(
+          relyingParty: _startDisclosureResult!.relyingParty,
+          requestPurpose: _startDisclosureResult!.requestPurpose,
+          isFirstInteractionWithOrganization: _startDisclosureResult!.isFirstInteractionWithOrganization,
         ),
       );
     } catch (ex) {
+      /// FIXME: Do we want to use [handleError] here to have more fine grained errors?
       Fimber.e('Failed to start disclosure', ex: ex);
-      add(DisclosureUpdateState(DisclosureGenericError()));
+      emit(DisclosureGenericError());
     }
   }
 
@@ -139,9 +136,32 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     emit(DisclosureSuccess(relyingParty: _startDisclosureResult!.relyingParty));
   }
 
+  void _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
+    Fimber.d('User selected reporting option ${event.option}');
+    try {
+      emit(DisclosureLoadInProgress());
+      await _cancelDisclosureUseCase.invoke();
+    } catch (ex) {
+      Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
+    } finally {
+      emit(const DisclosureLeftFeedback());
+    }
+  }
+
   @override
-  Future<void> close() {
+  Future<void> close() async {
     _startDisclosureStreamSubscription?.cancel();
+    if (state is DisclosureConfirmPin) {
+      /// The bloc being closed while in the [DisclosureConfirmPin] indicates the user has provided
+      /// an incorrect pin too many times, causing the [DisclosureScreen] and thus this bloc to be
+      /// closed. To avoid any issues with future disclosure we make sure to cancel the onGoing flow
+      /// here.
+      try {
+        await _cancelDisclosureUseCase.invoke();
+      } catch (ex) {
+        Fimber.e('Failed to explicitly cancel disclosure', ex: ex);
+      }
+    }
     return super.close();
   }
 }

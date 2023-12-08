@@ -8,6 +8,7 @@ import 'dart:async' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart' as _i11;
+import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart' as _i33;
 import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart' as _i14;
 import 'package:wallet/src/data/repository/organization/organization_repository.dart' as _i12;
 import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i7;
@@ -21,6 +22,8 @@ import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i1
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i3;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i22;
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i30;
+import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart' as _i34;
+import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i32;
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i31;
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i27;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i20;
@@ -1059,6 +1062,49 @@ class MockAcceptIssuanceUseCase extends _i1.Mock implements _i31.AcceptIssuanceU
         Invocation.method(
           #invoke,
           [cardDocTypes],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+}
+
+/// A class which mocks [StartDisclosureUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockStartDisclosureUseCase extends _i1.Mock implements _i32.StartDisclosureUseCase {
+  @override
+  _i4.Future<_i33.StartDisclosureResult> invoke(String? disclosureUri) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [disclosureUri],
+        ),
+        returnValue: _i4.Future<_i33.StartDisclosureResult>.value(_i6.dummyValue<_i33.StartDisclosureResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [disclosureUri],
+          ),
+        )),
+        returnValueForMissingStub:
+            _i4.Future<_i33.StartDisclosureResult>.value(_i6.dummyValue<_i33.StartDisclosureResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [disclosureUri],
+          ),
+        )),
+      ) as _i4.Future<_i33.StartDisclosureResult>);
+}
+
+/// A class which mocks [CancelDisclosureUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCancelDisclosureUseCase extends _i1.Mock implements _i34.CancelDisclosureUseCase {
+  @override
+  _i4.Future<void> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),

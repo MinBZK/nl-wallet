@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
+import 'src/mocks/mock_data.dart';
 import 'src/util/golden_diff_comparator.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
@@ -26,6 +28,13 @@ void _setupMockitoDummies() {
   provideDummy<AttributeValue>(const StringValue(''));
   provideDummy<CardFront>(CardFront(title: ''.untranslated, backgroundImage: '', theme: CardFrontTheme.light));
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
+  provideDummy<StartDisclosureResult>(StartDisclosureReadyToDisclose(
+    WalletMockData.organization,
+    WalletMockData.policy,
+    'requestPurpose'.untranslated,
+    false,
+    {},
+  ));
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

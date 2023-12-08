@@ -280,10 +280,9 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   return (context) {
     return BlocProvider<DisclosureBloc>(
       create: (BuildContext context) => DisclosureBloc(
-        args.uri!,
         context.read(),
         context.read(),
-      ),
+      )..add(DisclosureSessionStarted(args.uri!)),
       child: const DisclosureScreen(),
     );
   };
