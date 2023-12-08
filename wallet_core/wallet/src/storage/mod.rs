@@ -18,7 +18,6 @@ use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
     utils::serialization::CborError,
 };
-use platform_support::utils::UtilitiesError;
 
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
@@ -59,8 +58,6 @@ pub enum StorageError {
     SqlCipherKey(#[from] TryFromSliceError),
     #[error("{0}")]
     KeyFile(#[from] KeyFileError),
-    #[error("storage database platform utilities error: {0}")]
-    PlatformUtilities(#[from] UtilitiesError),
 }
 
 pub type StorageResult<T> = Result<T, StorageError>;
