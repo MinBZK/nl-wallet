@@ -99,12 +99,7 @@ where
     {
         let database = self.database()?;
 
-        let select = mdoc_copy::Entity::find()
-            .select_only()
-            .column_as(mdoc_copy::Column::Id.min(), "id")
-            .column(mdoc_copy::Column::MdocId)
-            .column(mdoc_copy::Column::Mdoc)
-            .group_by(mdoc_copy::Column::MdocId);
+        let select = mdoc_copy::Entity::find().group_by(mdoc_copy::Column::MdocId);
 
         let mdoc_copies = transform_select(select).all(database.connection()).await?;
 
@@ -228,6 +223,7 @@ where
                             id: Set(Uuid::new_v4()),
                             mdoc_id: Set(mdoc_id),
                             mdoc: Set(cbor_serialize(&mdoc)?),
+                            ..Default::default()
                         };
 
                         Ok(model)
