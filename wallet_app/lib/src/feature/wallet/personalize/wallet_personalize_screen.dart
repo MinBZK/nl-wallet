@@ -133,7 +133,6 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildLoading(BuildContext context, {VoidCallback? onCancel}) {
     return GenericLoadingPage(
-      key: const Key('personalizeLoadingPage'),
       title: context.l10n.walletPersonalizeScreenLoadingTitle,
       description: context.l10n.walletPersonalizeScreenLoadingSubtitle,
       onCancel: onCancel,
@@ -142,6 +141,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildAuthenticatingWithDigid(BuildContext context) {
     return GenericLoadingPage(
+      key: const Key('personalizeAuthenticatingWithDigidPage'),
       title: context.l10n.walletPersonalizeScreenDigidLoadingTitle,
       description: context.l10n.walletPersonalizeScreenDigidLoadingSubtitle,
       cancelCta: context.l10n.walletPersonalizeScreenDigidLoadingStopCta,
