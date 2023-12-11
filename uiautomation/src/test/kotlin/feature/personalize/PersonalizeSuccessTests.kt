@@ -63,16 +63,16 @@ class PersonalizeSuccessTests : TestBase() {
         assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible")
     }
 
-    //@Test
+    @Test
     @DisplayName("2. The confirmation includes a success message.")
     fun verifySuccessMessage() {
-        // Manual test: https://SSSS/jira/browse/PVW-1771
+        assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible")
     }
 
-    //@Test
+    @Test
     @DisplayName("3. The confirmation includes the issued cards (PID + Address): card, title.")
     fun verifyIssuedCards() {
-        // Manual test: https://SSSS/jira/browse/PVW-1772
+        assertTrue(personalizeSuccessScreen.cardsVisible(), "cards not visible")
     }
 
     @Test

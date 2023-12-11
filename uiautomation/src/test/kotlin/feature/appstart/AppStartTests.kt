@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.Test
 import screen.introduction.IntroductionScreen
+import screen.splash.SplashScreen
 
 @DisplayName("UC 1.2 - Open the App [PVW-1223]")
 class AppStartTests : TestBase() {
@@ -21,10 +22,11 @@ class AppStartTests : TestBase() {
         introductionScreen = IntroductionScreen()
     }
 
-    //@Test
+    @Test
     @DisplayName("1. When the App is started, it shows a loading screen until necessary resources are loaded, including the name and logo of the app.")
     fun verifySplashScreen() {
-        // Manual test: https://SSSS/jira/browse/PVW-1767
+        val splashScreen = SplashScreen()
+        assertTrue(splashScreen.visible(), "splash screen is not visible")
     }
 
     @Nested

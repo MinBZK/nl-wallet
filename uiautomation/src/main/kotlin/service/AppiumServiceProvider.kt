@@ -17,7 +17,7 @@ object AppiumServiceProvider {
             .usingAnyFreePort() // Use any port, in case the default 4723 is already taken
             .withArgument(GeneralServerFlag.ALLOW_INSECURE, "chromedriver_autodownload")
             .withArgument(GeneralServerFlag.DEBUG_LOG_SPACING)
-            .withArgument(GeneralServerFlag.LOG_LEVEL, "debug")
+            .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
             .withArgument(GeneralServerFlag.RELAXED_SECURITY)
             .withArgument(GeneralServerFlag.SESSION_OVERRIDE)
             .withEnvironment(environment)

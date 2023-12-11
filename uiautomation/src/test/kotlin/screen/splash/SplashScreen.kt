@@ -6,9 +6,7 @@ class SplashScreen : MobileActions() {
 
     private val screen = find.byValueKey("splashScreen")
 
-    private val appNameText = find.byText("NL Wallet")
+    private val appTitleText = find.byText(l10n.getString("appTitle"))
 
-    fun visible() = isElementVisible(screen, false)
-
-    fun readAppNameText() = readElementText(appNameText)
+    fun visible() = isElementVisible(screen, false) && isElementVisible(appTitleText, false)
 }
