@@ -60,10 +60,10 @@ class PersonalizePidPreviewScreenTests : TestBase() {
         assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
     }
 
-    //@Test
+    @Test
     @DisplayName("2. The App displays the PID data in a user friendly / human readable format.")
     fun verifyHumanReadablePidPreviewData() {
-        // Manual test: https://SSSS/jira/browse/PVW-1770
+        assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(), "human readable pid data is not visible")
     }
 
     @Test
