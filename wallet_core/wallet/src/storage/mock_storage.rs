@@ -9,7 +9,7 @@ use nl_wallet_mdoc::{holder::MdocCopies, utils::mdocs_map::MdocsMap};
 use super::{
     data::{KeyedData, RegistrationData},
     event_log::WalletEvent,
-    Storage, StorageResult, StorageState, UniqueMdoc,
+    Storage, StorageResult, StorageState, StoredMdocCopy,
 };
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
@@ -128,7 +128,7 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<UniqueMdoc>> {
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
         self.check_query_error()?;
 
         // Get a single copy of every unique Mdoc, along with a random `Uuid`.
@@ -138,7 +138,7 @@ impl Storage for MockStorage {
             .values()
             .flat_map(|doc_type_mdocs| doc_type_mdocs.values())
             .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
-            .map(|mdoc| UniqueMdoc {
+            .map(|mdoc| StoredMdocCopy {
                 mdoc_id: Uuid::new_v4(),
                 mdoc_copy_id: Uuid::new_v4(),
                 mdoc: mdoc.clone(),
@@ -148,13 +148,13 @@ impl Storage for MockStorage {
         Ok(mdocs)
     }
 
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<UniqueMdoc>> {
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
         // Get every unique Mdoc and filter them based on the requested doc types.
-        let unique_mdocs = self.fetch_unique_mdocs().await?;
+        let mdoc_copies = self.fetch_unique_mdocs().await?;
 
-        let mdocs = unique_mdocs
+        let mdocs = mdoc_copies
             .into_iter()
-            .filter(|unique_mdoc| doc_types.contains(unique_mdoc.mdoc.doc_type.as_str()))
+            .filter(|mdoc_copy| doc_types.contains(mdoc_copy.mdoc.doc_type.as_str()))
             .collect();
 
         Ok(mdocs)

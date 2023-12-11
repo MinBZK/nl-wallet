@@ -63,7 +63,7 @@ pub enum StorageError {
 pub type StorageResult<T> = Result<T, StorageError>;
 
 #[derive(Debug, Clone)]
-pub struct UniqueMdoc {
+pub struct StoredMdocCopy {
     pub mdoc_id: Uuid,
     pub mdoc_copy_id: Uuid,
     pub mdoc: Mdoc,
@@ -83,8 +83,8 @@ pub trait Storage {
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<UniqueMdoc>>;
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<UniqueMdoc>>;
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>>;
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>>;
 
     async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()>;
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;

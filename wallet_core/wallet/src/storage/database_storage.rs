@@ -24,7 +24,7 @@ use super::{
     database::{Database, SqliteUrl},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
-    Storage, StorageError, StorageResult, StorageState, UniqueMdoc, WalletEvent,
+    Storage, StorageError, StorageResult, StorageState, StoredMdocCopy, WalletEvent,
 };
 
 const DATABASE_NAME: &str = "wallet";
@@ -93,7 +93,7 @@ where
         Ok(database)
     }
 
-    async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<UniqueMdoc>>
+    async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<StoredMdocCopy>>
     where
         F: FnOnce(Select<mdoc_copy::Entity>) -> Select<mdoc_copy::Entity>,
     {
@@ -121,13 +121,13 @@ where
             .into_iter()
             .map(|model| {
                 let mdoc = cbor_deserialize(model.mdoc.as_slice())?;
-                let unique_mdoc = UniqueMdoc {
+                let stored_mdoc_copy = StoredMdocCopy {
                     mdoc_id: model.mdoc_id,
                     mdoc_copy_id: model.id,
                     mdoc,
                 };
 
-                Ok(unique_mdoc)
+                Ok(stored_mdoc_copy)
             })
             .collect::<Result<_, CborError>>()?;
 
@@ -286,11 +286,11 @@ where
         Ok(())
     }
 
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<UniqueMdoc>> {
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
         self.query_unique_mdocs(|select| select).await
     }
 
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<UniqueMdoc>> {
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
         let doc_types_iter = doc_types.iter().copied();
 
         self.query_unique_mdocs(move |select| {
@@ -502,12 +502,12 @@ mod tests {
 
         // Only one unique `Mdoc` should be returned and it should match all copies.
         assert_eq!(fetched_unique.len(), 1);
-        let unique_mdoc1 = fetched_unique.first().unwrap();
-        assert_eq!(&unique_mdoc1.mdoc, mdoc_copies.cred_copies.first().unwrap());
+        let mdoc_copy1 = fetched_unique.first().unwrap();
+        assert_eq!(&mdoc_copy1.mdoc, mdoc_copies.cred_copies.first().unwrap());
 
         // Increment the usage count for this mdoc.
         storage
-            .increment_mdoc_copies_usage_count(vec![unique_mdoc1.mdoc_copy_id])
+            .increment_mdoc_copies_usage_count(vec![mdoc_copy1.mdoc_copy_id])
             .await
             .expect("Could not increment usage count for mdoc copy");
 
@@ -519,13 +519,13 @@ mod tests {
 
         // One matching `Mdoc` should be returned and it should be a different copy than the fist one.
         assert_eq!(fetched_unique_doctype.len(), 1);
-        let unique_mdoc2 = fetched_unique_doctype.first().unwrap();
-        assert_eq!(&unique_mdoc2.mdoc, mdoc_copies.cred_copies.first().unwrap());
-        assert_ne!(unique_mdoc1.mdoc_copy_id, unique_mdoc2.mdoc_copy_id);
+        let mdoc_copy2 = fetched_unique_doctype.first().unwrap();
+        assert_eq!(&mdoc_copy2.mdoc, mdoc_copies.cred_copies.first().unwrap());
+        assert_ne!(mdoc_copy1.mdoc_copy_id, mdoc_copy2.mdoc_copy_id);
 
         // Increment the usage count for this mdoc.
         storage
-            .increment_mdoc_copies_usage_count(vec![unique_mdoc2.mdoc_copy_id])
+            .increment_mdoc_copies_usage_count(vec![mdoc_copy2.mdoc_copy_id])
             .await
             .expect("Could not increment usage count for mdoc copy");
 
@@ -548,8 +548,8 @@ mod tests {
         let remaning_mdoc_copy_id2 = fetched_unique_remaining2.first().unwrap().mdoc_copy_id;
 
         assert_eq!(remaning_mdoc_copy_id1, remaning_mdoc_copy_id2);
-        assert_ne!(unique_mdoc1.mdoc_copy_id, remaning_mdoc_copy_id1);
-        assert_ne!(unique_mdoc2.mdoc_copy_id, remaning_mdoc_copy_id1);
+        assert_ne!(mdoc_copy1.mdoc_copy_id, remaning_mdoc_copy_id1);
+        assert_ne!(mdoc_copy2.mdoc_copy_id, remaning_mdoc_copy_id1);
 
         // Fetch unique mdocs based on non-existent doctype
         let fetched_unique_doctype_mismatch = storage
