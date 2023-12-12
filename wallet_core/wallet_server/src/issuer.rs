@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::{
     extract::State,
     headers::{authorization::Bearer, Authorization},
@@ -25,10 +26,7 @@ use openid4vc::{
 };
 use wallet_common::utils::random_string;
 
-use crate::{
-    digid::OpenIdClient, log_requests::log_request_response, mock::MockAttributesLookup, pid_attrs::pid_attrs,
-    settings::Settings, verifier::Error,
-};
+use crate::{log_requests::log_request_response, pid_attrs::PidAttributeService, settings::Settings, verifier::Error};
 
 mod state {
     use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
@@ -74,9 +72,19 @@ struct Issuer<K> {
 
 struct ApplicationState<K> {
     issuer: Issuer<K>,
-    openid_client: OpenIdClient,
-    http_client: reqwest::Client,
-    attributes_lookup: MockAttributesLookup,
+    attr_service: PidAttributeService,
+}
+
+#[async_trait]
+pub trait AttributeService
+where
+    Self: Sized,
+{
+    type Error: std::error::Error;
+    type Settings;
+
+    async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>;
+    async fn attributes(&self, token_request: TokenRequest) -> Result<Vec<UnsignedMdoc>, Self::Error>;
 }
 
 pub async fn create_issuance_router(settings: Settings) -> anyhow::Result<Router> {
@@ -89,9 +97,7 @@ pub async fn create_issuance_router(settings: Settings) -> anyhow::Result<Router
             sessions: MemorySessionStore::new(),
             private_keys: key,
         },
-        openid_client: OpenIdClient::new(&settings.digid).await.unwrap(),
-        http_client: reqwest_client(),
-        attributes_lookup: MockAttributesLookup::default(),
+        attr_service: PidAttributeService::new(&settings.digid).await.unwrap(),
     });
 
     let issuance_router = Router::new()
@@ -188,14 +194,7 @@ async fn token<K: KeyRing>(
         panic!("token request must be of type pre-authorized_code");
     }
 
-    let unsigned_mdocs = pid_attrs(
-        token_request,
-        &state.openid_client,
-        &state.http_client,
-        &state.attributes_lookup,
-    )
-    .await
-    .unwrap(); // TODO
+    let unsigned_mdocs = state.attr_service.attributes(token_request).await.unwrap(); // TODO
 
     let access_token = random_string(32);
     let c_nonce = random_string(32);

@@ -13,7 +13,10 @@ use nl_wallet_mdoc::{
 use rand::Rng;
 use serde::Deserialize;
 
-use crate::digid::{self, AttributesLookup, BsnLookup};
+use crate::{
+    digid::{self, BsnLookup},
+    pid_attrs::AttributesLookup,
+};
 
 pub struct MockBsnLookup(Vec<String>);
 

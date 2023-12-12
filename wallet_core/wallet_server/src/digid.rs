@@ -7,7 +7,6 @@ use josekit::{
     jwe::{self, alg::rsaes::RsaesJweDecrypter},
     JoseError,
 };
-use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
 use openid::{
     biscuit::{
         errors as biscuit_errors, jwa::SignatureAlgorithm, ClaimsSet, CompactJson, CompactPart, ValidationOptions, JWT,
@@ -51,16 +50,11 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
 }
 
-/// Given a BSN, determine the attributes to be issued. Contract for the BRP query.
-pub trait AttributesLookup {
-    fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc>;
-}
-
-/// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`](crate::openid::Client).
+/// Given an access token, lookup a BSN: a trait modeling the OIDC client.
 /// Contract for the DigiD bridge.
 #[async_trait]
 pub trait BsnLookup {
-    async fn bsn(&self, access_token: &str) -> std::result::Result<String, Error>;
+    async fn bsn(&self, access_token: &str) -> Result<String>;
 }
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
