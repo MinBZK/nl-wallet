@@ -10,7 +10,6 @@ use axum::{
 use base64::prelude::*;
 use chrono::Utc;
 use futures::future::try_join_all;
-use reqwest::Client;
 use tower_http::trace::TraceLayer;
 
 use nl_wallet_mdoc::{
@@ -26,7 +25,9 @@ use openid4vc::{
 };
 use wallet_common::utils::random_string;
 
-use crate::{log_requests::log_request_response, pid_attrs::PidAttributeService, settings::Settings, verifier::Error};
+use crate::{
+    log_requests::log_request_response, pid::attributes::PidAttributeService, settings::Settings, verifier::Error,
+};
 
 mod state {
     use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
@@ -229,11 +230,4 @@ async fn token<K: KeyRing>(
     };
 
     Ok(Json(response))
-}
-
-pub fn reqwest_client() -> Client {
-    let client_builder = Client::builder();
-    #[cfg(feature = "disable_tls_validation")]
-    let client_builder = client_builder.danger_accept_invalid_certs(true);
-    client_builder.build().unwrap()
 }

@@ -2,15 +2,15 @@ use async_trait::async_trait;
 use futures::TryFutureExt;
 use mime::APPLICATION_WWW_FORM_URLENCODED;
 use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
-use reqwest::header::CONTENT_TYPE;
+use reqwest::{header::CONTENT_TYPE, Client};
 
 use openid4vc::token::{TokenErrorResponse, TokenRequest, TokenRequestGrantType, TokenResponse};
 
-use crate::{
+use crate::{issuer::AttributeService, settings::Digid};
+
+use super::{
     digid::{self, BsnLookup, OpenIdClient},
-    issuer::{reqwest_client, AttributeService},
     mock::MockAttributesLookup,
-    settings::Digid,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -87,4 +87,11 @@ impl AttributeService for PidAttributeService {
 
         Ok(unsigned_mdocs)
     }
+}
+
+pub fn reqwest_client() -> Client {
+    let client_builder = Client::builder();
+    #[cfg(feature = "disable_tls_validation")]
+    let client_builder = client_builder.danger_accept_invalid_certs(true);
+    client_builder.build().unwrap()
 }
