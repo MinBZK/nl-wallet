@@ -16,13 +16,23 @@ mod session;
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Clone)]
+pub struct StoredMdoc<I> {
+    pub id: I,
+    pub mdoc: Mdoc,
+}
+
 /// This trait needs to be implemented by an entity that stores mdocs.
 #[async_trait]
 pub trait MdocDataSource {
+    type MdocIdentifier;
     type Error: std::error::Error + Send + Sync + 'static;
 
     /// Return all `Mdoc` entries from storage that match a set of doc types.
     /// The result is a `Vec` of `Vec<Mdoc>` with the same `doc_type`. The order
     /// of the result is determined by the implementor.
-    async fn mdoc_by_doc_types(&self, doc_types: &HashSet<&str>) -> std::result::Result<Vec<Vec<Mdoc>>, Self::Error>;
+    async fn mdoc_by_doc_types(
+        &self,
+        doc_types: &HashSet<&str>,
+    ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error>;
 }

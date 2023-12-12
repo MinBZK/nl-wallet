@@ -2,7 +2,6 @@ use indexmap::{IndexMap, IndexSet};
 
 use crate::{
     errors::Result,
-    holder::Mdoc,
     identifiers::AttributeIdentifier,
     iso::{
         basic_sa_ext::Entry,
@@ -12,17 +11,20 @@ use crate::{
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 
+use super::StoredMdoc;
+
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
 /// for disclosure. Note that this is for internal use of [`DisclosureSession`] only.
 #[derive(Debug, Clone)]
-pub struct ProposedDocument {
+pub struct ProposedDocument<I> {
+    pub source_identifier: I,
     pub private_key_id: String,
     pub doc_type: DocType,
     pub issuer_signed: IssuerSigned,
     pub device_signed_challenge: Vec<u8>,
 }
 
-impl ProposedDocument {
+impl<I> ProposedDocument<I> {
     /// For a given set of `Mdoc`s with the same `doc_type`, return two `Vec`s:
     /// * A `Vec<ProposedDocument>` that contains all of the proposed
     ///   disclosure documents that provide all of the required attributes.
@@ -31,8 +33,8 @@ impl ProposedDocument {
     ///
     /// This means that the sum of the length of these `Vec`s is equal to the
     /// length of the input `Vec<Mdoc>`.
-    pub fn candidates_and_missing_attributes_from_mdocs(
-        mdocs: Vec<Mdoc>,
+    pub fn candidates_and_missing_attributes_from_stored_mdocs(
+        stored_mdocs: Vec<StoredMdoc<I>>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
     ) -> (Vec<Self>, Vec<Vec<AttributeIdentifier>>) {
@@ -40,12 +42,12 @@ impl ProposedDocument {
 
         // Collect all `ProposedDocument`s for this `doc_type`,
         // for every `Mdoc` that satisfies the requested attributes.
-        let satisfying_documents = mdocs
+        let satisfying_documents = stored_mdocs
             .into_iter()
-            .filter(|mdoc| {
+            .filter(|stored_mdoc| {
                 // Calculate missing attributes for every `Mdoc` and filter it out
                 // if we find any. Also, collect the missing attributes separately.
-                let available_attributes = mdoc.issuer_signed_attribute_identifiers();
+                let available_attributes = stored_mdoc.mdoc.issuer_signed_attribute_identifiers();
                 let missing_attributes = requested_attributes
                     .difference(&available_attributes)
                     .cloned()
@@ -65,21 +67,26 @@ impl ProposedDocument {
         let proposed_documents = satisfying_documents
             .into_iter()
             .zip(itertools::repeat_n(device_signed_challenge, document_count))
-            .map(|(mdoc, device_signed_challenge)| {
-                ProposedDocument::from_mdoc(mdoc, requested_attributes, device_signed_challenge)
+            .map(|(stored_mdoc, device_signed_challenge)| {
+                ProposedDocument::from_stored_mdoc(stored_mdoc, requested_attributes, device_signed_challenge)
             })
             .collect();
 
         (proposed_documents, all_missing_attributes)
     }
 
-    /// Create a [`ProposedDocument`] from an [`Mdoc`], containing only those
+    /// Create a [`ProposedDocument`] from a [`StoredMdoc`], containing only those
     /// attributes that are requested and a [`DeviceSigned`] challenge.
-    fn from_mdoc(
-        mdoc: Mdoc,
+    fn from_stored_mdoc(
+        stored_mdoc: StoredMdoc<I>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
     ) -> Self {
+        let StoredMdoc {
+            id: source_identifier,
+            mdoc,
+        } = stored_mdoc;
+
         let name_spaces = mdoc.issuer_signed.name_spaces.map(|name_spaces| {
             name_spaces
                 .into_iter()
@@ -114,6 +121,7 @@ impl ProposedDocument {
         };
 
         ProposedDocument {
+            source_identifier,
             private_key_id: mdoc.private_key_id,
             doc_type: mdoc.doc_type,
             issuer_signed,
@@ -179,11 +187,15 @@ mod tests {
     use super::{super::tests::*, *};
 
     #[test]
-    fn test_proposed_document_from_mdoc() {
-        let mdoc = create_example_mdoc();
-        let doc_type = mdoc.doc_type.clone();
-        let private_key_id = mdoc.private_key_id.clone();
-        let issuer_auth = mdoc.issuer_signed.issuer_auth.clone();
+    fn test_proposed_document_from_stored_mdoc() {
+        let stored_mdoc = StoredMdoc {
+            id: "id_1234",
+            mdoc: create_example_mdoc(),
+        };
+        let id = stored_mdoc.id;
+        let doc_type = stored_mdoc.mdoc.doc_type.clone();
+        let private_key_id = stored_mdoc.mdoc.private_key_id.clone();
+        let issuer_auth = stored_mdoc.mdoc.issuer_signed.issuer_auth.clone();
 
         let requested_attributes = vec![
             "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
@@ -194,8 +206,10 @@ mod tests {
         .map(|attribute| attribute.parse().unwrap())
         .collect();
 
-        let proposed_document = ProposedDocument::from_mdoc(mdoc, &requested_attributes, b"foobar".to_vec());
+        let proposed_document =
+            ProposedDocument::from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec());
 
+        assert_eq!(proposed_document.source_identifier, id);
         assert_eq!(proposed_document.doc_type, doc_type);
         assert_eq!(proposed_document.private_key_id, private_key_id);
         assert_eq!(proposed_document.device_signed_challenge, b"foobar");
@@ -270,28 +284,43 @@ mod tests {
         .map(|attribute| attribute.parse().unwrap())
         .collect();
 
-        let (proposed_documents, missing_attributes) = ProposedDocument::candidates_and_missing_attributes_from_mdocs(
-            vec![mdoc1, mdoc2, mdoc3, mdoc4],
-            &requested_attributes,
-            b"challenge".to_vec(),
-        );
+        let stored_mdocs = vec![mdoc1, mdoc2, mdoc3, mdoc4]
+            .into_iter()
+            .enumerate()
+            .map(|(index, mdoc)| StoredMdoc {
+                id: format!("id_{}", index + 1),
+                mdoc,
+            })
+            .collect();
+
+        let (proposed_documents, missing_attributes) =
+            ProposedDocument::candidates_and_missing_attributes_from_stored_mdocs(
+                stored_mdocs,
+                &requested_attributes,
+                b"challenge".to_vec(),
+            );
 
         assert_eq!(proposed_documents.len(), 2);
-        proposed_documents.into_iter().for_each(|proposed_document| {
-            assert_eq!(proposed_document.doc_type, doc_type);
-            assert_eq!(proposed_document.private_key_id, private_key_id);
-            assert_eq!(
-                proposed_document
-                    .issuer_signed
-                    .name_spaces
-                    .unwrap()
-                    .get("org.iso.18013.5.1")
-                    .unwrap()
-                    .0
-                    .len(),
-                3
-            );
-        });
+
+        proposed_documents
+            .into_iter()
+            .zip(["id_1", "id_3"])
+            .for_each(|(proposed_document, expected_identifier)| {
+                assert_eq!(proposed_document.source_identifier, expected_identifier);
+                assert_eq!(proposed_document.doc_type, doc_type);
+                assert_eq!(proposed_document.private_key_id, private_key_id);
+                assert_eq!(
+                    proposed_document
+                        .issuer_signed
+                        .name_spaces
+                        .unwrap()
+                        .get("org.iso.18013.5.1")
+                        .unwrap()
+                        .0
+                        .len(),
+                    3
+                );
+            });
 
         assert_eq!(missing_attributes.len(), 2);
         assert_eq!(

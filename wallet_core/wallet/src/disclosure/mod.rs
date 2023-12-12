@@ -2,6 +2,7 @@ mod uri;
 
 use async_trait::async_trait;
 use url::Url;
+use uuid::Uuid;
 
 use nl_wallet_mdoc::{
     holder::{
@@ -57,6 +58,7 @@ pub trait MdocDisclosureMissingAttributes {
 #[async_trait]
 pub trait MdocDisclosureProposal {
     fn return_url(&self) -> Option<&Url>;
+    fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
     async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
@@ -66,12 +68,12 @@ pub trait MdocDisclosureProposal {
 }
 
 #[async_trait]
-impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient>
+impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient, Uuid>
 where
-    D: MdocDataSource + Sync,
+    D: MdocDataSource<MdocIdentifier = Uuid> + Sync,
 {
     type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
-    type Proposal = DisclosureProposal<CborHttpClient>;
+    type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
 
     async fn start<'a>(
         disclosure_uri: DisclosureUriData,
@@ -103,8 +105,10 @@ where
 
     fn session_state(
         &self,
-    ) -> MdocDisclosureSessionState<&DisclosureMissingAttributes<CborHttpClient>, &DisclosureProposal<CborHttpClient>>
-    {
+    ) -> MdocDisclosureSessionState<
+        &DisclosureMissingAttributes<CborHttpClient>,
+        &DisclosureProposal<CborHttpClient, Uuid>,
+    > {
         match self {
             DisclosureSession::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
             DisclosureSession::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
@@ -123,9 +127,13 @@ impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpCli
 }
 
 #[async_trait]
-impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient> {
+impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
     fn return_url(&self) -> Option<&Url> {
         self.return_url()
+    }
+
+    fn proposed_source_identifiers(&self) -> Vec<Uuid> {
+        self.proposed_source_identifiers().into_iter().copied().collect()
     }
 
     fn proposed_attributes(&self) -> ProposedAttributes {
@@ -180,6 +188,7 @@ mod mock {
     #[derive(Debug, Default)]
     pub struct MockMdocDisclosureProposal {
         pub return_url: Option<Url>,
+        pub proposed_source_identifiers: Vec<Uuid>,
         pub proposed_attributes: ProposedAttributes,
         pub disclosure_count: Arc<AtomicUsize>,
         pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
@@ -189,6 +198,10 @@ mod mock {
     impl MdocDisclosureProposal for MockMdocDisclosureProposal {
         fn return_url(&self) -> Option<&Url> {
             self.return_url.as_ref()
+        }
+
+        fn proposed_source_identifiers(&self) -> Vec<Uuid> {
+            self.proposed_source_identifiers.clone()
         }
 
         fn proposed_attributes(&self) -> ProposedAttributes {

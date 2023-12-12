@@ -4,15 +4,12 @@ use async_trait::async_trait;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{
-    holder::{Mdoc, MdocCopies},
-    utils::mdocs_map::MdocsMap,
-};
+use nl_wallet_mdoc::{holder::MdocCopies, utils::mdocs_map::MdocsMap};
 
 use super::{
     data::{KeyedData, RegistrationData},
     event_log::WalletEvent,
-    Storage, StorageResult, StorageState,
+    Storage, StorageResult, StorageState, StoredMdocCopy,
 };
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
@@ -21,6 +18,7 @@ pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, String>,
     pub mdocs: MdocsMap,
+    pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
 }
@@ -39,6 +37,7 @@ impl MockStorage {
             state,
             data,
             mdocs,
+            mdoc_copies_usage_counts: HashMap::new(),
             event_log: vec![],
             has_query_error: false,
         }
@@ -118,7 +117,18 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+    async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()> {
+        mdoc_copy_ids.into_iter().for_each(|mdoc_copy_id| {
+            self.mdoc_copies_usage_counts
+                .entry(mdoc_copy_id)
+                .and_modify(|usage_count| *usage_count += 1)
+                .or_insert(1);
+        });
+
+        Ok(())
+    }
+
+    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
         self.check_query_error()?;
 
         // Get a single copy of every unique Mdoc, along with a random `Uuid`.
@@ -128,19 +138,23 @@ impl Storage for MockStorage {
             .values()
             .flat_map(|doc_type_mdocs| doc_type_mdocs.values())
             .flat_map(|mdoc_copies| mdoc_copies.cred_copies.first())
-            .map(|mdoc| (Uuid::new_v4(), mdoc.clone()))
+            .map(|mdoc| StoredMdocCopy {
+                mdoc_id: Uuid::new_v4(),
+                mdoc_copy_id: Uuid::new_v4(),
+                mdoc: mdoc.clone(),
+            })
             .collect();
 
         Ok(mdocs)
     }
 
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<(Uuid, Mdoc)>> {
+    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
         // Get every unique Mdoc and filter them based on the requested doc types.
-        let unique_mdocs = self.fetch_unique_mdocs().await?;
+        let mdoc_copies = self.fetch_unique_mdocs().await?;
 
-        let mdocs = unique_mdocs
+        let mdocs = mdoc_copies
             .into_iter()
-            .filter(|mdoc| doc_types.contains(mdoc.1.doc_type.as_str()))
+            .filter(|mdoc_copy| doc_types.contains(mdoc_copy.mdoc.doc_type.as_str()))
             .collect();
 
         Ok(mdocs)

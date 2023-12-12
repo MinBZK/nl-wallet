@@ -23,6 +23,12 @@ impl MigrationTrait for Migration {
                     .table(MdocCopy::Table)
                     .if_not_exists()
                     .col(ColumnDef::new(MdocCopy::Id).uuid().not_null().primary_key())
+                    .col(
+                        ColumnDef::new(MdocCopy::DisclosureCount)
+                            .unsigned()
+                            .default(0)
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(MdocCopy::MdocId).uuid().not_null())
                     .col(ColumnDef::new(MdocCopy::Mdoc).binary().not_null())
                     // In sqlite/sqlcipher foreign keys can only be created as part of the create table statement.
@@ -62,6 +68,7 @@ pub enum Mdoc {
 enum MdocCopy {
     Table,
     Id,
+    DisclosureCount,
     MdocId,
     Mdoc,
 }

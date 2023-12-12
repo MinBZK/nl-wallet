@@ -48,9 +48,9 @@ pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>
 /// `proposed_attributes()` method.
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
-pub enum DisclosureSession<H> {
+pub enum DisclosureSession<H, I> {
     MissingAttributes(DisclosureMissingAttributes<H>),
-    Proposal(DisclosureProposal<H>),
+    Proposal(DisclosureProposal<H, I>),
 }
 
 #[derive(Debug)]
@@ -60,11 +60,11 @@ pub struct DisclosureMissingAttributes<H> {
 }
 
 #[derive(Debug)]
-pub struct DisclosureProposal<H> {
+pub struct DisclosureProposal<H, I> {
     return_url: Option<Url>,
     endpoint: DisclosureEndpoint<H>,
     device_key: SessionKey,
-    proposed_documents: Vec<ProposedDocument>,
+    proposed_documents: Vec<ProposedDocument<I>>,
 }
 
 #[derive(Debug)]
@@ -75,23 +75,26 @@ struct DisclosureEndpoint<H> {
     reader_registration: ReaderRegistration,
 }
 
-enum VerifierSessionDataCheckResult {
+enum VerifierSessionDataCheckResult<I> {
     MissingAttributes(Vec<AttributeIdentifier>),
-    ProposedDocuments(Vec<ProposedDocument>),
+    ProposedDocuments(Vec<ProposedDocument<I>>),
 }
 
-impl<H> DisclosureSession<H>
+impl<H, I> DisclosureSession<H, I>
 where
     H: HttpClient,
 {
-    pub async fn start<'a>(
+    pub async fn start<'a, S>(
         client: H,
         reader_engagement_bytes: &[u8],
         return_url: Option<Url>,
         session_type: SessionType,
-        mdoc_data_source: &impl MdocDataSource,
+        mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<Self> {
+    ) -> Result<Self>
+    where
+        S: MdocDataSource<MdocIdentifier = I>,
+    {
         // Deserialize the `ReaderEngagement` from the received bytes.
         let reader_engagement: ReaderEngagement = serialization::cbor_deserialize(reader_engagement_bytes)?;
 
@@ -177,13 +180,16 @@ where
 
     /// Internal helper function for processing and checking the contents of a
     /// `SessionData` received from the verifier, which should contain a `DeviceRequest`.
-    async fn check_verifier_session_data<'a>(
+    async fn check_verifier_session_data<'a, S>(
         verifier_session_data: SessionData,
         session_transcript: SessionTranscript,
         reader_key: &SessionKey,
-        mdoc_data_source: &impl MdocDataSource,
+        mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<(VerifierSessionDataCheckResult, Certificate, ReaderRegistration)> {
+    ) -> Result<(VerifierSessionDataCheckResult<I>, Certificate, ReaderRegistration)>
+    where
+        S: MdocDataSource<MdocIdentifier = I>,
+    {
         // Decrypt the received `DeviceRequest`.
         let device_request: DeviceRequest = verifier_session_data.decrypt_and_deserialize(reader_key)?;
 
@@ -263,12 +269,20 @@ impl<H> DisclosureMissingAttributes<H> {
     }
 }
 
-impl<H> DisclosureProposal<H>
+impl<H, I> DisclosureProposal<H, I>
 where
     H: HttpClient,
+    I: Clone,
 {
     pub fn return_url(&self) -> Option<&Url> {
         self.return_url.as_ref()
+    }
+
+    pub fn proposed_source_identifiers(&self) -> Vec<&I> {
+        self.proposed_documents
+            .iter()
+            .map(|document| &document.source_identifier)
+            .collect()
     }
 
     pub fn proposed_attributes(&self) -> ProposedAttributes {
@@ -514,6 +528,9 @@ mod tests {
         let _device_engagement: DeviceEngagement =
             serialization::cbor_deserialize(payloads.first().unwrap().as_slice())
                 .expect("Sent message is not DeviceEngagement");
+
+        // Test that the proposal session contains the example mdoc identifier.
+        assert_eq!(proposal_session.proposed_source_identifiers(), ["id_1"]);
 
         // Test that the proposal for disclosure contains the example attributes, in order.
         let entry_keys = proposal_session
@@ -1060,7 +1077,10 @@ mod tests {
 
     fn create_disclosure_session_proposal<F>(
         response_factory: F,
-    ) -> (DisclosureSession<MockHttpClient<F>>, mpsc::Receiver<Vec<u8>>)
+    ) -> (
+        DisclosureSession<MockHttpClient<F>, MdocIdentifier>,
+        mpsc::Receiver<Vec<u8>>,
+    )
     where
         F: Fn() -> MockHttpClientResponse + Send + Sync,
     {
@@ -1091,7 +1111,7 @@ mod tests {
     }
 
     async fn test_disclosure_session_terminate<H>(
-        session: DisclosureSession<H>,
+        session: DisclosureSession<H, MdocIdentifier>,
         mut payload_receiver: mpsc::Receiver<Vec<u8>>,
     ) -> Result<()>
     where

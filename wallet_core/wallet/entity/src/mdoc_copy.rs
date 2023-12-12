@@ -6,6 +6,7 @@ use uuid::Uuid;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    pub disclosure_count: u32,
     pub mdoc_id: Uuid,
     pub mdoc: Vec<u8>,
 }
