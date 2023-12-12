@@ -14,6 +14,8 @@ use nl_wallet_mdoc::{
 
 pub use client::HttpPidIssuerClient;
 
+use crate::digid::DigidSession;
+
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::MockPidIssuerClient;
 
@@ -30,6 +32,21 @@ pub enum PidIssuerError {
 #[async_trait]
 pub trait PidIssuerClient {
     fn has_session(&self) -> bool;
+
+    async fn start_openid4vci_retrieve_pid<DGS: DigidSession + Send + Sync>(
+        &mut self,
+        digid_session: DGS,
+        base_url: &Url,
+        pre_authorized_code: String,
+    ) -> Result<Vec<UnsignedMdoc>, PidIssuerError>;
+
+    async fn accept_openid4vci_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+        &mut self,
+        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        wallet_name: String,
+        audience: String,
+    ) -> Result<Vec<MdocCopies>, PidIssuerError>;
 
     async fn start_retrieve_pid(
         &mut self,

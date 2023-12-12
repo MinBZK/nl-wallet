@@ -424,6 +424,26 @@ impl<'de> Deserialize<'de> for OriginInfoType {
     }
 }
 
+// Don't (de)serialize the CBOR tag when we serialize to JSON
+impl Serialize for Tdate {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if serializer.is_human_readable() {
+            self.0 .0.serialize(serializer)
+        } else {
+            self.0.serialize(serializer)
+        }
+    }
+}
+impl<'de> Deserialize<'de> for Tdate {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        if deserializer.is_human_readable() {
+            Ok(Tdate(tag::Required::<String, 0>(String::deserialize(deserializer)?)))
+        } else {
+            Ok(Tdate(tag::Required::<String, 0>::deserialize(deserializer)?))
+        }
+    }
+}
+
 pub mod cbor_hex {
     use std::fmt::Formatter;
 

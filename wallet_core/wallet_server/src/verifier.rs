@@ -82,7 +82,7 @@ struct ApplicationState<S> {
     internal_url: Url,
 }
 
-pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
+pub fn create_verifier_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
@@ -181,7 +181,7 @@ where
 
     let session_url = state
         .internal_url
-        .join(&format!("/sessions/{session_id}/status"))
+        .join(&format!("/disclosure/sessions/{session_id}/status"))
         .unwrap();
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here
     let engagement_url = UL_ENGAGEMENT

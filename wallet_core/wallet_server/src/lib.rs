@@ -1,6 +1,12 @@
 pub mod cbor;
+pub mod digid;
 #[cfg(feature = "postgres")]
 pub mod entity;
+pub mod issuer;
+pub mod log_requests;
+#[cfg(feature = "mock")]
+pub mod mock;
+pub mod pid_attrs;
 pub mod server;
 pub mod settings;
 pub mod store;

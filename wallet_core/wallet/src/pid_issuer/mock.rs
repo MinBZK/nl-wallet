@@ -6,6 +6,8 @@ use nl_wallet_mdoc::{
 };
 use url::Url;
 
+use crate::digid::DigidSession;
+
 use super::{PidIssuerClient, PidIssuerError};
 
 #[derive(Default)]
@@ -20,6 +22,18 @@ pub struct MockPidIssuerClient {
 impl PidIssuerClient for MockPidIssuerClient {
     fn has_session(&self) -> bool {
         self.has_session
+    }
+
+    async fn start_openid4vci_retrieve_pid<DGS: DigidSession + Send + Sync>(
+        &mut self,
+        _digid_session: DGS,
+        _base_url: &Url,
+        _pre_authorized_code: String,
+    ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
+        match self.next_error.take() {
+            None => Ok(self.unsigned_mdocs.clone()),
+            Some(error) => Err(error),
+        }
     }
 
     async fn start_retrieve_pid(
@@ -42,6 +56,16 @@ impl PidIssuerClient for MockPidIssuerClient {
             None => Ok(self.mdoc_copies.clone()),
             Some(error) => Err(error),
         }
+    }
+
+    async fn accept_openid4vci_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+        &mut self,
+        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        _wallet_name: String,
+        _audience: String,
+    ) -> Result<Vec<MdocCopies>, PidIssuerError> {
+        self.accept_pid(mdoc_trust_anchors, key_factory).await
     }
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {

@@ -4,6 +4,7 @@ members = [
     "flutter_api/flutter_api_macros",
     "mdoc",
     "mock_relying_party",
+    "openid4vc",
     "pid_issuer",
     "platform_support",
     "tests_integration",

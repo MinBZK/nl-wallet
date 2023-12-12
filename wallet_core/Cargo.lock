@@ -2700,6 +2700,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "openid4vc"
+version = "0.1.0"
+dependencies = [
+ "assert_matches",
+ "async-trait",
+ "base64 0.21.4",
+ "chrono",
+ "futures",
+ "jsonwebtoken",
+ "mockall",
+ "nl_wallet_mdoc",
+ "p256",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "thiserror",
+ "tokio",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "openssl"
 version = "0.10.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5034,6 +5060,7 @@ dependencies = [
  "nl_wallet_mdoc",
  "once_cell",
  "openid",
+ "openid4vc",
  "p256",
  "platform_support",
  "reqwest",
@@ -5224,27 +5251,40 @@ name = "wallet_server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
  "base64 0.21.4",
  "chrono",
+ "ciborium",
  "config",
  "dashmap",
+ "futures",
+ "http",
+ "hyper",
  "indexmap 2.0.2",
+ "josekit",
  "lazy_static",
  "mime",
  "nl_wallet_mdoc",
+ "openid",
+ "openid4vc",
  "p256",
+ "platform_support",
+ "rand 0.8.5",
  "reqwest",
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "thiserror",
  "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
  "url",
+ "wallet",
  "wallet_common",
+ "wallet_server",
 ]
 
 [[package]]

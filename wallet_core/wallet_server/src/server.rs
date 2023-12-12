@@ -10,7 +10,7 @@ use nl_wallet_mdoc::{
     verifier::DisclosureData,
 };
 
-use crate::{settings::Settings, verifier::create_routers};
+use crate::{issuer::create_issuance_router, settings::Settings, verifier::create_verifier_routers};
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
@@ -23,15 +23,16 @@ where
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let requestor_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
 
-    let (wallet_router, requester_router) = create_routers(settings.clone(), sessions)?;
+    let (wallet_router, requester_router) = create_verifier_routers(settings.clone(), sessions)?;
+    let issuance_router = create_issuance_router(settings.clone()).await?;
 
     debug!("listening for requester on {}", requestor_socket);
     let server = tokio::spawn(async move {
         axum::Server::bind(&requestor_socket)
             .serve(
                 Router::new()
-                    .nest("/sessions", requester_router)
-                    .nest("/sessions", health_router())
+                    .nest("/disclosure/sessions", requester_router)
+                    .nest("/disclosure/sessions", health_router())
                     .into_make_service(),
             )
             .await
@@ -41,8 +42,9 @@ where
     axum::Server::bind(&wallet_socket)
         .serve(
             Router::new()
-                .nest("/", wallet_router)
-                .nest("/", health_router())
+                .nest("/issuance/", issuance_router)
+                .nest("/disclosure/", wallet_router)
+                .nest("/disclosure/", health_router())
                 .into_make_service(),
         )
         .await?;

@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use openid4vc::token::{TokenRequest, TokenRequestGrantType};
 use url::Url;
 
 use wallet_common::utils;
@@ -31,6 +32,8 @@ pub struct HttpDigidSession<C = HttpOpenIdClient, P = S256PkcePair> {
     nonce: String,
     /// The PKCE pair used.
     pkce_pair: P,
+    /// Client ID at the OpenID issuer.
+    client_id: String,
 }
 
 #[async_trait]
@@ -46,7 +49,7 @@ where
         redirect_uri_base.set_query(None);
 
         // Perform OpenID discovery at the issuer.
-        let openid_client = C::discover(issuer_url, client_id, redirect_uri).await?;
+        let openid_client = C::discover(issuer_url, client_id.clone(), redirect_uri).await?;
 
         // Generate a random CSRF token and nonce.
         let csrf_token = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
@@ -60,6 +63,7 @@ where
             csrf_token,
             nonce,
             pkce_pair,
+            client_id,
         };
 
         Ok(session)
@@ -76,7 +80,7 @@ where
             .starts_with(self.redirect_uri_base.as_str())
     }
 
-    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError> {
+    fn get_authorization_code(&self, received_redirect_uri: &Url) -> Result<String, DigidError> {
         // Check if the redirect URL received actually belongs to us.
         if !self.matches_received_redirect_uri(received_redirect_uri) {
             return Err(DigidError::RedirectUriMismatch);
@@ -106,6 +110,21 @@ where
         // Parse the authorization code from the redirect URL.
         let authorization_code =
             url_find_first_query_value(received_redirect_uri, PARAM_CODE).ok_or(DigidError::NoAuthCode)?;
+
+        Ok(authorization_code.into_owned())
+    }
+
+    fn into_pre_authorized_code_request(self, pre_authorized_code: String) -> TokenRequest {
+        TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            code_verifier: Some(self.pkce_pair.code_verifier().to_string()),
+            client_id: Some(self.client_id),
+            redirect_uri: Some(self.redirect_uri_base.clone()),
+        }
+    }
+
+    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError> {
+        let authorization_code = self.get_authorization_code(received_redirect_uri)?;
 
         // Use the authorization code and the PKCE verifier to request the
         // access token and verify the result.
@@ -146,6 +165,7 @@ mod tests {
             csrf_token: CSRF_TOKEN.to_string(),
             nonce: NONCE.to_string(),
             pkce_pair: MockPkcePair::new(),
+            client_id: CLIENT_ID.to_string(),
         }
     }
 

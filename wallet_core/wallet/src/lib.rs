@@ -45,7 +45,7 @@ pub mod wallet_deps {
             ConfigServerConfiguration, ConfigurationRepository, FileStorageConfigurationRepository,
             HttpConfigurationRepository, UpdateableConfigurationRepository, UpdatingFileHttpConfigurationRepository,
         },
-        digid::{DigidSession, HttpDigidSession},
+        digid::{DigidSession, HttpDigidSession, HttpOpenIdClient, S256PkcePair},
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },
