@@ -23,8 +23,8 @@ const WALLET_PROVIDER_BASE_URL: &str = "http://localhost:3000/api/v1/";
 const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
                                       oWZT/C5WSeVm5Ktp6nCwnOwhhJLLGb4K3LtUJeLKjA==";
 
-const DIGID_CLIENT_ID: &str = "";
-const DIGID_URL: &str = "https://localhost/8006/";
+const DIGID_CLIENT_ID: &str = "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9";
+const DIGID_URL: &str = "https://localhost:8006/";
 
 const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttyk\
                                              oP/iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
