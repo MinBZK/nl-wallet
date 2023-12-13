@@ -7,7 +7,7 @@ use reqwest::{header::CONTENT_TYPE, Client};
 use openid4vc::token::{TokenErrorResponse, TokenRequest, TokenRequestGrantType, TokenResponse};
 
 use crate::{
-    issuer::{AttributeService, IssuanceData},
+    issuer::{AttributeService, Created},
     settings::Digid,
 };
 
@@ -56,7 +56,7 @@ impl AttributeService for PidAttributeService {
 
     async fn attributes(
         &self,
-        _maybe_session: Option<SessionState<IssuanceData>>,
+        _session: &SessionState<Created>,
         token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Error> {
         let openid_token_request = serde_urlencoded::to_string(TokenRequest {

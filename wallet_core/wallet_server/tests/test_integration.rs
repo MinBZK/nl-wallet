@@ -31,7 +31,7 @@ use wallet::{
 };
 use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_server::{
-    issuer::{AttributeService, IssuanceData},
+    issuer::{AttributeService, Created},
     pid::{
         attributes::{AttributesLookup, PidAttributeService},
         mock::{MockAttributesLookup, MockBsnLookup},
@@ -164,7 +164,7 @@ impl AttributeService for MockAttributeService {
 
     async fn attributes(
         &self,
-        _maybe_session: Option<SessionState<IssuanceData>>,
+        _session: &SessionState<Created>,
         _token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
         let mock_bsn = MockBsnLookup::default().bsn("access_token").await.unwrap();
