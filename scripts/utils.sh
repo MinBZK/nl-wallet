@@ -143,7 +143,7 @@ function generate_wp_random_key {
 
 # Generate an EC root CA for the pid_issuer
 function generate_pid_issuer_root_ca {
-    echo -e "${INFO}Generating EC root CA${NC}"
+    echo -e "${INFO}Generating PID root CA${NC}"
     openssl req -x509 \
             -nodes \
             -newkey ec \
@@ -160,7 +160,7 @@ function generate_pid_issuer_root_ca {
 
 # Generate an EC key pair for the pid_issuer
 function generate_pid_issuer_key_pair {
-    echo -e "${INFO}Generating EC issuer private key and CSR${NC}"
+    echo -e "${INFO}Generating PID issuer private key and CSR${NC}"
     openssl req -new \
             -nodes \
             -newkey ec \
@@ -169,7 +169,7 @@ function generate_pid_issuer_key_pair {
             -out "${TARGET_DIR}/pid_issuer/issuer_csr.pem" \
             -subj "/CN=pid.example.com"
 
-    echo -e "${INFO}Generate EC certificate from CSR using EC root CA${NC}"
+    echo -e "${INFO}Generate PID certificate from CSR using root CA${NC}"
     openssl x509 -req \
             -extfile <(printf "keyUsage=digitalSignature\nextendedKeyUsage=1.0.18013.5.1.2\nbasicConstraints=CA:FALSE") \
             -in "${TARGET_DIR}/pid_issuer/issuer_csr.pem" \
@@ -185,8 +185,8 @@ function generate_pid_issuer_key_pair {
         -outform der -out "${TARGET_DIR}/pid_issuer/issuer_crt.der"
 }
 
-# Generate an EC key pair for the mock_relying_party
-function generate_mock_relying_party_key_pair {
+# Generate an EC root CA for the mock_relying_party
+function generate_mock_relying_party_root_ca {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
         --common-name "ca.example.com" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/ca" \
@@ -194,7 +194,10 @@ function generate_mock_relying_party_key_pair {
 
     openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
         -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
+}
 
+# Generate an EC key pair for the mock_relying_party
+function generate_mock_relying_party_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca reader-auth-cert \
         --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \

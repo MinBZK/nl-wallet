@@ -359,6 +359,40 @@ build-pid-issuer-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-pid-issuer:$CI_COMMIT_SHORT_SHA
       --cache=true
 
+build-mock-relying-party-image:
+  extends: .kaniko
+  rules: !reference [ .default-or-release, rules ]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile wallet_core/mock_relying_party/Dockerfile
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-mock-relying-party:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
+build-wallet-server-image:
+  extends: .kaniko
+  rules: !reference [ .default-or-release, rules ]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile wallet_core/wallet_server/Dockerfile
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
 build-static-files-image:
   extends: .kaniko
   rules: !reference [ .default-or-release, rules ]
@@ -455,6 +489,10 @@ dependency-check-images:
       artifacts: false
     - job: build-pid-issuer-image
       artifacts: false
+    - job: build-mock-relying-party-image
+      artifacts: false
+    - job: build-wallet-server-image
+      artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:02cbb1724745da7dc33f3f57e98d026f9b7fdf12b88c37ab1f0adc4f166e9169"
   variables:
@@ -466,9 +504,11 @@ dependency-check-images:
       "nl-wallet-app-builder-flutter-rust"
       "nl-wallet-app-builder-ruby"
       "nl-wallet-app-builder-rust"
+      "nl-wallet-mock-relying-party"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
       "nl-wallet-pid-issuer"
+      "nl-wallet-server"
       )
     - mkdir -p trivy
   script:
@@ -600,6 +640,28 @@ deploy-pid-issuer:
     - envsubst < kubernetes/pid-issuer-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/pid-issuer-service.yaml
     - kubectl rollout status deployment/pid-issuer
+
+deploy-mock-relying-party:
+  extends: .deploy-k8s
+  rules: !reference [ .default-branch, rules ]
+  when: manual
+  needs:
+    - job: build-mock-relying-party-image
+      artifacts: false
+    - job: build-wallet-server-image
+      artifacts: false
+  variables:
+    MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
+    MRP_WALLET_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server:${CI_COMMIT_SHORT_SHA}
+  script:
+    - envsubst < kubernetes/mrp-wallet-server-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/mrp-wallet-server-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/mrp-wallet-server-service.yaml
+    - kubectl rollout status deployment/mrp-wallet-server
+    - envsubst < kubernetes/mock-relying-party-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/mock-relying-party-service.yaml
+    - kubectl rollout status deployment/mock-relying-party
 
 deploy-static-files-hosting:
   extends: .deploy-k8s
