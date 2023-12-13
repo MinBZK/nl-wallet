@@ -31,7 +31,8 @@ use wallet::{
 };
 use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_server::{
-    issuer::{AttributeService, Created},
+    issuance_state::Created,
+    issuer::AttributeService,
     pid::{
         attributes::{AttributesLookup, PidAttributeService},
         mock::{MockAttributesLookup, MockBsnLookup},

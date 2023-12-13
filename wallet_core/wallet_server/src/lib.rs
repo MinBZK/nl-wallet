@@ -1,6 +1,7 @@
 pub mod cbor;
 #[cfg(feature = "postgres")]
 pub mod entity;
+pub mod issuance_state;
 pub mod issuer;
 pub mod log_requests;
 pub mod pid;
