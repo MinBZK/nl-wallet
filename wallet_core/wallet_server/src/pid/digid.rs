@@ -1,6 +1,5 @@
 use std::{collections::HashMap, time::Duration};
 
-use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::header;
 use josekit::{
@@ -50,28 +49,10 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
 }
 
-/// Given an access token, lookup a BSN: a trait modeling the OIDC client.
-/// Contract for the DigiD bridge.
-#[async_trait]
-pub trait BsnLookup {
-    async fn bsn(&self, access_token: &str) -> Result<String>;
-}
-
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
 pub struct OpenIdClient {
     decrypter_private_key: RsaesJweDecrypter,
     pub openid_client: openid::Client,
-}
-
-#[async_trait]
-impl BsnLookup for OpenIdClient {
-    async fn bsn(&self, access_token: &str) -> Result<String> {
-        let userinfo_claims: UserInfoJWT = self
-            .request_userinfo_decrypted_claims(access_token, &self.decrypter_private_key)
-            .await?;
-
-        OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
-    }
 }
 
 impl OpenIdClient {
@@ -102,6 +83,14 @@ impl OpenIdClient {
             .ok_or(openid_errors::Userinfo::NoUrl)?;
 
         Ok(client)
+    }
+
+    pub async fn bsn(&self, access_token: &str) -> Result<String> {
+        let userinfo_claims: UserInfoJWT = self
+            .request_userinfo_decrypted_claims(access_token, &self.decrypter_private_key)
+            .await?;
+
+        OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
     }
 
     pub fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {

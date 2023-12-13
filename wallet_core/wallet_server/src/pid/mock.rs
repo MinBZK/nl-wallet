@@ -1,7 +1,6 @@
 /// Mock implementations of the two traits abstracting other components
 use std::{collections::HashMap, ops::Add};
 
-use async_trait::async_trait;
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
@@ -13,10 +12,7 @@ use nl_wallet_mdoc::{
 use rand::Rng;
 use serde::Deserialize;
 
-use super::{
-    attributes::AttributesLookup,
-    digid::{self, BsnLookup},
-};
+use super::{attributes::AttributesLookup, digid};
 
 pub struct MockBsnLookup(Vec<String>);
 
@@ -26,9 +22,8 @@ impl Default for MockBsnLookup {
     }
 }
 
-#[async_trait]
-impl BsnLookup for MockBsnLookup {
-    async fn bsn(&self, _access_token: &str) -> Result<String, digid::Error> {
+impl MockBsnLookup {
+    pub async fn bsn(&self, _access_token: &str) -> Result<String, digid::Error> {
         Ok(self.0[rand::thread_rng().gen_range(0..self.0.len())].clone())
     }
 }

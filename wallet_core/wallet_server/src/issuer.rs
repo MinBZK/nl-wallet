@@ -75,11 +75,13 @@ struct ApplicationState<A, K> {
 }
 
 #[async_trait]
-pub trait AttributeService: Sized + Send + Sync + 'static {
+pub trait AttributeService: Send + Sync + 'static {
     type Error: std::fmt::Debug;
     type Settings;
 
-    async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>;
+    async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
     async fn attributes(&self, token_request: TokenRequest) -> Result<Vec<UnsignedMdoc>, Self::Error>;
 }
 

@@ -9,7 +9,7 @@ use openid4vc::token::{TokenErrorResponse, TokenRequest, TokenRequestGrantType, 
 use crate::{issuer::AttributeService, settings::Digid};
 
 use super::{
-    digid::{self, BsnLookup, OpenIdClient},
+    digid::{self, OpenIdClient},
     mock::MockAttributesLookup,
 };
 

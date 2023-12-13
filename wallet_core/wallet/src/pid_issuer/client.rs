@@ -219,7 +219,6 @@ impl PidIssuerClient for HttpPidIssuerClient {
             .json()
             .await
             .unwrap();
-        dbg!(&responses);
         let mut keys_and_responses: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
 
         let mdocs = issuance_state
