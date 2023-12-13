@@ -1,12 +1,15 @@
 use async_trait::async_trait;
 use futures::TryFutureExt;
 use mime::APPLICATION_WWW_FORM_URLENCODED;
-use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
+use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
 use reqwest::{header::CONTENT_TYPE, Client};
 
 use openid4vc::token::{TokenErrorResponse, TokenRequest, TokenRequestGrantType, TokenResponse};
 
-use crate::{issuer::AttributeService, settings::Digid};
+use crate::{
+    issuer::{AttributeService, IssuanceData},
+    settings::Digid,
+};
 
 use super::{
     digid::{self, OpenIdClient},
@@ -51,14 +54,15 @@ impl AttributeService for PidAttributeService {
         })
     }
 
-    async fn attributes(&self, token_request: TokenRequest) -> Result<Vec<UnsignedMdoc>, Error> {
-        let code = match token_request.grant_type {
-            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } => pre_authorized_code,
-            _ => panic!("must be a pre-authorized_code token request"),
-        };
-
+    async fn attributes(
+        &self,
+        _maybe_session: Option<SessionState<IssuanceData>>,
+        token_request: TokenRequest,
+    ) -> Result<Vec<UnsignedMdoc>, Error> {
         let openid_token_request = serde_urlencoded::to_string(TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            grant_type: TokenRequestGrantType::AuthorizationCode {
+                code: token_request.code(),
+            },
             ..token_request
         })?;
 

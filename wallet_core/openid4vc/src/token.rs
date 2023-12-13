@@ -22,6 +22,15 @@ pub struct TokenRequest {
     pub redirect_uri: Option<Url>,
 }
 
+impl TokenRequest {
+    pub fn code(&self) -> String {
+        match &self.grant_type {
+            TokenRequestGrantType::AuthorizationCode { code } => code.clone(),
+            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } => pre_authorized_code.clone(),
+        }
+    }
+}
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename = "snake_case")]

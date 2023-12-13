@@ -31,6 +31,11 @@ use wallet::{
 };
 use wallet_common::trust_anchor::DerTrustAnchor;
 use wallet_server::{
+    issuer::{AttributeService, IssuanceData},
+    pid::{
+        attributes::{AttributesLookup, PidAttributeService},
+        mock::{MockAttributesLookup, MockBsnLookup},
+    },
     server,
     settings::{Digid, KeyPair, Server, Settings},
     store::new_session_store,
@@ -146,7 +151,28 @@ fn wallet_server_settings() -> (Settings, Certificate) {
     (settings, issuance_ca)
 }
 
-async fn start_wallet_server<S>(settings: Settings, sessions: S)
+struct MockAttributeService;
+
+#[async_trait]
+impl AttributeService for MockAttributeService {
+    type Error = anyhow::Error;
+    type Settings = ();
+
+    async fn new(_settings: &Self::Settings) -> Result<Self, Self::Error> {
+        Ok(MockAttributeService)
+    }
+
+    async fn attributes(
+        &self,
+        _maybe_session: Option<SessionState<IssuanceData>>,
+        _token_request: TokenRequest,
+    ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
+        let mock_bsn = MockBsnLookup::default().bsn("access_token").await.unwrap();
+        Ok(MockAttributesLookup::default().attributes(&mock_bsn))
+    }
+}
+
+async fn start_wallet_server<A, S>(settings: Settings, sessions: S, attr_service: A)
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {

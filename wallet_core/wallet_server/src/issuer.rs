@@ -62,7 +62,7 @@ mod state {
     }
 }
 
-use state::*;
+pub use state::*;
 
 struct Issuer<K> {
     sessions: MemorySessionStore<IssuanceData>,
@@ -82,7 +82,11 @@ pub trait AttributeService: Send + Sync + 'static {
     async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>
     where
         Self: Sized;
-    async fn attributes(&self, token_request: TokenRequest) -> Result<Vec<UnsignedMdoc>, Self::Error>;
+    async fn attributes(
+        &self,
+        maybe_session: Option<SessionState<IssuanceData>>,
+        token_request: TokenRequest,
+    ) -> Result<Vec<UnsignedMdoc>, Self::Error>;
 }
 
 pub async fn create_issuance_router<A: AttributeService>(
@@ -109,6 +113,59 @@ pub async fn create_issuance_router<A: AttributeService>(
         .with_state(application_state);
 
     Ok(issuance_router)
+}
+
+async fn token<A: AttributeService, K: KeyRing>(
+    State(state): State<Arc<ApplicationState<A, K>>>,
+    Form(token_request): Form<TokenRequest>,
+) -> Result<Json<TokenResponseWithPreviews>, Error> {
+    if !matches!(
+        token_request.grant_type,
+        TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code: _ }
+    ) {
+        panic!("token request must be of type pre-authorized_code");
+    }
+
+    let maybe_session = state.issuer.sessions.get(&token_request.code().into()).await.unwrap();
+    let unsigned_mdocs = state
+        .attr_service
+        .attributes(maybe_session, token_request)
+        .await
+        .unwrap(); // TODO
+
+    let access_token = random_string(32);
+    let c_nonce = random_string(32);
+
+    state
+        .issuer
+        .sessions
+        .write(&SessionState {
+            session_data: IssuanceData::WaitingForResponse(WaitingForResponse {
+                access_token: access_token.clone(),
+                c_nonce: c_nonce.clone(),
+                unsigned_mdocs: unsigned_mdocs.clone(),
+            }),
+            token: access_token.clone().into(),
+            last_active: Utc::now(),
+        })
+        .await
+        .unwrap(); // TODO
+
+    let response = TokenResponseWithPreviews {
+        token_response: TokenResponse {
+            access_token,
+            c_nonce: Some(c_nonce),
+            token_type: TokenType::Bearer,
+            expires_in: None,
+            refresh_token: None,
+            scope: None,
+            c_nonce_expires_in: None,
+            authorization_details: None,
+        },
+        attestation_previews: unsigned_mdocs,
+    };
+
+    Ok(Json(response))
 }
 
 async fn batch_credential<A: AttributeService, K: KeyRing>(
@@ -182,52 +239,4 @@ async fn sign_attestation<A: AttributeService, K: KeyRing>(
         )
         .unwrap(),
     })
-}
-
-async fn token<A: AttributeService, K: KeyRing>(
-    State(state): State<Arc<ApplicationState<A, K>>>,
-    Form(token_request): Form<TokenRequest>,
-) -> Result<Json<TokenResponseWithPreviews>, Error> {
-    if !matches!(
-        token_request.grant_type,
-        TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code: _ }
-    ) {
-        panic!("token request must be of type pre-authorized_code");
-    }
-
-    let unsigned_mdocs = state.attr_service.attributes(token_request).await.unwrap(); // TODO
-
-    let access_token = random_string(32);
-    let c_nonce = random_string(32);
-
-    state
-        .issuer
-        .sessions
-        .write(&SessionState {
-            session_data: IssuanceData::WaitingForResponse(WaitingForResponse {
-                access_token: access_token.clone(),
-                c_nonce: c_nonce.clone(),
-                unsigned_mdocs: unsigned_mdocs.clone(),
-            }),
-            token: access_token.clone().into(),
-            last_active: Utc::now(),
-        })
-        .await
-        .unwrap(); // TODO
-
-    let response = TokenResponseWithPreviews {
-        token_response: TokenResponse {
-            access_token,
-            c_nonce: Some(c_nonce),
-            token_type: TokenType::Bearer,
-            expires_in: None,
-            refresh_token: None,
-            scope: None,
-            c_nonce_expires_in: None,
-            authorization_details: None,
-        },
-        attestation_previews: unsigned_mdocs,
-    };
-
-    Ok(Json(response))
 }
