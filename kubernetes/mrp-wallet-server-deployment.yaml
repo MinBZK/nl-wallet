@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mrp-wallet-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mrp-wallet-server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: mrp-wallet-server
+        tier: vertrouwd
+        egress-frontoffice-policy: allow
+        ingress-controller-frontoffice-policy: allow
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: mrp-wallet-server
+          image: $WALLET_SERVER_IMAGE
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "512Mi"
+              cpu: "300m"
+          ports:
+            - containerPort: 3002
+            - containerPort: 3003
+          volumeMounts:
+            - name: config-volume
+              mountPath: /wallet_server.toml
+              subPath: config.toml
+          env:
+            - name: WALLET_SERVER_REQUESTER_SERVER__IP
+              value: "0.0.0.0"
+            - name: WALLET_SERVER_PUBLIC_URL
+              value: "https://${MRP_WALLET_SERVER_EXTERNAL_HOSTNAME}/${MRP_WALLET_SERVER_EXTERNAL_CONTEXT_PATH}/"
+            - name: WALLET_SERVER_INTERNAL_URL
+              value: "https://${MRP_WALLET_SERVER_INTERNAL_HOSTNAME}/"
+            - name: PID_CA_CRT
+              valueFrom:
+                secretKeyRef:
+                  name: nl-pid-issuer-secrets
+                  key: ca_cert
+            - name: WALLET_SERVER_TRUST_ANCHORS
+              value: "$(PID_CA_CRT)"
+            - name: WALLET_SERVER_WALLET_SERVER_INTERNAL_URL
+              value: "https://${MRP_WALLET_SERVER_INTERNAL_HOSTNAME}/"
+            # TODO configure postgres backend
+            # - name: WALLET_SERVER_STORE_URL
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: db-cluster-app
+            #       key: url
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+      volumes:
+        - name: config-volume
+          secret:
+            secretName: nl-mrp-wallet-server-secrets

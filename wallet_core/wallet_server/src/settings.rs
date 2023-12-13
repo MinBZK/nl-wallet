@@ -52,7 +52,10 @@ impl Settings {
             .add_source(
                 Environment::with_prefix("wallet_server")
                     .separator("__")
-                    .prefix_separator("_"),
+                    .prefix_separator("_")
+                    .list_separator(",")
+                    .with_list_parse_key("trust_anchors")
+                    .try_parsing(true),
             )
             .build()?
             .try_deserialize()

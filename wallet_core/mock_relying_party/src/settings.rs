@@ -31,7 +31,7 @@ impl Settings {
             .set_default("public_url", "http://localhost:3004/")?
             .add_source(File::from(config_path.join("mock_relying_party.toml")).required(false))
             .add_source(
-                Environment::with_prefix("relying_party")
+                Environment::with_prefix("mock_relying_party")
                     .separator("__")
                     .prefix_separator("_"),
             )

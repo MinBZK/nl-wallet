@@ -107,8 +107,10 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
         )
         .await?;
 
-    let session_url = session_url.path();
+    let mut session_url = session_url.path().to_owned();
+    session_url.remove(0); // remove initial '/'
 
+    // TODO move this to the wallet server when the return url is added to the RP certificate
     let engagement_url = engagement_url
         .join(&format!(
             "?{}#{}",
