@@ -10,21 +10,27 @@ use nl_wallet_mdoc::{
     verifier::DisclosureData,
 };
 
-use crate::{issuer::create_issuance_router, settings::Settings, verifier::create_verifier_routers};
+use crate::{
+    issuer::{create_issuance_router, AttributeService},
+    settings::Settings,
+    verifier::create_verifier_routers,
+};
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-pub async fn serve<S>(settings: &Settings, sessions: S) -> Result<()>
+pub async fn serve<A, S>(settings: &Settings, sessions: S, attr_service: A) -> Result<()>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    A: AttributeService,
 {
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let requestor_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
 
     let (wallet_router, requester_router) = create_verifier_routers(settings.clone(), sessions)?;
-    let issuance_router = create_issuance_router(settings.clone()).await?;
+
+    let issuance_router = create_issuance_router(settings.clone(), attr_service).await?;
 
     debug!("listening for requester on {}", requestor_socket);
     let server = tokio::spawn(async move {

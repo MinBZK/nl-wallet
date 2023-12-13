@@ -25,9 +25,7 @@ use openid4vc::{
 };
 use wallet_common::utils::random_string;
 
-use crate::{
-    log_requests::log_request_response, pid::attributes::PidAttributeService, settings::Settings, verifier::Error,
-};
+use crate::{log_requests::log_request_response, settings::Settings, verifier::Error};
 
 mod state {
     use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
@@ -71,24 +69,24 @@ struct Issuer<K> {
     private_keys: K,
 }
 
-struct ApplicationState<K> {
+struct ApplicationState<A, K> {
     issuer: Issuer<K>,
-    attr_service: PidAttributeService,
+    attr_service: A,
 }
 
 #[async_trait]
-pub trait AttributeService
-where
-    Self: Sized,
-{
-    type Error: std::error::Error;
+pub trait AttributeService: Sized + Send + Sync + 'static {
+    type Error: std::fmt::Debug;
     type Settings;
 
     async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>;
     async fn attributes(&self, token_request: TokenRequest) -> Result<Vec<UnsignedMdoc>, Self::Error>;
 }
 
-pub async fn create_issuance_router(settings: Settings) -> anyhow::Result<Router> {
+pub async fn create_issuance_router<A: AttributeService>(
+    settings: Settings,
+    attr_service: A,
+) -> anyhow::Result<Router> {
     let key = SingleKeyRing(PrivateKey::from_der(
         &settings.issuer_key.private_key.0,
         &settings.issuer_key.certificate.0,
@@ -98,7 +96,7 @@ pub async fn create_issuance_router(settings: Settings) -> anyhow::Result<Router
             sessions: MemorySessionStore::new(),
             private_keys: key,
         },
-        attr_service: PidAttributeService::new(&settings.digid).await.unwrap(),
+        attr_service,
     });
 
     let issuance_router = Router::new()
@@ -111,8 +109,8 @@ pub async fn create_issuance_router(settings: Settings) -> anyhow::Result<Router
     Ok(issuance_router)
 }
 
-async fn batch_credential<K: KeyRing>(
-    State(state): State<Arc<ApplicationState<K>>>,
+async fn batch_credential<A: AttributeService, K: KeyRing>(
+    State(state): State<Arc<ApplicationState<A, K>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
     Json(credential_requests): Json<CredentialRequests>,
 ) -> Result<Json<CredentialResponses>, Error> {
@@ -149,8 +147,8 @@ async fn batch_credential<K: KeyRing>(
     Ok(Json(CredentialResponses { credential_responses }))
 }
 
-async fn sign_attestation<K: KeyRing>(
-    state: &ApplicationState<K>,
+async fn sign_attestation<A: AttributeService, K: KeyRing>(
+    state: &ApplicationState<A, K>,
     c_nonce: String,
     cred_req: &CredentialRequest,
     unsigned_mdoc: &UnsignedMdoc,
@@ -184,8 +182,8 @@ async fn sign_attestation<K: KeyRing>(
     })
 }
 
-async fn token<K: KeyRing>(
-    State(state): State<Arc<ApplicationState<K>>>,
+async fn token<A: AttributeService, K: KeyRing>(
+    State(state): State<Arc<ApplicationState<A, K>>>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<Json<TokenResponseWithPreviews>, Error> {
     if !matches!(
