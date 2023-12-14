@@ -1,7 +1,8 @@
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
 INTERNAL_APP_IDENTIFIER = "nl.ictu.edi.wallet"
-BRANCH_IDENTIFER_MAP = { "main" => "latest" }
+INTERNAL_APP_IDENTIFIER_MOCK_SECTION = "mock"
+BRANCH_APP_IDENTIFIER_SUFFIX_MAP = { "main" => "latest" }
 APP_NAME = "NL Wallet"
 
 # opt out of analytics
@@ -30,14 +31,22 @@ private_lane :ci_get_build do
   pipeline_id.to_i + BUILD_OFFSET
 end
 
-private_lane :ci_get_app_identifier_version_and_suffix do
+private_lane :ci_get_app_identifier_version_and_suffix do |options|
   ref_name = ENV["CI_COMMIT_REF_NAME"]
   UI.user_error!("No CI_COMMIT_REF_NAME environment variable set") unless ref_name
 
-  release, version = ref_name.match(/([^\/]+)(?:\/(\d+\.\d+\.\d+))?$/)&.captures
+  mock = options[:mock] || false
 
-  suffix = BRANCH_IDENTIFER_MAP[release] || release unless release == "release"
-  app_identifier = "#{INTERNAL_APP_IDENTIFIER}.#{suffix}" unless suffix.nil?
+  release, version = ref_name.match(/([^\/]+)(?:\/(\d+\.\d+\.\d+))?$/)&.captures
+  branch_suffix = BRANCH_APP_IDENTIFIER_SUFFIX_MAP[release] || release unless release == "release"
+
+  suffix_parts = []
+  suffix_parts << INTERNAL_APP_IDENTIFIER_MOCK_SECTION if mock
+  suffix_parts << branch_suffix unless branch_suffix.nil?
+  suffix = suffix_parts.join(".")
+
+  app_identifier = INTERNAL_APP_IDENTIFIER.dup
+  app_identifier << ".#{suffix}" unless suffix.empty?
 
   [app_identifier, version, suffix]
 end
@@ -100,18 +109,27 @@ end
 platform :android do
   desc "Build release and profile versions of Android app from GitLab CI"
   lane :ci_build do
-    build = ci_get_build
-    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
-
+    
+    # retrieve signing & environment secrets
     ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "keystore", path: "wallet_app/android/upload-keystore.jks")
     ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "key-properties", path: "wallet_app/android/key.properties")
     ci_get_k8s_secret_file(name: "nl-wallet-core-env-file", key: "env", path: "wallet_core/wallet/.env")
+    
+    # retrieve build number
+    build = ci_get_build
+    
+    # build non-mock app for Play Store & BrowserStack
+    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
+    
+    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "aab", build_mode: "release")
+    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "apk", build_mode: "profile")
+    
+    # build mock app for Play Store
+    mock_app = true
+    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix(mock: mock_app)
 
-    # Release build for Play Store upload (mock build)
-    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "aab", build_mode: "release", mock_repositories: true, env_configuration: false)
+    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "aab", build_mode: "release", mock_repositories: mock_app)
 
-    # Profile build for BrowserStack upload (core build)
-    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "apk", build_mode: "profile", mock_repositories: false, env_configuration: true)
   end
 
   desc "Build and sign Android app"
@@ -126,7 +144,9 @@ platform :android do
       file_format = options[:file_format] || "aab"
       build_mode = options[:build_mode] || "release"
       mock_repositories = options[:mock_repositories] || false
-      env_configuration = options[:env_configuration] || true
+      
+      # always `true`, but ignored when `mock_repositories == true`, this flag is used in local development only
+      env_configuration = true
 
       UI.user_error!("Invalid file_format: #{file_format}") unless ["aab", "apk"].include? file_format
       UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
@@ -151,16 +171,24 @@ platform :android do
   lane :ci_deploy do
     key_file = "play-store-key.json"
 
-    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
-    local_version, local_build = get_local_version_and_build
-
+    # retrieve upload secret
     ci_get_k8s_secret_file(name: "nl-wallet-play-store-api-key", key: "json", path: key_file)
+
+    # retrieve version
+    local_version, _ = get_local_version_and_build
+
+    # upload non-mock & mock app to Play Store
+    app_identifier, version, _ = ci_get_app_identifier_version_and_suffix
+    mock_app_identifier, _, _ = ci_get_app_identifier_version_and_suffix(mock: true)
 
     upload_to_play_store(
       package_name: app_identifier,
       track: "internal",
       json_key: key_file,
-      aab: "#{app_identifier}-#{version || local_version}-release.aab",
+      aab_paths: [
+        "#{app_identifier}-#{version || local_version}-release.aab",
+        "#{mock_app_identifier}-#{version || local_version}-release.aab"
+      ],
       skip_upload_apk: true
     )
 
