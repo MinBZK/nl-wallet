@@ -29,7 +29,7 @@ open class MobileActions {
      * Do not use this method for checking if an element is absent, use the `isElementAbsent` method instead.
      *
      * @param element The element to check for visibility.
-     * @param frameSync Whether to wait executing an action until no pending frames are scheduled. Defaults to `true`, set to `false` when testing a screen with an long or infinite animation.
+     * @param frameSync Whether to wait executing an action until no pending frames are scheduled. Defaults to `true`, set to `false` when testing a screen with a long or infinite animation.
      */
     protected fun isElementVisible(element: FlutterElement, frameSync: Boolean = true): Boolean {
         driver.executeScript("flutter:setFrameSync", frameSync, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
@@ -111,7 +111,7 @@ open class MobileActions {
 
     companion object {
         private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 5000L
-        private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 5000L
+        private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 10000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 10000L
 
         private const val FLUTTER_APP_CONTEXT = "FLUTTER"
