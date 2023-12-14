@@ -2709,6 +2709,7 @@ dependencies = [
  "chrono",
  "futures",
  "jsonwebtoken",
+ "mime",
  "mockall",
  "nl_wallet_mdoc",
  "p256",

@@ -16,6 +16,8 @@ pub mod dpop;
 pub mod jwt;
 pub mod pkce;
 
+pub mod issuance_client;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {
