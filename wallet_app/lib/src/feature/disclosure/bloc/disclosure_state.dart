@@ -26,6 +26,18 @@ class DisclosureGenericError extends DisclosureState {
   bool get showStopConfirmation => false;
 }
 
+class DisclosureNetworkError extends DisclosureState {
+  final bool hasInternet;
+
+  const DisclosureNetworkError({this.hasInternet = true});
+
+  @override
+  bool get showStopConfirmation => false;
+
+  @override
+  List<Object?> get props => [hasInternet, ...super.props];
+}
+
 class DisclosureCheckOrganization extends DisclosureState {
   final Organization relyingParty;
   final LocalizedText requestPurpose;

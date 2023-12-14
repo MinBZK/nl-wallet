@@ -13,6 +13,8 @@ extension BlocExtensions on Bloc {
   /// Only one callback is ever fired and it's always the most specific callback
   /// that is called. As a fallback you always need to provide an [onUnhandledError]
   /// callback to make sure no exception goes uncaught.
+  ///
+  /// Note: Make sure to await this method if you are emitting from the callbacks.
   Future<void> handleError(
     Object ex, {
     Function(CoreGenericError)? onGenericError,

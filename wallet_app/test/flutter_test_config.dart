@@ -8,19 +8,30 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
 import 'src/mocks/mock_data.dart';
+import 'src/mocks/wallet_mocks.dart';
 import 'src/util/golden_diff_comparator.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   await loadAppFonts();
+  _provideDefaultCheckHasInternetMock();
   _setupMockitoDummies();
   _setupGoldenFileComparator();
   return testMain();
 }
 
-// Configure some basic mockito dummies
+/// Some BLoCs rely on the static [BlocExtensions.checkHasInternetUseCase], provide a default
+/// implementation for all tests.
+void _provideDefaultCheckHasInternetMock() {
+  final mockCheckHasInternetUseCase = MockCheckHasInternetUseCase();
+  when(mockCheckHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => true);
+  BlocExtensions.checkHasInternetUseCase = mockCheckHasInternetUseCase;
+}
+
+/// Configure some basic mockito dummies
 void _setupMockitoDummies() {
   provideDummy<DataAttribute>(
     DataAttribute.untranslated(key: '', label: '', value: const StringValue(''), sourceCardDocType: ''),
