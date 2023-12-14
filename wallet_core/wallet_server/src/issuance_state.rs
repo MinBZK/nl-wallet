@@ -13,10 +13,7 @@ use openid4vc::{
 };
 use wallet_common::utils::random_string;
 
-use crate::{
-    issuer::{code_to_access_token, AttributeService},
-    verifier::Error,
-};
+use crate::{issuer::AttributeService, verifier::Error};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
@@ -80,12 +77,12 @@ impl Session<Created> {
         self,
         token_request: TokenRequest,
         attr_service: &impl AttributeService,
-        code_hash_key: &[u8],
     ) -> Result<(TokenResponseWithPreviews, Session<WaitingForResponse>), (Error, Session<Done>)> {
         let code = token_request.code();
         let unsigned_mdocs = attr_service.attributes(&self.state, token_request).await.unwrap(); // TODO
 
-        let access_token = code_to_access_token(code_hash_key, &code);
+        // Append the authorization code, so that when the wallet comes back we can use it to retrieve the session
+        let access_token = random_string(32) + &code;
         let c_nonce = random_string(32);
 
         let response = TokenResponseWithPreviews {
