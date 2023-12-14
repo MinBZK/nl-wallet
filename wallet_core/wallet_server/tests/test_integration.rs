@@ -4,14 +4,17 @@ use std::{
     str::FromStr,
 };
 
+use async_trait::async_trait;
 use base64::prelude::*;
 use chrono::Duration;
 use indexmap::IndexMap;
+use openid4vc::token::TokenRequest;
 use p256::pkcs8::EncodePrivateKey;
 use reqwest::{Client, StatusCode};
 use url::Url;
 
 use nl_wallet_mdoc::{
+    basic_sa_ext::UnsignedMdoc,
     mock::SoftwareKeyFactory,
     server_state::{SessionState, SessionStore, SessionToken},
     utils::{
@@ -23,7 +26,7 @@ use nl_wallet_mdoc::{
     ItemsRequest, ReaderEngagement,
 };
 use wallet::{
-    mock::{default_configuration, LocalConfigurationRepository},
+    mock::{default_configuration, LocalConfigurationRepository, MockDigidSession},
     wallet_deps::{
         ConfigurationRepository, DigidSession, HttpDigidSession, HttpOpenIdClient, HttpPidIssuerClient,
         PidIssuerClient, S256PkcePair,
@@ -34,7 +37,7 @@ use wallet_server::{
     issuance_state::Created,
     issuer::AttributeService,
     pid::{
-        attributes::{AttributesLookup, PidAttributeService},
+        attributes::AttributesLookup,
         mock::{MockAttributesLookup, MockBsnLookup},
     },
     server,
@@ -329,6 +332,59 @@ async fn test_session_not_found() {
 }
 
 #[tokio::test]
+async fn test_mock_issuance() {
+    let (settings, issuance_ca) = wallet_server_settings();
+    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
+    let attr_service = MockAttributeService::new(&()).await.unwrap();
+
+    start_wallet_server(settings.clone(), sessions, attr_service).await;
+
+    // Setup a mock DigiD session from which the issuer client gets its token request
+    let digid_session = {
+        let mut digid_session = MockDigidSession::new();
+        digid_session
+            .expect_into_pre_authorized_code_request()
+            .return_once(|code| TokenRequest {
+                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: code,
+                },
+                code_verifier: Some("my_code_verifier".to_string()),
+                client_id: Some("my_client_id".to_string()),
+                redirect_uri: Some("redirect://here".parse().unwrap()),
+            });
+        digid_session
+    };
+
+    // Exchange the authorization code for an access token and the attestation previews
+    let mut pid_issuer_client = HttpPidIssuerClient::default();
+    pid_issuer_client
+        .start_openid4vci_retrieve_pid(
+            digid_session,
+            &local_base_url(settings.public_url.port().unwrap()),
+            "authorization_code_that_digid_would_pass_to_us".to_string(),
+        )
+        .await
+        .unwrap();
+
+    // Accept the attestations and finish issuance
+    let key_factory = SoftwareKeyFactory::default();
+    let trust_anchor = DerTrustAnchor::from_der(issuance_ca.as_bytes().to_vec()).unwrap();
+    let mdocs = pid_issuer_client
+        .accept_openid4vci_pid(
+            &[(&trust_anchor.owned_trust_anchor).into()],
+            &key_factory,
+            "wallet_name".to_string(),
+            "audience".to_string(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(2, mdocs.len());
+    assert_eq!(2, mdocs[0].cred_copies.len())
+}
+
+#[tokio::test]
+#[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let (settings, issuance_ca) = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
@@ -375,7 +431,7 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     assert_eq!(2, mdocs.len());
-    assert_eq!(1, mdocs[0].cred_copies.len())
+    assert_eq!(2, mdocs[0].cred_copies.len())
 }
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
