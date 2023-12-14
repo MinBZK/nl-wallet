@@ -4,7 +4,9 @@ import 'package:test/test.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/report_issue/report_issue_screen.dart';
+import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../mocks/mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
@@ -26,11 +28,30 @@ void main() {
   });
 
   blocTest(
-    'when startDisclosure fails, show generic error',
+    'when startDisclosure fails, emit generic error',
     setUp: () => when(startDisclosureUseCase.invoke(any)).thenThrow(Exception('')),
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [DisclosureGenericError()],
+  );
+
+  blocTest(
+    'when startDisclosure fails with network issue, emit DisclosureNetworkError(hasInternet: true)',
+    setUp: () => when(startDisclosureUseCase.invoke(any)).thenThrow(const CoreNetworkError('')),
+    build: () => create(),
+    act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [const DisclosureNetworkError(hasInternet: true)],
+  );
+
+  blocTest(
+    'when startDisclosure fails with network issue and there is no internet, emit DisclosureNetworkError(hasInternet: false)',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any)).thenThrow(const CoreNetworkError(''));
+      when(BlocExtensions.checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => false);
+    },
+    build: () => create(),
+    act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [const DisclosureNetworkError(hasInternet: false)],
   );
 
   blocTest(

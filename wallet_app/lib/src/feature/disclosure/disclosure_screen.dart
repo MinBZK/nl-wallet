@@ -20,6 +20,7 @@ import 'page/disclosure_confirm_data_attributes_page.dart';
 import 'page/disclosure_confirm_pin_page.dart';
 import 'page/disclosure_generic_error_page.dart';
 import 'page/disclosure_missing_attributes_page.dart';
+import 'page/disclosure_network_error_page.dart';
 import 'page/disclosure_report_submitted_page.dart';
 import 'page/disclosure_stopped_page.dart';
 import 'page/disclosure_success_page.dart';
@@ -120,6 +121,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureStopped() => _buildStoppedPage(context, state),
           DisclosureLeftFeedback() => _buildLeftFeedbackPage(context, state),
           DisclosureSuccess() => _buildSuccessPage(context, state),
+          DisclosureNetworkError() => _buildNetworkErrorPage(context, state),
           DisclosureGenericError() => _buildGenericErrorPage(context, state),
         };
 
@@ -191,9 +193,16 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildNetworkErrorPage(BuildContext context, DisclosureNetworkError state) {
+    return DisclosureNetworkErrorPage(
+      hasInternet: state.hasInternet,
+      onStopPressed: () => Navigator.pop(context),
+    );
+  }
+
   Widget _buildGenericErrorPage(BuildContext context, DisclosureGenericError state) {
     return DisclosureGenericErrorPage(
-      onClosePressed: () => Navigator.pop(context),
+      onStopPressed: () => Navigator.pop(context),
     );
   }
 

@@ -11,6 +11,7 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
+import '../../../util/extension/bloc_extension.dart';
 import '../../report_issue/report_issue_screen.dart';
 
 part 'disclosure_event.dart';
@@ -49,9 +50,12 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         ),
       );
     } catch (ex) {
-      /// FIXME: Do we want to use [handleError] here to have more fine grained errors?
       Fimber.e('Failed to start disclosure', ex: ex);
-      emit(DisclosureGenericError());
+      await handleError(
+        ex,
+        onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(hasInternet: hasInternet)),
+        onUnhandledError: (error) => emit(DisclosureGenericError()),
+      );
     }
   }
 

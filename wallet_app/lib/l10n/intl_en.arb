@@ -270,7 +270,7 @@
     },
     "disclosureConfirmPinPageErrorTitle": "Invalid code",
     "disclosureConfirmPinPageTitle": "Enter your pin",
-    "disclosureGenericErrorPageCloseCta": "Sluiten",
+    "disclosureGenericErrorPageCloseCta": "Stop",
     "disclosureGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
     "disclosureMissingAttributesPageCloseCta": "Close request",

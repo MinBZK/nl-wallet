@@ -5,8 +5,7 @@ import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/sheet/help_sheet.dart';
-import '../common/widget/button/text_icon_button.dart';
-import '../common/widget/sliver_sized_box.dart';
+import 'error_page.dart';
 
 class ErrorScreen extends StatelessWidget {
   final String? illustration;
@@ -38,84 +37,15 @@ class ErrorScreen extends StatelessWidget {
         leading: const SizedBox.shrink(),
         actions: const [CloseButton()],
       ),
-      body: Scrollbar(
-        thumbVisibility: true,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: CustomScrollView(
-            slivers: [
-              const SliverSizedBox(height: 24),
-              SliverToBoxAdapter(
-                child: _buildIllustration(),
-              ),
-              const SliverSizedBox(height: 24),
-              SliverToBoxAdapter(
-                child: Text(
-                  headline,
-                  textAlign: TextAlign.start,
-                  style: context.textTheme.displayMedium,
-                ),
-              ),
-              const SliverSizedBox(height: 8),
-              SliverToBoxAdapter(
-                child: Text(
-                  description,
-                  textAlign: TextAlign.start,
-                  style: context.textTheme.bodyLarge,
-                ),
-              ),
-              const SliverSizedBox(height: 32),
-              SliverFillRemaining(
-                hasScrollBody: false,
-                fillOverscroll: true,
-                child: _buildBottomSection(context),
-              ),
-            ],
-          ),
-        ),
+      body: ErrorPage(
+        illustration: illustration,
+        headline: headline,
+        description: description,
+        primaryActionText: primaryActionText,
+        secondaryActionText: secondaryActionText,
+        onPrimaryActionPressed: onPrimaryActionPressed,
+        onSecondaryActionPressed: onSecondaryActionPressed,
       ),
-    );
-  }
-
-  Widget _buildIllustration() {
-    if (illustration == null) {
-      return Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5FD),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        width: double.infinity,
-        height: 100,
-        child: const Text('Placeholder image'),
-      );
-    } else {
-      return Image.asset(
-        illustration!,
-        fit: BoxFit.fitWidth,
-      );
-    }
-  }
-
-  Widget _buildBottomSection(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        ElevatedButton(
-          onPressed: onPrimaryActionPressed,
-          child: Text(primaryActionText),
-        ),
-        if (secondaryActionText != null) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: TextIconButton(
-              onPressed: onSecondaryActionPressed,
-              child: Text(secondaryActionText!),
-            ),
-          ),
-        ],
-        const SizedBox(height: 24),
-      ],
     );
   }
 

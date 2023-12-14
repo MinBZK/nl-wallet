@@ -72,7 +72,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       emit(WalletPersonalizeConnectDigid(url));
     } catch (ex, stack) {
       Fimber.e('Failed to get authentication url', ex: ex, stacktrace: stack);
-      handleError(
+      await handleError(
         ex,
         onUnhandledError: (ex) => emit(WalletPersonalizeDigidFailure()),
       );

@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/flow_terminal_page.dart';
+import '../../error/error_page.dart';
 
 class DisclosureGenericErrorPage extends StatelessWidget {
-  final VoidCallback onClosePressed;
+  final VoidCallback onStopPressed;
 
   const DisclosureGenericErrorPage({
-    required this.onClosePressed,
+    required this.onStopPressed,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return FlowTerminalPage(
-      icon: Icons.not_interested,
-      iconColor: context.theme.primaryColorDark,
-      title: context.l10n.disclosureGenericErrorPageTitle,
+    return ErrorPage.generic(
+      context,
+      headline: context.l10n.disclosureGenericErrorPageTitle,
       description: context.l10n.disclosureGenericErrorPageDescription,
-      primaryButtonCta: context.l10n.disclosureGenericErrorPageCloseCta,
-      onPrimaryPressed: onClosePressed,
+      primaryActionText: context.l10n.disclosureGenericErrorPageCloseCta,
+      primaryActionIcon: Icons.not_interested_rounded,
+      onPrimaryActionPressed: onStopPressed,
     );
   }
 }
