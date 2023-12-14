@@ -138,7 +138,8 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         wallet_name: String,
         audience: String,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
-        let issuance_state = self.issuance_state.take().expect("no issuance state");
+        let issuance_state = self.issuance_state.as_ref().expect("no issuance state");
+
         let keys_count: u64 = issuance_state
             .unsigned_mdocs
             .iter()
@@ -210,11 +211,23 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
             })
             .collect();
 
+        // Clear session state now that all fallible operations have not failed
+        self.issuance_state.take();
+
         Ok(mdocs)
     }
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
-        todo!()
+        let issuance_state = self.issuance_state.take().expect("no issuance state");
+
+        self.http_client
+            .delete(issuance_state.issuer_url.join("/issuance/batch_credential").unwrap()) // TODO discover token endpoint instead
+            .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
+            .send()
+            .await
+            .unwrap();
+
+        Ok(())
     }
 }
 
