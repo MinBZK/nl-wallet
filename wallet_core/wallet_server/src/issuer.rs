@@ -4,10 +4,11 @@ use async_trait::async_trait;
 use axum::{
     extract::State,
     headers::{authorization::Bearer, Authorization},
-    routing::post,
+    routing::{delete, post},
     Form, Json, Router, TypedHeader,
 };
 use base64::prelude::*;
+use http::StatusCode;
 use josekit::util::random_bytes;
 use tower_http::trace::TraceLayer;
 
@@ -80,6 +81,7 @@ pub async fn create_issuance_router<A: AttributeService>(
     let issuance_router = Router::new()
         .route("/token", post(token))
         .route("/batch_credential", post(batch_credential))
+        .route("/batch_credential", delete(refuse_issuance))
         .layer(TraceLayer::new_for_http())
         .layer(axum::middleware::from_fn(log_request_response))
         .with_state(application_state);
@@ -155,4 +157,21 @@ async fn batch_credential<A: AttributeService, K: KeyRing>(
     state.issuer.sessions.write(&next.into_enum()).await.unwrap();
 
     response.map(Json)
+}
+
+async fn refuse_issuance<A: AttributeService, K: KeyRing>(
+    State(state): State<Arc<ApplicationState<A, K>>>,
+    TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
+) -> Result<StatusCode, Error> {
+    let token = authorization_header.token().to_string().into();
+    let session = state.issuer.sessions.get(&token).await.unwrap().unwrap(); // TODO
+    let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
+
+    let next = session.transition(Done {
+        session_result: SessionResult::Cancelled,
+    });
+
+    state.issuer.sessions.write(&next.into_enum()).await.unwrap();
+
+    Ok(StatusCode::NO_CONTENT)
 }
