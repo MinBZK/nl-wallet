@@ -95,12 +95,16 @@ private_lane :get_newest_file do |options|
   end
 end
 
-private_lane :upload_to_play_store_internal_track do |options|
+lane :upload_to_play_store_internal_track do |options|
+  app_identifier = options[:app_identifier]
+  version = options[:version]
+  key_file = options[:key_file]
+  
   upload_to_play_store(
-    package_name: options[:app_identifier],
+    package_name: app_identifier,
     track: "internal",
-    json_key: options[:key_file],
-    aab: "#{app_identifier}-#{options[:version]}-release.aab",
+    json_key: key_file,
+    aab: "#{app_identifier}-#{version}-release.aab",
     skip_upload_apk: true
   )
 end
