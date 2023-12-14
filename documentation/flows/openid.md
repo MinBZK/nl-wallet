@@ -139,17 +139,22 @@ sequenceDiagram
     AuthServer->>-OS: navigate $redirect_uri(code)
     OS->>Wallet: openWallet(code)
     activate Wallet
-    Wallet->>+WalletServer: POST /token(pre-authorized_code)
-    WalletServer->>+AttributeService: getAttributes(pre-authorized_code)
-    AttributeService->>+AuthServer: POST /token(code)
-    AuthServer->>AuthServer: lookup(code)
-    AuthServer->>-AttributeService: access_token
-    AttributeService->>+AuthServer: GET /userinfo(access_token)
-    AuthServer->>-AttributeService: claims(BSN)
-    AttributeService->>AttributeService: obtain attributes from BRP
-    AttributeService->>-WalletServer: attributes
-    WalletServer->>WalletServer: generate c_nonce, access_token
-    WalletServer->>-Wallet: access_token, c_nonce, attestation_previews
+        Wallet->>+WalletServer: POST /token(pre-authorized_code)
+        WalletServer->>+AttributeService: getAttributes(pre-authorized_code)
+        AttributeService->>+AuthServer: POST /token(code)
+        AuthServer->>AuthServer: lookup(code)
+        AuthServer->>-AttributeService: access_token
+        AttributeService->>+AuthServer: GET /userinfo(access_token)
+        AuthServer->>-AttributeService: claims(BSN)
+        AttributeService->>AttributeService: obtain attributes from BRP
+        AttributeService->>-WalletServer: attributes
+        WalletServer->>WalletServer: generate c_nonce, access_token
+        WalletServer->>-Wallet: access_token, c_nonce, attestation_previews
+        Wallet->>+User: Show attributes, ask consent
+    deactivate Wallet
+    User->>-Wallet: approve with PIN
+    activate Wallet
+        Wallet->>Wallet: create PoPs by signing nonce using Wallet Provider
     Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
     WalletServer->>-Wallet: mdocs
     deactivate Wallet
@@ -159,5 +164,35 @@ In the implementation, the AttributeService can be a trait with the following im
 - One that acts as depicted above, i.e. talking OpenID with the DigiD bridge in the case of PID issuance.
 - For generic issuance, we can make an implementation that acts as follows:
   * The issuer feeds it a bunch of to-be-issued attestations (e.g. `Vec<UnsignedMdoc>`) and receives a fresh pre-authorized token in return, which it sends to the wallet using a UL or QR;
-  * When the WalletServer calles `getAttributes(pre-authorized_code)` on the AttributeService, it looks up the attributes to be issued using the pre-authorized code and returns them.
+  * When the WalletServer calles `getAttributes(pre-authorized_code)` on the AttributeService, it looks up the attributes to be issued using the pre-authorized code and returns them. This case would look like the following diagram.
 
+```mermaid
+sequenceDiagram
+    autonumber
+
+    actor User
+    participant OS
+    participant Wallet
+    participant WalletServer
+    participant Issuer
+
+    User->>+Issuer: start issuance flow
+    Issuer->>Issuer: determine attributes to be issued
+    Issuer->>+WalletServer: createSession(attributes)
+    WalletServer->>WalletServer: generate pre-authorized_code
+    WalletServer->>-Issuer: pre-authorized_code
+    Issuer->>-OS: navigate $redirect_uri(code)
+    OS->>Wallet: openWallet(code)
+    activate Wallet
+        Wallet->>+WalletServer: POST /token(pre-authorized_code)
+        WalletServer->>WalletServer: lookup code<br/>generate c_nonce, access_token
+        WalletServer->>-Wallet: access_token, c_nonce, attestation_previews
+        Wallet->>+User: Show attributes, ask consent
+    deactivate Wallet
+    User->>-Wallet: approve with PIN
+    activate Wallet
+        Wallet->>Wallet: create PoPs by signing nonce using Wallet Provider
+    Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
+    WalletServer->>-Wallet: mdocs
+    deactivate Wallet
+```
