@@ -49,7 +49,7 @@ pub mod wallet_deps {
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },
-        pid_issuer::{HttpPidIssuerClient, PidIssuerClient},
+        pid_issuer::{HttpOpenidPidIssuerClient, HttpPidIssuerClient, OpenidPidIssuerClient, PidIssuerClient},
         storage::Storage,
     };
 }

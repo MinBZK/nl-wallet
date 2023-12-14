@@ -28,8 +28,8 @@ use nl_wallet_mdoc::{
 use wallet::{
     mock::{default_configuration, LocalConfigurationRepository, MockDigidSession},
     wallet_deps::{
-        ConfigurationRepository, DigidSession, HttpDigidSession, HttpOpenIdClient, HttpPidIssuerClient,
-        PidIssuerClient, S256PkcePair,
+        ConfigurationRepository, DigidSession, HttpDigidSession, HttpOpenIdClient, HttpOpenidPidIssuerClient,
+        OpenidPidIssuerClient, S256PkcePair,
     },
 };
 use wallet_common::trust_anchor::DerTrustAnchor;
@@ -356,9 +356,9 @@ async fn test_mock_issuance() {
     };
 
     // Exchange the authorization code for an access token and the attestation previews
-    let mut pid_issuer_client = HttpPidIssuerClient::default();
+    let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
     pid_issuer_client
-        .start_openid4vci_retrieve_pid(
+        .start_retrieve_pid(
             digid_session,
             &local_base_url(settings.public_url.port().unwrap()),
             "authorization_code_that_digid_would_pass_to_us".to_string(),
@@ -370,7 +370,7 @@ async fn test_mock_issuance() {
     let key_factory = SoftwareKeyFactory::default();
     let trust_anchor = DerTrustAnchor::from_der(issuance_ca.as_bytes().to_vec()).unwrap();
     let mdocs = pid_issuer_client
-        .accept_openid4vci_pid(
+        .accept_pid(
             &[(&trust_anchor.owned_trust_anchor).into()],
             &key_factory,
             "wallet_name".to_string(),
@@ -410,9 +410,10 @@ async fn test_pid_issuance_digid_bridge() {
 
     let authorization_code = digid_session.get_authorization_code(&redirect_url).unwrap();
 
-    let mut pid_issuer_client = HttpPidIssuerClient::default();
+    // Exchange the authorization code for an access token and the attestation previews
+    let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
     pid_issuer_client
-        .start_openid4vci_retrieve_pid(digid_session, &pid_issuance_config.pid_issuer_url, authorization_code)
+        .start_retrieve_pid(digid_session, &pid_issuance_config.pid_issuer_url, authorization_code)
         .await
         .unwrap();
 
@@ -421,7 +422,7 @@ async fn test_pid_issuance_digid_bridge() {
     let trust_anchor = DerTrustAnchor::from_der(issuance_ca.as_bytes().to_vec()).unwrap();
 
     let mdocs = pid_issuer_client
-        .accept_openid4vci_pid(
+        .accept_pid(
             &[(&trust_anchor.owned_trust_anchor).into()],
             &key_factory,
             "wallet_name".to_string(),

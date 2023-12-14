@@ -12,7 +12,7 @@ use nl_wallet_mdoc::{
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 
-pub use client::HttpPidIssuerClient;
+pub use client::{HttpOpenidPidIssuerClient, HttpPidIssuerClient};
 
 use crate::digid::DigidSession;
 
@@ -30,23 +30,30 @@ pub enum PidIssuerError {
 }
 
 #[async_trait]
-pub trait PidIssuerClient {
+pub trait OpenidPidIssuerClient {
     fn has_session(&self) -> bool;
 
-    async fn start_openid4vci_retrieve_pid<DGS: DigidSession + Send + Sync>(
+    async fn start_retrieve_pid<DGS: DigidSession + Send + Sync>(
         &mut self,
         digid_session: DGS,
         base_url: &Url,
         pre_authorized_code: String,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError>;
 
-    async fn accept_openid4vci_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
         wallet_name: String,
         audience: String,
     ) -> Result<Vec<MdocCopies>, PidIssuerError>;
+
+    async fn reject_pid(&mut self) -> Result<(), PidIssuerError>;
+}
+
+#[async_trait]
+pub trait PidIssuerClient {
+    fn has_session(&self) -> bool;
 
     async fn start_retrieve_pid(
         &mut self,

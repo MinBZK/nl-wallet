@@ -25,11 +25,15 @@ use wallet_common::generator::TimeGenerator;
 
 use crate::{digid::DigidSession, utils::reqwest::default_reqwest_client_builder};
 
-use super::{PidIssuerClient, PidIssuerError};
+use super::{OpenidPidIssuerClient, PidIssuerClient, PidIssuerError};
 
 pub struct HttpPidIssuerClient {
     http_client: reqwest::Client,
     mdoc_wallet: MdocWallet,
+}
+
+pub struct HttpOpenidPidIssuerClient {
+    http_client: reqwest::Client,
     issuance_state: Option<Openid4vciIssuanceState>,
 }
 
@@ -38,6 +42,23 @@ struct Openid4vciIssuanceState {
     c_nonce: String,
     unsigned_mdocs: Vec<UnsignedMdoc>,
     issuer_url: Url,
+}
+
+impl Default for HttpOpenidPidIssuerClient {
+    fn default() -> Self {
+        let http_client = default_reqwest_client_builder()
+            .default_headers(HeaderMap::from_iter([(
+                header::ACCEPT,
+                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
+            )]))
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        HttpOpenidPidIssuerClient {
+            http_client,
+            issuance_state: None,
+        }
+    }
 }
 
 impl HttpPidIssuerClient {
@@ -53,7 +74,6 @@ impl HttpPidIssuerClient {
         HttpPidIssuerClient {
             http_client,
             mdoc_wallet,
-            issuance_state: None,
         }
     }
 }
@@ -69,12 +89,12 @@ impl Default for HttpPidIssuerClient {
 }
 
 #[async_trait]
-impl PidIssuerClient for HttpPidIssuerClient {
+impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
     fn has_session(&self) -> bool {
-        self.mdoc_wallet.has_issuance_session()
+        self.issuance_state.is_some()
     }
 
-    async fn start_openid4vci_retrieve_pid<DGS: DigidSession + Send + Sync>(
+    async fn start_retrieve_pid<DGS: DigidSession + Send + Sync>(
         &mut self,
         digid_session: DGS,
         base_url: &Url,
@@ -82,9 +102,8 @@ impl PidIssuerClient for HttpPidIssuerClient {
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
         let token_request = digid_session.into_pre_authorized_code_request(pre_authorized_code);
 
-        let client = default_reqwest_client_builder().build().unwrap(); // TODO
-
-        let token_response: serde_json::Value = client
+        let token_response: serde_json::Value = self
+            .http_client
             .post(base_url.join("/issuance/token").unwrap()) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
             .body(serde_urlencoded::to_string(token_request).unwrap()) // TODO
@@ -110,6 +129,99 @@ impl PidIssuerClient for HttpPidIssuerClient {
         });
 
         Ok(response.attestation_previews)
+    }
+
+    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+        &mut self,
+        trust_anchors: &[TrustAnchor<'_>],
+        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        wallet_name: String,
+        audience: String,
+    ) -> Result<Vec<MdocCopies>, PidIssuerError> {
+        let issuance_state = self.issuance_state.take().expect("no issuance state");
+        let keys_count: u64 = issuance_state
+            .unsigned_mdocs
+            .iter()
+            .map(|unsigned| unsigned.copy_count)
+            .sum();
+
+        let keys_and_responses = CredentialRequestProof::new_multiple(
+            issuance_state.c_nonce.clone(),
+            wallet_name,
+            audience,
+            keys_count,
+            key_factory,
+        )
+        .await
+        .unwrap(); // TODO
+
+        let (keys, responses): (Vec<K>, Vec<CredentialRequest>) = keys_and_responses
+            .into_iter()
+            .map(|(key, response)| {
+                (
+                    key,
+                    CredentialRequest {
+                        format: openid4vc::Format::MsoMdoc,
+                        proof: response,
+                    },
+                )
+            })
+            .unzip();
+
+        let credential_requests = CredentialRequests {
+            credential_requests: responses,
+        };
+        let responses: CredentialResponses = self
+            .http_client
+            .post(issuance_state.issuer_url.join("/issuance/batch_credential").unwrap()) // TODO discover token endpoint instead
+            .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
+            .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
+            .body(serde_json::to_string(&credential_requests).unwrap()) // TODO
+            .send()
+            .await
+            .unwrap() // TODO parse as credential error response in case of 4xx or 5xx
+            .json()
+            .await
+            .unwrap();
+        let mut keys_and_responses: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
+
+        let mdocs = issuance_state
+            .unsigned_mdocs
+            .iter()
+            .map(|unsigned| MdocCopies {
+                // TODO check that the received attributes equal the previously received unsigned mdocs
+                cred_copies: keys_and_responses
+                    .drain(..unsigned.copy_count as usize)
+                    .map(|(cred_response, key)| {
+                        let issuer_signed: String = serde_json::from_value(cred_response.credential).unwrap();
+                        let issuer_signed: IssuerSigned =
+                            cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed).unwrap().as_slice()).unwrap();
+
+                        // Construct the new mdoc; this also verifies it against the trust anchors.
+                        Mdoc::new::<K>(
+                            key.identifier().to_string(),
+                            issuer_signed,
+                            &TimeGenerator,
+                            trust_anchors,
+                        )
+                        .unwrap()
+                    })
+                    .collect(),
+            })
+            .collect();
+
+        Ok(mdocs)
+    }
+
+    async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
+        todo!()
+    }
+}
+
+#[async_trait]
+impl PidIssuerClient for HttpPidIssuerClient {
+    fn has_session(&self) -> bool {
+        self.mdoc_wallet.has_issuance_session()
     }
 
     async fn start_retrieve_pid(
@@ -162,89 +274,6 @@ impl PidIssuerClient for HttpPidIssuerClient {
             .mdoc_wallet
             .finish_issuance(mdoc_trust_anchors, key_factory)
             .await?;
-
-        Ok(mdocs)
-    }
-
-    async fn accept_openid4vci_pid<'a, K: MdocEcdsaKey + Send + Sync>(
-        &mut self,
-        trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
-        wallet_name: String,
-        audience: String,
-    ) -> Result<Vec<MdocCopies>, PidIssuerError> {
-        let issuance_state = self.issuance_state.take().expect("no issuance state");
-        let keys_count: u64 = issuance_state
-            .unsigned_mdocs
-            .iter()
-            .map(|unsigned| unsigned.copy_count)
-            .sum();
-
-        let keys_and_responses = CredentialRequestProof::new_multiple(
-            issuance_state.c_nonce.clone(),
-            wallet_name,
-            audience,
-            keys_count,
-            key_factory,
-        )
-        .await
-        .unwrap(); // TODO
-
-        let (keys, responses): (Vec<K>, Vec<CredentialRequest>) = keys_and_responses
-            .into_iter()
-            .map(|(key, response)| {
-                (
-                    key,
-                    CredentialRequest {
-                        format: openid4vc::Format::MsoMdoc,
-                        proof: response,
-                    },
-                )
-            })
-            .unzip();
-
-        let client = default_reqwest_client_builder().build().unwrap(); // TODO
-
-        let credential_requests = CredentialRequests {
-            credential_requests: responses,
-        };
-        let responses: CredentialResponses = client
-            .post(issuance_state.issuer_url.join("/issuance/batch_credential").unwrap()) // TODO discover token endpoint instead
-            .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
-            .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
-            .body(serde_json::to_string(&credential_requests).unwrap()) // TODO
-            .send()
-            .await
-            .unwrap() // TODO parse as credential error response in case of 4xx or 5xx
-            .json()
-            .await
-            .unwrap();
-        let mut keys_and_responses: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
-
-        let mdocs = issuance_state
-            .unsigned_mdocs
-            .iter()
-            .map(|unsigned| MdocCopies {
-                // TODO check that the received attributes equal the previously received unsigned mdocs
-                cred_copies: keys_and_responses
-                    .drain(..unsigned.copy_count as usize)
-                    .map(|(cred_response, key)| {
-                        let issuer_signed: String = serde_json::from_value(cred_response.credential).unwrap();
-                        let issuer_signed: IssuerSigned =
-                            cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed).unwrap().as_slice()).unwrap();
-
-                        // Construct the new mdoc; this also verifies it against the trust anchors.
-                        Mdoc::new::<K>(
-                            key.identifier().to_string(),
-                            issuer_signed,
-                            &TimeGenerator,
-                            trust_anchors,
-                        )
-                        .unwrap()
-                    })
-                    .collect(),
-            })
-            .collect();
 
         Ok(mdocs)
     }
