@@ -18,7 +18,7 @@ use crate::{
 
 /// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
 /// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceRequest {
     pub version: DeviceRequestVersion,
@@ -40,8 +40,9 @@ impl DeviceRequest {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub enum DeviceRequestVersion {
+    #[default]
     #[serde(rename = "1.0")]
     V1_0,
 }
@@ -49,7 +50,7 @@ pub enum DeviceRequestVersion {
 /// Requests attributes out of an mdoc of a specified doctype to be disclosed, as part of a [`DeviceRequest`].
 /// Includes reader (RP) authentication.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DocRequest {
     pub items_request: ItemsRequestBytes,
@@ -74,7 +75,7 @@ pub type ItemsRequestBytes = TaggedBytes<ItemsRequest>;
 /// Requests attributes out of an mdoc of a specified doctype to be disclosed, as part of a [`DocRequest`] in a
 /// [`DeviceRequest`].
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ItemsRequest {
     pub doc_type: DocType,

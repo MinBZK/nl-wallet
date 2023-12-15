@@ -259,6 +259,7 @@ pub async fn get_history() -> Result<Vec<WalletEvent>> {
         .into_iter()
         .map(WalletEvent::try_from)
         .collect::<Result<Vec<_>, CertificateError>>()?;
+    let history = history.into_iter().flatten().collect();
     Ok(history)
 }
 
@@ -271,6 +272,14 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
         .into_iter()
         .map(WalletEvent::try_from)
         .collect::<Result<Vec<_>, CertificateError>>()?;
+    let history = history
+        .into_iter()
+        .flatten()
+        .filter(|e| match e {
+            WalletEvent::Disclosure { .. } => true,
+            WalletEvent::Issuance { card, .. } => card.doc_type == doc_type,
+        })
+        .collect();
     Ok(history)
 }
 

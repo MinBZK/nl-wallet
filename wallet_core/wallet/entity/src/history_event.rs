@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
+use crate::{history_doc_type, history_event_doc_type};
+
 #[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
 pub enum EventType {
@@ -22,13 +24,12 @@ pub enum EventStatus {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "event_log")]
+#[sea_orm(table_name = "history_event")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     #[sea_orm(column_name = "type")]
     pub event_type: EventType,
-    pub doc_type: String,
     pub timestamp: DateTime<Utc>,
     pub remote_party_certificate: Vec<u8>,
     pub status: EventStatus,
@@ -40,3 +41,13 @@ pub struct Model {
 pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
+
+impl Related<history_doc_type::Entity> for Entity {
+    fn to() -> RelationDef {
+        history_event_doc_type::Relation::HistoryDocType.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(history_event_doc_type::Relation::HistoryEvent.def().rev())
+    }
+}

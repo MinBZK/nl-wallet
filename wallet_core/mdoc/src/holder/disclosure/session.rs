@@ -55,20 +55,20 @@ pub enum DisclosureSession<H, I> {
 
 #[derive(Debug)]
 pub struct DisclosureMissingAttributes<H> {
-    endpoint: DisclosureEndpoint<H>,
+    data: CommonDisclosureData<H>,
     missing_attributes: Vec<AttributeIdentifier>,
 }
 
 #[derive(Debug)]
 pub struct DisclosureProposal<H, I> {
     return_url: Option<Url>,
-    endpoint: DisclosureEndpoint<H>,
+    data: CommonDisclosureData<H>,
     device_key: SessionKey,
     proposed_documents: Vec<ProposedDocument<I>>,
 }
 
 #[derive(Debug)]
-struct DisclosureEndpoint<H> {
+struct CommonDisclosureData<H> {
     client: H,
     verifier_url: Url,
     certificate: Certificate,
@@ -128,28 +128,18 @@ where
             })
             .await?;
 
-        // Check the `SessionData` after having received it from the verifier
-        // by calling our helper method. From this point onwards, we should end
+        // Decrypt and verify the received `DeviceRequest`. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
         let (check_result, certificate, reader_registration) =
-            Self::check_verifier_session_data(session_data, transcript, &reader_key, mdoc_data_source, trust_anchors)
-                .or_else(|error| async {
-                    // Determine the category of the error, so we can report on it.
-                    let error_session_data = match error {
-                        Error::Cbor(CborError::Deserialization(_)) => SessionData::new_decoding_error(),
-                        Error::Crypto(_) => SessionData::new_encryption_error(),
-                        _ => SessionData::new_termination(),
-                    };
-
-                    // Ignore the response or any errors.
-                    let _: Result<SessionData> = client.post(verifier_url, &error_session_data).await;
-
-                    Err(error)
+            async { session_data.decrypt_and_deserialize(&reader_key) }
+                .and_then(|device_request| async move {
+                    Self::verify_device_request(&device_request, transcript, mdoc_data_source, trust_anchors).await
                 })
+                .or_else(|error| async { Self::report_error_back(error, &client, verifier_url).await })
                 .await?;
 
-        let endpoint = DisclosureEndpoint {
+        let data = CommonDisclosureData {
             client,
             verifier_url: verifier_url.clone(),
             certificate,
@@ -161,14 +151,14 @@ where
         let session = match check_result {
             VerifierSessionDataCheckResult::MissingAttributes(missing_attributes) => {
                 DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
-                    endpoint,
+                    data,
                     missing_attributes,
                 })
             }
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
                     return_url,
-                    endpoint,
+                    data,
                     device_key,
                     proposed_documents,
                 })
@@ -178,21 +168,31 @@ where
         Ok(session)
     }
 
+    async fn report_error_back<T>(error: Error, client: &H, verifier_url: &Url) -> Result<T> {
+        // Determine the category of the error, so we can report on it.
+        let error_session_data = match error {
+            Error::Cbor(CborError::Deserialization(_)) => SessionData::new_decoding_error(),
+            Error::Crypto(_) => SessionData::new_encryption_error(),
+            _ => SessionData::new_termination(),
+        };
+
+        // Ignore the response or any errors.
+        let _: Result<SessionData> = client.post(verifier_url, &error_session_data).await;
+
+        Err(error)
+    }
+
     /// Internal helper function for processing and checking the contents of a
     /// `SessionData` received from the verifier, which should contain a `DeviceRequest`.
-    async fn check_verifier_session_data<'a, S>(
-        verifier_session_data: SessionData,
+    async fn verify_device_request<'a, S>(
+        device_request: &DeviceRequest,
         session_transcript: SessionTranscript,
-        reader_key: &SessionKey,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<(VerifierSessionDataCheckResult<I>, Certificate, ReaderRegistration)>
     where
         S: MdocDataSource<MdocIdentifier = I>,
     {
-        // Decrypt the received `DeviceRequest`.
-        let device_request: DeviceRequest = verifier_session_data.decrypt_and_deserialize(reader_key)?;
-
         // A device request without any attributes is useless, so return an error.
         if !device_request.has_attributes() {
             return Err(HolderError::NoAttributesRequested.into());
@@ -240,24 +240,24 @@ where
         Ok((result, certificate, reader_registration))
     }
 
-    fn endpoint(&self) -> &DisclosureEndpoint<H> {
+    fn data(&self) -> &CommonDisclosureData<H> {
         match self {
-            DisclosureSession::MissingAttributes(session) => &session.endpoint,
-            DisclosureSession::Proposal(session) => &session.endpoint,
+            DisclosureSession::MissingAttributes(session) => &session.data,
+            DisclosureSession::Proposal(session) => &session.data,
         }
     }
 
     pub fn reader_registration(&self) -> &ReaderRegistration {
-        &self.endpoint().reader_registration
+        &self.data().reader_registration
     }
 
     pub fn verifier_certificate(&self) -> &Certificate {
-        &self.endpoint().certificate
+        &self.data().certificate
     }
 
     pub async fn terminate(self) -> Result<()> {
         // Ignore the response.
-        _ = self.endpoint().terminate().await?;
+        _ = self.data().terminate().await?;
 
         Ok(())
     }
@@ -318,7 +318,7 @@ where
         let session_data = SessionData::serialize_and_encrypt(&device_response, &self.device_key)?;
 
         // Send the `SessionData` containing the encrypted `DeviceResponse`.
-        let response = self.endpoint.send_session_data(&session_data).await?;
+        let response = self.data.send_session_data(&session_data).await?;
 
         // If we received a `SessionStatus` that is not a
         // termination in the response, return this as an error.
@@ -329,7 +329,7 @@ where
     }
 }
 
-impl<H> DisclosureEndpoint<H>
+impl<H> CommonDisclosureData<H>
 where
     H: HttpClient,
 {
@@ -1097,7 +1097,7 @@ mod tests {
 
         let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
             return_url: Url::parse(RETURN_URL).unwrap().into(),
-            endpoint: DisclosureEndpoint {
+            data: CommonDisclosureData {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: vec![].into(),
@@ -1174,7 +1174,7 @@ mod tests {
 
         // Terminating a `DisclosureSession` with missing attributes should succeed.
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
-            endpoint: DisclosureEndpoint {
+            data: CommonDisclosureData {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: certificate.clone(),
@@ -1196,7 +1196,7 @@ mod tests {
         };
 
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
-            endpoint: DisclosureEndpoint {
+            data: CommonDisclosureData {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate,

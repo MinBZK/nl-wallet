@@ -1,4 +1,3 @@
-use chrono::Utc;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
@@ -13,7 +12,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{PidIssuerClient, PidIssuerError},
-    storage::{Storage, StorageError, WalletEvent},
+    storage::{EventType, Storage, StorageError, WalletEvent},
 };
 
 use super::Wallet;
@@ -243,15 +242,17 @@ where
             })?;
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
-        let now = Utc::now();
-        let events = mdocs
-            .iter()
-            .flat_map(|mdoc| mdoc.cred_copies.first())
-            .map(|mdoc| {
-                let certificate = mdoc.issuer_certificate().unwrap(); // This should never fail after successful issuance
-                WalletEvent::issuance_success(mdoc.doc_type.to_owned(), now, certificate)
-            })
-            .collect::<Vec<_>>();
+        let event = {
+            let mdocs = mdocs
+                .iter()
+                .flat_map(|mdoc| mdoc.cred_copies.first())
+                .cloned()
+                .collect::<Vec<_>>();
+
+            // This should never fail after successful issuance
+            let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
+            WalletEvent::success(EventType::Issuance(mdocs.into()), certificate)
+        };
 
         info!("PID accepted, storing mdoc in database");
         self.storage
@@ -262,7 +263,7 @@ where
 
         self.storage
             .get_mut()
-            .log_wallet_events(events)
+            .log_wallet_event(event)
             .await
             .map_err(PidIssuanceError::HistoryStorage)?;
 
@@ -749,13 +750,11 @@ mod tests {
         assert_matches!(
             events.first().unwrap(),
             WalletEvent {
-                id: _,
-                event_type: EventType::Issuance,
-                doc_type,
-                timestamp: _,
-                remote_party_certificate: _,
+                event_type: EventType::Issuance(_),
                 status: EventStatus::Success,
-            } if doc_type == "com.example.pid");
+                ..
+            }
+        );
 
         // Test which `Document` instances we have received through the callback.
         let documents = documents.lock().unwrap();
@@ -888,6 +887,7 @@ mod tests {
         // Have the `PidIssuerClient` report a a session
         // and have the database return an error on query.
         wallet.pid_issuer.has_session = true;
+        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc().await].into()];
         wallet.storage.get_mut().has_query_error = true;
 
         // Accepting PID issuance should result in an error.
