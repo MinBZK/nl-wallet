@@ -15,7 +15,7 @@ use nl_wallet_mdoc::{
     server_state::{MemorySessionStore, SessionState, SessionStore},
 };
 use openid4vc::{
-    credential::{CredentialRequests, CredentialResponses},
+    credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     token::{TokenRequest, TokenResponseWithPreviews},
 };
 use tracing::warn;
@@ -81,8 +81,9 @@ pub async fn create_issuance_router<A: AttributeService>(
 
     let issuance_router = Router::new()
         .route("/token", post(token))
+        .route("/credential", post(credential))
         .route("/batch_credential", post(batch_credential))
-        .route("/batch_credential", delete(refuse_issuance))
+        .route("/reject", delete(reject_issuance))
         .layer(TraceLayer::new_for_http())
         .layer(axum::middleware::from_fn(log_request_response))
         .with_state(application_state);
@@ -103,6 +104,24 @@ where
     Ok(Json(response))
 }
 
+async fn credential<A, K, S>(
+    State(state): State<Arc<ApplicationState<A, K, S>>>,
+    TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
+    Json(credential_request): Json<CredentialRequest>,
+) -> Result<Json<CredentialResponse>, Error>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
+    let access_token = authorization_header.token();
+    let response = state
+        .issuer
+        .process_credential(access_token, credential_request)
+        .await?;
+    Ok(Json(response))
+}
+
 async fn batch_credential<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
@@ -113,15 +132,15 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    let token = authorization_header.token();
+    let access_token = authorization_header.token();
     let response = state
         .issuer
-        .process_batch_credential(token, credential_requests)
+        .process_batch_credential(access_token, credential_requests)
         .await?;
     Ok(Json(response))
 }
 
-async fn refuse_issuance<A, K, S>(
+async fn reject_issuance<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
 ) -> Result<StatusCode, Error>
@@ -132,7 +151,7 @@ where
 {
     state
         .issuer
-        .process_refuse_issuance(authorization_header.token())
+        .process_reject_issuance(authorization_header.token())
         .await
         .unwrap();
     Ok(StatusCode::NO_CONTENT)

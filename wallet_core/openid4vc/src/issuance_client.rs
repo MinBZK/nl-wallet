@@ -22,10 +22,10 @@ use crate::{
 
 pub struct IssuanceClient {
     http_client: reqwest::Client,
-    session_state: Option<Openid4vciIssuanceState>,
+    session_state: Option<IssuanceState>,
 }
 
-struct Openid4vciIssuanceState {
+struct IssuanceState {
     access_token: String,
     c_nonce: String,
     unsigned_mdocs: Vec<UnsignedMdoc>,
@@ -68,7 +68,7 @@ impl IssuanceClient {
 
         let response: TokenResponseWithPreviews = serde_json::from_value(token_response).unwrap(); // TODO
 
-        self.session_state = Some(Openid4vciIssuanceState {
+        self.session_state = Some(IssuanceState {
             access_token: response.token_response.access_token,
             c_nonce: response.token_response.c_nonce.expect("missing c_nonce"), // TODO
             unsigned_mdocs: response.attestation_previews.clone(),
@@ -167,7 +167,7 @@ impl IssuanceClient {
         let issuance_state = self.session_state.take().expect("no issuance state");
 
         self.http_client
-            .delete(issuance_state.issuer_url.join("/issuance/batch_credential").unwrap()) // TODO discover token endpoint instead
+            .delete(issuance_state.issuer_url.join("/issuance/reject").unwrap()) // TODO discover token endpoint instead
             .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
             .send()
             .await

@@ -158,6 +158,30 @@ where
         response
     }
 
+    pub async fn process_credential(
+        &self,
+        access_token: &str,
+        credential_request: CredentialRequest,
+    ) -> Result<CredentialResponse, Error> {
+        let code = code_from_access_token(access_token);
+        let session = self.sessions.get(&code.into()).await.unwrap().unwrap(); // TODO
+        let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
+
+        let (response, next) = session
+            .process_credential(
+                credential_request,
+                access_token.to_string(),
+                &self.private_keys,
+                &self.credential_issuer_identifier,
+                &self.wallet_client_ids,
+            )
+            .await;
+
+        self.sessions.write(&next.into_enum()).await.unwrap();
+
+        response
+    }
+
     pub async fn process_batch_credential(
         &self,
         access_token: &str,
@@ -168,7 +192,7 @@ where
         let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
 
         let (response, next) = session
-            .process_response(
+            .process_batch_credential(
                 credential_requests,
                 access_token.to_string(),
                 &self.private_keys,
@@ -182,10 +206,15 @@ where
         response
     }
 
-    pub async fn process_refuse_issuance(&self, access_token: &str) -> Result<(), Error> {
+    pub async fn process_reject_issuance(&self, access_token: &str) -> Result<(), Error> {
         let code = code_from_access_token(access_token);
         let session = self.sessions.get(&code.into()).await.unwrap().unwrap(); // TODO
         let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
+
+        // Check authorization of the request
+        if session.session_data().access_token != access_token {
+            panic!("wrong access token")
+        }
 
         let next = session.transition(Done {
             session_result: SessionResult::Cancelled,
@@ -279,10 +308,53 @@ impl Session<WaitingForResponse> {
         })
     }
 
-    pub async fn process_response(
+    pub async fn process_credential(
+        self,
+        credential_request: CredentialRequest,
+        access_token: String,
+        private_keys: &impl KeyRing,
+        credential_issuer_identifier: &Url,
+        accepted_wallet_client_ids: &[impl ToString],
+    ) -> (Result<CredentialResponse, Error>, Session<Done>) {
+        let session_data = self.session_data();
+
+        // Check authorization of the request
+        if session_data.access_token != access_token {
+            panic!("wrong access token")
+        }
+
+        // In the pre-authorized code flow, the credential request offers no way for the wallet to refer to a specific
+        // offered credential that it wants to accept. So for now, we simply proceed only if there is a single
+        // attestation to be issued so that there can be no ambiguity.
+        if session_data.unsigned_mdocs.len() != 1 {
+            panic!("too many credentials to be issued, use /batch_credential instead")
+        }
+
+        let credential_response = verify_pop_and_sign_attestation(
+            private_keys,
+            session_data.c_nonce.clone(),
+            &credential_request,
+            session_data.unsigned_mdocs.first().unwrap(),
+            credential_issuer_identifier,
+            accepted_wallet_client_ids,
+        )
+        .await
+        .unwrap();
+
+        // Transition the session to done. This means the client won't be able to reuse its access token in
+        // more requests to this endpoint. (The OpenID4VCI and OAuth specs allow reuse of access tokens, but don't
+        // forbid that a server doesn't allow that.)
+        let next = self.transition(Done {
+            session_result: SessionResult::Done,
+        });
+
+        (Ok(credential_response), next)
+    }
+
+    pub async fn process_batch_credential(
         self,
         credential_requests: CredentialRequests,
-        authorization_header: String,
+        access_token: String,
         private_keys: &impl KeyRing,
         credential_issuer_identifier: &Url,
         accepted_wallet_client_ids: &[impl ToString],
@@ -290,7 +362,7 @@ impl Session<WaitingForResponse> {
         let session_data = self.session_data();
 
         // Check authorization of the request
-        if session_data.access_token != authorization_header {
+        if session_data.access_token != access_token {
             panic!("wrong access token")
         }
 
