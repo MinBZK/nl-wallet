@@ -185,7 +185,7 @@ mod tests {
         },
     };
 
-    use super::{super::tests::*, *};
+    use super::{super::test_utils::*, *};
 
     #[test]
     fn test_proposed_document_from_stored_mdoc() {

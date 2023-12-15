@@ -277,7 +277,7 @@ mod tests {
         iso::device_retrieval::DeviceRequestVersion,
     };
 
-    use super::{super::tests::*, *};
+    use super::{super::test_utils::*, *};
 
     #[tokio::test]
     async fn test_device_request_verify() {

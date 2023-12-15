@@ -368,7 +368,7 @@ mod tests {
         },
     };
 
-    use super::{super::tests::*, *};
+    use super::{super::test_utils::*, *};
 
     fn test_payload_session_data_error(payload: &[u8], expected_session_status: SessionStatus) {
         let session_data: SessionData =
