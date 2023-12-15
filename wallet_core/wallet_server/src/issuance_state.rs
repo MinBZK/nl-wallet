@@ -1,20 +1,25 @@
+use async_trait::async_trait;
 use base64::prelude::*;
 use chrono::Utc;
 use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc, server_keys::KeyRing, server_state::SessionState, utils::serialization::cbor_serialize,
+    basic_sa_ext::UnsignedMdoc,
+    server_keys::KeyRing,
+    server_state::{SessionState, SessionStore},
+    utils::serialization::cbor_serialize,
     IssuerSigned,
 };
 use openid4vc::{
     credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
-    token::{TokenRequest, TokenResponse, TokenResponseWithPreviews, TokenType},
+    token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType},
 };
 use url::Url;
 use wallet_common::utils::random_string;
 
-use crate::{issuer::AttributeService, verifier::Error};
+#[derive(Debug, thiserror::Error)]
+pub enum Error {} // TODO proper error handling
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
@@ -57,6 +62,139 @@ pub enum SessionResult {
 #[derive(Debug)]
 pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
+}
+
+#[async_trait]
+pub trait AttributeService: Send + Sync + 'static {
+    type Error: std::fmt::Debug;
+    type Settings;
+
+    async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
+
+    async fn attributes(
+        &self,
+        session: &SessionState<Created>,
+        token_request: TokenRequest,
+    ) -> Result<Vec<UnsignedMdoc>, Self::Error>;
+}
+
+pub struct Issuer<A, K, S> {
+    sessions: S,
+    attr_service: A,
+    private_keys: K,
+    credential_issuer_identifier: Url,
+    wallet_client_ids: Vec<String>,
+}
+
+impl<A, K, S> Issuer<A, K, S>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
+    pub fn new(
+        sessions: S,
+        attr_service: A,
+        private_keys: K,
+        credential_issuer_identifier: Url,
+        wallet_client_ids: Vec<String>,
+    ) -> Self {
+        Self {
+            sessions,
+            attr_service,
+            private_keys,
+            credential_issuer_identifier,
+            wallet_client_ids,
+        }
+    }
+
+    pub async fn process_token_request(&self, token_request: TokenRequest) -> Result<TokenResponseWithPreviews, Error> {
+        if !matches!(
+            token_request.grant_type,
+            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code: _ }
+        ) {
+            panic!("token request must be of type pre-authorized_code");
+        }
+
+        let code = token_request.code();
+
+        // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
+        // attribute service.
+        let session =
+            self.sessions
+                .get(&code.clone().into())
+                .await
+                .unwrap()
+                .unwrap_or(SessionState::<IssuanceData>::new(
+                    code.clone().into(),
+                    IssuanceData::Created(Created {
+                        code,
+                        unsigned_mdocs: None,
+                    }),
+                ));
+        let session = Session::<Created>::from_enum(session).unwrap();
+
+        // TODO remove session from store, if present, so that the code is now consumed
+
+        let result = session.process_token_request(token_request, &self.attr_service).await;
+
+        let (response, next) = match result {
+            Ok((response, next)) => (Ok(response), next.into_enum()),
+            Err((err, next)) => (Err(err), next.into_enum()),
+        };
+
+        self.sessions.write(&next).await.unwrap();
+
+        response
+    }
+
+    pub async fn process_batch_credential(
+        &self,
+        access_token: &str,
+        credential_requests: CredentialRequests,
+    ) -> Result<CredentialResponses, Error> {
+        let code = code_from_access_token(access_token);
+        let session = self.sessions.get(&code.into()).await.unwrap().unwrap(); // TODO
+        let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
+
+        let (response, next) = session
+            .process_response(
+                credential_requests,
+                access_token.to_string(),
+                &self.private_keys,
+                &self.credential_issuer_identifier,
+                &self.wallet_client_ids,
+            )
+            .await;
+
+        self.sessions.write(&next.into_enum()).await.unwrap();
+
+        response
+    }
+
+    pub async fn process_refuse_issuance(&self, access_token: &str) -> Result<(), Error> {
+        let code = code_from_access_token(access_token);
+        let session = self.sessions.get(&code.into()).await.unwrap().unwrap(); // TODO
+        let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
+
+        let next = session.transition(Done {
+            session_result: SessionResult::Cancelled,
+        });
+
+        self.sessions.write(&next.into_enum()).await.unwrap();
+
+        Ok(())
+    }
+}
+
+/// The access token should be a random string with the authorization code appended to it, so that we can
+/// use the code suffix to retrieve the session from the session store. If what the user provided in the
+/// authorization header is shorter than that, we can just use unwrap_or_default(), since no session will
+/// ever be index by the empty string.
+fn code_from_access_token(access_token: &str) -> String {
+    access_token.get(32..).unwrap_or_default().to_string()
 }
 
 impl Session<Created> {

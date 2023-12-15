@@ -1,65 +1,48 @@
 use std::{collections::HashMap, sync::Arc};
 
-use async_trait::async_trait;
 use axum::{
     extract::State,
     headers::{authorization::Bearer, Authorization},
+    response::{IntoResponse, Response},
     routing::{delete, post},
     Form, Json, Router, TypedHeader,
 };
-use base64::prelude::*;
 use http::StatusCode;
 use tower_http::trace::TraceLayer;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
     server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
 };
 use openid4vc::{
     credential::{CredentialRequests, CredentialResponses},
-    token::{TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
+    token::{TokenRequest, TokenResponseWithPreviews},
 };
-use url::Url;
-use wallet_common::utils::sha256;
+use tracing::warn;
 
-use crate::{log_requests::log_request_response, settings::Settings, verifier::Error};
+use crate::{issuance_state, log_requests::log_request_response, settings::Settings};
 
 use crate::issuance_state::*;
 
-struct Issuer<A, K> {
-    sessions: MemorySessionStore<IssuanceData>,
-    attr_service: A,
-    private_keys: K,
-    credential_issuer_identifier: Url,
-    wallet_client_ids: Vec<String>,
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    ProcessSession(#[from] issuance_state::Error),
 }
 
-struct ApplicationState<A, K> {
-    issuer: Issuer<A, K>,
+// TODO proper error handling
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        warn!("{}", self);
+        match self {
+            Error::ProcessSession(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+        .into_response()
+    }
 }
 
-#[async_trait]
-pub trait AttributeService: Send + Sync + 'static {
-    type Error: std::fmt::Debug;
-    type Settings;
-
-    async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>
-    where
-        Self: Sized;
-
-    async fn attributes(
-        &self,
-        session: &SessionState<Created>,
-        token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Self::Error>;
-}
-
-/// A deterministic function to convert an authorization code to an access token.
-/// This allows us to store sessions in the session store by their access code while being able to look it up
-/// using either the code or the access token.
-pub fn code_to_access_token(code_hash_key: &[u8], code: &str) -> String {
-    BASE64_URL_SAFE_NO_PAD.encode(sha256([code_hash_key, code.as_bytes()].concat().as_slice()))
+struct ApplicationState<A, K, S> {
+    issuer: Issuer<A, K, S>,
 }
 
 pub struct IssuerKeyRing(pub HashMap<String, PrivateKey>);
@@ -75,12 +58,10 @@ pub async fn create_issuance_router<A: AttributeService>(
     attr_service: A,
 ) -> anyhow::Result<Router> {
     let application_state = Arc::new(ApplicationState {
-        issuer: Issuer {
-            sessions: MemorySessionStore::new(),
+        issuer: Issuer::new(
+            MemorySessionStore::new(),
             attr_service,
-            credential_issuer_identifier: settings.issuer.credential_issuer_identifier.clone(),
-            wallet_client_ids: settings.issuer.wallet_client_ids.clone().into_iter().collect(),
-            private_keys: IssuerKeyRing(
+            IssuerKeyRing(
                 settings
                     .issuer
                     .private_keys
@@ -93,7 +74,9 @@ pub async fn create_issuance_router<A: AttributeService>(
                     })
                     .collect::<anyhow::Result<HashMap<_, _>>>()?,
             ),
-        },
+            settings.issuer.credential_issuer_identifier.clone(),
+            settings.issuer.wallet_client_ids.clone().into_iter().collect(),
+        ),
     });
 
     let issuance_router = Router::new()
@@ -107,96 +90,50 @@ pub async fn create_issuance_router<A: AttributeService>(
     Ok(issuance_router)
 }
 
-async fn token<A: AttributeService, K: KeyRing>(
-    State(state): State<Arc<ApplicationState<A, K>>>,
+async fn token<A, K, S>(
+    State(state): State<Arc<ApplicationState<A, K, S>>>,
     Form(token_request): Form<TokenRequest>,
-) -> Result<Json<TokenResponseWithPreviews>, Error> {
-    if !matches!(
-        token_request.grant_type,
-        TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code: _ }
-    ) {
-        panic!("token request must be of type pre-authorized_code");
-    }
-
-    let code = token_request.code();
-
-    // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
-    // attribute service.
-    let session = state
-        .issuer
-        .sessions
-        .get(&code.clone().into())
-        .await
-        .unwrap()
-        .unwrap_or(SessionState::<IssuanceData>::new(
-            code.clone().into(),
-            IssuanceData::Created(Created {
-                code,
-                unsigned_mdocs: None,
-            }),
-        ));
-    let session = Session::<Created>::from_enum(session).unwrap();
-
-    // TODO remove session from store, if present, so that the code is now consumed
-
-    let result = session
-        .process_token_request(token_request, &state.issuer.attr_service)
-        .await;
-
-    let (response, next) = match result {
-        Ok((response, next)) => (Ok(Json(response)), next.into_enum()),
-        Err((err, next)) => (Err(err), next.into_enum()),
-    };
-
-    state.issuer.sessions.write(&next).await.unwrap();
-
-    response
+) -> Result<Json<TokenResponseWithPreviews>, Error>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
+    let response = state.issuer.process_token_request(token_request).await?;
+    Ok(Json(response))
 }
 
-async fn batch_credential<A: AttributeService, K: KeyRing>(
-    State(state): State<Arc<ApplicationState<A, K>>>,
+async fn batch_credential<A, K, S>(
+    State(state): State<Arc<ApplicationState<A, K, S>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
     Json(credential_requests): Json<CredentialRequests>,
-) -> Result<Json<CredentialResponses>, Error> {
+) -> Result<Json<CredentialResponses>, Error>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
     let token = authorization_header.token();
-
-    // The access token should be a random string with the authorization code appended to it, so that we can
-    // use the code suffix to retrieve the session from the session store. If what the user provided in the
-    // authorization header is shorter than that, we can just use unwrap_or_default(), since no session will
-    // ever be index by the empty string.
-    let code = token.get(32..).unwrap_or_default().to_string().into();
-
-    let session = state.issuer.sessions.get(&code).await.unwrap().unwrap(); // TODO
-    let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
-
-    let (response, next) = session
-        .process_response(
-            credential_requests,
-            token.to_string(),
-            &state.issuer.private_keys,
-            &state.issuer.credential_issuer_identifier,
-            &state.issuer.wallet_client_ids,
-        )
-        .await;
-
-    state.issuer.sessions.write(&next.into_enum()).await.unwrap();
-
-    response.map(Json)
+    let response = state
+        .issuer
+        .process_batch_credential(token, credential_requests)
+        .await?;
+    Ok(Json(response))
 }
 
-async fn refuse_issuance<A: AttributeService, K: KeyRing>(
-    State(state): State<Arc<ApplicationState<A, K>>>,
+async fn refuse_issuance<A, K, S>(
+    State(state): State<Arc<ApplicationState<A, K, S>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
-) -> Result<StatusCode, Error> {
-    let token = authorization_header.token().to_string().into();
-    let session = state.issuer.sessions.get(&token).await.unwrap().unwrap(); // TODO
-    let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
-
-    let next = session.transition(Done {
-        session_result: SessionResult::Cancelled,
-    });
-
-    state.issuer.sessions.write(&next.into_enum()).await.unwrap();
-
+) -> Result<StatusCode, Error>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
+    state
+        .issuer
+        .process_refuse_issuance(authorization_header.token())
+        .await
+        .unwrap();
     Ok(StatusCode::NO_CONTENT)
 }

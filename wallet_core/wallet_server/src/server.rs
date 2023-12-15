@@ -11,8 +11,7 @@ use nl_wallet_mdoc::{
 };
 
 use crate::{
-    issuer::{create_issuance_router, AttributeService},
-    settings::Settings,
+    issuance_state::AttributeService, issuer::create_issuance_router, settings::Settings,
     verifier::create_verifier_routers,
 };
 

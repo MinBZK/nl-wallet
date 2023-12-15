@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use wallet_server::{
-    issuer::AttributeService, pid::attributes::PidAttributeService, server, settings::Settings,
+    issuance_state::AttributeService, pid::attributes::PidAttributeService, server, settings::Settings,
     store::new_session_store,
 };
 

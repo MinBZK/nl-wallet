@@ -34,8 +34,7 @@ use wallet::{
 };
 use wallet_common::{config::wallet_config::PidIssuanceConfiguration, trust_anchor::DerTrustAnchor};
 use wallet_server::{
-    issuance_state::Created,
-    issuer::AttributeService,
+    issuance_state::{AttributeService, Created},
     pid::{
         attributes::{AttributesLookup, PidAttributeService},
         mock::{MockAttributesLookup, MockBsnLookup},
