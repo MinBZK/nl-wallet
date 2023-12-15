@@ -1,12 +1,9 @@
-use core::fmt::Debug;
 use std::{ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
 use ciborium::value::Value;
 use indexmap::IndexMap;
-use once_cell::sync::Lazy;
-use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
@@ -16,63 +13,18 @@ use nl_wallet_mdoc::{
     holder::*,
     iso::*,
     issuer::*,
-    mock::{self, IsoCertTimeGenerator, SoftwareKeyFactory},
+    mock::{self, DebugCollapseBts, SoftwareKeyFactory},
     server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
     utils::{
         serialization::{cbor_deserialize, cbor_serialize},
-        x509::{Certificate, CertificateUsage},
+        x509::Certificate,
     },
-    verifier::DisclosedAttributes,
     Error,
 };
 
-const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
-const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
-const EXAMPLE_ATTR_NAME: &str = "family_name";
-static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_string())); // Lazy since can't have a const String
-
 type MockWallet = Wallet<MockHttpClient<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>>;
 type MockServer = Issuer<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>;
-
-/// Verify the example disclosure from the standard.
-#[tokio::test]
-async fn verify_iso_example_disclosure() {
-    let device_response = DeviceResponse::example();
-    println!("DeviceResponse: {:#?} ", DebugCollapseBts(&device_response));
-
-    // Examine the first attribute in the device response
-    let document = device_response.documents.as_ref().unwrap()[0].clone();
-    assert_eq!(document.doc_type, EXAMPLE_DOC_TYPE);
-    let namespaces = document.issuer_signed.name_spaces.as_ref().unwrap();
-    let attrs = namespaces.get(EXAMPLE_NAMESPACE).unwrap();
-    let issuer_signed_attr = attrs.0.first().unwrap().0.clone();
-    assert_eq!(issuer_signed_attr.element_identifier, EXAMPLE_ATTR_NAME);
-    assert_eq!(issuer_signed_attr.element_value, *EXAMPLE_ATTR_VALUE);
-    println!("issuer_signed_attr: {:#?}", DebugCollapseBts(&issuer_signed_attr));
-
-    // Do the verification
-    let eph_reader_key = Examples::ephemeral_reader_key();
-    let trust_anchors = Examples::iaca_trust_anchors();
-    let disclosed_attrs = device_response
-        .verify(
-            Some(&eph_reader_key),
-            &DeviceAuthenticationBytes::example().0 .0.session_transcript, // To be signed by device key found in MSO
-            &IsoCertTimeGenerator,
-            trust_anchors,
-        )
-        .unwrap();
-    println!("DisclosedAttributes: {:#?}", DebugCollapseBts(&disclosed_attrs));
-
-    // The first disclosed attribute is the same as we saw earlier in the DeviceResponse
-    assert_disclosure_contains(
-        &disclosed_attrs,
-        EXAMPLE_DOC_TYPE,
-        EXAMPLE_NAMESPACE,
-        EXAMPLE_ATTR_NAME,
-        &EXAMPLE_ATTR_VALUE,
-    );
-}
 
 /// Construct the example mdoc from the standard and disclose attributes
 /// by running the example device request from the standard against it.
@@ -86,7 +38,7 @@ async fn do_and_verify_iso_example_disclosure() {
     let requested_attrs = items_request.name_spaces.get(EXAMPLE_NAMESPACE).unwrap();
     let intent_to_retain = requested_attrs.get(EXAMPLE_ATTR_NAME).unwrap();
     assert!(intent_to_retain);
-    println!("DeviceRequest: {:#?}", DebugCollapseBts(&device_request));
+    println!("DeviceRequest: {:#?}", DebugCollapseBts::from(&device_request));
 
     // Verify reader's request
     let reader_trust_anchors = Examples::reader_trust_anchors();
@@ -185,50 +137,6 @@ async fn do_and_verify_iso_example_disclosure() {
 //         &EXAMPLE_ATTR_VALUE,
 //     );
 // }
-
-/// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
-/// and that the first attribute in that namespace has the specified name and value.
-fn assert_disclosure_contains(
-    disclosed_attrs: &DisclosedAttributes,
-    doctype: &str,
-    namespace: &str,
-    name: &str,
-    value: &DataElementValue,
-) {
-    let disclosed_attr = disclosed_attrs
-        .get(doctype)
-        .unwrap()
-        .get(namespace)
-        .unwrap()
-        .first()
-        .unwrap();
-    assert_eq!(disclosed_attr.name, *name);
-    assert_eq!(disclosed_attr.value, *value);
-}
-
-/// Verify that the static device key example from the spec is the public key in the MSO.
-#[test]
-fn iso_examples_consistency() {
-    let static_device_key = Examples::static_device_key();
-
-    let device_key = &DeviceResponse::example().documents.unwrap()[0]
-        .issuer_signed
-        .issuer_auth
-        .verify_against_trust_anchors(
-            CertificateUsage::Mdl,
-            &IsoCertTimeGenerator,
-            Examples::iaca_trust_anchors(),
-        )
-        .unwrap()
-        .0
-        .device_key_info
-        .device_key;
-
-    assert_eq!(
-        *static_device_key.verifying_key(),
-        VerifyingKey::try_from(device_key).unwrap(),
-    );
-}
 
 const ISSUANCE_DOC_TYPE: &str = "example_doctype";
 const ISSUANCE_NAME_SPACE: &str = "example_namespace";
@@ -413,74 +321,3 @@ async fn issuance_using_consent(
 //         &Value::Text(attr.1.to_string()),
 //     );
 // }
-
-/// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
-/// but with byte sequences (which can take a lot of vertical space) replaced with
-/// a CBOR diagnostic-like notation.
-///
-/// Example output:
-///
-/// ```text
-/// Test {
-///     a_string: "Hello, World",
-///     an_int: 42,
-///     a_byte_sequence: h'00012AFF',
-/// }
-/// ```
-///
-/// Example code:
-/// ```rust
-/// #[derive(Debug)]
-/// struct Test {
-///     a_string: String,
-///     an_int: u64,
-///     a_byte_sequence: Vec<u8>,
-/// }
-///
-/// let test = Test {
-///     a_string: "Hello, World".to_string(),
-///     an_int: 42,
-///     a_byte_sequence: vec![0, 1, 42, 255],
-/// };
-///
-/// println!("{:#?}", DebugCollapseBts(test));
-/// ```
-struct DebugCollapseBts<T>(T);
-
-impl<T> Debug for DebugCollapseBts<T>
-where
-    T: Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Match numbers within square brackets, e.g.: [1, 2, 3]
-        let debugstr = format!("{:#?}", self.0);
-        let debugstr_collapsed = regex::Regex::new(r"\[\s*(\d,?\s*)+\]").unwrap().replace_all(
-            debugstr.as_str(),
-            |caps: &regex::Captures| {
-                let no_whitespace = remove_whitespace(&caps[0]);
-                let trimmed = no_whitespace[1..no_whitespace.len() - 2].to_string(); // Remove square brackets
-                if trimmed.split(',').any(|r| r.parse::<u8>().is_err()) {
-                    // If any of the numbers don't fit in a u8, just return the numbers without whitespace
-                    no_whitespace
-                } else {
-                    format!(
-                        "h'{}'", // CBOR diagnostic-like notation
-                        hex::encode(
-                            trimmed
-                                .split(',')
-                                .map(|i| i.parse::<u8>().unwrap())
-                                .collect::<Vec<u8>>(),
-                        )
-                        .to_uppercase()
-                    )
-                }
-            },
-        );
-
-        write!(f, "{}", debugstr_collapsed)
-    }
-}
-
-fn remove_whitespace(s: &str) -> String {
-    s.chars().filter(|c| !c.is_whitespace()).collect()
-}

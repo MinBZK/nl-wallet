@@ -353,6 +353,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     use crate::{
+        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
         identifiers::AttributeIdentifierHolder,
         iso::{
             disclosure::{DeviceAuth, SessionStatus},
@@ -592,12 +593,12 @@ mod tests {
             serialization::cbor_deserialize(payloads.first().unwrap().as_slice())
                 .expect("Sent message is not DeviceEngagement");
 
-        let expected_missing_attributes: Vec<AttributeIdentifier> =
-            vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"
-                .parse()
-                .unwrap()];
+        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
 
-        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
     }
 
     #[tokio::test]
@@ -637,18 +638,18 @@ mod tests {
             serialization::cbor_deserialize(payloads.first().unwrap().as_slice())
                 .expect("Sent message is not DeviceEngagement");
 
-        let expected_missing_attributes: Vec<AttributeIdentifier> = vec![
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
-        ]
-        .into_iter()
-        .map(|attribute| attribute.parse().unwrap())
-        .collect();
+        let expected_missing_attributes = example_identifiers_from_attributes([
+            "family_name",
+            "issue_date",
+            "expiry_date",
+            "document_number",
+            "driving_privileges",
+        ]);
 
-        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
     }
 
     #[tokio::test]

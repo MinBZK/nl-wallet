@@ -271,7 +271,11 @@ mod tests {
 
     use wallet_common::{generator::TimeGenerator, trust_anchor::DerTrustAnchor};
 
-    use crate::{errors::Error, iso::device_retrieval::DeviceRequestVersion};
+    use crate::{
+        errors::Error,
+        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+        iso::device_retrieval::DeviceRequestVersion,
+    };
 
     use super::{super::tests::*, *};
 
@@ -472,13 +476,11 @@ mod tests {
             .await
             .expect("Could not match device request with stored documents");
 
-        let expected_missing_attributes = vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"
-            .parse()
-            .unwrap()];
+        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
         assert_matches!(
             match_result,
             DeviceRequestMatch::MissingAttributes(missing_attributes)
-                if missing_attributes == expected_missing_attributes
+                if missing_attributes.iter().eq(expected_missing_attributes.iter())
         );
     }
 

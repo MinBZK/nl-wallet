@@ -13,7 +13,7 @@ use wallet_common::trust_anchor::DerTrustAnchor;
 
 use crate::{
     errors::{Error, Result},
-    examples::Examples,
+    examples::{Examples, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
     holder::{HttpClient, Mdoc},
     identifiers::AttributeIdentifier,
     iso::{
@@ -45,8 +45,6 @@ pub const SESSION_URL: &str = "http://example.com/disclosure";
 pub const RETURN_URL: &str = "http://example.com/return";
 
 // Describe what is in `DeviceResponse::example()`.
-pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
-pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
 pub const EXAMPLE_ATTRIBUTES: [&str; 5] = [
     "family_name",
     "issue_date",
@@ -192,6 +190,21 @@ pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
 /// The `AttributeIdentifier`s contained in the example `Mdoc`.
 pub fn example_mdoc_attribute_identifiers() -> IndexSet<AttributeIdentifier> {
     create_example_mdoc().issuer_signed_attribute_identifiers()
+}
+
+/// Create an ordered set of `AttributeIdentifier`s within the
+/// example doc type and name space for a given set of attributes.
+pub fn example_identifiers_from_attributes(
+    attributes: impl IntoIterator<Item = impl Into<String>>,
+) -> IndexSet<AttributeIdentifier> {
+    attributes
+        .into_iter()
+        .map(|attribute| AttributeIdentifier {
+            doc_type: EXAMPLE_DOC_TYPE.to_string(),
+            namespace: EXAMPLE_NAMESPACE.to_string(),
+            attribute: attribute.into(),
+        })
+        .collect()
 }
 
 /// An implementor of `HttpClient` that either returns `SessionData`

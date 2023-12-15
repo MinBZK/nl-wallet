@@ -864,8 +864,12 @@ mod tests {
     use wallet_common::trust_anchor::DerTrustAnchor;
 
     use crate::{
-        examples::Example,
+        examples::{
+            Example, Examples, IsoCertTimeGenerator, EXAMPLE_ATTR_NAME, EXAMPLE_ATTR_VALUE, EXAMPLE_DOC_TYPE,
+            EXAMPLE_NAMESPACE,
+        },
         identifiers::AttributeIdentifierHolder,
+        mock::{self, DebugCollapseBts},
         server_keys::{PrivateKey, SingleKeyRing},
         server_state::MemorySessionStore,
         utils::{
@@ -878,8 +882,8 @@ mod tests {
             ValidityRequirement::{AllowNotYetValid, Valid},
             VerificationError, Verifier,
         },
-        DeviceEngagement, DeviceRequest, DeviceResponse, Error, ItemsRequest, SessionData, SessionStatus,
-        SessionTranscript, ValidityInfo,
+        DeviceAuthenticationBytes, DeviceEngagement, DeviceRequest, DeviceResponse, Error, ItemsRequest, SessionData,
+        SessionStatus, SessionTranscript, ValidityInfo,
     };
 
     use super::{AttributeIdentifier, ItemsRequests};
@@ -918,6 +922,45 @@ mod tests {
             Err(ValidityError::NotYetValid(_))
         ));
         validity.verify_is_valid_at(now, AllowNotYetValid).unwrap();
+    }
+
+    /// Verify the example disclosure from the standard.
+    #[test]
+    fn verify_iso_example_disclosure() {
+        let device_response = DeviceResponse::example();
+        println!("DeviceResponse: {:#?} ", DebugCollapseBts::from(&device_response));
+
+        // Examine the first attribute in the device response
+        let document = device_response.documents.as_ref().unwrap()[0].clone();
+        assert_eq!(document.doc_type, EXAMPLE_DOC_TYPE);
+        let namespaces = document.issuer_signed.name_spaces.as_ref().unwrap();
+        let attrs = namespaces.get(EXAMPLE_NAMESPACE).unwrap();
+        let issuer_signed_attr = attrs.0.first().unwrap().0.clone();
+        assert_eq!(issuer_signed_attr.element_identifier, EXAMPLE_ATTR_NAME);
+        assert_eq!(issuer_signed_attr.element_value, *EXAMPLE_ATTR_VALUE);
+        println!("issuer_signed_attr: {:#?}", DebugCollapseBts::from(&issuer_signed_attr));
+
+        // Do the verification
+        let eph_reader_key = Examples::ephemeral_reader_key();
+        let trust_anchors = Examples::iaca_trust_anchors();
+        let disclosed_attrs = device_response
+            .verify(
+                Some(&eph_reader_key),
+                &DeviceAuthenticationBytes::example().0 .0.session_transcript, // To be signed by device key found in MSO
+                &IsoCertTimeGenerator,
+                trust_anchors,
+            )
+            .unwrap();
+        println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
+
+        // The first disclosed attribute is the same as we saw earlier in the DeviceResponse
+        mock::assert_disclosure_contains(
+            &disclosed_attrs,
+            EXAMPLE_DOC_TYPE,
+            EXAMPLE_NAMESPACE,
+            EXAMPLE_ATTR_NAME,
+            &EXAMPLE_ATTR_VALUE,
+        );
     }
 
     const RP_CA_CN: &str = "ca.rp.example.com";
@@ -1012,9 +1055,6 @@ mod tests {
 
         assert_eq!(ended_session_response.status.unwrap(), SessionStatus::Termination);
     }
-
-    const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
-    const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
 
     fn example_items_requests() -> ItemsRequests {
         vec![ItemsRequest {
