@@ -1,8 +1,11 @@
+use std::{sync::Arc, time::Duration};
+
 use async_trait::async_trait;
 use base64::prelude::*;
 use chrono::Utc;
 use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinHandle;
 
 use crate::{
     credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
@@ -12,7 +15,7 @@ use crate::{
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_keys::KeyRing,
-    server_state::{SessionState, SessionStore},
+    server_state::{SessionState, SessionStore, CLEANUP_INTERVAL_SECONDS},
     utils::serialization::cbor_serialize,
     IssuerSigned,
 };
@@ -24,7 +27,6 @@ pub enum Error {} // TODO proper error handling
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    pub code: String,
     pub unsigned_mdocs: Option<Vec<UnsignedMdoc>>,
 }
 
@@ -82,11 +84,19 @@ pub trait AttributeService: Send + Sync + 'static {
 }
 
 pub struct Issuer<A, K, S> {
-    sessions: S,
+    sessions: Arc<S>,
     attr_service: A,
     private_keys: K,
     credential_issuer_identifier: Url,
     wallet_client_ids: Vec<String>,
+    cleanup_task: JoinHandle<()>,
+}
+
+impl<A, K, S> Drop for Issuer<A, K, S> {
+    fn drop(&mut self) {
+        // Stop the task at the next .await
+        self.cleanup_task.abort();
+    }
 }
 
 impl<A, K, S> Issuer<A, K, S>
@@ -102,12 +112,14 @@ where
         credential_issuer_identifier: Url,
         wallet_client_ids: Vec<String>,
     ) -> Self {
+        let sessions = Arc::new(sessions);
         Self {
-            sessions,
+            sessions: sessions.clone(),
             attr_service,
             private_keys,
             credential_issuer_identifier,
             wallet_client_ids,
+            cleanup_task: sessions.start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
         }
     }
 
@@ -130,14 +142,9 @@ where
                 .unwrap()
                 .unwrap_or(SessionState::<IssuanceData>::new(
                     code.clone().into(),
-                    IssuanceData::Created(Created {
-                        code,
-                        unsigned_mdocs: None,
-                    }),
+                    IssuanceData::Created(Created { unsigned_mdocs: None }),
                 ));
         let session = Session::<Created>::from_enum(session).unwrap();
-
-        // TODO remove session from store, if present, so that the code is now consumed
 
         let result = session.process_token_request(token_request, &self.attr_service).await;
 
@@ -360,6 +367,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     accepted_wallet_client_ids: &[impl ToString],
 ) -> Result<CredentialResponse, Error> {
     assert!(matches!(cred_req.format, Format::MsoMdoc));
+
     let pubkey = cred_req
         .proof
         .verify(c_nonce, accepted_wallet_client_ids, credential_issuer_identifier)
