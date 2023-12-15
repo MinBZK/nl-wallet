@@ -1,17 +1,16 @@
-use std::collections::HashSet;
-
 use futures::future::try_join_all;
-use jsonwebtoken::{Algorithm, Header, Validation};
+use jsonwebtoken::{Algorithm, Header};
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey};
-use p256::ecdsa::VerifyingKey;
+
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use wallet_common::keys::SecureEcdsaKey;
 
 use crate::{
-    jwk_from_p256, jwk_to_p256,
-    jwt::{EcdsaDecodingKey, Jwt, StandardJwtClaims},
-    Error, Format, Result,
+    jwk_from_p256,
+    jwt::{Jwt, StandardJwtClaims},
+    Error, ErrorStatusCode, Format, Result,
 };
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
@@ -58,7 +57,40 @@ pub struct CredentialRequestProofJwtPayload {
     pub nonce: String,
 }
 
-const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
+pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
+
+/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum CredentialErrorType {
+    InvalidCredentialRequest,
+    UnsupportedCredentialType,
+    UnsupportedCredentialFormat,
+    InvalidProof,
+    InvalidEncryptionParameters,
+    ServerError,
+
+    // From https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
+    InvalidRequest,
+    InvalidToken,
+    InsufficientScope,
+}
+
+impl ErrorStatusCode for CredentialErrorType {
+    fn status_code(&self) -> reqwest::StatusCode {
+        match self {
+            CredentialErrorType::InvalidCredentialRequest => StatusCode::BAD_REQUEST,
+            CredentialErrorType::UnsupportedCredentialType => StatusCode::BAD_REQUEST,
+            CredentialErrorType::UnsupportedCredentialFormat => StatusCode::BAD_REQUEST,
+            CredentialErrorType::InvalidProof => StatusCode::BAD_REQUEST,
+            CredentialErrorType::InvalidEncryptionParameters => StatusCode::BAD_REQUEST,
+            CredentialErrorType::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            CredentialErrorType::InvalidRequest => StatusCode::BAD_REQUEST,
+            CredentialErrorType::InvalidToken => StatusCode::UNAUTHORIZED,
+            CredentialErrorType::InsufficientScope => StatusCode::FORBIDDEN,
+        }
+    }
+}
 
 impl CredentialRequestProof {
     pub async fn new_multiple<'a, K: MdocEcdsaKey + Sync>(
@@ -114,40 +146,5 @@ impl CredentialRequestProof {
         let jwt = Jwt::sign(&payload, &header, private_key).await?;
 
         Ok(CredentialRequestProof::Jwt { jwt })
-    }
-
-    pub fn verify(
-        &self,
-        nonce: String,
-        accepted_wallet_client_ids: &[impl ToString],
-        credential_issuer_identifier: &Url,
-    ) -> Result<VerifyingKey> {
-        let jwt = match self {
-            CredentialRequestProof::Jwt { jwt } => jwt,
-        };
-        let header = jsonwebtoken::decode_header(&jwt.0)?;
-        let verifying_key = jwk_to_p256(&header.jwk.ok_or(Error::MissingJwk)?)?;
-
-        let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims = HashSet::from(["iss".to_string(), "aud".to_string()]);
-        validation_options.set_issuer(accepted_wallet_client_ids);
-        validation_options.set_audience(&[credential_issuer_identifier]);
-        let token_data = jsonwebtoken::decode::<CredentialRequestProofJwtPayload>(
-            &jwt.0,
-            &EcdsaDecodingKey::from(verifying_key).0,
-            &validation_options,
-        )?;
-
-        if token_data.header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
-            return Err(Error::UnsupportedJwtAlgorithm {
-                expected: OPENID4VCI_VC_POP_JWT_TYPE.to_string(),
-                found: token_data.header.typ.unwrap_or_default(),
-            });
-        }
-        if token_data.claims.nonce != nonce {
-            return Err(Error::IncorrectNonce);
-        }
-
-        Ok(verifying_key)
     }
 }

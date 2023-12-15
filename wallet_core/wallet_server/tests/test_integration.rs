@@ -170,7 +170,7 @@ struct MockAttributeService;
 
 #[async_trait]
 impl AttributeService for MockAttributeService {
-    type Error = anyhow::Error;
+    type Error = wallet_server::verifier::Error; // arbitrary type that implements the required trait bounds
     type Settings = ();
 
     async fn new(_settings: &Self::Settings) -> Result<Self, Self::Error> {

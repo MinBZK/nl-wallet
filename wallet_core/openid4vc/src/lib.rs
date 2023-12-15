@@ -6,7 +6,10 @@ use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
 };
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+use url::Url;
 
 pub mod authorization;
 pub mod credential;
@@ -40,14 +43,6 @@ pub enum Format {
 pub enum Error {
     #[error("unsupported JWT algorithm: expected {expected}, found {found}")]
     UnsupportedJwtAlgorithm { expected: String, found: String },
-    #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
-    UnsupportedJwkEcCurve { found: EllipticCurve },
-    #[error("unsupported JWK algorithm")]
-    UnsupportedJwkAlgorithm,
-    #[error("base64 decoding failed: {0}")]
-    Base64Error(#[from] base64::DecodeError),
-    #[error("failed to construct verifying key: {0}")]
-    VerifyingKeyConstruction(#[from] signature::Error),
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("JWT signing failed: {0}")]
@@ -64,32 +59,68 @@ pub enum Error {
     MissingJwk,
     #[error("incorrect JWK public key")]
     IncorrectJwkPublicKey,
-    #[error("incorrect nonce")]
-    IncorrectNonce,
+    #[error(transparent)]
+    JwkConversion(#[from] JwkConversionError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk> {
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[skip_serializing_none]
+pub struct ErrorResponse<T> {
+    pub error: T,
+    pub error_description: Option<String>,
+    pub error_uri: Option<Url>,
+}
+
+pub trait ErrorStatusCode {
+    fn status_code(&self) -> StatusCode;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum JwkConversionError {
+    #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
+    UnsupportedJwkEcCurve { found: EllipticCurve },
+    #[error("unsupported JWK algorithm")]
+    UnsupportedJwkAlgorithm,
+    #[error("base64 decoding failed: {0}")]
+    Base64Error(#[from] base64::DecodeError),
+    #[error("failed to construct verifying key: {0}")]
+    VerifyingKeyConstruction(#[from] signature::Error),
+    #[error("missing coordinate in conversion to P256 public key")]
+    MissingCoordinate,
+}
+
+pub fn jwk_from_p256(value: &VerifyingKey) -> std::result::Result<Jwk, JwkConversionError> {
     let jwk = Jwk {
         common: Default::default(),
         algorithm: jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
             key_type: jwk::EllipticCurveKeyType::EC,
             curve: jwk::EllipticCurve::P256,
-            x: BASE64_URL_SAFE_NO_PAD.encode(value.to_encoded_point(false).x().unwrap()),
-            y: BASE64_URL_SAFE_NO_PAD.encode(value.to_encoded_point(false).y().unwrap()),
+            x: BASE64_URL_SAFE_NO_PAD.encode(
+                value
+                    .to_encoded_point(false)
+                    .x()
+                    .ok_or(JwkConversionError::MissingCoordinate)?,
+            ),
+            y: BASE64_URL_SAFE_NO_PAD.encode(
+                value
+                    .to_encoded_point(false)
+                    .y()
+                    .ok_or(JwkConversionError::MissingCoordinate)?,
+            ),
         }),
     };
     Ok(jwk)
 }
 
-pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey> {
+pub fn jwk_to_p256(value: &Jwk) -> std::result::Result<VerifyingKey, JwkConversionError> {
     let ec_params = match value.algorithm {
         jwk::AlgorithmParameters::EllipticCurve(ref params) => Ok(params),
-        _ => Err(Error::UnsupportedJwkAlgorithm),
+        _ => Err(JwkConversionError::UnsupportedJwkAlgorithm),
     }?;
     if !matches!(ec_params.curve, EllipticCurve::P256) {
-        return Err(Error::UnsupportedJwkEcCurve {
+        return Err(JwkConversionError::UnsupportedJwkEcCurve {
             found: ec_params.curve.clone(),
         });
     }

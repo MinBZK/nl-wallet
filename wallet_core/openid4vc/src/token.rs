@@ -1,9 +1,10 @@
 use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use crate::authorization::AuthorizationDetails;
+use crate::{authorization::AuthorizationDetails, ErrorStatusCode};
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-token-request
 /// and https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3.
@@ -75,15 +76,8 @@ pub enum TokenType {
     Bearer,
 }
 
-#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TokenErrorResponse {
-    pub error: TokenErrorType,
-    pub error_description: Option<String>,
-    pub error_uri: Option<Url>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
 pub enum TokenErrorType {
     InvalidRequest,
     InvalidClient,
@@ -91,8 +85,25 @@ pub enum TokenErrorType {
     UnauthorizedClient,
     UnsupportedGrantType,
     InvalidScope,
+    ServerError,
     AuthorizationPending, // OpenID4VCI-specific error type
     SlowDown,             // OpenID4VCI-specific error type
+}
+
+impl ErrorStatusCode for TokenErrorType {
+    fn status_code(&self) -> reqwest::StatusCode {
+        match self {
+            TokenErrorType::InvalidRequest => StatusCode::BAD_REQUEST,
+            TokenErrorType::InvalidClient => StatusCode::UNAUTHORIZED,
+            TokenErrorType::InvalidGrant => StatusCode::BAD_REQUEST,
+            TokenErrorType::UnauthorizedClient => StatusCode::BAD_REQUEST,
+            TokenErrorType::UnsupportedGrantType => StatusCode::BAD_REQUEST,
+            TokenErrorType::InvalidScope => StatusCode::BAD_REQUEST,
+            TokenErrorType::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            TokenErrorType::AuthorizationPending => StatusCode::BAD_REQUEST,
+            TokenErrorType::SlowDown => StatusCode::BAD_REQUEST,
+        }
+    }
 }
 
 #[cfg(test)]

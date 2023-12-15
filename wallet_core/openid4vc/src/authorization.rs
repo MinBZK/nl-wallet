@@ -58,13 +58,6 @@ pub struct AuthorizationResponse {
     pub state: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AuthorizationErrorResponse {
-    pub error: AuthorizationErrorType,
-    pub error_description: Option<String>,
-    pub error_uri: Option<Url>,
-}
-
 /// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]

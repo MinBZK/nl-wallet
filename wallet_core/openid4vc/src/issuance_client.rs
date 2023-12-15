@@ -16,7 +16,7 @@ use wallet_common::generator::TimeGenerator;
 
 use crate::{
     credential::{CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponses},
-    token::{TokenErrorResponse, TokenRequest, TokenResponseWithPreviews},
+    token::{TokenRequest, TokenResponseWithPreviews},
     Error, Format, NL_WALLET_CLIENT_ID,
 };
 
@@ -49,33 +49,26 @@ impl IssuanceClient {
         base_url: &Url,
         token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Error> {
-        let token_response: serde_json::Value = self
+        let token_response: TokenResponseWithPreviews = self
             .http_client
             .post(base_url.join("/issuance/token").unwrap()) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
             .body(serde_urlencoded::to_string(token_request).unwrap()) // TODO
             .send()
             .await
-            .unwrap()
+            .unwrap() // TODO parse token error response in case of error
             .json()
             .await
             .unwrap();
 
-        let error: Result<TokenErrorResponse, _> = serde_json::from_value(token_response.clone());
-        if let Ok(error) = error {
-            panic!("{:?}", error); // TODO
-        }
-
-        let response: TokenResponseWithPreviews = serde_json::from_value(token_response).unwrap(); // TODO
-
         self.session_state = Some(IssuanceState {
-            access_token: response.token_response.access_token,
-            c_nonce: response.token_response.c_nonce.expect("missing c_nonce"), // TODO
-            unsigned_mdocs: response.attestation_previews.clone(),
+            access_token: token_response.token_response.access_token,
+            c_nonce: token_response.token_response.c_nonce.expect("missing c_nonce"), // TODO
+            unsigned_mdocs: token_response.attestation_previews.clone(),
             issuer_url: base_url.clone(),
         });
 
-        Ok(response.attestation_previews)
+        Ok(token_response.attestation_previews)
     }
 
     pub async fn finish_issuance<'a, K: MdocEcdsaKey + Send + Sync>(

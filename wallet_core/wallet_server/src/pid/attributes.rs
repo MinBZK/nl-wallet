@@ -2,9 +2,10 @@ use async_trait::async_trait;
 use futures::TryFutureExt;
 use mime::APPLICATION_WWW_FORM_URLENCODED;
 use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
+use openid4vc::ErrorResponse;
 use reqwest::{header::CONTENT_TYPE, Client};
 
-use openid4vc::token::{TokenErrorResponse, TokenRequest, TokenRequestGrantType, TokenResponse};
+use openid4vc::token::{TokenErrorType, TokenRequest, TokenRequestGrantType, TokenResponse};
 
 use openid4vc::issuer::{AttributeService, Created};
 
@@ -20,7 +21,7 @@ pub enum Error {
     #[error(transparent)]
     TransportError(#[from] reqwest::Error),
     #[error("error requesting token: {0:?}")]
-    TokenRequest(TokenErrorResponse),
+    TokenRequest(ErrorResponse<TokenErrorType>),
     #[error(transparent)]
     Digid(#[from] digid::Error),
     #[error(transparent)]
@@ -76,7 +77,7 @@ impl AttributeService for PidAttributeService {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<TokenErrorResponse>().await?;
+                    let error = response.json::<ErrorResponse<TokenErrorType>>().await?;
                     Err(Error::TokenRequest(error))
                 } else {
                     let text = response.json().await?;
