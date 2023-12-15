@@ -22,7 +22,7 @@ use nl_wallet_mdoc::{
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
-    event_log::{EventStatus, EventType, WalletEvent},
+    event_log::{DocTypeMap, EventStatus, EventType, WalletEvent},
     key_file::KeyFileError,
 };
 
@@ -86,7 +86,7 @@ pub trait Storage {
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>>;
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>>;
 
-    async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()>;
+    async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()>;
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>>;
 }

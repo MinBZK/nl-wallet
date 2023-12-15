@@ -65,9 +65,10 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use chrono::Utc;
 
+    use chrono::{TimeZone, Utc};
     use nl_wallet_mdoc::utils::x509::Certificate;
+    use uuid::Uuid;
 
     use crate::{storage::Storage, wallet::tests::WalletWithMocks, EventStatus, EventType, WalletEvent};
 
@@ -119,38 +120,51 @@ mod tests {
         let history = wallet.get_history().await.unwrap();
         assert_eq!(history, vec![]);
 
-        let some_doc_type = "some-doc-type".to_owned();
+        let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
+        let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
+
+        let some_doc_type = "some-doc-type";
         let some_doc_type_event = WalletEvent::new(
-            EventType::Issuance,
-            some_doc_type.clone(),
-            Utc::now(),
+            Uuid::new_v4(),
+            EventType::issuance_from_str(vec![some_doc_type]),
+            timestamp_older,
             certificate.clone(),
             EventStatus::Success,
         );
-        let another_doc_type = "another-doc-type".to_owned();
+        wallet
+            .storage
+            .get_mut()
+            .log_wallet_event(some_doc_type_event.clone())
+            .await
+            .unwrap();
+
+        let another_doc_type = "another-doc-type";
         let another_doc_type_event = WalletEvent::new(
-            EventType::Issuance,
-            another_doc_type.clone(),
-            Utc::now(),
+            Uuid::new_v4(),
+            EventType::issuance_from_str(vec![another_doc_type]),
+            timestamp_newer,
             certificate,
             EventStatus::Success,
         );
-        let events = vec![some_doc_type_event.clone(), another_doc_type_event.clone()];
-        // log 2 history events
-        wallet.storage.get_mut().log_wallet_events(events).await.unwrap();
+        wallet
+            .storage
+            .get_mut()
+            .log_wallet_event(another_doc_type_event.clone())
+            .await
+            .unwrap();
 
-        // get history should return both events
+        // get history should return both events, in correct order, newest first
         let history = wallet.get_history().await.unwrap();
         assert_eq!(
             history,
-            vec![some_doc_type_event.clone(), another_doc_type_event.clone()]
+            vec![another_doc_type_event.clone(), some_doc_type_event.clone()]
         );
 
         // get history for card should return single event
-        let history = wallet.get_history_for_card(&some_doc_type).await.unwrap();
+        let history = wallet.get_history_for_card(some_doc_type).await.unwrap();
         assert_eq!(history, vec![some_doc_type_event]);
 
-        let history = wallet.get_history_for_card(&another_doc_type).await.unwrap();
+        let history = wallet.get_history_for_card(another_doc_type).await.unwrap();
         assert_eq!(history, vec![another_doc_type_event]);
     }
 }

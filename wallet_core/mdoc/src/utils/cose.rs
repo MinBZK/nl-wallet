@@ -99,7 +99,7 @@ impl Cose for CoseMac0 {
 }
 
 /// Wrapper around [`Cose`] implementors adding typesafe verification and CBOR parsing functions.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MdocCose<C, T>(pub C, PhantomData<T>);
 
 impl<C, T> MdocCose<C, T>

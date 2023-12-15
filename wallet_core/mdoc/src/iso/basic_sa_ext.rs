@@ -72,7 +72,7 @@ pub struct UnsignedMdoc {
 ///
 /// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
 /// `digestID`.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Entry {
     pub name: DataElementIdentifier,
     pub value: DataElementValue,

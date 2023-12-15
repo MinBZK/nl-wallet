@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 
 use async_trait::async_trait;
-use chrono::Utc;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
 use url::Url;
@@ -24,8 +22,8 @@ use crate::{
     },
     document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{Storage, StorageError, StoredMdocCopy},
-    WalletEvent,
+    storage::{DocTypeMap, Storage, StorageError, StoredMdocCopy},
+    EventType, WalletEvent,
 };
 
 use super::Wallet;
@@ -173,28 +171,16 @@ where
         let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
 
         // Prepare history events from session before terminating session
-        let certificate = session.rp_certificate();
-        let now = Utc::now();
-        let events = match session.session_state() {
-            MdocDisclosureSessionState::MissingAttributes(missing_attributes) => missing_attributes
-                .missing_attributes()
-                .iter()
-                .map(|a| &a.doc_type)
-                .unique()
-                .map(|doc_type| {
-                    WalletEvent::disclosure_error(
-                        doc_type.to_owned(),
-                        now,
-                        certificate.clone(),
-                        String::from("Wallet does not contain all requested attributes"),
-                    )
-                })
-                .collect(),
-            MdocDisclosureSessionState::Proposal(proposal) => proposal
-                .proposed_attributes()
-                .keys()
-                .map(|doc_type| WalletEvent::disclosure_cancelled(doc_type.to_owned(), now, certificate.clone()))
-                .collect(),
+        let event = match session.session_state() {
+            MdocDisclosureSessionState::MissingAttributes(_) => WalletEvent::error(
+                EventType::Disclosure(None),
+                session.rp_certificate().clone(),
+                String::from("Wallet does not contain all requested attributes"),
+            ),
+            MdocDisclosureSessionState::Proposal(proposal) => WalletEvent::cancelled(
+                EventType::Disclosure(Some(DocTypeMap(proposal.proposed_attributes()))),
+                session.rp_certificate().clone(),
+            ),
         };
 
         session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
@@ -202,7 +188,7 @@ where
         // Store history events
         self.storage
             .get_mut()
-            .log_wallet_events(events)
+            .log_wallet_event(event)
             .await
             .map_err(DisclosureError::HistoryStorage)?;
 
@@ -284,16 +270,13 @@ where
             })?;
 
         // Save data for disclosure in event log.
-        let certificate = session.rp_certificate();
-        let now = Utc::now();
-        let events = session_proposal
-            .proposed_attributes()
-            .keys()
-            .map(|doc_type| WalletEvent::disclosure_success(doc_type.to_owned(), now, certificate.clone()))
-            .collect();
+        let event = WalletEvent::success(
+            EventType::Disclosure(Some(DocTypeMap(session_proposal.proposed_attributes()))),
+            session.rp_certificate().clone(),
+        );
         self.storage
             .get_mut()
-            .log_wallet_events(events)
+            .log_wallet_event(event)
             .await
             .map_err(DisclosureError::HistoryStorage)?;
 
@@ -357,6 +340,7 @@ mod tests {
     use std::sync::{atomic::Ordering, Arc, Mutex};
 
     use assert_matches::assert_matches;
+    use itertools::Itertools;
     use mockall::predicate::*;
     use serial_test::serial;
 
@@ -699,11 +683,10 @@ mod tests {
         assert_matches!(
             &events[0],
             WalletEvent {
-                event_type: EventType::Disclosure,
-                doc_type,
+                event_type: EventType::Disclosure(_),
                 status: EventStatus::Cancelled,
                 ..
-            } if doc_type == "com.example.pid"
+            }
         );
 
         // Cancelling disclosure should not cause mdoc copy usage counts to be incremented.
@@ -760,11 +743,10 @@ mod tests {
         assert_matches!(
             &events[0],
             WalletEvent {
-                event_type: EventType::Disclosure,
-                doc_type,
+                event_type: EventType::Disclosure(_),
                 status,
                 ..
-            } if doc_type == "com.example.pid" && *status == EventStatus::Error("Wallet does not contain all requested attributes".to_owned())
+            } if *status == EventStatus::Error("Wallet does not contain all requested attributes".to_owned())
         );
     }
 
@@ -872,11 +854,10 @@ mod tests {
         assert_matches!(
             &events[0],
             WalletEvent {
-                event_type: EventType::Disclosure,
-                doc_type,
+                event_type: EventType::Disclosure(_),
                 status: EventStatus::Success,
                 ..
-            } if doc_type == "com.example.pid"
+            }
         );
 
         // Test that the usage count got incremented for the proposed mdoc copy id.

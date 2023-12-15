@@ -80,6 +80,12 @@ impl<'a> TryInto<X509Certificate<'a>> for &'a Certificate {
     }
 }
 
+impl From<Certificate> for Vec<u8> {
+    fn from(source: Certificate) -> Vec<u8> {
+        source.0.to_vec()
+    }
+}
+
 #[cfg(feature = "mock")]
 impl<'a> TryInto<wallet_common::trust_anchor::DerTrustAnchor> for &'a Certificate {
     type Error = CertificateError;

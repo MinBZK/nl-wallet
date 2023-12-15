@@ -160,33 +160,37 @@ impl Storage for MockStorage {
         Ok(mdocs)
     }
 
-    async fn log_wallet_events(&mut self, events: Vec<WalletEvent>) -> StorageResult<()> {
-        for event in events.into_iter() {
-            self.event_log.push(event);
-        }
+    async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
+        self.event_log.push(event);
         Ok(())
     }
 
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
-        Ok(self.event_log.to_vec())
+        let mut events = self.event_log.to_vec();
+        events.sort_by(|e1, e2| e2.timestamp.cmp(&e1.timestamp));
+        Ok(events)
     }
 
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
-        let events = self
+        let mut events = self
             .event_log
-            .iter()
-            .filter(|e| e.doc_type == doc_type)
-            .cloned()
-            .collect();
+            .clone()
+            .into_iter()
+            .filter(|e| e.event_type.doc_types().contains(doc_type))
+            .collect::<Vec<_>>();
+        events.sort_by(|e1, e2| e2.timestamp.cmp(&e1.timestamp));
         Ok(events)
     }
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use serde::{Deserialize, Serialize};
 
-    use crate::storage::{KeyedData, Storage};
+    use crate::storage::{
+        database_storage::tests::{test_history_by_doc_type, test_history_ordering},
+        KeyedData, Storage,
+    };
 
     use super::MockStorage;
 
@@ -224,5 +228,19 @@ mod tests {
 
         let fetched = storage.fetch_data::<Data>().await.unwrap().unwrap();
         assert_eq!(updated, fetched);
+    }
+
+    #[tokio::test]
+    async fn history_events_ordering() {
+        let mut storage = MockStorage::default();
+        storage.open().await.unwrap();
+        test_history_ordering(&mut storage).await;
+    }
+
+    #[tokio::test]
+    async fn history_events_work() {
+        let mut storage = MockStorage::default();
+        storage.open().await.unwrap();
+        test_history_by_doc_type(&mut storage).await;
     }
 }

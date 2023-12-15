@@ -26,6 +26,71 @@ pub enum WalletEvent {
     },
 }
 
+impl WalletEvent {
+    pub fn try_from(source: wallet::WalletEvent) -> Result<Vec<WalletEvent>, CertificateError> {
+        let result = match source.event_type {
+            wallet::EventType::Issuance(mdocs) => {
+                mdocs
+                    .0
+                    .into_iter()
+                    .map(|(doc_type, _)| {
+                        WalletEvent::Issuance {
+                            date_time: source.timestamp.to_rfc3339(),
+                            // TODO How to properly detect PID issuer
+                            issuer: pid_issuer_organization(),
+                            // TODO extract from WalletEvent after event_log table stores mdoc
+                            card: Card {
+                                persistence: CardPersistence::InMemory,
+                                doc_type,
+                                attributes: vec![CardAttribute {
+                                    key: "sample".to_string(),
+                                    labels: vec![LocalizedString {
+                                        language: "en".to_string(),
+                                        value: "Sample label".to_string(),
+                                    }],
+                                    value: CardValue::String {
+                                        value: "Sample value".to_string(),
+                                    },
+                                }],
+                            },
+                        }
+                    })
+                    .collect()
+            }
+            wallet::EventType::Disclosure(_) => {
+                let certificate_type = CertificateType::from_certificate(&source.remote_party_certificate)?;
+                let reader_registration = match certificate_type {
+                    CertificateType::ReaderAuth(Some(reader_registration)) => Some(*reader_registration),
+                    _ => None,
+                }
+                .unwrap();
+                vec![WalletEvent::Disclosure {
+                    date_time: source.timestamp.to_rfc3339(),
+                    request_policy: RequestPolicy::from(&reader_registration),
+                    relying_party: Organization::from(reader_registration.organization),
+                    purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
+                    // TODO extract from WalletEvent after event_log table stores mdoc
+                    requested_cards: vec![RequestedCard {
+                        doc_type: "com.example.pid".to_string(),
+                        attributes: vec![CardAttribute {
+                            key: "sample".to_string(),
+                            labels: vec![LocalizedString {
+                                language: "en".to_string(),
+                                value: "Sample label".to_string(),
+                            }],
+                            value: CardValue::String {
+                                value: "Sample value".to_string(),
+                            },
+                        }],
+                    }],
+                    status: source.status.into(),
+                }]
+            }
+        };
+        Ok(result)
+    }
+}
+
 pub enum DisclosureStatus {
     Success,
     Cancelled,
@@ -70,101 +135,5 @@ fn pid_issuer_organization() -> Organization {
         }]),
         department: None,
         country_code: Some("nl".to_owned()),
-    }
-}
-
-/// Mock issuer
-// TODO remove when issuer organization if can be retrieved from event_log
-fn mock_issuer_organization() -> Organization {
-    Organization {
-        legal_name: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "RP Legal Name".to_owned(),
-        }],
-        display_name: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "RP Display Name".to_owned(),
-        }],
-        description: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "RP Description".to_owned(),
-        }],
-        category: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "RP Category".to_owned(),
-        }],
-        image: None,
-        web_url: Some("https://example.org".to_owned()),
-        kvk: Some("1234 5678".to_owned()),
-        city: Some(vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "RP City".to_owned(),
-        }]),
-        department: None,
-        country_code: Some("nl".to_owned()),
-    }
-}
-
-impl TryFrom<wallet::WalletEvent> for WalletEvent {
-    type Error = CertificateError;
-    fn try_from(source: wallet::WalletEvent) -> Result<Self, Self::Error> {
-        let result = match source.event_type {
-            wallet::EventType::Issuance => WalletEvent::Issuance {
-                date_time: source.timestamp.to_rfc3339(),
-                // TODO How to properly detect PID issuer
-                issuer: match source.doc_type.as_str() {
-                    "com.example.pid" | "com.example.address" => pid_issuer_organization(),
-                    _ => {
-                        // TODO How to retrieve organization information for issuance
-                        mock_issuer_organization()
-                    }
-                },
-                // TODO extract from WalletEvent after event_log table stores mdoc
-                card: Card {
-                    persistence: CardPersistence::InMemory,
-                    doc_type: source.doc_type.to_owned(),
-                    attributes: vec![CardAttribute {
-                        key: "sample".to_string(),
-                        labels: vec![LocalizedString {
-                            language: "en".to_string(),
-                            value: "Sample label".to_string(),
-                        }],
-                        value: CardValue::String {
-                            value: "Sample value".to_string(),
-                        },
-                    }],
-                },
-            },
-            wallet::EventType::Disclosure => {
-                let certificate_type = CertificateType::from_certificate(&source.remote_party_certificate)?;
-                let reader_registration = match certificate_type {
-                    CertificateType::ReaderAuth(Some(reader_registration)) => Some(*reader_registration),
-                    _ => None,
-                }
-                .unwrap();
-                WalletEvent::Disclosure {
-                    date_time: source.timestamp.to_rfc3339(),
-                    request_policy: RequestPolicy::from(&reader_registration),
-                    relying_party: Organization::from(reader_registration.organization),
-                    purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
-                    // TODO extract from WalletEvent after event_log table stores mdoc
-                    requested_cards: vec![RequestedCard {
-                        doc_type: "com.example.pid".to_string(),
-                        attributes: vec![CardAttribute {
-                            key: "sample".to_string(),
-                            labels: vec![LocalizedString {
-                                language: "en".to_string(),
-                                value: "Sample label".to_string(),
-                            }],
-                            value: CardValue::String {
-                                value: "Sample value".to_string(),
-                            },
-                        }],
-                    }],
-                    status: source.status.into(),
-                }
-            }
-        };
-        Ok(result)
     }
 }
