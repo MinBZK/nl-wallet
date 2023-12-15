@@ -28,20 +28,20 @@ use nl_wallet_mdoc::{
 use wallet::{
     mock::{default_configuration, LocalConfigurationRepository, MockDigidSession},
     wallet_deps::{
-        ConfigurationRepository, DigidSession, HttpDigidSession, HttpOpenIdClient, HttpOpenidPidIssuerClient,
-        OpenidPidIssuerClient, S256PkcePair,
+        DigidSession, HttpDigidSession, HttpOpenIdClient, HttpOpenidPidIssuerClient, OpenidPidIssuerClient,
+        S256PkcePair,
     },
 };
-use wallet_common::trust_anchor::DerTrustAnchor;
+use wallet_common::{config::wallet_config::PidIssuanceConfiguration, trust_anchor::DerTrustAnchor};
 use wallet_server::{
     issuance_state::Created,
     issuer::AttributeService,
     pid::{
-        attributes::AttributesLookup,
+        attributes::{AttributesLookup, PidAttributeService},
         mock::{MockAttributesLookup, MockBsnLookup},
     },
     server,
-    settings::{Digid, KeyPair, Server, Settings},
+    settings::{Digid, Issuer, KeyPair, Server, Settings},
     store::new_session_store,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
@@ -101,7 +101,12 @@ fn wallet_server_settings() -> (Settings, Certificate) {
     .unwrap();
 
     // Pick up the private key for decrypting the BSN from the mock DigiD issuer from the .gitignore'd settings file
-    let bsn_privkey = Settings::new().unwrap().digid.bsn_privkey;
+    let bsn_privkey = Settings::new().unwrap().issuer.digid.bsn_privkey.clone();
+
+    let keypair = KeyPair {
+        private_key: issuer_privkey.to_pkcs8_der().unwrap().to_bytes().to_vec().into(),
+        certificate: issuer_cert.as_bytes().to_vec().into(),
+    };
 
     let mut settings = Settings {
         wallet_server: Server {
@@ -120,14 +125,16 @@ fn wallet_server_settings() -> (Settings, Certificate) {
         store_url: "postgres://postgres@127.0.0.1:5432/wallet_server".parse().unwrap(),
         #[cfg(not(feature = "postgres"))]
         store_url: "memory://".parse().unwrap(),
-        digid: Digid {
-            issuer_url: "https://localhost:8006/".parse().unwrap(),
-            client_id: "37692967-0a74-4e91-85ec-a4250e7ad5e8".to_string(),
-            bsn_privkey,
-        },
-        issuer_key: KeyPair {
-            private_key: issuer_privkey.to_pkcs8_der().unwrap().to_bytes().to_vec().into(),
-            certificate: issuer_cert.as_bytes().to_vec().into(),
+        issuer: Issuer {
+            digid: Digid {
+                issuer_url: "https://localhost:8006/".parse().unwrap(),
+                client_id: "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9".to_string(),
+                bsn_privkey,
+            },
+            private_keys: HashMap::from([
+                ("com.example.pid".to_string(), keypair.clone()),
+                ("com.example.address".to_string(), keypair),
+            ]),
         },
     };
 
@@ -388,11 +395,15 @@ async fn test_mock_issuance() {
 async fn test_pid_issuance_digid_bridge() {
     let (settings, issuance_ca) = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
-    start_wallet_server(settings.clone(), sessions).await;
+    let attr_service = PidAttributeService::new(&settings.issuer.digid).await.unwrap();
+    start_wallet_server(settings.clone(), sessions, attr_service).await;
 
-    let pid_issuance_config = &test_wallet_config(local_base_url(settings.public_url.port().unwrap()))
-        .config()
-        .pid_issuance;
+    let pid_issuance_config = &PidIssuanceConfiguration {
+        pid_issuer_url: local_base_url(settings.public_url.port().unwrap()),
+        digid_url: settings.issuer.digid.issuer_url.clone(),
+        digid_client_id: settings.issuer.digid.client_id.clone(),
+        digid_redirect_path: "authentication".to_string(),
+    };
 
     let digid_session = HttpDigidSession::<HttpOpenIdClient, S256PkcePair>::start(
         pid_issuance_config.digid_url.clone(),

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use axum::{
@@ -13,7 +13,7 @@ use tower_http::trace::TraceLayer;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    server_keys::{KeyRing, PrivateKey, SingleKeyRing},
+    server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
 };
 use openid4vc::{
@@ -59,18 +59,34 @@ pub fn code_to_access_token(code_hash_key: &[u8], code: &str) -> String {
     BASE64_URL_SAFE_NO_PAD.encode(sha256([code_hash_key, code.as_bytes()].concat().as_slice()))
 }
 
+pub struct IssuerKeyRing(pub HashMap<String, PrivateKey>);
+
+impl KeyRing for IssuerKeyRing {
+    fn private_key(&self, usecase: &str) -> Option<&PrivateKey> {
+        self.0.get(usecase)
+    }
+}
+
 pub async fn create_issuance_router<A: AttributeService>(
     settings: Settings,
     attr_service: A,
 ) -> anyhow::Result<Router> {
-    let key = SingleKeyRing(PrivateKey::from_der(
-        &settings.issuer_key.private_key.0,
-        &settings.issuer_key.certificate.0,
-    )?);
     let application_state = Arc::new(ApplicationState {
-        issuer: Issuer::<SingleKeyRing> {
+        issuer: Issuer::<IssuerKeyRing> {
             sessions: MemorySessionStore::new(),
-            private_keys: key,
+            private_keys: IssuerKeyRing(
+                settings
+                    .issuer
+                    .private_keys
+                    .into_iter()
+                    .map(|(doctype, keypair)| {
+                        Ok((
+                            doctype,
+                            PrivateKey::from_der(&keypair.private_key.0, &keypair.certificate.0)?,
+                        ))
+                    })
+                    .collect::<anyhow::Result<HashMap<_, _>>>()?,
+            ),
         },
         attr_service,
     });

@@ -20,8 +20,7 @@ pub struct Settings {
     pub internal_url: Url,
     // supported schemes are: memory:// (default) and postgres://
     pub store_url: Url,
-    pub digid: Digid,
-    pub issuer_key: KeyPair,
+    pub issuer: Issuer,
 }
 
 #[derive(Deserialize, Clone)]
@@ -43,6 +42,14 @@ pub struct Digid {
     pub client_id: String,
 }
 
+#[derive(Deserialize, Clone)]
+pub struct Issuer {
+    // Issuer private keys index per doctype
+    pub private_keys: HashMap<String, KeyPair>,
+
+    pub digid: Digid,
+}
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
@@ -57,8 +64,6 @@ impl Settings {
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("internal_url", "http://localhost:3002/")?
             .set_default("store_url", "memory://")?
-            .set_default("digid.issuer_url", "https://localhost:8006/")?
-            .set_default("digid.client_id", "37692967-0a74-4e91-85ec-a4250e7ad5e8")?
             .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_server")
