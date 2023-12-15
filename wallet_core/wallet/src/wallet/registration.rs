@@ -157,7 +157,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_register_success() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // The wallet should report that it is currently unregistered and locked.
         assert!(!wallet.has_registration());
@@ -238,7 +238,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_invalid_pin() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Try to register with an insecure PIN.
         let error = wallet
@@ -253,7 +253,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_challenge_request() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Have the account server respond to the challenge request with a 500 error.
         wallet
@@ -273,7 +273,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_hardware_public_key() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         wallet
             .account_provider_client
@@ -300,7 +300,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_signing() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         wallet
             .account_provider_client
@@ -327,7 +327,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_registration_request() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         wallet
             .account_provider_client
@@ -352,7 +352,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_certificate_validation() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         wallet
             .account_provider_client
@@ -383,7 +383,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_public_key_mismatch() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         wallet
             .account_provider_client
@@ -416,7 +416,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_register_error_store_certificate() {
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         wallet
             .account_provider_client

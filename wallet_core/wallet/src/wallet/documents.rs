@@ -89,7 +89,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_set_clear_documents_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.

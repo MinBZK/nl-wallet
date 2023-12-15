@@ -243,7 +243,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_unlock_error_not_registered() {
         // Prepare an unregistered wallet
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Unlocking an unregistered `Wallet` should result in an error.
         let error = wallet

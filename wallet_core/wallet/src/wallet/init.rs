@@ -1,5 +1,4 @@
 use tokio::sync::RwLock;
-use tracing::log::warn;
 
 use platform_support::{
     hw_keystore::{hardware::HardwareEncryptionKey, PlatformEcdsaKey},
@@ -8,7 +7,10 @@ use platform_support::{
 
 use crate::{
     account_provider::HttpAccountProviderClient,
-    config::{ConfigurationError, ConfigurationRepository, FileStorageConfigurationRepository},
+    config::{
+        default_configuration, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository,
+        UpdatingConfigurationRepository,
+    },
     lock::WalletLock,
     pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
@@ -35,7 +37,12 @@ impl Wallet {
 
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::init(storage_path.clone());
-        let config_repository = FileStorageConfigurationRepository::init(storage_path).await?;
+        let config_repository = UpdatingConfigurationRepository::init(
+            storage_path,
+            ConfigServerConfiguration::default(),
+            default_configuration(),
+        )
+        .await?;
 
         Self::init_registration(
             config_repository,
@@ -70,7 +77,6 @@ where
             disclosure_session: None,
             lock: WalletLock::new(true),
             registration,
-            config_callback: None,
             documents_callback: None,
         }
     }
@@ -83,7 +89,6 @@ where
         pid_issuer: PIC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
-        Self::fetch_configuration(&config_repository).await;
 
         let wallet = Self::new(
             config_repository,
@@ -108,13 +113,6 @@ where
 
         let result = storage.fetch_data::<RegistrationData>().await?;
         Ok(result)
-    }
-
-    pub async fn fetch_configuration(config_repository: &CR) {
-        // we want to continue (with default configuration) when the remote configuration can't be fetched
-        if let Err(e) = config_repository.fetch().await {
-            warn!("error fetching configuration: {0}", e);
-        }
     }
 }
 

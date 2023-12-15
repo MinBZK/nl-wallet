@@ -1,9 +1,9 @@
 use anyhow::Result;
-use flutter_rust_bridge::StreamSink;
 use tokio::sync::{OnceCell, RwLock};
 use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
+use flutter_rust_bridge::StreamSink;
 use wallet::{self, errors::WalletInitError, x509::CertificateError, Wallet};
 
 use crate::{

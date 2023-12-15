@@ -29,5 +29,8 @@ pub fn init_panic_logger() {
             .split('\n')
             .filter(|backtrace_line| !backtrace_line.is_empty())
             .for_each(|backtrace_line| error!("{}", backtrace_line));
+
+        // Make sure that spawned tasks exit upon panic as well.
+        std::process::exit(1);
     }));
 }

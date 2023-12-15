@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use base64::prelude::*;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 use url::Url;
@@ -15,6 +17,7 @@ use wallet_common::{
 // be added to using a file named `.env` in root directory of this crate.
 const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1/";
 
+const CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC: &str = "900";
 const WALLET_PROVIDER_BASE_URL: &str = "http://localhost:3000/api/v1/";
 
 const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
@@ -59,12 +62,16 @@ macro_rules! config_default {
 #[derive(Debug, Clone)]
 pub struct ConfigServerConfiguration {
     pub base_url: Url,
+    pub update_frequency: Duration,
 }
 
 impl Default for ConfigServerConfiguration {
     fn default() -> Self {
         Self {
             base_url: Url::parse(config_default!(CONFIG_SERVER_BASE_URL)).unwrap(),
+            update_frequency: Duration::from_secs(
+                config_default!(CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC).parse().unwrap(),
+            ),
         }
     }
 }

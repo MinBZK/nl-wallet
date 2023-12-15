@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use config::ValueKind;
@@ -15,7 +15,7 @@ use crate::{account::jwt::EcdsaDecodingKey, errors::Error};
 use super::signed::{SignedDouble, SignedInner};
 
 /// Bytes that (de)serialize to base64.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Base64Bytes(pub Vec<u8>);
 impl From<Vec<u8>> for Base64Bytes {
     fn from(val: Vec<u8>) -> Self {
@@ -50,6 +50,12 @@ impl<'de> Deserialize<'de> for Base64Bytes {
             .decode(String::deserialize(deserializer)?.as_bytes())
             .map_err(serde::de::Error::custom)?;
         Ok(bts.into())
+    }
+}
+
+impl Debug for Base64Bytes {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", STANDARD.encode(&self.0))
     }
 }
 

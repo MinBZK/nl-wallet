@@ -25,8 +25,8 @@ use wallet::{
     errors::{InstructionError, WalletUnlockError},
     mock::{default_configuration, MockDigidSession, MockPidIssuerClient, MockStorage},
     wallet_deps::{
-        AccountProviderClient, ConfigServerConfiguration, ConfigurationRepository, HttpAccountProviderClient,
-        HttpConfigurationRepository, HttpPidIssuerClient, PidIssuerClient, Storage,
+        AccountProviderClient, ConfigurationRepository, HttpAccountProviderClient, HttpConfigurationRepository,
+        HttpPidIssuerClient, PidIssuerClient, Storage, UpdateableConfigurationRepository,
     },
     AttributeValue, Document, Wallet,
 };
@@ -68,16 +68,13 @@ async fn create_test_wallet(
     MockDigidSession,
     impl PidIssuerClient,
 > {
-    let config_server = ConfigServerConfiguration {
-        base_url: config_base_url,
-    };
-
     let mut wallet_config = default_configuration();
     if let Some(pid_base_url) = pid_base_url {
         wallet_config.pid_issuance.pid_issuer_url = pid_base_url;
     }
 
-    let config_repository = HttpConfigurationRepository::new(config_server, wallet_config);
+    let config_repository = HttpConfigurationRepository::new(config_base_url, wallet_config);
+    config_repository.fetch().await.unwrap();
 
     Wallet::init_registration(
         config_repository,
@@ -195,11 +192,7 @@ async fn test_wallet_config() {
     let mut wallet_config = default_configuration();
     wallet_config.account_server.base_url = local_wp_base_url(port);
 
-    let config_config = ConfigServerConfiguration {
-        base_url: local_config_base_url(port),
-    };
-
-    let http_config = HttpConfigurationRepository::new(config_config, wallet_config);
+    let http_config = HttpConfigurationRepository::new(local_config_base_url(port), wallet_config);
 
     let before = http_config.config();
     http_config.fetch().await.unwrap();
