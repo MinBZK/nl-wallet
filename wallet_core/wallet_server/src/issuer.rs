@@ -27,16 +27,16 @@ use crate::{log_requests::log_request_response, settings::Settings, verifier::Er
 
 use crate::issuance_state::*;
 
-struct Issuer<K> {
+struct Issuer<A, K> {
     sessions: MemorySessionStore<IssuanceData>,
+    attr_service: A,
     private_keys: K,
     credential_issuer_identifier: Url,
     wallet_client_ids: Vec<String>,
 }
 
 struct ApplicationState<A, K> {
-    issuer: Issuer<K>,
-    attr_service: A,
+    issuer: Issuer<A, K>,
 }
 
 #[async_trait]
@@ -75,8 +75,9 @@ pub async fn create_issuance_router<A: AttributeService>(
     attr_service: A,
 ) -> anyhow::Result<Router> {
     let application_state = Arc::new(ApplicationState {
-        issuer: Issuer::<IssuerKeyRing> {
+        issuer: Issuer {
             sessions: MemorySessionStore::new(),
+            attr_service,
             credential_issuer_identifier: settings.issuer.credential_issuer_identifier.clone(),
             wallet_client_ids: settings.issuer.wallet_client_ids.clone().into_iter().collect(),
             private_keys: IssuerKeyRing(
@@ -93,7 +94,6 @@ pub async fn create_issuance_router<A: AttributeService>(
                     .collect::<anyhow::Result<HashMap<_, _>>>()?,
             ),
         },
-        attr_service,
     });
 
     let issuance_router = Router::new()
@@ -139,7 +139,9 @@ async fn token<A: AttributeService, K: KeyRing>(
 
     // TODO remove session from store, if present, so that the code is now consumed
 
-    let result = session.process_token_request(token_request, &state.attr_service).await;
+    let result = session
+        .process_token_request(token_request, &state.issuer.attr_service)
+        .await;
 
     let (response, next) = match result {
         Ok((response, next)) => (Ok(Json(response)), next.into_enum()),
