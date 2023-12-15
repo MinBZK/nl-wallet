@@ -1,4 +1,4 @@
-use futures::future::{self, TryFutureExt};
+use futures::future::TryFutureExt;
 use indexmap::IndexMap;
 use url::Url;
 use webpki::TrustAnchor;
@@ -8,7 +8,7 @@ use wallet_common::generator::TimeGenerator;
 use crate::{
     basic_sa_ext::Entry,
     device_retrieval::DeviceRequest,
-    disclosure::{DeviceResponse, DeviceResponseVersion, SessionData, SessionStatus},
+    disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
     holder::{HolderError, HttpClient},
@@ -299,22 +299,10 @@ where
         KF: KeyFactory<'a, Key = K>,
         K: MdocEcdsaKey + Sync,
     {
-        // Convert all of the `ProposedDocument` entries to `Document` by signing them.
-        // TODO: Do this in bulk, as this will be serialized by the implementation.
-        let documents = future::try_join_all(
-            self.proposed_documents
-                .iter()
-                .map(|proposed_document| proposed_document.clone().sign(key_factory)),
-        )
-        .await?;
-
-        // Construct a `DeviceResponse` and encrypt this with the device key.
-        let device_response = DeviceResponse {
-            version: DeviceResponseVersion::V1_0,
-            documents: documents.into(),
-            document_errors: None, // TODO: Consider using this for reporting errors per mdoc
-            status: 0,
-        };
+        // Clone the proposed documents and construct a `DeviceResponse` by
+        // signing these, then encrypt the response with the device key.
+        let proposed_documents = self.proposed_documents.to_vec();
+        let device_response = DeviceResponse::from_proposed_documents(proposed_documents, key_factory).await?;
         let session_data = SessionData::serialize_and_encrypt(&device_response, &self.device_key)?;
 
         // Send the `SessionData` containing the encrypted `DeviceResponse`.

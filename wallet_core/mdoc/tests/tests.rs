@@ -9,11 +9,9 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
-    examples::*,
     holder::*,
-    iso::*,
     issuer::*,
-    mock::{self, DebugCollapseBts, SoftwareKeyFactory},
+    mock::{self, SoftwareKeyFactory},
     server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
     utils::{
@@ -25,118 +23,6 @@ use nl_wallet_mdoc::{
 
 type MockWallet = Wallet<MockHttpClient<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>>;
 type MockServer = Issuer<MockIssuanceKeyring, MemorySessionStore<IssuanceData>>;
-
-/// Construct the example mdoc from the standard and disclose attributes
-/// by running the example device request from the standard against it.
-#[tokio::test]
-async fn do_and_verify_iso_example_disclosure() {
-    let device_request = DeviceRequest::example();
-
-    // Examine some fields in the device request
-    let items_request = device_request.doc_requests.first().unwrap().items_request.0.clone();
-    assert_eq!(items_request.doc_type, EXAMPLE_DOC_TYPE);
-    let requested_attrs = items_request.name_spaces.get(EXAMPLE_NAMESPACE).unwrap();
-    let intent_to_retain = requested_attrs.get(EXAMPLE_ATTR_NAME).unwrap();
-    assert!(intent_to_retain);
-    println!("DeviceRequest: {:#?}", DebugCollapseBts::from(&device_request));
-
-    // Verify reader's request
-    let reader_trust_anchors = Examples::reader_trust_anchors();
-    let session_transcript = ReaderAuthenticationBytes::example().0 .0.session_transcript;
-    let certificate = device_request
-        .doc_requests
-        .first()
-        .unwrap()
-        .verify(session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
-        .unwrap();
-    let reader_x509_subject = certificate.unwrap().subject();
-
-    // The reader's certificate contains who it is
-    assert_eq!(
-        reader_x509_subject.as_ref().unwrap().first().unwrap(),
-        (&"CN".to_string(), &"reader".to_string())
-    );
-    println!("Reader: {:#?}", reader_x509_subject);
-
-    // // Construct the mdoc from the example device response in the standard
-    // let trust_anchors = Examples::iaca_trust_anchors();
-    // let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
-
-    // // Do the disclosure and verify it
-    // let wallet = Wallet::new(DummyHttpClient);
-    // let storage = MdocsMap::try_from([mdoc]).unwrap();
-    // let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
-    // let resp = wallet
-    //     .disclose(
-    //         &device_request,
-    //         &session_transcript.clone(),
-    //         &SoftwareKeyFactory::default(),
-    //         &storage,
-    //     )
-    //     .await
-    //     .unwrap();
-    // println!("DeviceResponse: {:#?}", DebugCollapseBts(&resp));
-
-    // let disclosed_attrs = resp
-    //     .verify(None, &session_transcript, &IsoCertTimeGenerator, trust_anchors)
-    //     .unwrap();
-    // println!("DisclosedAttributes: {:#?}", DebugCollapseBts(&disclosed_attrs));
-
-    // // The first disclosed attribute is the same as we saw earlier in the DeviceRequest
-    // assert_disclosure_contains(
-    //     &disclosed_attrs,
-    //     EXAMPLE_DOC_TYPE,
-    //     EXAMPLE_NAMESPACE,
-    //     EXAMPLE_ATTR_NAME,
-    //     &EXAMPLE_ATTR_VALUE,
-    // );
-}
-
-// /// Disclose some of the attributes of the example mdoc from the spec.
-// #[tokio::test]
-// async fn iso_examples_custom_disclosure() {
-//     let request = DeviceRequest::new(vec![ItemsRequest {
-//         doc_type: EXAMPLE_DOC_TYPE.to_string(),
-//         name_spaces: IndexMap::from([(
-//             EXAMPLE_NAMESPACE.to_string(),
-//             IndexMap::from([(EXAMPLE_ATTR_NAME.to_string(), false)]),
-//         )]),
-//         request_info: None,
-//     }]);
-//     println!("My Request: {:#?}", DebugCollapseBts(&request));
-
-//     let trust_anchors = Examples::iaca_trust_anchors();
-//     let mdoc = mock::mdoc_from_example_device_response(trust_anchors);
-
-//     let storage = MdocsMap::try_from([mdoc]).unwrap();
-//     let wallet = Wallet::new(DummyHttpClient);
-//     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
-
-//     let resp = wallet
-//         .disclose(
-//             &request,
-//             &session_transcript.clone(),
-//             &SoftwareKeyFactory::default(),
-//             &storage,
-//         )
-//         .await
-//         .unwrap();
-//     println!("My DeviceResponse: {:#?}", DebugCollapseBts(&resp));
-
-//     let disclosed_attrs = resp
-//         .verify(None, &session_transcript, &IsoCertTimeGenerator, trust_anchors)
-//         .unwrap();
-//     println!("My Disclosure: {:#?}", DebugCollapseBts(&disclosed_attrs));
-
-//     // The first disclosed attribute is the one we requested in our device request
-//     assert_disclosure_contains(
-//         &disclosed_attrs,
-//         EXAMPLE_DOC_TYPE,
-//         EXAMPLE_NAMESPACE,
-//         EXAMPLE_ATTR_NAME,
-//         &EXAMPLE_ATTR_VALUE,
-//     );
-// }
 
 const ISSUANCE_DOC_TYPE: &str = "example_doctype";
 const ISSUANCE_NAME_SPACE: &str = "example_namespace";

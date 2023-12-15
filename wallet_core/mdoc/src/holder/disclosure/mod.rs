@@ -11,8 +11,11 @@ mod engagement;
 mod issuer_signed;
 mod proposed_document;
 mod request;
+mod response;
 mod session;
 
+#[cfg(test)]
+mod iso_tests;
 #[cfg(test)]
 mod test_utils;
 
