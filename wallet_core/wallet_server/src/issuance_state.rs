@@ -11,6 +11,7 @@ use openid4vc::{
     credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     token::{TokenRequest, TokenResponse, TokenResponseWithPreviews, TokenType},
 };
+use url::Url;
 use wallet_common::utils::random_string;
 
 use crate::{issuer::AttributeService, verifier::Error};
@@ -137,10 +138,12 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         authorization_header: String,
         private_keys: &impl KeyRing,
+        credential_issuer_identifier: &Url,
+        accepted_wallet_client_ids: &[impl ToString],
     ) -> (Result<CredentialResponses, Error>, Session<Done>) {
         let session_data = self.session_data();
 
-        // Sanity check
+        // Check authorization of the request
         if session_data.access_token != authorization_header {
             panic!("wrong access token")
         }
@@ -156,7 +159,15 @@ impl Session<WaitingForResponse> {
                         .flat_map(|unsigned| std::iter::repeat(unsigned).take(unsigned.copy_count as usize)),
                 )
                 .map(|(cred_req, unsigned_mdoc)| async {
-                    sign_attestation(private_keys, session_data.c_nonce.clone(), cred_req, unsigned_mdoc).await
+                    verify_pop_and_sign_attestation(
+                        private_keys,
+                        session_data.c_nonce.clone(),
+                        cred_req,
+                        unsigned_mdoc,
+                        credential_issuer_identifier,
+                        accepted_wallet_client_ids,
+                    )
+                    .await
                 }),
         )
         .await
@@ -201,16 +212,18 @@ impl<T: IssuanceState> Session<T> {
     }
 }
 
-pub(crate) async fn sign_attestation(
+pub(crate) async fn verify_pop_and_sign_attestation(
     private_keys: &impl KeyRing,
     c_nonce: String,
     cred_req: &CredentialRequest,
     unsigned_mdoc: &UnsignedMdoc,
+    credential_issuer_identifier: &Url,
+    accepted_wallet_client_ids: &[impl ToString],
 ) -> Result<CredentialResponse, Error> {
     assert!(matches!(cred_req.format, openid4vc::Format::MsoMdoc));
     let pubkey = cred_req
         .proof
-        .verify(c_nonce, "wallet_name".to_string(), "audience".to_string())
+        .verify(c_nonce, accepted_wallet_client_ids, credential_issuer_identifier)
         .unwrap(); // TODO
     let mdoc_public_key = (&pubkey).try_into().unwrap();
 

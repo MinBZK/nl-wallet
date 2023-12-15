@@ -18,6 +18,8 @@ pub mod pkce;
 
 pub mod issuance_client;
 
+pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {

@@ -17,7 +17,7 @@ use wallet_common::generator::TimeGenerator;
 use crate::{
     credential::{CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponses},
     token::{TokenErrorResponse, TokenRequest, TokenResponseWithPreviews},
-    Error, Format,
+    Error, Format, NL_WALLET_CLIENT_ID,
 };
 
 pub struct IssuanceClient {
@@ -82,8 +82,7 @@ impl IssuanceClient {
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
-        wallet_name: String,
-        audience: String,
+        credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, Error> {
         let issuance_state = self.session_state.as_ref().expect("no issuance state");
 
@@ -95,8 +94,8 @@ impl IssuanceClient {
 
         let keys_and_responses = CredentialRequestProof::new_multiple(
             issuance_state.c_nonce.clone(),
-            wallet_name,
-            audience,
+            NL_WALLET_CLIENT_ID.to_string(),
+            credential_issuer_identifier,
             keys_count,
             key_factory,
         )

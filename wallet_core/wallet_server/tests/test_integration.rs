@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use base64::prelude::*;
 use chrono::Duration;
 use indexmap::IndexMap;
-use openid4vc::token::TokenRequest;
+use openid4vc::{token::TokenRequest, NL_WALLET_CLIENT_ID};
 use p256::pkcs8::EncodePrivateKey;
 use reqwest::{Client, StatusCode};
 use url::Url;
@@ -126,6 +126,8 @@ fn wallet_server_settings() -> (Settings, Certificate) {
         #[cfg(not(feature = "postgres"))]
         store_url: "memory://".parse().unwrap(),
         issuer: Issuer {
+            credential_issuer_identifier: "https://example.com".parse().unwrap(),
+            wallet_client_ids: vec![NL_WALLET_CLIENT_ID.to_string()],
             digid: Digid {
                 issuer_url: "https://localhost:8006/".parse().unwrap(),
                 client_id: "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9".to_string(),
@@ -380,8 +382,7 @@ async fn test_mock_issuance() {
         .accept_pid(
             &[(&trust_anchor.owned_trust_anchor).into()],
             &key_factory,
-            "wallet_name".to_string(),
-            "audience".to_string(),
+            &settings.issuer.credential_issuer_identifier,
         )
         .await
         .unwrap();
@@ -436,8 +437,7 @@ async fn test_pid_issuance_digid_bridge() {
         .accept_pid(
             &[(&trust_anchor.owned_trust_anchor).into()],
             &key_factory,
-            "wallet_name".to_string(),
-            "audience".to_string(),
+            &settings.issuer.credential_issuer_identifier,
         )
         .await
         .unwrap();

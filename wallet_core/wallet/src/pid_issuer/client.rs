@@ -96,12 +96,11 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
-        wallet_name: String,
-        audience: String,
+        credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         let mdocs = self
             .issuance_client
-            .finish_issuance(trust_anchors, key_factory, wallet_name, audience)
+            .finish_issuance(trust_anchors, key_factory, credential_issuer_identifier)
             .await
             .unwrap();
 

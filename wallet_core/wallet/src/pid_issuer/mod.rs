@@ -44,8 +44,7 @@ pub trait OpenidPidIssuerClient {
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
-        wallet_name: String,
-        audience: String,
+        credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError>;
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError>;

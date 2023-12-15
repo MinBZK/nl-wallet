@@ -20,6 +20,7 @@ use openid4vc::{
     credential::{CredentialRequests, CredentialResponses},
     token::{TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
+use url::Url;
 use wallet_common::utils::sha256;
 
 use crate::{log_requests::log_request_response, settings::Settings, verifier::Error};
@@ -29,6 +30,8 @@ use crate::issuance_state::*;
 struct Issuer<K> {
     sessions: MemorySessionStore<IssuanceData>,
     private_keys: K,
+    credential_issuer_identifier: Url,
+    wallet_client_ids: Vec<String>,
 }
 
 struct ApplicationState<A, K> {
@@ -74,6 +77,8 @@ pub async fn create_issuance_router<A: AttributeService>(
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::<IssuerKeyRing> {
             sessions: MemorySessionStore::new(),
+            credential_issuer_identifier: settings.issuer.credential_issuer_identifier.clone(),
+            wallet_client_ids: settings.issuer.wallet_client_ids.clone().into_iter().collect(),
             private_keys: IssuerKeyRing(
                 settings
                     .issuer
@@ -163,7 +168,13 @@ async fn batch_credential<A: AttributeService, K: KeyRing>(
     let session = Session::<WaitingForResponse>::from_enum(session).unwrap(); // TODO
 
     let (response, next) = session
-        .process_response(credential_requests, token.to_string(), &state.issuer.private_keys)
+        .process_response(
+            credential_requests,
+            token.to_string(),
+            &state.issuer.private_keys,
+            &state.issuer.credential_issuer_identifier,
+            &state.issuer.wallet_client_ids,
+        )
         .await;
 
     state.issuer.sessions.write(&next.into_enum()).await.unwrap();

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
+use openid4vc::NL_WALLET_CLIENT_ID;
 use serde::Deserialize;
 use url::Url;
 
@@ -47,6 +48,16 @@ pub struct Issuer {
     // Issuer private keys index per doctype
     pub private_keys: HashMap<String, KeyPair>,
 
+    /// URL identifying the issuer. The wallet must put this in the `aud` claim of its Proof of Possession JWTs.
+    /// See https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-10.2.1
+    pub credential_issuer_identifier: Url,
+
+    /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
+    /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
+    /// implementation).
+    /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession JWTs.
+    pub wallet_client_ids: Vec<String>,
+
     pub digid: Digid,
 }
 
@@ -64,6 +75,7 @@ impl Settings {
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("internal_url", "http://localhost:3002/")?
             .set_default("store_url", "memory://")?
+            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
             .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_server")

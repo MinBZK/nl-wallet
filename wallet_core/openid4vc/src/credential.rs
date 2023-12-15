@@ -5,6 +5,7 @@ use jsonwebtoken::{Algorithm, Header, Validation};
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey};
 use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
+use url::Url;
 use wallet_common::keys::SecureEcdsaKey;
 
 use crate::{
@@ -62,17 +63,22 @@ const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 impl CredentialRequestProof {
     pub async fn new_multiple<'a, K: MdocEcdsaKey + Sync>(
         nonce: String,
-        wallet_name: String,
-        audience: String,
+        wallet_client_id: String,
+        credential_issuer_identifier: &Url,
         number_of_keys: u64,
         key_factory: &'a impl KeyFactory<'a, Key = K>,
     ) -> Result<Vec<(K, CredentialRequestProof)>> {
         // TODO: extend key factory so that it can do this in a single instruction
         let keys = key_factory.generate_new_multiple(number_of_keys).await.unwrap(); // TODO
         try_join_all(keys.into_iter().map(|privkey| async {
-            CredentialRequestProof::new(&privkey, nonce.clone(), wallet_name.clone(), audience.clone())
-                .await
-                .map(|jwt| (privkey, jwt))
+            CredentialRequestProof::new(
+                &privkey,
+                nonce.clone(),
+                wallet_client_id.clone(),
+                credential_issuer_identifier,
+            )
+            .await
+            .map(|jwt| (privkey, jwt))
         }))
         .await
     }
@@ -80,8 +86,8 @@ impl CredentialRequestProof {
     pub async fn new(
         private_key: &impl SecureEcdsaKey,
         nonce: String,
-        wallet_name: String,
-        audience: String,
+        wallet_client_id: String,
+        credential_issuer_identifier: &Url,
     ) -> Result<Self> {
         let header = Header {
             typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
@@ -97,8 +103,8 @@ impl CredentialRequestProof {
 
         let payload = CredentialRequestProofJwtPayload {
             jwt_claims: StandardJwtClaims {
-                issuer: Some(wallet_name),
-                audience: Some(audience),
+                issuer: Some(wallet_client_id),
+                audience: Some(credential_issuer_identifier.to_string()),
                 issued_at: Some(jsonwebtoken::get_current_timestamp() as i64),
                 ..Default::default()
             },
@@ -110,7 +116,12 @@ impl CredentialRequestProof {
         Ok(CredentialRequestProof::Jwt { jwt })
     }
 
-    pub fn verify(&self, nonce: String, wallet_name: String, audience: String) -> Result<VerifyingKey> {
+    pub fn verify(
+        &self,
+        nonce: String,
+        accepted_wallet_client_ids: &[impl ToString],
+        credential_issuer_identifier: &Url,
+    ) -> Result<VerifyingKey> {
         let jwt = match self {
             CredentialRequestProof::Jwt { jwt } => jwt,
         };
@@ -119,8 +130,8 @@ impl CredentialRequestProof {
 
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims = HashSet::from(["iss".to_string(), "aud".to_string()]);
-        validation_options.set_issuer(&[wallet_name]);
-        validation_options.set_audience(&[audience]);
+        validation_options.set_issuer(accepted_wallet_client_ids);
+        validation_options.set_audience(&[credential_issuer_identifier]);
         let token_data = jsonwebtoken::decode::<CredentialRequestProofJwtPayload>(
             &jwt.0,
             &EcdsaDecodingKey::from(verifying_key).0,
