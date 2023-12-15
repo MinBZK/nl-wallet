@@ -1,9 +1,7 @@
 use anyhow::Result;
 
-use wallet_server::{
-    issuance_state::AttributeService, pid::attributes::PidAttributeService, server, settings::Settings,
-    store::new_session_store,
-};
+use openid4vc::issuer::AttributeService;
+use wallet_server::{pid::attributes::PidAttributeService, server, settings::Settings, store::new_session_store};
 
 #[tokio::main]
 async fn main() -> Result<()> {

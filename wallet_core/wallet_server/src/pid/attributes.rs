@@ -6,10 +6,9 @@ use reqwest::{header::CONTENT_TYPE, Client};
 
 use openid4vc::token::{TokenErrorResponse, TokenRequest, TokenRequestGrantType, TokenResponse};
 
-use crate::{
-    issuance_state::{AttributeService, Created},
-    settings::Digid,
-};
+use openid4vc::issuer::{AttributeService, Created};
+
+use crate::settings::Digid;
 
 use super::{
     digid::{self, OpenIdClient},

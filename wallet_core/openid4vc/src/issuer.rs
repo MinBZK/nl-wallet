@@ -4,16 +4,17 @@ use chrono::Utc;
 use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
 
+use crate::{
+    credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
+    token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType},
+    Format,
+};
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_keys::KeyRing,
     server_state::{SessionState, SessionStore},
     utils::serialization::cbor_serialize,
     IssuerSigned,
-};
-use openid4vc::{
-    credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
-    token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType},
 };
 use url::Url;
 use wallet_common::utils::random_string;
@@ -358,7 +359,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     credential_issuer_identifier: &Url,
     accepted_wallet_client_ids: &[impl ToString],
 ) -> Result<CredentialResponse, Error> {
-    assert!(matches!(cred_req.format, openid4vc::Format::MsoMdoc));
+    assert!(matches!(cred_req.format, Format::MsoMdoc));
     let pubkey = cred_req
         .proof
         .verify(c_nonce, accepted_wallet_client_ids, credential_issuer_identifier)
@@ -374,7 +375,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     .unwrap(); // TODO
 
     Ok(CredentialResponse {
-        format: openid4vc::Format::MsoMdoc,
+        format: Format::MsoMdoc,
         credential: serde_json::to_value(
             BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(&issuer_signed).unwrap()), // TODO
         )

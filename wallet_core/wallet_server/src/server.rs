@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{routing::get, Router};
+use openid4vc::issuer::AttributeService;
 use tokio;
 use tracing::debug;
 
@@ -10,10 +11,7 @@ use nl_wallet_mdoc::{
     verifier::DisclosureData,
 };
 
-use crate::{
-    issuance_state::AttributeService, issuer::create_issuance_router, settings::Settings,
-    verifier::create_verifier_routers,
-};
+use crate::{issuer::create_issuance_router, settings::Settings, verifier::create_verifier_routers};
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))

@@ -17,6 +17,7 @@ pub mod jwt;
 pub mod pkce;
 
 pub mod issuance_client;
+pub mod issuer;
 
 pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
 

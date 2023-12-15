@@ -8,7 +8,11 @@ use async_trait::async_trait;
 use base64::prelude::*;
 use chrono::Duration;
 use indexmap::IndexMap;
-use openid4vc::{token::TokenRequest, NL_WALLET_CLIENT_ID};
+use openid4vc::{
+    issuer::{AttributeService, Created},
+    token::TokenRequest,
+    NL_WALLET_CLIENT_ID,
+};
 use p256::pkcs8::EncodePrivateKey;
 use reqwest::{Client, StatusCode};
 use url::Url;
@@ -34,7 +38,6 @@ use wallet::{
 };
 use wallet_common::{config::wallet_config::PidIssuanceConfiguration, trust_anchor::DerTrustAnchor};
 use wallet_server::{
-    issuance_state::{AttributeService, Created},
     pid::{
         attributes::{AttributesLookup, PidAttributeService},
         mock::{MockAttributesLookup, MockBsnLookup},

@@ -20,14 +20,14 @@ use openid4vc::{
 };
 use tracing::warn;
 
-use crate::{issuance_state, log_requests::log_request_response, settings::Settings};
+use crate::{log_requests::log_request_response, settings::Settings};
 
-use crate::issuance_state::*;
+use openid4vc::issuer::*;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    ProcessSession(#[from] issuance_state::Error),
+    ProcessSession(#[from] openid4vc::issuer::Error),
 }
 
 // TODO proper error handling
