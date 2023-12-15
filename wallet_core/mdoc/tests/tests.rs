@@ -2,6 +2,7 @@ use std::{ops::Add, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
+use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
@@ -124,24 +125,24 @@ async fn issuance_and_disclosure() {
     // let mdocs_map = mdocs.into_iter().flatten().collect::<Vec<_>>().try_into().unwrap();
     // custom_disclosure(wallet, ca, mdocs_map).await;
 
-    // // Decline issuance
-    // let (mut wallet, server, ca) = setup_issuance_test();
-    // let mdocs = issuance_using_consent(false, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
-    // assert!(mdocs.is_none());
+    // Decline issuance
+    let (mut wallet, server, ca) = setup_issuance_test();
+    let mdocs = issuance_using_consent(false, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca).await;
+    assert!(mdocs.is_none());
 
-    // // Issue not-yet-valid mdocs
-    // let now = Utc::now();
-    // let mut request = new_issuance_request();
-    // request
-    //     .iter_mut()
-    //     .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
-    // assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
+    // Issue not-yet-valid mdocs
+    let now = Utc::now();
+    let mut request = new_issuance_request();
+    request
+        .iter_mut()
+        .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
+    assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
 
-    // let (mut wallet, server, ca) = setup_issuance_test();
-    // let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
-    //     .await
-    //     .unwrap();
-    // assert_eq!(1, mdocs.len());
+    let (mut wallet, server, ca) = setup_issuance_test();
+    let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, Arc::clone(&server), &ca)
+        .await
+        .unwrap();
+    assert_eq!(1, mdocs.len());
 }
 
 async fn issuance_using_consent(
