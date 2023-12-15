@@ -43,7 +43,7 @@ pub mod wallet_deps {
         account_provider::{AccountProviderClient, HttpAccountProviderClient},
         config::{
             ConfigServerConfiguration, ConfigurationRepository, FileStorageConfigurationRepository,
-            HttpConfigurationRepository,
+            HttpConfigurationRepository, UpdateableConfigurationRepository, UpdatingFileHttpConfigurationRepository,
         },
         digid::{DigidSession, HttpDigidSession},
         disclosure::{

@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Formatter};
+
 use serde::{Deserialize, Serialize};
 use webpki::{Error, TrustAnchor};
 
@@ -9,17 +11,23 @@ use crate::account::serialization::Base64Bytes;
 /// Can be converted from a reference to a [`TrustAnchor`] or a byte-slice
 /// reference `&[u8]` using the `From<>` trait. Conversely a [`TrustAnchor`]
 /// may be created from a reference to [`OwnedTrustAnchor`].
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct OwnedTrustAnchor {
     subject: Vec<u8>,
     spki: Vec<u8>,
     name_constraints: Option<Vec<u8>>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct DerTrustAnchor {
     pub owned_trust_anchor: OwnedTrustAnchor,
     der_bytes: Base64Bytes,
+}
+
+impl Debug for DerTrustAnchor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.der_bytes.fmt(f)
+    }
 }
 
 impl DerTrustAnchor {

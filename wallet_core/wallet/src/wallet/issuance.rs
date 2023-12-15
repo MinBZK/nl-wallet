@@ -341,7 +341,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_pid_issuance_auth_url_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Creating a DigiD authentication URL on an
         // unregistered wallet should result in an error.
@@ -435,10 +435,10 @@ mod tests {
         assert_matches!(error, PidIssuanceError::Locked);
     }
 
-    #[test]
-    fn test_cancel_pid_issuance_error_unregistered() {
+    #[tokio::test]
+    async fn test_cancel_pid_issuance_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Cancelling PID issuance on an unregistered wallet should result in an error.
         let error = wallet
@@ -515,7 +515,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Continuing PID issuance on an unregistered wallet should result in an error.
         let error = wallet
@@ -668,7 +668,7 @@ mod tests {
     #[tokio::test]
     async fn test_reject_pid_issuance_error_not_registered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Rejecting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
@@ -790,7 +790,7 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet

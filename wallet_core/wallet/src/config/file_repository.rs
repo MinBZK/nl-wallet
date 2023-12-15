@@ -4,12 +4,13 @@ use std::{
 };
 
 use async_trait::async_trait;
+use url::Url;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use super::{
-    config_file, default_configuration, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository,
-    HttpConfigurationRepository,
+    config_file, ConfigurationError, ConfigurationRepository, HttpConfigurationRepository,
+    UpdateableConfigurationRepository,
 };
 
 pub struct FileStorageConfigurationRepository<T> {
@@ -18,13 +19,17 @@ pub struct FileStorageConfigurationRepository<T> {
 }
 
 impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
-    pub async fn init(storage_path: PathBuf) -> Result<Self, ConfigurationError> {
+    pub async fn init(
+        storage_path: PathBuf,
+        base_url: Url,
+        initial_config: WalletConfiguration,
+    ) -> Result<Self, ConfigurationError> {
         let default_config = Self::read_config_file(storage_path.as_path())
             .await?
-            .unwrap_or(default_configuration());
+            .unwrap_or(initial_config);
 
         Ok(Self::new(
-            HttpConfigurationRepository::new(ConfigServerConfiguration::default(), default_config),
+            HttpConfigurationRepository::new(base_url, default_config),
             storage_path,
         ))
     }
@@ -45,15 +50,20 @@ where
     }
 }
 
-#[async_trait]
 impl<T> ConfigurationRepository for FileStorageConfigurationRepository<T>
 where
-    T: ConfigurationRepository + Send + Sync,
+    T: ConfigurationRepository,
 {
     fn config(&self) -> Arc<WalletConfiguration> {
         self.wrapped.config()
     }
+}
 
+#[async_trait]
+impl<T> UpdateableConfigurationRepository for FileStorageConfigurationRepository<T>
+where
+    T: UpdateableConfigurationRepository + Send + Sync,
+{
     async fn fetch(&self) -> Result<(), ConfigurationError> {
         self.wrapped.fetch().await?;
         let wrapped_config = self.wrapped.config();
@@ -72,15 +82,19 @@ mod tests {
 
     use crate::config::{
         default_configuration, ConfigurationError, ConfigurationRepository, FileStorageConfigurationRepository,
+        UpdateableConfigurationRepository,
     };
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
 
-    #[async_trait]
     impl ConfigurationRepository for TestConfigRepo {
         fn config(&self) -> Arc<WalletConfiguration> {
             Arc::new(self.0.read().unwrap().clone())
         }
+    }
+
+    #[async_trait]
+    impl UpdateableConfigurationRepository for TestConfigRepo {
         async fn fetch(&self) -> Result<(), ConfigurationError> {
             let mut config = self.0.write().unwrap();
             config.lock_timeouts.background_timeout = 700;

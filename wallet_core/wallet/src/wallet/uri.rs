@@ -57,10 +57,10 @@ mod tests {
 
     use super::{super::tests::WalletWithMocks, *};
 
-    #[test]
-    fn test_wallet_identify_redirect_uri() {
+    #[tokio::test]
+    async fn test_wallet_identify_redirect_uri() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Set up some URLs to work with.
         let example_uri = "https://example.com";

@@ -5,6 +5,7 @@ mod file_repository;
 mod http_repository;
 #[cfg(any(test, feature = "mock"))]
 mod mock;
+mod updating_repository;
 
 use std::sync::Arc;
 
@@ -18,7 +19,11 @@ pub use self::{
     data::{default_configuration, ConfigServerConfiguration},
     file_repository::FileStorageConfigurationRepository,
     http_repository::HttpConfigurationRepository,
+    updating_repository::UpdatingConfigurationRepository,
 };
+
+pub type UpdatingFileHttpConfigurationRepository =
+    UpdatingConfigurationRepository<FileStorageConfigurationRepository<HttpConfigurationRepository>>;
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::LocalConfigurationRepository;
@@ -35,8 +40,20 @@ pub enum ConfigurationError {
     ConfigFile(#[from] ConfigFileError),
 }
 
-#[async_trait]
 pub trait ConfigurationRepository {
     fn config(&self) -> Arc<WalletConfiguration>;
+}
+
+#[async_trait]
+pub trait UpdateableConfigurationRepository: ConfigurationRepository {
     async fn fetch(&self) -> Result<(), ConfigurationError>;
+}
+
+#[async_trait]
+pub trait ObservableConfigurationRepository: ConfigurationRepository {
+    fn register_callback_on_update<F>(&self, callback: F)
+    where
+        F: Fn(Arc<WalletConfiguration>) + Send + Sync + 'static;
+
+    fn clear_callback(&self);
 }

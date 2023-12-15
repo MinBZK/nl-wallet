@@ -1,28 +1,25 @@
 use std::sync::Arc;
+
 use wallet_common::config::wallet_config::WalletConfiguration;
 
-use crate::config::ConfigurationRepository;
+use crate::config::ObservableConfigurationRepository;
 
 use super::Wallet;
 
-pub type ConfigurationCallback = Box<dyn FnMut(Arc<WalletConfiguration>) + Send + Sync>;
-
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    CR: ConfigurationRepository,
+    CR: ObservableConfigurationRepository,
 {
-    pub fn set_config_callback<F>(&mut self, mut callback: F)
+    pub fn set_config_callback<F>(&self, callback: F)
     where
-        F: FnMut(Arc<WalletConfiguration>) + Send + Sync + 'static,
+        F: Fn(Arc<WalletConfiguration>) + Send + Sync + 'static,
     {
-        callback(Arc::clone(&self.config_repository.config()));
-        // TODO: Once configuration fetching from the Wallet Provider is implemented,
-        //       this callback should be called every time the config updates.
-        self.config_callback.replace(Box::new(callback));
+        callback(self.config_repository.config());
+        self.config_repository.register_callback_on_update(callback);
     }
 
-    pub fn clear_config_callback(&mut self) {
-        self.config_callback.take();
+    pub fn clear_config_callback(&self) {
+        self.config_repository.clear_callback();
     }
 }
 
@@ -30,24 +27,37 @@ where
 mod tests {
     use std::sync::{Arc, Mutex};
 
+    use tokio::sync::Notify;
+
     use crate::config::default_configuration;
 
     use super::{super::tests::WalletWithMocks, *};
 
     // Tests both setting and clearing the configuration callback.
-    #[test]
-    fn test_wallet_set_clear_config_callback() {
+    #[tokio::test]
+    async fn test_wallet_set_clear_config_callback() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let wallet = WalletWithMocks::new_unregistered().await;
 
         // Wrap a `Vec<Configuration>` in both a `Mutex` and `Arc`,
         // so we can write to it from the closure.
         let configs = Arc::new(Mutex::new(Vec::<Arc<WalletConfiguration>>::with_capacity(1)));
         let callback_configs = Arc::clone(&configs);
 
+        assert_eq!(Arc::strong_count(&configs), 2);
+
+        let notifier = Arc::new(Notify::new());
+        let callback_notifier = notifier.clone();
+
         // Set the configuration callback on the `Wallet`,
         // which should immediately be called exactly once.
-        wallet.set_config_callback(move |config| callback_configs.lock().unwrap().push(config));
+        wallet.set_config_callback(move |config| {
+            callback_configs.lock().unwrap().push(config);
+            callback_notifier.notify_one();
+        });
+
+        // Wait for the callback to be completed.
+        notifier.notified().await;
 
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&configs), 2);
@@ -66,7 +76,6 @@ mod tests {
         // Clear the configuration callback on the `Wallet.`
         wallet.clear_config_callback();
 
-        // Infer that the closure is now dropped by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&configs), 1);
     }
 }

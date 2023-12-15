@@ -464,7 +464,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Starting disclosure on an unregistered wallet should result in an error.
         let error = wallet
@@ -790,7 +790,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Cancelling disclosure on an unregistered wallet should result in an error.
         let error = wallet
@@ -924,7 +924,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_accept_disclosure_error_unregistered() {
         // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Accepting disclosure on an unregistered wallet should result in an error.
         let error = wallet
@@ -1117,7 +1117,7 @@ mod tests {
     #[tokio::test]
     async fn test_mdoc_by_doc_types() {
         // Prepare a wallet in initial state.
-        let wallet = WalletWithMocks::default();
+        let wallet = WalletWithMocks::new_unregistered().await;
 
         // Create some fake `Mdoc` entries to place into wallet storage.
         let trust_anchors = Examples::iaca_trust_anchors();
@@ -1169,7 +1169,7 @@ mod tests {
     #[tokio::test]
     async fn test_mdoc_by_doc_types_empty() {
         // Prepare a wallet in initial state.
-        let wallet = WalletWithMocks::default();
+        let wallet = WalletWithMocks::new_unregistered().await;
 
         // Calling the `MdocDataSource.mdoc_by_doc_types()` method
         // on the `Wallet` should return an empty result.
@@ -1184,7 +1184,7 @@ mod tests {
     #[tokio::test]
     async fn test_mdoc_by_doc_types_error() {
         // Prepare a wallet in initial state.
-        let mut wallet = WalletWithMocks::default();
+        let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Set up `MockStorage` to return an error when performing a query.
         wallet.storage.get_mut().has_query_error = true;

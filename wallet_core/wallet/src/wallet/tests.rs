@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{sync::Mutex, time::Duration};
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
@@ -24,7 +24,7 @@ use wallet_common::{
 
 use crate::{
     account_provider::MockAccountProviderClient,
-    config::{default_configuration, LocalConfigurationRepository},
+    config::{default_configuration, LocalConfigurationRepository, UpdatingConfigurationRepository},
     digid::MockDigidSession,
     disclosure::MockMdocDisclosureSession,
     document,
@@ -58,7 +58,7 @@ pub struct FallibleSoftwareEcdsaKey {
 
 /// An alias for the `Wallet<>` with all mock dependencies.
 pub type WalletWithMocks = Wallet<
-    LocalConfigurationRepository,
+    UpdatingConfigurationRepository<LocalConfigurationRepository>,
     MockStorage,
     FallibleSoftwareEcdsaKey,
     MockAccountProviderClient,
@@ -161,9 +161,39 @@ impl EcdsaKey for FallibleSoftwareEcdsaKey {
 
 // Implement a number of methods on the the `Wallet<>` alias that can be used during testing.
 impl WalletWithMocks {
+    /// Creates an unregistered `Wallet` with mock dependencies.
+    pub async fn new_unregistered() -> Self {
+        let keys = Lazy::force(&ACCOUNT_SERVER_KEYS);
+
+        // Override public key material in the `Configuration`.
+        let config = {
+            let mut config = default_configuration();
+
+            config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
+            config.account_server.instruction_result_public_key =
+                (*keys.instruction_result_signing_key.verifying_key()).into();
+
+            config.mdoc_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
+
+            config
+        };
+
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), Duration::from_secs(300))
+                .await;
+
+        Wallet::new(
+            config_repository,
+            MockStorage::default(),
+            MockAccountProviderClient::default(),
+            MockPidIssuerClient::default(),
+            None,
+        )
+    }
+
     /// Creates a registered and unlocked `Wallet` with mock dependencies.
     pub async fn new_registered_and_unlocked() -> Self {
-        let mut wallet = Self::default();
+        let mut wallet = Self::new_unregistered().await;
 
         // Generate registration data.
         let registration = RegistrationData {
@@ -213,42 +243,16 @@ impl WalletWithMocks {
 
     /// Creates mocks and calls `Wallet::init_registration()`, except for the `MockStorage` instance.
     pub async fn init_registration_mocks_with_storage(storage: MockStorage) -> Result<Self, WalletInitError> {
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), Duration::from_secs(300))
+                .await;
+
         Wallet::init_registration(
-            LocalConfigurationRepository::default(),
+            config_repository,
             storage,
             MockAccountProviderClient::default(),
             MockPidIssuerClient::default(),
         )
         .await
-    }
-}
-
-impl Default for WalletWithMocks {
-    /// Creates an unregistered `Wallet` with mock dependencies.
-    fn default() -> Self {
-        let keys = Lazy::force(&ACCOUNT_SERVER_KEYS);
-
-        // Override public key material in the `Configuration`.
-        let config = {
-            let mut config = default_configuration();
-
-            config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
-            config.account_server.instruction_result_public_key =
-                (*keys.instruction_result_signing_key.verifying_key()).into();
-
-            config.mdoc_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
-
-            config
-        };
-
-        let config_repository = LocalConfigurationRepository::new(config);
-
-        Wallet::new(
-            config_repository,
-            MockStorage::default(),
-            MockAccountProviderClient::default(),
-            MockPidIssuerClient::default(),
-            None,
-        )
     }
 }

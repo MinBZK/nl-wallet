@@ -75,7 +75,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_history_fails_when_not_registered() {
-        let wallet = WalletWithMocks::default();
+        let wallet = WalletWithMocks::new_unregistered().await;
 
         let error = wallet
             .get_history()
