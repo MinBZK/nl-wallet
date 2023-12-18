@@ -2,6 +2,7 @@ use std::{fmt::Debug, iter};
 
 use async_trait::async_trait;
 use futures::{executor, future};
+use indexmap::IndexMap;
 use p256::ecdsa::{Signature, VerifyingKey};
 use webpki::TrustAnchor;
 
@@ -18,6 +19,7 @@ use crate::{
     server_keys::PrivateKey,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey, MdocKeyType},
+        reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
         x509::{Certificate, CertificateError, CertificateType},
     },
     verifier::DisclosedAttributes,
@@ -56,7 +58,7 @@ pub fn generate_issuance_key_and_ca() -> Result<(PrivateKey, Certificate), Certi
     // Issuer CA certificate and normal certificate
     let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
     let (issuer_cert, issuer_privkey) = Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl)?;
-    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert.as_bytes().into());
+    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
 
     Ok((issuance_key, ca))
 }
@@ -199,6 +201,29 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
 
         Ok(signatures_by_identifier)
     }
+}
+
+/// Build attributes for [`ReaderRegistration`] from a list of attributes.
+pub fn reader_registration_attributes(
+    doc_type: String,
+    name_space: String,
+    attributes: impl Iterator<Item = impl Into<String>>,
+) -> IndexMap<String, AuthorizedMdoc> {
+    [(
+        doc_type,
+        AuthorizedMdoc(
+            [(
+                name_space,
+                AuthorizedNamespace(
+                    attributes
+                        .map(|attribute| (attribute.into(), AuthorizedAttribute {}))
+                        .collect(),
+                ),
+            )]
+            .into(),
+        ),
+    )]
+    .into()
 }
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,

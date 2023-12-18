@@ -29,7 +29,7 @@ use crate::{
     utils::{
         cose::{self, MdocCose},
         crypto::{SessionKey, SessionKeyUser},
-        reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace, ReaderRegistration},
+        reader_auth::ReaderRegistration,
         serialization::{self, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateType},
     },
@@ -85,29 +85,6 @@ pub fn emtpy_items_request() -> ItemsRequest {
         EXAMPLE_NAMESPACE.to_string(),
         iter::empty::<String>(),
     )
-}
-
-/// Build attributes for [`ReaderRegistration`] from a list of attributes.
-pub fn reader_registration_attributes(
-    doc_type: String,
-    name_space: String,
-    attributes: impl Iterator<Item = impl Into<String>>,
-) -> IndexMap<String, AuthorizedMdoc> {
-    [(
-        doc_type,
-        AuthorizedMdoc(
-            [(
-                name_space,
-                AuthorizedNamespace(
-                    attributes
-                        .map(|attribute| (attribute.into(), AuthorizedAttribute {}))
-                        .collect(),
-                ),
-            )]
-            .into(),
-        ),
-    )]
-    .into()
 }
 
 /// Convenience function for creating a [`PrivateKey`],
@@ -507,7 +484,7 @@ where
     let reader_registration = match certificate_kind {
         ReaderCertificateKind::NoReaderRegistration => None,
         ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
-            attributes: reader_registration_attributes(
+            attributes: mock::reader_registration_attributes(
                 EXAMPLE_DOC_TYPE.to_string(),
                 EXAMPLE_NAMESPACE.to_string(),
                 EXAMPLE_ATTRIBUTES.iter().copied(),
