@@ -116,6 +116,7 @@ class TypedWalletCore {
   /// before they are (re)thrown.
   Future<T> call<T>(Future<T> Function(WalletCore) runnable) async {
     try {
+      await _isInitialized.future;
       return await runnable(_walletCore);
     } catch (exception, stacktrace) {
       throw _handleCoreException(exception, stackTrace: stacktrace);
