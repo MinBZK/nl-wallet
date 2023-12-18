@@ -28,6 +28,15 @@ pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
 #[serde(rename_all = "snake_case")]
 pub enum Format {
     MsoMdoc,
+
+    // Other formats we don't currently support; we include them here so we can give the appropriate error message
+    // when they might be requested by the wallet (as opposed to a deserialization error).
+    // The OpenID4VCI and OpenID4VP specs aim to be general and do not provide an exhaustive list; the formats below
+    // are found as examples in the specs.
+    LdpVc,
+    JwtVc,
+    JwtVcJson,
+    AcVc, // Anonymous Credentials i.e. Idemix
 }
 
 // TODO implement once we support Wallet (Instance) Attestation / Wallet Trust Anchor,
