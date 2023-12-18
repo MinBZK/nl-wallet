@@ -87,6 +87,9 @@ fn wallet_server_settings() -> Settings {
         internal_url: Some(format!("http://127.0.0.1:{}/", port2).parse().unwrap()),
         usecases: HashMap::new(),
         trust_anchors: Vec::new(),
+        #[cfg(feature = "postgres")]
+        store_url: "postgres://postgres@127.0.0.1:5432/wallet_server".parse().unwrap(),
+        #[cfg(not(feature = "postgres"))]
         store_url: "memory://".parse().unwrap(),
     };
     let (ca, ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
