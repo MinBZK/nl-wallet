@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: mrp-wallet-server
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: mrp-wallet-server
@@ -21,6 +21,7 @@ spec:
         tier: vertrouwd
         egress-frontoffice-policy: allow
         ingress-controller-frontoffice-policy: allow
+        db-mrp-in-zeer-vertrouwd: allow
     spec:
       imagePullSecrets:
         - name: harbor-puller
@@ -57,12 +58,18 @@ spec:
               value: "$(PID_CA_CRT)"
             - name: WALLET_SERVER_WALLET_SERVER_INTERNAL_URL
               value: "https://${MRP_WALLET_SERVER_INTERNAL_HOSTNAME}/"
-            # TODO configure postgres backend
-            # - name: WALLET_SERVER_STORE_URL
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: db-cluster-app
-            #       key: url
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-mrp-app
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-mrp-app
+                  key: password
+            - name: WALLET_SERVER_STORE_URL
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/wallet_server"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

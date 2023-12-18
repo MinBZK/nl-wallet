@@ -72,10 +72,10 @@ pub mod postgres {
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
-            Ok(match state {
-                Some(s) => serde_json::from_value(s.data).map_err(|e| SessionStoreError::Deserialize(Box::new(e)))?,
-                None => None,
-            })
+            state
+                .map(|s| serde_json::from_value(s.data))
+                .transpose()
+                .map_err(|e| SessionStoreError::Deserialize(Box::new(e)))
         }
 
         async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
@@ -110,6 +110,42 @@ pub mod postgres {
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
             Ok(())
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::settings::Settings;
+
+        use super::*;
+        use serde::Deserialize;
+
+        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+        struct TestData {
+            id: String,
+            data: Vec<u8>,
+        }
+
+        #[cfg_attr(not(feature = "db_test"), ignore)]
+        #[tokio::test]
+        async fn test_write() {
+            let settings = Settings::new().unwrap();
+            let store = PostgresSessionStore::<TestData>::connect(settings.store_url)
+                .await
+                .unwrap();
+
+            let expected = SessionState::<TestData>::new(
+                SessionToken::new(),
+                TestData {
+                    id: "hello".to_owned(),
+                    data: vec![1, 2, 3],
+                },
+            );
+
+            store.write(&expected).await.unwrap();
+
+            let actual = store.get(&expected.token).await.unwrap().unwrap();
+            assert_eq!(actual.session_data, expected.session_data);
         }
     }
 }

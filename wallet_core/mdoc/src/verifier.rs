@@ -111,6 +111,7 @@ pub struct WaitingForResponse {
     items_requests: ItemsRequests,
     their_key: SessionKey,
     ephemeral_privkey: DerSecretKey,
+    #[serde(with = "cbor_hex")]
     session_transcript: SessionTranscript,
 }
 

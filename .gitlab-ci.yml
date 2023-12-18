@@ -114,14 +114,17 @@ test-rust-integration:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:c485e43a3940e33327f97ce24c1ab3c2e67fd5c86c7700df8dee14ad9c0d4a12"
   variables:
-    POSTGRES_USER: "postgres"
-    POSTGRES_PASSWORD: "postgres"
-    POSTGRES_DB: "wallet_provider"
-    POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
+    WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/wallet_server"
+    WALLET_SERVER_USECASES: "{}"
   services:
-    - name: "$HARBOR_REGISTRY/docker-hub-proxy/library/postgres@sha256:cb3de421ad5fdfd35c7d35652deeb406259e8955af19cca9554592618eb2112e" # 15.3
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:8260dcdfd90b550c80d8a2e5527c0efb2280b371ab34c28f713f770a749c49dc"
       alias: postgres
+      variables:
+        POSTGRES_USER: "postgres"
+        POSTGRES_PASSWORD: "postgres"
+        POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_server"
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -138,6 +141,7 @@ test-rust-integration:
     - p11tool --login --write --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" --set-pin "${WALLET_PROVIDER_HSM__USER_PIN}" --label="pin_public_disclosure_protection_key" "$(p11tool --list-token-urls | grep "SoftHSM")"
   script:
     - cargo run --bin wallet_provider_migrations -- up
+    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration -- up
     - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info
     - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
   artifacts:
@@ -393,6 +397,25 @@ build-wallet-server-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server:$CI_COMMIT_SHORT_SHA
       --cache=true
 
+build-wp-migrations-image:
+  extends: .kaniko
+  rules: !reference [ .default-or-release, rules ]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-integration
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile wallet_core/wallet_server/migration/Dockerfile
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migration:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
 build-static-files-image:
   extends: .kaniko
   rules: !reference [ .default-or-release, rules ]
@@ -508,6 +531,7 @@ dependency-check-images:
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
       "nl-wallet-pid-issuer"
+      "nl-wallet-server-migration"
       "nl-wallet-server"
       )
     - mkdir -p trivy

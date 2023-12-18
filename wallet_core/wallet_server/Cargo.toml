@@ -49,9 +49,11 @@ nl_wallet_mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
 
 [features]
-default = ["postgres"]
+default = []
 postgres = ["dep:sea-orm"]
 
 [dev-dependencies]
 indexmap.workspace = true
 reqwest.workspace = true
+
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }

@@ -276,13 +276,12 @@ impl Serialize for Handover {
 
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        use x509_parser::nom::AsBytes;
         let val = Value::deserialize(deserializer).unwrap();
         match val {
             Value::Null => Ok(Handover::QRHandover),
-            Value::Bytes(bytes) => Ok(Handover::SchemeHandoverBytes(
-                cbor_deserialize(bytes.as_bytes()).unwrap(),
-            )),
+            Value::Tag(24, b) => Ok(Handover::SchemeHandoverBytes(TaggedBytes(
+                cbor_deserialize(b.as_bytes().unwrap().as_slice()).unwrap(),
+            ))),
             Value::Array(bts_vec) => match bts_vec.len() {
                 1 => Ok(Handover::NFCHandover(NFCHandover {
                     handover_select_message: bts_vec[0].deserialized().unwrap(),
@@ -292,9 +291,9 @@ impl<'de> Deserialize<'de> for Handover {
                     handover_select_message: bts_vec[0].deserialized().unwrap(),
                     handover_request_message: Some(bts_vec[1].deserialized().unwrap()),
                 })),
-                _ => panic!(),
+                _ => panic!("unexpected index"),
             },
-            _ => panic!(),
+            _ => panic!("unexpected value"),
         }
     }
 }
@@ -468,7 +467,7 @@ mod tests {
     use hex_literal::hex;
     use serde_bytes::ByteBuf;
 
-    use crate::utils::serialization::*;
+    use super::*;
 
     #[test]
     fn tagged_bytes() {
