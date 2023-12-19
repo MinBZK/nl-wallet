@@ -12,11 +12,9 @@ use nl_wallet_mdoc::{
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::{
-        jwt::Jwt,
-        messages::auth::{WalletCertificate, WalletCertificateClaims},
-    },
+    account::messages::auth::{WalletCertificate, WalletCertificateClaims},
     generator::TimeGenerator,
+    jwt::Jwt,
     keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, WithIdentifier},
     trust_anchor::DerTrustAnchor,
     utils,

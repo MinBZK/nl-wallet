@@ -3,11 +3,11 @@ use std::collections::HashMap;
 
 use crate::{
     account::{
-        jwt::{Jwt, JwtClaims},
         serialization::{Base64Bytes, DerSignature, DerVerifyingKey},
         signed::SignedDouble,
     },
     errors::Result,
+    jwt::{Jwt, JwtClaims},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 

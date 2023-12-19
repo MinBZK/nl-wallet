@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     account::{
-        jwt::{Jwt, JwtClaims},
         serialization::{Base64Bytes, DerVerifyingKey},
         signed::SignedDouble,
     },
     errors::{Result, ValidationError},
+    jwt::{Jwt, JwtClaims},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 

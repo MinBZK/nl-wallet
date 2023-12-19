@@ -143,10 +143,7 @@ mod tests {
     use assert_matches::assert_matches;
     use http::StatusCode;
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
-    use wallet_common::{
-        account::{jwt::Jwt, signed::SequenceNumberComparison},
-        utils,
-    };
+    use wallet_common::{account::signed::SequenceNumberComparison, jwt::Jwt, utils};
 
     use crate::{account_provider::AccountProviderResponseError, wallet::tests::ACCOUNT_SERVER_KEYS};
 
