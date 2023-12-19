@@ -30,7 +30,7 @@ use nl_wallet_mdoc::{
     ItemsRequest, ReaderEngagement,
 };
 use wallet::{
-    mock::{default_configuration, LocalConfigurationRepository, MockDigidSession},
+    mock::{default_configuration, MockDigidSession},
     wallet_deps::{
         DigidSession, HttpDigidSession, HttpOpenIdClient, HttpOpenidPidIssuerClient, OpenidPidIssuerClient,
         S256PkcePair,
@@ -189,11 +189,12 @@ impl AttributeService for MockAttributeService {
 
 async fn start_wallet_server<A, S>(settings: Settings, sessions: S, attr_service: A)
 where
+    A: AttributeService,
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
     let public_url = settings.public_url.clone();
     tokio::spawn(async move {
-        server::serve::<S>(&settings, sessions)
+        server::serve::<A, S>(&settings, sessions, attr_service)
             .await
             .expect("Could not start wallet_server");
     });
@@ -251,7 +252,7 @@ async fn test_start_session() {
     let (settings, _) = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
 
-    start_wallet_server(settings.clone(), sessions).await;
+    start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
 
     let client = reqwest::Client::new();
 
@@ -310,7 +311,7 @@ async fn test_session_not_found() {
     let (settings, _) = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
 
-    start_wallet_server(settings.clone(), sessions).await;
+    start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
 
     let client = reqwest::Client::new();
     // does it exist for the RP side of things?
@@ -513,11 +514,4 @@ fn find_in_text<'a>(text: &'a str, start: &str, end: &str) -> &'a str {
 
 fn local_base_url(port: u16) -> Url {
     Url::parse(&format!("http://localhost:{}/", port)).expect("Could not create url")
-}
-
-fn test_wallet_config(base_url: Url) -> LocalConfigurationRepository {
-    let mut config = default_configuration();
-    config.pid_issuance.pid_issuer_url = base_url;
-
-    LocalConfigurationRepository::new(config)
 }
