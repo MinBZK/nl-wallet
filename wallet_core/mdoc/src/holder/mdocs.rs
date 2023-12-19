@@ -6,17 +6,17 @@ use webpki::TrustAnchor;
 use wallet_common::generator::Generator;
 
 use crate::{
-    basic_sa_ext::Entry,
+    basic_sa_ext::{Entry, UnsignedMdoc},
     iso::*,
     utils::{
         keys::{MdocEcdsaKey, MdocKeyType},
         x509::Certificate,
     },
     verifier::ValidityRequirement,
-    Result,
+    Error, Result,
 };
 
-use super::{CborHttpClient, HttpClient, IssuanceSessionState};
+use super::{CborHttpClient, HolderError, HttpClient, IssuanceSessionState};
 
 pub struct Wallet<H = CborHttpClient> {
     pub(crate) session_state: Option<IssuanceSessionState>,
@@ -102,5 +102,25 @@ impl Mdoc {
 
     pub fn issuer_certificate(&self) -> Result<Certificate> {
         self.issuer_signed.issuer_auth.signing_cert()
+    }
+
+    /// Check that the namespaces, attribute names and attribute values of this instance are equal to to the
+    /// provided unsigned value.
+    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<()> {
+        let our_attrs = &self.attributes();
+
+        if our_attrs.len() != unsigned.attributes.len() {
+            return Err(HolderError::ExpectedAttributesMissing.into());
+        }
+
+        unsigned.attributes.iter().try_for_each(|(namespace, expected_attrs)| {
+            let our_attrs = our_attrs
+                .get(namespace)
+                .ok_or(Error::Holder(HolderError::ExpectedAttributesMissing))?;
+            if *our_attrs != *expected_attrs {
+                return Err(HolderError::ExpectedAttributesMissing.into());
+            }
+            Ok(())
+        })
     }
 }

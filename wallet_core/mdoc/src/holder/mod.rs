@@ -60,4 +60,6 @@ pub enum HolderError {
     MultipleCandidates(Vec<DocType>),
     #[error("verifier returned error in response to disclosure: {0:?}")]
     DisclosureResponse(SessionStatus),
+    #[error("not all expected attributes were issued")]
+    ExpectedAttributesMissing,
 }

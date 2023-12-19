@@ -129,7 +129,6 @@ impl IssuanceClient {
             .unsigned_mdocs
             .iter()
             .map(|unsigned| MdocCopies {
-                // TODO check that the received attributes equal the previously received unsigned mdocs
                 cred_copies: keys_and_responses
                     .drain(..unsigned.copy_count as usize)
                     .map(|(cred_response, key)| {
@@ -138,13 +137,18 @@ impl IssuanceClient {
                             cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed).unwrap().as_slice()).unwrap();
 
                         // Construct the new mdoc; this also verifies it against the trust anchors.
-                        Mdoc::new::<K>(
+                        let mdoc = Mdoc::new::<K>(
                             key.identifier().to_string(),
                             issuer_signed,
                             &TimeGenerator,
                             trust_anchors,
                         )
-                        .unwrap()
+                        .unwrap();
+
+                        // Check that our mdoc contains exactly the attributes the issuer said it would have
+                        mdoc.compare_unsigned(unsigned).unwrap();
+
+                        mdoc
                     })
                     .collect(),
             })
