@@ -20,46 +20,34 @@ pub async fn serve<S>(settings: &Settings, sessions: S) -> Result<()>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
-    let socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
+    let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
+    let requestor_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
 
     let (wallet_router, requester_router) = create_routers(settings.clone(), sessions)?;
 
-    // if an application server is configured, we need two webservers
-    if let Some(server) = &settings.requester_server {
-        let app_socket = SocketAddr::new(server.ip, server.port);
-
-        debug!("listening for requester on {}", app_socket);
-        let server = tokio::spawn(async move {
-            axum::Server::bind(&app_socket)
-                .serve(
-                    Router::new()
-                        .nest("/sessions", requester_router)
-                        .nest("/sessions", health_router())
-                        .into_make_service(),
-                )
-                .await
-        });
-
-        debug!("listening for wallet on {}", socket);
-        axum::Server::bind(&socket)
+    debug!("listening for requester on {}", requestor_socket);
+    let server = tokio::spawn(async move {
+        axum::Server::bind(&requestor_socket)
             .serve(
                 Router::new()
-                    .nest("/", wallet_router)
-                    .nest("/", health_router())
+                    .nest("/sessions", requester_router)
+                    .nest("/sessions", health_router())
                     .into_make_service(),
             )
-            .await?;
+            .await
+    });
 
-        server.await??;
-    } else {
-        let router = Router::new()
-            .nest("/", wallet_router)
-            .nest("/sessions", requester_router)
-            .nest("/", health_router());
+    debug!("listening for wallet on {}", wallet_socket);
+    axum::Server::bind(&wallet_socket)
+        .serve(
+            Router::new()
+                .nest("/", wallet_router)
+                .nest("/", health_router())
+                .into_make_service(),
+        )
+        .await?;
 
-        debug!("listening on {}", socket);
-        axum::Server::bind(&socket).serve(router.into_make_service()).await?;
-    }
+    server.await??;
 
     Ok(())
 }

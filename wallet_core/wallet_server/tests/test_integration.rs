@@ -79,12 +79,12 @@ fn wallet_server_settings() -> Settings {
             ip: IpAddr::from_str("127.0.0.1").unwrap(),
             port,
         },
-        requester_server: Some(Server {
+        requester_server: Server {
             ip: IpAddr::from_str("127.0.0.1").unwrap(),
             port: port2,
-        }),
+        },
         public_url: format!("http://127.0.0.1:{}/", port).parse().unwrap(),
-        internal_url: Some(format!("http://127.0.0.1:{}/", port2).parse().unwrap()),
+        internal_url: format!("http://127.0.0.1:{}/", port2).parse().unwrap(),
         usecases: HashMap::new(),
         trust_anchors: Vec::new(),
         #[cfg(feature = "postgres")]
@@ -201,7 +201,6 @@ async fn test_start_session() {
         .post(
             settings
                 .internal_url
-                .unwrap()
                 .join("/sessions")
                 .expect("could not join url with endpoint"),
         )
@@ -244,7 +243,6 @@ async fn test_session_not_found() {
         .get(
             settings
                 .internal_url
-                .unwrap()
                 .join(&format!("/sessions/{}/status", SessionToken::new()))
                 .unwrap(),
         )
