@@ -345,8 +345,7 @@ async fn test_issuance_and_disclosure() {
     }]
     .into();
 
-    let (session_id, reader_engagement) = verifier_client
-        .verifier
+    let (session_id, reader_engagement) = verifier
         .new_session(items_requests, session_type, Default::default())
         .await
         .expect("creating new verifier session should succeed");
