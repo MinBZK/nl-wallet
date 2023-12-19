@@ -67,8 +67,9 @@ pub async fn create_issuance_router<A: AttributeService>(
     let issuance_router = Router::new()
         .route("/token", post(token))
         .route("/credential", post(credential))
+        .route("/credential", delete(reject_issuance))
         .route("/batch_credential", post(batch_credential))
-        .route("/reject", delete(reject_issuance))
+        .route("/batch_credential", delete(reject_issuance))
         .layer(TraceLayer::new_for_http())
         .layer(axum::middleware::from_fn(log_request_response))
         .with_state(application_state);

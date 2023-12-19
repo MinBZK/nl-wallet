@@ -51,7 +51,7 @@ impl IssuanceClient {
     ) -> Result<Vec<UnsignedMdoc>, Error> {
         let token_response: TokenResponseWithPreviews = self
             .http_client
-            .post(base_url.join("/issuance/token").unwrap()) // TODO discover token endpoint instead
+            .post(dbg!(base_url.join("token").unwrap())) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
             .body(serde_urlencoded::to_string(token_request).unwrap()) // TODO
             .send()
@@ -113,7 +113,7 @@ impl IssuanceClient {
         };
         let responses: CredentialResponses = self
             .http_client
-            .post(issuance_state.issuer_url.join("/issuance/batch_credential").unwrap()) // TODO discover token endpoint instead
+            .post(issuance_state.issuer_url.join("batch_credential").unwrap()) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
             .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
             .body(serde_json::to_string(&credential_requests).unwrap()) // TODO
@@ -164,7 +164,7 @@ impl IssuanceClient {
         let issuance_state = self.session_state.take().expect("no issuance state");
 
         self.http_client
-            .delete(issuance_state.issuer_url.join("/issuance/reject").unwrap()) // TODO discover token endpoint instead
+            .delete(issuance_state.issuer_url.join("credential").unwrap()) // TODO discover token endpoint instead
             .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
             .send()
             .await

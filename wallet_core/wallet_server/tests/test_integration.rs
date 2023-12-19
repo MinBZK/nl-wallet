@@ -371,7 +371,9 @@ async fn test_mock_issuance() {
     pid_issuer_client
         .start_retrieve_pid(
             digid_session,
-            &local_base_url(settings.public_url.port().unwrap()),
+            &local_base_url(settings.public_url.port().unwrap())
+                .join("issuance/")
+                .unwrap(),
             "authorization_code_that_digid_would_pass_to_us".to_string(),
         )
         .await
@@ -427,7 +429,11 @@ async fn test_pid_issuance_digid_bridge() {
     // Exchange the authorization code for an access token and the attestation previews
     let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
     pid_issuer_client
-        .start_retrieve_pid(digid_session, &pid_issuance_config.pid_issuer_url, authorization_code)
+        .start_retrieve_pid(
+            digid_session,
+            &pid_issuance_config.pid_issuer_url.join("issuance/").unwrap(),
+            authorization_code,
+        )
         .await
         .unwrap();
 
