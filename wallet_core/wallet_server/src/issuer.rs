@@ -187,6 +187,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
                 CredentialRequestError::AttestationSigning(_) => CredentialErrorType::ServerError,
                 CredentialRequestError::CborSerialization(_) => CredentialErrorType::ServerError,
                 CredentialRequestError::JsonSerialization(_) => CredentialErrorType::ServerError,
+                CredentialRequestError::DoctypeMismatch => CredentialErrorType::InvalidCredentialRequest,
             },
             error_description: Some(description),
             error_uri: None,

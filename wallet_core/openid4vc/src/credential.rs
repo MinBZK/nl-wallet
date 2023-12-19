@@ -26,6 +26,7 @@ pub struct CredentialRequests {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CredentialRequest {
     pub format: Format,
+    pub doctype: Option<String>,
     pub proof: CredentialRequestProof, // this is OPTIONAL per the spec, but we require it
 }
 

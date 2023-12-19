@@ -68,7 +68,7 @@ pub enum CredentialRequestError {
     Unauthorized,
     #[error("malformed access token")]
     MalformedToken,
-    #[error("too many credentials to be issued, use /batch_credential instead")]
+    #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
     #[error("unsupported credential format: {0:?}")]
     UnsupportedCredentialFormat(Format),
@@ -92,6 +92,8 @@ pub enum CredentialRequestError {
     CborSerialization(#[from] CborError),
     #[error("JSON serialization failed: {0}")]
     JsonSerialization(#[from] serde_json::Error),
+    #[error("mismatch between rquested and offered doctypes")]
+    DoctypeMismatch,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -487,11 +489,35 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::UseBatchIssuance);
         }
 
+        // Try to determine which attestation the wallet is requesting
+        let unsigned = match credential_request.doctype {
+            Some(ref requested_doctype) => {
+                let offered_mdocs: Vec<_> = session_data
+                    .unsigned_mdocs
+                    .iter()
+                    .filter(|unsigned| unsigned.doc_type == *requested_doctype)
+                    .collect();
+                if offered_mdocs.len() != 1 {
+                    // If we have more than one mdoc on offer of the specified doctype then it is not clear which one
+                    // we should issue; abort
+                    return Err(CredentialRequestError::UseBatchIssuance);
+                }
+                *offered_mdocs.first().unwrap()
+            }
+            None => {
+                // If the wallet specified no doctype, proceed only if we want to issue a single attestation
+                if session_data.unsigned_mdocs.len() != 1 {
+                    return Err(CredentialRequestError::UseBatchIssuance);
+                }
+                session_data.unsigned_mdocs.first().unwrap()
+            }
+        };
+
         let credential_response = verify_pop_and_sign_attestation(
             private_keys,
             session_data.c_nonce.clone(),
             &credential_request,
-            session_data.unsigned_mdocs.first().unwrap(), // safe because we checked above that this exists
+            unsigned,
             credential_issuer_identifier,
             accepted_wallet_client_ids,
         )
@@ -622,6 +648,15 @@ pub(crate) async fn verify_pop_and_sign_attestation(
         return Err(CredentialRequestError::UnsupportedCredentialFormat(
             cred_req.format.clone(),
         ));
+    }
+
+    if *cred_req
+        .doctype
+        .as_ref()
+        .ok_or(CredentialRequestError::DoctypeMismatch)?
+        != unsigned_mdoc.doc_type
+    {
+        return Err(CredentialRequestError::DoctypeMismatch);
     }
 
     let pubkey = cred_req

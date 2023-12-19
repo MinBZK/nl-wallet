@@ -95,13 +95,20 @@ impl IssuanceClient {
         .await
         .unwrap(); // TODO
 
+        let doctypes = issuance_state
+            .unsigned_mdocs
+            .iter()
+            .flat_map(|unsigned| std::iter::repeat(unsigned.doc_type.clone()).take(unsigned.copy_count as usize));
+
         let (keys, responses): (Vec<K>, Vec<CredentialRequest>) = keys_and_responses
             .into_iter()
-            .map(|(key, response)| {
+            .zip(doctypes)
+            .map(|((key, response), doctype)| {
                 (
                     key,
                     CredentialRequest {
                         format: Format::MsoMdoc,
+                        doctype: Some(doctype),
                         proof: response,
                     },
                 )
