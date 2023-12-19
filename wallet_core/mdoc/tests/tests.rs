@@ -233,25 +233,35 @@ async fn issuance_using_consent<H>(
     wallet: &mut Wallet<H>,
     issuance_server: &MockIssuanceServer,
     ca: &Certificate,
-) -> Result<Option<Vec<MdocCopies>>>
+) -> Option<Vec<MdocCopies>>
 where
     H: HttpClient,
 {
-    let service_engagement = issuance_server.new_session(request).await?;
+    let service_engagement = issuance_server
+        .new_session(request)
+        .await
+        .expect("starting a new issuance session on the server should succeed");
 
-    wallet.start_issuance(service_engagement).await?;
+    wallet
+        .start_issuance(service_engagement)
+        .await
+        .expect("starting issuance on the Wallet should succeed");
 
     if !user_consent {
-        wallet.stop_issuance().await?;
+        wallet
+            .stop_issuance()
+            .await
+            .expect("stopping issuance on the Wallet should succeed");
 
-        return Ok(None);
+        return None;
     }
 
     let mdocs = wallet
         .finish_issuance(&[ca.try_into().unwrap()], &SoftwareKeyFactory::default())
-        .await?;
+        .await
+        .expect("finishing issuance on the Wallet should succeed");
 
-    Ok(mdocs.into())
+    mdocs.into()
 }
 
 #[tokio::test]
@@ -269,7 +279,6 @@ async fn test_issuance() {
     let (mut wallet, server, ca) = setup_issuance_test();
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, server.as_ref(), &ca)
         .await
-        .expect("issuance should succeed")
         .unwrap();
     assert_eq!(1, mdocs.len());
     let mdoc_copies = mdocs.first().unwrap();
@@ -285,9 +294,7 @@ async fn test_issuance() {
 
     // Decline issuance
     let (mut wallet, server, ca) = setup_issuance_test();
-    let mdocs = issuance_using_consent(false, new_issuance_request(), &mut wallet, server.as_ref(), &ca)
-        .await
-        .expect("issuance should succeed");
+    let mdocs = issuance_using_consent(false, new_issuance_request(), &mut wallet, server.as_ref(), &ca).await;
     assert!(mdocs.is_none());
 
     // Issue not-yet-valid mdocs
@@ -301,7 +308,6 @@ async fn test_issuance() {
     let (mut wallet, server, ca) = setup_issuance_test();
     let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, server.as_ref(), &ca)
         .await
-        .expect("issuance should succeed")
         .unwrap();
     assert_eq!(1, mdocs.len());
     let mdoc_copies = mdocs.first().unwrap();
@@ -328,7 +334,6 @@ async fn test_issuance_and_disclosure() {
         &mdoc_ca,
     )
     .await
-    .expect("issuance should succeed")
     .unwrap()
     .into();
 
