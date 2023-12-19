@@ -16,7 +16,7 @@ impl IssuerSigned {
 mod tests {
     use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey};
 
-    use super::super::tests::*;
+    use super::super::test_utils::*;
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {

@@ -45,13 +45,13 @@ impl IssuerSigned {
 }
 
 impl Mdoc {
-    pub(crate) fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    pub fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.issuer_signed.attribute_identifiers(&self.doc_type)
     }
 }
 
 impl Document {
-    pub(crate) fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    pub fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.issuer_signed.attribute_identifiers(&self.doc_type)
     }
 }
