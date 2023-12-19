@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use wallet_common::{
     account::{
-        jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             errors::{IncorrectPinData, PinTimeoutData},
@@ -20,6 +19,7 @@ use wallet_common::{
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
+    jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
     utils::{random_bytes, random_string},
 };
 use wallet_provider_domain::{

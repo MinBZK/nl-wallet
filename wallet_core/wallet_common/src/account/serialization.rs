@@ -10,7 +10,7 @@ use p256::{
 use serde::{de, ser, Deserialize, Serialize};
 use serde_json::value::RawValue;
 
-use crate::{account::jwt::EcdsaDecodingKey, errors::Error};
+use crate::{errors::Error, jwt::EcdsaDecodingKey};
 
 use super::signed::{SignedDouble, SignedInner};
 

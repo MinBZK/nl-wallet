@@ -3,11 +3,11 @@ use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use url::Url;
-use wallet_common::account::{
-    jwt::EcdsaDecodingKey,
-    messages::instructions::{
+use wallet_common::{
+    account::messages::instructions::{
         Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
     },
+    jwt::EcdsaDecodingKey,
 };
 
 use crate::{

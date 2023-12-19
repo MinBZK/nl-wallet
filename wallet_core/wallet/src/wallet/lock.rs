@@ -107,13 +107,13 @@ mod tests {
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use wallet_common::{
         account::{
-            jwt::Jwt,
             messages::{
                 errors::{ErrorData, ErrorType, IncorrectPinData, PinTimeoutData},
                 instructions::{CheckPin, Instruction, InstructionResultClaims},
             },
             signed::SequenceNumberComparison,
         },
+        jwt::Jwt,
         keys::EcdsaKey,
         utils,
     };
