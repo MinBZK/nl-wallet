@@ -74,7 +74,7 @@ async fn do_and_verify_iso_example_disclosure() {
     );
     println!("Reader: {:#?}", reader_x509_subject);
 
-    // Construct a new `DeviceResponse`, based on the the mdoc from the example device response in the standard.
+    // Construct a new `DeviceResponse`, based on the mdoc from the example device response in the standard.
     let resp = create_example_device_response(&device_request, session_transcript.clone())
         .await
         .unwrap();
