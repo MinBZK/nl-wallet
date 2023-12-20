@@ -46,7 +46,7 @@ use wallet_common::{keys::SecureEcdsaKey, utils::random_string};
 
 use crate::{
     jwk_from_p256, jwk_to_p256,
-    jwt::{EcdsaDecodingKey, Jwt, StandardJwtClaims},
+    jwt::{EcdsaDecodingKey, Jwt},
     Error, Result,
 };
 
@@ -58,8 +58,8 @@ struct DpopPayload {
     http_method: String,
     #[serde(rename = "ath")]
     access_token_hash: Option<String>,
-    #[serde(flatten)]
-    jwt_claims: StandardJwtClaims,
+    jti: String,
+    iat: u64,
 }
 
 struct Dpop(Jwt<DpopPayload>);
@@ -86,11 +86,8 @@ impl Dpop {
         };
 
         let payload = DpopPayload {
-            jwt_claims: StandardJwtClaims {
-                jwt_id: Some(random_string(32)),
-                issued_at: Some(jsonwebtoken::get_current_timestamp() as i64),
-                ..Default::default()
-            },
+            jti: random_string(32),
+            iat: jsonwebtoken::get_current_timestamp(),
             http_method: method,
             http_url: url,
             access_token_hash,

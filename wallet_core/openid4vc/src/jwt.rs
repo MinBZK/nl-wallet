@@ -5,7 +5,6 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     errors::Result,
@@ -77,25 +76,12 @@ impl EcdsaDecodingKey {
     }
 }
 
-/// Set of IANA registered claims by the Internet Engineering Task Force (IETF) in
-/// [RFC 7519](https://tools.ietf.org/html/rfc7519#section-4.1).
-#[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Clone)]
-pub struct StandardJwtClaims {
-    #[serde(rename = "iss")]
-    pub issuer: Option<String>,
-    #[serde(rename = "sub")]
-    pub subject: Option<String>,
-    #[serde(rename = "aud")]
-    pub audience: Option<String>,
-    #[serde(rename = "exp")]
-    pub expiry: Option<i64>,
-    #[serde(rename = "nbf")]
-    pub not_before: Option<i64>,
-    #[serde(rename = "iat")]
-    pub issued_at: Option<i64>,
-    #[serde(rename = "jti")]
-    pub jwt_id: Option<String>,
+/// Get a default header.
+fn default_header() -> Header {
+    Header {
+        alg: Algorithm::ES256,
+        ..Default::default()
+    }
 }
 
 impl<T> Jwt<T>
@@ -109,14 +95,6 @@ where
             .claims;
 
         Ok(payload)
-    }
-
-    /// Get a default header.
-    fn default_header() -> Header {
-        Header {
-            alg: Algorithm::ES256,
-            ..Default::default()
-        }
     }
 
     pub async fn sign(payload: &T, header: &Header, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {

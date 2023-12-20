@@ -7,11 +7,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use wallet_common::keys::SecureEcdsaKey;
 
-use crate::{
-    jwk_from_p256,
-    jwt::{Jwt, StandardJwtClaims},
-    Error, ErrorStatusCode, Format, Result,
-};
+use crate::{jwk_from_p256, jwt::Jwt, Error, ErrorStatusCode, Format, Result};
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
 /// Sent JSON-encoded to `POST /batch_credential`.
@@ -52,9 +48,9 @@ pub struct CredentialResponse {
 // https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CredentialRequestProofJwtPayload {
-    /// Required: `iss`, `aud`, `iat`
-    #[serde(flatten)]
-    pub jwt_claims: StandardJwtClaims,
+    pub iss: String,
+    pub aud: String,
+    pub iat: u64,
     pub nonce: String,
 }
 
@@ -135,13 +131,10 @@ impl CredentialRequestProof {
         };
 
         let payload = CredentialRequestProofJwtPayload {
-            jwt_claims: StandardJwtClaims {
-                issuer: Some(wallet_client_id),
-                audience: Some(credential_issuer_identifier.to_string()),
-                issued_at: Some(jsonwebtoken::get_current_timestamp() as i64),
-                ..Default::default()
-            },
             nonce,
+            iss: wallet_client_id,
+            aud: credential_issuer_identifier.to_string(),
+            iat: jsonwebtoken::get_current_timestamp(),
         };
 
         let jwt = Jwt::sign(&payload, &header, private_key).await?;
