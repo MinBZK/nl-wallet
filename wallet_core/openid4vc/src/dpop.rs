@@ -42,13 +42,13 @@ use jsonwebtoken::{Algorithm, Header, TokenData, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 use url::Url;
-use wallet_common::{keys::SecureEcdsaKey, utils::random_string};
-
-use crate::{
-    jwk_from_p256, jwk_to_p256,
+use wallet_common::{
     jwt::{EcdsaDecodingKey, Jwt},
-    Error, Result,
+    keys::SecureEcdsaKey,
+    utils::random_string,
 };
+
+use crate::{jwk_from_p256, jwk_to_p256, Error, Result};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct DpopPayload {

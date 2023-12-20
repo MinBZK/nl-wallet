@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     utils::serialization::{cbor_serialize, CborError},
     IssuerSigned,
 };
-use wallet_common::utils::random_string;
+use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
 
 use crate::{
     credential::{
@@ -25,7 +25,6 @@ use crate::{
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     jwk_to_p256,
-    jwt::EcdsaDecodingKey,
     token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType},
     Format, JwkConversionError,
 };
@@ -700,6 +699,8 @@ impl CredentialRequestProof {
         validation_options.required_spec_claims = HashSet::from(["iss".to_string(), "aud".to_string()]);
         validation_options.set_issuer(accepted_wallet_client_ids);
         validation_options.set_audience(&[credential_issuer_identifier]);
+
+        // We use `jsonwebtoken` crate directly instead of our `Jwt` because we need to inspect the header
         let token_data = jsonwebtoken::decode::<CredentialRequestProofJwtPayload>(
             &jwt.0,
             &EcdsaDecodingKey::from(verifying_key).0,
