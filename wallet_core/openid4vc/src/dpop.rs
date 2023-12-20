@@ -51,7 +51,7 @@ use wallet_common::{
 use crate::{jwk_from_p256, jwk_to_p256, Error, Result};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-struct DpopPayload {
+pub struct DpopPayload {
     #[serde(rename = "htu")]
     http_url: Url,
     #[serde(rename = "htm")]
@@ -62,9 +62,9 @@ struct DpopPayload {
     iat: u64,
 }
 
-struct Dpop(Jwt<DpopPayload>);
+pub struct Dpop(Jwt<DpopPayload>);
 
-const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
+pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
 
 impl Dpop {
     pub async fn new(
@@ -97,7 +97,7 @@ impl Dpop {
         Ok(Self(jwt))
     }
 
-    fn verify_signature(&self, verifying_key: &VerifyingKey) -> Result<TokenData<DpopPayload>> {
+    pub fn verify_signature(&self, verifying_key: &VerifyingKey) -> Result<TokenData<DpopPayload>> {
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims = Default::default();
         let token_data = jsonwebtoken::decode::<DpopPayload>(
@@ -108,7 +108,7 @@ impl Dpop {
         Ok(token_data)
     }
 
-    fn verify_data(
+    pub fn verify_data(
         &self,
         token_data: &TokenData<DpopPayload>,
         url: Url,

@@ -1,4 +1,5 @@
 use base64::prelude::*;
+use futures::TryFutureExt;
 use mime::{APPLICATION_JSON, APPLICATION_WWW_FORM_URLENCODED};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use url::Url;
@@ -15,9 +16,11 @@ use nl_wallet_mdoc::{
 use wallet_common::generator::TimeGenerator;
 
 use crate::{
-    credential::{CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponses},
-    token::{TokenRequest, TokenResponseWithPreviews},
-    Error, Format, NL_WALLET_CLIENT_ID,
+    credential::{
+        CredentialErrorType, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponses,
+    },
+    token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
+    Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
 
 pub struct IssuanceClient {
@@ -53,17 +56,25 @@ impl IssuanceClient {
             .http_client
             .post(dbg!(base_url.join("token").unwrap())) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
-            .body(serde_urlencoded::to_string(token_request).unwrap()) // TODO
+            .body(serde_urlencoded::to_string(token_request)?)
             .send()
-            .await
-            .unwrap() // TODO parse token error response in case of error
-            .json()
-            .await
-            .unwrap();
+            .map_err(Error::from)
+            .and_then(|response| async {
+                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+                let status = response.status();
+                if status.is_client_error() || status.is_server_error() {
+                    let error = response.json::<ErrorResponse<TokenErrorType>>().await?;
+                    Err(Error::TokenRequest(error))
+                } else {
+                    let text = response.json().await?;
+                    Ok(text)
+                }
+            })
+            .await?;
 
         self.session_state = Some(IssuanceState {
             access_token: token_response.token_response.access_token,
-            c_nonce: token_response.token_response.c_nonce.expect("missing c_nonce"), // TODO
+            c_nonce: token_response.token_response.c_nonce.ok_or(Error::MissingNonce)?,
             unsigned_mdocs: token_response.attestation_previews.clone(),
             issuer_url: base_url.clone(),
         });
@@ -77,7 +88,7 @@ impl IssuanceClient {
         key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
         credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, Error> {
-        let issuance_state = self.session_state.as_ref().expect("no issuance state");
+        let issuance_state = self.session_state.as_ref().ok_or(Error::MissingIssuanceSessionState)?;
 
         let keys_count: u64 = issuance_state
             .unsigned_mdocs
@@ -92,8 +103,7 @@ impl IssuanceClient {
             keys_count,
             key_factory,
         )
-        .await
-        .unwrap(); // TODO
+        .await?;
 
         let doctypes = issuance_state
             .unsigned_mdocs
@@ -123,43 +133,54 @@ impl IssuanceClient {
             .post(issuance_state.issuer_url.join("batch_credential").unwrap()) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
             .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
-            .body(serde_json::to_string(&credential_requests).unwrap()) // TODO
+            .body(serde_json::to_string(&credential_requests)?)
             .send()
-            .await
-            .unwrap() // TODO parse as credential error response in case of 4xx or 5xx
-            .json()
-            .await
-            .unwrap();
+            .map_err(Error::from)
+            .and_then(|response| async {
+                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+                let status = response.status();
+                if status.is_client_error() || status.is_server_error() {
+                    let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
+                    Err(Error::CredentialRequest(error))
+                } else {
+                    let text = response.json().await?;
+                    Ok(text)
+                }
+            })
+            .await?;
         let mut keys_and_responses: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
 
         let mdocs = issuance_state
             .unsigned_mdocs
             .iter()
-            .map(|unsigned| MdocCopies {
-                cred_copies: keys_and_responses
-                    .drain(..unsigned.copy_count as usize)
-                    .map(|(cred_response, key)| {
-                        let issuer_signed: String = serde_json::from_value(cred_response.credential).unwrap();
-                        let issuer_signed: IssuerSigned =
-                            cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed).unwrap().as_slice()).unwrap();
+            .map(|unsigned| {
+                Ok(MdocCopies {
+                    cred_copies: keys_and_responses
+                        .drain(..unsigned.copy_count as usize)
+                        .map(|(cred_response, key)| {
+                            let issuer_signed: String = serde_json::from_value(cred_response.credential)?;
+                            let issuer_signed: IssuerSigned =
+                                cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed)?.as_slice())?;
 
-                        // Construct the new mdoc; this also verifies it against the trust anchors.
-                        let mdoc = Mdoc::new::<K>(
-                            key.identifier().to_string(),
-                            issuer_signed,
-                            &TimeGenerator,
-                            trust_anchors,
-                        )
-                        .unwrap();
+                            // Construct the new mdoc; this also verifies it against the trust anchors.
+                            let mdoc = Mdoc::new::<K>(
+                                key.identifier().to_string(),
+                                issuer_signed,
+                                &TimeGenerator,
+                                trust_anchors,
+                            )
+                            .map_err(Error::MdocVerification)?;
 
-                        // Check that our mdoc contains exactly the attributes the issuer said it would have
-                        mdoc.compare_unsigned(unsigned).unwrap();
+                            // Check that our mdoc contains exactly the attributes the issuer said it would have
+                            mdoc.compare_unsigned(unsigned)
+                                .map_err(|_| Error::ExpectedAttributesMissing)?;
 
-                        mdoc
-                    })
-                    .collect(),
+                            Ok(mdoc)
+                        })
+                        .collect::<Result<_, Error>>()?,
+                })
             })
-            .collect();
+            .collect::<Result<_, Error>>()?;
 
         // Clear session state now that all fallible operations have not failed
         self.session_state.take();
@@ -168,14 +189,13 @@ impl IssuanceClient {
     }
 
     pub async fn stop_issuance(&mut self) -> Result<(), Error> {
-        let issuance_state = self.session_state.take().expect("no issuance state");
+        let issuance_state = self.session_state.as_ref().ok_or(Error::MissingIssuanceSessionState)?;
 
         self.http_client
             .delete(issuance_state.issuer_url.join("credential").unwrap()) // TODO discover token endpoint instead
             .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
             .send()
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

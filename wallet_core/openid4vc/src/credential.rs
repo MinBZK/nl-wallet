@@ -42,7 +42,7 @@ pub struct CredentialResponses {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CredentialResponse {
     pub format: Format,
-    pub credential: serde_json::Value, // TODO maybe make this typed
+    pub credential: serde_json::Value,
 }
 
 // https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1
@@ -98,7 +98,10 @@ impl CredentialRequestProof {
         key_factory: &'a impl KeyFactory<'a, Key = K>,
     ) -> Result<Vec<(K, CredentialRequestProof)>> {
         // TODO: extend key factory so that it can do this in a single instruction
-        let keys = key_factory.generate_new_multiple(number_of_keys).await.unwrap(); // TODO
+        let keys = key_factory
+            .generate_new_multiple(number_of_keys)
+            .await
+            .map_err(|e| Error::PrivateKeyGeneration(Box::new(e)))?;
         try_join_all(keys.into_iter().map(|privkey| async {
             CredentialRequestProof::new(
                 &privkey,

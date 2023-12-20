@@ -84,11 +84,7 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         pre_authorized_code: String,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
         let token_request = digid_session.into_pre_authorized_code_request(pre_authorized_code);
-        let attestation_previews = self
-            .issuance_client
-            .start_issuance(base_url, token_request)
-            .await
-            .unwrap();
+        let attestation_previews = self.issuance_client.start_issuance(base_url, token_request).await?;
         Ok(attestation_previews)
     }
 
@@ -101,14 +97,13 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         let mdocs = self
             .issuance_client
             .finish_issuance(trust_anchors, key_factory, credential_issuer_identifier)
-            .await
-            .unwrap();
+            .await?;
 
         Ok(mdocs)
     }
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
-        self.issuance_client.stop_issuance().await.unwrap();
+        self.issuance_client.stop_issuance().await?;
 
         Ok(())
     }

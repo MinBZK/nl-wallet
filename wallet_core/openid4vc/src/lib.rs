@@ -1,7 +1,7 @@
-#![allow(dead_code)] // TODO
-
 use base64::prelude::*;
+use credential::CredentialErrorType;
 use jsonwebtoken::jwk::{self, EllipticCurve, Jwk};
+use nl_wallet_mdoc::utils::serialization::CborError;
 use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
@@ -9,6 +9,7 @@ use p256::{
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use token::TokenErrorType;
 use url::Url;
 use wallet_common::jwt::JwtError;
 
@@ -47,7 +48,6 @@ pub enum Format {
 //     JwtClientAttestation,
 // }
 
-// TODO
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("unsupported JWT algorithm: expected {expected}, found {found}")]
@@ -72,6 +72,30 @@ pub enum Error {
     JwkConversion(#[from] JwkConversionError),
     #[error(transparent)]
     Jwt(#[from] JwtError),
+    #[error("URL encoding failed: {0}")]
+    UrlEncoding(#[from] serde_urlencoded::ser::Error),
+    #[error("http request failed: {0}")]
+    Network(#[from] reqwest::Error),
+    #[error("missing c_nonce")]
+    MissingNonce,
+    #[error("JSON (de)serialization failed: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("CBOR (de)serialization error: {0}")]
+    Cbor(#[from] CborError),
+    #[error("base64 decoding failed: {0}")]
+    Base64Error(#[from] base64::DecodeError),
+    #[error("not all expected attributes were issued")]
+    ExpectedAttributesMissing,
+    #[error("mdoc verification failed: {0}")]
+    MdocVerification(#[source] nl_wallet_mdoc::Error),
+    #[error("error requesting access token: {0:?}")]
+    TokenRequest(ErrorResponse<TokenErrorType>),
+    #[error("error requesting credentials: {0:?}")]
+    CredentialRequest(ErrorResponse<CredentialErrorType>),
+    #[error("generating attestation private keys failed: {0}")]
+    PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("missing issuance session state")]
+    MissingIssuanceSessionState,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -48,7 +48,7 @@ impl AttributeService for PidAttributeService {
 
     async fn new(settings: &Digid) -> Result<Self, Error> {
         Ok(PidAttributeService {
-            openid_client: OpenIdClient::new(settings).await.unwrap(),
+            openid_client: OpenIdClient::new(settings).await?,
             http_client: reqwest_client(),
             attrs_lookup: MockAttributesLookup::default(),
         })

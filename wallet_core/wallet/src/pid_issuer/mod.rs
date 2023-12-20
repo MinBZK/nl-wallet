@@ -27,6 +27,8 @@ pub enum PidIssuerError {
     Response(#[source] reqwest::Error, String),
     #[error("mdoc error: {0}")]
     MdocError(#[from] nl_wallet_mdoc::Error),
+    #[error("openid4vci error: {0}")]
+    Openid(#[from] openid4vc::Error),
 }
 
 #[async_trait]
