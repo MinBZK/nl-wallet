@@ -6,11 +6,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{
-    account::serialization::DerVerifyingKey,
-    errors::{Result, SigningError, ValidationError},
-    keys::SecureEcdsaKey,
-};
+use crate::{account::serialization::DerVerifyingKey, keys::SecureEcdsaKey};
 
 // TODO implement keyring and use kid header item for key rollover
 
@@ -22,6 +18,18 @@ impl<T, S: Into<String>> From<S> for Jwt<T> {
     fn from(val: S) -> Self {
         Jwt(val.into(), PhantomData)
     }
+}
+
+pub type Result<T, E = JwtError> = std::result::Result<T, E>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum JwtError {
+    #[error("JSON parsing error: {0}")]
+    JsonParsing(#[from] serde_json::Error),
+    #[error("error validating JWT: {0}")]
+    Validation(#[source] jsonwebtoken::errors::Error),
+    #[error("error signing JWT: {0}")]
+    Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 pub trait JwtSubject {
@@ -83,7 +91,7 @@ where
     /// Verify the JWT, and parse and return its payload.
     pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<T> {
         let payload = jsonwebtoken::decode::<T>(&self.0, &pubkey.0, validation_options)
-            .map_err(ValidationError::from)?
+            .map_err(JwtError::Validation)?
             .claims;
 
         Ok(payload)
@@ -97,7 +105,7 @@ where
         let signature = privkey
             .try_sign(message.as_bytes())
             .await
-            .map_err(|err| SigningError::Ecdsa(Box::new(err)))?;
+            .map_err(|err| JwtError::Signing(Box::new(err)))?;
         let encoded_signature = URL_SAFE_NO_PAD.encode(signature.to_vec());
 
         Ok([message, encoded_signature].join(".").into())
@@ -149,7 +157,7 @@ where
         let signature = privkey
             .try_sign(message.as_bytes())
             .await
-            .map_err(|err| SigningError::Ecdsa(Box::new(err)))?;
+            .map_err(|err| JwtError::Signing(Box::new(err)))?;
         let encoded_signature = URL_SAFE_NO_PAD.encode(signature.to_vec());
 
         Ok([message, encoded_signature].join(".").into())

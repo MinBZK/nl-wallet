@@ -19,7 +19,7 @@ use wallet_common::{
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
-    jwt::{EcdsaDecodingKey, Jwt, JwtSubject},
+    jwt::{EcdsaDecodingKey, Jwt, JwtError, JwtSubject},
     utils::{random_bytes, random_string},
 };
 use wallet_provider_domain::{
@@ -50,7 +50,7 @@ pub enum AccountServerInitError {
 #[derive(Debug, thiserror::Error)]
 pub enum ChallengeError {
     #[error("challenge signing error: {0}")]
-    ChallengeSigning(#[source] wallet_common::errors::Error),
+    ChallengeSigning(#[from] JwtError),
     #[error("could not store challenge: {0}")]
     Storage(#[from] PersistenceError),
     #[error("challenge message validation error: {0}")]
@@ -72,7 +72,7 @@ pub enum WalletCertificateError {
     #[error("stored pin public key does not match provided one")]
     PinPubKeyMismatch,
     #[error("validation failed: {0}")]
-    Validation(#[from] wallet_common::errors::Error),
+    Validation(#[from] JwtError),
     #[error("no registered wallet user found")]
     UserNotRegistered,
     #[error("registered wallet user blocked")]
@@ -88,7 +88,7 @@ pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
     #[error("registration challenge validation error: {0}")]
-    ChallengeValidation(#[source] wallet_common::errors::Error),
+    ChallengeValidation(#[source] JwtError),
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_common::errors::Error),
     #[error("registration message validation error: {0}")]
@@ -96,7 +96,7 @@ pub enum RegistrationError {
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
     #[error("registration JWT signing error: {0}")]
-    JwtSigning(#[source] wallet_common::errors::Error),
+    JwtSigning(#[source] JwtError),
     #[error("could not store certificate: {0}")]
     CertificateStorage(#[from] PersistenceError),
     #[error("registration PIN public key DER encoding error: {0}")]
@@ -120,7 +120,7 @@ pub enum InstructionError {
     #[error("account is blocked")]
     AccountBlocked,
     #[error("instruction result signing error: {0}")]
-    Signing(#[source] wallet_common::errors::Error),
+    Signing(#[source] JwtError),
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
     #[error("key not found: {0}")]
