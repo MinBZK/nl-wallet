@@ -10,6 +10,7 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
+use wallet_common::jwt::JwtError;
 
 pub mod authorization;
 pub mod credential;
@@ -69,6 +70,8 @@ pub enum Error {
     IncorrectJwkPublicKey,
     #[error(transparent)]
     JwkConversion(#[from] JwkConversionError),
+    #[error(transparent)]
+    Jwt(#[from] JwtError),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
