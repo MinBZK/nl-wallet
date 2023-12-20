@@ -129,7 +129,7 @@ where
             .map_err(InstructionError::from)?;
 
         let result = signed_result
-            .parse_and_verify(self.instruction_result_public_key)
+            .parse_and_verify_with_sub(self.instruction_result_public_key)
             .map_err(InstructionError::InstructionResultValidation)?
             .result;
 

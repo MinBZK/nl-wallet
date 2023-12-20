@@ -24,7 +24,7 @@ impl<T, S: Into<String>> From<S> for Jwt<T> {
     }
 }
 
-pub trait JwtClaims {
+pub trait JwtSubject {
     const SUB: &'static str;
 }
 
@@ -78,24 +78,60 @@ impl EcdsaDecodingKey {
 
 impl<T> Jwt<T>
 where
-    T: Serialize + DeserializeOwned + JwtClaims,
+    T: Serialize + DeserializeOwned,
 {
     /// Verify the JWT, and parse and return its payload.
-    pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey) -> Result<T> {
-        let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims.clear(); // we don't use `exp`, don't require it
-        validation_options.sub = T::SUB.to_owned().into();
-        validation_options.leeway = 60;
-
-        let payload = jsonwebtoken::decode::<JwtPayload<T>>(&self.0, &pubkey.0, &validation_options)
+    pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<T> {
+        let payload = jsonwebtoken::decode::<T>(&self.0, &pubkey.0, validation_options)
             .map_err(ValidationError::from)?
-            .claims
-            .payload;
+            .claims;
 
         Ok(payload)
     }
 
-    pub async fn sign(payload: &T, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
+    pub async fn sign(payload: &T, header: &Header, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
+        let encoded_header = URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
+        let encoded_claims = URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
+        let message = [encoded_header, encoded_claims].join(".");
+
+        let signature = privkey
+            .try_sign(message.as_bytes())
+            .await
+            .map_err(|err| SigningError::Ecdsa(Box::new(err)))?;
+        let encoded_signature = URL_SAFE_NO_PAD.encode(signature.to_vec());
+
+        Ok([message, encoded_signature].join(".").into())
+    }
+}
+
+pub fn validations() -> Validation {
+    let mut validation_options = Validation::new(Algorithm::ES256);
+
+    validation_options.required_spec_claims.clear(); // we generally don't use `exp`, don't require it
+    validation_options.leeway = 60;
+
+    validation_options
+}
+
+pub fn header() -> Header {
+    Header {
+        alg: Algorithm::ES256,
+        ..Default::default()
+    }
+}
+
+impl<T> Jwt<T>
+where
+    T: Serialize + DeserializeOwned + JwtSubject,
+{
+    /// Verify the JWT, and parse and return its payload.
+    pub fn parse_and_verify_with_sub(&self, pubkey: &EcdsaDecodingKey) -> Result<T> {
+        let mut validation_options = validations();
+        validation_options.required_spec_claims.insert("sub".to_string());
+        self.parse_and_verify(pubkey, &validation_options)
+    }
+
+    pub async fn sign_with_sub(payload: &T, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
         let header = &Header {
             alg: Algorithm::ES256,
             kid: "0".to_owned().into(),
@@ -140,6 +176,8 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 
     use super::*;
@@ -159,18 +197,76 @@ mod tests {
         }
     }
 
-    impl JwtClaims for ToyMessage {
+    impl JwtSubject for ToyMessage {
         const SUB: &'static str = "toy_message";
+    }
+
+    #[tokio::test]
+    async fn test_sign_and_verify_with_sub() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let t = ToyMessage::default();
+
+        let jwt = Jwt::sign_with_sub(&t, &private_key).await.unwrap();
+
+        // the JWT has a `sub` with the expected value
+        let jwt_message: HashMap<String, serde_json::Value> = part(1, &jwt.0);
+        assert_eq!(
+            *jwt_message.get("sub").unwrap(),
+            serde_json::Value::String(ToyMessage::SUB.to_string())
+        );
+
+        // the JWT can be verified and parsed back into an identical value
+        let parsed = jwt
+            .parse_and_verify_with_sub(&(*private_key.verifying_key()).into())
+            .unwrap();
+
+        assert_eq!(t, parsed);
     }
 
     #[tokio::test]
     async fn test_sign_and_verify() {
         let private_key = SigningKey::random(&mut OsRng);
-
         let t = ToyMessage::default();
-        let jwt = Jwt::sign(&t, &private_key).await.unwrap();
-        let parsed = jwt.parse_and_verify(&(*private_key.verifying_key()).into()).unwrap();
+
+        let header = header();
+        let jwt = Jwt::sign(&t, &header, &private_key).await.unwrap();
+
+        // the JWT can be verified and parsed back into an identical value
+        let parsed = jwt
+            .parse_and_verify(&(*private_key.verifying_key()).into(), &validations())
+            .unwrap();
 
         assert_eq!(t, parsed);
+    }
+
+    #[tokio::test]
+    async fn test_sub_required() {
+        let private_key = SigningKey::random(&mut OsRng);
+        let t = ToyMessage::default();
+
+        // create a new JWT without a `sub`
+        let header = header();
+        let jwt = Jwt::sign(&t, &header, &private_key).await.unwrap();
+        let jwt_message: HashMap<String, serde_json::Value> = part(1, &jwt.0);
+        assert!(jwt_message.get("sub").is_none());
+
+        // verification fails because `sub` is required
+        jwt.parse_and_verify_with_sub(&(*private_key.verifying_key()).into())
+            .unwrap_err();
+
+        // we can parse and verify the JWT if we don't require the `sub` field to be present
+        let parsed = jwt
+            .parse_and_verify(&(*private_key.verifying_key()).into(), &validations())
+            .unwrap();
+
+        assert_eq!(t, parsed);
+    }
+
+    /// Decode and deserialize the specified part of the JWT.
+    fn part<T: DeserializeOwned>(i: u8, jwt: &str) -> T {
+        let bts = URL_SAFE_NO_PAD
+            .decode(jwt.split('.').take((i + 1) as usize).last().unwrap())
+            .unwrap();
+        serde_json::from_slice(&bts).unwrap()
     }
 }

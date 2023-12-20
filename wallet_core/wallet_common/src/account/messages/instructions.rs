@@ -7,7 +7,7 @@ use crate::{
         signed::SignedDouble,
     },
     errors::Result,
-    jwt::{Jwt, JwtClaims},
+    jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
@@ -79,11 +79,11 @@ pub trait InstructionEndpoint: Serialize + DeserializeOwned {
     type Result: Serialize + DeserializeOwned;
 }
 
-impl<R> JwtClaims for InstructionResultClaims<R> {
+impl<R> JwtSubject for InstructionResultClaims<R> {
     const SUB: &'static str = "instruction_result";
 }
 
-impl JwtClaims for InstructionChallengeRequestClaims {
+impl JwtSubject for InstructionChallengeRequestClaims {
     const SUB: &'static str = "instruction_challenge_request";
 }
 
@@ -99,7 +99,7 @@ impl InstructionChallengeRequest {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, hw_privkey).await
+        Jwt::sign_with_sub(&cert, hw_privkey).await
     }
 }
 

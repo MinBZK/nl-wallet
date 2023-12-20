@@ -106,7 +106,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
         let cert_claims = cert
-            .parse_and_verify(&certificate_public_key.into())
+            .parse_and_verify_with_sub(&certificate_public_key.into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
             return Err(WalletRegistrationError::PublicKeyMismatch);
@@ -359,7 +359,7 @@ mod tests {
         // Have the account server sign the wallet certificate with
         // a key to which the certificate public key does not belong.
         let other_key = SigningKey::random(&mut OsRng);
-        let cert = Jwt::sign(&wallet.valid_certificate_claims().await, &other_key)
+        let cert = Jwt::sign_with_sub(&wallet.valid_certificate_claims().await, &other_key)
             .await
             .unwrap();
 
@@ -392,7 +392,7 @@ mod tests {
         let other_key = SigningKey::random(&mut OsRng);
         let mut cert_claims = wallet.valid_certificate_claims().await;
         cert_claims.hw_pubkey = (*other_key.verifying_key()).into();
-        let cert = Jwt::sign(&cert_claims, &ACCOUNT_SERVER_KEYS.certificate_signing_key)
+        let cert = Jwt::sign_with_sub(&cert_claims, &ACCOUNT_SERVER_KEYS.certificate_signing_key)
             .await
             .unwrap();
 

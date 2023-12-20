@@ -19,7 +19,7 @@ use wallet_common::{
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
-    jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
+    jwt::{EcdsaDecodingKey, Jwt, JwtSubject},
     utils::{random_bytes, random_string},
 };
 use wallet_provider_domain::{
@@ -176,7 +176,7 @@ struct RegistrationChallengeClaims {
     random: Base64Bytes,
 }
 
-impl JwtClaims for RegistrationChallengeClaims {
+impl JwtSubject for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
@@ -213,7 +213,7 @@ impl AccountServer {
         &self,
         certificate_signing_key: &impl CertificateSigningKey,
     ) -> Result<Vec<u8>, ChallengeError> {
-        let challenge = Jwt::sign(
+        let challenge = Jwt::sign_with_sub(
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
                 random: random_bytes(32).into(),
@@ -253,7 +253,9 @@ impl AccountServer {
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
 
-        let parsed = challenge_request.message.parse_and_verify(&user.hw_pubkey.into())?;
+        let parsed = challenge_request
+            .message
+            .parse_and_verify_with_sub(&user.hw_pubkey.into())?;
 
         debug!(
             "Verifying sequence number - provided: {}, known: {}",
@@ -486,7 +488,7 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, certificate_signing_key)
+        Jwt::sign_with_sub(&cert, certificate_signing_key)
             .await
             .map_err(RegistrationError::JwtSigning)
     }
@@ -496,7 +498,7 @@ impl AccountServer {
         certificate_signing_pubkey: &EcdsaDecodingKey,
         challenge: &[u8],
     ) -> Result<RegistrationChallengeClaims, RegistrationError> {
-        Jwt::parse_and_verify(
+        Jwt::parse_and_verify_with_sub(
             &String::from_utf8(challenge.to_owned())
                 .map_err(RegistrationError::ChallengeDecoding)?
                 .into(),
@@ -518,7 +520,7 @@ impl AccountServer {
     {
         debug!("Parsing and verifying the provided certificate");
 
-        let cert_data = certificate.parse_and_verify(&self.certificate_signing_pubkey)?;
+        let cert_data = certificate.parse_and_verify_with_sub(&self.certificate_signing_pubkey)?;
 
         debug!("Starting database transaction");
 
@@ -623,7 +625,7 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&claims, instruction_result_signing_key)
+        Jwt::sign_with_sub(&claims, instruction_result_signing_key)
             .await
             .map_err(InstructionError::Signing)
     }
@@ -777,7 +779,7 @@ mod tests {
 
         // Verify the certificate
         let cert_data = cert
-            .parse_and_verify(&certificate_signing_key.verifying_key().await.unwrap().into())
+            .parse_and_verify_with_sub(&certificate_signing_key.verifying_key().await.unwrap().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());

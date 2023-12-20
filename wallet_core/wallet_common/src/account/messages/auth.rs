@@ -7,7 +7,7 @@ use crate::{
         signed::SignedDouble,
     },
     errors::{Result, ValidationError},
-    jwt::{Jwt, JwtClaims},
+    jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
@@ -64,7 +64,7 @@ pub struct WalletCertificateClaims {
     pub iat: u64,
 }
 
-impl JwtClaims for WalletCertificateClaims {
+impl JwtSubject for WalletCertificateClaims {
     const SUB: &'static str = "wallet_certificate";
 }
 

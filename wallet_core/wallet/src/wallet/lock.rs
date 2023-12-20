@@ -166,7 +166,7 @@ mod tests {
 
                 let claims = challenge_request
                     .message
-                    .parse_and_verify(&hw_pubkey.into())
+                    .parse_and_verify_with_sub(&hw_pubkey.into())
                     .expect("Could not verify check pin challenge request");
 
                 assert_eq!(claims.sequence_number, 1);
@@ -187,7 +187,7 @@ mod tests {
             iss: "wallet_unit_test".to_string(),
             iat: jsonwebtoken::get_current_timestamp(),
         };
-        let result = Jwt::sign(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
+        let result = Jwt::sign_with_sub(&result_claims, &ACCOUNT_SERVER_KEYS.instruction_result_signing_key)
             .await
             .unwrap();
 
@@ -439,7 +439,7 @@ mod tests {
             iat: jsonwebtoken::get_current_timestamp(),
         };
         let other_key = SigningKey::random(&mut OsRng);
-        let result = Jwt::sign(&result_claims, &other_key).await.unwrap();
+        let result = Jwt::sign_with_sub(&result_claims, &other_key).await.unwrap();
 
         wallet
             .account_provider_client
