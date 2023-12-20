@@ -3,7 +3,7 @@ use std::error::Error;
 use tracing::{info, instrument};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::account::messages::auth::Registration;
+use wallet_common::{account::messages::auth::Registration, jwt::JwtError};
 
 use crate::{
     account_provider::{AccountProviderClient, AccountProviderError},
@@ -32,7 +32,7 @@ pub enum WalletRegistrationError {
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountProviderError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
-    CertificateValidation(#[source] wallet_common::errors::Error),
+    CertificateValidation(#[source] JwtError),
     #[error("public key in registration certificate received from Wallet Provider does not match hardware public key")]
     PublicKeyMismatch,
     #[error("could not store registration certificate in database: {0}")]

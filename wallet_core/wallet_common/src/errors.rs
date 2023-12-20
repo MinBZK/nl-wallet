@@ -1,23 +1,7 @@
-use crate::account::signed::SignedType;
+use crate::{account::signed::SignedType, jwt::JwtError};
 use p256::pkcs8;
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Debug, thiserror::Error)]
-#[error("message validation failed: {0}")]
-pub enum ValidationError {
-    Jwt(#[from] jsonwebtoken::errors::Error),
-    P256Ecdsa(#[from] p256::ecdsa::Error),
-    Ecdsa(#[source] Box<dyn std::error::Error + Send + Sync>),
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("message signing failed")] // Do not format original error to prevent potentially leaking key material
-pub enum SigningError {
-    Jwt(#[from] jsonwebtoken::errors::Error),
-    P256Ecdsa(#[from] p256::ecdsa::Error),
-    Ecdsa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -31,8 +15,12 @@ pub enum Error {
     SequenceNumberMismatch,
     #[error("JSON parsing error: {0}")]
     JsonParsing(#[from] serde_json::Error),
+    #[error("signing error: {0}")]
+    Ecdsa(#[from] p256::ecdsa::Error),
+    #[error("verifying key error: {0}")]
+    VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync>),
+    #[error("message signing failed")] // Do not format original error to prevent potentially leaking key material
+    Signing(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error(transparent)]
-    Validation(#[from] ValidationError),
-    #[error(transparent)]
-    Signing(#[from] SigningError),
+    Jwt(#[from] JwtError),
 }

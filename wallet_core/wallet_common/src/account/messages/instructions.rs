@@ -99,7 +99,7 @@ impl InstructionChallengeRequest {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign_with_sub(&cert, hw_privkey).await
+        Ok(Jwt::sign_with_sub(&cert, hw_privkey).await?)
     }
 }
 
