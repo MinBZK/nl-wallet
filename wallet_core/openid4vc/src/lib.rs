@@ -95,6 +95,10 @@ pub enum Error {
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("missing issuance session state")]
     MissingIssuanceSessionState,
+    #[error("public key contained in mdoc not equal to expected value")]
+    PublicKeyMismatch,
+    #[error("failed to get mdoc public key")]
+    PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

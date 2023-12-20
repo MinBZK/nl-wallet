@@ -1,5 +1,5 @@
 use base64::prelude::*;
-use futures::TryFutureExt;
+use futures::{future::try_join_all, TryFutureExt};
 use mime::{APPLICATION_JSON, APPLICATION_WWW_FORM_URLENCODED};
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use url::Url;
@@ -149,20 +149,35 @@ impl IssuanceClient {
                 }
             })
             .await?;
+
         let mut keys_and_responses: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
 
-        let mdocs = issuance_state
-            .unsigned_mdocs
-            .iter()
-            .map(|unsigned| {
-                Ok(MdocCopies {
-                    cred_copies: keys_and_responses
-                        .drain(..unsigned.copy_count as usize)
-                        .map(|(cred_response, key)| cred_response.into_mdoc(key, unsigned, trust_anchors))
-                        .collect::<Result<_, Error>>()?,
+        let mdocs = try_join_all(
+            issuance_state
+                .unsigned_mdocs
+                .iter()
+                // We map in two steps to prevent `keys_and_responses` from appearing in an async closure
+                .map(|unsigned| {
+                    (
+                        unsigned,
+                        keys_and_responses
+                            .drain(..unsigned.copy_count as usize)
+                            .collect::<Vec<_>>(),
+                    )
                 })
-            })
-            .collect::<Result<_, Error>>()?;
+                .map(|(unsigned, keys_and_responses)| async {
+                    let copies = MdocCopies {
+                        cred_copies: try_join_all(
+                            keys_and_responses
+                                .into_iter()
+                                .map(|(cred_response, key)| cred_response.into_mdoc(key, unsigned, trust_anchors)),
+                        )
+                        .await?,
+                    };
+                    Result::<_, Error>::Ok(copies)
+                }),
+        )
+        .await?;
 
         // Clear session state now that all fallible operations have not failed
         self.session_state.take();
@@ -185,7 +200,7 @@ impl IssuanceClient {
 
 impl CredentialResponse {
     /// Create an [`Mdoc`] out of the credential response. Also verifies the mdoc.
-    fn into_mdoc<K: MdocEcdsaKey>(
+    async fn into_mdoc<K: MdocEcdsaKey>(
         self,
         key: K,
         unsigned: &UnsignedMdoc,
@@ -193,6 +208,15 @@ impl CredentialResponse {
     ) -> Result<Mdoc, Error> {
         let issuer_signed: String = serde_json::from_value(self.credential)?;
         let issuer_signed: IssuerSigned = cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed)?.as_slice())?;
+
+        if issuer_signed.public_key().map_err(Error::PublicKeyFromMdoc)?
+            != key
+                .verifying_key()
+                .await
+                .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?
+        {
+            return Err(Error::PublicKeyMismatch);
+        }
 
         // Construct the new mdoc; this also verifies it against the trust anchors.
         let mdoc = Mdoc::new::<K>(
