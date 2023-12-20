@@ -214,7 +214,7 @@ impl WalletWithMocks {
 
     /// Generates a valid certificate for the `Wallet`.
     pub async fn valid_certificate(&self) -> WalletCertificate {
-        Jwt::sign(
+        Jwt::sign_with_sub(
             &self.valid_certificate_claims().await,
             &ACCOUNT_SERVER_KEYS.certificate_signing_key,
         )
