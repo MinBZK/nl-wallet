@@ -30,7 +30,7 @@ pub enum PidIssuanceError {
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[source] PidIssuerError),
+    PidIssuer(#[source] Box<PidIssuerError>),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -145,7 +145,7 @@ where
             .pid_issuer
             .start_retrieve_pid(&config.pid_issuance.pid_issuer_url, &access_token)
             .await
-            .map_err(PidIssuanceError::PidIssuer)?;
+            .map_err(|err| PidIssuanceError::PidIssuer(Box::new(err)))?;
 
         info!("PID received successfully from issuer, returning preview documents");
 
@@ -177,7 +177,10 @@ where
         }
 
         info!("Rejecting any PID held in memory");
-        self.pid_issuer.reject_pid().await.map_err(PidIssuanceError::PidIssuer)
+        self.pid_issuer
+            .reject_pid()
+            .await
+            .map_err(|err| PidIssuanceError::PidIssuer(Box::new(err)))
     }
 
     #[instrument(skip_all)]
@@ -237,7 +240,7 @@ where
                             RemoteEcdsaKeyError::KeyNotFound(identifier) => PidIssuanceError::KeyNotFound(identifier),
                         }
                     }
-                    _ => PidIssuanceError::PidIssuer(error),
+                    _ => PidIssuanceError::PidIssuer(Box::new(error)),
                 }
             })?;
 
