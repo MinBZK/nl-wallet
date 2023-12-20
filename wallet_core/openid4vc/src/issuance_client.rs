@@ -17,7 +17,8 @@ use wallet_common::generator::TimeGenerator;
 
 use crate::{
     credential::{
-        CredentialErrorType, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponses,
+        CredentialErrorType, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
+        CredentialResponses,
     },
     token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
@@ -157,26 +158,7 @@ impl IssuanceClient {
                 Ok(MdocCopies {
                     cred_copies: keys_and_responses
                         .drain(..unsigned.copy_count as usize)
-                        .map(|(cred_response, key)| {
-                            let issuer_signed: String = serde_json::from_value(cred_response.credential)?;
-                            let issuer_signed: IssuerSigned =
-                                cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed)?.as_slice())?;
-
-                            // Construct the new mdoc; this also verifies it against the trust anchors.
-                            let mdoc = Mdoc::new::<K>(
-                                key.identifier().to_string(),
-                                issuer_signed,
-                                &TimeGenerator,
-                                trust_anchors,
-                            )
-                            .map_err(Error::MdocVerification)?;
-
-                            // Check that our mdoc contains exactly the attributes the issuer said it would have
-                            mdoc.compare_unsigned(unsigned)
-                                .map_err(|_| Error::ExpectedAttributesMissing)?;
-
-                            Ok(mdoc)
-                        })
+                        .map(|(cred_response, key)| cred_response.into_mdoc(key, unsigned, trust_anchors))
                         .collect::<Result<_, Error>>()?,
                 })
             })
@@ -198,5 +180,33 @@ impl IssuanceClient {
             .await?;
 
         Ok(())
+    }
+}
+
+impl CredentialResponse {
+    /// Create an [`Mdoc`] out of the credential response. Also verifies the mdoc.
+    fn into_mdoc<K: MdocEcdsaKey>(
+        self,
+        key: K,
+        unsigned: &UnsignedMdoc,
+        trust_anchors: &[TrustAnchor<'_>],
+    ) -> Result<Mdoc, Error> {
+        let issuer_signed: String = serde_json::from_value(self.credential)?;
+        let issuer_signed: IssuerSigned = cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed)?.as_slice())?;
+
+        // Construct the new mdoc; this also verifies it against the trust anchors.
+        let mdoc = Mdoc::new::<K>(
+            key.identifier().to_string(),
+            issuer_signed,
+            &TimeGenerator,
+            trust_anchors,
+        )
+        .map_err(Error::MdocVerification)?;
+
+        // Check that our mdoc contains exactly the attributes the issuer said it would have
+        mdoc.compare_unsigned(unsigned)
+            .map_err(|_| Error::ExpectedAttributesMissing)?;
+
+        Ok(mdoc)
     }
 }

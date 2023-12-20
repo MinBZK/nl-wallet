@@ -97,7 +97,7 @@ pub enum Error {
     MissingIssuanceSessionState,
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[skip_serializing_none]
@@ -125,7 +125,7 @@ pub enum JwkConversionError {
     MissingCoordinate,
 }
 
-pub fn jwk_from_p256(value: &VerifyingKey) -> std::result::Result<Jwk, JwkConversionError> {
+pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
     let jwk = Jwk {
         common: Default::default(),
         algorithm: jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
@@ -148,7 +148,7 @@ pub fn jwk_from_p256(value: &VerifyingKey) -> std::result::Result<Jwk, JwkConver
     Ok(jwk)
 }
 
-pub fn jwk_to_p256(value: &Jwk) -> std::result::Result<VerifyingKey, JwkConversionError> {
+pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
     let ec_params = match value.algorithm {
         jwk::AlgorithmParameters::EllipticCurve(ref params) => Ok(params),
         _ => Err(JwkConversionError::UnsupportedJwkAlgorithm),
