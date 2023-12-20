@@ -18,7 +18,6 @@ pub mod credential;
 pub mod token;
 
 pub mod dpop;
-pub mod pkce;
 
 pub mod issuance_client;
 pub mod issuer;
