@@ -39,6 +39,14 @@ pub enum ReturnUrlPrefixError {
 #[derive(Debug, Clone, DeserializeFromStr, Serialize, PartialEq, Eq)]
 pub struct ReturnUrlPrefix(Url);
 
+impl ReturnUrlPrefix {
+    pub fn matches_url(&self, url: &Url) -> bool {
+        url.authority() == self.0.authority()
+            && url.path().starts_with(self.0.path())
+            && url.path().len() > self.0.path().len()
+    }
+}
+
 #[cfg(any(test, feature = "mock"))]
 impl Default for ReturnUrlPrefix {
     fn default() -> Self {
@@ -296,7 +304,7 @@ mod tests {
         Err(ReturnUrlPrefixError::InvalidFragment("hello".to_owned()))
     )]
     #[case("", Err(ReturnUrlPrefixError::UrlParse(url::ParseError::RelativeUrlWithoutBase)))]
-    fn test_return_url_parse(#[case] value: &str, #[case] expected_err: Result<(), ReturnUrlPrefixError>) {
+    fn test_return_url_prefix_parse(#[case] value: &str, #[case] expected_err: Result<(), ReturnUrlPrefixError>) {
         assert_eq!(value.parse::<ReturnUrlPrefix>().map(|_| ()), expected_err);
 
         let result = serde_json::from_str::<ReturnUrlPrefix>(&format!("\"{}\"", value));
@@ -309,6 +317,41 @@ mod tests {
                 expected_err
             );
         }
+    }
+
+    #[rstest]
+    #[case("https://example.com/", "https://example.com/session", true)]
+    #[case("https://example.com/", "https://example.com/session/more/path", true)]
+    #[case("https://example.com/", "https://example.com/session?query=foo&query2=bar", true)]
+    #[case("https://example.com/", "https://example.com/session#fragment", true)]
+    #[case(
+        "https://example.com/",
+        "https://example.com/session?query=foo&query2=bar#fragment",
+        true
+    )]
+    #[case("https://example.com/path/", "https://example.com/path/session", true)]
+    #[case("https://example.com/path/", "https://example.com/path/session/more/path", true)]
+    #[case(
+        "https://user:password@example.com/",
+        "https://user:password@example.com/session",
+        true
+    )]
+    #[case(
+        "https://user:password@example.com/",
+        "https://user:password@example.com/session/more/path",
+        true
+    )]
+    #[case("https://example.com/", "https://example.com/", false)]
+    #[case("https://example.com/path/", "https://example.com/path/", false)]
+    #[case("https://example.com/path/", "https://example.com/session", false)]
+    #[case("https://example.com/path/more/", "https://example.com/path/session", false)]
+    #[case("https://user:password@example.com/", "https://example.com/session", false)]
+    fn test_return_url_prefix_matches_url(
+        #[case] return_url_prefix: ReturnUrlPrefix,
+        #[case] url: Url,
+        #[case] expected_match: bool,
+    ) {
+        assert_eq!(return_url_prefix.matches_url(&url), expected_match);
     }
 
     #[test]
