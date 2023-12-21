@@ -3,12 +3,12 @@ use std::{env, path::PathBuf};
 use config::{builder::BuilderState, Config, ConfigBuilder, ConfigError, Environment, File};
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Settings {
     pub database: Database,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Database {
     pub host: String,
     pub name: String,
