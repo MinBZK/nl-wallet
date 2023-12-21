@@ -50,4 +50,5 @@ wallet_common.path = "../wallet_common"
 
 [features]
 default = ["postgres"]
+allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 postgres = ["dep:sea-orm"]

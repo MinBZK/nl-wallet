@@ -14,6 +14,7 @@ mock = [
     "wallet_common/mock",
     "wallet_common/software-keys",
 ]
+allow_http_return_url = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
