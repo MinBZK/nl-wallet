@@ -48,7 +48,7 @@ To build the iOS app use: `bundle exec fastlane ios build`. Note that password f
 this repository is not public. Alternatively you can build the app using `flutter build ios`, which will rely on your own certificate.
 
 ### Android
-To build the Android app use: `bundle exec fastlane android build`. Note that this requires you to add a local signing key to the project: 
+To build the Android app use: `bundle exec fastlane android build`. Note that this requires you to add a local signing key to the project:
 1. Get the `nl-wallet-android-local-signing-key` secrets from the secrets repository.
 2. Move `local-keystore.jks` file into the `wallet_app/android/keystore` folder.
 3. Move the `key.properties` file into the `wallet_app/android` folder.

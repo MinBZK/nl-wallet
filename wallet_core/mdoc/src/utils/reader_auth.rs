@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use indexmap::{IndexMap, IndexSet};
 use p256::pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none};
+use serde_with::{serde_as, skip_serializing_none, DeserializeFromStr};
 use url::Url;
 use x509_parser::der_parser::Oid;
 
@@ -16,8 +18,70 @@ use crate::{
 /// suffix: 1, unofficial id for Reader Authentication
 const OID_EXT_READER_AUTH: &[u64] = &[2, 1, 123, 1];
 
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+pub enum ReturnUrlPrefixError {
+    #[error("scheme '{0}' is not 'https://'")]
+    InvalidScheme(String),
+    #[error("path '{0}' is invalid, must end with a '/'")]
+    InvalidPath(String),
+    #[error("query '{0}' is invalid, it must be None")]
+    InvalidQuery(String),
+    #[error("fragment '{0}' is invalid, it must be None")]
+    InvalidFragment(String),
+    #[error("url parse error: {0}")]
+    UrlParse(#[from] url::ParseError),
+}
+
+/// URL that must match as a prefix for the return URL in a SameDevice disclosure flow. This
+/// URL may only have 'https' as its scheme, a non-empty domain, a path that ends with a '/'
+/// and no query or fragment. Note that the non-empty domain is handled by the `rust-url`
+/// crate.
+#[derive(Debug, Clone, DeserializeFromStr, Serialize, PartialEq, Eq)]
+pub struct ReturnUrlPrefix(Url);
+
+#[cfg(any(test, feature = "mock"))]
+impl Default for ReturnUrlPrefix {
+    fn default() -> Self {
+        ReturnUrlPrefix("https://example.com/".parse().unwrap())
+    }
+}
+
+impl FromStr for ReturnUrlPrefix {
+    type Err = ReturnUrlPrefixError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Url::parse(s)?.try_into()
+    }
+}
+
+impl TryFrom<Url> for ReturnUrlPrefix {
+    type Error = ReturnUrlPrefixError;
+
+    fn try_from(url: Url) -> Result<Self, Self::Error> {
+        #[cfg(feature = "allow_http_return_url")]
+        let allowed_schemes = ["https", "http"];
+        #[cfg(not(feature = "allow_http_return_url"))]
+        let allowed_schemes = ["https"];
+
+        if !allowed_schemes.contains(&url.scheme()) {
+            Err(ReturnUrlPrefixError::InvalidScheme(url.scheme().to_owned()))
+        } else if !url.path().ends_with('/') {
+            Err(ReturnUrlPrefixError::InvalidPath(url.path().to_owned()))
+        } else if url.query().is_some() {
+            Err(ReturnUrlPrefixError::InvalidQuery(url.query().unwrap().to_owned()))
+        } else if url.fragment().is_some() {
+            Err(ReturnUrlPrefixError::InvalidFragment(
+                url.fragment().unwrap().to_owned(),
+            ))
+        } else {
+            Ok(ReturnUrlPrefix(url))
+        }
+    }
+}
+
 #[skip_serializing_none]
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(any(test, feature = "mock"), derive(Default))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReaderRegistration {
     pub id: String,
@@ -26,6 +90,7 @@ pub struct ReaderRegistration {
     pub sharing_policy: SharingPolicy,
     pub deletion_policy: DeletionPolicy,
     pub organization: Organization,
+    pub return_url_prefix: ReturnUrlPrefix,
     pub attributes: IndexMap<String, AuthorizedMdoc>,
 }
 
@@ -200,6 +265,51 @@ mod tests {
 
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("https://example/", Ok(()))]
+    #[case("https://example.com/", Ok(()))]
+    #[case(
+        "https://example.com/path/",
+        Ok(())
+    )]
+    #[case(
+        "https://example.com/some/path/",
+        Ok(())
+    )]
+    #[case("https://example", Ok(()))] // `"https://example".parse().unwrap().to_string() == "https://example.com/"`
+    #[case("https://example.com", Ok(()))] // `"https://example.com".parse().unwrap().to_string() == "https://example.com/"`
+    #[case("file://etc/passwd", Err(ReturnUrlPrefixError::InvalidScheme("file".to_owned())))]
+    #[case("http://example.com", Err(ReturnUrlPrefixError::InvalidScheme("http".to_owned())))] // TODO differ per feature
+    #[case("https://", Err(ReturnUrlPrefixError::UrlParse(url::ParseError::EmptyHost)))] // test for non-empty domain clause
+    #[case("https://etc/passwd", Err(ReturnUrlPrefixError::InvalidPath("/passwd".to_owned())))]
+    #[case("https://example.com/path/?", Err(ReturnUrlPrefixError::InvalidQuery("".to_owned())))]
+    #[case("https://example.com/path/?hello", Err(ReturnUrlPrefixError::InvalidQuery("hello".to_owned())))]
+    #[case(
+        "https://example.com/path/?hello=world",
+        Err(ReturnUrlPrefixError::InvalidQuery("hello=world".to_owned()))
+    )]
+    #[case("https://example.com/path/#", Err(ReturnUrlPrefixError::InvalidFragment("".to_owned())))]
+    #[case(
+        "https://example.com/path/#hello",
+        Err(ReturnUrlPrefixError::InvalidFragment("hello".to_owned()))
+    )]
+    #[case("", Err(ReturnUrlPrefixError::UrlParse(url::ParseError::RelativeUrlWithoutBase)))]
+    fn test_return_url_parse(#[case] value: &str, #[case] expected_err: Result<(), ReturnUrlPrefixError>) {
+        assert_eq!(value.parse::<ReturnUrlPrefix>().map(|_| ()), expected_err);
+
+        let result = serde_json::from_str::<ReturnUrlPrefix>(&format!("\"{}\"", value));
+        assert!((result.is_ok() && expected_err.is_ok()) || (result.is_err() && expected_err.is_err()));
+
+        // if it doesn't parse as a URL, this check doesn't make sense
+        if let Ok(url) = value.parse::<Url>() {
+            assert_eq!(
+                std::convert::TryInto::<ReturnUrlPrefix>::try_into(url).map(|_| ()),
+                expected_err
+            );
+        }
+    }
 
     #[test]
     fn verify_requested_attributes_in_device_request() {

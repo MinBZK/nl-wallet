@@ -203,6 +203,9 @@ and the `pid_issuer`. Also when using the browser for the first time, a security
 connecting to localhost. Disabling TLS validation is gated behind the feature `disable_tls_validation` on the `wallet`
 and the `pid_issuer` crates.
 
+Besides that, the development setup runs without using TLS. Therefore, the feature `allow_http_return_url` enables the
+possibility to use a return URL with the scheme `http` (while normally `https` is only allowed).
+
 Additionally, the `wallet` crate offers the `config_env` feature to aid during local development, which does the following:
 
 * Any constant defined in the file `data.rs` can be overridden by an environment variable of the same name at compile time.

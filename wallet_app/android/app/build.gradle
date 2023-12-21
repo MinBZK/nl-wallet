@@ -157,6 +157,9 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         if (dartEnvironmentVariables['DISABLE_TLS_VALIDATION'] == 'true') {
             args '--features', 'wallet/disable_tls_validation'
         }
+        if (dartEnvironmentVariables['ENABLE_HTTP_RETURN_URL'] == 'true') {
+            args '--features', 'wallet/enable_http_return_url'
+        }
         if (dartEnvironmentVariables['ENV_CONFIGURATION'] == 'true') {
             args '--features', 'wallet/env_config'
         }

@@ -48,6 +48,7 @@
     "kvk": "5684 6846",
     "privacyPolicyUrl": "https://example.com/privacy"
   },
+  "returnUrlPrefix": "http://localhost:3004/",
   "attributes": {
     "com.example.pid": {
       "com.example.pid": {
