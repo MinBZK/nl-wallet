@@ -48,10 +48,6 @@ pub struct Issuer {
     // Issuer private keys index per doctype
     pub private_keys: HashMap<String, KeyPair>,
 
-    /// URL identifying the issuer. The wallet must put this in the `aud` claim of its Proof of Possession JWTs.
-    /// See https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-10.2.1
-    pub credential_issuer_identifier: Url,
-
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
     /// implementation).

@@ -34,6 +34,20 @@ pub trait EphemeralEcdsaKey: EcdsaKey {}
 /// e.g., a HSM, Android's TEE/StrongBox, or Apple's SE.
 pub trait SecureEcdsaKey: EcdsaKey {}
 
+// The `SigningKey` is an `EcdsaKey` but not a `SecureEcdsaKey` (except in mock/tests).
+#[async_trait]
+impl EcdsaKey for p256::ecdsa::SigningKey {
+    type Error = p256::ecdsa::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        Ok(*self.verifying_key())
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        p256::ecdsa::signature::Signer::try_sign(self, msg)
+    }
+}
+
 /// The contract of this trait includes that a constructed type with the same
 /// identifier behaves exactly the same, i.e. has the same key material backing it.
 pub trait ConstructibleWithIdentifier: WithIdentifier {
@@ -60,25 +74,7 @@ pub trait SecureEncryptionKey: ConstructibleWithIdentifier {
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
-    use async_trait::async_trait;
-    use p256::ecdsa::{Signature, VerifyingKey};
-
-    use super::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey};
-
     // make sure we can substitute a SigningKey instead in tests
-    #[async_trait]
-    impl EcdsaKey for p256::ecdsa::SigningKey {
-        type Error = p256::ecdsa::Error;
-
-        async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-            Ok(*self.verifying_key())
-        }
-
-        async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-            p256::ecdsa::signature::Signer::try_sign(self, msg)
-        }
-    }
-
-    impl EphemeralEcdsaKey for p256::ecdsa::SigningKey {}
-    impl SecureEcdsaKey for p256::ecdsa::SigningKey {}
+    impl super::EphemeralEcdsaKey for p256::ecdsa::SigningKey {}
+    impl super::SecureEcdsaKey for p256::ecdsa::SigningKey {}
 }

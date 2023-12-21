@@ -119,8 +119,8 @@ fn wallet_server_settings() -> (Settings, Certificate) {
             ip: IpAddr::from_str("127.0.0.1").unwrap(),
             port: port2,
         },
-        public_url: format!("http://127.0.0.1:{}/", port).parse().unwrap(),
-        internal_url: format!("http://127.0.0.1:{}/", port2).parse().unwrap(),
+        public_url: format!("http://localhost:{}/", port).parse().unwrap(),
+        internal_url: format!("http://localhost:{}/", port2).parse().unwrap(),
         usecases: HashMap::new(),
         trust_anchors: Vec::new(),
         #[cfg(feature = "postgres")]
@@ -128,7 +128,6 @@ fn wallet_server_settings() -> (Settings, Certificate) {
         #[cfg(not(feature = "postgres"))]
         store_url: "memory://".parse().unwrap(),
         issuer: Issuer {
-            credential_issuer_identifier: "https://example.com".parse().unwrap(),
             wallet_client_ids: vec![NL_WALLET_CLIENT_ID.to_string()],
             digid: Digid {
                 issuer_url: "https://localhost:8006/".parse().unwrap(),
@@ -387,7 +386,7 @@ async fn test_mock_issuance() {
         .accept_pid(
             &[(&trust_anchor.owned_trust_anchor).into()],
             &key_factory,
-            &settings.issuer.credential_issuer_identifier,
+            &settings.public_url,
         )
         .await
         .unwrap();
@@ -446,7 +445,7 @@ async fn test_pid_issuance_digid_bridge() {
         .accept_pid(
             &[(&trust_anchor.owned_trust_anchor).into()],
             &key_factory,
-            &settings.issuer.credential_issuer_identifier,
+            &settings.public_url,
         )
         .await
         .unwrap();

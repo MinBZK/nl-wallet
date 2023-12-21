@@ -1,7 +1,11 @@
 use base64::prelude::*;
 use futures::{future::try_join_all, TryFutureExt};
 use mime::{APPLICATION_JSON, APPLICATION_WWW_FORM_URLENCODED};
-use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
+use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+use reqwest::{
+    header::{AUTHORIZATION, CONTENT_TYPE},
+    Method,
+};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -20,6 +24,7 @@ use crate::{
         CredentialErrorType, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
         CredentialResponses,
     },
+    dpop::Dpop,
     token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
@@ -34,6 +39,7 @@ struct IssuanceState {
     c_nonce: String,
     unsigned_mdocs: Vec<UnsignedMdoc>,
     issuer_url: Url,
+    dpop_private_key: SigningKey,
 }
 
 impl IssuanceClient {
@@ -53,10 +59,16 @@ impl IssuanceClient {
         base_url: &Url,
         token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Error> {
+        let url = base_url.join("token").unwrap();
+
+        let dpop_private_key = SigningKey::random(&mut OsRng);
+        let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None).await?;
+
         let token_response: TokenResponseWithPreviews = self
             .http_client
-            .post(dbg!(base_url.join("token").unwrap())) // TODO discover token endpoint instead
+            .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
+            .header("DPoP", dpop_header.0 .0)
             .body(serde_urlencoded::to_string(token_request)?)
             .send()
             .map_err(Error::from)
@@ -78,6 +90,7 @@ impl IssuanceClient {
             c_nonce: token_response.token_response.c_nonce.ok_or(Error::MissingNonce)?,
             unsigned_mdocs: token_response.attestation_previews.clone(),
             issuer_url: base_url.clone(),
+            dpop_private_key,
         });
 
         Ok(token_response.attestation_previews)
@@ -126,14 +139,24 @@ impl IssuanceClient {
             })
             .unzip();
 
+        let url = issuance_state.issuer_url.join("batch_credential").unwrap();
+        let dpop_header = Dpop::new(
+            &issuance_state.dpop_private_key,
+            url.clone(),
+            Method::POST,
+            Some(issuance_state.access_token.clone()),
+        )
+        .await?;
+
         let credential_requests = CredentialRequests {
             credential_requests: responses,
         };
         let responses: CredentialResponses = self
             .http_client
-            .post(issuance_state.issuer_url.join("batch_credential").unwrap()) // TODO discover token endpoint instead
+            .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
-            .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
+            .header("DPoP", dpop_header.0 .0)
+            .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
             .body(serde_json::to_string(&credential_requests)?)
             .send()
             .map_err(Error::from)
@@ -190,7 +213,7 @@ impl IssuanceClient {
 
         self.http_client
             .delete(issuance_state.issuer_url.join("credential").unwrap()) // TODO discover token endpoint instead
-            .header(AUTHORIZATION, "Bearer ".to_string() + &issuance_state.access_token)
+            .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
             .send()
             .await?;
 

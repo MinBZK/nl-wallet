@@ -38,18 +38,22 @@
 //! }
 //! ```
 
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use jsonwebtoken::{Algorithm, Header, TokenData, Validation};
 use p256::ecdsa::VerifyingKey;
+use reqwest::Method;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use url::Url;
 use wallet_common::{
     jwt::{EcdsaDecodingKey, Jwt},
-    keys::SecureEcdsaKey,
-    utils::random_string,
+    keys::EcdsaKey,
+    utils::{random_string, sha256},
 };
 
 use crate::{jwk_from_p256, jwk_to_p256, Error, Result};
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DpopPayload {
     #[serde(rename = "htu")]
@@ -62,16 +66,16 @@ pub struct DpopPayload {
     iat: u64,
 }
 
-pub struct Dpop(Jwt<DpopPayload>);
+pub struct Dpop(pub Jwt<DpopPayload>);
 
 pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
 
 impl Dpop {
     pub async fn new(
-        private_key: &impl SecureEcdsaKey,
+        private_key: &impl EcdsaKey,
         url: Url,
-        method: String,
-        access_token_hash: Option<String>,
+        method: Method,
+        access_token: Option<String>,
     ) -> Result<Self> {
         let header = Header {
             typ: Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()),
@@ -88,9 +92,9 @@ impl Dpop {
         let payload = DpopPayload {
             jti: random_string(32),
             iat: jsonwebtoken::get_current_timestamp(),
-            http_method: method,
+            http_method: method.to_string(),
             http_url: url,
-            access_token_hash,
+            access_token_hash: access_token.map(|access_token| URL_SAFE_NO_PAD.encode(sha256(access_token.as_bytes()))),
         };
 
         let jwt = Jwt::sign(&payload, &header, private_key).await?;
@@ -112,7 +116,7 @@ impl Dpop {
         &self,
         token_data: &TokenData<DpopPayload>,
         url: Url,
-        method: String,
+        method: Method,
         access_token: Option<String>,
     ) -> Result<()> {
         if token_data.header.typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
@@ -121,13 +125,15 @@ impl Dpop {
                 found: token_data.header.typ.clone().unwrap_or_default(),
             });
         }
-        if token_data.claims.http_method != method {
+        if token_data.claims.http_method != method.to_string() {
             return Err(Error::IncorrectDpopMethod);
         }
         if token_data.claims.http_url != url {
             return Err(Error::IncorrectDpopUrl);
         }
-        if token_data.claims.access_token_hash != access_token {
+        if token_data.claims.access_token_hash
+            != access_token.map(|token| URL_SAFE_NO_PAD.encode(sha256(token.as_bytes())))
+        {
             return Err(Error::IncorrectDpopAccessTokenHash);
         }
         Ok(())
@@ -136,7 +142,7 @@ impl Dpop {
     /// Verify the DPoP JWT against the public key inside its header, returning that public key.
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
-    pub async fn verify(&self, url: Url, method: String, access_token: Option<String>) -> Result<VerifyingKey> {
+    pub async fn verify(&self, url: Url, method: Method, access_token: Option<String>) -> Result<VerifyingKey> {
         // Grab the public key from the JWT header
         let header = jsonwebtoken::decode_header(&self.0 .0)?;
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(Error::MissingJwk)?)?;
@@ -152,7 +158,7 @@ impl Dpop {
         &self,
         expected_verifying_key: &VerifyingKey,
         url: Url,
-        method: String,
+        method: Method,
         access_token: Option<String>,
     ) -> Result<()> {
         let token_data = self.verify_signature(expected_verifying_key)?;
@@ -165,5 +171,85 @@ impl Dpop {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use base64::prelude::*;
+    use jsonwebtoken::Header;
+    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use reqwest::Method;
+    use rstest::rstest;
+    use serde::de::DeserializeOwned;
+    use url::Url;
+
+    use wallet_common::utils::sha256;
+
+    use crate::dpop::{DpopPayload, OPENID4VCI_DPOP_JWT_TYPE};
+
+    use super::Dpop;
+
+    #[rstest]
+    #[case(None, Some("123".to_string()))]
+    #[case(Some("123".to_string()), None)]
+    #[case(Some("123".to_string()), Some("456".to_string()))]
+    #[tokio::test]
+    async fn dpop(#[case] access_token: Option<String>, #[case] wrong_access_token: Option<String>) {
+        let private_key = SigningKey::random(&mut OsRng);
+        let url: Url = "https://example.com/path".parse().unwrap();
+        let method = Method::POST;
+
+        let dpop = Dpop::new(&private_key, url.clone(), method.clone(), access_token.clone())
+            .await
+            .unwrap();
+
+        // Check the `typ` of the Header
+        let header: Header = part(0, &dpop.0 .0);
+        assert_eq!(header.typ, Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()));
+
+        // Examine some fields in the claims
+        let claims: DpopPayload = part(1, &dpop.0 .0);
+        assert_eq!(
+            claims.access_token_hash,
+            access_token
+                .as_ref()
+                .map(|access_token| BASE64_URL_SAFE_NO_PAD.encode(sha256(access_token.as_bytes())))
+        );
+        assert_eq!(claims.http_url, url);
+        assert_eq!(claims.http_method, method.to_string());
+
+        // Verifying it against incorrect parameters doesn't work
+        dpop.verify(url.clone(), method.clone(), wrong_access_token)
+            .await
+            .unwrap_err();
+        dpop.verify(url.clone(), Method::PATCH, access_token.clone())
+            .await
+            .unwrap_err();
+        dpop.verify(
+            "https://incorrect_url/".parse().unwrap(),
+            method.clone(),
+            access_token.clone(),
+        )
+        .await
+        .unwrap_err();
+
+        // We can verify the DPoP
+        let pubkey = dpop
+            .verify(url.clone(), method.clone(), access_token.clone())
+            .await
+            .unwrap();
+        assert_eq!(pubkey, *private_key.verifying_key());
+        dpop.verify_expecting_key(&pubkey, url, method, access_token)
+            .await
+            .unwrap();
+    }
+
+    /// Decode and deserialize the specified part of the JWT.
+    fn part<T: DeserializeOwned>(i: u8, jwt: &str) -> T {
+        let bts = BASE64_URL_SAFE_NO_PAD
+            .decode(jwt.split('.').take((i + 1) as usize).last().unwrap())
+            .unwrap();
+        serde_json::from_slice(&bts).unwrap()
     }
 }

@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err, clippy::too_many_arguments)] // TODO
+
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
@@ -6,6 +8,7 @@ use chrono::Utc;
 use futures::future::try_join_all;
 use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
+use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use url::Url;
@@ -24,6 +27,7 @@ use crate::{
         CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload, CredentialRequests,
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
+    dpop::Dpop,
     jwk_to_p256,
     token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType},
     Format, JwkConversionError,
@@ -45,6 +49,8 @@ pub enum Error {
     UnknownSession(String),
     #[error("failed to retrieve session: {0}")]
     SessionStore(#[from] SessionStoreError),
+    #[error("invalid DPoP header: {0}")]
+    DpopInvalid(#[source] crate::Error),
 }
 
 /// Errors that can occur during processing of the token request.
@@ -105,6 +111,7 @@ pub struct WaitingForResponse {
     pub access_token: String,
     pub c_nonce: String,
     pub unsigned_mdocs: Vec<UnsignedMdoc>,
+    pub dpop_public_key: VerifyingKey,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -196,6 +203,7 @@ where
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
+        dpop: Dpop,
     ) -> Result<TokenResponseWithPreviews, TokenRequestError> {
         let code = token_request.code();
 
@@ -212,7 +220,14 @@ where
             ));
         let session = Session::<Created>::from_enum(session).map_err(TokenRequestError::IssuanceError)?;
 
-        let result = session.process_token_request(token_request, &self.attr_service).await;
+        let result = session
+            .process_token_request(
+                token_request,
+                dpop,
+                &self.attr_service,
+                &self.credential_issuer_identifier,
+            )
+            .await;
 
         let (response, next) = match result {
             Ok((response, next)) => (Ok(response), next.into_enum()),
@@ -230,6 +245,7 @@ where
     pub async fn process_credential(
         &self,
         access_token: &str,
+        dpop: Dpop,
         credential_request: CredentialRequest,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let code = code_from_access_token(access_token)?;
@@ -246,9 +262,11 @@ where
             .process_credential(
                 credential_request,
                 access_token.to_string(),
+                dpop,
                 &self.private_keys,
                 &self.credential_issuer_identifier,
                 &self.wallet_client_ids,
+                &self.credential_issuer_identifier,
             )
             .await;
 
@@ -263,6 +281,7 @@ where
     pub async fn process_batch_credential(
         &self,
         access_token: &str,
+        dpop: Dpop,
         credential_requests: CredentialRequests,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let code = code_from_access_token(access_token)?;
@@ -279,9 +298,11 @@ where
             .process_batch_credential(
                 credential_requests,
                 access_token.to_string(),
+                dpop,
                 &self.private_keys,
                 &self.credential_issuer_identifier,
                 &self.wallet_client_ids,
+                &self.credential_issuer_identifier,
             )
             .await;
 
@@ -293,7 +314,12 @@ where
         response
     }
 
-    pub async fn process_reject_issuance(&self, access_token: &str) -> Result<(), CredentialRequestError> {
+    pub async fn process_reject_issuance(
+        &self,
+        access_token: &str,
+        dpop: Dpop,
+        endpoint_name: &str,
+    ) -> Result<(), CredentialRequestError> {
         let code = code_from_access_token(access_token)?;
         let session = self
             .sessions
@@ -305,9 +331,21 @@ where
             Session::<WaitingForResponse>::from_enum(session).map_err(CredentialRequestError::IssuanceError)?;
 
         // Check authorization of the request
-        if session.session_data().access_token != access_token {
+        let session_data = session.session_data();
+        if session_data.access_token != access_token {
             return Err(CredentialRequestError::Unauthorized);
         }
+
+        dpop.verify_expecting_key(
+            &session_data.dpop_public_key,
+            self.credential_issuer_identifier
+                .join(&("issuance/".to_owned() + endpoint_name))
+                .unwrap(),
+            Method::DELETE,
+            Some(access_token.to_string()),
+        )
+        .await
+        .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
 
         let next = session.transition(Done {
             session_result: SessionResult::Cancelled,
@@ -352,16 +390,21 @@ impl Session<Created> {
     pub async fn process_token_request(
         self,
         token_request: TokenRequest,
+        dpop: Dpop,
         attr_service: &impl AttributeService,
+        server_url: &Url,
     ) -> Result<(TokenResponseWithPreviews, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
-        let result = self.process_token_request_inner(token_request, attr_service).await;
+        let result = self
+            .process_token_request_inner(token_request, dpop, attr_service, server_url)
+            .await;
 
         match result {
-            Ok(response) => {
+            Ok((response, dpop_pubkey)) => {
                 let next = self.transition(WaitingForResponse {
                     access_token: response.token_response.access_token.clone(),
                     c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
                     unsigned_mdocs: response.attestation_previews.clone(),
+                    dpop_public_key: dpop_pubkey,
                 });
                 Ok((response, next))
             }
@@ -375,14 +418,21 @@ impl Session<Created> {
     pub async fn process_token_request_inner(
         &self,
         token_request: TokenRequest,
+        dpop: Dpop,
         attr_service: &impl AttributeService,
-    ) -> Result<TokenResponseWithPreviews, TokenRequestError> {
+        server_url: &Url,
+    ) -> Result<(TokenResponseWithPreviews, VerifyingKey), TokenRequestError> {
         if !matches!(
             token_request.grant_type,
             TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code: _ }
         ) {
             return Err(TokenRequestError::UnsupportedTokenRequestType);
         }
+
+        let dpop_public_key = dpop
+            .verify(server_url.join("issuance/token").unwrap(), Method::POST, None)
+            .await
+            .map_err(|err| TokenRequestError::IssuanceError(Error::DpopInvalid(err)))?;
 
         let code = token_request.code();
         let unsigned_mdocs = attr_service
@@ -408,7 +458,7 @@ impl Session<Created> {
             attestation_previews: unsigned_mdocs.clone(),
         };
 
-        Ok(response)
+        Ok((response, dpop_public_key))
     }
 }
 
@@ -439,17 +489,21 @@ impl Session<WaitingForResponse> {
         self,
         credential_request: CredentialRequest,
         access_token: String,
+        dpop: Dpop,
         private_keys: &impl KeyRing,
         credential_issuer_identifier: &Url,
         accepted_wallet_client_ids: &[impl ToString],
+        server_url: &Url,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_credential_inner(
                 credential_request,
                 access_token,
+                dpop,
                 private_keys,
                 credential_issuer_identifier,
                 accepted_wallet_client_ids,
+                server_url,
             )
             .await;
 
@@ -470,9 +524,11 @@ impl Session<WaitingForResponse> {
         &self,
         credential_request: CredentialRequest,
         access_token: String,
+        dpop: Dpop,
         private_keys: &impl KeyRing,
         credential_issuer_identifier: &Url,
         accepted_wallet_client_ids: &[impl ToString],
+        server_url: &Url,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -481,12 +537,14 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::Unauthorized);
         }
 
-        // In the pre-authorized code flow, the credential request offers no way for the wallet to refer to a specific
-        // offered credential that it wants to accept. So for now, we simply proceed only if there is a single
-        // attestation to be issued so that there can be no ambiguity.
-        if session_data.unsigned_mdocs.len() != 1 {
-            return Err(CredentialRequestError::UseBatchIssuance);
-        }
+        dpop.verify_expecting_key(
+            &session_data.dpop_public_key,
+            server_url.join("issuance/credential").unwrap(),
+            Method::POST,
+            Some(access_token),
+        )
+        .await
+        .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
 
         // Try to determine which attestation the wallet is requesting
         let unsigned = match credential_request.doctype {
@@ -529,17 +587,21 @@ impl Session<WaitingForResponse> {
         self,
         credential_requests: CredentialRequests,
         access_token: String,
+        dpop: Dpop,
         private_keys: &impl KeyRing,
         credential_issuer_identifier: &Url,
         accepted_wallet_client_ids: &[impl ToString],
+        server_url: &Url,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(
                 credential_requests,
                 access_token,
+                dpop,
                 private_keys,
                 credential_issuer_identifier,
                 accepted_wallet_client_ids,
+                server_url,
             )
             .await;
 
@@ -560,9 +622,11 @@ impl Session<WaitingForResponse> {
         &self,
         credential_requests: CredentialRequests,
         access_token: String,
+        dpop: Dpop,
         private_keys: &impl KeyRing,
         credential_issuer_identifier: &Url,
         accepted_wallet_client_ids: &[impl ToString],
+        server_url: &Url,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -570,6 +634,15 @@ impl Session<WaitingForResponse> {
         if session_data.access_token != access_token {
             return Err(CredentialRequestError::Unauthorized);
         }
+
+        dpop.verify_expecting_key(
+            &session_data.dpop_public_key,
+            server_url.join("issuance/batch_credential").unwrap(),
+            Method::POST,
+            Some(access_token),
+        )
+        .await
+        .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
 
         let credential_responses = try_join_all(
             credential_requests

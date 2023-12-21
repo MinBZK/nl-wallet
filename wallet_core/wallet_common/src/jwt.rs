@@ -6,7 +6,10 @@ use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{account::serialization::DerVerifyingKey, keys::SecureEcdsaKey};
+use crate::{
+    account::serialization::DerVerifyingKey,
+    keys::{EcdsaKey, SecureEcdsaKey},
+};
 
 // TODO implement keyring and use kid header item for key rollover
 
@@ -103,7 +106,7 @@ where
         Ok(payload)
     }
 
-    pub async fn sign(payload: &T, header: &Header, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
+    pub async fn sign(payload: &T, header: &Header, privkey: &impl EcdsaKey) -> Result<Jwt<T>> {
         let encoded_header = URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
         let encoded_claims = URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
         let message = [encoded_header, encoded_claims].join(".");

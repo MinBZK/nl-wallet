@@ -2,12 +2,12 @@ use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::State,
-    headers::{authorization::Bearer, Authorization},
+    headers::{authorization::Credentials, Authorization, Header},
     response::{IntoResponse, Response},
     routing::{delete, post},
     Form, Json, Router, TypedHeader,
 };
-use http::StatusCode;
+use http::{HeaderName, HeaderValue, StatusCode};
 use serde::Serialize;
 use tower_http::trace::TraceLayer;
 
@@ -17,6 +17,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     credential::{CredentialErrorType, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
+    dpop::Dpop,
     token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
 };
@@ -59,7 +60,7 @@ pub async fn create_issuance_router<A: AttributeService>(
                     })
                     .collect::<anyhow::Result<HashMap<_, _>>>()?,
             ),
-            settings.issuer.credential_issuer_identifier.clone(),
+            settings.public_url.clone(),
             settings.issuer.wallet_client_ids.clone().into_iter().collect(),
         ),
     });
@@ -69,7 +70,7 @@ pub async fn create_issuance_router<A: AttributeService>(
         .route("/credential", post(credential))
         .route("/credential", delete(reject_issuance))
         .route("/batch_credential", post(batch_credential))
-        .route("/batch_credential", delete(reject_issuance))
+        .route("/batch_credential", delete(reject_batch_issuance))
         .layer(TraceLayer::new_for_http())
         .layer(axum::middleware::from_fn(log_request_response))
         .with_state(application_state);
@@ -79,6 +80,7 @@ pub async fn create_issuance_router<A: AttributeService>(
 
 async fn token<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<Json<TokenResponseWithPreviews>, ErrorResponse<TokenErrorType>>
 where
@@ -86,13 +88,14 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    let response = state.issuer.process_token_request(token_request).await?;
+    let response = state.issuer.process_token_request(token_request, dpop).await?;
     Ok(Json(response))
 }
 
 async fn credential<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
-    TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
+    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorType>>
 where
@@ -100,17 +103,18 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    let access_token = authorization_header.token();
+    let access_token = authorization_header.0.token();
     let response = state
         .issuer
-        .process_credential(access_token, credential_request)
+        .process_credential(access_token, dpop, credential_request)
         .await?;
     Ok(Json(response))
 }
 
 async fn batch_credential<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
-    TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
+    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
 ) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorType>>
 where
@@ -118,26 +122,46 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    let access_token = authorization_header.token();
+    let access_token = authorization_header.0.token();
     let response = state
         .issuer
-        .process_batch_credential(access_token, credential_requests)
+        .process_batch_credential(access_token, dpop, credential_requests)
         .await?;
     Ok(Json(response))
 }
 
 async fn reject_issuance<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
-    TypedHeader(authorization_header): TypedHeader<Authorization<Bearer>>,
+    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
 ) -> Result<StatusCode, ErrorResponse<CredentialErrorType>>
 where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
+    let access_token = authorization_header.0.token();
     state
         .issuer
-        .process_reject_issuance(authorization_header.token())
+        .process_reject_issuance(access_token, dpop, "credential")
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn reject_batch_issuance<A, K, S>(
+    State(state): State<Arc<ApplicationState<A, K, S>>>,
+    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
+) -> Result<StatusCode, ErrorResponse<CredentialErrorType>>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
+    let access_token = authorization_header.0.token();
+    state
+        .issuer
+        .process_reject_issuance(access_token, dpop, "batch_credential")
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -168,6 +192,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
                     openid4vc::issuer::Error::UnexpectedState => CredentialErrorType::InvalidRequest,
                     openid4vc::issuer::Error::UnknownSession(_) => CredentialErrorType::InvalidRequest,
                     openid4vc::issuer::Error::SessionStore(_) => CredentialErrorType::ServerError,
+                    Error::DpopInvalid(_) => CredentialErrorType::InvalidRequest,
                 },
                 CredentialRequestError::Unauthorized => CredentialErrorType::InvalidToken,
                 CredentialRequestError::MalformedToken => CredentialErrorType::InvalidToken,
@@ -205,6 +230,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorType> {
                     openid4vc::issuer::Error::UnexpectedState => TokenErrorType::InvalidRequest,
                     openid4vc::issuer::Error::UnknownSession(_) => TokenErrorType::InvalidRequest,
                     openid4vc::issuer::Error::SessionStore(_) => TokenErrorType::ServerError,
+                    Error::DpopInvalid(_) => TokenErrorType::InvalidRequest,
                 },
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorType::UnsupportedGrantType,
                 TokenRequestError::AttributeService(_) => TokenErrorType::ServerError,
@@ -213,5 +239,55 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorType> {
             error_uri: None,
         }
         .into()
+    }
+}
+
+static DPOP_HEADER_NAME: HeaderName = HeaderName::from_static("dpop");
+
+pub struct DpopHeader(Dpop);
+
+impl Header for DpopHeader {
+    fn name() -> &'static HeaderName {
+        &DPOP_HEADER_NAME
+    }
+
+    fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>
+    where
+        Self: Sized,
+        I: Iterator<Item = &'i HeaderValue>,
+    {
+        // Exactly one value must be provided
+        let value = values.next().ok_or(axum::headers::Error::invalid())?;
+        if values.next().is_some() {
+            return Err(axum::headers::Error::invalid());
+        }
+
+        let str = value.to_str().map_err(|_| axum::headers::Error::invalid())?;
+        Ok(DpopHeader(Dpop(str.into())))
+    }
+
+    fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
+        values.extend(HeaderValue::from_bytes(self.0 .0 .0.as_bytes()));
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct DpopBearer(String);
+
+impl DpopBearer {
+    pub fn token(&self) -> &str {
+        &self.0.as_str()["DPoP ".len()..]
+    }
+}
+
+impl Credentials for DpopBearer {
+    const SCHEME: &'static str = "DPoP";
+
+    fn decode(value: &HeaderValue) -> Option<Self> {
+        value.to_str().ok().map(|value| Self(value.to_string()))
+    }
+
+    fn encode(&self) -> HeaderValue {
+        HeaderValue::from_str(&self.0).unwrap()
     }
 }
