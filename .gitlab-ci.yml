@@ -114,9 +114,9 @@ test-rust-integration:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:c485e43a3940e33327f97ce24c1ab3c2e67fd5c86c7700df8dee14ad9c0d4a12"
   variables:
+    SKIP_DIGID_CONNECTOR: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/wallet_server"
-    WALLET_SERVER_USECASES: "{}"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:8260dcdfd90b550c80d8a2e5527c0efb2280b371ab34c28f713f770a749c49dc"
       alias: postgres
@@ -127,18 +127,8 @@ test-rust-integration:
         POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_server"
   before_script:
     - set -euxo pipefail
+    - ./scripts/setup-devenv.sh
     - cd wallet_core
-    - echo "${WALLET_PROVIDER_CERTIFICATE_SIGNING_KEY}" > certificate_signing_key.pem
-    - echo "${WALLET_PROVIDER_INSTRUCTION_RESULT_SIGNING_KEY}" > instruction_result_signing_key.pem
-    - echo "${WALLET_PROVIDER_ATTESTATION_WRAPPING_KEY}" | base64 --decode > attestation_wrapping_key.key
-    - echo "${WALLET_PROVIDER_PIN_PUBKEY_ENCRYPTION_KEY}" | base64 --decode > pin_pubkey_encryption_key.key
-    # see /script/setup-devenv.sh for details regarding the instructions below
-    - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${WALLET_PROVIDER_HSM__USER_PIN}"
-    - softhsm2-util --import certificate_signing_key.pem --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "63657274696669636174655f7369676e696e670a" --label "certificate_signing_key" --token "test_token"
-    - softhsm2-util --import instruction_result_signing_key.pem --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "696e737472756374696f6e5f726573756c745f7369676e696e670a" --label "instruction_result_signing_key" --token "test_token"
-    - softhsm2-util --import attestation_wrapping_key.key --aes --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "6174746573746174696f6e5f7772617070696e670a" --label "attestation_wrapping_key" --token "test_token"
-    - softhsm2-util --import pin_pubkey_encryption_key.key --aes --pin "${WALLET_PROVIDER_HSM__USER_PIN}" --id "70696e5f7075626b65795f656e6372797074696f6e0a" --label "pin_pubkey_encryption_key" --token "test_token"
-    - p11tool --login --write --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" --set-pin "${WALLET_PROVIDER_HSM__USER_PIN}" --label="pin_public_disclosure_protection_key" "$(p11tool --list-token-urls | grep "SoftHSM")"
   script:
     - cargo run --bin wallet_provider_migrations -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration -- up
@@ -397,7 +387,7 @@ build-wallet-server-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server:$CI_COMMIT_SHORT_SHA
       --cache=true
 
-build-wp-migrations-image:
+build-ws-migrations-image:
   extends: .kaniko
   rules: !reference [ .default-or-release, rules ]
   needs:
@@ -509,6 +499,8 @@ dependency-check-images:
     - job: build-wp-image
       artifacts: false
     - job: build-wp-migrations-image
+      artifacts: false
+    - job: build-ws-migrations-image
       artifacts: false
     - job: build-pid-issuer-image
       artifacts: false

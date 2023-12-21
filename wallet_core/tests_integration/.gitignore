@@ -2,4 +2,4 @@
 /wallet.toml
 /wallet_provider.toml
 /mock_relying_party.toml
-/mrp_wallet_server.toml
+/wallet_server.toml

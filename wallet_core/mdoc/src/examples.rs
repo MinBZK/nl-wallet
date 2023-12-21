@@ -2,7 +2,10 @@
 //! and methods to retrieve and parse them in tests.
 
 use anyhow::{bail, Context, Result};
+use chrono::{DateTime, TimeZone, Utc};
+use ciborium::Value;
 use hex_literal::hex;
+use once_cell::sync::Lazy;
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     EncodedPoint, SecretKey,
@@ -10,10 +13,27 @@ use p256::{
 use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
 
+use wallet_common::generator::Generator;
+
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize},
     DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ReaderAuthenticationBytes,
 };
+
+pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
+pub const EXAMPLE_NAMESPACE: &str = "org.iso.18013.5.1";
+pub const EXAMPLE_ATTR_NAME: &str = "family_name";
+// Lazy since can't have a const String
+pub static EXAMPLE_ATTR_VALUE: Lazy<Value> = Lazy::new(|| Value::Text("Doe".to_string()));
+
+/// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
+/// This generator returns a time in that window.
+pub struct IsoCertTimeGenerator;
+impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
+    }
+}
 
 // This requires the type name twice in impls, see below.
 // If we could use Deserialize as a supertrait instead that would not be necesarry, but that seems impossible.
@@ -122,4 +142,35 @@ fn ecdsa_pubkey(x: &str, y: &str) -> Result<VerifyingKey> {
         false,
     ))
     .context("failed to instantiate public key")
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::x509::CertificateUsage;
+
+    use super::*;
+
+    /// Verify that the static device key example from the spec is the public key in the MSO.
+    #[test]
+    fn iso_examples_consistency() {
+        let static_device_key = Examples::static_device_key();
+
+        let device_key = &DeviceResponse::example().documents.unwrap()[0]
+            .issuer_signed
+            .issuer_auth
+            .verify_against_trust_anchors(
+                CertificateUsage::Mdl,
+                &IsoCertTimeGenerator,
+                Examples::iaca_trust_anchors(),
+            )
+            .unwrap()
+            .0
+            .device_key_info
+            .device_key;
+
+        assert_eq!(
+            *static_device_key.verifying_key(),
+            VerifyingKey::try_from(device_key).unwrap(),
+        );
+    }
 }
