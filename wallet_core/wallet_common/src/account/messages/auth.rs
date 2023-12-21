@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     account::{
-        jwt::{Jwt, JwtClaims},
         serialization::{Base64Bytes, DerVerifyingKey},
         signed::SignedDouble,
     },
-    errors::{Result, ValidationError},
+    errors::{Error, Result},
+    jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
@@ -33,10 +33,8 @@ impl Registration {
         challenge: &[u8],
     ) -> Result<SignedDouble<Registration>> {
         let (pin_pubkey, hw_pubkey) = try_join!(
-            pin_privkey
-                .verifying_key()
-                .map_err(|e| ValidationError::Ecdsa(e.into())),
-            hw_privkey.verifying_key().map_err(|e| ValidationError::Ecdsa(e.into())),
+            pin_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
+            hw_privkey.verifying_key().map_err(|e| Error::VerifyingKey(e.into())),
         )?;
 
         SignedDouble::sign(
@@ -64,7 +62,7 @@ pub struct WalletCertificateClaims {
     pub iat: u64,
 }
 
-impl JwtClaims for WalletCertificateClaims {
+impl JwtSubject for WalletCertificateClaims {
     const SUB: &'static str = "wallet_certificate";
 }
 

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
 use crate::{
-    errors::{Error, Result, SigningError, ValidationError},
+    errors::{Error, Result},
     keys::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
@@ -72,9 +72,7 @@ fn parse_and_verify_message<'a>(
 ) -> Result<SignedMessage<&'a RawValue>> {
     let message: SignedMessage<&RawValue> = serde_json::from_str(signed)?;
     let json = message.signed.get().as_bytes();
-    pubkey
-        .verify(json, &message.signature.0)
-        .map_err(ValidationError::from)?;
+    pubkey.verify(json, &message.signature.0).map_err(Error::Ecdsa)?;
 
     if message.typ != typ {
         return Err(Error::TypeMismatch {
@@ -90,7 +88,7 @@ async fn sign_message(message: String, typ: SignedType, privkey: &impl EcdsaKey)
     let signature = privkey
         .try_sign(message.as_bytes())
         .await
-        .map_err(|err| SigningError::Ecdsa(Box::new(err)))?
+        .map_err(|err| Error::Signing(Box::new(err)))?
         .into();
     Ok(serde_json::to_string(&SignedMessage {
         signed: &RawValue::from_string(message)?,

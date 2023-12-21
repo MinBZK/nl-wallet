@@ -3,11 +3,11 @@ use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use url::Url;
-use wallet_common::account::{
-    jwt::EcdsaDecodingKey,
-    messages::instructions::{
+use wallet_common::{
+    account::messages::instructions::{
         Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
     },
+    jwt::EcdsaDecodingKey,
 };
 
 use crate::{
@@ -129,7 +129,7 @@ where
             .map_err(InstructionError::from)?;
 
         let result = signed_result
-            .parse_and_verify(self.instruction_result_public_key)
+            .parse_and_verify_with_sub(self.instruction_result_public_key)
             .map_err(InstructionError::InstructionResultValidation)?
             .result;
 

@@ -1,7 +1,7 @@
 mod client;
 mod keys;
 
-use wallet_common::account::messages::errors::ErrorType;
+use wallet_common::{account::messages::errors::ErrorType, jwt::JwtError};
 
 use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError},
@@ -33,7 +33,7 @@ pub enum InstructionError {
     #[error("could not sign instruction: {0}")]
     Signing(#[source] wallet_common::errors::Error),
     #[error("could not validate instruction result received from Wallet Provider: {0}")]
-    InstructionResultValidation(#[source] wallet_common::errors::Error),
+    InstructionResultValidation(#[source] JwtError),
     #[error("could not store instruction sequence number in database: {0}")]
     StoreInstructionSequenceNumber(#[from] StorageError),
 }

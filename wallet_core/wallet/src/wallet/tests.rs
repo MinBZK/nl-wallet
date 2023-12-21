@@ -12,11 +12,9 @@ use nl_wallet_mdoc::{
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
-    account::{
-        jwt::Jwt,
-        messages::auth::{WalletCertificate, WalletCertificateClaims},
-    },
+    account::messages::auth::{WalletCertificate, WalletCertificateClaims},
     generator::TimeGenerator,
+    jwt::Jwt,
     keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, WithIdentifier},
     trust_anchor::DerTrustAnchor,
     utils,
@@ -216,7 +214,7 @@ impl WalletWithMocks {
 
     /// Generates a valid certificate for the `Wallet`.
     pub async fn valid_certificate(&self) -> WalletCertificate {
-        Jwt::sign(
+        Jwt::sign_with_sub(
             &self.valid_certificate_claims().await,
             &ACCOUNT_SERVER_KEYS.certificate_signing_key,
         )

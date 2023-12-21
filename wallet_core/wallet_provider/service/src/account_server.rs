@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use wallet_common::{
     account::{
-        jwt::{EcdsaDecodingKey, Jwt, JwtClaims},
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             errors::{IncorrectPinData, PinTimeoutData},
@@ -20,6 +19,7 @@ use wallet_common::{
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
+    jwt::{EcdsaDecodingKey, Jwt, JwtError, JwtSubject},
     utils::{random_bytes, random_string},
 };
 use wallet_provider_domain::{
@@ -50,7 +50,7 @@ pub enum AccountServerInitError {
 #[derive(Debug, thiserror::Error)]
 pub enum ChallengeError {
     #[error("challenge signing error: {0}")]
-    ChallengeSigning(#[source] wallet_common::errors::Error),
+    ChallengeSigning(#[from] JwtError),
     #[error("could not store challenge: {0}")]
     Storage(#[from] PersistenceError),
     #[error("challenge message validation error: {0}")]
@@ -72,7 +72,7 @@ pub enum WalletCertificateError {
     #[error("stored pin public key does not match provided one")]
     PinPubKeyMismatch,
     #[error("validation failed: {0}")]
-    Validation(#[from] wallet_common::errors::Error),
+    Validation(#[from] JwtError),
     #[error("no registered wallet user found")]
     UserNotRegistered,
     #[error("registered wallet user blocked")]
@@ -88,7 +88,7 @@ pub enum RegistrationError {
     #[error("registration challenge UTF-8 decoding error: {0}")]
     ChallengeDecoding(#[source] std::string::FromUtf8Error),
     #[error("registration challenge validation error: {0}")]
-    ChallengeValidation(#[source] wallet_common::errors::Error),
+    ChallengeValidation(#[source] JwtError),
     #[error("registration message parsing error: {0}")]
     MessageParsing(#[source] wallet_common::errors::Error),
     #[error("registration message validation error: {0}")]
@@ -96,7 +96,7 @@ pub enum RegistrationError {
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
     #[error("registration JWT signing error: {0}")]
-    JwtSigning(#[source] wallet_common::errors::Error),
+    JwtSigning(#[source] JwtError),
     #[error("could not store certificate: {0}")]
     CertificateStorage(#[from] PersistenceError),
     #[error("registration PIN public key DER encoding error: {0}")]
@@ -120,7 +120,7 @@ pub enum InstructionError {
     #[error("account is blocked")]
     AccountBlocked,
     #[error("instruction result signing error: {0}")]
-    Signing(#[source] wallet_common::errors::Error),
+    Signing(#[source] JwtError),
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
     #[error("key not found: {0}")]
@@ -176,7 +176,7 @@ struct RegistrationChallengeClaims {
     random: Base64Bytes,
 }
 
-impl JwtClaims for RegistrationChallengeClaims {
+impl JwtSubject for RegistrationChallengeClaims {
     const SUB: &'static str = "registration_challenge";
 }
 
@@ -213,7 +213,7 @@ impl AccountServer {
         &self,
         certificate_signing_key: &impl CertificateSigningKey,
     ) -> Result<Vec<u8>, ChallengeError> {
-        let challenge = Jwt::sign(
+        let challenge = Jwt::sign_with_sub(
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
                 random: random_bytes(32).into(),
@@ -253,7 +253,9 @@ impl AccountServer {
 
         debug!("Parsing and verifying challenge request for user {}", user.id);
 
-        let parsed = challenge_request.message.parse_and_verify(&user.hw_pubkey.into())?;
+        let parsed = challenge_request
+            .message
+            .parse_and_verify_with_sub(&user.hw_pubkey.into())?;
 
         debug!(
             "Verifying sequence number - provided: {}, known: {}",
@@ -486,7 +488,7 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&cert, certificate_signing_key)
+        Jwt::sign_with_sub(&cert, certificate_signing_key)
             .await
             .map_err(RegistrationError::JwtSigning)
     }
@@ -496,7 +498,7 @@ impl AccountServer {
         certificate_signing_pubkey: &EcdsaDecodingKey,
         challenge: &[u8],
     ) -> Result<RegistrationChallengeClaims, RegistrationError> {
-        Jwt::parse_and_verify(
+        Jwt::parse_and_verify_with_sub(
             &String::from_utf8(challenge.to_owned())
                 .map_err(RegistrationError::ChallengeDecoding)?
                 .into(),
@@ -518,7 +520,7 @@ impl AccountServer {
     {
         debug!("Parsing and verifying the provided certificate");
 
-        let cert_data = certificate.parse_and_verify(&self.certificate_signing_pubkey)?;
+        let cert_data = certificate.parse_and_verify_with_sub(&self.certificate_signing_pubkey)?;
 
         debug!("Starting database transaction");
 
@@ -623,7 +625,7 @@ impl AccountServer {
             iat: jsonwebtoken::get_current_timestamp(),
         };
 
-        Jwt::sign(&claims, instruction_result_signing_key)
+        Jwt::sign_with_sub(&claims, instruction_result_signing_key)
             .await
             .map_err(InstructionError::Signing)
     }
@@ -777,7 +779,7 @@ mod tests {
 
         // Verify the certificate
         let cert_data = cert
-            .parse_and_verify(&certificate_signing_key.verifying_key().await.unwrap().into())
+            .parse_and_verify_with_sub(&certificate_signing_key.verifying_key().await.unwrap().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
         assert_eq!(cert_data.hw_pubkey.0, *hw_privkey.verifying_key());
