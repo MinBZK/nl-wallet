@@ -24,10 +24,12 @@ function detect_softhsm() {
 
   for location in "${locations[@]}"; do
       local library_path
-      library_path=$(find -L "$location" -name "libsofthsm2.so" | head -n 1)
-      if [ -n "$library_path" ]; then
-          echo "$library_path"
-          return
+      if [ -n "$location" ]; then
+        library_path=$(find -L "$location" -name "libsofthsm2.so" | head -n 1)
+        if [ -n "$library_path" ]; then
+            echo "$library_path"
+            return
+        fi
       fi
   done
 }
@@ -176,6 +178,7 @@ function generate_pid_issuer_key_pair {
             -days 500 \
             -CA "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
             -CAkey "${TARGET_DIR}/pid_issuer/ca_privkey.pem" \
+            -CAcreateserial \
             -out "${TARGET_DIR}/pid_issuer/issuer_crt.pem"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \

@@ -20,7 +20,7 @@ use wallet_provider_service::{
     pin_policy::PinPolicy,
 };
 
-use crate::{errors::WalletProviderError, settings::Settings, wallet_config};
+use crate::{errors::WalletProviderError, settings::Settings};
 
 pub struct RouterState {
     pub account_server: AccountServer,
@@ -32,7 +32,10 @@ pub struct RouterState {
 }
 
 impl RouterState {
-    pub async fn new_from_settings(settings: Settings) -> Result<(RouterState, WalletConfiguration), Box<dyn Error>> {
+    pub async fn new_from_settings(
+        settings: Settings,
+        wallet_config: WalletConfiguration,
+    ) -> Result<(RouterState, WalletConfiguration), Box<dyn Error>> {
         let hsm = Pkcs11Hsm::new(
             settings.hsm.library_path,
             settings.hsm.user_pin,
@@ -51,10 +54,9 @@ impl RouterState {
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
         let instruction_result_signing_pubkey = instruction_result_signing_key.verifying_key().await?;
 
-        let wallet_config = wallet_config::wallet_configuration(
-            certificate_signing_pubkey.into(),
-            instruction_result_signing_pubkey.into(),
-        )?;
+        let mut wallet_config = wallet_config;
+        wallet_config.account_server.certificate_public_key = certificate_signing_pubkey.into();
+        wallet_config.account_server.instruction_result_public_key = instruction_result_signing_pubkey.into();
 
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout_in_ms,

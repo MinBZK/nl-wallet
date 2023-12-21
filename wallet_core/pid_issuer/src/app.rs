@@ -6,7 +6,7 @@ use axum::{
     extract::{Path, State},
     headers::{authorization::Bearer, Authorization},
     response::{IntoResponse, Response},
-    routing::post,
+    routing::{get, post},
     Json, Router, TypedHeader,
 };
 use base64::prelude::*;
@@ -98,6 +98,7 @@ where
     });
 
     let app = Router::new()
+        .route("/health", get(|| async {}))
         .route("/mdoc/:session_token", post(mdoc_route))
         .route("/start", post(start_route))
         .layer(TraceLayer::new_for_http())

@@ -8,7 +8,7 @@ use serde_with::{serde_as, DurationMilliSeconds};
 use wallet_provider_database_settings::{Database, DatabaseDefaults};
 
 #[serde_as]
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Settings {
     pub certificate_signing_key_identifier: String,
     pub instruction_result_signing_key_identifier: String,
@@ -24,20 +24,20 @@ pub struct Settings {
     pub instruction_challenge_timeout_in_ms: Duration,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Webserver {
     pub ip: IpAddr,
     pub port: u16,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct PinPolicySettings {
     pub rounds: u8,
     pub attempts_per_round: u8,
     pub timeouts_in_ms: Vec<u32>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Hsm {
     pub library_path: PathBuf,
     pub user_pin: String,
