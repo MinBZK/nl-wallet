@@ -3,6 +3,8 @@
 
 use std::error::Error;
 
+use url::Url;
+
 use crate::{
     iso::*,
     utils::{
@@ -48,6 +50,8 @@ pub enum HolderError {
     NoReaderRegistration(Certificate),
     #[error("reader registration attribute validation failed: {0}")]
     ReaderRegistrationValidation(#[from] reader_auth::ValidationError),
+    #[error("return URL prefix in reader registration ({}) does not match return URL provided: {}", (.0).0, (.0).1)]
+    ReturnUrlPrefix(Box<(Url, Url)>), // Box these URLs, otherwise the error type becomes too big
     #[error("could not retrieve docs from source: {0}")]
     MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]

@@ -87,6 +87,12 @@ impl TryFrom<Url> for ReturnUrlPrefix {
     }
 }
 
+impl From<ReturnUrlPrefix> for Url {
+    fn from(value: ReturnUrlPrefix) -> Self {
+        value.0
+    }
+}
+
 #[skip_serializing_none]
 #[cfg_attr(any(test, feature = "mock"), derive(Default))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
