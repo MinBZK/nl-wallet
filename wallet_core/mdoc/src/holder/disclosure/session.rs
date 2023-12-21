@@ -1,4 +1,4 @@
-use futures::future::{self, TryFutureExt};
+use futures::future::TryFutureExt;
 use indexmap::IndexMap;
 use url::Url;
 use webpki::TrustAnchor;
@@ -8,7 +8,7 @@ use wallet_common::generator::TimeGenerator;
 use crate::{
     basic_sa_ext::Entry,
     device_retrieval::DeviceRequest,
-    disclosure::{DeviceResponse, DeviceResponseVersion, SessionData, SessionStatus},
+    disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
     holder::{HolderError, HttpClient},
@@ -299,22 +299,10 @@ where
         KF: KeyFactory<'a, Key = K>,
         K: MdocEcdsaKey + Sync,
     {
-        // Convert all of the `ProposedDocument` entries to `Document` by signing them.
-        // TODO: Do this in bulk, as this will be serialized by the implementation.
-        let documents = future::try_join_all(
-            self.proposed_documents
-                .iter()
-                .map(|proposed_document| proposed_document.clone().sign(key_factory)),
-        )
-        .await?;
-
-        // Construct a `DeviceResponse` and encrypt this with the device key.
-        let device_response = DeviceResponse {
-            version: DeviceResponseVersion::V1_0,
-            documents: documents.into(),
-            document_errors: None, // TODO: Consider using this for reporting errors per mdoc
-            status: 0,
-        };
+        // Clone the proposed documents and construct a `DeviceResponse` by
+        // signing these, then encrypt the response with the device key.
+        let proposed_documents = self.proposed_documents.to_vec();
+        let device_response = DeviceResponse::from_proposed_documents(proposed_documents, key_factory).await?;
         let session_data = SessionData::serialize_and_encrypt(&device_response, &self.device_key)?;
 
         // Send the `SessionData` containing the encrypted `DeviceResponse`.
@@ -353,6 +341,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     use crate::{
+        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
         identifiers::AttributeIdentifierHolder,
         iso::{
             disclosure::{DeviceAuth, SessionStatus},
@@ -367,7 +356,7 @@ mod tests {
         },
     };
 
-    use super::{super::tests::*, *};
+    use super::{super::test_utils::*, *};
 
     fn test_payload_session_data_error(payload: &[u8], expected_session_status: SessionStatus) {
         let session_data: SessionData =
@@ -592,12 +581,12 @@ mod tests {
             serialization::cbor_deserialize(payloads.first().unwrap().as_slice())
                 .expect("Sent message is not DeviceEngagement");
 
-        let expected_missing_attributes: Vec<AttributeIdentifier> =
-            vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"
-                .parse()
-                .unwrap()];
+        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
 
-        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
     }
 
     #[tokio::test]
@@ -637,18 +626,18 @@ mod tests {
             serialization::cbor_deserialize(payloads.first().unwrap().as_slice())
                 .expect("Sent message is not DeviceEngagement");
 
-        let expected_missing_attributes: Vec<AttributeIdentifier> = vec![
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
-        ]
-        .into_iter()
-        .map(|attribute| attribute.parse().unwrap())
-        .collect();
+        let expected_missing_attributes = example_identifiers_from_attributes([
+            "family_name",
+            "issue_date",
+            "expiry_date",
+            "document_number",
+            "driving_privileges",
+        ]);
 
-        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
     }
 
     #[tokio::test]

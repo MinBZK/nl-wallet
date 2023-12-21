@@ -1,41 +1,30 @@
-use std::{
-    collections::HashMap,
-    net::{IpAddr, TcpListener},
-    str::FromStr,
-};
+use std::collections::HashMap;
 
 use base64::prelude::*;
-use chrono::Duration;
 use indexmap::IndexMap;
 use p256::pkcs8::EncodePrivateKey;
 use reqwest::StatusCode;
-use tracing_subscriber::FmtSubscriber;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_state::{SessionState, SessionStore, SessionToken},
+    server_state::SessionToken,
     utils::{
         reader_auth::{DeletionPolicy, Organization, ReaderRegistration, RetentionPolicy, SharingPolicy},
         serialization::cbor_deserialize,
         x509::{Certificate, CertificateType},
     },
-    verifier::{DisclosureData, SessionType},
+    verifier::SessionType,
     ItemsRequest, ReaderEngagement,
 };
 use wallet_server::{
-    server,
-    settings::{KeyPair, Server, Settings},
+    settings::{KeyPair, Settings},
     store::new_session_store,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
-fn find_listener_port() -> u16 {
-    TcpListener::bind("localhost:0")
-        .expect("Could not find TCP port")
-        .local_addr()
-        .expect("Could not get local address from TCP listener")
-        .port()
-}
+use crate::common::*;
+
+pub mod common;
 
 // Test fixture
 fn get_my_reader_auth() -> ReaderRegistration {
@@ -71,27 +60,19 @@ fn get_my_reader_auth() -> ReaderRegistration {
 }
 
 fn wallet_server_settings() -> Settings {
-    let port = find_listener_port();
-    let port2 = find_listener_port();
+    let mut settings = common::wallet_server_settings();
+    settings.usecases = HashMap::new();
+    settings.trust_anchors = Vec::new();
 
-    let mut settings = Settings {
-        wallet_server: Server {
-            ip: IpAddr::from_str("127.0.0.1").unwrap(),
-            port,
-        },
-        requester_server: Server {
-            ip: IpAddr::from_str("127.0.0.1").unwrap(),
-            port: port2,
-        },
-        public_url: format!("http://127.0.0.1:{}/", port).parse().unwrap(),
-        internal_url: format!("http://127.0.0.1:{}/", port2).parse().unwrap(),
-        usecases: HashMap::new(),
-        trust_anchors: Vec::new(),
-        #[cfg(feature = "postgres")]
-        store_url: "postgres://postgres@127.0.0.1:5432/wallet_server".parse().unwrap(),
-        #[cfg(not(feature = "postgres"))]
-        store_url: "memory://".parse().unwrap(),
-    };
+    #[cfg(feature = "postgres")]
+    {
+        settings.store_url = "postgres://postgres@127.0.0.1:5432/wallet_server".parse().unwrap();
+    }
+    #[cfg(not(feature = "postgres"))]
+    {
+        settings.store_url = "memory://".parse().unwrap();
+    }
+
     let (ca, ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
     let (cert, cert_privkey) = Certificate::new(
         &ca,
@@ -115,32 +96,6 @@ fn wallet_server_settings() -> Settings {
     );
 
     settings
-}
-
-async fn start_wallet_server<S>(settings: Settings, sessions: S)
-where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
-{
-    let public_url = settings.public_url.clone();
-    tokio::spawn(async move {
-        server::serve::<S>(&settings, sessions)
-            .await
-            .expect("Could not start wallet_server");
-    });
-
-    let _ = tracing::subscriber::set_global_default(FmtSubscriber::new());
-
-    // wait for the server to come up
-    let client = reqwest::Client::new();
-    loop {
-        match client.get(public_url.join("/health").unwrap()).send().await {
-            Ok(_) => break,
-            _ => {
-                println!("Waiting for wallet_server...");
-                tokio::time::sleep(Duration::milliseconds(100).to_std().unwrap()).await
-            }
-        }
-    }
 }
 
 fn parse_wallet_url(engagement_url: Url) -> Url {
@@ -172,6 +127,7 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
     let settings = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
@@ -231,6 +187,7 @@ async fn test_start_session() {
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
     let settings = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();

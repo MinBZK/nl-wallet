@@ -211,7 +211,7 @@ pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
 #[cfg(test)]
 mod tests {
     use crate::{
-        examples::Example,
+        examples::{Example, EXAMPLE_DOC_TYPE},
         utils::serialization::{self, TaggedBytes},
     };
 
@@ -221,7 +221,7 @@ mod tests {
     fn test_device_authentication_bytes_from_session_transcript() {
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
         let device_authentication =
-            DeviceAuthentication::from_session_transcript(session_transcript, "org.iso.18013.5.1.mDL".to_string());
+            DeviceAuthentication::from_session_transcript(session_transcript, EXAMPLE_DOC_TYPE.to_string());
 
         assert_eq!(
             serialization::cbor_serialize(&TaggedBytes(device_authentication)).unwrap(),

@@ -1,24 +1,26 @@
 use std::{env, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
+use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     config::wallet_config::{LockTimeoutConfiguration, WalletConfiguration},
 };
 
-pub fn wallet_configuration(
-    certificate_signing_pubkey: DerVerifyingKey,
-    instruction_result_public_key: DerVerifyingKey,
-) -> Result<WalletConfiguration, ConfigError> {
+pub fn wallet_configuration() -> Result<WalletConfiguration, ConfigError> {
     // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
     // otherwise look in the current working directory.
     let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
+    let default_certificate_public_key: DerVerifyingKey = (*SigningKey::random(&mut OsRng).verifying_key()).into();
+    let default_instruction_result_public_key: DerVerifyingKey =
+        (*SigningKey::random(&mut OsRng).verifying_key()).into();
+
     Config::builder()
-        .set_override("account_server.certificate_public_key", certificate_signing_pubkey)?
-        .set_override(
+        .set_default("account_server.certificate_public_key", default_certificate_public_key)?
+        .set_default(
             "account_server.instruction_result_public_key",
-            instruction_result_public_key,
+            default_instruction_result_public_key,
         )?
         .set_default(
             "lock_timeouts.inactive_timeout",
