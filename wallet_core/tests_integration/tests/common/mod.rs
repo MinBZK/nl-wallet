@@ -181,13 +181,13 @@ pub fn wallet_server_settings() -> WsSettings {
     settings.wallet_server.port = ws_port;
 
     let requester_port = find_listener_port();
-    settings.requester_server = Some(Server {
+    settings.requester_server = Server {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
         port: requester_port,
-    });
+    };
 
     settings.public_url = Url::parse(&format!("http://localhost:{}/", ws_port)).unwrap();
-    settings.internal_url = Some(Url::parse(&format!("http://localhost:{}/", requester_port)).unwrap());
+    settings.internal_url = Url::parse(&format!("http://localhost:{}/", requester_port)).unwrap();
     settings
 }
 

@@ -115,7 +115,7 @@ where
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?,
         ),
-        internal_url: settings.internal_url.unwrap_or(settings.public_url),
+        internal_url: settings.internal_url,
     });
 
     let wallet_router = Router::new()

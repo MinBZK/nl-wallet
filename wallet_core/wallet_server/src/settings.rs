@@ -8,16 +8,16 @@ use wallet_common::account::serialization::Base64Bytes;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
-    // used by the wallet
+    // used by the wallet, MUST be reachable from the public internet.
     pub wallet_server: Server,
-    // used by the application, if not configured the wallet_server will be used
+    // used by the application, SHOULD be reachable only by the application.
     // if it conflicts with wallet_server, the application will crash on startup
-    pub requester_server: Option<Server>,
+    pub requester_server: Server,
     pub usecases: HashMap<String, KeyPair>,
     pub trust_anchors: Vec<String>,
     pub public_url: Url,
-    // used by the application, if not configured the public_url will be used
-    pub internal_url: Option<Url>,
+    // used by the application
+    pub internal_url: Url,
     // supported schemes are: memory:// (default) and postgres://
     pub store_url: Url,
 }
