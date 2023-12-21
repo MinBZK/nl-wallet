@@ -176,6 +176,7 @@ mod tests {
 
     use crate::{
         errors::Error,
+        examples::EXAMPLE_NAMESPACE,
         iso::disclosure::DeviceAuth,
         mock::{FactorySoftwareEcdsaKeyError, SoftwareKeyFactory},
         utils::{
@@ -184,7 +185,7 @@ mod tests {
         },
     };
 
-    use super::{super::tests::*, *};
+    use super::{super::test_utils::*, *};
 
     #[test]
     fn test_proposed_document_from_stored_mdoc() {
@@ -197,14 +198,8 @@ mod tests {
         let private_key_id = stored_mdoc.mdoc.private_key_id.clone();
         let issuer_auth = stored_mdoc.mdoc.issuer_signed.issuer_auth.clone();
 
-        let requested_attributes = vec![
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
-        ]
-        .into_iter()
-        .map(|attribute| attribute.parse().unwrap())
-        .collect();
+        let requested_attributes =
+            example_identifiers_from_attributes(["driving_privileges", "family_name", "document_number"]);
 
         let proposed_document =
             ProposedDocument::from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec());
@@ -218,7 +213,7 @@ mod tests {
             .issuer_signed
             .name_spaces
             .as_ref()
-            .and_then(|name_spaces| name_spaces.get("org.iso.18013.5.1"))
+            .and_then(|name_spaces| name_spaces.get(EXAMPLE_NAMESPACE))
             .map(|attributes| {
                 attributes
                     .0
@@ -245,7 +240,7 @@ mod tests {
                 .name_spaces
                 .as_mut()
                 .unwrap()
-                .get_mut("org.iso.18013.5.1")
+                .get_mut(EXAMPLE_NAMESPACE)
                 .unwrap()
                 .0;
 
@@ -263,7 +258,7 @@ mod tests {
                 .name_spaces
                 .as_mut()
                 .unwrap()
-                .get_mut("org.iso.18013.5.1")
+                .get_mut(EXAMPLE_NAMESPACE)
                 .unwrap()
                 .0;
 
@@ -275,14 +270,8 @@ mod tests {
         let doc_type = mdoc1.doc_type.clone();
         let private_key_id = mdoc1.private_key_id.clone();
 
-        let requested_attributes = vec![
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
-        ]
-        .into_iter()
-        .map(|attribute| attribute.parse().unwrap())
-        .collect();
+        let requested_attributes =
+            example_identifiers_from_attributes(["driving_privileges", "issue_date", "expiry_date"]);
 
         let stored_mdocs = vec![mdoc1, mdoc2, mdoc3, mdoc4]
             .into_iter()
@@ -314,7 +303,7 @@ mod tests {
                         .issuer_signed
                         .name_spaces
                         .unwrap()
-                        .get("org.iso.18013.5.1")
+                        .get(EXAMPLE_NAMESPACE)
                         .unwrap()
                         .0
                         .len(),

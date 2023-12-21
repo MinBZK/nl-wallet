@@ -435,6 +435,7 @@ mod test {
             sharing_policy: SharingPolicy { intent_to_share: true },
             deletion_policy: DeletionPolicy { deleteable: true },
             organization: my_organization,
+            return_url_prefix: "https://example.com/".parse().unwrap(),
             attributes: Default::default(),
         }
     }

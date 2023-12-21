@@ -63,8 +63,10 @@ wallet_common.path = "../wallet_common"
 
 [features]
 default = [
+    "postgres",
     "mock", # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
 ]
+allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 postgres = ["dep:sea-orm"]
 mock = ["dep:rand"]
 digid_test = []

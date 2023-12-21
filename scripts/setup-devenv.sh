@@ -61,7 +61,9 @@ source "${SCRIPTS_DIR}/utils.sh"
 expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
 expect_command openssl "Missing binary 'openssl', please install OpenSSL"
 expect_command jq "Missing binary 'jq', please install"
-expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
+if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+  expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
+fi
 expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
 expect_command p11tool "Missing binary 'p11tool', please install 'gnutls' using Homebrew on macOS or 'gnutls-bin' on Debian/Ubuntu."
 check_openssl
@@ -114,25 +116,27 @@ mkdir -p "${TARGET_DIR}/wallet_provider"
 ########################################################################
 # Configure digid-connector
 
-echo
-echo -e "${SECTION}Configure and start digid-connector${NC}"
+if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+  echo
+  echo -e "${SECTION}Configure and start digid-connector${NC}"
 
-cd "${DIGID_CONNECTOR_PATH}"
-make setup
+  cd "${DIGID_CONNECTOR_PATH}"
+  make setup
 
-render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
-render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
+  render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
+  render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
 
-generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server
+  generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server
 
-# Build max docker container
-docker compose build max
-# Generate JWK from private RSA key of test_client.
-CLIENT_PRIVKEY_JWK=$(docker compose run max make --silent create-jwk)
-# Remove the 'kid' json field, otherwise the digid-connector will fail on it.
-# TODO: find out what a correct value of 'kid' is and how to configure it for both the pid_issuer and digid-connector.
-BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')
-export BSN_PRIVKEY
+  # Build max docker container
+  docker compose build max
+  # Generate JWK from private RSA key of test_client.
+  CLIENT_PRIVKEY_JWK=$(docker compose run max make --silent create-jwk)
+  # Remove the 'kid' json field, otherwise the digid-connector will fail on it.
+  # TODO: find out what a correct value of 'kid' is and how to configure it for both the pid_issuer and digid-connector.
+  BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')
+  export BSN_PRIVKEY
+fi
 
 ########################################################################
 # Configure pid_issuer
@@ -143,7 +147,7 @@ echo -e "${SECTION}Configure pid_issuer${NC}"
 cd "${BASE_DIR}"
 
 # Generate root CA for cose signing
-if [ ! -f ${TARGET_DIR}/pid_issuer/ca_privkey.pem ]; then
+if [ ! -f "${TARGET_DIR}"/pid_issuer/ca_privkey.pem ]; then
     generate_pid_issuer_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca_privkey.pem' already exists, not (re-)generating PID root CA"
@@ -171,7 +175,7 @@ echo -e "${SECTION}Configure relying_party${NC}"
 cd "${BASE_DIR}"
 
 # Generate MRP root CA
-if [ ! -f ${TARGET_DIR}/mock_relying_party/ca.key.pem ]; then
+if [ ! -f "${TARGET_DIR}"/mock_relying_party/ca.key.pem ]; then
     generate_mock_relying_party_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/mock_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
@@ -192,7 +196,7 @@ render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet
 
 # And the mrp's wallet_server config
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${MRP_WALLET_SERVER_DIR}/wallet_server.toml"
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mrp_wallet_server.toml"
+render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
 
 
 ########################################################################

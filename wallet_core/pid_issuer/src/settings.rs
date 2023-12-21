@@ -7,7 +7,7 @@ use url::Url;
 #[cfg(feature = "mock")]
 use crate::mock::{PersonAttributes, ResidentAttributes};
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Settings {
     pub webserver: Webserver,
     pub digid: Digid,
@@ -17,20 +17,20 @@ pub struct Settings {
     pub mock_data: Option<Vec<MockAttributes>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Digid {
     pub issuer_url: Url,
     pub bsn_privkey: String,
     pub client_id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Webserver {
     pub ip: IpAddr,
     pub port: u16,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct IssuerKey {
     pub private_key: String,
     pub certificate: String,

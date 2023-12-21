@@ -23,15 +23,15 @@ where
     A: AttributeService,
 {
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
-    let requestor_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
+    let requester_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
 
     let (wallet_router, requester_router) = create_verifier_routers(settings.clone(), sessions)?;
 
     let issuance_router = create_issuance_router(settings.clone(), attr_service).await?;
 
-    debug!("listening for requester on {}", requestor_socket);
+    debug!("listening for requester on {}", requester_socket);
     let server = tokio::spawn(async move {
-        axum::Server::bind(&requestor_socket)
+        axum::Server::bind(&requester_socket)
             .serve(
                 Router::new()
                     .nest("/disclosure/sessions", requester_router)

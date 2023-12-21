@@ -10,13 +10,16 @@ generate = ["dep:rcgen"]
 mock = [
     "examples",
     "generate",
+    "regex",
     "wallet_common/mock",
     "wallet_common/software-keys",
 ]
+allow_http_return_url = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 async-trait.workspace = true
+base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
@@ -27,6 +30,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
+regex = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
 rustls-webpki.workspace = true
@@ -50,7 +54,6 @@ wallet_common.path = "../wallet_common"
 [dev-dependencies]
 assert_matches.workspace = true
 http.workspace = true
-regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
 

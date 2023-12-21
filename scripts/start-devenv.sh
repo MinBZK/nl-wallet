@@ -262,7 +262,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
-        RUST_LOG=debug cargo run --bin wallet_server > "${TARGET_DIR}/mrp_wallet_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --features "allow_http_return_url" --bin wallet_server > "${TARGET_DIR}/mrp_wallet_server.log" 2>&1 &
 
         echo -e "wallet_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_wallet_server.log${NC}"
     fi
@@ -308,6 +308,6 @@ then
     if [ "${START}" == "0" ]
     then
         cd "${BASE_DIR}"/wallet_app
-        flutter run --dart-define MOCK_REPOSITORIES=false --dart-define DISABLE_TLS_VALIDATION=true --dart-define ENV_CONFIGURATION=true
+        flutter run --dart-define MOCK_REPOSITORIES=false --dart-define ALLOW_HTTP_RETURN_URL=true --dart-define DISABLE_TLS_VALIDATION=true --dart-define ENV_CONFIGURATION=true
     fi
 fi

@@ -1,14 +1,15 @@
-use futures::future::{self, TryFutureExt};
+use base64::{engine::general_purpose::STANDARD, Engine};
+use futures::future::TryFutureExt;
 use indexmap::IndexMap;
 use url::Url;
 use webpki::TrustAnchor;
 
-use wallet_common::generator::TimeGenerator;
+use wallet_common::{generator::TimeGenerator, utils};
 
 use crate::{
     basic_sa_ext::Entry,
     device_retrieval::DeviceRequest,
-    disclosure::{DeviceResponse, DeviceResponseVersion, SessionData, SessionStatus},
+    disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
     holder::{HolderError, HttpClient},
@@ -18,7 +19,7 @@ use crate::{
         crypto::SessionKey,
         keys::{KeyFactory, MdocEcdsaKey},
         reader_auth::ReaderRegistration,
-        serialization::{self, CborError},
+        serialization::{self, CborError, TaggedBytes},
         x509::Certificate,
     },
     verifier::SessionType,
@@ -27,6 +28,7 @@ use crate::{
 use super::{proposed_document::ProposedDocument, request::DeviceRequestMatch, MdocDataSource};
 
 const REFERRER_URL: &str = "https://referrer.url/";
+const TRANSCRIPT_HASH_PARAM: &str = "transcript_hash";
 
 pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
 
@@ -127,6 +129,11 @@ where
                 Err(error)
             })
             .await?;
+
+        // If we have a return URL, add the hash of the `SessionTranscript` to it.
+        let return_url = return_url
+            .map(|url| Self::add_transcript_hash_to_url(url, &transcript))
+            .transpose()?;
 
         // Decrypt and verify the received `DeviceRequest`. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
@@ -240,6 +247,17 @@ where
         Ok((result, certificate, reader_registration))
     }
 
+    fn add_transcript_hash_to_url(url: impl Into<Url>, session_transcript: &SessionTranscript) -> Result<Url> {
+        let transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
+        let transcript_hash = utils::sha256(&transcript_bytes);
+
+        let mut url = url.into();
+        url.query_pairs_mut()
+            .append_pair(TRANSCRIPT_HASH_PARAM, &STANDARD.encode(transcript_hash));
+
+        Ok(url)
+    }
+
     fn data(&self) -> &CommonDisclosureData<H> {
         match self {
             DisclosureSession::MissingAttributes(session) => &session.data,
@@ -299,22 +317,10 @@ where
         KF: KeyFactory<'a, Key = K>,
         K: MdocEcdsaKey + Sync,
     {
-        // Convert all of the `ProposedDocument` entries to `Document` by signing them.
-        // TODO: Do this in bulk, as this will be serialized by the implementation.
-        let documents = future::try_join_all(
-            self.proposed_documents
-                .iter()
-                .map(|proposed_document| proposed_document.clone().sign(key_factory)),
-        )
-        .await?;
-
-        // Construct a `DeviceResponse` and encrypt this with the device key.
-        let device_response = DeviceResponse {
-            version: DeviceResponseVersion::V1_0,
-            documents: documents.into(),
-            document_errors: None, // TODO: Consider using this for reporting errors per mdoc
-            status: 0,
-        };
+        // Clone the proposed documents and construct a `DeviceResponse` by
+        // signing these, then encrypt the response with the device key.
+        let proposed_documents = self.proposed_documents.to_vec();
+        let device_response = DeviceResponse::from_proposed_documents(proposed_documents, key_factory).await?;
         let session_data = SessionData::serialize_and_encrypt(&device_response, &self.device_key)?;
 
         // Send the `SessionData` containing the encrypted `DeviceResponse`.
@@ -353,6 +359,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     use crate::{
+        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
         identifiers::AttributeIdentifierHolder,
         iso::{
             disclosure::{DeviceAuth, SessionStatus},
@@ -367,7 +374,7 @@ mod tests {
         },
     };
 
-    use super::{super::tests::*, *};
+    use super::{super::test_utils::*, *};
 
     fn test_payload_session_data_error(payload: &[u8], expected_session_status: SessionStatus) {
         let session_data: SessionData =
@@ -404,9 +411,9 @@ mod tests {
         let reader_engagement = verifier_session.reader_engagement.clone();
 
         // Make sure starting the session resulted in a proposal, get the
-        // device `SessionKey` and a list of public keys from that
-        // and then actually perform disclosure.
-        let (device_key, public_keys) = match disclosure_session {
+        // device `SessionKey`, a list of public keys and the return URL
+        // from that, then actually perform disclosure.
+        let (device_key, public_keys, return_url) = match disclosure_session {
             DisclosureSession::Proposal(proposal) => {
                 let device_key = proposal.device_key.clone();
 
@@ -430,7 +437,7 @@ mod tests {
                     .await
                     .expect("Could not disclose DisclosureSession");
 
-                (device_key, public_keys)
+                (device_key, public_keys, proposal.return_url)
             }
             _ => panic!("Disclosure session should not have missing attributes"),
         };
@@ -469,11 +476,25 @@ mod tests {
         assert_eq!(response_identifiers, request_identifiers);
 
         // Use the `DeviceEngagement` sent to reconstruct the `SessionTranscript`.
-        // In turn, use that to reconstruct the `DeviceAuthentication` for every
-        // `Document` received in order to verify the signatures received for
-        // each of these.
         let session_transcript = SessionTranscript::new(session_type, &reader_engagement, &device_engagement).unwrap();
 
+        // Use the reconstructed `SessionTranscript` to check the generated
+        // `transcript_hash` on the return URL.
+        let transcript_hash = return_url
+            .expect("return URL should be provided by session")
+            .query_pairs()
+            .find(|(key, _)| key == TRANSCRIPT_HASH_PARAM)
+            .map(|(_, value)| STANDARD.decode(value.as_ref()))
+            .expect("return URL should contain \"transcript_hash\" query parameter")
+            .expect("return URL \"transcript_hash\" query parameter should be base64 encoded");
+        let expected_transcript_hash =
+            utils::sha256(&serialization::cbor_serialize(&TaggedBytes(&session_transcript)).unwrap());
+
+        assert_eq!(transcript_hash, expected_transcript_hash);
+
+        // Also use the `SessionTranscript` to reconstruct the `DeviceAuthentication`
+        // for every `Document` received in order to verify the signatures received
+        // for each of these.
         assert_eq!(documents.len(), public_keys.len());
 
         documents
@@ -516,8 +537,16 @@ mod tests {
             DisclosureSession::Proposal(ref session) => session,
         };
 
-        // Test if the return `Url` and `ReaderRegistration` match the input.
-        assert_eq!(proposal_session.return_url(), verifier_session.return_url.as_ref());
+        // Test if the return `Url` scheme and host match the input and that the
+        // resulting return URL now includes a `transcript_hash` query parameter.
+        let return_url = proposal_session.return_url.as_ref().unwrap();
+        let expected_return_url = verifier_session.return_url.as_ref().unwrap();
+
+        assert_eq!(return_url.scheme(), expected_return_url.scheme());
+        assert_eq!(return_url.host(), expected_return_url.host());
+        assert!(return_url.query_pairs().any(|(key, _)| key == TRANSCRIPT_HASH_PARAM));
+
+        // Test if the `ReaderRegistration` matches the input.
         assert_eq!(
             disclosure_session.reader_registration(),
             verifier_session.reader_registration.as_ref().unwrap()
@@ -592,12 +621,12 @@ mod tests {
             serialization::cbor_deserialize(payloads.first().unwrap().as_slice())
                 .expect("Sent message is not DeviceEngagement");
 
-        let expected_missing_attributes: Vec<AttributeIdentifier> =
-            vec!["org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges"
-                .parse()
-                .unwrap()];
+        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
 
-        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
     }
 
     #[tokio::test]
@@ -637,18 +666,18 @@ mod tests {
             serialization::cbor_deserialize(payloads.first().unwrap().as_slice())
                 .expect("Sent message is not DeviceEngagement");
 
-        let expected_missing_attributes: Vec<AttributeIdentifier> = vec![
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/family_name",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/issue_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/expiry_date",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/document_number",
-            "org.iso.18013.5.1.mDL/org.iso.18013.5.1/driving_privileges",
-        ]
-        .into_iter()
-        .map(|attribute| attribute.parse().unwrap())
-        .collect();
+        let expected_missing_attributes = example_identifiers_from_attributes([
+            "family_name",
+            "issue_date",
+            "expiry_date",
+            "document_number",
+            "driving_privileges",
+        ]);
 
-        assert_eq!(missing_attr_session.missing_attributes(), expected_missing_attributes);
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
     }
 
     #[tokio::test]

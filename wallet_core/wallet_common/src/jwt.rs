@@ -95,7 +95,7 @@ impl EcdsaDecodingKey {
 
 impl<T> Jwt<T>
 where
-    T: Serialize + DeserializeOwned,
+    T: DeserializeOwned,
 {
     /// Verify the JWT, and parse and return its payload.
     pub fn parse_and_verify(&self, pubkey: &EcdsaDecodingKey, validation_options: &Validation) -> Result<T> {
@@ -105,7 +105,12 @@ where
 
         Ok(payload)
     }
+}
 
+impl<T> Jwt<T>
+where
+    T: Serialize,
+{
     pub async fn sign(payload: &T, header: &Header, privkey: &impl EcdsaKey) -> Result<Jwt<T>> {
         let encoded_header = URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
         let encoded_claims = URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
@@ -159,17 +164,8 @@ where
             sub: T::SUB.to_owned(),
         };
 
-        let encoded_header = URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
-        let encoded_claims = URL_SAFE_NO_PAD.encode(serde_json::to_vec(claims)?);
-        let message = [encoded_header, encoded_claims].join(".");
-
-        let signature = privkey
-            .try_sign(message.as_bytes())
-            .await
-            .map_err(|err| JwtError::Signing(Box::new(err)))?;
-        let encoded_signature = URL_SAFE_NO_PAD.encode(signature.to_vec());
-
-        Ok([message, encoded_signature].join(".").into())
+        let jwt = Jwt::sign(claims, header, privkey).await?.0;
+        Ok(jwt.into())
     }
 }
 

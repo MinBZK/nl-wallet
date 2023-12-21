@@ -41,6 +41,7 @@ type Result<T> = std::result::Result<T, WalletProviderError>;
 
 pub fn router(router_state: RouterState, wallet_config: WalletConfiguration) -> Router {
     Router::new()
+        .nest("/", health_router())
         .nest(
             "/api/v1",
             Router::new()
@@ -59,6 +60,10 @@ pub fn router(router_state: RouterState, wallet_config: WalletConfiguration) -> 
                 .route("/wallet-config", get(configuration))
                 .with_state(wallet_config),
         )
+}
+
+fn health_router() -> Router {
+    Router::new().route("/health", get(|| async {}))
 }
 
 async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<Challenge>)> {

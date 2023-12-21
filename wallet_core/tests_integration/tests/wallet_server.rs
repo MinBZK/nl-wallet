@@ -1,32 +1,21 @@
-use std::{
-    collections::HashMap,
-    net::{IpAddr, TcpListener},
-    str::FromStr,
-};
+use std::collections::HashMap;
 
-use async_trait::async_trait;
 use base64::prelude::*;
-use chrono::Duration;
 use indexmap::IndexMap;
-use openid4vc::{
-    issuer::{AttributeService, Created},
-    token::TokenRequest,
-    NL_WALLET_CLIENT_ID,
-};
+use openid4vc::{issuer::AttributeService, token::TokenRequest};
 use p256::pkcs8::EncodePrivateKey;
 use reqwest::{Client, StatusCode};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
     mock::SoftwareKeyFactory,
-    server_state::{SessionState, SessionStore, SessionToken},
+    server_state::SessionToken,
     utils::{
         reader_auth::{DeletionPolicy, Organization, ReaderRegistration, RetentionPolicy, SharingPolicy},
         serialization::cbor_deserialize,
         x509::{Certificate, CertificateType},
     },
-    verifier::{DisclosureData, SessionType},
+    verifier::SessionType,
     ItemsRequest, ReaderEngagement,
 };
 use wallet::{
@@ -38,23 +27,15 @@ use wallet::{
 };
 use wallet_common::{config::wallet_config::PidIssuanceConfiguration, trust_anchor::DerTrustAnchor};
 use wallet_server::{
-    pid::{
-        attributes::{AttributesLookup, PidAttributeService},
-        mock::{MockAttributesLookup, MockBsnLookup},
-    },
-    server,
-    settings::{Digid, Issuer, KeyPair, Server, Settings},
+    pid::attributes::PidAttributeService,
+    settings::{KeyPair, Settings},
     store::new_session_store,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
-fn find_listener_port() -> u16 {
-    TcpListener::bind("localhost:0")
-        .expect("Could not find TCP port")
-        .local_addr()
-        .expect("Could not get local address from TCP listener")
-        .port()
-}
+use crate::common::*;
+
+pub mod common;
 
 // Test fixture
 fn get_my_reader_auth() -> ReaderRegistration {
@@ -85,13 +66,24 @@ fn get_my_reader_auth() -> ReaderRegistration {
         sharing_policy: SharingPolicy { intent_to_share: true },
         deletion_policy: DeletionPolicy { deleteable: true },
         organization: my_organization,
+        return_url_prefix: "https://example.com/".parse().unwrap(),
         attributes: Default::default(),
     }
 }
 
 fn wallet_server_settings() -> (Settings, Certificate) {
-    let port = find_listener_port();
-    let port2 = find_listener_port();
+    let mut settings = common::wallet_server_settings();
+    settings.usecases = HashMap::new();
+    settings.trust_anchors = Vec::new();
+
+    #[cfg(feature = "postgres")]
+    {
+        settings.store_url = "postgres://postgres@127.0.0.1:5432/wallet_server".parse().unwrap();
+    }
+    #[cfg(not(feature = "postgres"))]
+    {
+        settings.store_url = "memory://".parse().unwrap();
+    }
 
     let (issuance_ca, issuance_ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
     let (issuer_cert, issuer_privkey) = Certificate::new(
@@ -102,44 +94,15 @@ fn wallet_server_settings() -> (Settings, Certificate) {
     )
     .unwrap();
 
-    // Pick up the private key for decrypting the BSN from the mock DigiD issuer from the .gitignore'd settings file
-    let bsn_privkey = Settings::new().unwrap().issuer.digid.bsn_privkey.clone();
-
     let keypair = KeyPair {
         private_key: issuer_privkey.to_pkcs8_der().unwrap().to_bytes().to_vec().into(),
         certificate: issuer_cert.as_bytes().to_vec().into(),
     };
 
-    let mut settings = Settings {
-        wallet_server: Server {
-            ip: IpAddr::from_str("127.0.0.1").unwrap(),
-            port,
-        },
-        requester_server: Server {
-            ip: IpAddr::from_str("127.0.0.1").unwrap(),
-            port: port2,
-        },
-        public_url: format!("http://localhost:{}/", port).parse().unwrap(),
-        internal_url: format!("http://localhost:{}/", port2).parse().unwrap(),
-        usecases: HashMap::new(),
-        trust_anchors: Vec::new(),
-        #[cfg(feature = "postgres")]
-        store_url: "postgres://postgres@127.0.0.1:5432/wallet_server".parse().unwrap(),
-        #[cfg(not(feature = "postgres"))]
-        store_url: "memory://".parse().unwrap(),
-        issuer: Issuer {
-            wallet_client_ids: vec![NL_WALLET_CLIENT_ID.to_string()],
-            digid: Digid {
-                issuer_url: "https://localhost:8006/".parse().unwrap(),
-                client_id: "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9".to_string(),
-                bsn_privkey,
-            },
-            private_keys: HashMap::from([
-                ("com.example.pid".to_string(), keypair.clone()),
-                ("com.example.address".to_string(), keypair),
-            ]),
-        },
-    };
+    settings.issuer.private_keys = HashMap::from([
+        ("com.example.pid".to_string(), keypair.clone()),
+        ("com.example.address".to_string(), keypair),
+    ]);
 
     let (rp_cert, rp_privkey) = Certificate::new(
         &issuance_ca,
@@ -163,59 +126,6 @@ fn wallet_server_settings() -> (Settings, Certificate) {
     );
 
     (settings, issuance_ca)
-}
-
-struct MockAttributeService;
-
-#[async_trait]
-impl AttributeService for MockAttributeService {
-    type Error = wallet_server::verifier::Error; // arbitrary type that implements the required trait bounds
-    type Settings = ();
-
-    async fn new(_settings: &Self::Settings) -> Result<Self, Self::Error> {
-        Ok(MockAttributeService)
-    }
-
-    async fn attributes(
-        &self,
-        _session: &SessionState<Created>,
-        _token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
-        let mock_bsn = MockBsnLookup::default().bsn("access_token").await.unwrap();
-        Ok(MockAttributesLookup::default().attributes(&mock_bsn))
-    }
-}
-
-async fn start_wallet_server<A, S>(settings: Settings, sessions: S, attr_service: A)
-where
-    A: AttributeService,
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
-{
-    let public_url = settings.public_url.clone();
-    tokio::spawn(async move {
-        server::serve::<A, S>(&settings, sessions, attr_service)
-            .await
-            .expect("Could not start wallet_server");
-    });
-
-    let _ = tracing::subscriber::set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .with_test_writer()
-            .finish(),
-    );
-
-    // wait for the server to come up
-    let client = reqwest::Client::new();
-    loop {
-        match client.get(public_url.join("/health").unwrap()).send().await {
-            Ok(_) => break,
-            _ => {
-                println!("Waiting for wallet_server...");
-                tokio::time::sleep(Duration::milliseconds(100).to_std().unwrap()).await
-            }
-        }
-    }
 }
 
 fn parse_wallet_url(engagement_url: Url) -> Url {
@@ -247,6 +157,7 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
     let (settings, _) = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
@@ -306,6 +217,7 @@ async fn test_start_session() {
 }
 
 #[tokio::test]
+#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
     let (settings, _) = wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();

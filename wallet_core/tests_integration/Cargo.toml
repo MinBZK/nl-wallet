@@ -12,7 +12,11 @@ live_test = []
 
 [dev-dependencies]
 assert_matches.workspace = true
+async-trait.workspace = true
 base64.workspace = true
+ctor.workspace = true
+indexmap.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
@@ -27,7 +31,8 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "generate"] }
+openid4vc = { path = "../openid4vc" }
 pid_issuer = { path = "../pid_issuer", features = ["mock"] }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = [
@@ -41,3 +46,4 @@ wallet_provider_database_settings = { path = "../wallet_provider/database_settin
 wallet_provider_domain = { path = "../wallet_provider/domain" }
 wallet_provider_persistence = { path = "../wallet_provider/persistence" }
 wallet_provider_service = { path = "../wallet_provider/service" }
+wallet_server = { path = "../wallet_server" }

@@ -2520,6 +2520,7 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "async-trait",
+ "base64 0.21.4",
  "chrono",
  "ciborium",
  "coset",
@@ -4418,8 +4419,13 @@ name = "tests_integration"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
+ "async-trait",
  "base64 0.21.4",
+ "ctor",
+ "indexmap 2.0.2",
  "nl_wallet_mdoc",
+ "openid4vc",
+ "p256",
  "pid_issuer",
  "platform_support",
  "reqwest",
@@ -4436,6 +4442,7 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
+ "wallet_server",
 ]
 
 [[package]]
