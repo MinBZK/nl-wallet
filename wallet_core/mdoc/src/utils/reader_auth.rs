@@ -354,11 +354,16 @@ mod tests {
         "https://user:password@example.com/session/more/path",
         true
     )]
+    #[case("https://example.com:8080/", "https://example.com:8080/session", true)]
+    #[case("https://example.com:8080/", "https://example.com:8080/session/more/path", true)]
     #[case("https://example.com/", "https://example.com/", false)]
     #[case("https://example.com/path/", "https://example.com/path/", false)]
     #[case("https://example.com/path/", "https://example.com/session", false)]
     #[case("https://example.com/path/more/", "https://example.com/path/session", false)]
     #[case("https://user:password@example.com/", "https://example.com/session", false)]
+    #[case("https://example.com:8080/", "https://example.com:8443/session", false)]
+    #[case("https://example.com:80/", "https://example.com/session", false)]
+    #[case("https://example.com/", "https://example.com:80/session", false)]
     fn test_return_url_prefix_matches_url(
         #[case] return_url_prefix: ReturnUrlPrefix,
         #[case] url: Url,
