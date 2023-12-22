@@ -71,7 +71,7 @@ impl Settings {
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("internal_url", "http://localhost:3002/")?
             .set_default("store_url", "memory://")?
-            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
+            .set_default("issuer.wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
             .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_server")
