@@ -4,13 +4,25 @@ use reqwest::StatusCode;
 use serial_test::serial;
 use url::Url;
 
-use nl_wallet_mdoc::{verifier::SessionType, ItemsRequest};
+use nl_wallet_mdoc::{
+    basic_sa_ext::Entry,
+    verifier::{SessionResult, SessionType, StatusResponse},
+    ItemsRequest,
+};
 use wallet::{errors::DisclosureError, mock::MockDigidSession};
 use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
 
 use crate::common::*;
 
 pub mod common;
+
+async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> StatusResponse {
+    let response = client.get(session_url).send().await.unwrap();
+
+    assert!(response.status().is_success());
+
+    response.json().await.unwrap()
+}
 
 #[tokio::test]
 #[serial]
@@ -77,18 +89,44 @@ async fn test_disclosure_ok() {
         session_url,
         engagement_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
-    let response = client.get(session_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::Created
+    );
 
     let mut url = engagement_url.clone();
     url.set_query(Some("session_type=same_device"));
 
-    let proposal = wallet.start_disclosure(&url).await.unwrap();
+    let proposal = wallet.start_disclosure(&url).await.expect("Could not start disclosure");
     assert_eq!(proposal.reader_registration.id, "some-service-id");
     assert_eq!(proposal.documents.len(), 1);
 
-    wallet.accept_disclosure(pin).await.unwrap();
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::WaitingForResponse
+    );
+
+    wallet
+        .accept_disclosure(pin)
+        .await
+        .expect("Could not accept disclosure");
+
+    let expected_entries = vec![
+        Entry {
+            name: "family_name".into(),
+            value: "De Bruijn".into(),
+        },
+        Entry {
+            name: "given_name".into(),
+            value: "Willeke Liselotte".into(),
+        },
+    ];
+    assert_matches!(
+        get_verifier_status(&client, session_url).await,
+        StatusResponse::Done(SessionResult::Done { disclosed_attributes })
+        if disclosed_attributes.get("com.example.pid").unwrap().get("com.example.pid").unwrap() == &expected_entries
+    );
 }
 
 #[tokio::test]
