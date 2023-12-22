@@ -344,24 +344,14 @@ class MockWalletCardRepository extends _i1.Mock implements _i11.WalletCardReposi
       ) as _i4.Stream<List<_i3.WalletCard>>);
 
   @override
-  _i4.Future<bool> exists(String? cardId) => (super.noSuchMethod(
+  _i4.Future<bool> exists(String? docType) => (super.noSuchMethod(
         Invocation.method(
           #exists,
-          [cardId],
+          [docType],
         ),
         returnValue: _i4.Future<bool>.value(false),
         returnValueForMissingStub: _i4.Future<bool>.value(false),
       ) as _i4.Future<bool>);
-
-  @override
-  _i4.Future<void> create(_i3.WalletCard? card) => (super.noSuchMethod(
-        Invocation.method(
-          #create,
-          [card],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
 
   @override
   _i4.Future<List<_i3.WalletCard>> readAll() => (super.noSuchMethod(
@@ -374,46 +364,26 @@ class MockWalletCardRepository extends _i1.Mock implements _i11.WalletCardReposi
       ) as _i4.Future<List<_i3.WalletCard>>);
 
   @override
-  _i4.Future<_i3.WalletCard> read(String? cardId) => (super.noSuchMethod(
+  _i4.Future<_i3.WalletCard> read(String? docType) => (super.noSuchMethod(
         Invocation.method(
           #read,
-          [cardId],
+          [docType],
         ),
         returnValue: _i4.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
           this,
           Invocation.method(
             #read,
-            [cardId],
+            [docType],
           ),
         )),
         returnValueForMissingStub: _i4.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
           this,
           Invocation.method(
             #read,
-            [cardId],
+            [docType],
           ),
         )),
       ) as _i4.Future<_i3.WalletCard>);
-
-  @override
-  _i4.Future<void> update(_i3.WalletCard? card) => (super.noSuchMethod(
-        Invocation.method(
-          #update,
-          [card],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> delete(String? cardId) => (super.noSuchMethod(
-        Invocation.method(
-          #delete,
-          [cardId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [OrganizationRepository].

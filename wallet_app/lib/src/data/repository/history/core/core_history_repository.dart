@@ -35,8 +35,8 @@ class CoreHistoryRepository extends HistoryRepository implements TimelineAttribu
 
   @override
   Future<List<TimelineAttribute>> readFiltered({required String docType}) async {
-    final all = await readAll();
-    return all.where((element) => element.attributesByDocType.containsKey(docType)).toList();
+    final history = await getHistoryForCard(docType);
+    return _walletEventMapper.mapList(history);
   }
 
   @override
