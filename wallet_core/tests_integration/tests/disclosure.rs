@@ -1,6 +1,7 @@
 use assert_matches::assert_matches;
 use indexmap::IndexMap;
 use reqwest::StatusCode;
+use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
@@ -24,10 +25,15 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
     response.json().await.unwrap()
 }
 
+#[rstest]
+#[case(SessionType::SameDevice, None)]
+#[case(SessionType::SameDevice, Some("http://localhost:3004/return"))]
+#[case(SessionType::CrossDevice, None)]
+#[case(SessionType::CrossDevice, Some("http://localhost:3004/return"))]
 #[tokio::test]
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
-async fn test_disclosure_ok() {
+async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<&str>) {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
         let mut session = MockDigidSession::default();
@@ -55,7 +61,7 @@ async fn test_disclosure_ok() {
 
     let start_request = StartDisclosureRequest {
         usecase: "driving_license".to_owned(),
-        session_type: SessionType::SameDevice,
+        session_type,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
             request_info: None,
@@ -95,10 +101,27 @@ async fn test_disclosure_ok() {
         StatusResponse::Created
     );
 
-    let mut url = engagement_url.clone();
-    // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
-    // contained in the certificate, so we have to specify a return URL prefixed with that.
-    url.set_query(Some("session_type=same_device&return_url=http://localhost:3004/return"));
+    let url = {
+        let mut url = engagement_url.clone();
+
+        {
+            let mut query_pairs = url.query_pairs_mut();
+
+            let session_type_param = match session_type {
+                SessionType::SameDevice => "same_device",
+                SessionType::CrossDevice => "cross_device",
+            };
+            query_pairs.append_pair("session_type", session_type_param);
+
+            // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
+            // contained in the certificate, so we have to specify a return URL prefixed with that.
+            if let Some(return_url) = return_url {
+                query_pairs.append_pair("return_url", return_url);
+            }
+        }
+
+        url
+    };
 
     let proposal = wallet.start_disclosure(&url).await.expect("Could not start disclosure");
     assert_eq!(proposal.reader_registration.id, "some-service-id");

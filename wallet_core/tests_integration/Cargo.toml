@@ -18,6 +18,7 @@ ctor.workspace = true
 indexmap.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
+rstest.workspace = true
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",
