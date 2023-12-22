@@ -8,7 +8,7 @@ import '../../pin/bloc/pin_bloc.dart';
 import '../../pin/pin_page.dart';
 
 class SignConfirmPinPage extends StatelessWidget {
-  final VoidCallback onPinValidated;
+  final OnPinValidatedCallback onPinValidated;
 
   @visibleForTesting
   final PinBloc? bloc;

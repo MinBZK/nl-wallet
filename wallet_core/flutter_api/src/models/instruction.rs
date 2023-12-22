@@ -1,7 +1,11 @@
-use wallet::errors::{DisclosureError, InstructionError, PidIssuanceError, WalletUnlockError};
+use wallet::errors::{InstructionError, PidIssuanceError, WalletUnlockError};
 
 pub enum WalletInstructionResult {
     Ok,
+    InstructionError { error: WalletInstructionError },
+}
+
+pub enum WalletInstructionError {
     IncorrectPin {
         leftover_attempts: u8,
         is_final_attempt: bool,
@@ -15,7 +19,7 @@ pub enum WalletInstructionResult {
 /// This converts the [InstructionError] to the corresponding [WalletInstructionResult].
 /// If no matching [WalletInstructionResult] is available the [InstructionError] will be returned
 /// unchanged.
-impl TryFrom<InstructionError> for WalletInstructionResult {
+impl TryFrom<InstructionError> for WalletInstructionError {
     type Error = InstructionError;
 
     fn try_from(value: InstructionError) -> Result<Self, Self::Error> {
@@ -23,12 +27,12 @@ impl TryFrom<InstructionError> for WalletInstructionResult {
             InstructionError::IncorrectPin {
                 leftover_attempts,
                 is_final_attempt,
-            } => Ok(WalletInstructionResult::IncorrectPin {
+            } => Ok(WalletInstructionError::IncorrectPin {
                 leftover_attempts,
                 is_final_attempt,
             }),
-            InstructionError::Timeout { timeout_millis } => Ok(WalletInstructionResult::Timeout { timeout_millis }),
-            InstructionError::Blocked => Ok(WalletInstructionResult::Blocked),
+            InstructionError::Timeout { timeout_millis } => Ok(WalletInstructionError::Timeout { timeout_millis }),
+            InstructionError::Blocked => Ok(WalletInstructionError::Blocked),
             _ => Err(value),
         }
     }
@@ -47,10 +51,10 @@ impl TryFrom<Result<(), WalletUnlockError>> for WalletInstructionResult {
     fn try_from(value: Result<(), WalletUnlockError>) -> Result<Self, Self::Error> {
         match value {
             Ok(_) => Ok(WalletInstructionResult::Ok),
-            Err(e) => match e {
-                WalletUnlockError::Instruction(i) => Ok(i.try_into()?),
-                _ => Err(e),
-            },
+            Err(WalletUnlockError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
+                error: instruction_error.try_into().map_err(WalletUnlockError::Instruction)?,
+            }),
+            Err(error) => Err(error),
         }
     }
 }
@@ -68,24 +72,9 @@ impl TryFrom<Result<(), PidIssuanceError>> for WalletInstructionResult {
     fn try_from(value: Result<(), PidIssuanceError>) -> Result<Self, Self::Error> {
         match value {
             Ok(_) => Ok(WalletInstructionResult::Ok),
-            Err(e) => match e {
-                PidIssuanceError::Instruction(i) => Ok(i.try_into()?),
-                _ => Err(e),
-            },
-        }
-    }
-}
-
-impl TryFrom<Result<(), DisclosureError>> for WalletInstructionResult {
-    type Error = DisclosureError;
-
-    fn try_from(value: Result<(), DisclosureError>) -> Result<Self, Self::Error> {
-        match value {
-            Ok(_) => Ok(WalletInstructionResult::Ok),
-            Err(DisclosureError::Instruction(instruction_error)) => match instruction_error.try_into() {
-                Ok(result) => Ok(result),
-                Err(instruction_error) => Err(DisclosureError::Instruction(instruction_error)),
-            },
+            Err(PidIssuanceError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
+                error: instruction_error.try_into().map_err(PidIssuanceError::Instruction)?,
+            }),
             Err(error) => Err(error),
         }
     }

@@ -9,5 +9,5 @@ abstract class DisclosureRepository {
 
   Future<void> cancelDisclosure();
 
-  Future<WalletInstructionResult> acceptDisclosure(String pin);
+  Future<AcceptDisclosureResult> acceptDisclosure(String pin);
 }

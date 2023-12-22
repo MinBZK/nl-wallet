@@ -169,7 +169,7 @@ class SignScreen extends StatelessWidget {
 
   Widget _buildConfirmPin(BuildContext context, SignConfirmPin state) {
     return SignConfirmPinPage(
-      onPinValidated: () => context.read<SignBloc>().add(const SignPinConfirmed()),
+      onPinValidated: (_) => context.read<SignBloc>().add(const SignPinConfirmed()),
     );
   }
 

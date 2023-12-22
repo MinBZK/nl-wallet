@@ -1,9 +1,14 @@
+use url::Url;
+
 use wallet::{
     errors::DisclosureError, mdoc::ReaderRegistration, DisclosureProposal, MissingDisclosureAttributes,
     ProposedDisclosureDocument,
 };
 
-use super::card::{CardAttribute, LocalizedString};
+use super::{
+    card::{CardAttribute, LocalizedString},
+    instruction::WalletInstructionError,
+};
 
 pub enum Image {
     Svg { xml: String },
@@ -55,6 +60,11 @@ pub enum StartDisclosureResult {
         is_first_interaction_with_relying_party: bool,
         request_purpose: Vec<LocalizedString>,
     },
+}
+
+pub enum AcceptDisclosureResult {
+    Ok { return_url: Option<String> },
+    InstructionError { error: WalletInstructionError },
 }
 
 pub struct RPLocalizedStrings(pub wallet::mdoc::LocalizedStrings);
@@ -197,6 +207,22 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 }
                 _ => Err(error),
             },
+        }
+    }
+}
+
+impl TryFrom<Result<Option<Url>, DisclosureError>> for AcceptDisclosureResult {
+    type Error = DisclosureError;
+
+    fn try_from(value: Result<Option<Url>, DisclosureError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(return_url) => Ok(AcceptDisclosureResult::Ok {
+                return_url: return_url.map(|return_url| return_url.into()),
+            }),
+            Err(DisclosureError::Instruction(instruction_error)) => Ok(AcceptDisclosureResult::InstructionError {
+                error: instruction_error.try_into().map_err(DisclosureError::Instruction)?,
+            }),
+            Err(error) => Err(error),
         }
     }
 }

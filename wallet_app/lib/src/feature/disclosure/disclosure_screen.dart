@@ -1,6 +1,7 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../../navigation/wallet_routes.dart';
@@ -171,7 +172,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
     return DisclosureConfirmPinPage(
       bloc: PinBloc(context.read<AcceptDisclosureUseCase>()),
-      onPinValidated: () => context.read<DisclosureBloc>().add(const DisclosurePinConfirmed()),
+      onPinValidated: (returnUrl) => context.read<DisclosureBloc>().add(DisclosurePinConfirmed(returnUrl: returnUrl)),
     );
   }
 
@@ -188,8 +189,20 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildSuccessPage(BuildContext context, DisclosureSuccess state) {
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
-      onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+      onClosePressed: () {
+        Navigator.pop(context);
+
+        // Handle return url
+        if (state.returnUrl != null) {
+          try {
+            final uri = Uri.parse(state.returnUrl!);
+            launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (error) {
+            Fimber.e('Failed to open returnUrl', ex: error);
+          }
+        }
+      },
     );
   }
 

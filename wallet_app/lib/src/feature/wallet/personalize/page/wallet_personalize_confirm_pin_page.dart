@@ -9,7 +9,7 @@ import '../../../pin/pin_page.dart';
 import '../wallet_personalize_setup_failed_screen.dart';
 
 class WalletPersonalizeConfirmPinPage extends StatelessWidget {
-  final VoidCallback onPidAccepted;
+  final OnPinValidatedCallback onPidAccepted;
 
   @visibleForTesting
   final PinBloc? bloc;

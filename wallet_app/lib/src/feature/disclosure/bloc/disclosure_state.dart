@@ -135,6 +135,7 @@ class DisclosureConfirmPin extends DisclosureState {
 
 class DisclosureSuccess extends DisclosureState {
   final Organization relyingParty;
+  final String? returnUrl;
 
   @override
   double get stepperProgress => 1;
@@ -142,10 +143,10 @@ class DisclosureSuccess extends DisclosureState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureSuccess({required this.relyingParty});
+  const DisclosureSuccess({required this.relyingParty, this.returnUrl});
 
   @override
-  List<Object?> get props => [relyingParty, ...super.props];
+  List<Object?> get props => [relyingParty, returnUrl, ...super.props];
 }
 
 class DisclosureStopped extends DisclosureState {

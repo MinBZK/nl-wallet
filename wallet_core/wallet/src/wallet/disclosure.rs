@@ -195,7 +195,7 @@ where
         Ok(())
     }
 
-    pub async fn accept_disclosure(&mut self, pin: String) -> Result<(), DisclosureError>
+    pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage + Send + Sync,
         PEK: PlatformEcdsaKey + Sync,
@@ -280,10 +280,13 @@ where
             .await
             .map_err(DisclosureError::HistoryStorage)?;
 
+        // Clone the return URL if present, so we can return it from this method.
+        let return_url = session_proposal.return_url().cloned();
+
         // When disclosure is successful, we can remove the session.
         self.disclosure_session.take();
 
-        Ok(())
+        Ok(return_url)
     }
 }
 
@@ -807,6 +810,8 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        let return_url = Url::parse("https://example.com/return/here").unwrap();
+
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             IndexMap::from([(
@@ -818,13 +823,14 @@ mod tests {
             )]),
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
+            return_url: return_url.clone().into(),
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
         };
 
-        // Create a default `MockMdocDisclosureSession`, copy
-        // the disclosure count and check that it is 0.
+        // Create a `MockMdocDisclosureSession` with the return URL and the `MockMdocDisclosureProposal`,
+        // copy the disclosure count and check that it is 0.
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(disclosure_session),
             ..Default::default()
@@ -837,11 +843,13 @@ mod tests {
 
         wallet.disclosure_session = disclosure_session.into();
 
-        // Accepting disclosure should succeed.
-        wallet
+        // Accepting disclosure should succeed and give us the return URL.
+        let accept_result = wallet
             .accept_disclosure(PIN.to_string())
             .await
             .expect("Could not accept disclosure");
+
+        assert_matches!(accept_result, Some(result_return_url) if result_return_url == return_url);
 
         // Check that the disclosure session is no longer
         // present and that the disclosure count is 1.
