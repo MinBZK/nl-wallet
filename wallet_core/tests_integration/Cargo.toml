@@ -7,6 +7,11 @@ rust-version.workspace = true
 [features]
 db_test = []
 live_test = []
+digid_test = ["disable_tls_validation"]
+disable_tls_validation = [
+    "wallet_server/disable_tls_validation",
+    "wallet/disable_tls_validation",
+]
 
 [dependencies]
 
