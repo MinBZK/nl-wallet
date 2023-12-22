@@ -5,7 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
-db_test = []
+allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
+db_test = ["allow_http_return_url"]
 live_test = []
 
 [dependencies]
