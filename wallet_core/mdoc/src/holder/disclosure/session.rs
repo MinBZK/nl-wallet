@@ -1042,6 +1042,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_disclosure_session_start_error_return_url_prefix() {
+        // Starting a `DisclosureSession` where the the return URL does not match the return
+        // URL prefix contained in the verifier certificate should result in an error.
+        let mut payloads = Vec::with_capacity(2);
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            &mut payloads,
+            |mut verifier_session| {
+                verifier_session.return_url = Url::parse("https://not-example.com/return").unwrap().into();
+
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        let expected_urls = (
+            "https://example.com/".parse().unwrap(),
+            "https://not-example.com/return".parse().unwrap(),
+        )
+            .into();
+        assert_matches!(error, Error::Holder(HolderError::ReturnUrlPrefix(urls)) if urls == expected_urls);
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
+    }
+
+    #[tokio::test]
     async fn test_disclosure_session_start_error_mdoc_data_source() {
         // Starting a `DisclosureSession` when the database returns
         // an error should result in that error being forwarded.
