@@ -10,8 +10,12 @@ use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::Card, config::FlutterConfiguration, disclosure::StartDisclosureResult,
-        instruction::WalletInstructionResult, pin::PinValidationResult, uri::IdentifyUriResult,
+        card::Card,
+        config::FlutterConfiguration,
+        disclosure::{AcceptDisclosureResult, StartDisclosureResult},
+        instruction::WalletInstructionResult,
+        pin::PinValidationResult,
+        uri::IdentifyUriResult,
         wallet_event::WalletEvent,
     },
     stream::ClosingStreamSink,
@@ -242,7 +246,7 @@ pub async fn cancel_disclosure() -> Result<()> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn accept_disclosure(pin: String) -> Result<WalletInstructionResult> {
+pub async fn accept_disclosure(pin: String) -> Result<AcceptDisclosureResult> {
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_disclosure(pin).await.try_into()?;

@@ -101,7 +101,7 @@ class TypedWalletCore {
 
   Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());
 
-  Future<WalletInstructionResult> acceptDisclosure(String pin) => call((core) => core.acceptDisclosure(pin: pin));
+  Future<AcceptDisclosureResult> acceptDisclosure(String pin) => call((core) => core.acceptDisclosure(pin: pin));
 
   Stream<List<Card>> observeCards() => _cards.stream;
 

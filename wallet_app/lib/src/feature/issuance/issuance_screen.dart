@@ -182,7 +182,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildProvidePinPage(BuildContext context, IssuanceProvidePin state) {
     return IssuanceConfirmPinPage(
-      onPinValidated: () => context.bloc.add(const IssuancePinConfirmed()),
+      onPinValidated: (_) => context.bloc.add(const IssuancePinConfirmed()),
     );
   }
 

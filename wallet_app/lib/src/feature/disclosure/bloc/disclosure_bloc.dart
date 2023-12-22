@@ -137,7 +137,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   void _onPinConfirmed(DisclosurePinConfirmed event, emit) {
     assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
-    emit(DisclosureSuccess(relyingParty: _startDisclosureResult!.relyingParty));
+    emit(DisclosureSuccess(relyingParty: _startDisclosureResult!.relyingParty, returnUrl: event.returnUrl));
   }
 
   void _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {

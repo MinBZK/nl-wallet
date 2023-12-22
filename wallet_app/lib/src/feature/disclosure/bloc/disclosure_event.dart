@@ -25,7 +25,12 @@ class DisclosureShareRequestedAttributesApproved extends DisclosureEvent {
 }
 
 class DisclosurePinConfirmed extends DisclosureEvent {
-  const DisclosurePinConfirmed();
+  final String? returnUrl;
+
+  const DisclosurePinConfirmed({this.returnUrl});
+
+  @override
+  List<Object?> get props => [returnUrl];
 }
 
 class DisclosureBackPressed extends DisclosureEvent {

@@ -57,10 +57,12 @@ class CardHistoryScreen extends StatelessWidget {
   Widget _buildHistory(BuildContext context, CardHistoryLoadSuccess state) {
     final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
     List<Widget> slivers = sections
-        .map((section) => TimelineSectionSliver(
-              section: section,
-              onRowPressed: (attribute) => _onTimelineRowPressed(context, attribute, state.card),
-            ))
+        .map(
+          (section) => TimelineSectionSliver(
+            section: section,
+            onRowPressed: (attribute) => _onTimelineRowPressed(context, attribute, state.card),
+          ),
+        )
         .toList();
 
     return Column(
@@ -83,7 +85,7 @@ class CardHistoryScreen extends StatelessWidget {
   }
 
   void _onTimelineRowPressed(BuildContext context, TimelineAttribute attribute, WalletCard card) {
-    Navigator.restorablePushNamed(
+    Navigator.pushNamed(
       context,
       WalletRoutes.historyDetailRoute,
       arguments: HistoryDetailScreenArgument(
@@ -118,6 +120,7 @@ class CardHistoryScreen extends StatelessWidget {
             },
             child: Text(context.l10n.generalRetry),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
