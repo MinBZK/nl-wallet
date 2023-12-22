@@ -193,9 +193,11 @@ async fn test_disclosure_without_pid() {
         session_url,
         engagement_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
-    let response = client.get(session_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::Created
+    );
 
     let mut url = engagement_url.clone();
     url.set_query(Some("session_type=same_device"));
@@ -206,6 +208,11 @@ async fn test_disclosure_without_pid() {
         .expect_err("Should return error that attributes are not available");
 
     assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::WaitingForResponse
+    );
+
+    assert_matches!(
         error,
         DisclosureError::AttributesNotAvailable {
             reader_registration: _,
@@ -214,5 +221,12 @@ async fn test_disclosure_without_pid() {
             .iter()
             .flat_map(|attr| attr.attributes.keys().map(|k| k.to_owned()).collect::<Vec<&str>>())
             .collect::<Vec<&str>>() == vec!["given_name", "family_name"]
+    );
+
+    wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+    assert_matches!(
+        get_verifier_status(&client, session_url).await,
+        StatusResponse::Done(SessionResult::Cancelled)
     );
 }
