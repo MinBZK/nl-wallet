@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/timeline/timeline_attribute.dart';
@@ -26,7 +27,8 @@ class CardHistoryBloc extends Bloc<CardHistoryEvent, CardHistoryState> {
       WalletCard card = await getWalletCardUseCase.invoke(event.docType);
       List<TimelineAttribute> attributes = await getWalletCardTimelineAttributesUseCase.invoke(event.docType);
       emit(CardHistoryLoadSuccess(card, attributes));
-    } catch (error) {
+    } catch (error, stack) {
+      Fimber.e('Failed to load card history for ${event.docType}', ex: error, stacktrace: stack);
       emit(const CardHistoryLoadFailure());
     }
   }

@@ -27,6 +27,7 @@ class TimelineSectionSliver extends StatelessWidget {
           delegate: TimelineSectionHeader(
             dateTime: section.dateTime,
             textScaler: context.textScaler,
+            textStyle: context.textTheme.labelSmall,
           ),
         ),
         SliverList(
