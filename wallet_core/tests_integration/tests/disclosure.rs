@@ -96,7 +96,9 @@ async fn test_disclosure_ok() {
     );
 
     let mut url = engagement_url.clone();
-    url.set_query(Some("session_type=same_device"));
+    // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
+    // contained in the certificate, so we have to specify a return URL prefixed with that.
+    url.set_query(Some("session_type=same_device&return_url=http://localhost:3004/return"));
 
     let proposal = wallet.start_disclosure(&url).await.expect("Could not start disclosure");
     assert_eq!(proposal.reader_registration.id, "some-service-id");
