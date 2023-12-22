@@ -1,10 +1,10 @@
-import 'package:wallet_core/core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/repository/wallet/core/core_wallet_repository.dart';
 import 'package:wallet/src/util/mapper/pin/pin_validation_error_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
+import 'package:wallet_core/core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 
@@ -28,7 +28,12 @@ void main() {
       final pinIsValid = realInvocation.positionalArguments.first == _kValidPin;
       mockLockedStream.add(!pinIsValid);
       if (pinIsValid) return const WalletInstructionResult.ok();
-      return const WalletInstructionResult.incorrectPin(leftoverAttempts: 3, isFinalAttempt: false);
+      return const WalletInstructionResult.instructionError(
+        error: WalletInstructionError.incorrectPin(
+          leftoverAttempts: 3,
+          isFinalAttempt: false,
+        ),
+      );
     });
     when(core.lockWallet()).thenAnswer((realInvocation) async => mockLockedStream.add(true));
     repo = CoreWalletRepository(core, PinValidationErrorMapper()); //FIXME: Mock mapper
@@ -99,14 +104,22 @@ void main() {
       repo.lockWallet();
 
       when(core.unlockWallet(any)).thenAnswer(
-        (_) async => const WalletInstructionResult.incorrectPin(
+        (_) async => const WalletInstructionResult.instructionError(
+          error: WalletInstructionError.incorrectPin(
+            leftoverAttempts: 1337,
+            isFinalAttempt: false,
+          ),
+        ),
+      );
+
+      const expected = WalletInstructionResult.instructionError(
+        error: WalletInstructionError.incorrectPin(
           leftoverAttempts: 1337,
           isFinalAttempt: false,
         ),
       );
-
       final result = await repo.unlockWallet('invalid');
-      expect((result as WalletInstructionResult_IncorrectPin).leftoverAttempts, 1337);
+      expect(result, expected);
     });
   });
 

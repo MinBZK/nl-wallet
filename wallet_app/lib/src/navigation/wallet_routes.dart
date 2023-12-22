@@ -209,7 +209,7 @@ Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
-      child: PinScreen(onUnlock: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
+      child: PinScreen(onUnlock: (_) => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
     );
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(

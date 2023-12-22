@@ -26,10 +26,12 @@ class PinValidateInProgress extends PinState {
 }
 
 class PinValidateSuccess extends PinState {
-  const PinValidateSuccess();
+  final String? returnUrl;
+
+  const PinValidateSuccess({this.returnUrl});
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [returnUrl];
 }
 
 class PinValidateFailure extends PinState {

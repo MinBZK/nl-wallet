@@ -5,7 +5,7 @@ import '../../util/extension/build_context_extension.dart';
 import 'pin_page.dart';
 
 class PinScreen extends StatelessWidget {
-  final VoidCallback? onUnlock;
+  final OnPinValidatedCallback? onUnlock;
 
   const PinScreen({this.onUnlock, Key? key}) : super(key: key);
 

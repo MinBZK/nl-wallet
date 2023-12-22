@@ -49,9 +49,11 @@ void main() {
 
     test('checking an incorrect pin results in incorrectPin', () {
       pinManager.setPin(kTestValidPin);
+
+      const incorrectPin = WalletInstructionError.incorrectPin(leftoverAttempts: 2, isFinalAttempt: false);
       expect(
         pinManager.checkPin(kTestInvalidPin),
-        WalletInstructionResult.incorrectPin(leftoverAttempts: 2, isFinalAttempt: false),
+        WalletInstructionResult.instructionError(error: incorrectPin),
       );
     });
 
@@ -59,7 +61,9 @@ void main() {
       pinManager.setPin(kTestValidPin);
       pinManager.checkPin(kTestInvalidPin);
       pinManager.checkPin(kTestInvalidPin);
-      expect(pinManager.checkPin(kTestInvalidPin), isA<WalletInstructionResult_Timeout>());
+
+      final result = pinManager.checkPin(kTestInvalidPin);
+      expect((result as WalletInstructionResult_InstructionError).error, isA<WalletInstructionError_Timeout>());
     });
 
     test('checking an incorrect pin 9 times results in blocked', () {
@@ -69,7 +73,9 @@ void main() {
         pinManager.checkPin(kTestInvalidPin);
         i++;
       }
-      expect(pinManager.checkPin(kTestInvalidPin), isA<WalletInstructionResult_Blocked>());
+
+      final result = pinManager.checkPin(kTestInvalidPin);
+      expect((result as WalletInstructionResult_InstructionError).error, isA<WalletInstructionError_Blocked>());
     });
 
     test('checking an incorrect pin 8 and then checking a correct pin results in ok', () {
@@ -89,10 +95,15 @@ void main() {
         pinManager.checkPin(kTestInvalidPin);
         i++;
       }
-      expect(
-        pinManager.checkPin(kTestInvalidPin),
-        WalletInstructionResult.incorrectPin(leftoverAttempts: 1, isFinalAttempt: true),
+
+      final expected = WalletInstructionResult.instructionError(
+        error: WalletInstructionError.incorrectPin(
+          leftoverAttempts: 1,
+          isFinalAttempt: true,
+        ),
       );
+      final result = pinManager.checkPin(kTestInvalidPin);
+      expect(result, expected);
     });
 
     test('checking the correct pin after the wallet is already blocked results in blocked', () {
@@ -102,7 +113,10 @@ void main() {
         pinManager.checkPin(kTestInvalidPin);
         i++;
       }
-      expect(pinManager.checkPin(kTestValidPin), isA<WalletInstructionResult_Blocked>());
+      final expected = WalletInstructionResult.instructionError(
+        error: WalletInstructionError.blocked(),
+      );
+      expect(pinManager.checkPin(kTestValidPin), expected);
     });
   });
 }
