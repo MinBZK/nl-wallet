@@ -1,4 +1,3 @@
-use base64::prelude::*;
 use futures::{future::try_join_all, TryFutureExt};
 use mime::{APPLICATION_JSON, APPLICATION_WWW_FORM_URLENCODED};
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
@@ -13,7 +12,7 @@ use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies, TrustAnchor},
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::cbor_deserialize,
+        serialization::CborBase64,
     },
     IssuerSigned,
 };
@@ -151,7 +150,7 @@ impl IssuanceClient {
         let credential_requests = CredentialRequests {
             credential_requests: responses,
         };
-        let responses: CredentialResponses = self
+        let responses: CredentialResponses<CborBase64<IssuerSigned>> = self
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
@@ -221,7 +220,7 @@ impl IssuanceClient {
     }
 }
 
-impl CredentialResponse {
+impl CredentialResponse<CborBase64<IssuerSigned>> {
     /// Create an [`Mdoc`] out of the credential response. Also verifies the mdoc.
     async fn into_mdoc<K: MdocEcdsaKey>(
         self,
@@ -229,8 +228,7 @@ impl CredentialResponse {
         unsigned: &UnsignedMdoc,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Mdoc, Error> {
-        let issuer_signed: String = serde_json::from_value(self.credential)?;
-        let issuer_signed: IssuerSigned = cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode(issuer_signed)?.as_slice())?;
+        let issuer_signed = self.credential.0;
 
         if issuer_signed.public_key().map_err(Error::PublicKeyFromMdoc)?
             != key

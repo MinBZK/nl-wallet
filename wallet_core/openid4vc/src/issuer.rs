@@ -3,7 +3,6 @@
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
-use base64::prelude::*;
 use chrono::Utc;
 use futures::future::try_join_all;
 use jsonwebtoken::{Algorithm, Validation};
@@ -17,7 +16,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_keys::KeyRing,
     server_state::{SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS},
-    utils::serialization::{cbor_serialize, CborError},
+    utils::serialization::{CborBase64, CborError},
     IssuerSigned,
 };
 use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
@@ -25,7 +24,7 @@ use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
 use crate::{
     credential::{
         CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload, CredentialRequests,
-        CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
+        OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::Dpop,
     jwk_to_p256,
@@ -159,6 +158,9 @@ pub trait AttributeService: Send + Sync + 'static {
         token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Self::Error>;
 }
+
+type CredentialResponse = crate::credential::CredentialResponse<CborBase64<IssuerSigned>>;
+type CredentialResponses = crate::credential::CredentialResponses<CborBase64<IssuerSigned>>;
 
 pub struct Issuer<A, K, S> {
     sessions: Arc<S>,
@@ -751,7 +753,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
 
     Ok(CredentialResponse {
         format: Format::MsoMdoc,
-        credential: serde_json::to_value(BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(&issuer_signed)?))?,
+        credential: issuer_signed.into(),
     })
 }
 

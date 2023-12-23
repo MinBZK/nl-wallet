@@ -34,15 +34,15 @@ pub enum CredentialRequestProof {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct CredentialResponses {
-    pub credential_responses: Vec<CredentialResponse>,
+pub struct CredentialResponses<T> {
+    pub credential_responses: Vec<CredentialResponse<T>>,
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-response.
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct CredentialResponse {
+pub struct CredentialResponse<T> {
     pub format: Format,
-    pub credential: serde_json::Value,
+    pub credential: T,
 }
 
 // https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1

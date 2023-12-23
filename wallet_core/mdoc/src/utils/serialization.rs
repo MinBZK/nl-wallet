@@ -1,5 +1,6 @@
 //! CBOR serialization: wrapper types that modify serialization and specialized (de)serialization implementations.
 
+use base64::prelude::*;
 use ciborium::{tag, value::Value};
 use core::fmt::Debug;
 use coset::AsCborValue;
@@ -441,6 +442,32 @@ impl<'de> Deserialize<'de> for Tdate {
         } else {
             Ok(Tdate(tag::Required::<String, 0>::deserialize(deserializer)?))
         }
+    }
+}
+
+/// Wrapper type that (de)serializes to/from URL-safe-no-pad Base64 containing the CBOR-serialized value.
+pub struct CborBase64<T>(pub T);
+
+impl<T> From<T> for CborBase64<T> {
+    fn from(value: T) -> Self {
+        Self(value)
+    }
+}
+
+impl<T: Serialize> Serialize for CborBase64<T> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let bts = cbor_serialize(&self.0).map_err(serde::ser::Error::custom)?;
+        BASE64_URL_SAFE_NO_PAD.encode(bts).serialize(serializer)
+    }
+}
+
+impl<'de, T: DeserializeOwned> Deserialize<'de> for CborBase64<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let bts = BASE64_URL_SAFE_NO_PAD
+            .decode(String::deserialize(deserializer)?)
+            .map_err(serde::de::Error::custom)?;
+        let val: T = cbor_deserialize(bts.as_slice()).map_err(serde::de::Error::custom)?;
+        Ok(CborBase64(val))
     }
 }
 
