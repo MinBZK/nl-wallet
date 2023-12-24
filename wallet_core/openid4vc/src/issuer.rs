@@ -1,5 +1,3 @@
-#![allow(clippy::too_many_arguments)] // TODO
-
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
@@ -166,10 +164,23 @@ type TokenResponseWithPreviews = crate::token::TokenResponseWithPreviews<Unsigne
 pub struct Issuer<A, K, S> {
     sessions: Arc<S>,
     attr_service: A,
-    private_keys: K,
-    credential_issuer_identifier: Url,
-    wallet_client_ids: Vec<String>,
+    issuer_data: IssuerData<K>,
     cleanup_task: JoinHandle<()>,
+}
+
+/// Fields of the [`Issuer`] needed by the issuance functions.
+pub struct IssuerData<K> {
+    private_keys: K,
+
+    /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
+    /// and MUST be used by the wallet as `aud` in its PoP JWTs.
+    credential_issuer_identifier: Url,
+
+    /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
+    accepted_wallet_client_ids: Vec<String>,
+
+    /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
+    server_url: Url,
 }
 
 impl<A, K, S> Drop for Issuer<A, K, S> {
@@ -193,12 +204,21 @@ where
         wallet_client_ids: Vec<String>,
     ) -> Self {
         let sessions = Arc::new(sessions);
+
+        let issuer_data = IssuerData {
+            private_keys,
+            credential_issuer_identifier: credential_issuer_identifier.clone(),
+            accepted_wallet_client_ids: wallet_client_ids,
+
+            // In this implementation, for now the Credential Issuer Identifier also always acts as
+            // the public server URL.
+            server_url: credential_issuer_identifier,
+        };
+
         Self {
             sessions: sessions.clone(),
             attr_service,
-            private_keys,
-            credential_issuer_identifier,
-            wallet_client_ids,
+            issuer_data,
             cleanup_task: sessions.start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
         }
     }
@@ -228,7 +248,7 @@ where
                 token_request,
                 dpop,
                 &self.attr_service,
-                &self.credential_issuer_identifier,
+                &self.issuer_data.credential_issuer_identifier,
             )
             .await;
 
@@ -262,15 +282,7 @@ where
             Session::<WaitingForResponse>::from_enum(session).map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
-            .process_credential(
-                credential_request,
-                access_token.to_string(),
-                dpop,
-                &self.private_keys,
-                &self.credential_issuer_identifier,
-                &self.wallet_client_ids,
-                &self.credential_issuer_identifier,
-            )
+            .process_credential(credential_request, access_token.to_string(), dpop, &self.issuer_data)
             .await;
 
         self.sessions
@@ -298,15 +310,7 @@ where
             Session::<WaitingForResponse>::from_enum(session).map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
-            .process_batch_credential(
-                credential_requests,
-                access_token.to_string(),
-                dpop,
-                &self.private_keys,
-                &self.credential_issuer_identifier,
-                &self.wallet_client_ids,
-                &self.credential_issuer_identifier,
-            )
+            .process_batch_credential(credential_requests, access_token.to_string(), dpop, &self.issuer_data)
             .await;
 
         self.sessions
@@ -341,7 +345,8 @@ where
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            self.credential_issuer_identifier
+            self.issuer_data
+                .credential_issuer_identifier
                 .join(&("issuance/".to_owned() + endpoint_name))
                 .unwrap(),
             Method::DELETE,
@@ -493,21 +498,10 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: String,
         dpop: Dpop,
-        private_keys: &impl KeyRing,
-        credential_issuer_identifier: &Url,
-        accepted_wallet_client_ids: &[impl ToString],
-        server_url: &Url,
+        issuer_data: &IssuerData<impl KeyRing>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
-            .process_credential_inner(
-                credential_request,
-                access_token,
-                dpop,
-                private_keys,
-                credential_issuer_identifier,
-                accepted_wallet_client_ids,
-                server_url,
-            )
+            .process_credential_inner(credential_request, access_token, dpop, issuer_data)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -528,10 +522,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: String,
         dpop: Dpop,
-        private_keys: &impl KeyRing,
-        credential_issuer_identifier: &Url,
-        accepted_wallet_client_ids: &[impl ToString],
-        server_url: &Url,
+        issuer_data: &IssuerData<impl KeyRing>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -542,7 +533,7 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            server_url.join("issuance/credential").unwrap(),
+            issuer_data.server_url.join("issuance/credential").unwrap(),
             Method::POST,
             Some(access_token),
         )
@@ -573,15 +564,9 @@ impl Session<WaitingForResponse> {
             }
         };
 
-        let credential_response = verify_pop_and_sign_attestation(
-            private_keys,
-            session_data.c_nonce.clone(),
-            &credential_request,
-            unsigned,
-            credential_issuer_identifier,
-            accepted_wallet_client_ids,
-        )
-        .await?;
+        let credential_response =
+            verify_pop_and_sign_attestation(session_data.c_nonce.clone(), &credential_request, unsigned, issuer_data)
+                .await?;
 
         Ok(credential_response)
     }
@@ -591,21 +576,10 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: String,
         dpop: Dpop,
-        private_keys: &impl KeyRing,
-        credential_issuer_identifier: &Url,
-        accepted_wallet_client_ids: &[impl ToString],
-        server_url: &Url,
+        issuer_data: &IssuerData<impl KeyRing>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
-            .process_batch_credential_inner(
-                credential_requests,
-                access_token,
-                dpop,
-                private_keys,
-                credential_issuer_identifier,
-                accepted_wallet_client_ids,
-                server_url,
-            )
+            .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -626,10 +600,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: String,
         dpop: Dpop,
-        private_keys: &impl KeyRing,
-        credential_issuer_identifier: &Url,
-        accepted_wallet_client_ids: &[impl ToString],
-        server_url: &Url,
+        issuer_data: &IssuerData<impl KeyRing>,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -640,7 +611,7 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            server_url.join("issuance/batch_credential").unwrap(),
+            issuer_data.server_url.join("issuance/batch_credential").unwrap(),
             Method::POST,
             Some(access_token),
         )
@@ -658,15 +629,8 @@ impl Session<WaitingForResponse> {
                         .flat_map(|unsigned| std::iter::repeat(unsigned).take(unsigned.copy_count as usize)),
                 )
                 .map(|(cred_req, unsigned_mdoc)| async {
-                    verify_pop_and_sign_attestation(
-                        private_keys,
-                        session_data.c_nonce.clone(),
-                        cred_req,
-                        unsigned_mdoc,
-                        credential_issuer_identifier,
-                        accepted_wallet_client_ids,
-                    )
-                    .await
+                    verify_pop_and_sign_attestation(session_data.c_nonce.clone(), cred_req, unsigned_mdoc, issuer_data)
+                        .await
                 }),
         )
         .await?;
@@ -712,12 +676,10 @@ impl<T: IssuanceState> Session<T> {
 }
 
 pub(crate) async fn verify_pop_and_sign_attestation(
-    private_keys: &impl KeyRing,
     c_nonce: String,
     cred_req: &CredentialRequest,
     unsigned_mdoc: &UnsignedMdoc,
-    credential_issuer_identifier: &Url,
-    accepted_wallet_client_ids: &[impl ToString],
+    issuer_data: &IssuerData<impl KeyRing>,
 ) -> Result<CredentialResponse, CredentialRequestError> {
     if !matches!(cred_req.format, Format::MsoMdoc) {
         return Err(CredentialRequestError::UnsupportedCredentialFormat(
@@ -734,23 +696,28 @@ pub(crate) async fn verify_pop_and_sign_attestation(
         return Err(CredentialRequestError::DoctypeMismatch);
     }
 
-    let pubkey = cred_req
-        .proof
-        .verify(c_nonce, accepted_wallet_client_ids, credential_issuer_identifier)?;
+    let pubkey = cred_req.proof.verify(
+        c_nonce,
+        &issuer_data.accepted_wallet_client_ids,
+        &issuer_data.credential_issuer_identifier,
+    )?;
     let mdoc_public_key = (&pubkey)
         .try_into()
         .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-    let (issuer_signed, _) =
-        IssuerSigned::sign(
-            unsigned_mdoc.clone(),
-            mdoc_public_key,
-            private_keys.private_key(&unsigned_mdoc.doc_type).as_ref().ok_or(
-                CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
-            )?,
-        )
-        .await
-        .map_err(CredentialRequestError::AttestationSigning)?;
+    let (issuer_signed, _) = IssuerSigned::sign(
+        unsigned_mdoc.clone(),
+        mdoc_public_key,
+        issuer_data
+            .private_keys
+            .private_key(&unsigned_mdoc.doc_type)
+            .as_ref()
+            .ok_or(CredentialRequestError::MissingPrivateKey(
+                unsigned_mdoc.doc_type.clone(),
+            ))?,
+    )
+    .await
+    .map_err(CredentialRequestError::AttestationSigning)?;
 
     Ok(CredentialResponse {
         format: Format::MsoMdoc,
