@@ -28,7 +28,7 @@ use crate::{
     },
     dpop::Dpop,
     jwk_to_p256,
-    token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType},
+    token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenType},
     Format, JwkConversionError,
 };
 
@@ -161,6 +161,7 @@ pub trait AttributeService: Send + Sync + 'static {
 
 type CredentialResponse = crate::credential::CredentialResponse<CborBase64<IssuerSigned>>;
 type CredentialResponses = crate::credential::CredentialResponses<CborBase64<IssuerSigned>>;
+type TokenResponseWithPreviews = crate::token::TokenResponseWithPreviews<UnsignedMdoc>;
 
 pub struct Issuer<A, K, S> {
     sessions: Arc<S>,

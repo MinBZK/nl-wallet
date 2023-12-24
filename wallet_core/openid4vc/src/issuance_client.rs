@@ -63,7 +63,7 @@ impl IssuanceClient {
         let dpop_private_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None).await?;
 
-        let token_response: TokenResponseWithPreviews = self
+        let token_response: TokenResponseWithPreviews<UnsignedMdoc> = self
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())

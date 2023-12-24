@@ -4,7 +4,8 @@ use url::Url;
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-authorization-request
 /// and https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1.
-/// When sent using PAR, it is usually sent URL-encoded in the request body to POST /op/par.
+/// When sent using [PAR (Pushed Authorization Requests)](https://datatracker.ietf.org/doc/html/rfc9126),
+/// it is usually sent URL-encoded in the request body to POST /op/par.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthorizationRequest {

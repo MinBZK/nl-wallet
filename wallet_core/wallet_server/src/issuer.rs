@@ -12,6 +12,7 @@ use serde::Serialize;
 use tower_http::trace::TraceLayer;
 
 use nl_wallet_mdoc::{
+    basic_sa_ext::UnsignedMdoc,
     server_keys::{KeyRing, PrivateKey},
     server_state::{MemorySessionStore, SessionState, SessionStore},
     utils::serialization::CborBase64,
@@ -20,7 +21,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorType, CredentialRequest, CredentialRequests},
     dpop::Dpop,
-    token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
+    token::{TokenErrorType, TokenRequest},
     ErrorStatusCode,
 };
 use tracing::warn;
@@ -43,6 +44,7 @@ impl KeyRing for IssuerKeyRing {
 
 type CredentialResponse = openid4vc::credential::CredentialResponse<CborBase64<IssuerSigned>>;
 type CredentialResponses = openid4vc::credential::CredentialResponses<CborBase64<IssuerSigned>>;
+type TokenResponseWithPreviews = openid4vc::token::TokenResponseWithPreviews<UnsignedMdoc>;
 
 pub async fn create_issuance_router<A: AttributeService>(
     settings: Settings,
