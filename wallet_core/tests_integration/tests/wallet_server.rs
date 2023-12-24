@@ -1,22 +1,12 @@
-use std::collections::HashMap;
-
 use base64::prelude::*;
 use indexmap::IndexMap;
 use openid4vc::{issuer::AttributeService, token::TokenRequest};
-use p256::pkcs8::EncodePrivateKey;
 use reqwest::{Client, StatusCode};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    mock::SoftwareKeyFactory,
-    server_state::SessionToken,
-    utils::{
-        reader_auth::{DeletionPolicy, Organization, ReaderRegistration, RetentionPolicy, SharingPolicy},
-        serialization::cbor_deserialize,
-        x509::{Certificate, CertificateType},
-    },
-    verifier::SessionType,
-    ItemsRequest, ReaderEngagement,
+    mock::SoftwareKeyFactory, server_state::SessionToken, utils::serialization::cbor_deserialize,
+    verifier::SessionType, ItemsRequest, ReaderEngagement,
 };
 use wallet::{
     mock::{default_configuration, MockDigidSession},
@@ -25,10 +15,9 @@ use wallet::{
         S256PkcePair,
     },
 };
-use wallet_common::{config::wallet_config::PidIssuanceConfiguration, trust_anchor::DerTrustAnchor};
+use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 use wallet_server::{
     pid::attributes::PidAttributeService,
-    settings::{KeyPair, Settings},
     store::new_session_store,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
@@ -36,99 +25,6 @@ use wallet_server::{
 use crate::common::*;
 
 pub mod common;
-
-// Test fixture
-fn get_my_reader_auth() -> ReaderRegistration {
-    let my_organization = Organization {
-        display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
-        legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
-        description: vec![
-            ("nl", "Beschrijving van Mijn Organisatie"),
-            ("en", "Description of My Organization"),
-        ]
-        .into(),
-        category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-        kvk: Some("1234 1234".to_owned()),
-        city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-        department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
-        country_code: Some("nl".to_owned()),
-        web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
-        privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
-        logo: None,
-    };
-    ReaderRegistration {
-        id: "some-service-id".to_owned(),
-        purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
-        retention_policy: RetentionPolicy {
-            intent_to_retain: true,
-            max_duration_in_minutes: Some(60 * 24 * 365),
-        },
-        sharing_policy: SharingPolicy { intent_to_share: true },
-        deletion_policy: DeletionPolicy { deleteable: true },
-        organization: my_organization,
-        return_url_prefix: "https://example.com/".parse().unwrap(),
-        attributes: Default::default(),
-    }
-}
-
-fn wallet_server_settings() -> (Settings, Certificate) {
-    let mut settings = common::wallet_server_settings();
-
-    // TODO remove this
-    settings.usecases = HashMap::new();
-    settings.trust_anchors = Vec::new();
-
-    #[cfg(feature = "postgres")]
-    {
-        settings.store_url = "postgres://postgres@127.0.0.1:5432/wallet_server".parse().unwrap();
-    }
-    #[cfg(not(feature = "postgres"))]
-    {
-        settings.store_url = "memory://".parse().unwrap();
-    }
-
-    let (issuance_ca, issuance_ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
-    let (issuer_cert, issuer_privkey) = Certificate::new(
-        &issuance_ca,
-        &issuance_ca_privkey,
-        "cert.example.com",
-        CertificateType::Mdl,
-    )
-    .unwrap();
-
-    let keypair = KeyPair {
-        private_key: issuer_privkey.to_pkcs8_der().unwrap().to_bytes().to_vec().into(),
-        certificate: issuer_cert.as_bytes().to_vec().into(),
-    };
-
-    settings.issuer.private_keys = HashMap::from([
-        ("com.example.pid".to_string(), keypair.clone()),
-        ("com.example.address".to_string(), keypair),
-    ]);
-
-    let (rp_cert, rp_privkey) = Certificate::new(
-        &issuance_ca,
-        &issuance_ca_privkey,
-        "cert.example.com",
-        CertificateType::ReaderAuth(Box::new(get_my_reader_auth()).into()),
-    )
-    .unwrap();
-
-    settings.usecases.insert(
-        "example_usecase".to_owned(),
-        KeyPair {
-            certificate: rp_cert.as_bytes().to_vec().into(),
-            private_key: rp_privkey
-                .to_pkcs8_der()
-                .expect("could not serialize private key")
-                .as_bytes()
-                .to_vec()
-                .into(),
-        },
-    );
-
-    (settings, issuance_ca)
-}
 
 fn parse_wallet_url(engagement_url: Url) -> Url {
     let reader_engagement: ReaderEngagement = cbor_deserialize(
@@ -161,7 +57,7 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 #[tokio::test]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
-    let (settings, _) = wallet_server_settings();
+    let settings = common::wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
@@ -169,15 +65,15 @@ async fn test_start_session() {
     let client = reqwest::Client::new();
 
     let start_request = StartDisclosureRequest {
-        usecase: "example_usecase".to_owned(),
+        usecase: "driving_license".to_owned(),
         session_type: SessionType::SameDevice,
         items_requests: vec![ItemsRequest {
-            doc_type: "example_doctype".to_owned(),
+            doc_type: "com.example.pid".to_owned(),
             request_info: None,
             name_spaces: IndexMap::from([(
-                "example_namespace".to_owned(),
+                "com.example.pid".to_owned(),
                 IndexMap::from_iter(
-                    [("first_name", true), ("family_name", false)]
+                    [("given_name", true), ("family_name", false)]
                         .iter()
                         .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
                 ),
@@ -221,7 +117,7 @@ async fn test_start_session() {
 #[tokio::test]
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
-    let (settings, _) = wallet_server_settings();
+    let settings = common::wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
@@ -258,7 +154,7 @@ async fn test_session_not_found() {
 
 #[tokio::test]
 async fn test_mock_issuance() {
-    let (settings, issuance_ca) = wallet_server_settings();
+    let settings = common::wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
     let attr_service = MockAttributeService::new(&()).await.unwrap();
 
@@ -280,28 +176,32 @@ async fn test_mock_issuance() {
         digid_session
     };
 
-    // Exchange the authorization code for an access token and the attestation previews
     let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
+    let server_url = local_base_url(settings.public_url.port().unwrap())
+        .join("issuance/")
+        .unwrap();
+
+    // Exchange the authorization code for an access token and the attestation previews
     pid_issuer_client
         .start_retrieve_pid(
             digid_session,
-            &local_base_url(settings.public_url.port().unwrap())
-                .join("issuance/")
-                .unwrap(),
+            &server_url,
             "authorization_code_that_digid_would_pass_to_us".to_string(),
         )
         .await
         .unwrap();
 
     // Accept the attestations and finish issuance
+    let wallet_conf = default_configuration();
+    let trust_anchors = wallet_conf
+        .mdoc_trust_anchors
+        .iter()
+        .map(|a| (&a.owned_trust_anchor).into())
+        .collect::<Vec<_>>();
     let key_factory = SoftwareKeyFactory::default();
-    let trust_anchor = DerTrustAnchor::from_der(issuance_ca.as_bytes().to_vec()).unwrap();
+
     let mdocs = pid_issuer_client
-        .accept_pid(
-            &[(&trust_anchor.owned_trust_anchor).into()],
-            &key_factory,
-            &settings.public_url,
-        )
+        .accept_pid(&trust_anchors, &key_factory, &server_url)
         .await
         .unwrap();
 
@@ -312,7 +212,7 @@ async fn test_mock_issuance() {
 #[tokio::test]
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
-    let (settings, issuance_ca) = wallet_server_settings();
+    let settings = common::wallet_server_settings();
     let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
     let attr_service = PidAttributeService::new(&settings.issuer.digid).await.unwrap();
     start_wallet_server(settings.clone(), sessions, attr_service).await;
@@ -342,25 +242,25 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Exchange the authorization code for an access token and the attestation previews
     let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
+    let server_url = local_base_url(settings.public_url.port().unwrap())
+        .join("issuance/")
+        .unwrap();
+
     pid_issuer_client
-        .start_retrieve_pid(
-            digid_session,
-            &pid_issuance_config.pid_issuer_url.join("issuance/").unwrap(),
-            authorization_code,
-        )
+        .start_retrieve_pid(digid_session, &server_url, authorization_code)
         .await
         .unwrap();
 
     let key_factory = SoftwareKeyFactory::default();
-
-    let trust_anchor = DerTrustAnchor::from_der(issuance_ca.as_bytes().to_vec()).unwrap();
+    let wallet_conf = default_configuration();
+    let trust_anchors = wallet_conf
+        .mdoc_trust_anchors
+        .iter()
+        .map(|a| (&a.owned_trust_anchor).into())
+        .collect::<Vec<_>>();
 
     let mdocs = pid_issuer_client
-        .accept_pid(
-            &[(&trust_anchor.owned_trust_anchor).into()],
-            &key_factory,
-            &settings.public_url,
-        )
+        .accept_pid(&trust_anchors, &key_factory, &server_url)
         .await
         .unwrap();
 

@@ -187,6 +187,7 @@ where
 pub fn wallet_server_settings() -> WsSettings {
     let mut settings = WsSettings::new().expect("Could not read settings");
     let ws_port = find_listener_port();
+
     settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.wallet_server.port = ws_port;
 
