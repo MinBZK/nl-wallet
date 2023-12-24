@@ -88,9 +88,9 @@ pub enum Error {
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
-    TokenRequest(ErrorResponse<TokenErrorType>),
+    TokenRequest(Box<ErrorResponse<TokenErrorType>>),
     #[error("error requesting credentials: {0:?}")]
-    CredentialRequest(ErrorResponse<CredentialErrorType>),
+    CredentialRequest(Box<ErrorResponse<CredentialErrorType>>),
     #[error("generating attestation private keys failed: {0}")]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("missing issuance session state")]

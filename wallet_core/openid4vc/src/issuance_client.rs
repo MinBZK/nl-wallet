@@ -76,7 +76,7 @@ impl IssuanceClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<TokenErrorType>>().await?;
-                    Err(Error::TokenRequest(error))
+                    Err(Error::TokenRequest(error.into()))
                 } else {
                     let text = response.json().await?;
                     Ok(text)
@@ -164,7 +164,7 @@ impl IssuanceClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
-                    Err(Error::CredentialRequest(error))
+                    Err(Error::CredentialRequest(error.into()))
                 } else {
                     let text = response.json().await?;
                     Ok(text)

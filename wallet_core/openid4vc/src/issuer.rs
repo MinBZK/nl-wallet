@@ -1,4 +1,4 @@
-#![allow(clippy::result_large_err, clippy::too_many_arguments)] // TODO
+#![allow(clippy::too_many_arguments)] // TODO
 
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
