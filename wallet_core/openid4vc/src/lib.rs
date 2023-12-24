@@ -103,8 +103,8 @@ pub enum Error {
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
 #[skip_serializing_none]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ErrorResponse<T> {
     pub error: T,
     pub error_description: Option<String>,
