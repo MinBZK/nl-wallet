@@ -73,6 +73,8 @@ fn get_my_reader_auth() -> ReaderRegistration {
 
 fn wallet_server_settings() -> (Settings, Certificate) {
     let mut settings = common::wallet_server_settings();
+
+    // TODO remove this
     settings.usecases = HashMap::new();
     settings.trust_anchors = Vec::new();
 

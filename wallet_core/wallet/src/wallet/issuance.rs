@@ -11,7 +11,7 @@ use crate::{
     digid::{DigidError, DigidSession},
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    pid_issuer::{PidIssuerClient, PidIssuerError},
+    pid_issuer::{OpenidPidIssuerClient, PidIssuerError},
     storage::{EventType, Storage, StorageError, WalletEvent},
 };
 
@@ -48,8 +48,8 @@ pub enum PidIssuanceError {
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     CR: ConfigurationRepository,
-    DGS: DigidSession,
-    PIC: PidIssuerClient,
+    DGS: DigidSession + Sync + Send,
+    PIC: OpenidPidIssuerClient,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -131,19 +131,14 @@ where
 
         // Try to take ownership of any active `DigidSession`.
         let session = self.digid_session.take().ok_or(PidIssuanceError::SessionState)?;
-
-        let access_token = session
-            .get_access_token(redirect_uri)
-            .await
+        let code = session
+            .get_authorization_code(redirect_uri)
             .map_err(PidIssuanceError::DigidSessionFinish)?;
-
-        info!("DigiD access token retrieved, starting actual PID issuance");
-
         let config = self.config_repository.config();
 
         let unsigned_mdocs = self
             .pid_issuer
-            .start_retrieve_pid(&config.pid_issuance.pid_issuer_url, &access_token)
+            .start_retrieve_pid(session, &config.pid_issuance.pid_issuer_url, code)
             .await
             .map_err(|err| PidIssuanceError::PidIssuer(Box::new(err)))?;
 
@@ -227,7 +222,11 @@ where
 
         let mdocs = self
             .pid_issuer
-            .accept_pid(&config.mdoc_trust_anchors(), &remote_key_factory)
+            .accept_pid(
+                &config.mdoc_trust_anchors(),
+                &remote_key_factory,
+                &config.pid_issuance.pid_issuer_url,
+            )
             .await
             .map_err(|error| {
                 match error {

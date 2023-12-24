@@ -12,7 +12,7 @@ use crate::{
         UpdatingConfigurationRepository,
     },
     lock::WalletLock,
-    pid_issuer::HttpPidIssuerClient,
+    pid_issuer::HttpOpenidPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
 };
 
@@ -48,7 +48,7 @@ impl Wallet {
             config_repository,
             storage,
             HttpAccountProviderClient::default(),
-            HttpPidIssuerClient::default(),
+            HttpOpenidPidIssuerClient::default(),
         )
         .await
     }

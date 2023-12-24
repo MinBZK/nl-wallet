@@ -22,7 +22,7 @@ use crate::{
     config::UpdatingFileHttpConfigurationRepository,
     digid::HttpDigidSession,
     lock::WalletLock,
-    pid_issuer::HttpPidIssuerClient,
+    pid_issuer::HttpOpenidPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData},
 };
 
@@ -44,7 +44,7 @@ pub struct Wallet<
     PEK = HardwareEcdsaKey,                        // PlatformEcdsaKey
     APC = HttpAccountProviderClient,               // AccountProviderClient
     DGS = HttpDigidSession,                        // DigidSession
-    PIC = HttpPidIssuerClient,                     // PidIssuerClient
+    PIC = HttpOpenidPidIssuerClient,               // OpenidPidIssuerClient
     MDS = DisclosureSession<CborHttpClient, Uuid>, // MdocDisclosureSession
 > {
     config_repository: CR,

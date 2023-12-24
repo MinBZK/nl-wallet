@@ -16,7 +16,6 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    holder::{CborHttpClient, Wallet as MdocWallet},
     server_state::{MemorySessionStore, SessionState, SessionStore},
     verifier::DisclosureData,
 };
@@ -29,7 +28,8 @@ use pid_issuer::{
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
-        HttpAccountProviderClient, HttpConfigurationRepository, HttpPidIssuerClient, UpdateableConfigurationRepository,
+        HttpAccountProviderClient, HttpConfigurationRepository, HttpOpenidPidIssuerClient,
+        UpdateableConfigurationRepository,
     },
     Wallet,
 };
@@ -64,7 +64,7 @@ pub fn local_config_base_url(port: &u16) -> Url {
 }
 
 pub fn local_pid_base_url(port: &u16) -> Url {
-    Url::parse(&format!("http://localhost:{}/", port)).expect("Could not create url")
+    Url::parse(&format!("http://localhost:{}/issuance/", port)).expect("Could not create url")
 }
 
 pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
@@ -79,7 +79,7 @@ pub type WalletWithMocks = Wallet<
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
     MockDigidSession,
-    HttpPidIssuerClient,
+    HttpOpenidPidIssuerClient,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
@@ -98,7 +98,7 @@ pub async fn setup_wallet_and_env(
     pid_settings: PidSettings,
 ) -> WalletWithMocks {
     let mut wallet_config = default_configuration();
-    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&pid_settings.webserver.port);
+    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.base_url = local_wp_base_url(&wp_settings.webserver.port);
 
     let config_base_url = local_config_base_url(&wp_settings.webserver.port);
@@ -107,7 +107,7 @@ pub async fn setup_wallet_and_env(
     start_wallet_server(ws_settings, MemorySessionStore::new(), MockAttributeService).await;
     start_pid_issuer(pid_settings, MockAttributesLookup::default(), MockBsnLookup::default()).await;
 
-    let pid_issuer_client = HttpPidIssuerClient::new(MdocWallet::new(CborHttpClient(reqwest::Client::new())));
+    let pid_issuer_client = HttpOpenidPidIssuerClient::default();
 
     let config_repository = HttpConfigurationRepository::new(config_base_url, wallet_config);
     config_repository.fetch().await.unwrap();
