@@ -196,23 +196,17 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    pub fn new(
-        sessions: S,
-        attr_service: A,
-        private_keys: K,
-        credential_issuer_identifier: Url,
-        wallet_client_ids: Vec<String>,
-    ) -> Self {
+    pub fn new(sessions: S, attr_service: A, private_keys: K, server_url: Url, wallet_client_ids: Vec<String>) -> Self {
         let sessions = Arc::new(sessions);
 
         let issuer_data = IssuerData {
             private_keys,
-            credential_issuer_identifier: credential_issuer_identifier.clone(),
+            credential_issuer_identifier: server_url.join("issuance/").unwrap(),
             accepted_wallet_client_ids: wallet_client_ids,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
-            server_url: credential_issuer_identifier,
+            server_url: server_url.join("issuance/").unwrap(),
         };
 
         Self {
@@ -438,7 +432,7 @@ impl Session<Created> {
         }
 
         let dpop_public_key = dpop
-            .verify(server_url.join("issuance/token").unwrap(), Method::POST, None)
+            .verify(server_url.join("token").unwrap(), Method::POST, None)
             .await
             .map_err(|err| TokenRequestError::IssuanceError(Error::DpopInvalid(err)))?;
 
@@ -533,7 +527,7 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            issuer_data.server_url.join("issuance/credential").unwrap(),
+            issuer_data.server_url.join("credential").unwrap(),
             Method::POST,
             Some(access_token),
         )
@@ -611,7 +605,7 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            issuer_data.server_url.join("issuance/batch_credential").unwrap(),
+            issuer_data.server_url.join("batch_credential").unwrap(),
             Method::POST,
             Some(access_token),
         )
