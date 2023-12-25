@@ -18,6 +18,16 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
+fn decorate_router(prefix: &str, router: Router) -> Router {
+    let router = Router::new().nest(prefix, router).nest(prefix, health_router());
+
+    #[cfg(feature = "log_requests")]
+    let router = router.layer(axum::middleware::from_fn(crate::log_requests::log_request_response));
+
+    #[allow(clippy::let_and_return)] // See https://github.com/rust-lang/rust-clippy/issues/9150
+    router
+}
+
 pub async fn serve_disclosure(settings: &Settings, sessions: SessionStores) -> Result<()> {
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let requester_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
@@ -26,12 +36,8 @@ pub async fn serve_disclosure(settings: &Settings, sessions: SessionStores) -> R
     listen(
         wallet_socket,
         requester_socket,
-        Router::new()
-            .nest("/disclosure/", wallet_disclosure_router)
-            .nest("/disclosure/", health_router()),
-        Router::new()
-            .nest("/disclosure/sessions", requester_router)
-            .nest("/disclosure/sessions", health_router()),
+        decorate_router("/disclosure/", wallet_disclosure_router),
+        decorate_router("/disclosure/sessions", requester_router),
     )
     .await?;
 
@@ -53,14 +59,9 @@ where
     listen(
         wallet_socket,
         requester_socket,
-        Router::new()
-            .nest("/issuance/", wallet_issuance_router)
-            .nest("/issuance/", health_router())
-            .nest("/disclosure/", wallet_disclosure_router)
-            .nest("/disclosure/", health_router()),
-        Router::new()
-            .nest("/disclosure/sessions", requester_router)
-            .nest("/disclosure/sessions", health_router()),
+        decorate_router("/issuance/", wallet_issuance_router)
+            .merge(decorate_router("/disclosure/", wallet_disclosure_router)),
+        decorate_router("/disclosure/sessions", requester_router),
     )
     .await?;
 

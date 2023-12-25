@@ -2,6 +2,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use base64::prelude::*;
 use http::{HeaderMap, HeaderValue, Method, Request, StatusCode, Uri, Version};
 use hyper::{body::Bytes, Body};
 
@@ -35,9 +36,25 @@ where
 fn print_headers(headers: &HeaderMap<HeaderValue>) -> String {
     headers
         .iter()
-        .map(|(key, val)| format!("{}: {}", key, val.to_str().unwrap()))
+        .map(|(key, val)| format!("{}: {}", key, val.to_str().unwrap_or("[non-ASCII HTTP header value]")))
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+fn body_to_string(bytes: &Bytes, headers: &HeaderMap<HeaderValue>) -> String {
+    if bytes.is_empty() {
+        return "".to_string();
+    }
+
+    let content_type = headers.get("content-type").map(|header| header.as_bytes());
+    match content_type {
+        Some(content_type) => match content_type {
+            b"application/json" => std::str::from_utf8(bytes).unwrap_or("[non-utf8 body]").to_string(),
+            b"application/x-www-form-urlencoded" => std::str::from_utf8(bytes).unwrap_or("[non-utf8 body]").to_string(),
+            _ => "[base64] ".to_string() + &BASE64_URL_SAFE.encode(bytes),
+        },
+        None => "[base64] ".to_string() + &BASE64_URL_SAFE.encode(bytes),
+    }
 }
 
 async fn log_request<B>(
@@ -52,13 +69,15 @@ where
     B::Error: std::fmt::Display,
 {
     let bytes = body_to_bytes(body).await?;
+    let body = body_to_string(&bytes, headers);
+
     tracing::debug!(
         "request:\n{} {} {:?}\n{}\n\n{}",
         method,
         uri,
         version,
         print_headers(headers),
-        std::str::from_utf8(&bytes).unwrap()
+        body
     );
     Ok(bytes)
 }
@@ -74,12 +93,14 @@ where
     B::Error: std::fmt::Display,
 {
     let bytes = body_to_bytes(body).await?;
+    let body = body_to_string(&bytes, headers);
+
     tracing::debug!(
         "response:\n{:?} {}\n{}\n\n{}",
         version,
         status,
         print_headers(headers),
-        std::str::from_utf8(&bytes).unwrap()
+        body
     );
     Ok(bytes)
 }

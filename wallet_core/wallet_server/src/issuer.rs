@@ -26,7 +26,7 @@ use openid4vc::{
 };
 use tracing::warn;
 
-use crate::{log_requests::log_request_response, settings::Settings};
+use crate::settings::Settings;
 
 use openid4vc::issuer::*;
 
@@ -80,7 +80,6 @@ where
         .route("/batch_credential", post(batch_credential))
         .route("/batch_credential", delete(reject_batch_issuance))
         .layer(TraceLayer::new_for_http())
-        .layer(axum::middleware::from_fn(log_request_response))
         .with_state(application_state);
 
     Ok(issuance_router)

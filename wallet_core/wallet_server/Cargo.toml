@@ -74,6 +74,7 @@ postgres = ["dep:sea-orm"]
 mock = ["dep:rand"]
 digid_test = []
 disable_tls_validation = []
+log_requests = []
 
 [dev-dependencies]
 platform_support = { path = "../platform_support", features = ["software"] }
