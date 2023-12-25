@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
+default = ["wallet_server/issuance"]
 db_test = []
 live_test = []
 digid_test = ["disable_tls_validation"]

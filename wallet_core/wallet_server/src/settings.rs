@@ -21,6 +21,8 @@ pub struct Settings {
     pub internal_url: Url,
     // supported schemes are: memory:// (default) and postgres://
     pub store_url: Url,
+
+    #[cfg(feature = "issuance")]
     pub issuer: Issuer,
 }
 
@@ -36,6 +38,7 @@ pub struct KeyPair {
     pub private_key: Base64Bytes,
 }
 
+#[cfg(feature = "issuance")]
 #[derive(Deserialize, Clone)]
 pub struct Digid {
     pub issuer_url: Url,
@@ -43,6 +46,7 @@ pub struct Digid {
     pub client_id: String,
 }
 
+#[cfg(feature = "issuance")]
 #[derive(Deserialize, Clone)]
 pub struct Issuer {
     // Issuer private keys index per doctype

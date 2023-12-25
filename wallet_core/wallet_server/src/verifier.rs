@@ -82,7 +82,7 @@ struct ApplicationState<S> {
     internal_url: Url,
 }
 
-pub fn create_verifier_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
+pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {

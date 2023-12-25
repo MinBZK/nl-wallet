@@ -1,21 +1,22 @@
-use std::sync::Arc;
-
-use openid4vc::issuer::IssuanceData;
 use url::Url;
 
-#[cfg(feature = "postgres")]
-use crate::store::postgres::PostgresSessionStore;
 use nl_wallet_mdoc::{
     server_state::{MemorySessionStore, SessionState, SessionStore},
     verifier::DisclosureData,
 };
 
-use self::postgres::connect;
+#[cfg(feature = "issuance")]
+use openid4vc::issuer::IssuanceData;
+
+#[cfg(feature = "postgres")]
+use crate::store::postgres::PostgresSessionStore;
 
 pub type BoxedSessionStore<T> = Box<dyn SessionStore<Data = SessionState<T>> + Send + Sync>;
 
 pub struct SessionStores {
     pub disclosure: BoxedSessionStore<DisclosureData>,
+
+    #[cfg(feature = "issuance")]
     pub issuance: BoxedSessionStore<IssuanceData>,
 }
 
@@ -23,14 +24,16 @@ pub async fn new_session_stores(url: Url) -> Result<SessionStores, anyhow::Error
     match url.scheme() {
         #[cfg(feature = "postgres")]
         "postgres" => {
-            let db = Arc::new(connect(url).await?);
+            let db = std::sync::Arc::new(postgres::connect(url).await?);
             Ok(SessionStores {
                 disclosure: Box::new(PostgresSessionStore::new(db.clone())),
+                #[cfg(feature = "issuance")]
                 issuance: Box::new(PostgresSessionStore::new(db)),
             })
         }
         "memory" => Ok(SessionStores {
             disclosure: Box::new(MemorySessionStore::new()),
+            #[cfg(feature = "issuance")]
             issuance: Box::new(MemorySessionStore::new()),
         }),
         e => unimplemented!("{}", e),
