@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use openid4vc::issuer::IssuanceData;
 use url::Url;
 
 #[cfg(feature = "postgres")]
@@ -7,23 +10,34 @@ use nl_wallet_mdoc::{
     verifier::DisclosureData,
 };
 
-pub async fn new_session_store(
+use self::postgres::connect;
+
+pub type BoxedSessionStore<T> = Box<dyn SessionStore<Data = SessionState<T>> + Send + Sync>;
+
+pub async fn new_session_stores(
     url: Url,
-) -> Result<Box<dyn SessionStore<Data = SessionState<DisclosureData>> + Send + Sync>, anyhow::Error> {
+) -> Result<(BoxedSessionStore<DisclosureData>, BoxedSessionStore<IssuanceData>), anyhow::Error> {
     match url.scheme() {
         #[cfg(feature = "postgres")]
-        "postgres" => Ok(Box::new(PostgresSessionStore::connect(url).await?)),
-        "memory" => Ok(Box::new(MemorySessionStore::new())),
+        "postgres" => {
+            let db = Arc::new(connect(url).await?);
+            Ok((
+                Box::new(PostgresSessionStore::new(db.clone())),
+                Box::new(PostgresSessionStore::new(db)),
+            ))
+        }
+        "memory" => Ok((Box::new(MemorySessionStore::new()), Box::new(MemorySessionStore::new()))),
         e => unimplemented!("{}", e),
     }
 }
 
 #[cfg(feature = "postgres")]
 pub mod postgres {
-    use std::{marker::PhantomData, time::Duration};
+    use std::{marker::PhantomData, sync::Arc, time::Duration};
 
     use axum::async_trait;
     use chrono::Utc;
+    use openid4vc::issuer::IssuanceData;
     use sea_orm::{
         sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
         QueryFilter,
@@ -33,42 +47,52 @@ pub mod postgres {
     use url::Url;
 
     use crate::entity::session_state;
-    use nl_wallet_mdoc::server_state::{
-        SessionState, SessionStore, SessionStoreError, SessionToken, SESSION_EXPIRY_MINUTES,
+    use nl_wallet_mdoc::{
+        server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, SESSION_EXPIRY_MINUTES},
+        verifier::DisclosureData,
     };
 
     const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
+    trait SessionDataType {
+        const TYPE: &'static str;
+    }
+
+    impl SessionDataType for DisclosureData {
+        const TYPE: &'static str = "mdoc_disclosure";
+    }
+
+    impl SessionDataType for IssuanceData {
+        const TYPE: &'static str = "openid4vci_issuance";
+    }
+
     pub struct PostgresSessionStore<T> {
-        connection: DatabaseConnection,
+        connection: Arc<DatabaseConnection>,
         _marker: PhantomData<T>,
     }
 
     impl<T> PostgresSessionStore<T> {
-        pub async fn connect(url: Url) -> Result<Self, anyhow::Error> {
-            let mut connection_options = ConnectOptions::new(url);
-            connection_options
-                .connect_timeout(DB_CONNECT_TIMEOUT)
-                .sqlx_logging(true)
-                .sqlx_logging_level(LevelFilter::Trace);
-
-            let db = Database::connect(connection_options).await?;
-            Ok(Self {
+        pub fn new(db: Arc<DatabaseConnection>) -> Self {
+            Self {
                 connection: db,
                 _marker: PhantomData,
-            })
+            }
         }
     }
 
     #[async_trait]
-    impl<T: Clone + Serialize + DeserializeOwned + Send + Sync> SessionStore for PostgresSessionStore<T> {
+    impl<T> SessionStore for PostgresSessionStore<T>
+    where
+        T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
+    {
         type Data = SessionState<T>;
 
         async fn get(&self, token: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
             // find value by token, deserialize from JSON if it exists
             let state = session_state::Entity::find()
                 .filter(session_state::Column::Token.eq(token.to_string()))
-                .one(&self.connection)
+                .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
+                .one(self.connection.as_ref())
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
@@ -84,6 +108,7 @@ pub mod postgres {
                 data: ActiveValue::set(
                     serde_json::to_value(session.clone()).map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
                 ),
+                r#type: ActiveValue::set(T::TYPE.to_string()),
                 token: ActiveValue::set(session.token.to_string()),
                 expiration_date_time: ActiveValue::set(
                     (session.last_active + chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64)).into(),
@@ -94,7 +119,7 @@ pub mod postgres {
                     .update_columns([session_state::Column::Data, session_state::Column::ExpirationDateTime])
                     .to_owned(),
             )
-            .exec(&self.connection)
+            .exec(self.connection.as_ref())
             .await
             .map_err(|e| SessionStoreError::Other(e.into()))?;
 
@@ -105,12 +130,23 @@ pub mod postgres {
             // delete expired sessions
             session_state::Entity::delete_many()
                 .filter(session_state::Column::ExpirationDateTime.lt(Utc::now()))
-                .exec(&self.connection)
+                .exec(self.connection.as_ref())
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
             Ok(())
         }
+    }
+
+    pub async fn connect(url: Url) -> Result<DatabaseConnection, anyhow::Error> {
+        let mut connection_options = ConnectOptions::new(url);
+        connection_options
+            .connect_timeout(DB_CONNECT_TIMEOUT)
+            .sqlx_logging(true)
+            .sqlx_logging_level(LevelFilter::Trace);
+
+        let db = Database::connect(connection_options).await?;
+        Ok(db)
     }
 
     #[cfg(test)]
@@ -126,13 +162,16 @@ pub mod postgres {
             data: Vec<u8>,
         }
 
+        impl SessionDataType for TestData {
+            const TYPE: &'static str = "testdata";
+        }
+
         #[cfg_attr(not(feature = "db_test"), ignore)]
         #[tokio::test]
         async fn test_write() {
             let settings = Settings::new().unwrap();
-            let store = PostgresSessionStore::<TestData>::connect(settings.store_url)
-                .await
-                .unwrap();
+            let db = Arc::new(connect(settings.store_url).await.unwrap());
+            let store = PostgresSessionStore::<TestData>::new(db);
 
             let expected = SessionState::<TestData>::new(
                 SessionToken::new(),

@@ -15,10 +15,10 @@ use wallet::{
         S256PkcePair,
     },
 };
-use wallet_common::config::wallet_config::PidIssuanceConfiguration;
+use wallet_common::{config::wallet_config::PidIssuanceConfiguration, utils::random_string};
 use wallet_server::{
     pid::attributes::PidAttributeService,
-    store::new_session_store,
+    store::new_session_stores,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
@@ -58,9 +58,15 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
     let settings = common::wallet_server_settings();
-    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
+    let (disclosure_sessions, issuance_sessions) = new_session_stores(settings.store_url.clone()).await.unwrap();
 
-    start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
+    start_wallet_server(
+        settings.clone(),
+        disclosure_sessions,
+        issuance_sessions,
+        MockAttributeService,
+    )
+    .await;
 
     let client = reqwest::Client::new();
 
@@ -118,9 +124,15 @@ async fn test_start_session() {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
     let settings = common::wallet_server_settings();
-    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
+    let (disclosure_sessions, issuance_sessions) = new_session_stores(settings.store_url.clone()).await.unwrap();
 
-    start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
+    start_wallet_server(
+        settings.clone(),
+        disclosure_sessions,
+        issuance_sessions,
+        MockAttributeService,
+    )
+    .await;
 
     let client = reqwest::Client::new();
     // does it exist for the RP side of things?
@@ -155,10 +167,15 @@ async fn test_session_not_found() {
 #[tokio::test]
 async fn test_mock_issuance() {
     let settings = common::wallet_server_settings();
-    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
+    #[cfg(feature = "db_test")]
+    let store_url = settings.store_url.clone();
+    #[cfg(not(feature = "db_test"))]
+    let store_url = "memory://".parse().unwrap();
+
+    let (disclosure_sessions, issuance_sessions) = new_session_stores(store_url).await.unwrap();
     let attr_service = MockAttributeService::new(&()).await.unwrap();
 
-    start_wallet_server(settings.clone(), sessions, attr_service).await;
+    start_wallet_server(settings.clone(), disclosure_sessions, issuance_sessions, attr_service).await;
 
     // Setup a mock DigiD session from which the issuer client gets its token request
     let digid_session = {
@@ -183,11 +200,7 @@ async fn test_mock_issuance() {
 
     // Exchange the authorization code for an access token and the attestation previews
     pid_issuer_client
-        .start_retrieve_pid(
-            digid_session,
-            &server_url,
-            "authorization_code_that_digid_would_pass_to_us".to_string(),
-        )
+        .start_retrieve_pid(digid_session, &server_url, random_string(32).to_string())
         .await
         .unwrap();
 
@@ -213,9 +226,14 @@ async fn test_mock_issuance() {
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let settings = common::wallet_server_settings();
-    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
+    #[cfg(feature = "db_test")]
+    let store_url = settings.store_url.clone();
+    #[cfg(not(feature = "db_test"))]
+    let store_url = "memory://".parse().unwrap();
+
+    let (disclosure_sessions, issuance_sessions) = new_session_stores(store_url).await.unwrap();
     let attr_service = PidAttributeService::new(&settings.issuer.digid).await.unwrap();
-    start_wallet_server(settings.clone(), sessions, attr_service).await;
+    start_wallet_server(settings.clone(), disclosure_sessions, issuance_sessions, attr_service).await;
 
     let pid_issuance_config = &PidIssuanceConfiguration {
         pid_issuer_url: local_base_url(settings.public_url.port().unwrap()),

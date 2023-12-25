@@ -7,7 +7,7 @@ use std::{
 use async_trait::async_trait;
 use ctor::ctor;
 use openid4vc::{
-    issuer::{AttributeService, Created},
+    issuer::{AttributeService, Created, IssuanceData},
     token::TokenRequest,
 };
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
@@ -104,7 +104,13 @@ pub async fn setup_wallet_and_env(
     let config_base_url = local_config_base_url(&wp_settings.webserver.port);
 
     start_wallet_provider(wp_settings, wallet_config.clone()).await;
-    start_wallet_server(ws_settings, MemorySessionStore::new(), MockAttributeService).await;
+    start_wallet_server(
+        ws_settings,
+        MemorySessionStore::new(),
+        MemorySessionStore::new(),
+        MockAttributeService,
+    )
+    .await;
     start_pid_issuer(pid_settings, MockAttributesLookup::default(), MockBsnLookup::default()).await;
 
     let pid_issuer_client = HttpOpenidPidIssuerClient::default();
@@ -202,14 +208,15 @@ pub fn wallet_server_settings() -> WsSettings {
     settings
 }
 
-pub async fn start_wallet_server<A, S>(settings: WsSettings, sessions: S, attr_service: A)
+pub async fn start_wallet_server<A, DS, IS>(settings: WsSettings, sessions: DS, issuance_sessions: IS, attr_service: A)
 where
     A: AttributeService,
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    DS: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    IS: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
     let public_url = settings.public_url.clone();
     tokio::spawn(async move {
-        ws_server::serve::<A, S>(&settings, sessions, attr_service)
+        ws_server::serve(&settings, sessions, issuance_sessions, attr_service)
             .await
             .expect("Could not start wallet_server");
     });

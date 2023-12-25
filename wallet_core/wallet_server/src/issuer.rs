@@ -14,7 +14,7 @@ use tower_http::trace::TraceLayer;
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_keys::{KeyRing, PrivateKey},
-    server_state::{MemorySessionStore, SessionState, SessionStore},
+    server_state::{SessionState, SessionStore},
     utils::serialization::CborBase64,
     IssuerSigned,
 };
@@ -46,13 +46,14 @@ type CredentialResponse = openid4vc::credential::CredentialResponse<CborBase64<I
 type CredentialResponses = openid4vc::credential::CredentialResponses<CborBase64<IssuerSigned>>;
 type TokenResponseWithPreviews = openid4vc::token::TokenResponseWithPreviews<UnsignedMdoc>;
 
-pub async fn create_issuance_router<A: AttributeService>(
-    settings: Settings,
-    attr_service: A,
-) -> anyhow::Result<Router> {
+pub async fn create_issuance_router<A, S>(settings: Settings, sessions: S, attr_service: A) -> anyhow::Result<Router>
+where
+    A: AttributeService,
+    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+{
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::new(
-            MemorySessionStore::new(),
+            sessions,
             attr_service,
             IssuerKeyRing(
                 settings
