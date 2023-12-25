@@ -2717,7 +2717,6 @@ dependencies = [
  "reqwest",
  "rstest",
  "serde",
- "serde_bytes",
  "serde_json",
  "serde_urlencoded",
  "serde_with",
