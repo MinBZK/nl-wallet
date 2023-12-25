@@ -7,7 +7,7 @@ use std::{
 use async_trait::async_trait;
 use ctor::ctor;
 use openid4vc::{
-    issuer::{AttributeService, Created, IssuanceData},
+    issuer::{AttributeService, Created},
     token::TokenRequest,
 };
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
@@ -16,8 +16,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    server_state::{MemorySessionStore, SessionState, SessionStore},
-    verifier::DisclosureData,
+    server_state::{MemorySessionStore, SessionState},
 };
 use pid_issuer::{
     app::{AttributesLookup, BsnLookup},
@@ -43,6 +42,7 @@ use wallet_server::{
     },
     server as ws_server,
     settings::{Server, Settings as WsSettings},
+    store::SessionStores,
 };
 
 #[ctor]
@@ -106,8 +106,10 @@ pub async fn setup_wallet_and_env(
     start_wallet_provider(wp_settings, wallet_config.clone()).await;
     start_wallet_server(
         ws_settings,
-        MemorySessionStore::new(),
-        MemorySessionStore::new(),
+        SessionStores {
+            disclosure: Box::new(MemorySessionStore::new()),
+            issuance: Box::new(MemorySessionStore::new()),
+        },
         MockAttributeService,
     )
     .await;
@@ -208,15 +210,13 @@ pub fn wallet_server_settings() -> WsSettings {
     settings
 }
 
-pub async fn start_wallet_server<A, DS, IS>(settings: WsSettings, sessions: DS, issuance_sessions: IS, attr_service: A)
+pub async fn start_wallet_server<A>(settings: WsSettings, sessions: SessionStores, attr_service: A)
 where
     A: AttributeService,
-    DS: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
-    IS: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
     let public_url = settings.public_url.clone();
     tokio::spawn(async move {
-        ws_server::serve(&settings, sessions, issuance_sessions, attr_service)
+        ws_server::serve(&settings, sessions, attr_service)
             .await
             .expect("Could not start wallet_server");
     });

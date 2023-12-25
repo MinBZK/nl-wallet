@@ -14,19 +14,25 @@ use self::postgres::connect;
 
 pub type BoxedSessionStore<T> = Box<dyn SessionStore<Data = SessionState<T>> + Send + Sync>;
 
-pub async fn new_session_stores(
-    url: Url,
-) -> Result<(BoxedSessionStore<DisclosureData>, BoxedSessionStore<IssuanceData>), anyhow::Error> {
+pub struct SessionStores {
+    pub disclosure: BoxedSessionStore<DisclosureData>,
+    pub issuance: BoxedSessionStore<IssuanceData>,
+}
+
+pub async fn new_session_stores(url: Url) -> Result<SessionStores, anyhow::Error> {
     match url.scheme() {
         #[cfg(feature = "postgres")]
         "postgres" => {
             let db = Arc::new(connect(url).await?);
-            Ok((
-                Box::new(PostgresSessionStore::new(db.clone())),
-                Box::new(PostgresSessionStore::new(db)),
-            ))
+            Ok(SessionStores {
+                disclosure: Box::new(PostgresSessionStore::new(db.clone())),
+                issuance: Box::new(PostgresSessionStore::new(db)),
+            })
         }
-        "memory" => Ok((Box::new(MemorySessionStore::new()), Box::new(MemorySessionStore::new()))),
+        "memory" => Ok(SessionStores {
+            disclosure: Box::new(MemorySessionStore::new()),
+            issuance: Box::new(MemorySessionStore::new()),
+        }),
         e => unimplemented!("{}", e),
     }
 }

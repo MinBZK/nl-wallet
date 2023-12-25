@@ -58,15 +58,9 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
     let settings = common::wallet_server_settings();
-    let (disclosure_sessions, issuance_sessions) = new_session_stores(settings.store_url.clone()).await.unwrap();
+    let sessions = new_session_stores(settings.store_url.clone()).await.unwrap();
 
-    start_wallet_server(
-        settings.clone(),
-        disclosure_sessions,
-        issuance_sessions,
-        MockAttributeService,
-    )
-    .await;
+    start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
 
     let client = reqwest::Client::new();
 
@@ -124,15 +118,9 @@ async fn test_start_session() {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
     let settings = common::wallet_server_settings();
-    let (disclosure_sessions, issuance_sessions) = new_session_stores(settings.store_url.clone()).await.unwrap();
+    let sessions = new_session_stores(settings.store_url.clone()).await.unwrap();
 
-    start_wallet_server(
-        settings.clone(),
-        disclosure_sessions,
-        issuance_sessions,
-        MockAttributeService,
-    )
-    .await;
+    start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
 
     let client = reqwest::Client::new();
     // does it exist for the RP side of things?
@@ -172,10 +160,10 @@ async fn test_mock_issuance() {
     #[cfg(not(feature = "db_test"))]
     let store_url = "memory://".parse().unwrap();
 
-    let (disclosure_sessions, issuance_sessions) = new_session_stores(store_url).await.unwrap();
+    let sessions = new_session_stores(store_url).await.unwrap();
     let attr_service = MockAttributeService::new(&()).await.unwrap();
 
-    start_wallet_server(settings.clone(), disclosure_sessions, issuance_sessions, attr_service).await;
+    start_wallet_server(settings.clone(), sessions, attr_service).await;
 
     // Setup a mock DigiD session from which the issuer client gets its token request
     let digid_session = {
@@ -231,9 +219,9 @@ async fn test_pid_issuance_digid_bridge() {
     #[cfg(not(feature = "db_test"))]
     let store_url = "memory://".parse().unwrap();
 
-    let (disclosure_sessions, issuance_sessions) = new_session_stores(store_url).await.unwrap();
+    let sessions = new_session_stores(store_url).await.unwrap();
     let attr_service = PidAttributeService::new(&settings.issuer.digid).await.unwrap();
-    start_wallet_server(settings.clone(), disclosure_sessions, issuance_sessions, attr_service).await;
+    start_wallet_server(settings.clone(), sessions, attr_service).await;
 
     let pid_issuance_config = &PidIssuanceConfiguration {
         pid_issuer_url: local_base_url(settings.public_url.port().unwrap()),

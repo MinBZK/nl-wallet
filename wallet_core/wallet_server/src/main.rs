@@ -10,11 +10,11 @@ async fn main() -> Result<()> {
 
     let settings = Settings::new()?;
 
-    let (disclosure_sessions, issuance_sessions) = new_session_stores(settings.store_url.clone()).await?;
+    let sessions = new_session_stores(settings.store_url.clone()).await?;
     let attr_service = PidAttributeService::new(&settings.issuer.digid).await?;
 
     // This will block until the server shuts down.
-    server::serve(&settings, disclosure_sessions, issuance_sessions, attr_service).await?;
+    server::serve(&settings, sessions, attr_service).await?;
 
     Ok(())
 }
