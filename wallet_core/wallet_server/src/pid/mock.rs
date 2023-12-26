@@ -12,6 +12,8 @@ use nl_wallet_mdoc::{
 use rand::Rng;
 use serde::Deserialize;
 
+use crate::settings::MockAttributes;
+
 use super::{attributes::AttributesLookup, digid};
 
 pub struct MockBsnLookup(Vec<String>);
@@ -19,6 +21,12 @@ pub struct MockBsnLookup(Vec<String>);
 impl Default for MockBsnLookup {
     fn default() -> Self {
         Self(vec!["999991772".to_owned()])
+    }
+}
+
+impl From<Vec<MockAttributes>> for MockBsnLookup {
+    fn from(value: Vec<MockAttributes>) -> Self {
+        Self(value.iter().map(|p| p.person.bsn.clone()).collect())
     }
 }
 
@@ -252,6 +260,17 @@ impl Default for MockAttributesLookup {
             ),
         );
         Self(map)
+    }
+}
+
+impl From<Vec<MockAttributes>> for MockAttributesLookup {
+    fn from(value: Vec<MockAttributes>) -> Self {
+        Self(
+            value
+                .iter()
+                .map(|p| (p.person.bsn.clone(), (p.person.clone(), p.resident.clone())))
+                .collect(),
+        )
     }
 }
 

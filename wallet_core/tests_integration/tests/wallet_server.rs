@@ -17,7 +17,7 @@ use wallet::{
 };
 use wallet_common::{config::wallet_config::PidIssuanceConfiguration, utils::random_string};
 use wallet_server::{
-    pid::attributes::PidAttributeService,
+    pid::attributes::MockPidAttributeService,
     store::new_session_stores,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
@@ -220,7 +220,7 @@ async fn test_pid_issuance_digid_bridge() {
     let store_url = "memory://".parse().unwrap();
 
     let sessions = new_session_stores(store_url).await.unwrap();
-    let attr_service = PidAttributeService::new(&settings.issuer.digid).await.unwrap();
+    let attr_service = MockPidAttributeService::new(&settings.issuer).await.unwrap();
     start_wallet_server(settings.clone(), sessions, attr_service).await;
 
     let pid_issuance_config = &PidIssuanceConfiguration {

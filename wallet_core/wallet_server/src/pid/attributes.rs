@@ -9,7 +9,7 @@ use openid4vc::token::{TokenErrorType, TokenRequest, TokenRequestGrantType, Toke
 
 use openid4vc::issuer::{AttributeService, Created};
 
-use crate::settings::Digid;
+use crate::settings::Issuer;
 
 use super::{
     digid::{self, OpenIdClient},
@@ -35,22 +35,22 @@ pub trait AttributesLookup {
     fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc>;
 }
 
-pub struct PidAttributeService {
+pub struct MockPidAttributeService {
     openid_client: OpenIdClient,
     http_client: reqwest::Client,
     attrs_lookup: MockAttributesLookup,
 }
 
 #[async_trait]
-impl AttributeService for PidAttributeService {
+impl AttributeService for MockPidAttributeService {
     type Error = Error;
-    type Settings = Digid;
+    type Settings = Issuer;
 
-    async fn new(settings: &Digid) -> Result<Self, Error> {
-        Ok(PidAttributeService {
-            openid_client: OpenIdClient::new(settings).await?,
+    async fn new(settings: &Self::Settings) -> Result<Self, Error> {
+        Ok(MockPidAttributeService {
+            openid_client: OpenIdClient::new(&settings.digid).await?,
             http_client: reqwest_client(),
-            attrs_lookup: MockAttributesLookup::default(),
+            attrs_lookup: MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default()),
         })
     }
 

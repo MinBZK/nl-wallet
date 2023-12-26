@@ -7,6 +7,9 @@ use url::Url;
 
 use wallet_common::account::serialization::Base64Bytes;
 
+#[cfg(feature = "mock")]
+use crate::pid::mock::{PersonAttributes, ResidentAttributes};
+
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
@@ -46,6 +49,13 @@ pub struct Digid {
     pub client_id: String,
 }
 
+#[cfg(feature = "mock")]
+#[derive(Deserialize, Clone)]
+pub struct MockAttributes {
+    pub person: PersonAttributes,
+    pub resident: Option<ResidentAttributes>,
+}
+
 #[cfg(feature = "issuance")]
 #[derive(Deserialize, Clone)]
 pub struct Issuer {
@@ -59,6 +69,9 @@ pub struct Issuer {
     pub wallet_client_ids: Vec<String>,
 
     pub digid: Digid,
+
+    #[cfg(feature = "mock")]
+    pub mock_data: Option<Vec<MockAttributes>>,
 }
 
 impl Settings {
