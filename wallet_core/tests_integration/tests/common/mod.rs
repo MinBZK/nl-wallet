@@ -160,7 +160,7 @@ pub async fn start_wallet_provider(settings: WpSettings, wallet_config: WalletCo
     tokio::spawn(async move {
         wp_server::serve(settings, wallet_config)
             .await
-            .expect("Could not start wallet_server")
+            .expect("Could not start wallet_provider")
     });
 
     wait_for_server(base_url).await;
@@ -221,7 +221,7 @@ where
             .expect("Could not start wallet_server");
     });
 
-    wait_for_server(public_url).await;
+    wait_for_server(public_url.join("disclosure/").unwrap()).await;
 }
 
 async fn wait_for_server(base_url: Url) {
@@ -230,7 +230,7 @@ async fn wait_for_server(base_url: Url) {
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(10));
         loop {
-            match client.get(base_url.join("/health").unwrap()).send().await {
+            match client.get(base_url.join("health").unwrap()).send().await {
                 Ok(_) => break,
                 _ => {
                     println!("Waiting for wallet_server...");
