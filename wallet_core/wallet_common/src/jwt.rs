@@ -13,8 +13,15 @@ use crate::{
 
 // TODO implement keyring and use kid header item for key rollover
 
-// JWT type, using `<T>` and `Phantomdata<T>` in the same way and for the same reason as `SignedDouble<T>`; see the
-// comment there.
+/// JWT type, generic over its contents.
+///
+/// This wrapper of the `jsonwebtoken` crate echoes the following aspect of `jsonwebtoken`:
+/// Validating one of the a standard fields during verification of the JWT using [`Validation`] does NOT automatically
+/// result in enforcement that the field is present. For example, if validation of `exp` is turned on then JWTs without
+/// an `exp` fields are still accepted (but not JWTs having an `exp` from the past).
+///
+/// Presence of the field may be enforced using [`Validation::required_spec_claims`] and/or by including it
+/// explicitly as a field in the (de)serialized type.
 #[derive(Debug, Clone)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
 impl<T, S: Into<String>> From<S> for Jwt<T> {
