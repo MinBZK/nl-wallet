@@ -4425,7 +4425,6 @@ dependencies = [
  "nl_wallet_mdoc",
  "openid4vc",
  "p256",
- "pid_issuer",
  "platform_support",
  "reqwest",
  "sea-orm",

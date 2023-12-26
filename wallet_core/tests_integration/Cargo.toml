@@ -39,7 +39,6 @@ url.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "generate"] }
 openid4vc = { path = "../openid4vc" }
-pid_issuer = { path = "../pid_issuer", features = ["mock"] }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = [
     "mock",

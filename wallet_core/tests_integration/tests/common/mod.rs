@@ -18,12 +18,6 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_state::{MemorySessionStore, SessionState},
 };
-use pid_issuer::{
-    app::{AttributesLookup, BsnLookup},
-    mock::{MockAttributesLookup, MockBsnLookup},
-    server as PidServer,
-    settings::Settings as PidSettings,
-};
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
@@ -83,20 +77,11 @@ pub type WalletWithMocks = Wallet<
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
-    setup_wallet_and_env(
-        wallet_provider_settings(),
-        wallet_server_settings(),
-        pid_issuer_settings(),
-    )
-    .await
+    setup_wallet_and_env(wallet_provider_settings(), wallet_server_settings()).await
 }
 
 /// Create an instance of [`Wallet`].
-pub async fn setup_wallet_and_env(
-    wp_settings: WpSettings,
-    ws_settings: WsSettings,
-    pid_settings: PidSettings,
-) -> WalletWithMocks {
+pub async fn setup_wallet_and_env(wp_settings: WpSettings, ws_settings: WsSettings) -> WalletWithMocks {
     let mut wallet_config = default_configuration();
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.base_url = local_wp_base_url(&wp_settings.webserver.port);
@@ -113,7 +98,6 @@ pub async fn setup_wallet_and_env(
         MockAttributeService,
     )
     .await;
-    start_pid_issuer(pid_settings, MockAttributesLookup::default(), MockBsnLookup::default()).await;
 
     let pid_issuer_client = HttpOpenidPidIssuerClient::default();
 
@@ -161,32 +145,6 @@ pub async fn start_wallet_provider(settings: WpSettings, wallet_config: WalletCo
         wp_server::serve(settings, wallet_config)
             .await
             .expect("Could not start wallet_provider")
-    });
-
-    wait_for_server(base_url).await;
-}
-
-pub fn pid_issuer_settings() -> PidSettings {
-    let port = find_listener_port();
-
-    let mut settings = PidSettings::new().expect("Could not read settings");
-    settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.webserver.port = port;
-    settings.public_url = format!("http://localhost:{}/", port).parse().unwrap();
-    settings
-}
-
-pub async fn start_pid_issuer<A, B>(settings: PidSettings, attributes_lookup: A, bsn_lookup: B)
-where
-    A: AttributesLookup + Send + Sync + 'static,
-    B: BsnLookup + Send + Sync + 'static,
-{
-    let base_url = local_pid_base_url(&settings.webserver.port);
-
-    tokio::spawn(async {
-        PidServer::serve::<A, B>(settings, attributes_lookup, bsn_lookup)
-            .await
-            .expect("Could not start pid issuer")
     });
 
     wait_for_server(base_url).await;
