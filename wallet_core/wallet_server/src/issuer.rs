@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use axum::{
     extract::State,
@@ -7,7 +7,7 @@ use axum::{
     routing::{delete, post},
     Form, Json, Router, TypedHeader,
 };
-use http::{HeaderName, HeaderValue, StatusCode};
+use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use serde::Serialize;
 use tower_http::trace::TraceLayer;
 
@@ -89,14 +89,18 @@ async fn token<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
-) -> Result<Json<TokenResponseWithPreviews>, ErrorResponse<TokenErrorType>>
+) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorType>>
 where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    let response = state.issuer.process_token_request(token_request, dpop).await?;
-    Ok(Json(response))
+    let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
+    let headers = HeaderMap::from_iter([(
+        HeaderName::from_str("DPoP-Nonce").unwrap(),
+        HeaderValue::from_str(&dpop_nonce).unwrap(),
+    )]);
+    Ok((headers, Json(response)))
 }
 
 async fn credential<A, K, S>(

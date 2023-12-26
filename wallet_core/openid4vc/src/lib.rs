@@ -61,6 +61,8 @@ pub enum Error {
     IncorrectDpopMethod,
     #[error("incorrect DPoP JWT url")]
     IncorrectDpopUrl,
+    #[error("incorrect DPoP JWT nonce")]
+    IncorrectDpopNonce,
     #[error("incorrect DPoP JWT access token hash")]
     IncorrectDpopAccessTokenHash,
     #[error("missing JWK")]

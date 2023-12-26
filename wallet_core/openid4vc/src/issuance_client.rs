@@ -39,6 +39,7 @@ struct IssuanceState {
     unsigned_mdocs: Vec<UnsignedMdoc>,
     issuer_url: Url,
     dpop_private_key: SigningKey,
+    dpop_nonce: Option<String>,
 }
 
 impl IssuanceClient {
@@ -61,9 +62,9 @@ impl IssuanceClient {
         let url = base_url.join("token").unwrap();
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
-        let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None).await?;
+        let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
 
-        let token_response: TokenResponseWithPreviews<UnsignedMdoc> = self
+        let (token_response, dpop_nonce) = self
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
@@ -78,8 +79,12 @@ impl IssuanceClient {
                     let error = response.json::<ErrorResponse<TokenErrorType>>().await?;
                     Err(Error::TokenRequest(error.into()))
                 } else {
-                    let text = response.json().await?;
-                    Ok(text)
+                    let dpop_nonce = response
+                        .headers()
+                        .get("DPoP-Nonce")
+                        .and_then(|val| val.to_str().map(str::to_string).ok());
+                    let deserialized = response.json::<TokenResponseWithPreviews<UnsignedMdoc>>().await?;
+                    Ok((deserialized, dpop_nonce))
                 }
             })
             .await?;
@@ -90,6 +95,7 @@ impl IssuanceClient {
             unsigned_mdocs: token_response.attestation_previews.clone(),
             issuer_url: base_url.clone(),
             dpop_private_key,
+            dpop_nonce,
         });
 
         Ok(token_response.attestation_previews)
@@ -144,6 +150,7 @@ impl IssuanceClient {
             url.clone(),
             Method::POST,
             Some(issuance_state.access_token.clone()),
+            issuance_state.dpop_nonce.clone(),
         )
         .await?;
 

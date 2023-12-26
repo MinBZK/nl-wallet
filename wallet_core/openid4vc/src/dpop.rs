@@ -62,6 +62,7 @@ pub struct DpopPayload {
     http_method: String,
     #[serde(rename = "ath")]
     access_token_hash: Option<String>,
+    nonce: Option<String>,
     jti: String,
     iat: u64,
 }
@@ -76,6 +77,7 @@ impl Dpop {
         url: Url,
         method: Method,
         access_token: Option<String>,
+        nonce: Option<String>,
     ) -> Result<Self> {
         let header = Header {
             typ: Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()),
@@ -94,6 +96,7 @@ impl Dpop {
             iat: jsonwebtoken::get_current_timestamp(),
             http_method: method.to_string(),
             http_url: url,
+            nonce,
             access_token_hash: access_token.map(|access_token| URL_SAFE_NO_PAD.encode(sha256(access_token.as_bytes()))),
         };
 
@@ -118,6 +121,7 @@ impl Dpop {
         url: Url,
         method: Method,
         access_token: Option<String>,
+        nonce: Option<String>,
     ) -> Result<()> {
         if token_data.header.typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
             return Err(Error::UnsupportedJwtAlgorithm {
@@ -136,6 +140,15 @@ impl Dpop {
         {
             return Err(Error::IncorrectDpopAccessTokenHash);
         }
+
+        // We do not check the `jti` field to avoid having to keep track of this in the server state.
+        // Verifying `jti` is not required by its spec (https://datatracker.ietf.org/doc/html/rfc9449).
+        // We also do not check the `iat` field, to avoid having to deal with clockdrift.
+        // Instead of both of these, the server can specify a `nonce` and later enforce its presence in the DPoP.
+        if token_data.claims.nonce != nonce {
+            return Err(Error::IncorrectDpopNonce);
+        }
+
         Ok(())
     }
 
@@ -148,7 +161,7 @@ impl Dpop {
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(Error::MissingJwk)?)?;
 
         let token_data = self.verify_signature(&verifying_key)?;
-        self.verify_data(&token_data, url, method, access_token)?;
+        self.verify_data(&token_data, url, method, access_token, None)?;
 
         Ok(verifying_key)
     }
@@ -160,9 +173,10 @@ impl Dpop {
         url: Url,
         method: Method,
         access_token: Option<String>,
+        nonce: Option<String>,
     ) -> Result<()> {
         let token_data = self.verify_signature(expected_verifying_key)?;
-        self.verify_data(&token_data, url, method, access_token)?;
+        self.verify_data(&token_data, url, method, access_token, nonce)?;
 
         // Compare the specified key against the one in the JWT header
         let contained_key = jwk_to_p256(&token_data.header.jwk.ok_or(Error::MissingJwk)?)?;
@@ -200,7 +214,7 @@ mod tests {
         let url: Url = "https://example.com/path".parse().unwrap();
         let method = Method::POST;
 
-        let dpop = Dpop::new(&private_key, url.clone(), method.clone(), access_token.clone())
+        let dpop = Dpop::new(&private_key, url.clone(), method.clone(), access_token.clone(), None)
             .await
             .unwrap();
 
@@ -240,7 +254,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(pubkey, *private_key.verifying_key());
-        dpop.verify_expecting_key(&pubkey, url, method, access_token)
+        dpop.verify_expecting_key(&pubkey, url, method, access_token, None)
             .await
             .unwrap();
     }
