@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use wallet_common::{jwt::Jwt, keys::SecureEcdsaKey};
 
-use crate::{jwk_from_p256, Error, ErrorStatusCode, Format, Result};
+use crate::{jwk::jwk_from_p256, Error, ErrorStatusCode, Format, Result};
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
 /// Sent JSON-encoded to `POST /batch_credential`.

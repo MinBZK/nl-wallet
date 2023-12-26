@@ -25,9 +25,9 @@ use crate::{
         OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::Dpop,
-    jwk_to_p256,
+    jwk::{jwk_to_p256, JwkConversionError},
     token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenType},
-    Format, JwkConversionError,
+    Format,
 };
 
 /* Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for

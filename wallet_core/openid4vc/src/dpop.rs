@@ -51,7 +51,10 @@ use wallet_common::{
     utils::{random_string, sha256},
 };
 
-use crate::{jwk_from_p256, jwk_to_p256, Error, Result};
+use crate::{
+    jwk::{jwk_from_p256, jwk_to_p256},
+    Error, Result,
+};
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
