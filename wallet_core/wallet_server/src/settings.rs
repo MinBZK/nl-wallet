@@ -1,7 +1,6 @@
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
-use openid4vc::NL_WALLET_CLIENT_ID;
 use serde::Deserialize;
 use url::Url;
 
@@ -80,15 +79,22 @@ impl Settings {
         // otherwise look in the current working directory.
         let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
-        Config::builder()
+        let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
             .set_default("requester_server.ip", "127.0.0.1")?
             .set_default("requester_server.port", 3002)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("internal_url", "http://localhost:3002/")?
-            .set_default("store_url", "memory://")?
-            .set_default("issuer.wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
+            .set_default("store_url", "memory://")?;
+
+        #[cfg(feature = "issuance")]
+        let config_builder = config_builder.set_default(
+            "issuer.wallet_client_ids",
+            vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
+        )?;
+
+        config_builder
             .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_server")
