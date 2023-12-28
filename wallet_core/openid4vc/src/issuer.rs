@@ -342,7 +342,7 @@ where
             &session_data.dpop_public_key,
             self.issuer_data
                 .credential_issuer_identifier
-                .join(&("issuance/".to_owned() + endpoint_name))
+                .join(endpoint_name)
                 .unwrap(),
             Method::DELETE,
             Some(access_token.to_string()),

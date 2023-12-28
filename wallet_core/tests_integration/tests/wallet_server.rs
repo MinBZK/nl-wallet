@@ -5,15 +5,17 @@ use reqwest::{Client, StatusCode};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    mock::SoftwareKeyFactory, server_state::SessionToken, utils::serialization::cbor_deserialize,
+    holder::TrustAnchor, mock::SoftwareKeyFactory, server_state::SessionToken, utils::serialization::cbor_deserialize,
     verifier::SessionType, ItemsRequest, ReaderEngagement,
 };
 use wallet::{
+    errors::PidIssuerError,
     mock::{default_configuration, MockDigidSession},
     wallet_deps::{
         DigidSession, HttpDigidSession, HttpOpenIdClient, HttpOpenidPidIssuerClient, OpenidPidIssuerClient,
         S256PkcePair,
     },
+    WalletConfiguration,
 };
 use wallet_common::{config::wallet_config::PidIssuanceConfiguration, utils::random_string};
 use wallet_server::{
@@ -193,21 +195,73 @@ async fn test_mock_issuance() {
         .unwrap();
 
     // Accept the attestations and finish issuance
-    let wallet_conf = default_configuration();
-    let trust_anchors = wallet_conf
-        .mdoc_trust_anchors
-        .iter()
-        .map(|a| (&a.owned_trust_anchor).into())
-        .collect::<Vec<_>>();
-    let key_factory = SoftwareKeyFactory::default();
-
     let mdocs = pid_issuer_client
-        .accept_pid(&trust_anchors, &key_factory, &server_url)
+        .accept_pid(
+            &trust_anchors(&default_configuration()),
+            &SoftwareKeyFactory::default(),
+            &server_url,
+        )
         .await
         .unwrap();
 
     assert_eq!(2, mdocs.len());
     assert_eq!(2, mdocs[0].cred_copies.len())
+}
+
+#[tokio::test]
+async fn test_reject_issuance() {
+    let settings = common::wallet_server_settings();
+    #[cfg(feature = "db_test")]
+    let store_url = settings.store_url.clone();
+    #[cfg(not(feature = "db_test"))]
+    let store_url = "memory://".parse().unwrap();
+
+    let sessions = new_session_stores(store_url).await.unwrap();
+    let attr_service = MockAttributeService::new(&()).await.unwrap();
+
+    start_wallet_server(settings.clone(), sessions, attr_service).await;
+
+    // Setup a mock DigiD session from which the issuer client gets its token request
+    let digid_session = {
+        let mut digid_session = MockDigidSession::new();
+        digid_session
+            .expect_into_pre_authorized_code_request()
+            .return_once(|code| TokenRequest {
+                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: code,
+                },
+                code_verifier: Some("my_code_verifier".to_string()),
+                client_id: Some("my_client_id".to_string()),
+                redirect_uri: Some("redirect://here".parse().unwrap()),
+            });
+        digid_session
+    };
+
+    let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
+    let server_url = local_base_url(settings.public_url.port().unwrap())
+        .join("issuance/")
+        .unwrap();
+
+    // Exchange the authorization code for an access token and the attestation previews
+    pid_issuer_client
+        .start_retrieve_pid(digid_session, &server_url, random_string(32).to_string())
+        .await
+        .unwrap();
+
+    // Reject issuance
+    pid_issuer_client.reject_pid().await.unwrap();
+
+    // Trying to accept the attestations after rejecting doesn't work
+    assert!(matches!(
+        pid_issuer_client
+            .accept_pid(
+                &trust_anchors(&default_configuration()),
+                &SoftwareKeyFactory::default(),
+                &server_url
+            )
+            .await,
+        Err(PidIssuerError::Openid(openid4vc::Error::MissingIssuanceSessionState))
+    ))
 }
 
 #[tokio::test]
@@ -257,21 +311,25 @@ async fn test_pid_issuance_digid_bridge() {
         .await
         .unwrap();
 
-    let key_factory = SoftwareKeyFactory::default();
-    let wallet_conf = default_configuration();
-    let trust_anchors = wallet_conf
-        .mdoc_trust_anchors
-        .iter()
-        .map(|a| (&a.owned_trust_anchor).into())
-        .collect::<Vec<_>>();
-
     let mdocs = pid_issuer_client
-        .accept_pid(&trust_anchors, &key_factory, &server_url)
+        .accept_pid(
+            &trust_anchors(&default_configuration()),
+            &SoftwareKeyFactory::default(),
+            &server_url,
+        )
         .await
         .unwrap();
 
     assert_eq!(2, mdocs.len());
     assert_eq!(2, mdocs[0].cred_copies.len())
+}
+
+fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {
+    wallet_conf
+        .mdoc_trust_anchors
+        .iter()
+        .map(|a| (&a.owned_trust_anchor).into())
+        .collect()
 }
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,

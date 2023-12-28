@@ -215,13 +215,25 @@ impl IssuanceClient {
     }
 
     pub async fn stop_issuance(&mut self) -> Result<(), Error> {
-        let issuance_state = self.session_state.as_ref().ok_or(Error::MissingIssuanceSessionState)?;
+        let issuance_state = self.session_state.take().ok_or(Error::MissingIssuanceSessionState)?;
+        let url = issuance_state.issuer_url.join("batch_credential").unwrap();
+
+        let dpop_header = Dpop::new(
+            &issuance_state.dpop_private_key,
+            url.clone(),
+            Method::DELETE,
+            Some(issuance_state.access_token.clone()),
+            issuance_state.dpop_nonce.clone(),
+        )
+        .await?;
 
         self.http_client
-            .delete(issuance_state.issuer_url.join("credential").unwrap()) // TODO discover token endpoint instead
+            .delete(url) // TODO discover token endpoint instead
+            .header("DPoP", dpop_header.0 .0)
             .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
 
         Ok(())
     }
