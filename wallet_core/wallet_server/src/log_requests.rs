@@ -46,14 +46,21 @@ fn body_to_string(bytes: &Bytes, headers: &HeaderMap<HeaderValue>) -> String {
         return "".to_string();
     }
 
-    let content_type = headers.get("content-type").map(|header| header.as_bytes());
-    match content_type {
-        Some(content_type) => match content_type {
-            b"application/json" => std::str::from_utf8(bytes).unwrap_or("[non-utf8 body]").to_string(),
-            b"application/x-www-form-urlencoded" => std::str::from_utf8(bytes).unwrap_or("[non-utf8 body]").to_string(),
-            _ => "[base64] ".to_string() + &BASE64_URL_SAFE.encode(bytes),
-        },
-        None => "[base64] ".to_string() + &BASE64_URL_SAFE.encode(bytes),
+    let content_type = headers
+        .get("content-type")
+        .map(|header| header.as_bytes())
+        .unwrap_or_default();
+
+    if ["application/json", "application/x-www-form-urlencoded", "text/plain"]
+        .into_iter()
+        .any(|header| match std::str::from_utf8(content_type) {
+            Ok(content_type) => content_type.starts_with(header),
+            Err(_) => false,
+        })
+    {
+        std::str::from_utf8(bytes).unwrap_or("[non-utf8 body]").to_string()
+    } else {
+        "[base64] ".to_string() + &BASE64_URL_SAFE.encode(bytes)
     }
 }
 
