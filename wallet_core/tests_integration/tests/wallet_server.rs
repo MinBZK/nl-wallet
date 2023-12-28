@@ -20,7 +20,8 @@ use wallet::{
 use wallet_common::{config::wallet_config::PidIssuanceConfiguration, utils::random_string};
 use wallet_server::{
     pid::attributes::MockPidAttributeService,
-    store::new_session_stores,
+    settings::Settings,
+    store::{new_session_stores, SessionStores},
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
@@ -156,32 +157,7 @@ async fn test_session_not_found() {
 
 #[tokio::test]
 async fn test_mock_issuance() {
-    let settings = common::wallet_server_settings();
-    #[cfg(feature = "db_test")]
-    let store_url = settings.store_url.clone();
-    #[cfg(not(feature = "db_test"))]
-    let store_url = "memory://".parse().unwrap();
-
-    let sessions = new_session_stores(store_url).await.unwrap();
-    let attr_service = MockAttributeService::new(&()).await.unwrap();
-
-    start_wallet_server(settings.clone(), sessions, attr_service).await;
-
-    // Setup a mock DigiD session from which the issuer client gets its token request
-    let digid_session = {
-        let mut digid_session = MockDigidSession::new();
-        digid_session
-            .expect_into_pre_authorized_code_request()
-            .return_once(|code| TokenRequest {
-                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: code,
-                },
-                code_verifier: Some("my_code_verifier".to_string()),
-                client_id: Some("my_client_id".to_string()),
-                redirect_uri: Some("redirect://here".parse().unwrap()),
-            });
-        digid_session
-    };
+    let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
     let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
     let server_url = local_base_url(settings.public_url.port().unwrap())
@@ -210,32 +186,7 @@ async fn test_mock_issuance() {
 
 #[tokio::test]
 async fn test_reject_issuance() {
-    let settings = common::wallet_server_settings();
-    #[cfg(feature = "db_test")]
-    let store_url = settings.store_url.clone();
-    #[cfg(not(feature = "db_test"))]
-    let store_url = "memory://".parse().unwrap();
-
-    let sessions = new_session_stores(store_url).await.unwrap();
-    let attr_service = MockAttributeService::new(&()).await.unwrap();
-
-    start_wallet_server(settings.clone(), sessions, attr_service).await;
-
-    // Setup a mock DigiD session from which the issuer client gets its token request
-    let digid_session = {
-        let mut digid_session = MockDigidSession::new();
-        digid_session
-            .expect_into_pre_authorized_code_request()
-            .return_once(|code| TokenRequest {
-                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: code,
-                },
-                code_verifier: Some("my_code_verifier".to_string()),
-                client_id: Some("my_client_id".to_string()),
-                redirect_uri: Some("redirect://here".parse().unwrap()),
-            });
-        digid_session
-    };
+    let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
     let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
     let server_url = local_base_url(settings.public_url.port().unwrap())
@@ -267,13 +218,8 @@ async fn test_reject_issuance() {
 #[tokio::test]
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
-    let settings = common::wallet_server_settings();
-    #[cfg(feature = "db_test")]
-    let store_url = settings.store_url.clone();
-    #[cfg(not(feature = "db_test"))]
-    let store_url = "memory://".parse().unwrap();
+    let (settings, sessions) = issuance_settings_and_sessions().await;
 
-    let sessions = new_session_stores(store_url).await.unwrap();
     let attr_service = MockPidAttributeService::new(&settings.issuer).await.unwrap();
     start_wallet_server(settings.clone(), sessions, attr_service).await;
 
@@ -322,6 +268,41 @@ async fn test_pid_issuance_digid_bridge() {
 
     assert_eq!(2, mdocs.len());
     assert_eq!(2, mdocs[0].cred_copies.len())
+}
+
+async fn issuance_settings_and_sessions() -> (Settings, SessionStores) {
+    let settings = common::wallet_server_settings();
+    #[cfg(feature = "db_test")]
+    let store_url = settings.store_url.clone();
+    #[cfg(not(feature = "db_test"))]
+    let store_url = "memory://".parse().unwrap();
+
+    (settings, new_session_stores(store_url).await.unwrap())
+}
+
+async fn issuance_settings_and_digid_session() -> (Settings, impl DigidSession) {
+    let (settings, sessions) = issuance_settings_and_sessions().await;
+    let attr_service = MockAttributeService::new(&()).await.unwrap();
+
+    start_wallet_server(settings.clone(), sessions, attr_service).await;
+
+    // Setup a mock DigiD session from which the issuer client gets its token request
+    let digid_session = {
+        let mut digid_session = MockDigidSession::new();
+        digid_session
+            .expect_into_pre_authorized_code_request()
+            .return_once(|code| TokenRequest {
+                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: code,
+                },
+                code_verifier: Some("my_code_verifier".to_string()),
+                client_id: Some("my_client_id".to_string()),
+                redirect_uri: Some("redirect://here".parse().unwrap()),
+            });
+        digid_session
+    };
+
+    (settings, digid_session)
 }
 
 fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {
