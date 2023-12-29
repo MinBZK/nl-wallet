@@ -46,7 +46,6 @@ pub mod postgres {
 
     use axum::async_trait;
     use chrono::Utc;
-    use openid4vc::issuer::IssuanceData;
     use sea_orm::{
         sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
         QueryFilter,
@@ -71,7 +70,8 @@ pub mod postgres {
         const TYPE: &'static str = "mdoc_disclosure";
     }
 
-    impl SessionDataType for IssuanceData {
+    #[cfg(feature = "issuance")]
+    impl SessionDataType for openid4vc::issuer::IssuanceData {
         const TYPE: &'static str = "openid4vci_issuance";
     }
 
