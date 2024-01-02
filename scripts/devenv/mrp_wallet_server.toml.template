@@ -4,7 +4,7 @@ trust_anchors = [
     "${PID_CA_CRT}",
 ]
 public_url = 'http://${SERVICES_HOST}:3001/'
-store_url = 'postgres://postgres:postgres@127.0.0.1:5432/wallet_server'
+store_url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server'
 
 [wallet_server]
 ip = '0.0.0.0'
