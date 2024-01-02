@@ -1,5 +1,6 @@
 use std::{
     net::{IpAddr, TcpListener},
+    process,
     str::FromStr,
     time::Duration,
 };
@@ -139,10 +140,12 @@ pub fn wallet_provider_settings() -> WpSettings {
 
 pub async fn start_wallet_provider(settings: WpSettings, wallet_config: WalletConfiguration) {
     let base_url = local_wp_base_url(&settings.webserver.port);
-    tokio::spawn(async move {
-        wp_server::serve(settings, wallet_config)
-            .await
-            .expect("Could not start wallet_server")
+    tokio::spawn(async {
+        if let Err(error) = wp_server::serve(settings, wallet_config).await {
+            println!("Could not start wallet_provider: {:?}", error);
+
+            process::exit(1);
+        }
     });
 
     wait_for_server(base_url).await;
@@ -166,9 +169,11 @@ where
     let base_url = local_pid_base_url(&settings.webserver.port);
 
     tokio::spawn(async {
-        PidServer::serve::<A, B>(settings, attributes_lookup, bsn_lookup)
-            .await
-            .expect("Could not start pid issuer")
+        if let Err(error) = PidServer::serve::<A, B>(settings, attributes_lookup, bsn_lookup).await {
+            println!("Could not start pid_issuer: {:?}", error);
+
+            process::exit(1);
+        }
     });
 
     wait_for_server(base_url).await;
@@ -197,9 +202,11 @@ where
 {
     let public_url = settings.public_url.clone();
     tokio::spawn(async move {
-        ws_server::serve::<S>(&settings, sessions)
-            .await
-            .expect("Could not start wallet_server");
+        if let Err(error) = ws_server::serve::<S>(&settings, sessions).await {
+            println!("Could not start wallet_server: {:?}", error);
+
+            process::exit(1);
+        }
     });
 
     wait_for_server(public_url).await;

@@ -280,8 +280,15 @@ mod tests {
     )]
     #[case("https://example", Ok(()))] // `"https://example".parse().unwrap().to_string() == "https://example.com/"`
     #[case("https://example.com", Ok(()))] // `"https://example.com".parse().unwrap().to_string() == "https://example.com/"`
+    #[cfg_attr(
+        feature = "allow_http_return_url",
+        case("http://example.com", Ok(()))
+    )]
     #[case("file://etc/passwd", Err(ReturnUrlPrefixError::InvalidScheme("file".to_owned())))]
-    #[case("http://example.com", Err(ReturnUrlPrefixError::InvalidScheme("http".to_owned())))] // TODO differ per feature
+    #[cfg_attr(
+        not(feature = "allow_http_return_url"),
+        case("http://example.com", Err(ReturnUrlPrefixError::InvalidScheme("http".to_owned())))
+    )]
     #[case("https://", Err(ReturnUrlPrefixError::UrlParse(url::ParseError::EmptyHost)))] // test for non-empty domain clause
     #[case("https://etc/passwd", Err(ReturnUrlPrefixError::InvalidPath("/passwd".to_owned())))]
     #[case("https://example.com/path/?", Err(ReturnUrlPrefixError::InvalidQuery("".to_owned())))]
