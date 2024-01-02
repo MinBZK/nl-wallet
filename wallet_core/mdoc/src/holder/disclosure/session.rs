@@ -246,7 +246,7 @@ where
         };
 
         // If we have multiple candidates for any of the doc types, return an error.
-        // TODO: Support having the user a choose between multiple candidates.
+        // TODO: Support having the user choose between multiple candidates.
         if candidates_by_doc_type.values().any(|candidates| candidates.len() > 1) {
             let duplicate_doc_types = candidates_by_doc_type
                 .into_iter()

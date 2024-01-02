@@ -37,6 +37,7 @@ impl WalletServerClient {
             })
             .send()
             .await?
+            .error_for_status()?
             .json::<StartDisclosureResponse>()
             .await?;
         Ok((response.session_url, response.engagement_url))
@@ -48,6 +49,7 @@ impl WalletServerClient {
             .get(self.base_url.join(&format!("/sessions/{session_id}/status"))?)
             .send()
             .await?
+            .error_for_status()?
             .json::<StatusResponse>()
             .await?)
     }
