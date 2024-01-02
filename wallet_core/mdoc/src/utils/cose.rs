@@ -256,6 +256,28 @@ fn signature_data_and_header(payload: &[u8]) -> (Vec<u8>, ProtectedHeader) {
     (sig_data, protected_header)
 }
 
+fn signatures_data_and_header(payloads: Vec<&[u8]>) -> (Vec<Vec<u8>>, ProtectedHeader) {
+    let protected_header = ProtectedHeader {
+        original_data: None,
+        header: HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
+    };
+
+    let sigs_data = payloads
+        .into_iter()
+        .map(|payload| {
+            sig_structure_data(
+                SignatureContext::CoseSign1,
+                protected_header.clone(),
+                None,
+                &[],
+                payload,
+            )
+        })
+        .collect();
+
+    (sigs_data, protected_header)
+}
+
 pub async fn sign_cose(
     payload: &[u8],
     unprotected_header: Header,
@@ -276,6 +298,49 @@ pub async fn sign_cose(
         protected: protected_header,
         unprotected: unprotected_header,
     };
+
+    Ok(signed)
+}
+
+pub async fn sign_coses<'a, K: MdocEcdsaKey + Sync>(
+    keys_and_challenges: Vec<(K, &[u8])>,
+    key_factory: &'a impl KeyFactory<'a, Key = K>,
+    unprotected_header: Header,
+    include_payload: bool,
+) -> Result<Vec<(K, CoseSign1)>> {
+    let payloads = keys_and_challenges
+        .iter()
+        .map(|(_key, challenge)| *challenge)
+        .collect::<Vec<&[u8]>>();
+
+    let (sigs_data, protected_header) = signatures_data_and_header(payloads.clone());
+
+    let keys_and_signature_data = keys_and_challenges
+        .into_iter()
+        .zip(sigs_data)
+        .map(|((key, _challenge), sig_data)| (sig_data, vec![key]))
+        .collect::<Vec<(Vec<u8>, Vec<K>)>>();
+
+    let keys_and_signatures = key_factory
+        .sign_with_existing_keys(keys_and_signature_data)
+        .await
+        .map_err(|error| CoseError::Signing(error.into()))?;
+
+    let signed = keys_and_signatures
+        .into_iter()
+        .zip(payloads)
+        .map(|((key, signature), payload)| {
+            (
+                key,
+                CoseSign1 {
+                    signature: signature.to_vec(),
+                    payload: include_payload.then(|| payload.to_vec()),
+                    protected: protected_header.clone(),
+                    unprotected: unprotected_header.clone(),
+                },
+            )
+        })
+        .collect();
 
     Ok(signed)
 }

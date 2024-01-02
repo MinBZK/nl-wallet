@@ -38,6 +38,11 @@ pub trait KeyFactory<'a> {
         msg: T,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
+
+    async fn sign_with_existing_keys<T: Into<Vec<u8>> + Send>(
+        &'a self,
+        messages_and_keys: Vec<(T, Vec<Self::Key>)>,
+    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 }
 
 #[cfg(any(test, feature = "mock"))]

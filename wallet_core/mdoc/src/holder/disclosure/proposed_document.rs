@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
@@ -165,6 +167,46 @@ impl<I> ProposedDocument<I> {
         };
 
         Ok(document)
+    }
+
+    pub async fn sign_multiple<'a, KF, K>(
+        key_factory: &'a KF,
+        proposed_documents: Vec<ProposedDocument<I>>,
+    ) -> Result<Vec<Document>>
+    where
+        KF: KeyFactory<'a, Key = K>,
+        K: MdocEcdsaKey + Sync,
+    {
+        let keys_and_challenges = proposed_documents
+            .iter()
+            .map(|doc| {
+                let public_key = doc.issuer_signed.public_key()?;
+                let key: K = key_factory.generate_existing(&doc.private_key_id, public_key);
+                let challenge = doc.device_signed_challenge.as_slice();
+                Ok((key, challenge))
+            })
+            .collect::<Result<Vec<(K, &[u8])>>>()?;
+
+        let mut device_signed_by_key: HashMap<String, DeviceSigned> =
+            DeviceSigned::new_signatures(keys_and_challenges, key_factory)
+                .await?
+                .into_iter()
+                .collect();
+
+        let documents = proposed_documents
+            .into_iter()
+            .map(|proposed_doc| {
+                let device_signed = device_signed_by_key.remove(&proposed_doc.private_key_id).unwrap();
+                Document {
+                    doc_type: proposed_doc.doc_type,
+                    issuer_signed: proposed_doc.issuer_signed,
+                    device_signed,
+                    errors: None,
+                }
+            })
+            .collect();
+
+        Ok(documents)
     }
 }
 

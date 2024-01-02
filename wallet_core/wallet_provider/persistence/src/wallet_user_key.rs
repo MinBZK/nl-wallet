@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect, Set};
 
 use wallet_provider_domain::{
@@ -36,7 +38,7 @@ pub async fn find_keys_by_identifiers<S, T>(
     db: &T,
     wallet_user_id: uuid::Uuid,
     identifiers: &[String],
-) -> Result<Vec<(String, WrappedKey)>>
+) -> Result<HashMap<String, WrappedKey>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
