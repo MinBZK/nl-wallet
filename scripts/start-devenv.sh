@@ -261,6 +261,10 @@ then
     fi
     if [ "${START}" == "0" ]
     then
+        echo -e "${INFO}Running wallet_server database migrations${NC}"
+        pushd ${WALLET_CORE_DIR}
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server" cargo run --bin wallet_server_migration -- fresh
+        popd
         echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
         RUST_LOG=debug cargo run --features "allow_http_return_url" --bin wallet_server > "${TARGET_DIR}/mrp_wallet_server.log" 2>&1 &
 
@@ -290,7 +294,7 @@ then
         pushd ${WALLET_CORE_DIR}
         cargo run --bin wallet_provider_migrations -- fresh
         popd
-        echo -e "${INFO}Start wallet_provider${NC}"
+        echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
         RUST_LOG=debug cargo run --bin wallet_provider > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 
         echo -e "wallet_provider logs can be found at ${CYAN}${TARGET_DIR}/wallet_provider.log${NC}"
