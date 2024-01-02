@@ -117,7 +117,7 @@ where
         )?;
 
         // If we have a return URL, add the hash of the `SessionTranscript` to it.
-        let return_url_hash = return_url
+        let return_url_with_hash = return_url
             .as_ref()
             .map(|url| Self::add_transcript_hash_to_url(url.clone(), &transcript))
             .transpose()?;
@@ -172,7 +172,7 @@ where
             }
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
-                    return_url: return_url_hash,
+                    return_url: return_url_with_hash,
                     data,
                     device_key,
                     proposed_documents,
