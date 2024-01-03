@@ -9,7 +9,7 @@ use url::Url;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use super::{
-    config_file, ConfigurationError, ConfigurationRepository, HttpConfigurationRepository,
+    config_file, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState, HttpConfigurationRepository,
     UpdateableConfigurationRepository,
 };
 
@@ -29,7 +29,7 @@ impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
             .unwrap_or(initial_config);
 
         Ok(Self::new(
-            HttpConfigurationRepository::new(base_url, default_config),
+            HttpConfigurationRepository::new(base_url, storage_path.clone(), default_config).await?,
             storage_path,
         ))
     }
@@ -64,11 +64,15 @@ impl<T> UpdateableConfigurationRepository for FileStorageConfigurationRepository
 where
     T: UpdateableConfigurationRepository + Send + Sync,
 {
-    async fn fetch(&self) -> Result<(), ConfigurationError> {
-        self.wrapped.fetch().await?;
-        let wrapped_config = self.wrapped.config();
-        config_file::update_config_file(self.storage_path.as_path(), wrapped_config.as_ref()).await?;
-        Ok(())
+    async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
+        let result = self.wrapped.fetch().await?;
+
+        if let ConfigurationUpdateState::Updated = result {
+            let wrapped_config = self.wrapped.config();
+            config_file::update_config_file(self.storage_path.as_path(), wrapped_config.as_ref()).await?;
+        }
+
+        Ok(result)
     }
 }
 
@@ -81,8 +85,8 @@ mod tests {
     use wallet_common::config::wallet_config::WalletConfiguration;
 
     use crate::config::{
-        default_configuration, ConfigurationError, ConfigurationRepository, FileStorageConfigurationRepository,
-        UpdateableConfigurationRepository,
+        default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+        FileStorageConfigurationRepository, UpdateableConfigurationRepository,
     };
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
@@ -95,10 +99,10 @@ mod tests {
 
     #[async_trait]
     impl UpdateableConfigurationRepository for TestConfigRepo {
-        async fn fetch(&self) -> Result<(), ConfigurationError> {
+        async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
             let mut config = self.0.write().unwrap();
             config.lock_timeouts.background_timeout = 700;
-            Ok(())
+            Ok(ConfigurationUpdateState::Updated)
         }
     }
 

@@ -10,8 +10,9 @@ use tokio::{
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use super::{
-    ConfigServerConfiguration, ConfigurationError, ConfigurationRepository, FileStorageConfigurationRepository,
-    ObservableConfigurationRepository, UpdateableConfigurationRepository, UpdatingFileHttpConfigurationRepository,
+    ConfigServerConfiguration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+    FileStorageConfigurationRepository, ObservableConfigurationRepository, UpdateableConfigurationRepository,
+    UpdatingFileHttpConfigurationRepository,
 };
 
 pub struct UpdatingConfigurationRepository<T> {
@@ -40,7 +41,6 @@ where
 {
     pub async fn new(wrapped: T, update_frequency: Duration) -> UpdatingConfigurationRepository<T> {
         let (tx, rx) = channel::<CallbackFunction>(Box::new(|_| {}));
-
         let wrapped = Arc::new(wrapped);
         let updating_task = Self::start_update_task(Arc::clone(&wrapped), rx, update_frequency).await;
         Self {
@@ -56,11 +56,12 @@ where
             let mut interval = time::interval(interval);
             loop {
                 interval.tick().await;
-                let _ = wrapped.fetch().await;
-                // todo: only call callback if config has actually changed
-                let config = wrapped.config();
-                let callback = rx.borrow();
-                callback(config);
+
+                if let Ok(ConfigurationUpdateState::Updated) = wrapped.fetch().await {
+                    let config = wrapped.config();
+                    let callback = rx.borrow();
+                    callback(config);
+                }
             }
         })
     }
@@ -114,8 +115,8 @@ mod tests {
     use wallet_common::config::wallet_config::WalletConfiguration;
 
     use crate::config::{
-        default_configuration, ConfigurationError, ConfigurationRepository, ObservableConfigurationRepository,
-        UpdateableConfigurationRepository, UpdatingConfigurationRepository,
+        default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+        ObservableConfigurationRepository, UpdateableConfigurationRepository, UpdatingConfigurationRepository,
     };
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
@@ -128,10 +129,10 @@ mod tests {
 
     #[async_trait]
     impl UpdateableConfigurationRepository for TestConfigRepo {
-        async fn fetch(&self) -> Result<(), ConfigurationError> {
+        async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
             let mut config = self.0.write().unwrap();
             config.lock_timeouts.background_timeout = 900;
-            Ok(())
+            Ok(ConfigurationUpdateState::Updated)
         }
     }
 

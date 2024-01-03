@@ -42,8 +42,9 @@ pub mod wallet_deps {
     pub use crate::{
         account_provider::{AccountProviderClient, HttpAccountProviderClient},
         config::{
-            ConfigServerConfiguration, ConfigurationRepository, FileStorageConfigurationRepository,
-            HttpConfigurationRepository, UpdateableConfigurationRepository, UpdatingFileHttpConfigurationRepository,
+            ConfigServerConfiguration, ConfigurationRepository, ConfigurationUpdateState,
+            FileStorageConfigurationRepository, HttpConfigurationRepository, UpdateableConfigurationRepository,
+            UpdatingFileHttpConfigurationRepository,
         },
         digid::{DigidSession, HttpDigidSession},
         disclosure::{
