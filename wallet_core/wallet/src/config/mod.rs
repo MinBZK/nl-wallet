@@ -1,7 +1,7 @@
-mod client;
 mod config_file;
 mod data;
 mod file_repository;
+mod http_client;
 mod http_repository;
 #[cfg(any(test, feature = "mock"))]
 mod mock;
@@ -15,7 +15,6 @@ use url::ParseError;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 pub use self::{
-    config_file::ConfigFileError,
     data::{default_configuration, ConfigServerConfiguration},
     file_repository::FileStorageConfigurationRepository,
     http_repository::HttpConfigurationRepository,
@@ -37,7 +36,21 @@ pub enum ConfigurationError {
     #[error("could not parse base URL: {0}")]
     BaseUrl(#[from] ParseError),
     #[error("could not store or load configuration: {0}")]
-    ConfigFile(#[from] ConfigFileError),
+    ConfigFile(#[from] FileStorageError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum FileStorageError {
+    #[error("config file I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("serialization error: {0}")]
+    Serialization(#[from] serde_json::Error),
+}
+
+#[derive(Debug)]
+pub enum ConfigurationUpdateState {
+    Updated,
+    Unmodified,
 }
 
 pub trait ConfigurationRepository {
@@ -46,7 +59,7 @@ pub trait ConfigurationRepository {
 
 #[async_trait]
 pub trait UpdateableConfigurationRepository: ConfigurationRepository {
-    async fn fetch(&self) -> Result<(), ConfigurationError>;
+    async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError>;
 }
 
 #[async_trait]

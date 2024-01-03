@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::{
+    fmt::{Debug, Display, Formatter},
+    hash::{Hash, Hasher},
+};
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use config::ValueKind;
@@ -185,6 +188,12 @@ impl<'de> Deserialize<'de> for DerVerifyingKey {
         let key =
             VerifyingKey::from_public_key_der(&Base64Bytes::deserialize(deserializer)?.0).map_err(de::Error::custom)?;
         Ok(key.into())
+    }
+}
+
+impl Hash for DerVerifyingKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_sec1_bytes().hash(state)
     }
 }
 

@@ -1,18 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use tokio::{fs, io};
+use tokio::fs;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConfigFileError {
-    #[error("config file I/O error: {0}")]
-    Io(#[from] io::Error),
-    #[error("serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
-}
+use super::FileStorageError;
 
-pub async fn get_config_file(storage_path: &Path) -> Result<Option<WalletConfiguration>, ConfigFileError> {
+pub async fn get_config_file(storage_path: &Path) -> Result<Option<WalletConfiguration>, FileStorageError> {
     let path = path_for_config_file(storage_path);
 
     if !path.try_exists()? {
@@ -23,18 +17,18 @@ pub async fn get_config_file(storage_path: &Path) -> Result<Option<WalletConfigu
     Ok(Some(config))
 }
 
-pub async fn update_config_file(storage_path: &Path, config: &WalletConfiguration) -> Result<(), ConfigFileError> {
+pub async fn update_config_file(storage_path: &Path, config: &WalletConfiguration) -> Result<(), FileStorageError> {
     let path = path_for_config_file(storage_path);
     write_config(path.as_path(), config).await
 }
 
-async fn write_config(path: &Path, config: &WalletConfiguration) -> Result<(), ConfigFileError> {
+async fn write_config(path: &Path, config: &WalletConfiguration) -> Result<(), FileStorageError> {
     let contents = serde_json::to_vec(config)?;
     fs::write(path, contents).await?;
     Ok(())
 }
 
-async fn read_config(path: &Path) -> Result<WalletConfiguration, ConfigFileError> {
+async fn read_config(path: &Path) -> Result<WalletConfiguration, FileStorageError> {
     let content = fs::read(path).await?;
     let config = serde_json::from_slice(&content)?;
     Ok(config)

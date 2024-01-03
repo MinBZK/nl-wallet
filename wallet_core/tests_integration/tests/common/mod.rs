@@ -21,6 +21,7 @@ use pid_issuer::{
     server as PidServer,
     settings::Settings as PidSettings,
 };
+use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
@@ -100,7 +101,13 @@ pub async fn setup_wallet_and_env(
 
     let pid_issuer_client = HttpPidIssuerClient::new(MdocWallet::new(CborHttpClient(reqwest::Client::new())));
 
-    let config_repository = HttpConfigurationRepository::new(config_base_url, wallet_config);
+    let config_repository = HttpConfigurationRepository::new(
+        config_base_url,
+        SoftwareUtilities::storage_path().await.unwrap(),
+        wallet_config,
+    )
+    .await
+    .unwrap();
     config_repository.fetch().await.unwrap();
 
     Wallet::init_registration(

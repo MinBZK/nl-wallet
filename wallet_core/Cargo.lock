@@ -1382,6 +1382,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "etag"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b3d0661a2ccddc26cba0b834e9b717959ed6fdd76c7129ee159c170a875bf44"
+dependencies = [
+ "str-buf",
+ "xxhash-rust",
+]
+
+[[package]]
 name = "etcetera"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4279,6 +4289,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "str-buf"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e75b72ee54e2f93c3ea1354066162be893ee5e25773ab743de3e088cecbb4f31"
+
+[[package]]
 name = "stringprep"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4399,6 +4415,7 @@ dependencies = [
  "p256",
  "pid_issuer",
  "platform_support",
+ "regex",
  "reqwest",
  "rstest",
  "sea-orm",
@@ -5089,6 +5106,7 @@ dependencies = [
  "base64 0.21.4",
  "chrono",
  "config",
+ "etag",
  "futures",
  "http",
  "jsonwebtoken",
@@ -5111,11 +5129,10 @@ dependencies = [
 name = "wallet_provider"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "axum",
- "base64 0.21.4",
  "chrono",
  "config",
+ "etag",
  "http",
  "mime",
  "once_cell",
@@ -5623,6 +5640,12 @@ dependencies = [
  "thiserror",
  "time",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53be06678ed9e83edb1745eb72efc0bbcd7b5c3c35711a860906aed827a13d61"
 
 [[package]]
 name = "yasna"

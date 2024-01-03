@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Formatter};
+use std::{
+    fmt::{Debug, Formatter},
+    hash::{Hash, Hasher},
+};
 
 use serde::{Deserialize, Serialize};
 use webpki::{Error, TrustAnchor};
@@ -27,6 +30,12 @@ pub struct DerTrustAnchor {
 impl Debug for DerTrustAnchor {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.der_bytes.fmt(f)
+    }
+}
+
+impl Hash for DerTrustAnchor {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.der_bytes.0.hash(state)
     }
 }
 

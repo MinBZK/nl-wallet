@@ -7,7 +7,8 @@ use wallet_common::config::wallet_config::WalletConfiguration;
 use crate::config::data::default_configuration;
 
 use super::{
-    ConfigurationError, ConfigurationRepository, ObservableConfigurationRepository, UpdateableConfigurationRepository,
+    ConfigurationError, ConfigurationRepository, ConfigurationUpdateState, ObservableConfigurationRepository,
+    UpdateableConfigurationRepository,
 };
 
 pub struct LocalConfigurationRepository {
@@ -36,8 +37,8 @@ impl ConfigurationRepository for LocalConfigurationRepository {
 
 #[async_trait]
 impl UpdateableConfigurationRepository for LocalConfigurationRepository {
-    async fn fetch(&self) -> Result<(), ConfigurationError> {
-        Ok(())
+    async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
+        Ok(ConfigurationUpdateState::Updated)
     }
 }
 
