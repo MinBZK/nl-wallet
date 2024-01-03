@@ -90,15 +90,11 @@ impl std::str::FromStr for AttributeIdentifier {
 }
 
 /// The [`FactorySoftwareEcdsaKey`] type wraps [`SoftwareEcdsaKey`] and has
-/// the possibility of returning [`FactorySoftwareEcdsaKeyError`] when signing.
+/// the possibility of returning [`SoftwareKeyFactoryError::Signing`] when signing.
 pub struct FactorySoftwareEcdsaKey {
     key: SoftwareEcdsaKey,
     has_signing_error: bool,
 }
-
-#[derive(Debug, Default, thiserror::Error)]
-#[error("FactorySoftwareEcdsaKeyError")]
-pub struct FactorySoftwareEcdsaKeyError {}
 
 impl MdocEcdsaKey for FactorySoftwareEcdsaKey {
     const KEY_TYPE: MdocKeyType = MdocKeyType::Software;
@@ -106,7 +102,7 @@ impl MdocEcdsaKey for FactorySoftwareEcdsaKey {
 impl SecureEcdsaKey for FactorySoftwareEcdsaKey {}
 #[async_trait]
 impl EcdsaKey for FactorySoftwareEcdsaKey {
-    type Error = FactorySoftwareEcdsaKeyError;
+    type Error = SoftwareKeyFactoryError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
         let verifying_key = self.key.verifying_key().await.unwrap();
@@ -116,7 +112,7 @@ impl EcdsaKey for FactorySoftwareEcdsaKey {
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         if self.has_signing_error {
-            return Err(FactorySoftwareEcdsaKeyError::default());
+            return Err(SoftwareKeyFactoryError::Signing);
         }
 
         let signature = self.key.try_sign(msg).await.unwrap();
@@ -131,17 +127,22 @@ impl WithIdentifier for FactorySoftwareEcdsaKey {
 }
 
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
-/// of returning [`SoftwareKeyFactoryError`] when generating keys, as well as generating
-/// [`FactorySoftwareEcdsaKey`] that return [`FactorySoftwareEcdsaKeyError`] when signing.
+/// of returning [`SoftwareKeyFactoryError::Generating`] when generating keys, as well as generating
+/// [`FactorySoftwareEcdsaKey`] that return [`SoftwareKeyFactoryError::Signing`] when signing.
 #[derive(Debug, Default)]
 pub struct SoftwareKeyFactory {
     pub has_generating_error: bool,
     pub has_key_signing_error: bool,
 }
 
-#[derive(Debug, Default, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 #[error("SoftwareKeyFactoryError")]
-pub struct SoftwareKeyFactoryError {}
+pub enum SoftwareKeyFactoryError {
+    #[error("error generating keys")]
+    Generating,
+    #[error("signing error")]
+    Signing,
+}
 
 impl SoftwareKeyFactory {
     fn new_key(&self, identifier: &str) -> FactorySoftwareEcdsaKey {
@@ -159,7 +160,7 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
 
     async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
         if self.has_generating_error {
-            return Err(SoftwareKeyFactoryError::default());
+            return Err(SoftwareKeyFactoryError::Generating);
         }
 
         let keys = iter::repeat_with(|| self.new_key(&utils::random_string(32)))
@@ -187,15 +188,15 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
         let keys = self.generate_new_multiple(number_of_keys).await?;
         let bytes = msg.into();
 
-        let signatures_by_identifier = future::join_all(keys.into_iter().map(|key| async {
+        let signatures_by_identifier = future::try_join_all(keys.into_iter().map(|key| async {
             let signature = SoftwareEcdsaKey::new(key.identifier())
                 .try_sign(bytes.as_slice())
                 .await
-                .unwrap();
+                .map_err(|_| SoftwareKeyFactoryError::Signing)?;
 
-            (key, signature)
+            Ok((key, signature))
         }))
-        .await
+        .await?
         .into_iter()
         .collect();
 
@@ -206,26 +207,26 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
         &'a self,
         messages_and_keys: Vec<(T, Vec<Self::Key>)>,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-        let result = future::join_all(
+        let result = future::try_join_all(
             messages_and_keys
                 .into_iter()
                 .map(|(msg, keys)| async {
                     let bytes = msg.into();
 
                     let signatures_by_identifier: Vec<(Self::Key, Signature)> =
-                        future::join_all(keys.into_iter().map(|key| async {
-                            let signature = key.try_sign(bytes.as_slice()).await.unwrap();
-                            (key, signature)
+                        future::try_join_all(keys.into_iter().map(|key| async {
+                            let signature = key.try_sign(bytes.as_slice()).await?;
+                            Ok((key, signature))
                         }))
-                        .await
+                        .await?
                         .into_iter()
                         .collect();
 
-                    signatures_by_identifier
+                    Ok(signatures_by_identifier)
                 })
                 .collect::<Vec<_>>(),
         )
-        .await
+        .await?
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
