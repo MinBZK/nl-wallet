@@ -5072,7 +5072,6 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
- "wallet",
  "wallet_common",
  "wiremock",
 ]

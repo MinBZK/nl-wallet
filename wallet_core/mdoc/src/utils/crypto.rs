@@ -87,7 +87,7 @@ impl TryFrom<&CoseKey> for VerifyingKey {
             return Err(CryptoError::KeyWrongType.into());
         }
 
-        let keyid = key.0.params.get(0).ok_or(CryptoError::KeyMissingKeyID)?;
+        let keyid = key.0.params.first().ok_or(CryptoError::KeyMissingKeyID)?;
         if *keyid != (Label::Int(-1), Value::Integer(1.into())) {
             return Err(CryptoError::KeyWrongType.into());
         }

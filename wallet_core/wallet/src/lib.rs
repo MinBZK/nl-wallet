@@ -61,7 +61,7 @@ pub mod mock {
         account_provider::MockAccountProviderClient,
         config::{default_configuration, LocalConfigurationRepository},
         digid::MockDigidSession,
-        disclosure::MockMdocDisclosureSession,
+        disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
         pid_issuer::MockPidIssuerClient,
         storage::MockStorage,
     };

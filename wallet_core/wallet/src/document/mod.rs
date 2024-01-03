@@ -9,7 +9,7 @@ use indexmap::IndexMap;
 pub use mdoc::{AttributeValueType, DocumentMdocError};
 
 #[cfg(test)]
-pub use mdoc::tests::{create_full_unsigned_pid_mdoc, create_minimal_unsigned_pid_mdoc};
+pub use mdoc::tests::create_full_unsigned_pid_mdoc;
 
 const PID_DOCTYPE: &str = "com.example.pid";
 const ADDRESS_DOCTYPE: &str = "com.example.address";
