@@ -116,11 +116,8 @@ where
             ephemeral_privkey,
         )?;
 
-        // If we have a return URL, add the hash of the `SessionTranscript` to it.
-        let return_url_with_hash = return_url
-            .as_ref()
-            .map(|url| Self::add_transcript_hash_to_url(url.clone(), &transcript))
-            .transpose()?;
+        // Serialize the `SessionTranscript` for if we need to add it to the `return_url` later.
+        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(&transcript))?;
 
         // Send the `DeviceEngagement` to the verifier and deserialize the expected `SessionData`.
         // If decoding fails, send a `SessionData` to the verifier to report this.
@@ -139,12 +136,13 @@ where
         // Decrypt and verify the received `DeviceRequest`. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
+        let return_url_ref = return_url.as_ref();
         let (check_result, certificate, reader_registration) =
             async { session_data.decrypt_and_deserialize(&reader_key) }
                 .and_then(|device_request| async move {
                     Self::verify_device_request(
                         &device_request,
-                        return_url.as_ref(),
+                        return_url_ref,
                         transcript,
                         mdoc_data_source,
                         trust_anchors,
@@ -172,7 +170,8 @@ where
             }
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
-                    return_url: return_url_with_hash,
+                    // If we have a return URL, add the hash of the `SessionTranscript` to it.
+                    return_url: return_url.map(|url| Self::add_transcript_hash_to_url(url, &session_transcript_bytes)),
                     data,
                     device_key,
                     proposed_documents,
@@ -266,14 +265,13 @@ where
         Ok((result, certificate, reader_registration))
     }
 
-    fn add_transcript_hash_to_url(mut url: Url, session_transcript: &SessionTranscript) -> Result<Url> {
-        let transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
-        let transcript_hash = utils::sha256(&transcript_bytes);
+    fn add_transcript_hash_to_url(mut url: Url, session_transcript_bytes: &[u8]) -> Url {
+        let transcript_hash = utils::sha256(session_transcript_bytes);
 
         url.query_pairs_mut()
             .append_pair(TRANSCRIPT_HASH_PARAM, &STANDARD.encode(transcript_hash));
 
-        Ok(url)
+        url
     }
 
     fn data(&self) -> &CommonDisclosureData<H> {
