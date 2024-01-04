@@ -12,7 +12,7 @@ use crate::{
     disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
-    holder::{HolderError, HttpClient, HttpClientError, HttpClientResult},
+    holder::{DisclosureError, DisclosureResult, HolderError, HttpClient, HttpClientError, HttpClientResult},
     identifiers::AttributeIdentifier,
     mdocs::{DocType, NameSpace},
     utils::{
@@ -23,7 +23,6 @@ use crate::{
         x509::Certificate,
     },
     verifier::SessionType,
-    DisclosureError, DisclosureResult,
 };
 
 use super::{proposed_document::ProposedDocument, request::DeviceRequestMatch, MdocDataSource};
@@ -127,14 +126,13 @@ where
             .or_else(|error| async {
                 if matches!(error, HttpClientError::Cbor(CborError::Deserialization(_))) {
                     // Ignore the response or any errors.
-                    let _: std::result::Result<SessionData, _> =
+                    let _: HttpClientResult<SessionData> =
                         client.post(verifier_url, &SessionData::new_decoding_error()).await;
                 }
 
                 Err(error)
             })
-            .await
-            .map_err(|e| Error::Holder(HolderError::RequestError(e)))?;
+            .await?;
 
         // Decrypt and verify the received `DeviceRequest`. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
@@ -294,11 +292,7 @@ where
 
     pub async fn terminate(self) -> Result<()> {
         // Ignore the response.
-        _ = self
-            .data()
-            .terminate()
-            .await
-            .map_err(|e| Error::Holder(HolderError::RequestError(e)))?;
+        _ = self.data().terminate().await?;
 
         Ok(())
     }

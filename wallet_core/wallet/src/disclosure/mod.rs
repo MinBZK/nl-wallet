@@ -5,10 +5,9 @@ use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
-    errors::{DisclosureError, DisclosureResult},
     holder::{
-        CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, MdocDataSource,
-        ProposedAttributes, TrustAnchor,
+        CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult, DisclosureSession,
+        MdocDataSource, ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -157,7 +156,7 @@ mod mock {
         Arc, Mutex,
     };
 
-    use nl_wallet_mdoc::verifier::SessionType;
+    use nl_wallet_mdoc::{holder::DisclosureError, verifier::SessionType};
     use once_cell::sync::Lazy;
 
     use super::*;

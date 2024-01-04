@@ -6,15 +6,20 @@ use std::error::Error;
 use url::Url;
 
 use crate::{
+    errors::Error as MdocError,
     iso::*,
     utils::{
         reader_auth,
+        serialization::CborError,
         x509::{Certificate, CertificateError},
     },
 };
 
 pub mod disclosure;
 pub use disclosure::*;
+
+pub mod http_client;
+pub use http_client::*;
 
 pub mod issuance;
 pub use issuance::*;
@@ -58,4 +63,45 @@ pub enum HolderError {
     MultipleCandidates(Vec<DocType>),
     #[error("verifier returned error in response to disclosure: {0:?}")]
     DisclosureResponse(SessionStatus),
+}
+
+pub type DisclosureResult<T> = std::result::Result<T, DisclosureError>;
+
+#[derive(thiserror::Error, Debug)]
+#[error("error during disclosure, data_shared: {data_shared}, error: {error}")]
+pub struct DisclosureError {
+    pub data_shared: bool,
+    #[source]
+    pub error: MdocError,
+}
+
+impl DisclosureError {
+    pub fn new(data_shared: bool, error: MdocError) -> Self {
+        Self { data_shared, error }
+    }
+
+    pub fn before_sharing(error: MdocError) -> Self {
+        Self {
+            data_shared: false,
+            error,
+        }
+    }
+
+    pub fn after_sharing(error: MdocError) -> Self {
+        Self {
+            data_shared: true,
+            error,
+        }
+    }
+}
+
+impl From<HttpClientError> for DisclosureError {
+    fn from(source: HttpClientError) -> Self {
+        let data_shared = match source {
+            HttpClientError::Cbor(CborError::Serialization(_)) => false,
+            HttpClientError::Cbor(CborError::Deserialization(_)) => true,
+            HttpClientError::Request(_) => true, // maybe
+        };
+        Self::new(data_shared, MdocError::Holder(HolderError::RequestError(source)))
+    }
 }

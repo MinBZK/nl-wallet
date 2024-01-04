@@ -25,33 +25,3 @@ pub enum Error {
     #[error("keys error: {0}")]
     KeysError(#[from] KeysError),
 }
-
-pub type DisclosureResult<T> = std::result::Result<T, DisclosureError>;
-
-#[derive(thiserror::Error, Debug)]
-#[error("error during disclosure, data_shared: {data_shared}, error: {error}")]
-pub struct DisclosureError {
-    pub data_shared: bool,
-    #[source]
-    pub error: Error,
-}
-
-impl DisclosureError {
-    pub fn new(data_shared: bool, error: Error) -> Self {
-        Self { data_shared, error }
-    }
-
-    pub fn before_sharing(error: Error) -> Self {
-        Self {
-            data_shared: false,
-            error,
-        }
-    }
-
-    pub fn after_sharing(error: Error) -> Self {
-        Self {
-            data_shared: true,
-            error,
-        }
-    }
-}
