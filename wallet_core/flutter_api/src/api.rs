@@ -259,7 +259,7 @@ pub async fn accept_disclosure(pin: String) -> Result<AcceptDisclosureResult> {
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
-    let history = history.into_iter().map(WalletEvents::from).flat_map(|e| e.0).collect();
+    let history = history.into_iter().flat_map(WalletEvents::from).collect();
     Ok(history)
 }
 
@@ -270,8 +270,7 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
     let history = wallet.get_history_for_card(&doc_type).await?;
     let history = history
         .into_iter()
-        .map(WalletEvents::from)
-        .flat_map(|e| e.0)
+        .flat_map(WalletEvents::from)
         .filter(|e| match e {
             WalletEvent::Disclosure { .. } => true,
             WalletEvent::Issuance { card, .. } => card.doc_type == doc_type,
