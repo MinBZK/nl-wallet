@@ -116,6 +116,9 @@ where
             ephemeral_privkey,
         )?;
 
+        // Serialize the `SessionTranscript` for if we need to add it to the `return_url` later.
+        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(&transcript))?;
+
         // Send the `DeviceEngagement` to the verifier and deserialize the expected `SessionData`.
         // If decoding fails, send a `SessionData` to the verifier to report this.
         let session_data: SessionData = client
@@ -130,18 +133,21 @@ where
             })
             .await?;
 
-        // If we have a return URL, add the hash of the `SessionTranscript` to it.
-        let return_url = return_url
-            .map(|url| Self::add_transcript_hash_to_url(url, &transcript))
-            .transpose()?;
-
         // Decrypt and verify the received `DeviceRequest`. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
+        let return_url_ref = return_url.as_ref();
         let (check_result, certificate, reader_registration) =
             async { session_data.decrypt_and_deserialize(&reader_key) }
                 .and_then(|device_request| async move {
-                    Self::verify_device_request(&device_request, transcript, mdoc_data_source, trust_anchors).await
+                    Self::verify_device_request(
+                        &device_request,
+                        return_url_ref,
+                        transcript,
+                        mdoc_data_source,
+                        trust_anchors,
+                    )
+                    .await
                 })
                 .or_else(|error| async { Self::report_error_back(error, &client, verifier_url).await })
                 .await?;
@@ -164,7 +170,8 @@ where
             }
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
-                    return_url,
+                    // If we have a return URL, add the hash of the `SessionTranscript` to it.
+                    return_url: return_url.map(|url| Self::add_transcript_hash_to_url(url, &session_transcript_bytes)),
                     data,
                     device_key,
                     proposed_documents,
@@ -193,6 +200,7 @@ where
     /// `SessionData` received from the verifier, which should contain a `DeviceRequest`.
     async fn verify_device_request<'a, S>(
         device_request: &DeviceRequest,
+        return_url: Option<&Url>,
         session_transcript: SessionTranscript,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
@@ -210,6 +218,16 @@ where
         let (certificate, reader_registration) = device_request
             .verify(session_transcript.clone(), &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
+
+        // Verify the return URL against the prefix in the `ReaderRegistration`,
+        // if it was provided when starting the disclosure session.
+        if let Some(return_url) = return_url {
+            if !reader_registration.return_url_prefix.matches_url(return_url) {
+                let urls = Box::new((reader_registration.return_url_prefix.into(), return_url.clone()));
+
+                return Err(HolderError::ReturnUrlPrefix(urls).into());
+            }
+        }
 
         // Fetch documents from the database, calculate which ones satisfy the request and
         // formulate proposals for those documents. If there is a mismatch, return an error.
@@ -247,15 +265,13 @@ where
         Ok((result, certificate, reader_registration))
     }
 
-    fn add_transcript_hash_to_url(url: impl Into<Url>, session_transcript: &SessionTranscript) -> Result<Url> {
-        let transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
-        let transcript_hash = utils::sha256(&transcript_bytes);
+    fn add_transcript_hash_to_url(mut url: Url, session_transcript_bytes: &[u8]) -> Url {
+        let transcript_hash = utils::sha256(session_transcript_bytes);
 
-        let mut url = url.into();
         url.query_pairs_mut()
             .append_pair(TRANSCRIPT_HASH_PARAM, &STANDARD.encode(transcript_hash));
 
-        Ok(url)
+        url
     }
 
     fn data(&self) -> &CommonDisclosureData<H> {
@@ -1018,6 +1034,37 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderRegistrationValidation(_)));
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_return_url_prefix() {
+        // Starting a `DisclosureSession` where the the return URL does not match the return
+        // URL prefix contained in the verifier certificate should result in an error.
+        let mut payloads = Vec::with_capacity(2);
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            &mut payloads,
+            |mut verifier_session| {
+                verifier_session.return_url = Url::parse("https://not-example.com/return").unwrap().into();
+
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        let expected_urls = (
+            "https://example.com/".parse().unwrap(),
+            "https://not-example.com/return".parse().unwrap(),
+        )
+            .into();
+        assert_matches!(error, Error::Holder(HolderError::ReturnUrlPrefix(urls)) if urls == expected_urls);
         assert_eq!(payloads.len(), 2);
 
         test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);

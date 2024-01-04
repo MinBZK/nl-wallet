@@ -4417,6 +4417,7 @@ dependencies = [
  "platform_support",
  "regex",
  "reqwest",
+ "rstest",
  "sea-orm",
  "serial_test",
  "tokio",

@@ -3,6 +3,8 @@
 
 use std::error::Error;
 
+use url::Url;
+
 use crate::{
     iso::*,
     utils::{
@@ -22,20 +24,14 @@ pub use mdocs::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum HolderError {
-    #[error("unsatisfiable request: DocType {0} not in wallet")]
-    UnsatisfiableRequest(DocType),
     #[error("readerAuth not present for all documents")]
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]
     ReaderAuthsInconsistent,
     #[error("no unsigned mdocs received from issuer")]
     NoUnsignedMdocs,
-    #[error("issuer not trusted for doctype {0}")]
-    UntrustedIssuer(DocType),
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
-    #[error("wrong private key type")]
-    PrivateKeyTypeMismatch { expected: String, have: String },
     #[error("request error: {0}")]
     RequestError(#[from] reqwest::Error),
     #[error("malformed Service Engagement: url missing")]
@@ -54,6 +50,8 @@ pub enum HolderError {
     NoReaderRegistration(Certificate),
     #[error("reader registration attribute validation failed: {0}")]
     ReaderRegistrationValidation(#[from] reader_auth::ValidationError),
+    #[error("return URL prefix in reader registration ({}) does not match return URL provided: {}", (.0).0, (.0).1)]
+    ReturnUrlPrefix(Box<(Url, Url)>), // Box these URLs, otherwise the error type becomes too big
     #[error("could not retrieve docs from source: {0}")]
     MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
