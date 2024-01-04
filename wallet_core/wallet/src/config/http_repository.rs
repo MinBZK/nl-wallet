@@ -4,6 +4,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use tracing::info;
 use url::Url;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
@@ -43,6 +44,17 @@ impl ConfigurationRepository for HttpConfigurationRepository {
 impl UpdateableConfigurationRepository for HttpConfigurationRepository {
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
         if let Some(new_config) = self.client.get_wallet_config().await? {
+            {
+                let current_config = self.config.read().unwrap();
+                if new_config.version <= current_config.version {
+                    info!(
+                        "Received wallet configuration with version: {}, but we have version: {}",
+                        new_config.version, current_config.version
+                    );
+                    return Ok(ConfigurationUpdateState::Unmodified);
+                }
+            }
+
             let mut config = self.config.write().unwrap();
             *config = Arc::new(new_config);
             Ok(ConfigurationUpdateState::Updated)

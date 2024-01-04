@@ -23,6 +23,7 @@ pub struct WalletConfiguration {
     pub pid_issuance: PidIssuanceConfiguration,
     pub disclosure: DisclosureConfiguration,
     pub mdoc_trust_anchors: Vec<DerTrustAnchor>,
+    pub version: u64,
 }
 
 impl WalletConfiguration {
