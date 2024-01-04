@@ -10,7 +10,6 @@ use axum::{
 };
 use axum_extra::response::{Css, JavaScript, Wasm};
 use serde::{Deserialize, Serialize};
-use serde_urlencoded;
 use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
@@ -94,6 +93,17 @@ struct EngageUrlparams {
 }
 
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
+    let mut return_url_template = None;
+    // TODO make a third selection option (CrossDevice + return URL)
+    if selected.session_type == SessionType::SameDevice {
+        let status_url = format!("{}{}", state.public_url, "/sessions/{session_id}/status");
+        return_url_template = Some(
+            format!("{}#{}", state.public_url, status_url)
+                .parse()
+                .expect("should always be a valid ReturnUrlTemplate"),
+        );
+    }
+
     let (session_url, engagement_url) = state
         .client
         .start(
@@ -104,24 +114,12 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
                 .ok_or(anyhow::Error::msg("usecase not found"))?
                 .clone(),
             selected.session_type,
+            return_url_template,
         )
         .await?;
 
     let mut session_url = session_url.path().to_owned();
     session_url.remove(0); // remove initial '/'
-
-    // TODO move this to the wallet server when the return url is added to the RP certificate
-    let engagement_url = engagement_url
-        .join(&format!(
-            "?{}#{}",
-            serde_urlencoded::ser::to_string(EngageUrlparams {
-                session_type: selected.session_type,
-                return_url: state.public_url.clone(),
-            })
-            .map_err(anyhow::Error::new)?,
-            session_url
-        ))
-        .map_err(anyhow::Error::new)?;
 
     Ok(askama_axum::into_response(&DisclosureTemplate {
         engagement: Some((engagement_url.to_string(), session_url.to_string())),

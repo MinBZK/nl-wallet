@@ -7,6 +7,9 @@ rust-version.workspace = true
 [lib]
 doctest = false
 
+[features]
+allow_http_return_url = ["wallet_server/allow_http_return_url"]
+
 [dependencies]
 anyhow.workspace = true
 askama.workspace = true
@@ -25,7 +28,6 @@ config.workspace = true
 dashmap.workspace = true
 reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",

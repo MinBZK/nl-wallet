@@ -153,6 +153,7 @@ async fn test_start_session() {
             )]),
         }]
         .into(),
+        return_url_template: None,
     };
     let response = client
         .post(

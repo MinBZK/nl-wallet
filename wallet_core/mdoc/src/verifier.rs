@@ -7,6 +7,7 @@ use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 use serde::{Deserialize, Serialize};
+use strum;
 use tokio::task::JoinHandle;
 use url::Url;
 use webpki::TrustAnchor;
@@ -185,8 +186,9 @@ pub enum StatusResponse {
     Done(SessionResult),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum SessionType {
     // Using Universal Link
     SameDevice,
