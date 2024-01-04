@@ -685,7 +685,7 @@ impl support::IntoDart for WalletEvent {
                 date_time.into_into_dart().into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 purpose.into_into_dart().into_dart(),
-                requested_cards.into_into_dart().into_dart(),
+                requested_cards.into_dart(),
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
             ],

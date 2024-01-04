@@ -315,7 +315,7 @@ class WalletEvent with _$WalletEvent {
     required String dateTime,
     required Organization relyingParty,
     required List<LocalizedString> purpose,
-    required List<RequestedCard> requestedCards,
+    List<RequestedCard>? requestedCards,
     required RequestPolicy requestPolicy,
     required DisclosureStatus status,
   }) = WalletEvent_Disclosure;
@@ -979,6 +979,10 @@ class WalletCoreImpl implements WalletCore {
     return raw == null ? null : _wire2api_list_localized_string(raw);
   }
 
+  List<RequestedCard>? _wire2api_opt_list_requested_card(dynamic raw) {
+    return raw == null ? null : _wire2api_list_requested_card(raw);
+  }
+
   Organization _wire2api_organization(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 10) throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
@@ -1069,7 +1073,7 @@ class WalletCoreImpl implements WalletCore {
           dateTime: _wire2api_String(raw[1]),
           relyingParty: _wire2api_box_autoadd_organization(raw[2]),
           purpose: _wire2api_list_localized_string(raw[3]),
-          requestedCards: _wire2api_list_requested_card(raw[4]),
+          requestedCards: _wire2api_opt_list_requested_card(raw[4]),
           requestPolicy: _wire2api_box_autoadd_request_policy(raw[5]),
           status: _wire2api_disclosure_status(raw[6]),
         );
