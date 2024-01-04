@@ -243,7 +243,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}mock_relying_party${NC}"
-        RUST_LOG=debug cargo run --bin mock_relying_party > "${TARGET_DIR}/mock_relying_party.log" 2>&1 &
+        RUST_LOG=debug cargo run --features "allow_http_return_url" --bin mock_relying_party > "${TARGET_DIR}/mock_relying_party.log" 2>&1 &
 
         echo -e "mock_relying_party logs can be found at ${CYAN}${TARGET_DIR}/mock_relying_party.log${NC}"
     fi

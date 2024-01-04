@@ -23,6 +23,7 @@ config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
 lazy_static.workspace = true
 mime.workspace = true
+nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 reqwest.workspace = true
 sea-orm = { workspace = true, optional = true, features = [
@@ -34,6 +35,7 @@ sea-orm = { workspace = true, optional = true, features = [
 ] }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
+strfmt.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
@@ -47,6 +49,9 @@ url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
+
+[dev-dependencies]
+rstest.workspace = true
 
 [features]
 default = ["postgres"]

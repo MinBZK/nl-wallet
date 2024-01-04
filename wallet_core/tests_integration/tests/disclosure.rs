@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     ItemsRequest,
 };
 use wallet::{errors::DisclosureError, mock::MockDigidSession};
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
 use crate::common::*;
 
@@ -27,13 +27,13 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 
 #[rstest]
 #[case(SessionType::SameDevice, None)]
-#[case(SessionType::SameDevice, Some("http://localhost:3004/return"))]
+#[case(SessionType::SameDevice, Some("http://localhost:3004/return".parse().unwrap()))]
 #[case(SessionType::CrossDevice, None)]
-#[case(SessionType::CrossDevice, Some("http://localhost:3004/return"))]
+#[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()))]
 #[tokio::test]
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
-async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<&str>) {
+async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<ReturnUrlTemplate>) {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
         let mut session = MockDigidSession::default();
@@ -75,6 +75,9 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
             )]),
         }]
         .into(),
+        // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
+        // contained in the certificate, so we have to specify a return URL prefixed with that.
+        return_url_template: return_url,
     };
     let response = client
         .post(
@@ -101,29 +104,10 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         StatusResponse::Created
     );
 
-    let url = {
-        let mut url = engagement_url.clone();
-
-        {
-            let mut query_pairs = url.query_pairs_mut();
-
-            let session_type_param = match session_type {
-                SessionType::SameDevice => "same_device",
-                SessionType::CrossDevice => "cross_device",
-            };
-            query_pairs.append_pair("session_type", session_type_param);
-
-            // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
-            // contained in the certificate, so we have to specify a return URL prefixed with that.
-            if let Some(return_url) = return_url {
-                query_pairs.append_pair("return_url", return_url);
-            }
-        }
-
-        url
-    };
-
-    let proposal = wallet.start_disclosure(&url).await.expect("Could not start disclosure");
+    let proposal = wallet
+        .start_disclosure(&engagement_url)
+        .await
+        .expect("Could not start disclosure");
     assert_eq!(proposal.reader_registration.id, "some-service-id");
     assert_eq!(proposal.documents.len(), 1);
 
@@ -198,6 +182,7 @@ async fn test_disclosure_without_pid() {
             )]),
         }]
         .into(),
+        return_url_template: None,
     };
     let response = client
         .post(

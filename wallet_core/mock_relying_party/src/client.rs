@@ -5,7 +5,7 @@ use nl_wallet_mdoc::{
     server_state::SessionToken,
     verifier::{ItemsRequests, SessionType, StatusResponse},
 };
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
 pub struct WalletServerClient {
     client: Client,
@@ -25,6 +25,7 @@ impl WalletServerClient {
         usecase: String,
         items_requests: ItemsRequests,
         session_type: SessionType,
+        return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<(Url, Url), anyhow::Error> {
         // TODO check if base_url ends with '/' (possibly already on init)
         let response = self
@@ -34,6 +35,7 @@ impl WalletServerClient {
                 usecase,
                 items_requests,
                 session_type,
+                return_url_template,
             })
             .send()
             .await?
