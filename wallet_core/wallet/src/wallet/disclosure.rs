@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use async_trait::async_trait;
-use chrono::Utc;
 use indexmap::IndexMap;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{error, info, instrument};
@@ -9,7 +8,7 @@ use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
-    holder::{HolderError, MdocDataSource, ProposedAttributes, StoredMdoc},
+    holder::{MdocDataSource, ProposedAttributes, StoredMdoc},
     server_keys::KeysError,
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
 };
@@ -23,7 +22,7 @@ use crate::{
     },
     document::{DisclosureDocument, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{DocTypeMap, Storage, StorageError, StoredMdocCopy, WalletEvent},
+    storage::{DocTypeMap, Storage, StorageError, StorageResult, StoredMdocCopy, WalletEvent},
     EventStatus,
 };
 
@@ -172,35 +171,23 @@ where
         let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
 
         // Prepare history events from session before terminating session
-        let event = WalletEvent::Disclosure {
-            id: Uuid::new_v4(),
-            documents: None,
-            timestamp: Utc::now(),
-            remote_party_certificate: session.rp_certificate().clone(),
-            status: EventStatus::Cancelled,
-        };
+        let event = WalletEvent::new_disclosure(None, session.rp_certificate().clone(), EventStatus::Cancelled);
 
         session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
 
-        self.store_disclosure_event(event).await?;
+        self.store_disclosure_event(event)
+            .await
+            .map_err(DisclosureError::HistoryStorage)?;
 
         Ok(())
     }
 
-    async fn store_disclosure_event(&mut self, event: WalletEvent) -> Result<(), DisclosureError> {
-        self.store_history_event(event)
-            .await
-            .map_err(DisclosureError::HistoryStorage)
+    async fn store_disclosure_event(&mut self, event: WalletEvent) -> StorageResult<()> {
+        self.store_history_event(event).await
     }
 
     async fn log_empty_disclosure_error(&mut self, remote_party_certificate: Certificate, message: String) {
-        let event = WalletEvent::Disclosure {
-            id: Uuid::new_v4(),
-            documents: None,
-            timestamp: Utc::now(),
-            remote_party_certificate,
-            status: EventStatus::Error(message),
-        };
+        let event = WalletEvent::new_disclosure(None, remote_party_certificate, EventStatus::Error(message));
         let _ = self.store_disclosure_event(event).await.map_err(|e| {
             error!("Could not store error in history: {e}");
             e
@@ -213,13 +200,11 @@ where
         remote_party_certificate: Certificate,
         message: String,
     ) {
-        let event = WalletEvent::Disclosure {
-            id: Uuid::new_v4(),
-            documents: Some(DocTypeMap(session_proposal)),
-            timestamp: Utc::now(),
+        let event = WalletEvent::new_disclosure(
+            Some(DocTypeMap(session_proposal)),
             remote_party_certificate,
-            status: EventStatus::Error(message),
-        };
+            EventStatus::Error(message),
+        );
         let _ = self.store_disclosure_event(event).await.map_err(|e| {
             error!("Could not store error in history: {e}");
             e
@@ -250,14 +235,7 @@ where
 
         let session_proposal = match session.session_state() {
             MdocDisclosureSessionState::Proposal(session_proposal) => session_proposal,
-            _ => {
-                self.log_empty_disclosure_error(
-                    session.rp_certificate().clone(),
-                    "Disclosure Session does not contain a proposal".to_string(),
-                )
-                .await;
-                return Err(DisclosureError::SessionState);
-            }
+            _ => return Err(DisclosureError::SessionState),
         };
 
         // Increment the disclosure counts of the mdoc copies referenced in the proposal,
@@ -301,30 +279,21 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         if let Err(error) = session_proposal.disclose(&remote_key_factory).await {
-            match error {
-                nl_wallet_mdoc::Error::Holder(ref holder_error)
-                    // Attributes are (possibly) shared when RequestError or DisclosureResponse
-                    if matches!(
-                        holder_error,
-                        HolderError::RequestError(_) | HolderError::DisclosureResponse(_)
-                    ) =>
-                {
-                    self.log_disclosure_error(
-                        session_proposal.proposed_attributes(),
-                        session.rp_certificate().clone(),
-                        "Error occurred while disclosing attributes".to_owned(),
-                    )
-                    .await
-                }
-                _ => {
-                    self.log_empty_disclosure_error(
-                        session.rp_certificate().clone(),
-                        "Error occurred while disclosing attributes".to_owned(),
-                    )
-                    .await
-                }
-            };
-            let error = match error {
+            if error.data_shared {
+                self.log_disclosure_error(
+                    session_proposal.proposed_attributes(),
+                    session.rp_certificate().clone(),
+                    "Error occurred while disclosing attributes".to_owned(),
+                )
+                .await;
+            } else {
+                self.log_empty_disclosure_error(
+                    session.rp_certificate().clone(),
+                    "Error occurred while disclosing attributes".to_owned(),
+                )
+                .await;
+            }
+            let error = match error.error {
                 nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
                     // This `unwrap()` is safe because of the `is()` check above.
                     match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
@@ -334,7 +303,7 @@ where
                         )),
                     }
                 }
-                _ => DisclosureError::DisclosureSession(error),
+                _ => DisclosureError::DisclosureSession(error.error),
             };
             return Err(error);
         }
@@ -343,14 +312,14 @@ where
         let return_url = session_proposal.return_url().cloned();
 
         // Save data for disclosure in event log.
-        let event = WalletEvent::Disclosure {
-            id: Uuid::new_v4(),
-            documents: Some(DocTypeMap(session_proposal.proposed_attributes())),
-            timestamp: Utc::now(),
-            remote_party_certificate: session.rp_certificate().clone(),
-            status: EventStatus::Success,
-        };
-        self.store_disclosure_event(event).await?;
+        let event = WalletEvent::new_disclosure(
+            Some(DocTypeMap(session_proposal.proposed_attributes())),
+            session.rp_certificate().clone(),
+            EventStatus::Success,
+        );
+        self.store_disclosure_event(event)
+            .await
+            .map_err(DisclosureError::HistoryStorage)?; // TODO: try to store error in log
 
         // When disclosure is successful, we can remove the session.
         self.disclosure_session.take();

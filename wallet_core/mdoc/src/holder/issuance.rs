@@ -19,16 +19,37 @@ use crate::{
     utils::{
         cose::ClonePayload,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+        serialization::{cbor_deserialize, cbor_serialize, CborError, TaggedBytes},
     },
-    Result,
+    DisclosureError, Error, Result,
 };
 
 use super::{HolderError, Mdoc, MdocCopies, Wallet};
 
+#[derive(Debug, thiserror::Error)]
+pub enum HttpClientError {
+    #[error("CBOR serialization error: {0}")]
+    Cbor(#[from] CborError),
+    #[error("HTTP request error: {0}")]
+    Request(#[from] reqwest::Error),
+}
+
+impl From<HttpClientError> for DisclosureError {
+    fn from(source: HttpClientError) -> Self {
+        let data_shared = match source {
+            HttpClientError::Cbor(CborError::Serialization(_)) => false,
+            HttpClientError::Cbor(CborError::Deserialization(_)) => true,
+            HttpClientError::Request(_) => true, // maybe
+        };
+        Self::new(data_shared, Error::Holder(HolderError::RequestError(source)))
+    }
+}
+
+pub type HttpClientResult<R> = std::result::Result<R, HttpClientError>;
+
 #[async_trait]
 pub trait HttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
         V: Serialize + Sync,
         R: DeserializeOwned;
@@ -39,7 +60,7 @@ pub struct CborHttpClient(pub reqwest::Client);
 
 #[async_trait]
 impl HttpClient for CborHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
         V: Serialize + Sync,
         R: DeserializeOwned,
@@ -52,7 +73,7 @@ impl HttpClient for CborHttpClient {
             .send()
             .and_then(|response| async { response.error_for_status()?.bytes().await })
             .await
-            .map_err(HolderError::RequestError)?;
+            .map_err(HttpClientError::Request)?;
         let response = cbor_deserialize(response_bytes.as_bytes())?;
         Ok(response)
     }
@@ -80,7 +101,11 @@ impl<H: HttpClient> Wallet<H> {
         let start_prov_msg = StartProvisioningMessage {
             provisioning_code: service_engagement.pc.clone(),
         };
-        let ready_msg: ReadyToProvisionMessage = self.client.post(url, &start_prov_msg).await?;
+        let ready_msg: ReadyToProvisionMessage = self
+            .client
+            .post(url, &start_prov_msg)
+            .await
+            .map_err(|e| Error::Holder(HolderError::RequestError(e)))?;
         let session_id = ready_msg.e_session_id;
 
         // Fetch the issuance details: challenge and the to-be-issued mdocs
@@ -88,7 +113,11 @@ impl<H: HttpClient> Wallet<H> {
             e_session_id: session_id,
             version: 1, // TODO magic number
         };
-        let request: RequestKeyGenerationMessage = self.client.post(url, &start_issuing_msg).await?;
+        let request: RequestKeyGenerationMessage = self
+            .client
+            .post(url, &start_issuing_msg)
+            .await
+            .map_err(|e| Error::Holder(HolderError::RequestError(e)))?;
 
         // An empty `Vec<UnsignedMdoc>` is useless, so return an error.
         if request.unsigned_mdocs.is_empty() {
@@ -117,7 +146,11 @@ impl<H: HttpClient> Wallet<H> {
         let (keys, responses) = state.keys_and_responses::<K>(key_factory).await?;
 
         // Finish issuance protocol
-        let issuer_response: DataToIssueMessage = self.client.post(&state.url, &responses).await?;
+        let issuer_response: DataToIssueMessage = self
+            .client
+            .post(&state.url, &responses)
+            .await
+            .map_err(|e| Error::Holder(HolderError::RequestError(e)))?;
 
         // Process issuer response to obtain and save new mdocs
         let creds = state.construct_mdocs(keys, issuer_response, trust_anchors).await?;
@@ -138,7 +171,7 @@ impl<H: HttpClient> Wallet<H> {
         let end_msg = RequestEndSessionMessage {
             e_session_id: request.e_session_id,
         };
-        let _: Result<EndSessionMessage> = self.client.post(&url, &end_msg).await;
+        let _: HttpClientResult<EndSessionMessage> = self.client.post(&url, &end_msg).await;
 
         Ok(())
     }

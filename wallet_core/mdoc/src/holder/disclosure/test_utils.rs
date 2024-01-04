@@ -12,9 +12,9 @@ use webpki::TrustAnchor;
 use wallet_common::trust_anchor::DerTrustAnchor;
 
 use crate::{
-    errors::{Error, Result},
+    errors::Result,
     examples::{Examples, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
-    holder::{HttpClient, Mdoc},
+    holder::{HttpClient, HttpClientError, HttpClientResult, Mdoc},
     identifiers::AttributeIdentifier,
     iso::{
         device_retrieval::{
@@ -193,7 +193,7 @@ pub struct MockHttpClient<F> {
 }
 
 pub enum MockHttpClientResponse {
-    Error(Error),
+    Error(HttpClientError),
     SessionStatus(SessionStatus),
 }
 
@@ -210,7 +210,7 @@ impl<F> HttpClient for MockHttpClient<F>
 where
     F: Fn() -> MockHttpClientResponse + Send + Sync,
 {
-    async fn post<R, V>(&self, _url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, _url: &Url, val: &V) -> HttpClientResult<R>
     where
         V: Serialize + Sync,
         R: DeserializeOwned,
@@ -428,7 +428,7 @@ impl<F> HttpClient for MockVerifierSessionClient<F>
 where
     F: Fn(DeviceRequest) -> DeviceRequest + Send + Sync,
 {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
         V: Serialize + Sync,
         R: DeserializeOwned,

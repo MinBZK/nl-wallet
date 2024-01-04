@@ -5,6 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
+    errors::{DisclosureError, DisclosureResult},
     holder::{
         CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, MdocDataSource,
         ProposedAttributes, TrustAnchor,
@@ -61,7 +62,7 @@ pub trait MdocDisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> DisclosureResult<()>
     where
         KF: KeyFactory<'a, Key = K> + Send + Sync,
         K: MdocEcdsaKey + Send + Sync;
@@ -140,12 +141,12 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> DisclosureResult<()>
     where
         KF: KeyFactory<'a, Key = K> + Send + Sync,
         K: MdocEcdsaKey + Send + Sync,
     {
-        self.disclose(key_factory).await
+        Ok(self.disclose(key_factory).await?)
     }
 }
 
@@ -192,6 +193,7 @@ mod mock {
         pub proposed_attributes: ProposedAttributes,
         pub disclosure_count: Arc<AtomicUsize>,
         pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
+        pub attributes_shared: bool,
     }
 
     #[async_trait]
@@ -208,9 +210,9 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<'a, KF, K>(&self, _key_factory: &'a KF) -> nl_wallet_mdoc::Result<()> {
+        async fn disclose<'a, KF, K>(&self, _key_factory: &'a KF) -> DisclosureResult<()> {
             if let Some(error) = self.next_error.lock().unwrap().take() {
-                return Err(error);
+                return Err(DisclosureError::new(self.attributes_shared, error));
             }
 
             self.disclosure_count

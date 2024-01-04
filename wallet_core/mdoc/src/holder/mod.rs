@@ -33,7 +33,7 @@ pub enum HolderError {
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
     #[error("request error: {0}")]
-    RequestError(#[from] reqwest::Error),
+    RequestError(#[from] HttpClientError),
     #[error("malformed Service Engagement: url missing")]
     MalformedServiceEngagement,
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]

@@ -1,8 +1,6 @@
-use chrono::Utc;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
-use uuid::Uuid;
 
 use nl_wallet_mdoc::server_keys::KeysError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -253,12 +251,7 @@ where
 
             // This should never fail after successful issuance
             let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
-            WalletEvent::Issuance {
-                id: Uuid::new_v4(),
-                mdocs: mdocs.into(),
-                timestamp: Utc::now(),
-                remote_party_certificate: certificate,
-            }
+            WalletEvent::new_issuance(mdocs.into(), certificate)
         };
 
         info!("PID accepted, storing mdoc in database");
