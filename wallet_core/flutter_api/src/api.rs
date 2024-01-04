@@ -4,7 +4,7 @@ use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use flutter_rust_bridge::StreamSink;
-use wallet::{self, errors::WalletInitError, x509::CertificateError, Wallet};
+use wallet::{self, errors::WalletInitError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -16,7 +16,7 @@ use crate::{
         instruction::WalletInstructionResult,
         pin::PinValidationResult,
         uri::IdentifyUriResult,
-        wallet_event::WalletEvent,
+        wallet_event::{WalletEvent, WalletEvents},
     },
     stream::ClosingStreamSink,
 };
@@ -259,11 +259,7 @@ pub async fn accept_disclosure(pin: String) -> Result<AcceptDisclosureResult> {
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
-    let history = history
-        .into_iter()
-        .map(WalletEvent::try_from)
-        .collect::<Result<Vec<_>, CertificateError>>()?;
-    let history = history.into_iter().flatten().collect();
+    let history = history.into_iter().map(WalletEvents::from).flat_map(|e| e.0).collect();
     Ok(history)
 }
 
@@ -274,11 +270,8 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
     let history = wallet.get_history_for_card(&doc_type).await?;
     let history = history
         .into_iter()
-        .map(WalletEvent::try_from)
-        .collect::<Result<Vec<_>, CertificateError>>()?;
-    let history = history
-        .into_iter()
-        .flatten()
+        .map(WalletEvents::from)
+        .flat_map(|e| e.0)
         .filter(|e| match e {
             WalletEvent::Disclosure { .. } => true,
             WalletEvent::Issuance { card, .. } => card.doc_type == doc_type,

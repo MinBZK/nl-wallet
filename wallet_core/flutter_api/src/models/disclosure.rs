@@ -1,12 +1,12 @@
 use url::Url;
 
 use wallet::{
-    errors::DisclosureError, mdoc::ReaderRegistration, DisclosureProposal, MissingDisclosureAttributes,
-    ProposedDisclosureDocument,
+    errors::DisclosureError, mdoc::ReaderRegistration, DisclosureDocument, DisclosureProposal,
+    MissingDisclosureAttributes,
 };
 
 use super::{
-    card::{CardAttribute, LocalizedString},
+    card::{into_card_attributes, CardAttribute, LocalizedString},
     instruction::WalletInstructionError,
 };
 
@@ -130,22 +130,17 @@ impl From<&ReaderRegistration> for RequestPolicy {
 }
 
 impl RequestedCard {
-    fn from_proposed_disclosure_documents(documents: Vec<ProposedDisclosureDocument>) -> Vec<Self> {
-        documents
-            .into_iter()
-            .map(|document| {
-                let attributes = document
-                    .attributes
-                    .into_iter()
-                    .map(|(key, attribute)| CardAttribute::from((key.to_string(), attribute)))
-                    .collect();
+    fn from_disclosure_documents(documents: Vec<DisclosureDocument>) -> Vec<Self> {
+        documents.into_iter().map(RequestedCard::from).collect()
+    }
+}
 
-                RequestedCard {
-                    doc_type: document.doc_type.to_string(),
-                    attributes,
-                }
-            })
-            .collect()
+impl From<DisclosureDocument> for RequestedCard {
+    fn from(value: DisclosureDocument) -> Self {
+        RequestedCard {
+            doc_type: value.doc_type.to_string(),
+            attributes: into_card_attributes(value.attributes),
+        }
     }
 }
 
@@ -181,7 +176,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_cards: RequestedCard::from_proposed_disclosure_documents(proposal.documents),
+                    requested_cards: RequestedCard::from_disclosure_documents(proposal.documents),
                     is_first_interaction_with_relying_party: false, //TODO: Resolve this value
                     request_purpose,
                 };

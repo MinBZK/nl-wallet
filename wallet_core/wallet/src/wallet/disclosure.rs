@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use async_trait::async_trait;
+use chrono::Utc;
 use indexmap::IndexMap;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{info, instrument};
@@ -20,17 +21,17 @@ use crate::{
         DisclosureUriData, DisclosureUriError, MdocDisclosureMissingAttributes, MdocDisclosureProposal,
         MdocDisclosureSession, MdocDisclosureSessionState,
     },
-    document::{DocumentMdocError, MissingDisclosureAttributes, ProposedDisclosureDocument},
+    document::{DisclosureDocument, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{DocTypeMap, Storage, StorageError, StoredMdocCopy},
-    EventType, WalletEvent,
+    storage::{DocTypeMap, Storage, StorageError, StoredMdocCopy, WalletEvent},
+    EventStatus,
 };
 
 use super::Wallet;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposal {
-    pub documents: Vec<ProposedDisclosureDocument>,
+    pub documents: Vec<DisclosureDocument>,
     pub reader_registration: ReaderRegistration,
 }
 
@@ -138,7 +139,7 @@ where
         let documents = proposal_session
             .proposed_attributes()
             .into_iter()
-            .map(|(doc_type, attributes)| ProposedDisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
+            .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
             .collect::<Result<_, _>>()
             .map_err(DisclosureError::MdocAttributes)?;
 
@@ -171,16 +172,12 @@ where
         let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
 
         // Prepare history events from session before terminating session
-        let event = match session.session_state() {
-            MdocDisclosureSessionState::MissingAttributes(_) => WalletEvent::error(
-                EventType::Disclosure(None),
-                session.rp_certificate().clone(),
-                String::from("Wallet does not contain all requested attributes"),
-            ),
-            MdocDisclosureSessionState::Proposal(proposal) => WalletEvent::cancelled(
-                EventType::Disclosure(Some(DocTypeMap(proposal.proposed_attributes()))),
-                session.rp_certificate().clone(),
-            ),
+        let event = WalletEvent::Disclosure {
+            id: Uuid::new_v4(),
+            documents: None,
+            timestamp: Utc::now(),
+            remote_party_certificate: session.rp_certificate().clone(),
+            status: EventStatus::Cancelled,
         };
 
         session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
@@ -270,10 +267,13 @@ where
             })?;
 
         // Save data for disclosure in event log.
-        let event = WalletEvent::success(
-            EventType::Disclosure(Some(DocTypeMap(session_proposal.proposed_attributes()))),
-            session.rp_certificate().clone(),
-        );
+        let event = WalletEvent::Disclosure {
+            id: Uuid::new_v4(),
+            documents: Some(DocTypeMap(session_proposal.proposed_attributes())),
+            timestamp: Utc::now(),
+            remote_party_certificate: session.rp_certificate().clone(),
+            status: EventStatus::Success,
+        };
         self.storage
             .get_mut()
             .log_wallet_event(event)
@@ -355,7 +355,7 @@ mod tests {
 
     use crate::{
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
-        Attribute, AttributeValue, EventStatus, EventType,
+        Attribute, AttributeValue, EventStatus,
     };
 
     use super::{super::tests::WalletWithMocks, *};
@@ -685,8 +685,7 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            WalletEvent {
-                event_type: EventType::Disclosure(_),
+            WalletEvent::Disclosure {
                 status: EventStatus::Cancelled,
                 ..
             }
@@ -745,11 +744,10 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            WalletEvent {
-                event_type: EventType::Disclosure(_),
-                status,
+            WalletEvent::Disclosure {
+                status: EventStatus::Cancelled,
                 ..
-            } if *status == EventStatus::Error("Wallet does not contain all requested attributes".to_owned())
+            }
         );
     }
 
@@ -861,8 +859,7 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            WalletEvent {
-                event_type: EventType::Disclosure(_),
+            WalletEvent::Disclosure {
                 status: EventStatus::Success,
                 ..
             }
