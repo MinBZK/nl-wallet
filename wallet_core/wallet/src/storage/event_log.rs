@@ -184,7 +184,7 @@ impl From<WalletEvent> for history_event::Model {
     }
 }
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 mod mock {
     use super::*;
 
