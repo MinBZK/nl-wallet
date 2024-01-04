@@ -1,6 +1,8 @@
+use chrono::Utc;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
+use uuid::Uuid;
 
 use nl_wallet_mdoc::server_keys::KeysError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -12,7 +14,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{PidIssuerClient, PidIssuerError},
-    storage::{EventType, Storage, StorageError, WalletEvent},
+    storage::{Storage, StorageError, WalletEvent},
 };
 
 use super::Wallet;
@@ -251,7 +253,12 @@ where
 
             // This should never fail after successful issuance
             let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
-            WalletEvent::success(EventType::Issuance(mdocs.into()), certificate)
+            WalletEvent::Issuance {
+                id: Uuid::new_v4(),
+                mdocs: mdocs.into(),
+                timestamp: Utc::now(),
+                remote_party_certificate: certificate,
+            }
         };
 
         info!("PID accepted, storing mdoc in database");
@@ -289,7 +296,6 @@ mod tests {
         digid::{MockDigidSession, OpenIdError},
         document::{self, DocumentPersistence},
         wallet::tests,
-        EventStatus, EventType,
     };
 
     use super::{super::tests::WalletWithMocks, *};
@@ -747,14 +753,7 @@ mod tests {
         // Test that one successful issuance event is logged
         let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
-        assert_matches!(
-            events.first().unwrap(),
-            WalletEvent {
-                event_type: EventType::Issuance(_),
-                status: EventStatus::Success,
-                ..
-            }
-        );
+        assert_matches!(events.first().unwrap(), WalletEvent::Issuance { .. });
 
         // Test which `Document` instances we have received through the callback.
         let documents = documents.lock().unwrap();

@@ -17,6 +17,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(HistoryEvent::RemotePartyCertificate).binary().not_null())
                     .col(ColumnDef::new(HistoryEvent::Status).text().not_null())
                     .col(ColumnDef::new(HistoryEvent::StatusDescription).text().null())
+                    .col(ColumnDef::new(HistoryEvent::Attributes).binary().null())
                     .to_owned(),
             )
             .await?;
@@ -73,6 +74,7 @@ enum HistoryEvent {
     RemotePartyCertificate,
     Status,
     StatusDescription,
+    Attributes,
 }
 
 #[derive(DeriveIden)]
