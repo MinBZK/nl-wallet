@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
-import 'package:wallet_core/core.dart' hide Organization;
 import 'package:wallet_core/core.dart' as core show Organization;
+import 'package:wallet_core/core.dart' hide Organization;
 
 import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/attribute/attribute.dart';
@@ -29,7 +29,7 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
   @override
   TimelineAttribute map(WalletEvent input) {
     return input.map(disclosure: (disclosure) {
-      final cards = _requestedCardMapper.mapList(disclosure.requestedCards);
+      final cards = _requestedCardMapper.mapList(disclosure.requestedCards ?? []);
       return InteractionTimelineAttribute(
         dateTime: DateTime.parse(disclosure.dateTime),
         organization: _relyingPartyMapper.map(disclosure.relyingParty),

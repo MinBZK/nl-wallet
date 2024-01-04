@@ -13,8 +13,12 @@ class WalletEventLog {
   List<WalletEvent> logForDocType(String docType) => log
       .where(
         (event) => event.map(
-          disclosure: (WalletEvent_Disclosure disclosure) =>
-              disclosure.requestedCards.any((card) => card.docType == docType),
+          disclosure: (WalletEvent_Disclosure disclosure) {
+            if (disclosure.requestedCards == null) return false;
+
+            /// Check if the provided docType was used in this request
+            return disclosure.requestedCards!.any((card) => card.docType == docType);
+          },
           issuance: (WalletEvent_Issuance issuance) => issuance.card.docType == docType,
         ),
       )
@@ -67,7 +71,10 @@ class WalletEventLog {
     _logEvent(event);
   }
 
-  void _logEvent(WalletEvent event) => _log.add(event);
+  void _logEvent(WalletEvent event) {
+    _log.add(event);
+    _log.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+  }
 
   bool includesInteractionWith(Organization organization) {
     return _log.any(
