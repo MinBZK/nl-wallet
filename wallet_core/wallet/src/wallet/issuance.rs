@@ -268,9 +268,7 @@ where
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
 
-        self.storage
-            .get_mut()
-            .log_wallet_event(event)
+        self.store_history_event(event)
             .await
             .map_err(PidIssuanceError::HistoryStorage)?;
 

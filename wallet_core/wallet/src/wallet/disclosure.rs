@@ -4,14 +4,14 @@ use async_trait::async_trait;
 use chrono::Utc;
 use indexmap::IndexMap;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use tracing::{info, instrument};
+use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::{
-    holder::{MdocDataSource, StoredMdoc},
+    holder::{HolderError, MdocDataSource, ProposedAttributes, StoredMdoc},
     server_keys::KeysError,
-    utils::{cose::CoseError, reader_auth::ReaderRegistration},
+    utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
 };
 
 use crate::{
@@ -182,14 +182,48 @@ where
 
         session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
 
-        // Store history events
-        self.storage
-            .get_mut()
-            .log_wallet_event(event)
-            .await
-            .map_err(DisclosureError::HistoryStorage)?;
+        self.store_disclosure_event(event).await?;
 
         Ok(())
+    }
+
+    async fn store_disclosure_event(&mut self, event: WalletEvent) -> Result<(), DisclosureError> {
+        self.store_history_event(event)
+            .await
+            .map_err(DisclosureError::HistoryStorage)
+    }
+
+    async fn log_empty_disclosure_error(&mut self, remote_party_certificate: Certificate, message: String) {
+        let event = WalletEvent::Disclosure {
+            id: Uuid::new_v4(),
+            documents: None,
+            timestamp: Utc::now(),
+            remote_party_certificate,
+            status: EventStatus::Error(message),
+        };
+        let _ = self.store_disclosure_event(event).await.map_err(|e| {
+            error!("Could not store error in history: {e}");
+            e
+        });
+    }
+
+    async fn log_disclosure_error(
+        &mut self,
+        session_proposal: ProposedAttributes,
+        remote_party_certificate: Certificate,
+        message: String,
+    ) {
+        let event = WalletEvent::Disclosure {
+            id: Uuid::new_v4(),
+            documents: Some(DocTypeMap(session_proposal)),
+            timestamp: Utc::now(),
+            remote_party_certificate,
+            status: EventStatus::Error(message),
+        };
+        let _ = self.store_disclosure_event(event).await.map_err(|e| {
+            error!("Could not store error in history: {e}");
+            e
+        });
     }
 
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
@@ -213,9 +247,17 @@ where
 
         info!("Checking if a disclosure session is present");
         let session = self.disclosure_session.as_ref().ok_or(DisclosureError::SessionState)?;
+
         let session_proposal = match session.session_state() {
             MdocDisclosureSessionState::Proposal(session_proposal) => session_proposal,
-            _ => return Err(DisclosureError::SessionState),
+            _ => {
+                self.log_empty_disclosure_error(
+                    session.rp_certificate().clone(),
+                    "Disclosure Session does not contain a proposal".to_string(),
+                )
+                .await;
+                return Err(DisclosureError::SessionState);
+            }
         };
 
         // Increment the disclosure counts of the mdoc copies referenced in the proposal,
@@ -227,11 +269,19 @@ where
         //       to the verifier, as we do not know if disclosure fails before or after the
         //       verifier has received the attributes.
 
-        self.storage
+        if let Err(e) = self
+            .storage
             .get_mut()
             .increment_mdoc_copies_usage_count(session_proposal.proposed_source_identifiers())
             .await
-            .map_err(DisclosureError::IncrementUsageCount)?;
+        {
+            self.log_empty_disclosure_error(
+                session.rp_certificate().clone(),
+                "Failed not register shared mdoc copy".to_string(),
+            )
+            .await;
+            return Err(DisclosureError::HistoryStorage(e));
+        }
 
         // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
         let config = self.config_repository.config();
@@ -250,10 +300,31 @@ where
 
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
-        session_proposal
-            .disclose(&remote_key_factory)
-            .await
-            .map_err(|error| match error {
+        if let Err(error) = session_proposal.disclose(&remote_key_factory).await {
+            match error {
+                nl_wallet_mdoc::Error::Holder(ref holder_error)
+                    // Attributes are (possibly) shared when RequestError or DisclosureResponse
+                    if matches!(
+                        holder_error,
+                        HolderError::RequestError(_) | HolderError::DisclosureResponse(_)
+                    ) =>
+                {
+                    self.log_disclosure_error(
+                        session_proposal.proposed_attributes(),
+                        session.rp_certificate().clone(),
+                        "Error occurred while disclosing attributes".to_owned(),
+                    )
+                    .await
+                }
+                _ => {
+                    self.log_empty_disclosure_error(
+                        session.rp_certificate().clone(),
+                        "Error occurred while disclosing attributes".to_owned(),
+                    )
+                    .await
+                }
+            };
+            let error = match error {
                 nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
                     // This `unwrap()` is safe because of the `is()` check above.
                     match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
@@ -264,7 +335,12 @@ where
                     }
                 }
                 _ => DisclosureError::DisclosureSession(error),
-            })?;
+            };
+            return Err(error);
+        }
+
+        // Clone the return URL if present, so we can return it from this method.
+        let return_url = session_proposal.return_url().cloned();
 
         // Save data for disclosure in event log.
         let event = WalletEvent::Disclosure {
@@ -274,14 +350,7 @@ where
             remote_party_certificate: session.rp_certificate().clone(),
             status: EventStatus::Success,
         };
-        self.storage
-            .get_mut()
-            .log_wallet_event(event)
-            .await
-            .map_err(DisclosureError::HistoryStorage)?;
-
-        // Clone the return URL if present, so we can return it from this method.
-        let return_url = session_proposal.return_url().cloned();
+        self.store_disclosure_event(event).await?;
 
         // When disclosure is successful, we can remove the session.
         self.disclosure_session.take();
