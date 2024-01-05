@@ -41,9 +41,7 @@ pub struct ReturnUrlPrefix(Url);
 
 impl ReturnUrlPrefix {
     pub fn matches_url(&self, url: &Url) -> bool {
-        url.authority() == self.0.authority()
-            && url.path().starts_with(self.0.path())
-            && url.path().len() > self.0.path().len()
+        url.authority() == self.0.authority() && url.path().starts_with(self.0.path())
     }
 }
 
@@ -356,8 +354,8 @@ mod tests {
     )]
     #[case("https://example.com:8080/", "https://example.com:8080/session", true)]
     #[case("https://example.com:8080/", "https://example.com:8080/session/more/path", true)]
-    #[case("https://example.com/", "https://example.com/", false)]
-    #[case("https://example.com/path/", "https://example.com/path/", false)]
+    #[case("https://example.com/", "https://example.com/", true)]
+    #[case("https://example.com/path/", "https://example.com/path/", true)]
     #[case("https://example.com/path/", "https://example.com/session", false)]
     #[case("https://example.com/path/more/", "https://example.com/path/session", false)]
     #[case("https://user:password@example.com/", "https://example.com/session", false)]
