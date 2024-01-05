@@ -145,7 +145,8 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         KF: KeyFactory<'a, Key = K> + Send + Sync,
         K: MdocEcdsaKey + Send + Sync,
     {
-        Ok(self.disclose(key_factory).await?)
+        let result = self.disclose(key_factory).await?;
+        Ok(result)
     }
 }
 
