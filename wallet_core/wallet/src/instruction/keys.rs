@@ -66,7 +66,7 @@ where
         Ok(keys)
     }
 
-    fn generate_existing<I: Into<String> + Send>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
@@ -74,7 +74,7 @@ where
         }
     }
 
-    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_new_keys<T: Into<Vec<u8>>>(
         &self,
         msg: T,
         number_of_keys: u64,

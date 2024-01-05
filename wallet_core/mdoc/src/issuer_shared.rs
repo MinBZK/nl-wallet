@@ -45,7 +45,7 @@ pub enum IssuanceError {
 }
 
 impl Response {
-    async fn generate_keys_and_sign<K: MdocEcdsaKey + Sync>(
+    async fn generate_keys_and_sign<K: MdocEcdsaKey>(
         challenge: &ByteBuf,
         number_of_keys: u64,
         key_factory: &impl KeyFactory<Key = K>,
@@ -122,7 +122,7 @@ impl KeyGenerationResponseMessage {
             .map_or(Ok(()), Err)
     }
 
-    pub async fn new<K: MdocEcdsaKey + Sync>(
+    pub async fn new<K: MdocEcdsaKey>(
         request: &RequestKeyGenerationMessage,
         key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {

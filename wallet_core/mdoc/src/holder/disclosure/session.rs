@@ -331,7 +331,7 @@ where
     pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<()>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey + Sync,
+        K: MdocEcdsaKey,
     {
         // Clone the proposed documents and construct a `DeviceResponse` by
         // signing these, then encrypt the response with the device key.

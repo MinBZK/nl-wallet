@@ -15,7 +15,7 @@ use crate::{
 };
 
 impl DeviceSigned {
-    pub async fn new_signature(private_key: &(impl SecureEcdsaKey + Sync), challenge: &[u8]) -> Result<DeviceSigned> {
+    pub async fn new_signature(private_key: &impl SecureEcdsaKey, challenge: &[u8]) -> Result<DeviceSigned> {
         let cose = sign_cose(challenge, Header::default(), private_key, false).await?;
 
         let device_signed = DeviceSigned {

@@ -1,4 +1,4 @@
-use std::{fmt::Display, future::Future, marker::Send, sync::Arc, time::Duration};
+use std::{fmt::Display, future::Future, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;

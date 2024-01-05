@@ -144,11 +144,10 @@ impl<I> ProposedDocument<I> {
     }
 
     /// Convert the [`ProposedDocument`] to a [`Document`] by signing the challenge using the provided `key_factory`.
-    #[allow(dead_code)]
     pub async fn sign<KF, K>(self, key_factory: &KF) -> Result<Document>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey + Sync,
+        K: MdocEcdsaKey,
     {
         // Extract the public key from the `IssuerSigned`, construct an existing signing key
         // identifier by `private_key_id` and provide this public key, then use that to sign

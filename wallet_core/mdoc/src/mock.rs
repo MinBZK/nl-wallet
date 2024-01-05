@@ -166,7 +166,7 @@ impl KeyFactory for SoftwareKeyFactory {
         Ok(keys)
     }
 
-    fn generate_existing<I: Into<String> + Send>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         let key = self.new_key(&identifier.into());
 
         // If the provided public key does not match the key fetched
@@ -176,7 +176,7 @@ impl KeyFactory for SoftwareKeyFactory {
         key
     }
 
-    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_new_keys<T: Into<Vec<u8>>>(
         &self,
         msg: T,
         number_of_keys: u64,

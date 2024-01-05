@@ -15,7 +15,7 @@ impl DeviceResponse {
     ) -> Result<Self>
     where
         KF: KeyFactory<Key = K>,
-        K: MdocEcdsaKey + Sync,
+        K: MdocEcdsaKey,
     {
         // Convert all of the `ProposedDocument` entries to `Document` by signing them.
         // TODO: Do this in bulk, as this will be serialized by the implementation.
