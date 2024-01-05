@@ -54,15 +54,15 @@ impl<S: SessionStore + ?Sized + Send + Sync> SessionStore for Box<S> {
     type Data = S::Data;
 
     async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
-        Ok((**self).get(id).await?)
+        (**self).get(id).await
     }
 
     async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
-        Ok((**self).write(session).await?)
+        (**self).write(session).await
     }
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
-        Ok((**self).cleanup().await?)
+        (**self).cleanup().await
     }
 }
 

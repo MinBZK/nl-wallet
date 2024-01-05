@@ -11,7 +11,6 @@ doctest = false
 mock = ["dashmap", "hmac", "rand", "sha2"]
 
 [dependencies]
-async-trait.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
 dashmap = { workspace = true, optional = true }
 futures.workspace = true
@@ -19,7 +18,7 @@ hmac = { workspace = true, optional = true, features = ["std"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 rand = { workspace = true, optional = true }
 serde.workspace = true
-sha2  = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
 thiserror.workspace = true
 uuid = { workspace = true, features = ["serde", "v4"] }
 

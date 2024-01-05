@@ -9,6 +9,7 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
+async-trait.workspace = true
 axum = { workspace = true, features = [
     "headers",
     "http1",

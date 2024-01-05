@@ -3,7 +3,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use async_trait::async_trait;
 use tracing::info;
 use url::Url;
 
@@ -38,7 +37,6 @@ impl ConfigurationRepository for HttpConfigurationRepository {
     }
 }
 
-#[async_trait]
 /// Here we assume that lock poisoning is a programmer error and therefore
 /// we just panic when that occurs.
 impl UpdateableConfigurationRepository for HttpConfigurationRepository {

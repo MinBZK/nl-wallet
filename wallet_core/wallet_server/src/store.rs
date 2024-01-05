@@ -22,7 +22,7 @@ pub async fn new_session_store(
 pub mod postgres {
     use std::{marker::PhantomData, time::Duration};
 
-    use axum::async_trait;
+    use async_trait::async_trait;
     use chrono::Utc;
     use sea_orm::{
         sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,

@@ -5,12 +5,14 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+async-trait.workspace = true
 sea-orm-migration = { workspace = true, features = [
     "cli",
     "runtime-tokio-rustls",
     "sqlx-postgres",
     "with-chrono",
-    "with-uuid", ] }
+    "with-uuid",
+] }
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "parking_lot",

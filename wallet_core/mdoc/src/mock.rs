@@ -1,6 +1,5 @@
 use std::{fmt::Debug, iter};
 
-use async_trait::async_trait;
 use futures::{executor, future};
 use indexmap::IndexMap;
 use p256::ecdsa::{Signature, VerifyingKey};
@@ -104,7 +103,6 @@ impl MdocEcdsaKey for FactorySoftwareEcdsaKey {
     const KEY_TYPE: MdocKeyType = MdocKeyType::Software;
 }
 impl SecureEcdsaKey for FactorySoftwareEcdsaKey {}
-#[async_trait]
 impl EcdsaKey for FactorySoftwareEcdsaKey {
     type Error = FactorySoftwareEcdsaKeyError;
 
@@ -152,7 +150,6 @@ impl SoftwareKeyFactory {
     }
 }
 
-#[async_trait]
 impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
     type Key = FactorySoftwareEcdsaKey;
     type Error = SoftwareKeyFactoryError;

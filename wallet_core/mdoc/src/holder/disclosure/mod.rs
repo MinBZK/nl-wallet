@@ -1,7 +1,5 @@
 use std::collections::HashSet;
 
-use async_trait::async_trait;
-
 use super::Mdoc;
 
 pub use session::{DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, ProposedAttributes};
@@ -26,7 +24,7 @@ pub struct StoredMdoc<I> {
 }
 
 /// This trait needs to be implemented by an entity that stores mdocs.
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait MdocDataSource {
     type MdocIdentifier;
     type Error: std::error::Error + Send + Sync + 'static;

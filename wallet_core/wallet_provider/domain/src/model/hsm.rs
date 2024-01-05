@@ -1,6 +1,5 @@
 use std::{error::Error, sync::Arc};
 
-use async_trait::async_trait;
 use futures::future;
 use p256::ecdsa::{Signature, VerifyingKey};
 
@@ -10,7 +9,7 @@ pub fn key_identifier(prefix: &str, identifier: &str) -> String {
     format!("{prefix}_{identifier}")
 }
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait WalletUserHsm {
     type Error: Error + Send + Sync;
 
@@ -73,7 +72,7 @@ pub trait WalletUserHsm {
     }
 }
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait Hsm {
     type Error: Error + Send + Sync;
 
@@ -91,7 +90,6 @@ pub trait Hsm {
 pub mod mock {
     use std::{error::Error, marker::PhantomData, sync::Arc};
 
-    use async_trait::async_trait;
     use dashmap::DashMap;
     use hmac::{digest::MacError, Hmac, Mac};
     use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
@@ -126,7 +124,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync> Encrypter<VerifyingKey> for MockPkcs11Client<E> {
         type Error = E;
 
@@ -140,7 +137,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync> Decrypter<VerifyingKey> for MockPkcs11Client<E> {
         type Error = E;
 
@@ -153,7 +149,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync + From<MacError>> WalletUserHsm for MockPkcs11Client<E> {
         type Error = E;
 
@@ -187,7 +182,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync + From<MacError>> Hsm for MockPkcs11Client<E> {
         type Error = E;
 

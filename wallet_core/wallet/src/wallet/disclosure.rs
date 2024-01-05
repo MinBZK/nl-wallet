@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use async_trait::async_trait;
 use chrono::Utc;
 use indexmap::IndexMap;
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -290,16 +289,15 @@ where
     }
 }
 
-#[async_trait]
 impl<CR, S, PEK, APC, DGS, PIC, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    CR: Send + Sync,
+    CR: Sync,
     S: Storage + Send + Sync,
-    PEK: Send + Sync,
-    APC: Send + Sync,
-    DGS: Send + Sync,
-    PIC: Send + Sync,
-    MDS: Send + Sync,
+    PEK: Sync,
+    APC: Sync,
+    DGS: Sync,
+    PIC: Sync,
+    MDS: Sync,
 {
     type MdocIdentifier = Uuid;
     type Error = StorageError;

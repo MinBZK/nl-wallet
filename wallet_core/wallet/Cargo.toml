@@ -15,7 +15,6 @@ mock = ["dep:mockall", "nl_wallet_mdoc/mock"]
 wallet_deps = []
 
 [dependencies]
-async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
@@ -43,6 +42,7 @@ serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
+trait-variant.workspace = true
 url.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 

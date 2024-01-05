@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use async_trait::async_trait;
 use p256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +20,7 @@ pub enum MdocKeyType {
     Remote,
 }
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait KeyFactory<'a> {
     type Key: MdocEcdsaKey + 'a;
     type Error: Error + Send + Sync + 'static;

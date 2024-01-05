@@ -3,7 +3,6 @@ mod client;
 #[cfg(any(test, feature = "mock"))]
 mod mock;
 
-use async_trait::async_trait;
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -27,7 +26,7 @@ pub enum PidIssuerError {
     MdocError(#[from] nl_wallet_mdoc::Error),
 }
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait PidIssuerClient {
     fn has_session(&self) -> bool;
 

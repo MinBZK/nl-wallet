@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use async_trait::async_trait;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -21,7 +20,7 @@ use wallet_provider_domain::{
 
 use crate::{account_server::InstructionError, hsm::HsmError};
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait HandleInstruction {
     type Result: Serialize;
 
@@ -38,7 +37,6 @@ pub trait HandleInstruction {
         T: Committable + Send + Sync;
 }
 
-#[async_trait]
 impl HandleInstruction for CheckPin {
     type Result = ();
 
@@ -58,7 +56,6 @@ impl HandleInstruction for CheckPin {
     }
 }
 
-#[async_trait]
 impl HandleInstruction for GenerateKey {
     type Result = GenerateKeyResult;
 
@@ -107,7 +104,6 @@ impl HandleInstruction for GenerateKey {
     }
 }
 
-#[async_trait]
 impl HandleInstruction for Sign {
     type Result = SignResult;
 

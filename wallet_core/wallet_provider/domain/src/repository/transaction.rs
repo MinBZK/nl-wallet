@@ -1,13 +1,11 @@
-use async_trait::async_trait;
-
 use crate::repository::errors::PersistenceError;
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait Committable {
     async fn commit(self) -> Result<(), PersistenceError>;
 }
 
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait TransactionStarter {
     type TransactionType: Committable;
 
@@ -20,7 +18,6 @@ pub mod mock {
 
     pub struct MockTransaction;
 
-    #[async_trait]
     impl Committable for MockTransaction {
         async fn commit(self) -> Result<(), PersistenceError> {
             Ok(())
@@ -29,7 +26,6 @@ pub mod mock {
 
     pub struct MockTransactionStarter;
 
-    #[async_trait]
     impl TransactionStarter for MockTransactionStarter {
         type TransactionType = MockTransaction;
 

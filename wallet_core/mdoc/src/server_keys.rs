@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use p256::{
     ecdsa::{Signature, SigningKey},
     pkcs8::DecodePrivateKey,
@@ -35,7 +34,6 @@ impl PrivateKey {
     }
 }
 
-#[async_trait]
 impl EcdsaKey for PrivateKey {
     type Error = p256::ecdsa::Error;
 

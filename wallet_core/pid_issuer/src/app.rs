@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use axum::{
     body::Bytes,
     extract::{Path, State},
@@ -58,8 +57,8 @@ pub trait AttributesLookup {
 
 /// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`](crate::openid::Client).
 /// Contract for the DigiD bridge.
-#[async_trait]
-pub trait BsnLookup {
+#[trait_variant::make(BsnLookup: Send)]
+pub trait BsnLookupNoSend {
     async fn bsn(&self, access_token: &str) -> Result<String, digid::Error>;
 }
 

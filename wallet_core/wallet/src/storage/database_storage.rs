@@ -1,6 +1,5 @@
 use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 
-use async_trait::async_trait;
 use futures::try_join;
 use sea_orm::{
     sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
@@ -133,7 +132,6 @@ where
     }
 }
 
-#[async_trait]
 impl<K> Storage for DatabaseStorage<K>
 where
     K: SecureEncryptionKey + Send + Sync,

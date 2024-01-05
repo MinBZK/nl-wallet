@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     holder::{MdocCopies, TrustAnchor},
@@ -16,7 +15,6 @@ pub struct MockPidIssuerClient {
     pub next_error: Option<PidIssuerError>,
 }
 
-#[async_trait]
 impl PidIssuerClient for MockPidIssuerClient {
     fn has_session(&self) -> bool {
         self.has_session

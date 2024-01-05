@@ -1,6 +1,5 @@
 mod client;
 
-use async_trait::async_trait;
 use reqwest::StatusCode;
 use url::{ParseError, Url};
 
@@ -36,7 +35,7 @@ pub enum AccountProviderResponseError {
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait AccountProviderClient {
     async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError>;
 

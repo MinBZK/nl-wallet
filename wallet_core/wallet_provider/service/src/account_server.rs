@@ -699,7 +699,6 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use async_trait::async_trait;
     use chrono::TimeZone;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
@@ -792,7 +791,6 @@ mod tests {
         instruction_sequence_number: u64,
     }
 
-    #[async_trait]
     impl WalletUserRepository for WalletUserTestRepo {
         type TransactionType = MockTransaction;
 
@@ -893,7 +891,6 @@ mod tests {
         }
     }
 
-    #[async_trait]
     impl TransactionStarter for WalletUserTestRepo {
         type TransactionType = <MockTransactionStarter as TransactionStarter>::TransactionType;
 

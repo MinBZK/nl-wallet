@@ -1,6 +1,5 @@
 use std::iter;
 
-use async_trait::async_trait;
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey, MdocKeyType};
@@ -41,7 +40,6 @@ impl<'a, S, K, A> RemoteEcdsaKeyFactory<'a, S, K, A> {
     }
 }
 
-#[async_trait]
 impl<'a, S, K, A> KeyFactory<'a> for RemoteEcdsaKeyFactory<'a, S, K, A>
 where
     S: Storage + Send + Sync,
@@ -111,7 +109,6 @@ impl<S, K, A> WithIdentifier for RemoteEcdsaKey<'_, S, K, A> {
     }
 }
 
-#[async_trait]
 impl<S, K, A> EcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
     S: Storage + Send + Sync,

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use openid::Options;
 use url::Url;
 
@@ -17,7 +16,7 @@ pub enum OpenIdError {
 /// This trait is used to isolate the [`openid`] dependency, along with
 /// [`reqwest`] on which [`openid`] depends.
 #[cfg_attr(test, mockall::automock)]
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait OpenIdClient {
     /// Perform OpenID discovery and return a client instance on success.
     async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdError>
@@ -42,7 +41,6 @@ pub struct HttpOpenIdClient {
     openid_client: Client,
 }
 
-#[async_trait]
 impl OpenIdClient for HttpOpenIdClient {
     async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdError> {
         // Configure a simple `reqwest` HTTP client with a timeout.

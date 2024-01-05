@@ -16,7 +16,6 @@
 //! - The [`PinKey<'a>`] struct, which contains the salt and the PIN, and has methods to compute signatures and the
 //!   public key (by first converting the user's PIN and salt to an ECDSA private key).
 
-use async_trait::async_trait;
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
     elliptic_curve::{
@@ -74,7 +73,6 @@ impl<'a> PinKey<'a> {
     }
 }
 
-#[async_trait]
 impl EcdsaKey for PinKey<'_> {
     type Error = PinKeyError;
 

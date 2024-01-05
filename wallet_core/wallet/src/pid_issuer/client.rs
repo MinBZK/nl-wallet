@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::{header, HeaderMap, HeaderValue};
 use url::Url;
@@ -46,7 +45,6 @@ impl Default for HttpPidIssuerClient {
     }
 }
 
-#[async_trait]
 impl PidIssuerClient for HttpPidIssuerClient {
     fn has_session(&self) -> bool {
         self.mdoc_wallet.has_issuance_session()

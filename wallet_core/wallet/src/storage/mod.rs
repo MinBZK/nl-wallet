@@ -10,7 +10,6 @@ mod mock_storage;
 
 use std::{array::TryFromSliceError, collections::HashSet, io};
 
-use async_trait::async_trait;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -70,7 +69,7 @@ pub struct StoredMdocCopy {
 }
 
 /// This trait abstracts the persistent storage for the wallet.
-#[async_trait]
+#[allow(async_fn_in_trait)]
 pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
