@@ -21,19 +21,19 @@ pub enum MdocKeyType {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait KeyFactory<'a> {
-    type Key: MdocEcdsaKey + 'a;
+pub trait KeyFactory {
+    type Key: MdocEcdsaKey;
     type Error: Error + Send + Sync + 'static;
 
-    async fn generate_new(&'a self) -> Result<Self::Key, Self::Error> {
+    async fn generate_new(&self) -> Result<Self::Key, Self::Error> {
         self.generate_new_multiple(1).await.map(|mut keys| keys.remove(1))
     }
 
-    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error>;
-    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key;
+    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error>;
+    fn generate_existing<I: Into<String> + Send>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key;
 
     async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
-        &'a self,
+        &self,
         msg: T,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;

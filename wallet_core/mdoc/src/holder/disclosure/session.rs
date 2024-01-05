@@ -328,9 +328,9 @@ where
             .collect()
     }
 
-    pub async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> Result<()>
+    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<()>
     where
-        KF: KeyFactory<'a, Key = K>,
+        KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey + Sync,
     {
         // Clone the proposed documents and construct a `DeviceResponse` by

@@ -45,10 +45,10 @@ pub enum IssuanceError {
 }
 
 impl Response {
-    async fn generate_keys_and_sign<'a, K: MdocEcdsaKey + Sync>(
+    async fn generate_keys_and_sign<K: MdocEcdsaKey + Sync>(
         challenge: &ByteBuf,
         number_of_keys: u64,
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<(K, Response)>> {
         let payload = ResponseSignaturePayload::new(challenge.to_vec());
 
@@ -122,9 +122,9 @@ impl KeyGenerationResponseMessage {
             .map_or(Ok(()), Err)
     }
 
-    pub async fn new<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn new<K: MdocEcdsaKey + Sync>(
         request: &RequestKeyGenerationMessage,
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
         let keys_count: u64 = request.unsigned_mdocs.iter().map(|unsigned| unsigned.copy_count).sum();
 

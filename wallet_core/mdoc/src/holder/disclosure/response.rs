@@ -9,12 +9,12 @@ use crate::{
 use super::proposed_document::ProposedDocument;
 
 impl DeviceResponse {
-    pub(super) async fn from_proposed_documents<'a, I, KF, K>(
+    pub(super) async fn from_proposed_documents<I, KF, K>(
         proposed_documents: Vec<ProposedDocument<I>>,
-        key_factory: &'a KF,
+        key_factory: &KF,
     ) -> Result<Self>
     where
-        KF: KeyFactory<'a, Key = K>,
+        KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey + Sync,
     {
         // Convert all of the `ProposedDocument` entries to `Document` by signing them.

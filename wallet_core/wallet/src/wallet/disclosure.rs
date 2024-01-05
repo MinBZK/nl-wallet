@@ -250,7 +250,7 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         session_proposal
-            .disclose(&remote_key_factory)
+            .disclose(&&remote_key_factory)
             .await
             .map_err(|error| match error {
                 nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {

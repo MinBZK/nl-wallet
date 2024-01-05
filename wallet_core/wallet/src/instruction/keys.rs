@@ -40,7 +40,7 @@ impl<'a, S, K, A> RemoteEcdsaKeyFactory<'a, S, K, A> {
     }
 }
 
-impl<'a, S, K, A> KeyFactory<'a> for RemoteEcdsaKeyFactory<'a, S, K, A>
+impl<'a, S, K, A> KeyFactory for &'a RemoteEcdsaKeyFactory<'a, S, K, A>
 where
     S: Storage + Send + Sync,
     K: PlatformEcdsaKey + Sync,
@@ -49,7 +49,7 @@ where
     type Key = RemoteEcdsaKey<'a, S, K, A>;
     type Error = RemoteEcdsaKeyError;
 
-    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
         let identifiers = iter::repeat_with(|| random_string(32)).take(count as usize).collect();
         let result: GenerateKeyResult = self.instruction_client.send(GenerateKey { identifiers }).await?;
 
@@ -66,7 +66,7 @@ where
         Ok(keys)
     }
 
-    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+    fn generate_existing<I: Into<String> + Send>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
@@ -75,7 +75,7 @@ where
     }
 
     async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
-        &'a self,
+        &self,
         msg: T,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {

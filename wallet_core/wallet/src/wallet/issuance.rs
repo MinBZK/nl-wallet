@@ -226,7 +226,7 @@ where
 
         let mdocs = self
             .pid_issuer
-            .accept_pid(&config.mdoc_trust_anchors(), &remote_key_factory)
+            .accept_pid(&config.mdoc_trust_anchors(), &&remote_key_factory)
             .await
             .map_err(|error| {
                 match error {

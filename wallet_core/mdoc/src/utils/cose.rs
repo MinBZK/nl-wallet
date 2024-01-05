@@ -178,11 +178,11 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose.into())
     }
 
-    pub async fn generate_keys_and_sign<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn generate_keys_and_sign<K: MdocEcdsaKey + Sync>(
         obj: &T,
         unprotected_header: Header,
         number_of_keys: u64,
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
         include_payload: bool,
     ) -> Result<Vec<(K, MdocCose<CoseSign1, T>)>>
     where
@@ -280,11 +280,11 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn generate_keys_and_sign_cose<'a, K: MdocEcdsaKey + Sync>(
+pub async fn generate_keys_and_sign_cose<K: MdocEcdsaKey + Sync>(
     payload: &[u8],
     unprotected_header: Header,
     number_of_keys: u64,
-    key_factory: &'a impl KeyFactory<'a, Key = K>,
+    key_factory: &impl KeyFactory<Key = K>,
     include_payload: bool,
 ) -> Result<Vec<(K, CoseSign1)>> {
     let (sig_data, protected_header) = signature_data_and_header(payload);

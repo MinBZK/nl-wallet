@@ -60,8 +60,8 @@ where
         f: F,
     ) -> Result<R, InstructionError>
     where
-        F: FnOnce(u64) -> O + 'a,
-        O: Future<Output = Result<R, wallet_common::errors::Error>> + 'a,
+        F: FnOnce(u64) -> O,
+        O: Future<Output = Result<R, wallet_common::errors::Error>>,
     {
         let mut instruction_data = storage.fetch_data::<InstructionData>().await?.unwrap_or_default();
         instruction_data.instruction_sequence_number += 1;

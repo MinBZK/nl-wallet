@@ -60,9 +60,9 @@ pub trait MdocDisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
     where
-        KF: KeyFactory<'a, Key = K> + Sync,
+        KF: KeyFactory<Key = K> + Sync,
         K: MdocEcdsaKey + Send + Sync;
 }
 
@@ -137,9 +137,9 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
     where
-        KF: KeyFactory<'a, Key = K> + Sync,
+        KF: KeyFactory<Key = K> + Sync,
         K: MdocEcdsaKey + Send + Sync,
     {
         self.disclose(key_factory).await
@@ -204,9 +204,9 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<'a, KF, K>(&self, _key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+        async fn disclose<KF, K>(&self, _key_factory: &KF) -> nl_wallet_mdoc::Result<()>
         where
-            KF: KeyFactory<'a, Key = K> + Sync,
+            KF: KeyFactory<Key = K> + Sync,
             K: MdocEcdsaKey + Send + Sync,
         {
             if let Some(error) = self.next_error.lock().unwrap().take() {

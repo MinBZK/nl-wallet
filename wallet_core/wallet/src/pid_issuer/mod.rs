@@ -36,10 +36,10 @@ pub trait PidIssuerClient {
         access_token: &str,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError>;
 
-    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        key_factory: &(impl KeyFactory<Key = K> + Sync),
     ) -> Result<Vec<MdocCopies>, PidIssuerError>;
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError>;
