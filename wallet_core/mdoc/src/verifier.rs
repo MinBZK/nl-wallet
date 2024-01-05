@@ -214,7 +214,7 @@ impl<K, S> Drop for Verifier<K, S> {
 impl<K, S> Verifier<K, S>
 where
     K: KeyRing,
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<DisclosureData>>,
 {
     /// Create a new [`Verifier`].
     ///
@@ -224,7 +224,10 @@ where
     /// - `sessions` will contain all sessions.
     /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
-    pub fn new(url: Url, keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>) -> Self {
+    pub fn new(url: Url, keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>) -> Self
+    where
+        S: Send + Sync + 'static,
+    {
         let sessions = Arc::new(sessions);
         Self {
             url,
