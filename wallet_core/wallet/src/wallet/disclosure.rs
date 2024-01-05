@@ -247,7 +247,7 @@ where
         //       to the verifier, as we do not know if disclosure fails before or after the
         //       verifier has received the attributes.
 
-        if let Err(e) = self
+        if let Err(error) = self
             .storage
             .get_mut()
             .increment_mdoc_copies_usage_count(session_proposal.proposed_source_identifiers())
@@ -258,7 +258,7 @@ where
                 "Failed not register shared mdoc copy".to_string(),
             )
             .await;
-            return Err(DisclosureError::HistoryStorage(e));
+            return Err(DisclosureError::IncrementUsageCount(error));
         }
 
         // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
@@ -892,13 +892,14 @@ mod tests {
         assert!(wallet.disclosure_session.is_none());
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
 
-        // Verify a single Disclosure Success event is logged
+        // Verify a single Disclosure Success event is logged, and documents are shared
         let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
             WalletEvent::Disclosure {
                 status: EventStatus::Success,
+                documents: Some(_),
                 ..
             }
         );
@@ -943,6 +944,9 @@ mod tests {
 
         // The mdoc copy usage counts should not be incremented.
         assert!(wallet.storage.get_mut().mdoc_copies_usage_counts.is_empty());
+
+        // Verify no Disclosure events are logged
+        assert!(wallet.storage.get_mut().fetch_wallet_events().await.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -958,6 +962,9 @@ mod tests {
 
         assert_matches!(error, DisclosureError::NotRegistered);
         assert!(wallet.disclosure_session.is_none());
+
+        // Verify no Disclosure events are logged
+        assert!(wallet.storage.get_mut().fetch_wallet_events().await.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -996,6 +1003,9 @@ mod tests {
 
         // The mdoc copy usage counts should not be incremented.
         assert!(wallet.storage.get_mut().mdoc_copies_usage_counts.is_empty());
+
+        // Verify no Disclosure events are logged
+        assert!(wallet.storage.get_mut().fetch_wallet_events().await.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -1044,6 +1054,15 @@ mod tests {
             1
         );
 
+        // Verify a Disclosure error event is logged, with no documents shared
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            &events[0],
+            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: None, .. }
+            if error == "Error occurred while disclosing attributes"
+        );
+
         // Set up the disclosure session to return a different error.
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
@@ -1085,6 +1104,15 @@ mod tests {
                 .copied()
                 .unwrap_or_default(),
             2
+        );
+
+        // Verify another Disclosure error event is logged, with no documents shared
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 2);
+        assert_matches!(
+            &events[1],
+            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: None, .. }
+            if error == "Error occurred while disclosing attributes"
         );
     }
 
@@ -1135,6 +1163,15 @@ mod tests {
                 .copied()
                 .unwrap_or_default(),
             1
+        );
+
+        // Verify a Disclosure error event is logged, and no documents are shared
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            &events[0],
+            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: None, .. }
+            if error == "Error occurred while disclosing attributes"
         );
     }
 

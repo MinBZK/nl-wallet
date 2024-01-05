@@ -1427,4 +1427,35 @@ mod tests {
         );
         assert_eq!(payloads.len(), 1);
     }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_http_client_serialization() {
+        // Create a `DisclosureSession` containing a proposal
+        // and a `HttpClient` that will return a `ciborium::ser::Error`.
+        let (proposal_session, mut payload_receiver) = create_disclosure_session_proposal(|| {
+            MockHttpClientResponse::Error(HttpClientError::Cbor(CborError::Serialization(
+                ciborium::ser::Error::Value("some-error".to_string()),
+            )))
+        });
+
+        // Disclosing this session should result in the payload
+        // being sent while returning the wrapped HTTP error.
+        let error = match proposal_session {
+            DisclosureSession::Proposal(proposal) => proposal
+                .disclose(&SoftwareKeyFactory::default())
+                .await
+                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+            _ => unreachable!(),
+        };
+
+        let mut payloads = Vec::with_capacity(1);
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        // No data should have been shared in this case
+        assert_matches!(error, DisclosureError { data_shared, error: Error::Holder(HolderError::RequestError(_)) } if !data_shared);
+        assert_eq!(payloads.len(), 1);
+    }
 }
