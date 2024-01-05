@@ -196,12 +196,12 @@ where
 
     async fn log_disclosure_error(
         &mut self,
-        session_proposal: ProposedAttributes,
+        session_proposal: Option<ProposedAttributes>,
         remote_party_certificate: Certificate,
         message: String,
     ) {
         let event = WalletEvent::new_disclosure(
-            Some(DocTypeMap(session_proposal)),
+            session_proposal.map(DocTypeMap),
             remote_party_certificate,
             EventStatus::Error(message),
         );
@@ -279,20 +279,17 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         if let Err(error) = session_proposal.disclose(&remote_key_factory).await {
-            if error.data_shared {
-                self.log_disclosure_error(
-                    session_proposal.proposed_attributes(),
-                    session.rp_certificate().clone(),
-                    "Error occurred while disclosing attributes".to_owned(),
-                )
-                .await;
+            let shared_data = if error.data_shared {
+                Some(session_proposal.proposed_attributes())
             } else {
-                self.log_empty_disclosure_error(
-                    session.rp_certificate().clone(),
-                    "Error occurred while disclosing attributes".to_owned(),
-                )
-                .await;
-            }
+                None
+            };
+            self.log_disclosure_error(
+                shared_data,
+                session.rp_certificate().clone(),
+                "Error occurred while disclosing attributes".to_owned(),
+            )
+            .await;
             let error = match error.error {
                 nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
                     // This `unwrap()` is safe because of the `is()` check above.
