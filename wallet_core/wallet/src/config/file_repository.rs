@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use url::Url;
@@ -24,20 +21,21 @@ impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
         base_url: Url,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
-        let default_config = Self::read_config_file(storage_path.as_path())
-            .await?
-            .unwrap_or(initial_config);
+        let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
+            Some(stored_config) if initial_config.version > stored_config.version => {
+                // When the initial configuration is newer than the stored configuration (e.g. due to an app update) that
+                // version is used and the stored configuration is overwritten.
+                config_file::update_config_file(storage_path.as_path(), &initial_config).await?;
+                initial_config
+            }
+            Some(stored_config) => stored_config,
+            None => initial_config,
+        };
 
         Ok(Self::new(
             HttpConfigurationRepository::new(base_url, storage_path.clone(), default_config).await?,
             storage_path,
         ))
-    }
-}
-
-impl<T> FileStorageConfigurationRepository<T> {
-    async fn read_config_file(storage_path: &Path) -> Result<Option<WalletConfiguration>, ConfigurationError> {
-        Ok(config_file::get_config_file(storage_path).await?)
     }
 }
 
@@ -81,11 +79,12 @@ mod tests {
     use std::sync::{Arc, RwLock};
 
     use async_trait::async_trait;
+    use url::Url;
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
     use crate::config::{
-        default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+        config_file, default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
         FileStorageConfigurationRepository, UpdateableConfigurationRepository,
     };
 
@@ -133,10 +132,7 @@ mod tests {
             "should return value set by TestConfigRepo.fetch()"
         );
 
-        let file_config = FileStorageConfigurationRepository::<TestConfigRepo>::read_config_file(path.as_path())
-            .await
-            .unwrap()
-            .unwrap();
+        let file_config = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
 
         let repo = FileStorageConfigurationRepository::new(TestConfigRepo(RwLock::new(file_config)), path);
 
@@ -144,6 +140,47 @@ mod tests {
         assert_eq!(
             700, config.lock_timeouts.background_timeout,
             "should return value read from filesystem"
+        );
+    }
+
+    #[tokio::test]
+    async fn should_use_newer_embedded_wallet_config() {
+        let config_dir = tempfile::tempdir().unwrap();
+        let path = config_dir.into_path();
+
+        let mut initially_stored_wallet_config = default_configuration();
+        initially_stored_wallet_config.version = 10;
+
+        // store initial wallet config having version 10
+        config_file::update_config_file(path.as_path(), &initially_stored_wallet_config)
+            .await
+            .unwrap();
+
+        let repo = FileStorageConfigurationRepository::init(
+            path.clone(),
+            Url::parse("http://localhost").unwrap(),
+            default_configuration(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(10, repo.config().version, "should use stored config");
+
+        let mut embedded_wallet_config = default_configuration();
+        embedded_wallet_config.version = 20;
+
+        let repo = FileStorageConfigurationRepository::init(
+            path.clone(),
+            Url::parse("http://localhost").unwrap(),
+            embedded_wallet_config,
+        )
+        .await
+        .unwrap();
+        assert_eq!(20, repo.config().version, "should use newer embedded config");
+
+        let stored_config = config_file::get_config_file(path.as_path()).await.unwrap().unwrap();
+        assert_eq!(
+            20, stored_config.version,
+            "newer embedded config should have been stored"
         );
     }
 }
