@@ -27,14 +27,12 @@ pub trait HandleInstruction {
     async fn handle<T>(
         &self,
         wallet_user: &WalletUser,
-        uuid_generator: &(impl Generator<Uuid> + Sync),
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
-              + WalletUserRepository<TransactionType = T>
-              + Sync),
-        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
+        uuid_generator: &impl Generator<Uuid>,
+        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<Self::Result, InstructionError>
     where
-        T: Committable + Send + Sync;
+        T: Committable;
 }
 
 impl HandleInstruction for CheckPin {
@@ -43,14 +41,12 @@ impl HandleInstruction for CheckPin {
     async fn handle<T>(
         &self,
         _wallet_user: &WalletUser,
-        _uuid_generator: &(impl Generator<Uuid> + Sync),
-        _wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
-              + WalletUserRepository<TransactionType = T>
-              + Sync),
-        _wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
+        _uuid_generator: &impl Generator<Uuid>,
+        _wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        _wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<(), InstructionError>
     where
-        T: Committable + Send + Sync,
+        T: Committable,
     {
         Ok(())
     }
@@ -62,14 +58,12 @@ impl HandleInstruction for GenerateKey {
     async fn handle<T>(
         &self,
         wallet_user: &WalletUser,
-        uuid_generator: &(impl Generator<Uuid> + Sync),
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
-              + WalletUserRepository<TransactionType = T>
-              + Sync),
-        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
+        uuid_generator: &impl Generator<Uuid>,
+        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<GenerateKeyResult, InstructionError>
     where
-        T: Committable + Send + Sync,
+        T: Committable,
     {
         let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
         let keys = wallet_user_hsm.generate_wrapped_keys(&identifiers).await?;
@@ -110,14 +104,12 @@ impl HandleInstruction for Sign {
     async fn handle<T>(
         &self,
         wallet_user: &WalletUser,
-        _uuid_generator: &(impl Generator<Uuid> + Sync),
-        wallet_user_repository: &(impl TransactionStarter<TransactionType = T>
-              + WalletUserRepository<TransactionType = T>
-              + Sync),
-        wallet_user_hsm: &(impl WalletUserHsm<Error = HsmError> + Sync),
+        _uuid_generator: &impl Generator<Uuid>,
+        wallet_user_repository: &(impl TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>),
+        wallet_user_hsm: &impl WalletUserHsm<Error = HsmError>,
     ) -> Result<SignResult, InstructionError>
     where
-        T: Committable + Send + Sync,
+        T: Committable,
     {
         let (msg, identifiers) = &self.msg_with_identifiers;
         let data = Arc::new(msg.0.clone());
