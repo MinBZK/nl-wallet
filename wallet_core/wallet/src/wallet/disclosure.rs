@@ -1176,6 +1176,64 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_holder_attributes_are_shared() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        let disclosure_session = MockMdocDisclosureSession {
+            session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+                proposed_source_identifiers: vec![PROPOSED_ID],
+                next_error: Mutex::new(nl_wallet_mdoc::Error::Holder(HolderError::ReaderAuthMissing).into()),
+                attributes_shared: true,
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        wallet.disclosure_session = disclosure_session.into();
+
+        // Accepting disclosure when the Wallet Provider responds with an `InstructionError` indicating
+        // that the account is blocked should result in a `DisclosureError::Instruction` error.
+        let error = wallet
+            .accept_disclosure(PIN.to_string())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureError::DisclosureSession(nl_wallet_mdoc::Error::Holder(HolderError::ReaderAuthMissing))
+        );
+        assert!(wallet.disclosure_session.is_some());
+        match wallet.disclosure_session.as_ref().unwrap().session_state {
+            MdocDisclosureSessionState::Proposal(ref proposal) => {
+                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
+            }
+            _ => unreachable!(),
+        };
+
+        // Test that the usage count got incremented for the proposed mdoc copy id.
+        assert_eq!(wallet.storage.get_mut().mdoc_copies_usage_counts.len(), 1);
+        assert_eq!(
+            wallet
+                .storage
+                .get_mut()
+                .mdoc_copies_usage_counts
+                .get(&PROPOSED_ID)
+                .copied()
+                .unwrap_or_default(),
+            1
+        );
+
+        // Verify a Disclosure error event is logged, and documents are shared
+        let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
+        assert_eq!(events.len(), 1);
+        assert_matches!(
+            &events[0],
+            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: Some(_), .. }
+            if error == "Error occurred while disclosing attributes"
+        );
+    }
+
+    #[tokio::test]
     async fn test_mdoc_by_doc_types() {
         // Prepare a wallet in initial state.
         let wallet = WalletWithMocks::new_unregistered().await;
