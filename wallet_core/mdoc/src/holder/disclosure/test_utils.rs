@@ -210,7 +210,7 @@ where
 {
     async fn post<R, V>(&self, _url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         // Serialize the payload and give it to the sender.
@@ -426,7 +426,7 @@ where
 {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         // The URL has to match the one on the configured `ReaderEngagement`.

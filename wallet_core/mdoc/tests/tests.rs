@@ -66,7 +66,7 @@ impl MockIssuanceHttpClient {
 impl HttpClient for MockIssuanceHttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
@@ -94,7 +94,7 @@ impl MockDisclosureHttpClient {
 impl HttpClient for MockDisclosureHttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();

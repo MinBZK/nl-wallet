@@ -29,7 +29,7 @@ use super::{HolderError, Mdoc, MdocCopies, Wallet};
 pub trait HttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned;
 }
 
@@ -39,7 +39,7 @@ pub struct CborHttpClient(pub reqwest::Client);
 impl HttpClient for CborHttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let bytes = cbor_serialize(val)?;
