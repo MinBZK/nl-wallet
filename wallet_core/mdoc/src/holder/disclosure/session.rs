@@ -794,7 +794,7 @@ mod tests {
 
     async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (Error, Vec<Vec<u8>>)
     where
-        F: Fn() -> Error + Send + Sync,
+        F: Fn() -> Error,
     {
         // Set up a `MockHttpClient` with the receiver `error_factory`.
         let (payload_sender, mut payload_receiver) = mpsc::channel(256);
@@ -1158,7 +1158,7 @@ mod tests {
         mpsc::Receiver<Vec<u8>>,
     )
     where
-        F: Fn() -> MockHttpClientResponse + Send + Sync,
+        F: Fn() -> MockHttpClientResponse,
     {
         let privkey = SecretKey::random(&mut OsRng);
         let pubkey = SecretKey::random(&mut OsRng).public_key();
