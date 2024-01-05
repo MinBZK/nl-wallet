@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, error::Error};
 
 use super::Mdoc;
 
@@ -27,7 +27,7 @@ pub struct StoredMdoc<I> {
 #[allow(async_fn_in_trait)]
 pub trait MdocDataSource {
     type MdocIdentifier;
-    type Error: std::error::Error + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// Return all `Mdoc` entries from storage that match a set of doc types.
     /// The result is a `Vec` of `Vec<Mdoc>` with the same `doc_type`. The order
