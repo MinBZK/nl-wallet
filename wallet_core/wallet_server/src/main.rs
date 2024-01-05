@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use wallet_server::{server, settings::Settings, store::new_session_store};
+use wallet_server::{server, settings::Settings, store::DisclosureSessionStore};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -9,7 +9,7 @@ async fn main() -> Result<()> {
 
     let settings = Settings::new()?;
 
-    let sessions = new_session_store(settings.store_url.clone()).await?;
+    let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await?;
     // This will block until the server shuts down.
     server::serve(&settings, sessions).await?;
 

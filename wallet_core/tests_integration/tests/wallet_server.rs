@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_server::{
     settings::{KeyPair, Settings},
-    store::new_session_store,
+    store::DisclosureSessionStore,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
@@ -131,7 +131,7 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
     let settings = wallet_server_settings();
-    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
+    let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions).await;
 
@@ -192,7 +192,7 @@ async fn test_start_session() {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
     let settings = wallet_server_settings();
-    let sessions = new_session_store(settings.store_url.clone()).await.unwrap();
+    let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions).await;
 

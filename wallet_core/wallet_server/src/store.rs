@@ -1,20 +1,59 @@
 use url::Url;
 
-#[cfg(feature = "postgres")]
-use crate::store::postgres::PostgresSessionStore;
 use nl_wallet_mdoc::{
-    server_state::{MemorySessionStore, SessionState, SessionStore},
+    server_state::{MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionToken},
     verifier::DisclosureData,
 };
 
-pub async fn new_session_store(
-    url: Url,
-) -> Result<Box<dyn SessionStore<Data = SessionState<DisclosureData>> + Send + Sync>, anyhow::Error> {
-    match url.scheme() {
-        #[cfg(feature = "postgres")]
-        "postgres" => Ok(Box::new(PostgresSessionStore::connect(url).await?)),
-        "memory" => Ok(Box::new(MemorySessionStore::new())),
-        e => unimplemented!("{}", e),
+#[cfg(feature = "postgres")]
+use crate::store::postgres::PostgresSessionStore;
+
+/// This enum effectively switches between the different types that implement `DisclosureSessionStore`,
+/// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
+pub enum DisclosureSessionStore {
+    #[cfg(feature = "postgres")]
+    Postgres(PostgresSessionStore<DisclosureData>),
+    Memory(MemorySessionStore<DisclosureData>),
+}
+
+impl DisclosureSessionStore {
+    pub async fn init(url: Url) -> anyhow::Result<Self> {
+        let session_store = match url.scheme() {
+            #[cfg(feature = "postgres")]
+            "postgres" => DisclosureSessionStore::Postgres(PostgresSessionStore::connect(url).await?),
+            "memory" => DisclosureSessionStore::Memory(MemorySessionStore::new()),
+            e => unimplemented!("{}", e),
+        };
+
+        Ok(session_store)
+    }
+}
+
+impl SessionStore for DisclosureSessionStore {
+    type Data = SessionState<DisclosureData>;
+
+    async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
+        match self {
+            #[cfg(feature = "postgres")]
+            DisclosureSessionStore::Postgres(postgres) => postgres.get(id).await,
+            DisclosureSessionStore::Memory(memory) => memory.get(id).await,
+        }
+    }
+
+    async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
+        match self {
+            #[cfg(feature = "postgres")]
+            DisclosureSessionStore::Postgres(postgres) => postgres.write(session).await,
+            DisclosureSessionStore::Memory(memory) => memory.write(session).await,
+        }
+    }
+
+    async fn cleanup(&self) -> Result<(), SessionStoreError> {
+        match self {
+            #[cfg(feature = "postgres")]
+            DisclosureSessionStore::Postgres(postgres) => postgres.cleanup().await,
+            DisclosureSessionStore::Memory(memory) => memory.cleanup().await,
+        }
     }
 }
 
@@ -22,7 +61,6 @@ pub async fn new_session_store(
 pub mod postgres {
     use std::{marker::PhantomData, time::Duration};
 
-    use async_trait::async_trait;
     use chrono::Utc;
     use sea_orm::{
         sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
@@ -45,7 +83,7 @@ pub mod postgres {
     }
 
     impl<T> PostgresSessionStore<T> {
-        pub async fn connect(url: Url) -> Result<Self, anyhow::Error> {
+        pub async fn connect(url: Url) -> anyhow::Result<Self> {
             let mut connection_options = ConnectOptions::new(url);
             connection_options
                 .connect_timeout(DB_CONNECT_TIMEOUT)
@@ -60,7 +98,6 @@ pub mod postgres {
         }
     }
 
-    #[async_trait]
     impl<T: Clone + Serialize + DeserializeOwned + Send + Sync> SessionStore for PostgresSessionStore<T> {
         type Data = SessionState<T>;
 

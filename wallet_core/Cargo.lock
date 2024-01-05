@@ -2559,7 +2559,6 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "assert_matches",
- "async-trait",
  "base64 0.21.4",
  "chrono",
  "ciborium",
@@ -5329,7 +5328,6 @@ name = "wallet_server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "axum",
  "base64 0.21.4",
  "chrono",
