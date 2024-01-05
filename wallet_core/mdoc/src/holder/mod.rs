@@ -98,9 +98,12 @@ impl DisclosureError {
 impl From<HttpClientError> for DisclosureError {
     fn from(source: HttpClientError) -> Self {
         let data_shared = match source {
+            // Cbor serialization happens before sharing
             HttpClientError::Cbor(CborError::Serialization(_)) => false,
+            // Cbor deserialization happens after sharing
             HttpClientError::Cbor(CborError::Deserialization(_)) => true,
-            HttpClientError::Request(_) => true, // maybe
+            // When connection cannot be established, no data is shared
+            HttpClientError::Request(ref reqwest_error) => !reqwest_error.is_connect(),
         };
         Self::new(data_shared, MdocError::Holder(HolderError::RequestError(source)))
     }
