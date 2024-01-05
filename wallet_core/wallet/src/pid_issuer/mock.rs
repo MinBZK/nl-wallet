@@ -31,10 +31,10 @@ impl PidIssuerClient for MockPidIssuerClient {
         }
     }
 
-    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
-        _key_factory: &(impl KeyFactory<Key = K> + Sync),
+        _key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         match self.next_error.take() {
             None => Ok(self.mdoc_copies.clone()),

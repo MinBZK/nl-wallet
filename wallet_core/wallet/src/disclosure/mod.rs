@@ -62,13 +62,13 @@ pub trait MdocDisclosureProposal {
 
     async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
     where
-        KF: KeyFactory<Key = K> + Sync,
-        K: MdocEcdsaKey + Send + Sync;
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey;
 }
 
 impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient, Uuid>
 where
-    D: MdocDataSource<MdocIdentifier = Uuid> + Sync,
+    D: MdocDataSource<MdocIdentifier = Uuid>,
 {
     type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
     type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
@@ -139,8 +139,8 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
 
     async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
     where
-        KF: KeyFactory<Key = K> + Sync,
-        K: MdocEcdsaKey + Send + Sync,
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
     {
         self.disclose(key_factory).await
     }
@@ -206,8 +206,8 @@ mod mock {
 
         async fn disclose<KF, K>(&self, _key_factory: &KF) -> nl_wallet_mdoc::Result<()>
         where
-            KF: KeyFactory<Key = K> + Sync,
-            K: MdocEcdsaKey + Send + Sync,
+            KF: KeyFactory<Key = K>,
+            K: MdocEcdsaKey,
         {
             if let Some(error) = self.next_error.lock().unwrap().take() {
                 return Err(error);
@@ -254,10 +254,7 @@ mod mock {
         }
     }
 
-    impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession
-    where
-        D: Sync,
-    {
+    impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
         type MissingAttributes = MockMdocDisclosureMissingAttributes;
         type Proposal = MockMdocDisclosureProposal;
 

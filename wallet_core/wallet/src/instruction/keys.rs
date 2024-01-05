@@ -42,9 +42,9 @@ impl<'a, S, K, A> RemoteEcdsaKeyFactory<'a, S, K, A> {
 
 impl<'a, S, K, A> KeyFactory for &'a RemoteEcdsaKeyFactory<'a, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     type Key = RemoteEcdsaKey<'a, S, K, A>;
     type Error = RemoteEcdsaKeyError;
@@ -111,9 +111,9 @@ impl<S, K, A> WithIdentifier for RemoteEcdsaKey<'_, S, K, A> {
 
 impl<S, K, A> EcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     type Error = RemoteEcdsaKeyError;
 
@@ -143,17 +143,17 @@ where
 
 impl<S, K, A> SecureEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
 }
 
 impl<S, K, A> MdocEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     const KEY_TYPE: MdocKeyType = MdocKeyType::Remote;
 }

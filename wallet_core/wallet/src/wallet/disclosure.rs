@@ -193,9 +193,9 @@ where
 
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
-        S: Storage + Send + Sync,
-        PEK: PlatformEcdsaKey + Sync,
-        APC: AccountProviderClient + Sync,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
     {
         info!("Accepting disclosure");
 
@@ -291,13 +291,7 @@ where
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    CR: Sync,
-    S: Storage + Send + Sync,
-    PEK: Sync,
-    APC: Sync,
-    DGS: Sync,
-    PIC: Sync,
-    MDS: Sync,
+    S: Storage,
 {
     type MdocIdentifier = Uuid;
     type Error = StorageError;

@@ -77,8 +77,8 @@ pub trait Storage {
     async fn clear(&mut self) -> StorageResult<()>;
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;

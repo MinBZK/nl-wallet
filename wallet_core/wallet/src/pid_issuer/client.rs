@@ -91,10 +91,10 @@ impl PidIssuerClient for HttpPidIssuerClient {
         Ok(unsigned_mdocs.to_vec())
     }
 
-    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &(impl KeyFactory<Key = K> + Sync),
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         let mdocs = self
             .mdoc_wallet

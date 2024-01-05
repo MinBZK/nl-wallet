@@ -101,7 +101,7 @@ where
 
     pub async fn send<I>(&self, instruction: I) -> Result<I::Result, InstructionError>
     where
-        I: InstructionEndpoint + Send + Sync + 'static,
+        I: InstructionEndpoint + 'static,
     {
         let mut storage = self.storage.write().await;
 

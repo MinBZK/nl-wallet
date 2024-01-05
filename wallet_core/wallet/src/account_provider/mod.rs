@@ -57,5 +57,5 @@ pub trait AccountProviderClient {
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
-        I: InstructionEndpoint + Send + Sync + 'static;
+        I: InstructionEndpoint + 'static;
 }

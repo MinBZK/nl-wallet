@@ -34,8 +34,8 @@ pub struct HttpDigidSession<C = HttpOpenIdClient, P = S256PkcePair> {
 
 impl<C, P> DigidSession for HttpDigidSession<C, P>
 where
-    P: PkcePair + Send + Sync + 'static,
-    C: OpenIdClient + Send,
+    P: PkcePair + 'static,
+    C: OpenIdClient,
 {
     async fn start(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, DigidError> {
         // Remember the `redirect_uri` base.
@@ -74,7 +74,10 @@ where
             .starts_with(self.redirect_uri_base.as_str())
     }
 
-    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError> {
+    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError>
+    where
+        P: 'static,
+    {
         // Check if the redirect URL received actually belongs to us.
         if !self.matches_received_redirect_uri(received_redirect_uri) {
             return Err(DigidError::RedirectUriMismatch);

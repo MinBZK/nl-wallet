@@ -134,7 +134,7 @@ where
 
 impl<K> Storage for DatabaseStorage<K>
 where
-    K: SecureEncryptionKey + Send + Sync,
+    K: SecureEncryptionKey,
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
@@ -191,7 +191,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -205,7 +205,7 @@ where
     }
 
     /// Update data entry in the key-value table using the provided key.
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         keyed_data::Entity::update_many()
