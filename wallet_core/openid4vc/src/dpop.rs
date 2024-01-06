@@ -14,8 +14,8 @@
 //!   ```text
 //!   Authorization: DPoP $token
 //!   ```
-//! - The DPoP JWT must include the `ath` field in its body, which must be equal to the URL-no-pad base64 encoding of
-//!   the SHA256 of the token.
+//! - The DPoP JWT must include the `ath` field in its body, which must be equal to the URL-safe-no-pad base64 encoding
+//!   of the SHA256 of the token.
 //!
 //! Example DPoP JWT header and body:
 //! ```json
