@@ -58,7 +58,7 @@ pub trait AttributesLookup {
 /// Given an access token, lookup a BSN: a trait modeling the OIDC [`Client`](crate::openid::Client).
 /// Contract for the DigiD bridge.
 #[trait_variant::make(BsnLookup: Send)]
-pub trait BsnLookupNoSend {
+pub trait LocalBsnLookup {
     async fn bsn(&self, access_token: &str) -> Result<String, digid::Error>;
 }
 
@@ -125,7 +125,7 @@ async fn start_route<A, B>(
 ) -> Result<Json<ServiceEngagement>, Error>
 where
     A: AttributesLookup,
-    B: BsnLookup,
+    B: LocalBsnLookup,
 {
     // Using the access_token that the user specified, lookup the user's BSN at the OIDC IdP (DigiD bridge)
     let access_token = authorization_header.token();

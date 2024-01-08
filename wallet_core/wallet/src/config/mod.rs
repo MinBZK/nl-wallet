@@ -57,7 +57,7 @@ pub trait ConfigurationRepository {
 }
 
 #[trait_variant::make(UpdateableConfigurationRepository: Send)]
-pub trait UpdateableConfigurationRepositoryNoSend: ConfigurationRepository {
+pub trait LocalUpdateableConfigurationRepository: ConfigurationRepository {
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError>;
 }
 
