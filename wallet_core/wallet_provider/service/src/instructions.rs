@@ -12,9 +12,8 @@ use wallet_common::{
 };
 use wallet_provider_domain::{
     model::{
-        hsm::WalletUserHsm,
+        hsm::{WalletUserHsm, WrappedKeySigningPayload},
         wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
-        wrapped_key::WrappedKey,
     },
     repository::{Committable, TransactionStarter, WalletUserRepository},
 };
@@ -123,7 +122,7 @@ impl HandleInstruction for Sign {
             .await?;
         tx.commit().await?;
 
-        let message_with_keys: Vec<(Arc<Vec<u8>>, (String, WrappedKey))> = self
+        let message_with_keys: Vec<WrappedKeySigningPayload> = self
             .messages_with_identifiers
             .into_iter()
             .flat_map(|(data, identifiers)| {
@@ -132,7 +131,12 @@ impl HandleInstruction for Sign {
                     .into_iter()
                     .map(|identifier| {
                         let wrapped_key = found_keys.remove(&identifier).unwrap();
-                        (Arc::clone(&data), (identifier, wrapped_key))
+
+                        WrappedKeySigningPayload {
+                            identifier,
+                            wrapped_key,
+                            data: Arc::clone(&data),
+                        }
                     })
                     .collect::<Vec<_>>()
             })
