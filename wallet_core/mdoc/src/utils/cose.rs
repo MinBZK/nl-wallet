@@ -256,14 +256,14 @@ fn signature_data_and_header(payload: &[u8]) -> (Vec<u8>, ProtectedHeader) {
     (sig_data, protected_header)
 }
 
-fn signatures_data_and_header(payloads: Vec<&[u8]>) -> (Vec<Vec<u8>>, ProtectedHeader) {
+fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHeader) {
     let protected_header = ProtectedHeader {
         original_data: None,
         header: HeaderBuilder::new().algorithm(iana::Algorithm::ES256).build(),
     };
 
     let sigs_data = payloads
-        .into_iter()
+        .iter()
         .map(|payload| {
             sig_structure_data(
                 SignatureContext::CoseSign1,
@@ -313,7 +313,7 @@ pub async fn sign_coses<'a, K: MdocEcdsaKey + Sync>(
         .map(|(_key, challenge)| *challenge)
         .collect::<Vec<&[u8]>>();
 
-    let (sigs_data, protected_header) = signatures_data_and_header(payloads.clone());
+    let (sigs_data, protected_header) = signatures_data_and_header(&payloads);
 
     let keys_and_signature_data = keys_and_challenges
         .into_iter()

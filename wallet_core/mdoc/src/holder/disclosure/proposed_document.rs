@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
@@ -164,22 +162,17 @@ impl<I> ProposedDocument<I> {
             })
             .collect::<Result<Vec<(K, &[u8])>>>()?;
 
-        let mut device_signed_by_key: HashMap<String, DeviceSigned> =
-            DeviceSigned::new_signatures(keys_and_challenges, key_factory)
-                .await?
-                .into_iter()
-                .collect();
+        let keys_and_device_signed: Vec<(String, DeviceSigned)> =
+            DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
 
         let documents = proposed_documents
             .into_iter()
-            .map(|proposed_doc| {
-                let device_signed = device_signed_by_key.remove(&proposed_doc.private_key_id).unwrap();
-                Document {
-                    doc_type: proposed_doc.doc_type,
-                    issuer_signed: proposed_doc.issuer_signed,
-                    device_signed,
-                    errors: None,
-                }
+            .zip(keys_and_device_signed)
+            .map(|(proposed_doc, (_key, device_signed))| Document {
+                doc_type: proposed_doc.doc_type,
+                issuer_signed: proposed_doc.issuer_signed,
+                device_signed,
+                errors: None,
             })
             .collect();
 

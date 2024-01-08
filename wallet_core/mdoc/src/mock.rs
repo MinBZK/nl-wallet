@@ -180,17 +180,16 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
         key
     }
 
-    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_new_keys(
         &'a self,
-        msg: T,
+        msg: Vec<u8>,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let keys = self.generate_new_multiple(number_of_keys).await?;
-        let bytes = msg.into();
 
         let signatures_by_identifier = future::try_join_all(keys.into_iter().map(|key| async {
             let signature = SoftwareEcdsaKey::new(key.identifier())
-                .try_sign(bytes.as_slice())
+                .try_sign(msg.as_slice())
                 .await
                 .map_err(|_| SoftwareKeyFactoryError::Signing)?;
 
@@ -203,19 +202,17 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
         Ok(signatures_by_identifier)
     }
 
-    async fn sign_with_existing_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_existing_keys(
         &'a self,
-        messages_and_keys: Vec<(T, Vec<Self::Key>)>,
+        messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let result = future::try_join_all(
             messages_and_keys
                 .into_iter()
-                .map(|(msg, keys)| async {
-                    let bytes = msg.into();
-
+                .map(|(msg, keys)| async move {
                     let signatures_by_identifier: Vec<(Self::Key, Signature)> =
                         future::try_join_all(keys.into_iter().map(|key| async {
-                            let signature = key.try_sign(bytes.as_slice()).await?;
+                            let signature = key.try_sign(&msg).await?;
                             Ok((key, signature))
                         }))
                         .await?

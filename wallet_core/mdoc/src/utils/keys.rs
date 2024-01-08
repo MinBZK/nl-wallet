@@ -33,15 +33,15 @@ pub trait KeyFactory<'a> {
     async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error>;
     fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key;
 
-    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_new_keys(
         &'a self,
-        msg: T,
+        msg: Vec<u8>,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 
-    async fn sign_with_existing_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_existing_keys(
         &'a self,
-        messages_and_keys: Vec<(T, Vec<Self::Key>)>,
+        messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 }
 

@@ -77,18 +77,18 @@ where
         }
     }
 
-    async fn sign_with_new_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_new_keys(
         &'a self,
-        msg: T,
+        msg: Vec<u8>,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let keys = self.generate_new_multiple(number_of_keys).await?;
         self.sign_with_existing_keys(vec![(msg, keys)]).await
     }
 
-    async fn sign_with_existing_keys<T: Into<Vec<u8>> + Send>(
+    async fn sign_with_existing_keys(
         &'a self,
-        messages_and_keys: Vec<(T, Vec<Self::Key>)>,
+        messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let (messages, keys): (Vec<_>, Vec<Vec<_>>) = messages_and_keys.into_iter().unzip();
 
@@ -103,7 +103,7 @@ where
                 messages_with_identifiers: messages
                     .into_iter()
                     .zip(identifiers)
-                    .map(|(msg, keys)| (msg.into().into(), keys))
+                    .map(|(msg, keys)| (msg.into(), keys))
                     .collect(),
             })
             .await?;
