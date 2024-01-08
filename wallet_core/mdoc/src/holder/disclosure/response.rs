@@ -1,5 +1,3 @@
-use futures::future;
-
 use crate::{
     errors::Result,
     iso::disclosure::{DeviceResponse, DeviceResponseVersion},
@@ -18,13 +16,7 @@ impl DeviceResponse {
         K: MdocEcdsaKey + Sync,
     {
         // Convert all of the `ProposedDocument` entries to `Document` by signing them.
-        // TODO: Do this in bulk, as this will be serialized by the implementation.
-        let documents = future::try_join_all(
-            proposed_documents
-                .into_iter()
-                .map(|proposed_document| proposed_document.sign(key_factory)),
-        )
-        .await?;
+        let documents = ProposedDocument::<I>::sign_multiple(key_factory, proposed_documents).await?;
 
         // Create a `DeviceResponse` containing the documents.
         let device_response = DeviceResponse {
