@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use uuid::{self, Uuid};
 
@@ -22,7 +21,6 @@ impl Repositories {
     }
 }
 
-#[async_trait]
 impl TransactionStarter for Repositories {
     type TransactionType = Transaction;
 
@@ -31,7 +29,6 @@ impl TransactionStarter for Repositories {
     }
 }
 
-#[async_trait]
 impl WalletUserRepository for Repositories {
     type TransactionType = Transaction;
 
@@ -122,7 +119,6 @@ impl WalletUserRepository for Repositories {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use async_trait::async_trait;
     use chrono::{DateTime, Local};
     use mockall;
     use std::collections::HashMap;
@@ -139,7 +135,6 @@ pub mod mock {
     mockall::mock! {
         pub TransactionalWalletUserRepository {}
 
-        #[async_trait]
         impl WalletUserRepository for TransactionalWalletUserRepository {
             type TransactionType = MockTransaction;
 
@@ -204,7 +199,6 @@ pub mod mock {
             ) -> Result<HashMap<String, WrappedKey>, PersistenceError>;
         }
 
-        #[async_trait]
         impl TransactionStarter for TransactionalWalletUserRepository {
             type TransactionType = MockTransaction;
 

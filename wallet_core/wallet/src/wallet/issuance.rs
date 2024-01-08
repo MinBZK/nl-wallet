@@ -185,9 +185,9 @@ where
     #[instrument(skip_all)]
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
-        S: Storage + Send + Sync,
-        PEK: PlatformEcdsaKey + Sync,
-        APC: AccountProviderClient + Sync,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
     {
         info!("Accepting PID issuance");
 
@@ -226,7 +226,7 @@ where
 
         let mdocs = self
             .pid_issuer
-            .accept_pid(&config.mdoc_trust_anchors(), &remote_key_factory)
+            .accept_pid(&config.mdoc_trust_anchors(), &&remote_key_factory)
             .await
             .map_err(|error| {
                 match error {

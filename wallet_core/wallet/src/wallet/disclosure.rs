@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use async_trait::async_trait;
 use chrono::Utc;
 use indexmap::IndexMap;
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -194,9 +193,9 @@ where
 
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
-        S: Storage + Send + Sync,
-        PEK: PlatformEcdsaKey + Sync,
-        APC: AccountProviderClient + Sync,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
     {
         info!("Accepting disclosure");
 
@@ -251,7 +250,7 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         session_proposal
-            .disclose(&remote_key_factory)
+            .disclose(&&remote_key_factory)
             .await
             .map_err(|error| match error {
                 nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
@@ -290,16 +289,9 @@ where
     }
 }
 
-#[async_trait]
 impl<CR, S, PEK, APC, DGS, PIC, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    CR: Send + Sync,
-    S: Storage + Send + Sync,
-    PEK: Send + Sync,
-    APC: Send + Sync,
-    DGS: Send + Sync,
-    PIC: Send + Sync,
-    MDS: Send + Sync,
+    S: Storage,
 {
     type MdocIdentifier = Uuid;
     type Error = StorageError;

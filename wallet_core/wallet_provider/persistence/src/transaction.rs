@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use sea_orm::{DatabaseTransaction, TransactionTrait};
 use tokio::task;
 
@@ -24,7 +23,6 @@ impl PersistenceConnection<DatabaseTransaction> for Transaction {
     }
 }
 
-#[async_trait]
 impl Committable for Transaction {
     async fn commit(mut self) -> Result<(), PersistenceError> {
         self.0
@@ -36,7 +34,6 @@ impl Committable for Transaction {
     }
 }
 
-#[async_trait]
 impl TransactionStarter for Transaction {
     type TransactionType = Transaction;
 

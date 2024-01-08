@@ -1,6 +1,5 @@
 use std::{path::PathBuf, sync::Arc};
 
-use async_trait::async_trait;
 use cryptoki::{
     context::{CInitializeArgs, Pkcs11},
     mechanism::{aead::GcmParams, Mechanism},
@@ -71,7 +70,6 @@ pub(crate) enum SigningMechanism {
     Sha256Hmac,
 }
 
-#[async_trait]
 pub(crate) trait Pkcs11Client {
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_wrapping_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
@@ -160,7 +158,6 @@ impl Pkcs11Hsm {
     }
 }
 
-#[async_trait]
 impl Encrypter<VerifyingKey> for Pkcs11Hsm {
     type Error = HsmError;
 
@@ -174,7 +171,6 @@ impl Encrypter<VerifyingKey> for Pkcs11Hsm {
     }
 }
 
-#[async_trait]
 impl Decrypter<VerifyingKey> for Pkcs11Hsm {
     type Error = HsmError;
 
@@ -188,7 +184,6 @@ impl Decrypter<VerifyingKey> for Pkcs11Hsm {
     }
 }
 
-#[async_trait]
 impl WalletUserHsm for Pkcs11Hsm {
     type Error = HsmError;
 
@@ -222,7 +217,6 @@ impl WalletUserHsm for Pkcs11Hsm {
     }
 }
 
-#[async_trait]
 impl Hsm for Pkcs11Hsm {
     type Error = HsmError;
 
@@ -272,13 +266,12 @@ impl Hsm for Pkcs11Hsm {
         Ok(Encrypted::new(encrypted_data, initializiation_vector))
     }
 
-    async fn decrypt<T: Send>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
+    async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
         let handle = self.get_private_key_handle(identifier).await?;
         Pkcs11Client::decrypt(self, handle, encrypted.iv, encrypted.data).await
     }
 }
 
-#[async_trait]
 impl Pkcs11Client for Pkcs11Hsm {
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
         let pool = self.pool.clone();
@@ -514,8 +507,9 @@ impl Pkcs11Client for Pkcs11Hsm {
             };
 
             let session = pool.get()?;
-            let signature = session.verify(&mechanism, private_key_handle.0, &sha256(&data), &signature)?;
-            Ok(signature)
+            session.verify(&mechanism, private_key_handle.0, &sha256(&data), &signature)?;
+
+            Ok(())
         })
         .await
     }

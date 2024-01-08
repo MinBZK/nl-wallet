@@ -144,13 +144,13 @@ impl<I> ProposedDocument<I> {
     }
 
     /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.
-    pub async fn sign_multiple<'a, KF, K>(
-        key_factory: &'a KF,
+    pub async fn sign_multiple<KF, K>(
+        key_factory: &KF,
         proposed_documents: Vec<ProposedDocument<I>>,
     ) -> Result<Vec<Document>>
     where
-        KF: KeyFactory<'a, Key = K>,
-        K: MdocEcdsaKey + Sync,
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
     {
         let keys_and_challenges = proposed_documents
             .iter()

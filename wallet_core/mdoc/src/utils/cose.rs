@@ -166,7 +166,7 @@ impl<T> MdocCose<CoseSign1, T> {
     pub async fn sign(
         obj: &T,
         unprotected_header: Header,
-        private_key: &(impl SecureEcdsaKey + Sync),
+        private_key: &impl SecureEcdsaKey,
         include_payload: bool,
     ) -> Result<MdocCose<CoseSign1, T>>
     where
@@ -178,11 +178,11 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose.into())
     }
 
-    pub async fn generate_keys_and_sign<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn generate_keys_and_sign<K: MdocEcdsaKey>(
         obj: &T,
         unprotected_header: Header,
         number_of_keys: u64,
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
         include_payload: bool,
     ) -> Result<Vec<(K, MdocCose<CoseSign1, T>)>>
     where
@@ -281,7 +281,7 @@ fn signatures_data_and_header(payloads: &[&[u8]]) -> (Vec<Vec<u8>>, ProtectedHea
 pub async fn sign_cose(
     payload: &[u8],
     unprotected_header: Header,
-    private_key: &(impl SecureEcdsaKey + Sync),
+    private_key: &impl SecureEcdsaKey,
     include_payload: bool,
 ) -> Result<CoseSign1> {
     let (sig_data, protected_header) = signature_data_and_header(payload);
@@ -302,9 +302,9 @@ pub async fn sign_cose(
     Ok(signed)
 }
 
-pub async fn sign_coses<'a, K: MdocEcdsaKey + Sync>(
+pub async fn sign_coses<K: MdocEcdsaKey>(
     keys_and_challenges: Vec<(K, &[u8])>,
-    key_factory: &'a impl KeyFactory<'a, Key = K>,
+    key_factory: &impl KeyFactory<Key = K>,
     unprotected_header: Header,
     include_payload: bool,
 ) -> Result<Vec<(K, CoseSign1)>> {
@@ -345,11 +345,11 @@ pub async fn sign_coses<'a, K: MdocEcdsaKey + Sync>(
     Ok(signed)
 }
 
-pub async fn generate_keys_and_sign_cose<'a, K: MdocEcdsaKey + Sync>(
+pub async fn generate_keys_and_sign_cose<K: MdocEcdsaKey>(
     payload: &[u8],
     unprotected_header: Header,
     number_of_keys: u64,
-    key_factory: &'a impl KeyFactory<'a, Key = K>,
+    key_factory: &impl KeyFactory<Key = K>,
     include_payload: bool,
 ) -> Result<Vec<(K, CoseSign1)>> {
     let (sig_data, protected_header) = signature_data_and_header(payload);

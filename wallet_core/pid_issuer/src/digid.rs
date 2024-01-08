@@ -1,6 +1,5 @@
 use std::{collections::HashMap, time::Duration};
 
-use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::header;
 use josekit::{
@@ -57,7 +56,6 @@ pub struct OpenIdClient {
     decrypter_private_key: RsaesJweDecrypter,
 }
 
-#[async_trait]
 impl BsnLookup for OpenIdClient {
     async fn bsn(&self, access_token: &str) -> Result<String> {
         let userinfo_claims: UserInfoJWT = self

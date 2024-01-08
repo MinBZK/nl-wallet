@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 crate-type = ["staticlib", "cdylib", "lib"]
 doctest = false
@@ -18,7 +21,6 @@ integration-test = [
 hardware-integration-test = ["integration-test", "dep:jni"]
 
 [dependencies]
-async-trait.workspace = true
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 thiserror.workspace = true

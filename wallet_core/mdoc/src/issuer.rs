@@ -76,11 +76,14 @@ impl<K, S> Drop for Issuer<K, S> {
 impl<K, S> Issuer<K, S>
 where
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     /// Construct a new issuance server. The `url` parameter should be the base URL at which the server is
     /// publically reachable; this is included in the [`ServiceEngagement`] that gets sent to the holder.
-    pub fn new(url: Url, keys: K, session_store: S) -> Self {
+    pub fn new(url: Url, keys: K, session_store: S) -> Self
+    where
+        S: Send + Sync + 'static,
+    {
         let sessions = Arc::new(session_store);
         Issuer {
             cleanup_task: sessions

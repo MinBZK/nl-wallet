@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use std::collections::HashMap;
 
@@ -11,7 +10,6 @@ use super::{errors::PersistenceError, transaction::Committable};
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-#[async_trait]
 pub trait WalletUserRepository {
     type TransactionType: Committable;
 
@@ -70,7 +68,6 @@ pub mod mock {
 
     pub struct MockWalletUserRepository;
 
-    #[async_trait]
     impl WalletUserRepository for MockWalletUserRepository {
         type TransactionType = MockTransaction;
 

@@ -1,6 +1,5 @@
 use std::{collections::HashMap, iter};
 
-use async_trait::async_trait;
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 use tracing::info;
 
@@ -42,17 +41,16 @@ impl<'a, S, K, A> RemoteEcdsaKeyFactory<'a, S, K, A> {
     }
 }
 
-#[async_trait]
-impl<'a, S, K, A> KeyFactory<'a> for RemoteEcdsaKeyFactory<'a, S, K, A>
+impl<'a, S, K, A> KeyFactory for &'a RemoteEcdsaKeyFactory<'a, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     type Key = RemoteEcdsaKey<'a, S, K, A>;
     type Error = RemoteEcdsaKeyError;
 
-    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
         let identifiers = iter::repeat_with(|| random_string(32)).take(count as usize).collect();
         let result: GenerateKeyResult = self.instruction_client.send(GenerateKey { identifiers }).await?;
 
@@ -69,7 +67,7 @@ where
         Ok(keys)
     }
 
-    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         RemoteEcdsaKey {
             identifier: identifier.into(),
             public_key,
@@ -78,7 +76,7 @@ where
     }
 
     async fn sign_with_new_keys(
-        &'a self,
+        &self,
         msg: Vec<u8>,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
@@ -87,7 +85,7 @@ where
     }
 
     async fn sign_with_existing_keys(
-        &'a self,
+        &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let (messages, keys): (Vec<_>, Vec<Vec<_>>) = messages_and_keys.into_iter().unzip();
@@ -136,12 +134,11 @@ impl<S, K, A> WithIdentifier for RemoteEcdsaKey<'_, S, K, A> {
     }
 }
 
-#[async_trait]
 impl<S, K, A> EcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     type Error = RemoteEcdsaKeyError;
 
@@ -171,17 +168,17 @@ where
 
 impl<S, K, A> SecureEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
 }
 
 impl<S, K, A> MdocEcdsaKey for RemoteEcdsaKey<'_, S, K, A>
 where
-    S: Storage + Send + Sync,
-    K: PlatformEcdsaKey + Sync,
-    A: AccountProviderClient + Sync,
+    S: Storage,
+    K: PlatformEcdsaKey,
+    A: AccountProviderClient,
 {
     const KEY_TYPE: MdocKeyType = MdocKeyType::Remote;
 }

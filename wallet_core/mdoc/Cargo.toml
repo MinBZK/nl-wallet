@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 examples = ["dep:anyhow", "dep:hex-literal"]
 generate = ["dep:rcgen"]
@@ -18,7 +21,6 @@ allow_http_return_url = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
-async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true

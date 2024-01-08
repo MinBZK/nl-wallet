@@ -1,6 +1,5 @@
 use std::{fmt::Debug, iter};
 
-use async_trait::async_trait;
 use futures::{executor, future};
 use indexmap::IndexMap;
 use p256::ecdsa::{Signature, VerifyingKey};
@@ -100,7 +99,6 @@ impl MdocEcdsaKey for FactorySoftwareEcdsaKey {
     const KEY_TYPE: MdocKeyType = MdocKeyType::Software;
 }
 impl SecureEcdsaKey for FactorySoftwareEcdsaKey {}
-#[async_trait]
 impl EcdsaKey for FactorySoftwareEcdsaKey {
     type Error = SoftwareKeyFactoryError;
 
@@ -153,12 +151,11 @@ impl SoftwareKeyFactory {
     }
 }
 
-#[async_trait]
-impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
+impl KeyFactory for SoftwareKeyFactory {
     type Key = FactorySoftwareEcdsaKey;
     type Error = SoftwareKeyFactoryError;
 
-    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
         if self.has_generating_error {
             return Err(SoftwareKeyFactoryError::Generating);
         }
@@ -170,7 +167,7 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
         Ok(keys)
     }
 
-    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key {
+    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
         let key = self.new_key(&identifier.into());
 
         // If the provided public key does not match the key fetched
@@ -181,7 +178,7 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
     }
 
     async fn sign_with_new_keys(
-        &'a self,
+        &self,
         msg: Vec<u8>,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
@@ -203,7 +200,7 @@ impl<'a> KeyFactory<'a> for SoftwareKeyFactory {
     }
 
     async fn sign_with_existing_keys(
-        &'a self,
+        &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let result = future::try_join_all(

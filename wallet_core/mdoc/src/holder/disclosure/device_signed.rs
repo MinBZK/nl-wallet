@@ -16,7 +16,7 @@ use crate::{
 };
 
 impl DeviceSigned {
-    pub async fn new_signature(private_key: &(impl SecureEcdsaKey + Sync), challenge: &[u8]) -> Result<DeviceSigned> {
+    pub async fn new_signature(private_key: &impl SecureEcdsaKey, challenge: &[u8]) -> Result<DeviceSigned> {
         let cose = sign_cose(challenge, Header::default(), private_key, false).await?;
 
         let device_signed = DeviceSigned {
@@ -27,13 +27,13 @@ impl DeviceSigned {
         Ok(device_signed)
     }
 
-    pub async fn new_signatures<'a, K, KF>(
+    pub async fn new_signatures<K, KF>(
         keys_and_challenges: Vec<(K, &[u8])>,
-        key_factory: &'a KF,
+        key_factory: &KF,
     ) -> Result<Vec<(String, DeviceSigned)>>
     where
-        K: MdocEcdsaKey + Sync,
-        KF: KeyFactory<'a, Key = K>,
+        K: MdocEcdsaKey,
+        KF: KeyFactory<Key = K>,
     {
         let keys_and_coses = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;
 

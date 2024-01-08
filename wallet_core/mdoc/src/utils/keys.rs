@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use async_trait::async_trait;
 use p256::ecdsa::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 
@@ -21,26 +20,25 @@ pub enum MdocKeyType {
     Remote,
 }
 
-#[async_trait]
-pub trait KeyFactory<'a> {
-    type Key: MdocEcdsaKey + 'a;
+pub trait KeyFactory {
+    type Key: MdocEcdsaKey;
     type Error: Error + Send + Sync + 'static;
 
-    async fn generate_new(&'a self) -> Result<Self::Key, Self::Error> {
+    async fn generate_new(&self) -> Result<Self::Key, Self::Error> {
         self.generate_new_multiple(1).await.map(|mut keys| keys.remove(1))
     }
 
-    async fn generate_new_multiple(&'a self, count: u64) -> Result<Vec<Self::Key>, Self::Error>;
-    fn generate_existing<I: Into<String> + Send>(&'a self, identifier: I, public_key: VerifyingKey) -> Self::Key;
+    async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error>;
+    fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key;
 
     async fn sign_with_new_keys(
-        &'a self,
+        &self,
         msg: Vec<u8>,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 
     async fn sign_with_existing_keys(
-        &'a self,
+        &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 }

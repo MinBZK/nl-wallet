@@ -1,6 +1,5 @@
 use std::{collections::HashSet, fmt, iter, sync::Arc};
 
-use async_trait::async_trait;
 use futures::future;
 use indexmap::{IndexMap, IndexSet};
 use p256::{ecdsa::SigningKey, SecretKey};
@@ -205,14 +204,13 @@ impl<F> fmt::Debug for MockHttpClient<F> {
     }
 }
 
-#[async_trait]
 impl<F> HttpClient for MockHttpClient<F>
 where
-    F: Fn() -> MockHttpClientResponse + Send + Sync,
+    F: Fn() -> MockHttpClientResponse,
 {
     async fn post<R, V>(&self, _url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         // Serialize the payload and give it to the sender.
@@ -261,7 +259,6 @@ impl Default for MockMdocDataSource {
     }
 }
 
-#[async_trait]
 impl MdocDataSource for MockMdocDataSource {
     type MdocIdentifier = MdocIdentifier;
     type Error = MdocDataSourceError;
@@ -423,14 +420,13 @@ impl<F> fmt::Debug for MockVerifierSessionClient<F> {
     }
 }
 
-#[async_trait]
 impl<F> HttpClient for MockVerifierSessionClient<F>
 where
-    F: Fn(DeviceRequest) -> DeviceRequest + Send + Sync,
+    F: Fn(DeviceRequest) -> DeviceRequest,
 {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         // The URL has to match the one on the configured `ReaderEngagement`.
@@ -477,7 +473,7 @@ pub async fn disclosure_session_start<FS, FM, FD>(
 where
     FS: FnOnce(MockVerifierSession<FD>) -> MockVerifierSession<FD>,
     FM: FnOnce(MockMdocDataSource) -> MockMdocDataSource,
-    FD: Fn(DeviceRequest) -> DeviceRequest + Send + Sync,
+    FD: Fn(DeviceRequest) -> DeviceRequest,
 {
     // Create a reader registration with all of the example attributes,
     // if we should have a reader registration at all.

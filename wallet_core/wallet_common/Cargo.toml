@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false
 
@@ -13,7 +16,6 @@ software-keys = ["dep:aes-gcm", "dep:rand_core"]
 integration-test = []
 
 [dependencies]
-async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 config.workspace = true

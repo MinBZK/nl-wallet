@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use p256::ecdsa::{Signature, VerifyingKey};
 
 use wallet_common::keys::{EcdsaKey, SecureEcdsaKey, WithIdentifier};
@@ -14,7 +13,6 @@ pub trait InstructionResultSigningKey: SecureEcdsaKey {}
 pub struct CertificateSigning(pub WalletProviderEcdsaKey);
 pub struct InstructionResultSigning(pub WalletProviderEcdsaKey);
 
-#[async_trait]
 impl EcdsaKey for CertificateSigning {
     type Error = HsmError;
 
@@ -27,7 +25,6 @@ impl EcdsaKey for CertificateSigning {
     }
 }
 
-#[async_trait]
 impl EcdsaKey for InstructionResultSigning {
     type Error = HsmError;
 
@@ -68,7 +65,6 @@ impl WalletProviderEcdsaKey {
     }
 }
 
-#[async_trait]
 impl EcdsaKey for WalletProviderEcdsaKey {
     type Error = HsmError;
 

@@ -1,6 +1,5 @@
 mod uri;
 
-use async_trait::async_trait;
 use url::Url;
 use uuid::Uuid;
 
@@ -30,7 +29,6 @@ pub enum MdocDisclosureSessionState<M, P> {
     Proposal(P),
 }
 
-#[async_trait]
 pub trait MdocDisclosureSession<D> {
     type MissingAttributes: MdocDisclosureMissingAttributes;
     type Proposal: MdocDisclosureProposal;
@@ -55,22 +53,20 @@ pub trait MdocDisclosureMissingAttributes {
     fn missing_attributes(&self) -> &[AttributeIdentifier];
 }
 
-#[async_trait]
 pub trait MdocDisclosureProposal {
     fn return_url(&self) -> Option<&Url>;
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
     where
-        KF: KeyFactory<'a, Key = K> + Send + Sync,
-        K: MdocEcdsaKey + Send + Sync;
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey;
 }
 
-#[async_trait]
 impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient, Uuid>
 where
-    D: MdocDataSource<MdocIdentifier = Uuid> + Sync,
+    D: MdocDataSource<MdocIdentifier = Uuid>,
 {
     type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
     type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
@@ -126,7 +122,6 @@ impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpCli
     }
 }
 
-#[async_trait]
 impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
     fn return_url(&self) -> Option<&Url> {
         self.return_url()
@@ -140,10 +135,10 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
     where
-        KF: KeyFactory<'a, Key = K> + Send + Sync,
-        K: MdocEcdsaKey + Send + Sync,
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
     {
         self.disclose(key_factory).await
     }
@@ -194,7 +189,6 @@ mod mock {
         pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
     }
 
-    #[async_trait]
     impl MdocDisclosureProposal for MockMdocDisclosureProposal {
         fn return_url(&self) -> Option<&Url> {
             self.return_url.as_ref()
@@ -208,7 +202,11 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<'a, KF, K>(&self, _key_factory: &'a KF) -> nl_wallet_mdoc::Result<()> {
+        async fn disclose<KF, K>(&self, _key_factory: &KF) -> nl_wallet_mdoc::Result<()>
+        where
+            KF: KeyFactory<Key = K>,
+            K: MdocEcdsaKey,
+        {
             if let Some(error) = self.next_error.lock().unwrap().take() {
                 return Err(error);
             }
@@ -254,7 +252,6 @@ mod mock {
         }
     }
 
-    #[async_trait]
     impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
         type MissingAttributes = MockMdocDisclosureMissingAttributes;
         type Proposal = MockMdocDisclosureProposal;

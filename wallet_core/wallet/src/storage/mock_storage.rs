@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use async_trait::async_trait;
 use entity::history_event;
 use sea_orm::DbErr;
 use uuid::Uuid;
@@ -59,7 +58,6 @@ impl Default for MockStorage {
     }
 }
 
-#[async_trait]
 impl Storage for MockStorage {
     async fn state(&self) -> StorageResult<StorageState> {
         Ok(self.state)
@@ -86,7 +84,7 @@ impl Storage for MockStorage {
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         self.check_query_error()?;
 
         if self.data.contains_key(D::KEY) {
@@ -98,7 +96,7 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         self.check_query_error()?;
 
         if !self.data.contains_key(D::KEY) {

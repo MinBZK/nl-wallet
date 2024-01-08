@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
-
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use crate::config::data::default_configuration;
@@ -35,14 +33,12 @@ impl ConfigurationRepository for LocalConfigurationRepository {
     }
 }
 
-#[async_trait]
 impl UpdateableConfigurationRepository for LocalConfigurationRepository {
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
         Ok(ConfigurationUpdateState::Updated)
     }
 }
 
-#[async_trait]
 impl ObservableConfigurationRepository for LocalConfigurationRepository {
     fn register_callback_on_update<F>(&self, _callback: F)
     where

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use futures::future::{self, TryFutureExt};
 use indexmap::IndexMap;
 use serde::{de::DeserializeOwned, Serialize};
@@ -26,22 +25,20 @@ use crate::{
 
 use super::{HolderError, Mdoc, MdocCopies, Wallet};
 
-#[async_trait]
 pub trait HttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned;
 }
 
 /// Send and receive CBOR-encoded messages over HTTP using a [`reqwest::Client`].
 pub struct CborHttpClient(pub reqwest::Client);
 
-#[async_trait]
 impl HttpClient for CborHttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let bytes = cbor_serialize(val)?;
@@ -103,10 +100,10 @@ impl<H: HttpClient> Wallet<H> {
         Ok(&self.session_state.as_ref().unwrap().request.unsigned_mdocs)
     }
 
-    pub async fn finish_issuance<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn finish_issuance<K: MdocEcdsaKey>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<MdocCopies>> {
         let state = self
             .session_state
@@ -145,15 +142,15 @@ impl<H: HttpClient> Wallet<H> {
 }
 
 impl IssuanceSessionState {
-    pub async fn keys_and_responses<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn keys_and_responses<K: MdocEcdsaKey>(
         &self,
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
         let (private_keys, response) = KeyGenerationResponseMessage::new(&self.request, key_factory).await?;
         Ok((private_keys, response))
     }
 
-    pub async fn construct_mdocs<K: MdocEcdsaKey + Sync>(
+    pub async fn construct_mdocs<K: MdocEcdsaKey>(
         &self,
         private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
@@ -170,7 +167,7 @@ impl IssuanceSessionState {
         .await
     }
 
-    async fn create_cred_copies<K: MdocEcdsaKey + Sync>(
+    async fn create_cred_copies<K: MdocEcdsaKey>(
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &[K],
@@ -189,7 +186,7 @@ impl IssuanceSessionState {
 }
 
 impl SparseIssuerSigned {
-    pub(super) async fn to_mdoc<K: MdocEcdsaKey + Sync>(
+    pub(super) async fn to_mdoc<K: MdocEcdsaKey>(
         &self,
         private_key: &K,
         unsigned: &UnsignedMdoc,

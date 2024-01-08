@@ -1,6 +1,5 @@
 use std::{error::Error, sync::Arc};
 
-use async_trait::async_trait;
 use futures::future;
 use p256::ecdsa::{Signature, VerifyingKey};
 
@@ -10,7 +9,12 @@ pub fn key_identifier(prefix: &str, identifier: &str) -> String {
     format!("{prefix}_{identifier}")
 }
 
-#[async_trait]
+pub struct WrappedKeySigningPayload {
+    pub identifier: String,
+    pub wrapped_key: WrappedKey,
+    pub data: Arc<Vec<u8>>,
+}
+
 pub trait WalletUserHsm {
     type Error: Error + Send + Sync;
 
@@ -45,17 +49,13 @@ pub trait WalletUserHsm {
 
     async fn sign_multiple_wrapped(
         &self,
-        data_with_keys: Vec<(Arc<Vec<u8>>, (String, WrappedKey))>,
+        payloads: Vec<WrappedKeySigningPayload>,
     ) -> Result<Vec<(String, Signature)>, Self::Error> {
-        future::try_join_all(
-            data_with_keys
-                .into_iter()
-                .map(|(data, (identifier, wrapped_key))| async move {
-                    self.sign_wrapped(wrapped_key, Arc::clone(&data))
-                        .await
-                        .map(|signature| (identifier, signature))
-                }),
-        )
+        future::try_join_all(payloads.into_iter().map(|payload| async {
+            self.sign_wrapped(payload.wrapped_key, payload.data)
+                .await
+                .map(|signature| (payload.identifier, signature))
+        }))
         .await
     }
 
@@ -76,7 +76,6 @@ pub trait WalletUserHsm {
     }
 }
 
-#[async_trait]
 pub trait Hsm {
     type Error: Error + Send + Sync;
 
@@ -87,14 +86,13 @@ pub trait Hsm {
     async fn sign_hmac(&self, identifier: &str, data: Arc<Vec<u8>>) -> Result<Vec<u8>, Self::Error>;
     async fn verify_hmac(&self, identifier: &str, data: Arc<Vec<u8>>, signature: Vec<u8>) -> Result<(), Self::Error>;
     async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>, Self::Error>;
-    async fn decrypt<T: Send>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error>;
+    async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error>;
 }
 
 #[cfg(feature = "mock")]
 pub mod mock {
     use std::{error::Error, marker::PhantomData, sync::Arc};
 
-    use async_trait::async_trait;
     use dashmap::DashMap;
     use hmac::{digest::MacError, Hmac, Mac};
     use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
@@ -129,7 +127,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync> Encrypter<VerifyingKey> for MockPkcs11Client<E> {
         type Error = E;
 
@@ -143,7 +140,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync> Decrypter<VerifyingKey> for MockPkcs11Client<E> {
         type Error = E;
 
@@ -156,7 +152,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync + From<MacError>> WalletUserHsm for MockPkcs11Client<E> {
         type Error = E;
 
@@ -190,7 +185,6 @@ pub mod mock {
         }
     }
 
-    #[async_trait]
     impl<E: Error + Send + Sync + From<MacError>> Hsm for MockPkcs11Client<E> {
         type Error = E;
 
@@ -248,7 +242,7 @@ pub mod mock {
             Ok(Encrypted::new(data, InitializationVector(random_bytes(32))))
         }
 
-        async fn decrypt<T: Send>(&self, _identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error> {
+        async fn decrypt<T>(&self, _identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>, Self::Error> {
             Ok(encrypted.data)
         }
     }

@@ -30,7 +30,10 @@ debug = 1
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.75"
+
+[workspace.lints.rust]
+async_fn_in_trait = "allow"
 
 [workspace.dependencies]
 aes-gcm = "0.10.1"
@@ -114,6 +117,7 @@ tokio = { version = "1.27.0", default-features = false }
 tower-http = { version = "0.4.0", default-features = false }
 tracing = "0.1"
 tracing-subscriber = "0.3"
+trait-variant = "0.1.1"
 uniffi = { version = "0.24.1", default-features = false }
 url = "2.4.0"
 uuid = "1.4.0"
