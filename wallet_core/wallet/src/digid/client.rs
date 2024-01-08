@@ -74,10 +74,7 @@ where
             .starts_with(self.redirect_uri_base.as_str())
     }
 
-    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError>
-    where
-        P: 'static,
-    {
+    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError> {
         // Check if the redirect URL received actually belongs to us.
         if !self.matches_received_redirect_uri(received_redirect_uri) {
             return Err(DigidError::RedirectUriMismatch);
