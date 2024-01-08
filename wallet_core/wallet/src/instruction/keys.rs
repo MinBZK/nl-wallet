@@ -1,6 +1,7 @@
-use std::iter;
+use std::{collections::HashMap, iter};
 
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
+use tracing::info;
 
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey, MdocKeyType};
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -74,32 +75,56 @@ where
         }
     }
 
-    async fn sign_with_new_keys<T: Into<Vec<u8>>>(
+    async fn sign_with_new_keys(
         &self,
-        msg: T,
+        msg: Vec<u8>,
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let keys = self.generate_new_multiple(number_of_keys).await?;
+        self.sign_with_existing_keys(vec![(msg, keys)]).await
+    }
+
+    async fn sign_with_existing_keys(
+        &self,
+        messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
+    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+        let (messages, keys): (Vec<_>, Vec<Vec<_>>) = messages_and_keys.into_iter().unzip();
+
+        let identifiers = keys
+            .iter()
+            .map(|keys| keys.iter().map(|key| key.identifier.clone()).collect::<Vec<String>>())
+            .collect::<Vec<_>>();
 
         let result = self
             .instruction_client
             .send(Sign {
-                msg_with_identifiers: (
-                    msg.into().into(),
-                    keys.iter().map(|key| key.identifier.clone()).collect(),
-                ),
+                messages_with_identifiers: messages
+                    .into_iter()
+                    .zip(identifiers)
+                    .map(|(msg, keys)| (msg.into(), keys))
+                    .collect(),
             })
             .await?;
 
-        keys.into_iter()
-            .map(|key| {
-                result
-                    .signatures_by_identifier
-                    .get(key.identifier())
-                    .ok_or(RemoteEcdsaKeyError::KeyNotFound(key.identifier().to_string()))
-                    .map(|der_signature| (key, der_signature.0))
+        let mut keys_by_identifier: HashMap<String, Self::Key> = keys
+            .into_iter()
+            .flat_map(|keys| {
+                keys.into_iter()
+                    .map(|key| (key.identifier.clone(), key))
+                    .collect::<Vec<_>>()
             })
-            .collect()
+            .collect();
+
+        let keys_and_signatures = result
+            .signatures_by_identifier
+            .into_iter()
+            .map(|(key, value)| {
+                info!("getting key: {}", &key);
+                (keys_by_identifier.remove(&key).unwrap(), value.0)
+            })
+            .collect();
+
+        Ok(keys_and_signatures)
     }
 }
 
@@ -126,7 +151,7 @@ where
             .key_factory
             .instruction_client
             .send(Sign {
-                msg_with_identifiers: (msg.to_vec().into(), vec![self.identifier.clone()]),
+                messages_with_identifiers: vec![(msg.to_vec().into(), vec![self.identifier.clone()])],
             })
             .await?;
 

@@ -43,14 +43,17 @@ pub trait WalletUserHsm {
 
     async fn sign_multiple_wrapped(
         &self,
-        wrapped_keys: Vec<(String, WrappedKey)>,
-        data: Arc<Vec<u8>>,
+        data_with_keys: Vec<(Arc<Vec<u8>>, (String, WrappedKey))>,
     ) -> Result<Vec<(String, Signature)>, Self::Error> {
-        future::try_join_all(wrapped_keys.into_iter().map(|(identifier, wrapped_key)| async {
-            self.sign_wrapped(wrapped_key, Arc::clone(&data))
-                .await
-                .map(|signature| (identifier, signature))
-        }))
+        future::try_join_all(
+            data_with_keys
+                .into_iter()
+                .map(|(data, (identifier, wrapped_key))| async move {
+                    self.sign_wrapped(wrapped_key, Arc::clone(&data))
+                        .await
+                        .map(|signature| (identifier, signature))
+                }),
+        )
         .await
     }
 

@@ -698,6 +698,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use chrono::TimeZone;
     use p256::ecdsa::SigningKey;
@@ -878,7 +880,7 @@ mod tests {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             key_identifiers: &[String],
-        ) -> Result<Vec<(String, WrappedKey)>, PersistenceError> {
+        ) -> Result<HashMap<String, WrappedKey>, PersistenceError> {
             Ok(key_identifiers
                 .iter()
                 .map(|id| {
