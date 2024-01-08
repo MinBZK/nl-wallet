@@ -26,7 +26,6 @@ pub enum PidIssuerError {
     MdocError(#[from] nl_wallet_mdoc::Error),
 }
 
-#[allow(async_fn_in_trait)]
 pub trait PidIssuerClient {
     fn has_session(&self) -> bool;
 

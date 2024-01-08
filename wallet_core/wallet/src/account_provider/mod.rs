@@ -35,7 +35,6 @@ pub enum AccountProviderResponseError {
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-#[allow(async_fn_in_trait)]
 pub trait AccountProviderClient {
     async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError>;
 

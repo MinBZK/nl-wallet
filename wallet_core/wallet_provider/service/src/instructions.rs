@@ -20,7 +20,6 @@ use wallet_provider_domain::{
 
 use crate::{account_server::InstructionError, hsm::HsmError};
 
-#[allow(async_fn_in_trait)]
 pub trait HandleInstruction {
     type Result: Serialize;
 

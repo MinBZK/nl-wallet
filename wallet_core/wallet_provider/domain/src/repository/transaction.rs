@@ -1,11 +1,9 @@
 use crate::repository::errors::PersistenceError;
 
-#[allow(async_fn_in_trait)]
 pub trait Committable {
     async fn commit(self) -> Result<(), PersistenceError>;
 }
 
-#[allow(async_fn_in_trait)]
 pub trait TransactionStarter {
     type TransactionType: Committable;
 

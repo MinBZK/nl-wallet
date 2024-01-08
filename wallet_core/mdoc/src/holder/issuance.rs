@@ -25,7 +25,6 @@ use crate::{
 
 use super::{HolderError, Mdoc, MdocCopies, Wallet};
 
-#[allow(async_fn_in_trait)]
 pub trait HttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
     where

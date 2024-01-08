@@ -24,7 +24,6 @@ pub struct StoredMdoc<I> {
 }
 
 /// This trait needs to be implemented by an entity that stores mdocs.
-#[allow(async_fn_in_trait)]
 pub trait MdocDataSource {
     type MdocIdentifier;
     type Error: Error + Send + Sync + 'static;

@@ -9,7 +9,6 @@ use super::{errors::PersistenceError, transaction::Committable};
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-#[allow(async_fn_in_trait)]
 pub trait WalletUserRepository {
     type TransactionType: Committable;
 

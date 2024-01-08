@@ -32,6 +32,9 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
 
+[workspace.lints.rust]
+async_fn_in_trait = "allow"
+
 [workspace.dependencies]
 aes-gcm = "0.10.1"
 android_logger = "0.13.1"

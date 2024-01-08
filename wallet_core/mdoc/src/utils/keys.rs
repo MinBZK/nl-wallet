@@ -20,7 +20,6 @@ pub enum MdocKeyType {
     Remote,
 }
 
-#[allow(async_fn_in_trait)]
 pub trait KeyFactory {
     type Key: MdocEcdsaKey;
     type Error: Error + Send + Sync + 'static;

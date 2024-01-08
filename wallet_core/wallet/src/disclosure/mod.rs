@@ -29,7 +29,6 @@ pub enum MdocDisclosureSessionState<M, P> {
     Proposal(P),
 }
 
-#[allow(async_fn_in_trait)]
 pub trait MdocDisclosureSession<D> {
     type MissingAttributes: MdocDisclosureMissingAttributes;
     type Proposal: MdocDisclosureProposal;
@@ -54,7 +53,6 @@ pub trait MdocDisclosureMissingAttributes {
     fn missing_attributes(&self) -> &[AttributeIdentifier];
 }
 
-#[allow(async_fn_in_trait)]
 pub trait MdocDisclosureProposal {
     fn return_url(&self) -> Option<&Url>;
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;

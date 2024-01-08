@@ -70,7 +70,6 @@ pub(crate) enum SigningMechanism {
     Sha256Hmac,
 }
 
-#[allow(async_fn_in_trait)]
 pub(crate) trait Pkcs11Client {
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_wrapping_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;

@@ -69,7 +69,6 @@ pub struct StoredMdocCopy {
 }
 
 /// This trait abstracts the persistent storage for the wallet.
-#[allow(async_fn_in_trait)]
 pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 

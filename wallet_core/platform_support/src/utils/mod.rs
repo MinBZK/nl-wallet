@@ -14,7 +14,6 @@ pub enum UtilitiesError {
     BridgingError { reason: String },
 }
 
-#[allow(async_fn_in_trait)]
 pub trait PlatformUtilities {
     async fn storage_path() -> Result<PathBuf, UtilitiesError>;
 }

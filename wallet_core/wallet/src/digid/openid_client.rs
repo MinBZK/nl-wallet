@@ -16,7 +16,6 @@ pub enum OpenIdError {
 /// This trait is used to isolate the [`openid`] dependency, along with
 /// [`reqwest`] on which [`openid`] depends.
 #[cfg_attr(test, mockall::automock)]
-#[allow(async_fn_in_trait)]
 pub trait OpenIdClient {
     /// Perform OpenID discovery and return a client instance on success.
     async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdError>

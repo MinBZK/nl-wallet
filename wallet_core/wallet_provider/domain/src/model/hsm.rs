@@ -9,7 +9,6 @@ pub fn key_identifier(prefix: &str, identifier: &str) -> String {
     format!("{prefix}_{identifier}")
 }
 
-#[allow(async_fn_in_trait)]
 pub trait WalletUserHsm {
     type Error: Error + Send + Sync;
 
@@ -72,7 +71,6 @@ pub trait WalletUserHsm {
     }
 }
 
-#[allow(async_fn_in_trait)]
 pub trait Hsm {
     type Error: Error + Send + Sync;
 
