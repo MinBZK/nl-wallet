@@ -13,8 +13,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
-    errors::Result,
-    holder::{DisclosureSession, HttpClient, MdocCopies, MdocDataSource, StoredMdoc, Wallet},
+    holder::{DisclosureSession, HttpClient, HttpClientResult, MdocCopies, MdocDataSource, StoredMdoc, Wallet},
     identifiers::AttributeIdentifier,
     iso::{device_retrieval::ItemsRequest, mdocs::DocType},
     issuer::{IssuanceData, Issuer},
@@ -64,7 +63,7 @@ impl MockIssuanceHttpClient {
 }
 
 impl HttpClient for MockIssuanceHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
         V: Serialize,
         R: DeserializeOwned,
@@ -92,7 +91,7 @@ impl MockDisclosureHttpClient {
 }
 
 impl HttpClient for MockDisclosureHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
         V: Serialize,
         R: DeserializeOwned,

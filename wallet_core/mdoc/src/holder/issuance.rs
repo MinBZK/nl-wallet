@@ -1,10 +1,8 @@
-use futures::future::{self, TryFutureExt};
+use futures::future;
 use indexmap::IndexMap;
-use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
 use url::Url;
 pub use webpki::TrustAnchor;
-use x509_parser::nom::AsBytes;
 
 use wallet_common::generator::TimeGenerator;
 
@@ -18,42 +16,12 @@ use crate::{
     utils::{
         cose::ClonePayload,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+        serialization::{cbor_serialize, TaggedBytes},
     },
     Result,
 };
 
-use super::{HolderError, Mdoc, MdocCopies, Wallet};
-
-pub trait HttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
-    where
-        V: Serialize,
-        R: DeserializeOwned;
-}
-
-/// Send and receive CBOR-encoded messages over HTTP using a [`reqwest::Client`].
-pub struct CborHttpClient(pub reqwest::Client);
-
-impl HttpClient for CborHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
-    where
-        V: Serialize,
-        R: DeserializeOwned,
-    {
-        let bytes = cbor_serialize(val)?;
-        let response_bytes = self
-            .0
-            .post(url.clone())
-            .body(bytes)
-            .send()
-            .and_then(|response| async { response.error_for_status()?.bytes().await })
-            .await
-            .map_err(HolderError::RequestError)?;
-        let response = cbor_deserialize(response_bytes.as_bytes())?;
-        Ok(response)
-    }
-}
+use super::{HolderError, HttpClient, HttpClientResult, Mdoc, MdocCopies, Wallet};
 
 #[derive(Debug)]
 pub(crate) struct IssuanceSessionState {
@@ -135,7 +103,7 @@ impl<H: HttpClient> Wallet<H> {
         let end_msg = RequestEndSessionMessage {
             e_session_id: request.e_session_id,
         };
-        let _: Result<EndSessionMessage> = self.client.post(&url, &end_msg).await;
+        let _: HttpClientResult<EndSessionMessage> = self.client.post(&url, &end_msg).await;
 
         Ok(())
     }

@@ -38,6 +38,10 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     S: Storage,
 {
+    pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), StorageError> {
+        self.storage.get_mut().log_wallet_event(event).await
+    }
+
     pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving history");
 
@@ -156,7 +160,7 @@ mod tests {
     use chrono::{Duration, TimeZone, Utc};
     use nl_wallet_mdoc::utils::x509::{Certificate, CertificateType};
 
-    use crate::{storage::Storage, storage::WalletEvent, wallet::tests::WalletWithMocks};
+    use crate::{storage::WalletEvent, wallet::tests::WalletWithMocks};
 
     use super::HistoryError;
 
@@ -221,19 +225,12 @@ mod tests {
 
         let pid_doc_type_event =
             WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_older, certificate.clone());
-        wallet
-            .storage
-            .get_mut()
-            .log_wallet_event(pid_doc_type_event.clone())
-            .await
-            .unwrap();
+        wallet.store_history_event(pid_doc_type_event.clone()).await.unwrap();
 
         let disclosure_cancelled_event =
             WalletEvent::disclosure_cancel(timestamp_older + Duration::days(1), certificate.clone());
         wallet
-            .storage
-            .get_mut()
-            .log_wallet_event(disclosure_cancelled_event.clone())
+            .store_history_event(disclosure_cancelled_event.clone())
             .await
             .unwrap();
 
@@ -243,18 +240,14 @@ mod tests {
             "Some Error".to_owned(),
         );
         wallet
-            .storage
-            .get_mut()
-            .log_wallet_event(disclosure_error_event.clone())
+            .store_history_event(disclosure_error_event.clone())
             .await
             .unwrap();
 
         let address_doc_type_event =
             WalletEvent::disclosure_from_str(vec![ADDRESS_DOCTYPE], timestamp_newer, certificate);
         wallet
-            .storage
-            .get_mut()
-            .log_wallet_event(address_doc_type_event.clone())
+            .store_history_event(address_doc_type_event.clone())
             .await
             .unwrap();
 

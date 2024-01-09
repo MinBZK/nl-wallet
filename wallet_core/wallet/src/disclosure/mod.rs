@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use nl_wallet_mdoc::{
     holder::{
-        CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, MdocDataSource,
-        ProposedAttributes, TrustAnchor,
+        CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult, DisclosureSession,
+        MdocDataSource, ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -58,7 +58,7 @@ pub trait MdocDisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey;
@@ -135,7 +135,7 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> nl_wallet_mdoc::Result<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
@@ -151,7 +151,7 @@ mod mock {
         Arc, Mutex,
     };
 
-    use nl_wallet_mdoc::verifier::SessionType;
+    use nl_wallet_mdoc::{holder::DisclosureError, verifier::SessionType};
     use once_cell::sync::Lazy;
 
     use super::*;
@@ -187,6 +187,7 @@ mod mock {
         pub proposed_attributes: ProposedAttributes,
         pub disclosure_count: Arc<AtomicUsize>,
         pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
+        pub attributes_shared: bool,
     }
 
     impl MdocDisclosureProposal for MockMdocDisclosureProposal {
@@ -202,13 +203,13 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<KF, K>(&self, _key_factory: &KF) -> nl_wallet_mdoc::Result<()>
+        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<()>
         where
             KF: KeyFactory<Key = K>,
             K: MdocEcdsaKey,
         {
             if let Some(error) = self.next_error.lock().unwrap().take() {
-                return Err(error);
+                return Err(DisclosureError::new(self.attributes_shared, error));
             }
 
             self.disclosure_count

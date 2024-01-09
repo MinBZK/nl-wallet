@@ -87,6 +87,29 @@ pub enum WalletEvent {
 }
 
 impl WalletEvent {
+    pub fn new_issuance(mdocs: DocTypeMap, remote_party_certificate: Certificate) -> Self {
+        Self::Issuance {
+            id: Uuid::new_v4(),
+            mdocs,
+            timestamp: Utc::now(),
+            remote_party_certificate,
+        }
+    }
+
+    pub fn new_disclosure(
+        documents: Option<DocTypeMap>,
+        remote_party_certificate: Certificate,
+        status: EventStatus,
+    ) -> Self {
+        Self::Disclosure {
+            id: Uuid::new_v4(),
+            documents,
+            timestamp: Utc::now(),
+            remote_party_certificate,
+            status,
+        }
+    }
+
     /// Returns the associated doc_types for this event. Will return an empty set if there are no attributes.
     pub fn associated_doc_types(&self) -> IndexSet<&str> {
         match self {

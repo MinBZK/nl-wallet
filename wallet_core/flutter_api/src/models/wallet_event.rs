@@ -23,7 +23,15 @@ pub enum WalletEvent {
     },
 }
 
-pub struct WalletEvents(pub Vec<WalletEvent>);
+pub struct WalletEvents(Vec<WalletEvent>);
+
+impl IntoIterator for WalletEvents {
+    type Item = WalletEvent;
+    type IntoIter = std::vec::IntoIter<WalletEvent>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
 
 impl From<HistoryEvent> for WalletEvents {
     fn from(source: HistoryEvent) -> Self {
