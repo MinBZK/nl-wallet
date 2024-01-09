@@ -3,8 +3,9 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::{
     sync::watch::{channel, Receiver, Sender},
     task::JoinHandle,
-    time,
+    time::{self, MissedTickBehavior},
 };
+use tracing::info;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -53,8 +54,12 @@ where
     async fn start_update_task(wrapped: Arc<T>, rx: Receiver<CallbackFunction>, interval: Duration) -> JoinHandle<()> {
         tokio::spawn(async move {
             let mut interval = time::interval(interval);
+            interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+
             loop {
                 interval.tick().await;
+
+                info!("Wallet configuration update timer expired, fetching from remote...");
 
                 if let Ok(ConfigurationUpdateState::Updated) = wrapped.fetch().await {
                     let config = wrapped.config();
@@ -181,7 +186,7 @@ mod tests {
         let update_frequency = Duration::from_millis(100);
 
         let mut counted = 0;
-        let counter = Arc::new(AtomicU64::new(1));
+        let counter = Arc::new(AtomicU64::new(0));
         let callback_counter = Arc::clone(&counter);
 
         {
@@ -195,17 +200,26 @@ mod tests {
                 callback_counter.fetch_add(1, Ordering::SeqCst);
             });
 
-            for _ in 0..10 {
-                time::advance(Duration::from_millis(101)).await;
+            // Advance the clock so that the initial fetch plus 9 additional ones occur.
+            for _ in 0..(9 * 101) {
+                // The `time::advance()` function does not seem to work if we simply
+                // advance the time by 100ms. This probably has something to do with
+                // the tokio runtime running in `current_thread` mode.
+                time::advance(Duration::from_millis(1)).await;
             }
 
             counted += counter.load(Ordering::SeqCst);
         }
         assert_eq!(10, counted);
 
-        for _ in 0..10 {
-            time::advance(Duration::from_millis(101)).await;
+        for _ in 0..(9 * 101) {
+            time::advance(Duration::from_millis(1)).await;
         }
-        assert_eq!(counted, counter.load(Ordering::SeqCst), "after config is dropped, the update loop should have been aborted and the count should not have been updated");
+        assert_eq!(
+            counted,
+            counter.load(Ordering::SeqCst),
+            "after config is dropped, the update loop should have been aborted \
+             and the count should not have been updated"
+        );
     }
 }
