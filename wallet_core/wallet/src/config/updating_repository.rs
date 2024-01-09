@@ -186,7 +186,7 @@ mod tests {
         let update_frequency = Duration::from_millis(100);
 
         let mut counted = 0;
-        let counter = Arc::new(AtomicU64::new(1));
+        let counter = Arc::new(AtomicU64::new(0));
         let callback_counter = Arc::clone(&counter);
 
         {
@@ -200,17 +200,23 @@ mod tests {
                 callback_counter.fetch_add(1, Ordering::SeqCst);
             });
 
-            for _ in 0..10 {
-                time::advance(Duration::from_millis(101)).await;
+            // Advance the clock so that the initial fetch plus 9 additional ones occur.
+            for _ in 0..(9 * 101) {
+                time::advance(Duration::from_millis(1)).await;
             }
 
             counted += counter.load(Ordering::SeqCst);
         }
         assert_eq!(10, counted);
 
-        for _ in 0..10 {
-            time::advance(Duration::from_millis(101)).await;
+        for _ in 0..(9 * 101) {
+            time::advance(Duration::from_millis(1)).await;
         }
-        assert_eq!(counted, counter.load(Ordering::SeqCst), "after config is dropped, the update loop should have been aborted and the count should not have been updated");
+        assert_eq!(
+            counted,
+            counter.load(Ordering::SeqCst),
+            "after config is dropped, the update loop should have been aborted \
+             and the count should not have been updated"
+        );
     }
 }
