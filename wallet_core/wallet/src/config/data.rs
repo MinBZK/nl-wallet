@@ -19,7 +19,7 @@ const WALLET_CONFIG_VERSION: &str = "1";
 
 const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1/";
 
-const CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC: &str = "900";
+const CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC: &str = "3600";
 const WALLET_PROVIDER_BASE_URL: &str = "http://localhost:3000/api/v1/";
 
 const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
