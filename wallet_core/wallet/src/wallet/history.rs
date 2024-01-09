@@ -38,7 +38,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     S: Storage,
 {
-    pub async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), StorageError> {
+    pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), StorageError> {
         self.storage.get_mut().log_wallet_event(event).await
     }
 

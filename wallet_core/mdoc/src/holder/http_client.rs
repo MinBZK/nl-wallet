@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
-pub use webpki::TrustAnchor;
 use x509_parser::nom::AsBytes;
 
 use crate::{
@@ -14,7 +13,7 @@ use super::HolderError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum HttpClientError {
-    #[error("CBOR serialization error: {0}")]
+    #[error("CBOR error: {0}")]
     Cbor(#[from] CborError),
     #[error("HTTP request error: {0}")]
     Request(#[from] reqwest::Error),

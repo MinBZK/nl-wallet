@@ -22,7 +22,7 @@ use crate::{
     },
     document::{DisclosureDocument, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{DocTypeMap, Storage, StorageError, StorageResult, StoredMdocCopy, WalletEvent},
+    storage::{DocTypeMap, Storage, StorageError, StoredMdocCopy, WalletEvent},
     EventStatus,
 };
 
@@ -175,20 +175,16 @@ where
 
         session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
 
-        self.store_disclosure_event(event)
+        self.store_history_event(event)
             .await
             .map_err(DisclosureError::HistoryStorage)?;
 
         Ok(())
     }
 
-    async fn store_disclosure_event(&mut self, event: WalletEvent) -> StorageResult<()> {
-        self.store_history_event(event).await
-    }
-
     async fn log_empty_disclosure_error(&mut self, remote_party_certificate: Certificate, message: String) {
         let event = WalletEvent::new_disclosure(None, remote_party_certificate, EventStatus::Error(message));
-        let _ = self.store_disclosure_event(event).await.map_err(|e| {
+        let _ = self.store_history_event(event).await.map_err(|e| {
             error!("Could not store error in history: {e}");
             e
         });
@@ -205,7 +201,7 @@ where
             remote_party_certificate,
             EventStatus::Error(message),
         );
-        let _ = self.store_disclosure_event(event).await.map_err(|e| {
+        let _ = self.store_history_event(event).await.map_err(|e| {
             error!("Could not store error in history: {e}");
             e
         });
@@ -255,7 +251,7 @@ where
         {
             self.log_empty_disclosure_error(
                 session.rp_certificate().clone(),
-                "Failed not register shared mdoc copy".to_string(),
+                "Failed to register shared mdoc copy".to_string(),
             )
             .await;
             return Err(DisclosureError::IncrementUsageCount(error));
@@ -279,11 +275,7 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         if let Err(error) = session_proposal.disclose(&remote_key_factory).await {
-            let shared_data = if error.data_shared {
-                Some(session_proposal.proposed_attributes())
-            } else {
-                None
-            };
+            let shared_data = error.data_shared.then(|| session_proposal.proposed_attributes());
             self.log_disclosure_error(
                 shared_data,
                 session.rp_certificate().clone(),
@@ -314,9 +306,9 @@ where
             session.rp_certificate().clone(),
             EventStatus::Success,
         );
-        self.store_disclosure_event(event)
+        self.store_history_event(event)
             .await
-            .map_err(DisclosureError::HistoryStorage)?; // TODO: try to store error in log
+            .map_err(DisclosureError::HistoryStorage)?;
 
         // When disclosure is successful, we can remove the session.
         self.disclosure_session.take();

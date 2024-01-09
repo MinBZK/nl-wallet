@@ -1,12 +1,10 @@
 //! Holder software, containing a [`Wallet`] that can store, receive, and disclose mdocs.
 //! See [`MdocRetriever`], [`Wallet::start_issuance()`], and [`Wallet::disclose()`] respectively.
 
-use std::error::Error;
-
 use url::Url;
 
 use crate::{
-    errors::Error as MdocError,
+    errors::Error,
     iso::*,
     utils::{
         reader_auth,
@@ -58,7 +56,7 @@ pub enum HolderError {
     #[error("return URL prefix in reader registration ({}) does not match return URL provided: {}", (.0).0, (.0).1)]
     ReturnUrlPrefix(Box<(Url, Url)>), // Box these URLs, otherwise the error type becomes too big
     #[error("could not retrieve docs from source: {0}")]
-    MdocDataSource(#[source] Box<dyn Error + Send + Sync>),
+    MdocDataSource(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
     MultipleCandidates(Vec<DocType>),
     #[error("verifier returned error in response to disclosure: {0:?}")]
@@ -68,26 +66,26 @@ pub enum HolderError {
 pub type DisclosureResult<T> = std::result::Result<T, DisclosureError>;
 
 #[derive(thiserror::Error, Debug)]
-#[error("error during disclosure, data_shared: {data_shared}, error: {error}")]
+#[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
 pub struct DisclosureError {
     pub data_shared: bool,
     #[source]
-    pub error: MdocError,
+    pub error: Error,
 }
 
 impl DisclosureError {
-    pub fn new(data_shared: bool, error: MdocError) -> Self {
+    pub fn new(data_shared: bool, error: Error) -> Self {
         Self { data_shared, error }
     }
 
-    pub fn before_sharing(error: MdocError) -> Self {
+    pub fn before_sharing(error: Error) -> Self {
         Self {
             data_shared: false,
             error,
         }
     }
 
-    pub fn after_sharing(error: MdocError) -> Self {
+    pub fn after_sharing(error: Error) -> Self {
         Self {
             data_shared: true,
             error,
@@ -105,6 +103,6 @@ impl From<HttpClientError> for DisclosureError {
             // When connection cannot be established, no data is shared
             HttpClientError::Request(ref reqwest_error) => !reqwest_error.is_connect(),
         };
-        Self::new(data_shared, MdocError::Holder(HolderError::RequestError(source)))
+        Self::new(data_shared, Error::Holder(HolderError::RequestError(source)))
     }
 }
