@@ -6,6 +6,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/link_button.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
 import 'widget/pin_timeout_description.dart';
@@ -32,9 +33,9 @@ class PinTimeoutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.pinTimeoutScreenTitle),
-        leading: const SizedBox.shrink(),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             onPressed: () => PlaceholderScreen.show(context, secured: false),

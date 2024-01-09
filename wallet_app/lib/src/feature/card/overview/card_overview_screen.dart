@@ -10,6 +10,7 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../detail/argument/card_detail_screen_argument.dart';
 import '../detail/card_detail_screen.dart';
 import 'bloc/card_overview_bloc.dart';
@@ -31,7 +32,7 @@ class CardOverviewScreen extends StatelessWidget {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
+    return WalletAppBar(
       title: Text(context.l10n.cardOverviewScreenTitle),
     );
   }

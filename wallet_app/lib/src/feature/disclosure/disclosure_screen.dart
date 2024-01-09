@@ -8,10 +8,10 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
-import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
@@ -42,12 +42,14 @@ class DisclosureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = context.watch<DisclosureBloc>().state.stepperProgress;
     return Scaffold(
       restorationId: 'disclosure_scaffold',
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.disclosureScreenTitle),
         leading: _buildBackButton(context),
-        actions: [_buildCloseButton(context)],
+        actions: [_buildCloseButton(context, progress)],
+        progress: progress,
       ),
       body: PopScope(
         canPop: false,
@@ -62,15 +64,8 @@ class DisclosureScreen extends StatelessWidget {
             _stopDisclosure(context);
           }
         },
-        child: Column(
-          children: [
-            _buildStepper(),
-            Expanded(
-              child: SafeArea(
-                child: _buildPage(),
-              ),
-            ),
-          ],
+        child: SafeArea(
+          child: _buildPage(),
         ),
       ),
     );
@@ -89,23 +84,10 @@ class DisclosureScreen extends StatelessWidget {
 
   /// The close button stops/closes the disclosure flow.
   /// It is only visible in the semantics tree when the disclosure flow is in progress.
-  Widget _buildCloseButton(BuildContext context) {
-    final closeButton = CloseButton(onPressed: () => _stopDisclosure(context));
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      builder: (context, state) {
-        if (state.stepperProgress == 1.0) {
-          return ExcludeSemantics(child: closeButton);
-        } else {
-          return closeButton;
-        }
-      },
-    );
-  }
-
-  Widget _buildStepper() {
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
+    return ExcludeSemantics(
+      excluding: stepperProgress == 1.0,
+      child: CloseButton(onPressed: () => _stopDisclosure(context)),
     );
   }
 

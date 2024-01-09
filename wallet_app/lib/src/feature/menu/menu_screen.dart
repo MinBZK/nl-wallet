@@ -6,6 +6,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/centered_loading_indicator.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
 import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';
 
@@ -16,93 +17,95 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.menuScreenTitle),
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: [
+          SliverWalletAppBar(
+            title: context.l10n.menuScreenTitle,
+          ),
+          _buildContentSliver(),
+        ],
       ),
-      body: _buildBody(),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildContentSliver() {
     return BlocBuilder<MenuBloc, MenuState>(
       builder: (context, MenuState state) {
         return switch (state) {
-          MenuInitial() => const CenteredLoadingIndicator(),
-          MenuLoadInProgress() => const CenteredLoadingIndicator(),
-          MenuLoadSuccess() => _buildSuccess(context, state),
+          MenuInitial() => _buildLoadingSliver(),
+          MenuLoadInProgress() => _buildLoadingSliver(),
+          MenuLoadSuccess() => _buildSuccessSliver(context, state),
         };
       },
     );
   }
 
-  Widget _buildSuccess(BuildContext context, MenuLoadSuccess state) {
-    return Scrollbar(
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-            child: Text(
-              context.l10n.menuScreenGreeting(state.name),
-              style: context.textTheme.displayMedium,
-            ),
-          ),
-          const Divider(height: 1),
+  Widget _buildLoadingSliver() {
+    return const SliverFillRemaining(
+      child: CenteredLoadingIndicator(),
+    );
+  }
+
+  Widget _buildSuccessSliver(BuildContext context, MenuLoadSuccess state) {
+    return SliverList.list(
+      children: [
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        MenuRow(
+          label: context.l10n.menuScreenHelpCta,
+          icon: Icons.help_outline,
+          onTap: () => PlaceholderScreen.show(context),
+        ),
+        const Divider(height: 1),
+        MenuRow(
+          label: context.l10n.menuScreenHistoryCta,
+          icon: Icons.history,
+          onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+        ),
+        const Divider(height: 1),
+        MenuRow(
+          label: context.l10n.menuScreenSettingsCta,
+          icon: Icons.settings_outlined,
+          onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.settingsRoute),
+        ),
+        const Divider(height: 1),
+        MenuRow(
+          label: context.l10n.menuScreenFeedbackCta,
+          icon: Icons.comment_outlined,
+          onTap: () => PlaceholderScreen.show(context),
+        ),
+        const Divider(height: 1),
+        MenuRow(
+          label: context.l10n.menuScreenAboutCta,
+          icon: Icons.info_outline,
+          onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
+        ),
+        const Divider(height: 1),
+        if (showDesignSystemRow)
           MenuRow(
-            label: context.l10n.menuScreenHelpCta,
-            icon: Icons.help_outline,
-            onTap: () => PlaceholderScreen.show(context),
+            label: context.l10n.menuScreenDesignCta,
+            icon: Icons.design_services,
+            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
           ),
-          const Divider(height: 1),
-          MenuRow(
-            label: context.l10n.menuScreenHistoryCta,
-            icon: Icons.history,
-            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
-          ),
-          const Divider(height: 1),
-          MenuRow(
-            label: context.l10n.menuScreenSettingsCta,
-            icon: Icons.settings_outlined,
-            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.settingsRoute),
-          ),
-          const Divider(height: 1),
-          MenuRow(
-            label: context.l10n.menuScreenFeedbackCta,
-            icon: Icons.comment_outlined,
-            onTap: () => PlaceholderScreen.show(context),
-          ),
-          const Divider(height: 1),
-          MenuRow(
-            label: context.l10n.menuScreenAboutCta,
-            icon: Icons.info_outline,
-            onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
-          ),
-          const Divider(height: 1),
-          if (showDesignSystemRow)
-            MenuRow(
-              label: context.l10n.menuScreenDesignCta,
-              icon: Icons.design_services,
-              onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
-            ),
-          if (showDesignSystemRow) const Divider(height: 1),
-          const SizedBox(height: 40),
-          Center(
-            child: IntrinsicWidth(
-              child: OutlinedButton(
-                onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
-                child: Row(
-                  children: [
-                    const Icon(Icons.lock, size: 14),
-                    const SizedBox(width: 8),
-                    Text(context.l10n.menuScreenLockCta),
-                  ],
-                ),
+        if (showDesignSystemRow) const Divider(height: 1),
+        const SizedBox(height: 40),
+        Center(
+          child: IntrinsicWidth(
+            child: OutlinedButton(
+              onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
+              child: Row(
+                children: [
+                  const Icon(Icons.lock, size: 14),
+                  const SizedBox(width: 8),
+                  Text(context.l10n.menuScreenLockCta),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 }

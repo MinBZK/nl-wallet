@@ -191,7 +191,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   @override
   Future<WalletInstructionResult> unlockWallet({required String pin, hint}) async {
     final result = _pinManager.checkPin(pin);
-    bool pinMatches = result is! WalletInstructionResult_Ok;
+    bool pinMatches = result is WalletInstructionResult_Ok;
     if (pinMatches) {
       _wallet.unlock();
     } else {

@@ -62,6 +62,7 @@ class DarkWalletTheme {
     style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
       foregroundColor: MaterialStatePropertyAll(colorScheme.onPrimary),
       backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
+      overlayColor: MaterialStatePropertyAll(colorScheme.secondary),
     ),
   );
 

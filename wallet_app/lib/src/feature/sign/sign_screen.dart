@@ -8,10 +8,10 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
-import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../organization/approve/organization_approve_page.dart';
 import 'argument/sign_screen_argument.dart';
 import 'bloc/sign_bloc.dart';
@@ -37,11 +37,13 @@ class SignScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = context.watch<SignBloc>().state.stepperProgress;
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         leading: _buildBackButton(context),
         title: Text(context.l10n.signScreenTitle),
-        actions: [_buildCloseButton(context)],
+        actions: [_buildCloseButton(context, progress)],
+        progress: progress,
       ),
       body: PopScope(
         canPop: false,
@@ -56,15 +58,8 @@ class SignScreen extends StatelessWidget {
             _stopSigning(context);
           }
         },
-        child: Column(
-          children: [
-            _buildStepper(),
-            Expanded(
-              child: SafeArea(
-                child: _buildPage(),
-              ),
-            ),
-          ],
+        child: SafeArea(
+          child: _buildPage(),
         ),
       ),
     );
@@ -83,23 +78,10 @@ class SignScreen extends StatelessWidget {
 
   /// The close button stops/closes the sign flow.
   /// It is only visible in the semantics tree when the sign flow is in progress.
-  Widget _buildCloseButton(BuildContext context) {
-    final closeButton = CloseButton(onPressed: () => _stopSigning(context));
-    return BlocBuilder<SignBloc, SignState>(
-      builder: (context, state) {
-        if (state.stepperProgress == 1.0) {
-          return ExcludeSemantics(child: closeButton);
-        } else {
-          return closeButton;
-        }
-      },
-    );
-  }
-
-  Widget _buildStepper() {
-    return BlocBuilder<SignBloc, SignState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
+    return ExcludeSemantics(
+      excluding: stepperProgress == 1.0,
+      child: CloseButton(onPressed: () => _stopSigning(context)),
     );
   }
 

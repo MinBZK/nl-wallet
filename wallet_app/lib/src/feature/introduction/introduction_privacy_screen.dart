@@ -6,6 +6,8 @@ import '../../wallet_assets.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/text_icon_button.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_back_button.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
   const IntroductionPrivacyScreen({Key? key}) : super(key: key);
@@ -14,17 +16,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('introductionPrivacyScreen'),
-      appBar: AppBar(
-        title: Text(context.l10n.introductionPrivacyScreenTitle),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const LinearProgressIndicator(value: 0.08),
-            Expanded(child: _buildContent(context)),
-          ],
-        ),
-      ),
+      body: SafeArea(child: _buildContent(context)),
     );
   }
 
@@ -33,18 +25,24 @@ class IntroductionPrivacyScreen extends StatelessWidget {
       thumbVisibility: true,
       child: CustomScrollView(
         slivers: [
+          SliverWalletAppBar(
+            title: context.l10n.introductionPrivacyScreenHeadline,
+            leading: const WalletBackButton(),
+            progress: 0.08,
+            actions: [
+              IconButton(
+                onPressed: () => Navigator.pushNamed(context, WalletRoutes.aboutRoute),
+                icon: const Icon(Icons.help_outline_rounded),
+              ),
+            ],
+          ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
               child: MergeSemantics(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      context.l10n.introductionPrivacyScreenHeadline,
-                      style: context.textTheme.displayMedium,
-                      textAlign: TextAlign.start,
-                    ),
                     BulletList(
                       items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
                     ),

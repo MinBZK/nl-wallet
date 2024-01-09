@@ -9,6 +9,7 @@ import 'package:wallet/src/feature/card/history/card_history_screen.dart';
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/mock_data.dart';
 import '../../../util/device_utils.dart';
+import '../../../util/test_utils.dart';
 
 class MockCardHistoryBloc extends MockBloc<CardHistoryEvent, CardHistoryState> implements CardHistoryBloc {}
 
@@ -104,11 +105,12 @@ void main() {
       );
 
       // Validate that the widget exists
-      final appBarTitleFinder = find.text('Card history');
+      final l10n = await TestUtils.englishLocalizations;
+      final appBarTitleFinder = find.text(l10n.cardHistoryScreenTitle);
       final stickyJanFinder = find.text('January 2023');
       final stickyDecFinder = find.text('December 2022');
       final stickyNovFinder = find.text('November 2022');
-      expect(appBarTitleFinder, findsOneWidget);
+      expect(appBarTitleFinder, findsNWidgets(2));
       expect(stickyJanFinder, findsOneWidget);
       expect(stickyDecFinder, findsOneWidget);
       expect(stickyNovFinder, findsOneWidget);
