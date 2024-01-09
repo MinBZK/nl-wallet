@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
@@ -27,7 +26,6 @@ pub struct HardwareEcdsaKey {
     identifier: String,
 }
 
-#[async_trait]
 impl EcdsaKey for HardwareEcdsaKey {
     type Error = HardwareKeyStoreError;
 
@@ -92,7 +90,6 @@ impl WithIdentifier for HardwareEncryptionKey {
     }
 }
 
-#[async_trait]
 impl SecureEncryptionKey for HardwareEncryptionKey {
     type Error = HardwareKeyStoreError;
 

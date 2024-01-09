@@ -5,7 +5,6 @@ use std::{
     sync::Arc,
 };
 
-use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
 use indexmap::{IndexMap, IndexSet};
@@ -63,11 +62,10 @@ impl MockIssuanceHttpClient {
     }
 }
 
-#[async_trait]
 impl HttpClient for MockIssuanceHttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
@@ -92,11 +90,10 @@ impl MockDisclosureHttpClient {
     }
 }
 
-#[async_trait]
 impl HttpClient for MockDisclosureHttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
@@ -177,7 +174,6 @@ impl From<Vec<MdocCopies>> for MockMdocDataSource {
     }
 }
 
-#[async_trait]
 impl MdocDataSource for MockMdocDataSource {
     type MdocIdentifier = String;
     type Error = Infallible;

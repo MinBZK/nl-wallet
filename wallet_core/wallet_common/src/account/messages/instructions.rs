@@ -34,7 +34,7 @@ pub struct GenerateKeyResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Sign {
-    pub msg_with_identifiers: (Base64Bytes, Vec<String>),
+    pub messages_with_identifiers: Vec<(Base64Bytes, Vec<String>)>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

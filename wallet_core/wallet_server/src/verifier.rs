@@ -140,7 +140,7 @@ async fn session<S>(
     msg: Bytes,
 ) -> Result<Cbor<SessionData>, Error>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<DisclosureData>>,
 {
     let response = state
         .verifier
@@ -205,7 +205,7 @@ async fn start<S>(
     Json(start_request): Json<StartDisclosureRequest>,
 ) -> Result<Json<StartDisclosureResponse>, Error>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<DisclosureData>>,
 {
     let (session_id, engagement) = state
         .verifier
@@ -245,7 +245,7 @@ async fn status<S>(
     Path(session_id): Path<SessionToken>,
 ) -> Result<Json<StatusResponse>, Error>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<DisclosureData>>,
 {
     let status = state.verifier.status(&session_id).await.map_err(Error::Status)?;
     Ok(Json(status))

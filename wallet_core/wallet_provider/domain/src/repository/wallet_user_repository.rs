@@ -1,5 +1,5 @@
-use async_trait::async_trait;
 use chrono::{DateTime, Local};
+use std::collections::HashMap;
 
 use crate::model::{
     wallet_user::{InstructionChallenge, WalletUserCreate, WalletUserKeys, WalletUserQueryResult},
@@ -10,7 +10,6 @@ use super::{errors::PersistenceError, transaction::Committable};
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
-#[async_trait]
 pub trait WalletUserRepository {
     type TransactionType: Committable;
 
@@ -56,7 +55,7 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         wallet_user_id: uuid::Uuid,
         key_identifiers: &[String],
-    ) -> Result<Vec<(String, WrappedKey)>>;
+    ) -> Result<HashMap<String, WrappedKey>>;
 }
 
 #[cfg(feature = "mock")]
@@ -69,7 +68,6 @@ pub mod mock {
 
     pub struct MockWalletUserRepository;
 
-    #[async_trait]
     impl WalletUserRepository for MockWalletUserRepository {
         type TransactionType = MockTransaction;
 
@@ -145,8 +143,8 @@ pub mod mock {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             _key_identifiers: &[String],
-        ) -> Result<Vec<(String, WrappedKey)>> {
-            Ok(vec![])
+        ) -> Result<HashMap<String, WrappedKey>> {
+            Ok(HashMap::new())
         }
     }
 }

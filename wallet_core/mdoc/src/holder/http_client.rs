@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
@@ -27,22 +26,20 @@ impl From<HttpClientError> for Error {
 
 pub type HttpClientResult<R> = std::result::Result<R, HttpClientError>;
 
-#[async_trait]
 pub trait HttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned;
 }
 
 /// Send and receive CBOR-encoded messages over HTTP using a [`reqwest::Client`].
 pub struct CborHttpClient(pub reqwest::Client);
 
-#[async_trait]
 impl HttpClient for CborHttpClient {
     async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let bytes = cbor_serialize(val)?;

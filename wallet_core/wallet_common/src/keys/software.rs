@@ -4,7 +4,6 @@ use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
-use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
@@ -35,7 +34,6 @@ impl SoftwareEcdsaKey {
     }
 }
 
-#[async_trait]
 impl EcdsaKey for SoftwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
@@ -83,7 +81,6 @@ pub struct SoftwareEncryptionKey {
     identifier: String,
 }
 
-#[async_trait]
 impl ConstructibleWithIdentifier for SoftwareEncryptionKey {
     fn new(identifier: &str) -> Self
     where
@@ -114,7 +111,6 @@ impl WithIdentifier for SoftwareEncryptionKey {
     }
 }
 
-#[async_trait]
 impl SecureEncryptionKey for SoftwareEncryptionKey {
     type Error = aes_gcm::Error;
 

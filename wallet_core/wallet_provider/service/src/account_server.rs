@@ -238,8 +238,8 @@ impl AccountServer {
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync,
-        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
         debug!("Starting database transaction");
 
@@ -299,12 +299,12 @@ impl AccountServer {
         wallet_user_hsm: &H,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
-        T: Committable + Send + Sync,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T> + Sync,
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         I: HandleInstruction<Result = IR> + Serialize + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
-        G: Generator<Uuid> + Generator<DateTime<Local>> + Sync,
-        H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError> + Sync,
+        G: Generator<Uuid> + Generator<DateTime<Local>>,
+        H: WalletUserHsm<Error = HsmError> + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
     {
         debug!("Verifying certificate and retrieving wallet user");
 
@@ -402,7 +402,7 @@ impl AccountServer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
         debug!("Parsing message to lookup public keys");
 
@@ -469,7 +469,7 @@ impl AccountServer {
         hsm: &H,
     ) -> Result<WalletCertificate, RegistrationError>
     where
-        H: Hsm<Error = HsmError> + Sync,
+        H: Hsm<Error = HsmError>,
     {
         let pin_pubkey_hash = sign_pin_pubkey(
             wallet_pin_pubkey,
@@ -516,7 +516,7 @@ impl AccountServer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError> + Sync,
+        H: Decrypter<VerifyingKey, Error = HsmError> + Hsm<Error = HsmError>,
     {
         debug!("Parsing and verifying the provided certificate");
 
@@ -580,7 +580,7 @@ impl AccountServer {
     ) -> Result<ChallengeResponsePayload<I>, InstructionValidationError>
     where
         I: HandleInstruction<Result = R> + Serialize + DeserializeOwned,
-        D: Decrypter<VerifyingKey, Error = HsmError> + Sync,
+        D: Decrypter<VerifyingKey, Error = HsmError>,
     {
         let challenge = wallet_user
             .instruction_challenge
@@ -637,7 +637,7 @@ async fn sign_pin_pubkey<H>(
     hsm: &H,
 ) -> Result<Base64Bytes, WalletCertificateError>
 where
-    H: Hsm<Error = HsmError> + Sync,
+    H: Hsm<Error = HsmError>,
 {
     let pin_pubkey_bts = pubkey
         .to_public_key_der()
@@ -656,7 +656,7 @@ async fn verify_pin_pubkey<H>(
     hsm: &H,
 ) -> Result<(), WalletCertificateError>
 where
-    H: Hsm<Error = HsmError> + Sync,
+    H: Hsm<Error = HsmError>,
 {
     let pin_pubkey_bts = pubkey
         .to_public_key_der()
@@ -698,8 +698,9 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
-    use async_trait::async_trait;
     use chrono::TimeZone;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
@@ -792,7 +793,6 @@ mod tests {
         instruction_sequence_number: u64,
     }
 
-    #[async_trait]
     impl WalletUserRepository for WalletUserTestRepo {
         type TransactionType = MockTransaction;
 
@@ -880,7 +880,7 @@ mod tests {
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
             key_identifiers: &[String],
-        ) -> Result<Vec<(String, WrappedKey)>, PersistenceError> {
+        ) -> Result<HashMap<String, WrappedKey>, PersistenceError> {
             Ok(key_identifiers
                 .iter()
                 .map(|id| {
@@ -893,7 +893,6 @@ mod tests {
         }
     }
 
-    #[async_trait]
     impl TransactionStarter for WalletUserTestRepo {
         type TransactionType = <MockTransactionStarter as TransactionStarter>::TransactionType;
 

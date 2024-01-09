@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false
 
@@ -17,7 +20,6 @@ disable_tls_validation = []
 
 [dependencies]
 anyhow.workspace = true
-async-trait.workspace = true
 axum = { workspace = true, features = [
     "http1",
     "json",
@@ -48,6 +50,7 @@ tokio = { workspace = true, features = [
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
+trait-variant.workspace = true
 url.workspace = true
 
 rand = { workspace = true, optional = true }

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use http::{header, HeaderMap, HeaderValue};
 use mime::Mime;
 use reqwest::{Client, Request};
@@ -108,7 +107,6 @@ impl Default for HttpAccountProviderClient {
     }
 }
 
-#[async_trait]
 impl AccountProviderClient for HttpAccountProviderClient {
     async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError> {
         let url = base_url.join("enroll")?;
@@ -146,7 +144,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
-        I: InstructionEndpoint + Send + Sync,
+        I: InstructionEndpoint,
     {
         let url = base_url.join(&format!("instructions/{}", I::ENDPOINT))?;
         let message: InstructionResultMessage<I::Result> = self.send_json_post_request(url, &instruction).await?;

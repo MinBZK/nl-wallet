@@ -1,6 +1,5 @@
 use std::{path::PathBuf, sync::Arc};
 
-use async_trait::async_trait;
 use url::Url;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
@@ -57,10 +56,9 @@ where
     }
 }
 
-#[async_trait]
 impl<T> UpdateableConfigurationRepository for FileStorageConfigurationRepository<T>
 where
-    T: UpdateableConfigurationRepository + Send + Sync,
+    T: UpdateableConfigurationRepository + Sync,
 {
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
         let result = self.wrapped.fetch().await?;
@@ -77,8 +75,6 @@ where
 #[cfg(test)]
 mod tests {
     use std::sync::{Arc, RwLock};
-
-    use async_trait::async_trait;
     use url::Url;
 
     use wallet_common::config::wallet_config::WalletConfiguration;
@@ -96,7 +92,6 @@ mod tests {
         }
     }
 
-    #[async_trait]
     impl UpdateableConfigurationRepository for TestConfigRepo {
         async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
             let mut config = self.0.write().unwrap();

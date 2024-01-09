@@ -329,10 +329,10 @@ where
             .collect()
     }
 
-    pub async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> DisclosureResult<()>
+    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
     where
-        KF: KeyFactory<'a, Key = K>,
-        K: MdocEcdsaKey + Sync,
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
     {
         // Clone the proposed documents and construct a `DeviceResponse` by
         // signing these, then encrypt the response with the device key.
@@ -801,7 +801,7 @@ mod tests {
 
     async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (Error, Vec<Vec<u8>>)
     where
-        F: Fn() -> HttpClientError + Send + Sync,
+        F: Fn() -> HttpClientError,
     {
         // Set up a `MockHttpClient` with the receiver `error_factory`.
         let (payload_sender, mut payload_receiver) = mpsc::channel(256);
@@ -1175,7 +1175,7 @@ mod tests {
         mpsc::Receiver<Vec<u8>>,
     )
     where
-        F: Fn() -> MockHttpClientResponse + Send + Sync,
+        F: Fn() -> MockHttpClientResponse,
     {
         let privkey = SecretKey::random(&mut OsRng);
         let pubkey = SecretKey::random(&mut OsRng).public_key();

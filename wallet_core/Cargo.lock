@@ -2455,6 +2455,7 @@ checksum = "f665ee40bc4a3c5590afb1e9677db74a508659dfd71e126420da8274909a0167"
 name = "migration"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "sea-orm-migration",
 ]
 
@@ -2558,7 +2559,6 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "assert_matches",
- "async-trait",
  "base64 0.21.4",
  "chrono",
  "ciborium",
@@ -2951,7 +2951,6 @@ name = "pid_issuer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "axum",
  "base64 0.21.4",
  "chrono",
@@ -2975,6 +2974,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "trait-variant",
  "url",
  "wallet",
  "wallet_common",
@@ -3060,7 +3060,6 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "jni",
  "once_cell",
  "p256",
@@ -4788,6 +4787,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "trait-variant"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45e1a477061e97925d81a2f89fb73b2b8038e6baa5a0023bad380ac23b5f4fa6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
+]
+
+[[package]]
 name = "try-lock"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5113,7 +5123,6 @@ name = "wallet"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "async-trait",
  "base64 0.21.4",
  "chrono",
  "ciborium",
@@ -5145,6 +5154,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "trait-variant",
  "url",
  "uuid",
  "wallet",
@@ -5176,7 +5186,6 @@ name = "wallet_common"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
- "async-trait",
  "base64 0.21.4",
  "chrono",
  "config",
@@ -5240,7 +5249,6 @@ dependencies = [
 name = "wallet_provider_domain"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "dashmap",
  "futures",
@@ -5258,6 +5266,7 @@ dependencies = [
 name = "wallet_provider_migrations"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "sea-orm-migration",
  "tokio",
  "wallet_provider_database_settings",
@@ -5267,7 +5276,6 @@ dependencies = [
 name = "wallet_provider_persistence"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "ctor",
  "mockall",
@@ -5288,7 +5296,6 @@ name = "wallet_provider_service"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "async-trait",
  "chrono",
  "cryptoki",
  "dashmap",

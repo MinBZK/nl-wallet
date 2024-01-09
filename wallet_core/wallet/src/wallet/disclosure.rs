@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use async_trait::async_trait;
 use indexmap::IndexMap;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{error, info, instrument};
@@ -209,9 +208,9 @@ where
 
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
-        S: Storage + Send + Sync,
-        PEK: PlatformEcdsaKey + Sync,
-        APC: AccountProviderClient + Sync,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
     {
         info!("Accepting disclosure");
 
@@ -274,7 +273,7 @@ where
 
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
-        if let Err(error) = session_proposal.disclose(&remote_key_factory).await {
+        if let Err(error) = session_proposal.disclose(&&remote_key_factory).await {
             let shared_data = error.data_shared.then(|| session_proposal.proposed_attributes());
             self.log_disclosure_error(
                 shared_data,
@@ -317,16 +316,9 @@ where
     }
 }
 
-#[async_trait]
 impl<CR, S, PEK, APC, DGS, PIC, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
-    CR: Send + Sync,
-    S: Storage + Send + Sync,
-    PEK: Send + Sync,
-    APC: Send + Sync,
-    DGS: Send + Sync,
-    PIC: Send + Sync,
-    MDS: Send + Sync,
+    S: Storage,
 {
     type MdocIdentifier = Uuid;
     type Error = StorageError;

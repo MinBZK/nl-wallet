@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     holder::{MdocCopies, TrustAnchor},
@@ -16,7 +15,6 @@ pub struct MockPidIssuerClient {
     pub next_error: Option<PidIssuerError>,
 }
 
-#[async_trait]
 impl PidIssuerClient for MockPidIssuerClient {
     fn has_session(&self) -> bool {
         self.has_session
@@ -33,10 +31,10 @@ impl PidIssuerClient for MockPidIssuerClient {
         }
     }
 
-    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
-        _key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        _key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         match self.next_error.take() {
             None => Ok(self.mdoc_copies.clone()),

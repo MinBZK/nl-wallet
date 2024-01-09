@@ -1,6 +1,5 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
-use async_trait::async_trait;
 use tokio::{
     sync::watch::{channel, Receiver, Sender},
     task::JoinHandle,
@@ -76,7 +75,6 @@ where
     }
 }
 
-#[async_trait]
 impl<T> ObservableConfigurationRepository for UpdatingConfigurationRepository<T>
 where
     T: ConfigurationRepository,
@@ -109,7 +107,6 @@ mod tests {
         time::Duration,
     };
 
-    use async_trait::async_trait;
     use tokio::{sync::Notify, time};
 
     use wallet_common::config::wallet_config::WalletConfiguration;
@@ -127,7 +124,6 @@ mod tests {
         }
     }
 
-    #[async_trait]
     impl UpdateableConfigurationRepository for TestConfigRepo {
         async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
             let mut config = self.0.write().unwrap();

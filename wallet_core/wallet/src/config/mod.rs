@@ -9,7 +9,6 @@ mod updating_repository;
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use url::ParseError;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
@@ -57,12 +56,11 @@ pub trait ConfigurationRepository {
     fn config(&self) -> Arc<WalletConfiguration>;
 }
 
-#[async_trait]
-pub trait UpdateableConfigurationRepository: ConfigurationRepository {
+#[trait_variant::make(UpdateableConfigurationRepository: Send)]
+pub trait LocalUpdateableConfigurationRepository: ConfigurationRepository {
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError>;
 }
 
-#[async_trait]
 pub trait ObservableConfigurationRepository: ConfigurationRepository {
     fn register_callback_on_update<F>(&self, callback: F)
     where

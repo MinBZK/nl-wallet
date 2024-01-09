@@ -143,28 +143,40 @@ impl<I> ProposedDocument<I> {
             .unwrap_or_default()
     }
 
-    /// Convert the [`ProposedDocument`] to a [`Document`] by signing the challenge using the provided `key_factory`.
-    #[allow(dead_code)]
-    pub async fn sign<'a, KF, K>(self, key_factory: &'a KF) -> Result<Document>
+    /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.
+    pub async fn sign_multiple<KF, K>(
+        key_factory: &KF,
+        proposed_documents: Vec<ProposedDocument<I>>,
+    ) -> Result<Vec<Document>>
     where
-        KF: KeyFactory<'a, Key = K>,
-        K: MdocEcdsaKey + Sync,
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
     {
-        // Extract the public key from the `IssuerSigned`, construct an existing signing key
-        // identifier by `private_key_id` and provide this public key, then use that to sign
-        // the saved challenge bytes asynchronously.
-        let public_key = self.issuer_signed.public_key()?;
-        let private_key = key_factory.generate_existing(&self.private_key_id, public_key);
-        let device_signed = DeviceSigned::new_signature(&private_key, &self.device_signed_challenge).await?;
+        let keys_and_challenges = proposed_documents
+            .iter()
+            .map(|doc| {
+                let public_key = doc.issuer_signed.public_key()?;
+                let key: K = key_factory.generate_existing(&doc.private_key_id, public_key);
+                let challenge = doc.device_signed_challenge.as_slice();
+                Ok((key, challenge))
+            })
+            .collect::<Result<Vec<(K, &[u8])>>>()?;
 
-        let document = Document {
-            doc_type: self.doc_type,
-            issuer_signed: self.issuer_signed,
-            device_signed,
-            errors: None,
-        };
+        let keys_and_device_signed: Vec<(String, DeviceSigned)> =
+            DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
 
-        Ok(document)
+        let documents = proposed_documents
+            .into_iter()
+            .zip(keys_and_device_signed)
+            .map(|(proposed_doc, (_key, device_signed))| Document {
+                doc_type: proposed_doc.doc_type,
+                issuer_signed: proposed_doc.issuer_signed,
+                device_signed,
+                errors: None,
+            })
+            .collect();
+
+        Ok(documents)
     }
 }
 
@@ -178,7 +190,7 @@ mod tests {
         errors::Error,
         examples::EXAMPLE_NAMESPACE,
         iso::disclosure::DeviceAuth,
-        mock::{FactorySoftwareEcdsaKeyError, SoftwareKeyFactory},
+        mock::SoftwareKeyFactory,
         utils::{
             cose::{self, CoseError},
             serialization::TaggedBytes,
@@ -329,7 +341,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_proposed_document_sign() {
+    async fn test_proposed_document_sign_multiple() {
         // Create a `ProposedDocument` from the example `Mdoc`.
         let proposed_document = create_example_proposed_document();
 
@@ -347,11 +359,11 @@ mod tests {
         .await
         .unwrap();
 
-        // Conversion to `Document` by signing should succeed.
-        let document = proposed_document
-            .sign(&SoftwareKeyFactory::default())
+        let mut documents = ProposedDocument::sign_multiple(&SoftwareKeyFactory::default(), vec![proposed_document])
             .await
             .expect("Could not sign ProposedDocument");
+
+        let document = documents.remove(0);
 
         // Test all of the expected values, including the `DeviceSigned` COSE signature.
         assert_eq!(document.doc_type, expected_doc_type);
@@ -373,13 +385,12 @@ mod tests {
         };
 
         // Conversion to `Document` should simply forward the signing error.
-        let error = proposed_document
-            .sign(&key_factory)
+        let error = ProposedDocument::sign_multiple(&key_factory, vec![proposed_document])
             .await
             .expect_err("Signing ProposedDocument should have resulted in an error");
 
-        assert_matches!(error, Error::Cose(
-            CoseError::Signing(signing_error)
-        ) if signing_error.is::<FactorySoftwareEcdsaKeyError>());
+        assert_matches!(error, Error::Cose(CoseError::Signing(signing_error))
+            if signing_error.to_string() == "signing error"
+        );
     }
 }

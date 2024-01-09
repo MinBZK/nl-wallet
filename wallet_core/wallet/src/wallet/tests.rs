@@ -1,6 +1,5 @@
 use std::{sync::Mutex, time::Duration};
 
-use async_trait::async_trait;
 use once_cell::sync::Lazy;
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
@@ -134,7 +133,6 @@ impl WithIdentifier for FallibleSoftwareEcdsaKey {
 
 impl SecureEcdsaKey for FallibleSoftwareEcdsaKey {}
 
-#[async_trait]
 impl EcdsaKey for FallibleSoftwareEcdsaKey {
     type Error = <SoftwareEcdsaKey as EcdsaKey>::Error;
 

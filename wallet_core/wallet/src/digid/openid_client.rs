@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use openid::Options;
 use url::Url;
 
@@ -17,7 +16,6 @@ pub enum OpenIdError {
 /// This trait is used to isolate the [`openid`] dependency, along with
 /// [`reqwest`] on which [`openid`] depends.
 #[cfg_attr(test, mockall::automock)]
-#[async_trait]
 pub trait OpenIdClient {
     /// Perform OpenID discovery and return a client instance on success.
     async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdError>
@@ -35,14 +33,13 @@ pub trait OpenIdClient {
     /// and the PKCE verifier string that matches the PKCE challenge provided in the authentication URL.
     async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
     where
-        P: PkcePair + Sync + 'static;
+        P: PkcePair + 'static;
 }
 
 pub struct HttpOpenIdClient {
     openid_client: Client,
 }
 
-#[async_trait]
 impl OpenIdClient for HttpOpenIdClient {
     async fn discover(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, OpenIdError> {
         // Configure a simple `reqwest` HTTP client with a timeout.
@@ -86,7 +83,7 @@ impl OpenIdClient for HttpOpenIdClient {
 
     async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
     where
-        P: PkcePair + Sync,
+        P: PkcePair,
     {
         // Forward the received method parameters to our `Client` instance.
         let token = self

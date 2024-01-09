@@ -8,14 +8,15 @@ use crate::{
     errors::Result,
     iso::*,
     utils::{
-        cose::{sign_cose, ClonePayload},
+        cose::{sign_cose, sign_coses, ClonePayload},
         crypto::dh_hmac_key,
+        keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_serialize, TaggedBytes},
     },
 };
 
 impl DeviceSigned {
-    pub async fn new_signature(private_key: &(impl SecureEcdsaKey + Sync), challenge: &[u8]) -> Result<DeviceSigned> {
+    pub async fn new_signature(private_key: &impl SecureEcdsaKey, challenge: &[u8]) -> Result<DeviceSigned> {
         let cose = sign_cose(challenge, Header::default(), private_key, false).await?;
 
         let device_signed = DeviceSigned {
@@ -24,6 +25,32 @@ impl DeviceSigned {
         };
 
         Ok(device_signed)
+    }
+
+    pub async fn new_signatures<K, KF>(
+        keys_and_challenges: Vec<(K, &[u8])>,
+        key_factory: &KF,
+    ) -> Result<Vec<(String, DeviceSigned)>>
+    where
+        K: MdocEcdsaKey,
+        KF: KeyFactory<Key = K>,
+    {
+        let keys_and_coses = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;
+
+        let signed = keys_and_coses
+            .into_iter()
+            .map(|(key, cose)| {
+                (
+                    String::from(key.identifier()),
+                    DeviceSigned {
+                        name_spaces: IndexMap::new().into(),
+                        device_auth: DeviceAuth::DeviceSignature(cose.into()),
+                    },
+                )
+            })
+            .collect();
+
+        Ok(signed)
     }
 
     #[allow(dead_code)] // TODO test this

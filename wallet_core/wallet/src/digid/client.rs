@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use url::Url;
 
@@ -33,11 +32,10 @@ pub struct HttpDigidSession<C = HttpOpenIdClient, P = S256PkcePair> {
     pkce_pair: P,
 }
 
-#[async_trait]
 impl<C, P> DigidSession for HttpDigidSession<C, P>
 where
-    P: PkcePair + Send + Sync + 'static,
-    C: OpenIdClient + Send + Sync,
+    P: PkcePair + 'static,
+    C: OpenIdClient,
 {
     async fn start(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, DigidError> {
         // Remember the `redirect_uri` base.
