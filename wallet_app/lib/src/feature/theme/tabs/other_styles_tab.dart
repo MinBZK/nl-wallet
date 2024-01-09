@@ -33,9 +33,12 @@ import '../../common/widget/pin_header.dart';
 import '../../common/widget/policy/policy_row.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/select_card_row.dart';
+import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/version_text.dart';
+import '../../common/widget/wallet_app_bar.dart';
+import '../../common/widget/wallet_back_button.dart';
 import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
 import '../theme_screen.dart';
@@ -57,12 +60,32 @@ class OtherStylesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
       children: [
+        _buildAppBarSection(context),
         _buildSheetSection(context),
         _buildAttributeSection(context),
         _buildCardSection(context),
         _buildHistorySection(context),
         _buildPolicySection(context),
         _buildMiscellaneousSection(context),
+      ],
+    );
+  }
+
+  Widget _buildAppBarSection(BuildContext context) {
+    return Column(
+      children: [
+        const ThemeSectionHeader(title: 'App Bars'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'Sliver Wallet App Bar'),
+        TextButton(
+          onPressed: () => _showSliverWalletAppBarPage(context),
+          child: const Text('SliverWalletAppBar'),
+        ),
+        const ThemeSectionSubHeader(title: 'Wallet App Bar'),
+        TextButton(
+          onPressed: () => _showWalletAppBarPage(context),
+          child: const Text('WalletAppBar'),
+        ),
       ],
     );
   }
@@ -74,37 +97,37 @@ class OtherStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         const ThemeSectionSubHeader(title: 'Explanation Sheet'),
         TextButton(
-          onPressed: () => {
+          onPressed: () {
             ExplanationSheet.show(
               context,
               title: 'Title goes here',
               description: 'Description goes here. This is a demo of the ExplanationSheet!',
               closeButtonText: 'close',
-            )
+            );
           },
           child: const Text('Explanation Sheet'),
         ),
         const ThemeSectionSubHeader(title: 'Confirm Action Sheet'),
         TextButton(
-          onPressed: () => {
+          onPressed: () {
             ConfirmActionSheet.show(
               context,
               title: 'Title goes here',
               description: 'Description goes here. This is a demo of the ConfirmActionSheet!',
               cancelButtonText: 'cancel',
               confirmButtonText: 'confirm',
-            )
+            );
           },
           child: const Text('Confirm Action Sheet'),
         ),
         const ThemeSectionSubHeader(title: '(Error) Help Sheet'),
         TextButton(
-          onPressed: () => {
+          onPressed: () {
             HelpSheet.show(
               context,
               errorCode: 'xxyyzz',
               supportCode: '1337',
-            )
+            );
           },
           child: const Text('(Error) Help Sheet'),
         ),
@@ -318,6 +341,71 @@ class OtherStylesTab extends StatelessWidget {
           items: ['Item', 'Item', 'Item'],
         ),
       ],
+    );
+  }
+
+  void _showSliverWalletAppBarPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) {
+          return Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                SliverWalletAppBar(
+                  title: 'Sliver App Bar',
+                  progress: 0.65,
+                  leading: const WalletBackButton(),
+                  actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
+                ),
+                const SliverFillRemaining(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('Scroll this page to see the collapsing effect'),
+                  ),
+                )
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showWalletAppBarPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) {
+          return Scaffold(
+            appBar: WalletAppBar(
+              title: 'WalletAppBar',
+              progress: 0.55,
+              leading: const WalletBackButton(),
+              actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
+            ),
+            body: ListView.builder(
+              itemBuilder: (context, index) {
+                if (index == 2) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'This is a more static variant of the custom AppBar and does not support the collapse effect',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+                return Container(
+                  height: 100,
+                  color: index.isOdd ? Colors.greenAccent : Colors.transparent,
+                );
+              },
+              itemCount: 50,
+            ),
+          );
+        },
+      ),
     );
   }
 }
