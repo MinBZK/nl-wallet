@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/card/overview/bloc/card_overview_bloc.dart';
+import 'package:wallet/src/feature/common/widget/sliver_wallet_app_bar.dart';
 import 'package:wallet/src/feature/home/bloc/home_bloc.dart';
 import 'package:wallet/src/feature/home/home_screen.dart';
 import 'package:wallet/src/feature/menu/bloc/menu_bloc.dart';
@@ -144,8 +145,14 @@ void main() {
       // Tab the Menu tab and verify that the page updated
       await tester.tap(find.text('Menu'));
       await tester.pumpAndSettle();
-      titleWidget = (titleFinder.evaluate().single.widget as Text);
-      expect(titleWidget.data, 'Menu');
+      // Menu page already uses the [SliverWalletAppBar], lookup accordingly
+      final sliverWalletAppbarFinder = find.byType(SliverWalletAppBar);
+      final titlesFinder = find.descendant(of: sliverWalletAppbarFinder, matching: find.byType(Text));
+      final titleCandidates = titlesFinder.evaluate();
+      expect(titleCandidates.length, 2, reason: 'SliverWalletAppBar should contain collapsed and expanded titles');
+      for (final candidate in titleCandidates) {
+        expect((candidate.widget as Text).data, 'Menu');
+      }
     });
   });
 }

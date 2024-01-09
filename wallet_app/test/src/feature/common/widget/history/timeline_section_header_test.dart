@@ -14,8 +14,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           Builder(builder: (context) {
-            return TimelineSectionHeader(dateTime: DateTime(2023, 1, 1))
-                .build(context, timelineSectionHeaderExtent, false);
+            return TimelineSectionHeader(dateTime: DateTime(2023, 1, 1));
           }),
           surfaceSize: kGoldenSize,
         );
@@ -27,8 +26,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           Builder(builder: (context) {
-            return TimelineSectionHeader(dateTime: DateTime(2023, 5, 9))
-                .build(context, timelineSectionHeaderExtent, false);
+            return TimelineSectionHeader(dateTime: DateTime(2023, 5, 9));
           }),
           brightness: Brightness.dark,
           surfaceSize: kGoldenSize,
@@ -42,8 +40,7 @@ void main() {
     testWidgets('Date is rendered as "January 2023"', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(builder: (context) {
-          return TimelineSectionHeader(dateTime: DateTime(2023, 1, 1))
-              .build(context, timelineSectionHeaderExtent, false);
+          return TimelineSectionHeader(dateTime: DateTime(2023, 1, 1));
         }),
       );
 

@@ -22,6 +22,7 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
@@ -60,7 +61,7 @@ class CardDetailScreen extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final fallbackAppBarTitleText = Text(cardTitle);
-    return AppBar(
+    return WalletAppBar(
       title: BlocBuilder<CardDetailBloc, CardDetailState>(
         builder: (context, state) {
           return switch (state) {

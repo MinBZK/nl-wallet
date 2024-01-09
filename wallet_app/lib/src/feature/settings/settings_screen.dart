@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
 import '../menu/widget/menu_row.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -11,15 +12,19 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.settingsScreenTitle),
+      body: CustomScrollView(
+        slivers: [
+          SliverWalletAppBar(
+            title: context.l10n.settingsScreenTitle,
+          ),
+          _buildContentSliver(context),
+        ],
       ),
-      body: _buildBody(context),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    return ListView(
+  Widget _buildContentSliver(BuildContext context) {
+    return SliverList.list(
       children: [
         const SizedBox(height: 16),
         MenuRow(

@@ -5,6 +5,7 @@ import 'package:wallet/src/feature/about/about_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -35,11 +36,12 @@ void main() {
 
   group('widgets', () {
     testWidgets('about the app title is visible', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidgetWithAppWrapper(const AboutScreen());
 
       // Validate that the widget exists
-      final widgetFinder = find.text('About the app');
-      expect(widgetFinder, findsOneWidget);
+      final widgetFinder = find.text(l10n.aboutScreenTitle);
+      expect(widgetFinder, findsNWidgets(2));
     });
   });
 }

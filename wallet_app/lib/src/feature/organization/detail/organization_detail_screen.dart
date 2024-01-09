@@ -16,6 +16,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import 'argument/organization_detail_screen_argument.dart';
 import 'bloc/organization_detail_bloc.dart';
 
@@ -41,9 +42,8 @@ class OrganizationDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.organizationDetailScreenTitle),
-        leading: const BackButton(),
       ),
       body: SafeArea(
         child: Column(

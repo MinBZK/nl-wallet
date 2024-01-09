@@ -12,6 +12,7 @@ import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../error/error_screen.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
@@ -27,12 +28,9 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       restorationId: 'setup_security_scaffold',
-      appBar: AppBar(
+      appBar: WalletAppBar(
         leading: _buildBackButton(context),
-        title: Text(context.l10n.setupSecurityScreenTitle),
-        actions: [
-          _buildAboutAction(context),
-        ],
+        actions: [_buildAboutAction(context)],
       ),
       body: PopScope(
         canPop: !context.bloc.state.canGoBack,
@@ -52,7 +50,10 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildStepper() {
     return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
       buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+      builder: (context, state) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+      ),
     );
   }
 

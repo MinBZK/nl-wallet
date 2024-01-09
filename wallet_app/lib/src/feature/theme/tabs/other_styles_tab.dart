@@ -10,7 +10,6 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
-import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
@@ -257,10 +256,7 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () {},
         ),
         const ThemeSectionSubHeader(title: 'TimelineSectionHeader'),
-        TimelineSectionHeader(
-          dateTime: DateTime.now(),
-          textStyle: context.textTheme.labelSmall,
-        ).build(context, timelineSectionHeaderExtent, false),
+        TimelineSectionHeader(dateTime: DateTime.now()),
       ],
     );
   }
@@ -379,7 +375,7 @@ class OtherStylesTab extends StatelessWidget {
         builder: (context) {
           return Scaffold(
             appBar: WalletAppBar(
-              title: 'WalletAppBar',
+              title: const Text('WalletAppBar'),
               progress: 0.55,
               leading: const WalletBackButton(),
               actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],

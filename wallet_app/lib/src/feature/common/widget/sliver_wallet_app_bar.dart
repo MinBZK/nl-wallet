@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import 'stepper_indicator.dart';
+import 'wallet_back_button.dart';
 
 /// The space taken up by the stepper indicator (when visible).
 const kStepIndicatorHeight = 12.0;
@@ -48,6 +49,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
   @override
   Widget build(BuildContext context) {
     _topPadding = context.mediaQuery.padding.top;
+    final canPop = Navigator.of(context).canPop();
     return SliverAppBar(
       pinned: true,
       scrolledUnderElevation: 12,
@@ -64,10 +66,10 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
         child: Text(widget.title),
       ),
       centerTitle: false,
-      titleSpacing: widget.leading == null ? null : 0.0,
+      leading: widget.leading ?? (canPop ? const WalletBackButton() : null),
+      titleSpacing: widget.leading == null && !canPop ? null : 0.0,
       shape: const LinearBorder() /* hides the app bar divider */,
       titleTextStyle: context.textTheme.displayMedium,
-      leading: widget.leading,
       actions: widget.actions,
       collapsedHeight: toolbarHeight,
       expandedHeight: expandedHeight,

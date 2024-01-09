@@ -5,6 +5,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/report_option_title_formatter.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/icon_row.dart';
+import '../common/widget/wallet_app_bar.dart';
 
 class ReportIssueScreen extends StatelessWidget {
   final List<ReportingOption> options;
@@ -14,7 +15,7 @@ class ReportIssueScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.reportIssueScreenTitle),
       ),
       body: SafeArea(

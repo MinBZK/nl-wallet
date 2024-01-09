@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/text_icon_button.dart';
+import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
 import 'widget/data_incorrect_option_row.dart';
 
 class DataIncorrectScreen extends StatelessWidget {
@@ -10,14 +12,21 @@ class DataIncorrectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.dataIncorrectScreenTitle),
-      ),
       body: Scrollbar(
         child: CustomScrollView(
           restorationId: 'data_incorrect',
           slivers: <Widget>[
-            SliverToBoxAdapter(child: _buildHeaderSection(context)),
+            SliverWalletAppBar(title: context.l10n.dataIncorrectScreenHeaderTitle),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  context.l10n.dataIncorrectScreenHeaderDescription,
+                  style: context.textTheme.bodyLarge,
+                ),
+              ),
+            ),
+            const SliverSizedBox(height: 32),
             const SliverToBoxAdapter(child: Divider(height: 1)),
             SliverToBoxAdapter(
               child: DataIncorrectOptionRow(
@@ -66,28 +75,6 @@ class DataIncorrectScreen extends StatelessWidget {
           iconPosition: IconPosition.start,
           icon: Icons.arrow_back,
           child: Text(context.l10n.dataIncorrectScreenBackCta),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.l10n.dataIncorrectScreenHeaderTitle,
-              style: context.textTheme.displayMedium,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              context.l10n.dataIncorrectScreenHeaderDescription,
-              style: context.textTheme.bodyLarge,
-            ),
-          ],
         ),
       ),
     );

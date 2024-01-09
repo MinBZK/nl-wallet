@@ -17,9 +17,9 @@ import '../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../common/page/flow_terminal_page.dart';
 import '../../common/page/generic_loading_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
-import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../digid_help/digid_help_screen.dart';
 import '../../home/home_screen.dart';
 import '../../mock_digid/mock_digid_screen.dart';
@@ -38,10 +38,6 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       restorationId: 'wallet_personalize_scaffold',
-      appBar: AppBar(
-        leading: _buildBackButton(context),
-        title: Text(context.l10n.walletPersonalizeScreenTitle),
-      ),
       body: PopScope(
         canPop: false,
         onPopInvoked: (didPop) {
@@ -54,15 +50,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
             _showExitSheet(context);
           }
         },
-        child: Column(
-          children: [
-            _buildStepper(),
-            Expanded(
-              child: SafeArea(
-                child: _buildPage(),
-              ),
-            ),
-          ],
+        child: SafeArea(
+          child: _buildPage(),
         ),
       ),
     );
@@ -79,13 +68,6 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStepper() {
-    return BlocBuilder<WalletPersonalizeBloc, WalletPersonalizeState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
-    );
-  }
-
   Widget _buildPage() {
     return BlocConsumer<WalletPersonalizeBloc, WalletPersonalizeState>(
       listener: (context, state) {
@@ -94,11 +76,12 @@ class WalletPersonalizeScreen extends StatelessWidget {
       },
       builder: (context, state) {
         Widget result = switch (state) {
-          WalletPersonalizeInitial() => _buildWalletIntroPage(context),
-          WalletPersonalizeLoadingIssuanceUrl() => _buildAuthenticatingWithDigid(context),
-          WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(context),
-          WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(context),
-          WalletPersonalizeLoadInProgress() => _buildLoading(context),
+          WalletPersonalizeInitial() => _buildWalletIntroPage(context, state),
+          WalletPersonalizeLoadingIssuanceUrl() =>
+            _buildAuthenticatingWithDigid(context, progress: state.stepperProgress),
+          WalletPersonalizeConnectDigid() => _buildAuthenticatingWithDigid(context, progress: state.stepperProgress),
+          WalletPersonalizeAuthenticating() => _buildAuthenticatingWithDigid(context, progress: state.stepperProgress),
+          WalletPersonalizeLoadInProgress() => _buildLoading(context, progress: state.stepperProgress),
           WalletPersonalizeCheckData() => _buildCheckDataOfferingPage(context, state),
           WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
           WalletPersonalizeSuccess() => _buildSuccessPage(context, state),
@@ -128,23 +111,26 @@ class WalletPersonalizeScreen extends StatelessWidget {
       onAcceptPressed: () => context.bloc.add(WalletPersonalizeOfferingAccepted(state.availableAttributes)),
       onRejectPressed: () => context.bloc.add(WalletPersonalizeOfferingRejected()),
       attributes: attributes,
+      progress: state.stepperProgress,
     );
   }
 
-  Widget _buildLoading(BuildContext context, {VoidCallback? onCancel}) {
+  Widget _buildLoading(BuildContext context, {VoidCallback? onCancel, double? progress}) {
     return GenericLoadingPage(
       title: context.l10n.walletPersonalizeScreenLoadingTitle,
       description: context.l10n.walletPersonalizeScreenLoadingSubtitle,
       onCancel: onCancel,
+      appBar: WalletAppBar(progress: progress),
     );
   }
 
-  Widget _buildAuthenticatingWithDigid(BuildContext context) {
+  Widget _buildAuthenticatingWithDigid(BuildContext context, {double? progress}) {
     return GenericLoadingPage(
       key: const Key('personalizeAuthenticatingWithDigidPage'),
       title: context.l10n.walletPersonalizeScreenDigidLoadingTitle,
       description: context.l10n.walletPersonalizeScreenDigidLoadingSubtitle,
       cancelCta: context.l10n.walletPersonalizeScreenDigidLoadingStopCta,
+      appBar: WalletAppBar(progress: progress),
       onCancel: () async {
         final bloc = context.bloc;
         final cancelled = await _showStopDigidLoginDialog(context);
@@ -187,11 +173,12 @@ class WalletPersonalizeScreen extends StatelessWidget {
     return result == true;
   }
 
-  Widget _buildWalletIntroPage(BuildContext context) {
+  Widget _buildWalletIntroPage(BuildContext context, WalletPersonalizeInitial state) {
     return WalletPersonalizeIntroPage(
       key: const Key('personalizeInformPage'),
       onLoginWithDigidPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
       onNoDigidPressed: () => WalletPersonalizeNoDigidScreen.show(context),
+      progress: state.stepperProgress,
     );
   }
 
@@ -230,39 +217,59 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessPage(BuildContext context, WalletPersonalizeSuccess state) {
-    return WalletPersonalizeSuccessPage(
-      key: const Key('personalizeSuccessPage'),
-      onContinuePressed: () => HomeScreen.show(context, cards: state.addedCards),
-      cards: state.addedCards,
+    return Scaffold(
+      appBar: WalletAppBar(
+        progress: state.stepperProgress,
+      ),
+      body: WalletPersonalizeSuccessPage(
+        key: const Key('personalizeSuccessPage'),
+        onContinuePressed: () => HomeScreen.show(context, cards: state.addedCards),
+        cards: state.addedCards,
+      ),
     );
   }
 
   Widget _buildErrorPage(BuildContext context) {
-    return FlowTerminalPage(
-      icon: Icons.not_interested,
-      iconColor: context.theme.primaryColorDark,
-      title: context.l10n.walletPersonalizeScreenErrorTitle,
-      description: context.l10n.walletPersonalizeScreenErrorDescription,
-      primaryButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
-      onPrimaryPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+    return Scaffold(
+      appBar: const WalletAppBar(
+        progress: 0.0,
+      ),
+      body: FlowTerminalPage(
+        icon: Icons.not_interested,
+        iconColor: context.theme.primaryColorDark,
+        title: context.l10n.walletPersonalizeScreenErrorTitle,
+        description: context.l10n.walletPersonalizeScreenErrorDescription,
+        primaryButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
+        onPrimaryPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      ),
     );
   }
 
   Widget _buildDigidCancelledPage(BuildContext context) {
-    return WalletPersonalizeDigidErrorPage(
-      title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
-      description: context.l10n.walletPersonalizeDigidCancelledPageDescription,
-      onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
+    return Scaffold(
+      appBar: const WalletAppBar(
+        progress: 0.0,
+      ),
+      body: WalletPersonalizeDigidErrorPage(
+        title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
+        description: context.l10n.walletPersonalizeDigidCancelledPageDescription,
+        onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+        onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
+      ),
     );
   }
 
   Widget _buildDigidErrorPage(BuildContext context) {
-    return WalletPersonalizeDigidErrorPage(
-      title: context.l10n.walletPersonalizeDigidErrorPageTitle,
-      description: context.l10n.walletPersonalizeDigidErrorPageDescription,
-      onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
+    return Scaffold(
+      appBar: const WalletAppBar(
+        progress: 0.0,
+      ),
+      body: WalletPersonalizeDigidErrorPage(
+        title: context.l10n.walletPersonalizeDigidErrorPageTitle,
+        description: context.l10n.walletPersonalizeDigidErrorPageDescription,
+        onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+        onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
+      ),
     );
   }
 
@@ -280,8 +287,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
   }
 
   Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {
-    return WalletPersonalizeConfirmPinPage(
-      onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
+    return Scaffold(
+      appBar: WalletAppBar(
+        progress: state.stepperProgress,
+        leading: _buildBackButton(context),
+      ),
+      body: WalletPersonalizeConfirmPinPage(
+        onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
+      ),
     );
   }
 }

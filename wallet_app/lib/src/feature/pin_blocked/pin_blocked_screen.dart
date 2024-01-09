@@ -6,6 +6,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/wallet_app_bar.dart';
 
 class PinBlockedScreen extends StatelessWidget {
   const PinBlockedScreen({
@@ -15,9 +16,9 @@ class PinBlockedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.pinBlockedScreenTitle),
-        leading: const SizedBox.shrink(),
+        automaticallyImplyLeading: false,
       ),
       body: PrimaryScrollController(
         controller: ScrollController(),
