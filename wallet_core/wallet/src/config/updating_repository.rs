@@ -202,6 +202,9 @@ mod tests {
 
             // Advance the clock so that the initial fetch plus 9 additional ones occur.
             for _ in 0..(9 * 101) {
+                // The `time::advance()` function does not seem to work if we simply
+                // advance the time by 100ms. This probably has something to do with
+                // the tokio runtime running in `current_thread` mode.
                 time::advance(Duration::from_millis(1)).await;
             }
 
