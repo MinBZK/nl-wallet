@@ -3,8 +3,9 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::{
     sync::watch::{channel, Receiver, Sender},
     task::JoinHandle,
-    time,
+    time::{self, MissedTickBehavior},
 };
+use tracing::info;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -53,8 +54,12 @@ where
     async fn start_update_task(wrapped: Arc<T>, rx: Receiver<CallbackFunction>, interval: Duration) -> JoinHandle<()> {
         tokio::spawn(async move {
             let mut interval = time::interval(interval);
+            interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+
             loop {
                 interval.tick().await;
+
+                info!("Wallet configuration update timer expired, fetching from remote...");
 
                 if let Ok(ConfigurationUpdateState::Updated) = wrapped.fetch().await {
                     let config = wrapped.config();
