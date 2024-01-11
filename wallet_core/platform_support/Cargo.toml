@@ -32,9 +32,7 @@ jni = { workspace = true, optional = true }
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros"] }
-
-platform_support = { path = ".", features = ["software", "integration-test"] }
+tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
 
 [build-dependencies]
 uniffi = { workspace = true, features = ["build"] }
