@@ -120,7 +120,7 @@ where
 mod tests {
     use crate::{pin::key as pin_key, storage::MockStorage};
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]

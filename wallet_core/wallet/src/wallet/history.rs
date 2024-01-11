@@ -160,7 +160,7 @@ mod tests {
     use chrono::{Duration, TimeZone, Utc};
     use nl_wallet_mdoc::utils::x509::{Certificate, CertificateType};
 
-    use crate::{storage::WalletEvent, wallet::tests::WalletWithMocks};
+    use crate::{storage::WalletEvent, wallet::test::WalletWithMocks};
 
     use super::HistoryError;
 

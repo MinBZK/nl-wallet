@@ -377,7 +377,7 @@ mod tests {
         Attribute, AttributeValue, EventStatus,
     };
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     const DISCLOSURE_URI: &str =
         "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device";
