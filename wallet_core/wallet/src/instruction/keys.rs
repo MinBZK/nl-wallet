@@ -1,7 +1,6 @@
 use std::{collections::HashMap, iter};
 
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
-use tracing::info;
 
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey, MdocKeyType};
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -118,10 +117,7 @@ where
         let keys_and_signatures = result
             .signatures_by_identifier
             .into_iter()
-            .map(|(key, value)| {
-                info!("getting key: {}", &key);
-                (keys_by_identifier.remove(&key).unwrap(), value.0)
-            })
+            .map(|(key, value)| (keys_by_identifier.remove(&key).unwrap(), value.0))
             .collect();
 
         Ok(keys_and_signatures)
