@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 
 pub use mdoc::{AttributeValueType, DocumentMdocError};
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub use mdoc::mock::{
     create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
     create_minimal_unsigned_pid_mdoc,

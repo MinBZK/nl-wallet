@@ -291,7 +291,7 @@ impl DisclosureDocument {
     }
 }
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use chrono::{Days, Utc};
 

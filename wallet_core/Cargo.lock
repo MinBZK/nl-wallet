@@ -5157,7 +5157,6 @@ dependencies = [
  "trait-variant",
  "url",
  "uuid",
- "wallet",
  "wallet_common",
  "wiremock",
 ]

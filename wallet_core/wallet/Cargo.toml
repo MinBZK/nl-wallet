@@ -70,7 +70,6 @@ wiremock.workspace = true
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }
-wallet = { path = ".", features = ["mock"] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
