@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-04T10:48:15+01:00",
+    "@@last_modified": "2024-01-08T11:05:13+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -801,7 +801,18 @@
     "organizationApprovePageApproveCta": "Yes, next",
     "organizationApprovePageDenyCta": "No, decline",
     "organizationApprovePageFirstInteraction": "First request",
+    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on  {url}.",
+    "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
+    "@organizationApprovePageGenericTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "organizationApprovePageIncorrectCta": "Is something not right?",
+    "organizationApprovePageMoreInfoCta": "More info",
     "organizationApprovePagePurpose": "Purpose: {purpose}",
     "@organizationApprovePagePurpose": {
         "placeholders": {
@@ -820,8 +831,8 @@
             }
         }
     },
-    "organizationApprovePageShareWithApproveCta": "Yes, view request",
-    "organizationApprovePageShareWithDenyCta": "No, stop",
+    "organizationApprovePageShareWithApproveCta": "Yes, continue",
+    "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationApprovePageShareWithTitle": "{organization} is requesting information, is that correct?",
     "@organizationApprovePageShareWithTitle": {
         "placeholders": {
@@ -841,14 +852,23 @@
         }
     },
     "organizationButtonLabel": "About this organization",
+    "organizationDetailScreenCategoryInfo": "Organization type",
+    "organizationDetailScreenDepartmentInfo": "Department",
     "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
     "organizationDetailScreenInfoHeader": "Info",
     "organizationDetailScreenKvk": "KVK: {kvk}",
+    "organizationDetailScreenKvkInfo": "KVK number",
+    "organizationDetailScreenLocationInfo": "Location",
+    "organizationDetailScreenNoInteractions": "No previous interactions with {name}.",
     "organizationDetailScreenPrivacyHeader": "Privacy",
+    "organizationDetailScreenPrivacyInfo": "Privacy statement",
     "organizationDetailScreenPrivacyPolicy": "privacy statement",
+    "organizationDetailScreenPrivacyValue": "Privacy statement",
     "organizationDetailScreenReportIssueCta": "Report a problem",
-    "organizationDetailScreenTitle": "About this organization",
+    "organizationDetailScreenSomeInteractions": "You previously shared information with {name}.",
+    "organizationDetailScreenTitle": "About {name}",
     "organizationDetailScreenViewTerms": "View the",
+    "organizationDetailScreenWebsiteInfo": "Website",
     "pidAddressCardTitle": "Residential address",
     "pidIdCardTitle": "Personal data",
     "pinBlockedScreenDescription": "You've entered the wrong pin too many times.\n\nTo start using the wallet again, please reset the app and select a new pin.",

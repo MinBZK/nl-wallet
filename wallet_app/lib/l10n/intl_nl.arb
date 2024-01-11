@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-04T10:48:15+01:00",
+    "@@last_modified": "2024-01-08T11:05:13+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -801,7 +801,18 @@
     "organizationApprovePageApproveCta": "Ja, volgende",
     "organizationApprovePageDenyCta": "Nee",
     "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
+    "organizationApprovePageFraudInfo": "Pas op voor fraude. Ga alleen verder als de QR-code op {url} staat.",
+    "organizationApprovePageGenericTitle": "Herken je {organization}?",
+    "@organizationApprovePageGenericTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
+    "organizationApprovePageMoreInfoCta": "Meer info",
     "organizationApprovePagePurpose": "Reden: {purpose}",
     "@organizationApprovePagePurpose": {
         "placeholders": {
@@ -820,8 +831,8 @@
             }
         }
     },
-    "organizationApprovePageShareWithApproveCta": "Ja, bekijk verzoek",
-    "organizationApprovePageShareWithDenyCta": "Nee, stoppen",
+    "organizationApprovePageShareWithApproveCta": "Ja, verder",
+    "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationApprovePageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
     "@organizationApprovePageShareWithTitle": {
         "placeholders": {
@@ -841,14 +852,23 @@
         }
     },
     "organizationButtonLabel": "Over deze partij",
+    "organizationDetailScreenCategoryInfo": "Soort organisatie",
+    "organizationDetailScreenDepartmentInfo": "Afdeling",
     "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
     "organizationDetailScreenInfoHeader": "Info",
     "organizationDetailScreenKvk": "KVK: {kvk}",
+    "organizationDetailScreenKvkInfo": "KVK nummer",
+    "organizationDetailScreenLocationInfo": "Locatie",
+    "organizationDetailScreenNoInteractions": "Geen eerdere activiteiten met {name}.",
     "organizationDetailScreenPrivacyHeader": "Privacy",
+    "organizationDetailScreenPrivacyInfo": "Privacyverklaring",
     "organizationDetailScreenPrivacyPolicy": "privacy verklaring",
+    "organizationDetailScreenPrivacyValue": "Privacy verklaring",
     "organizationDetailScreenReportIssueCta": "Een probleem melden",
-    "organizationDetailScreenTitle": "Over deze partij",
+    "organizationDetailScreenSomeInteractions": "Je hebt eerder gedeeld met {name}.",
+    "organizationDetailScreenTitle": "Over {name}",
     "organizationDetailScreenViewTerms": "Bekijk de algemene",
+    "organizationDetailScreenWebsiteInfo": "Website",
     "pidAddressCardTitle": "Woonadres",
     "pidIdCardTitle": "Persoonsgegevens",
     "pinBlockedScreenDescription": "Je hebt je toegangscode te vaak verkeerd ingevuld.\n\nWil je weer gebruik maken van de wallet? Dan moet je opnieuw beginnen. Wis de wallet en kies een nieuwe toegangscode.",

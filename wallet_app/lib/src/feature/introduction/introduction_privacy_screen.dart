@@ -6,8 +6,8 @@ import '../../wallet_assets.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/text_icon_button.dart';
+import '../common/widget/button/wallet_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
-import '../common/widget/wallet_back_button.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
   const IntroductionPrivacyScreen({Key? key}) : super(key: key);

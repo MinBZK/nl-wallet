@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
+import '../common/widget/button/wallet_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
-import '../common/widget/wallet_back_button.dart';
 import 'bloc/change_language_bloc.dart';
 
 class ChangeLanguageScreen extends StatelessWidget {
