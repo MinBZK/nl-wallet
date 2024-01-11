@@ -11,7 +11,7 @@ class LinkButton extends StatelessWidget {
 
   const LinkButton({
     required this.child,
-    required this.onPressed,
+    this.onPressed,
     this.customPadding,
     Key? key,
   }) : super(key: key);

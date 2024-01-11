@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import 'button/wallet_back_button.dart';
 import 'sliver_wallet_app_bar.dart';
 import 'stepper_indicator.dart';
-import 'wallet_back_button.dart';
 
 class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;

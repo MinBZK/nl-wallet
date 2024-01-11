@@ -6,8 +6,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
-import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -46,9 +46,11 @@ class DisclosureScreen extends StatelessWidget {
     return Scaffold(
       restorationId: 'disclosure_scaffold',
       appBar: WalletAppBar(
-        title: Text(context.l10n.disclosureScreenTitle),
         leading: _buildBackButton(context),
-        actions: [_buildCloseButton(context, progress)],
+        actions: [
+          _buildHelpButton(context),
+          _buildCloseButton(context, progress),
+        ],
         progress: progress,
       ),
       body: PopScope(
@@ -79,6 +81,13 @@ class DisclosureScreen extends StatelessWidget {
           onPressed: () => context.read<DisclosureBloc>().add(const DisclosureBackPressed()),
         );
       },
+    );
+  }
+
+  Widget _buildHelpButton(BuildContext context) {
+    return IconButton(
+      onPressed: () => PlaceholderScreen.show(context),
+      icon: const Icon(Icons.help_outline_rounded),
     );
   }
 

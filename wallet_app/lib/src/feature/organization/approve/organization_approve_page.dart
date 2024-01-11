@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../wallet_assets.dart';
 import '../../common/widget/button/confirm_buttons.dart';
-import '../../common/widget/icon_row.dart';
+import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../detail/organization_detail_screen.dart';
-import '../widget/organization_row.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user approves the request
@@ -30,7 +28,7 @@ class OrganizationApprovePage extends StatelessWidget {
   /// Inform the user what the purpose is of this request
   final LocalizedText? requestPurpose;
 
-  /// If true, the 'first interaction' banner will be shown.
+  /// If true, the 'first interaction' banner will be shown. //FIXME: This should eventually be a interactionCount
   final bool isFirstInteractionWithOrganization;
 
   const OrganizationApprovePage({
@@ -50,24 +48,16 @@ class OrganizationApprovePage extends StatelessWidget {
       child: CustomScrollView(
         restorationId: 'approve_organization_scrollview',
         slivers: <Widget>[
-          const SliverSizedBox(height: 32),
+          const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverSizedBox(height: 12),
-          SliverToBoxAdapter(child: _buildInfoRows(context)),
-          const SliverSizedBox(height: 12),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverSizedBox(height: 32),
           SliverToBoxAdapter(
-            child: OrganizationRow(
-              onTap: () => OrganizationDetailScreen.showPreloaded(
-                context,
-                organization,
-                isFirstInteractionWithOrganization,
-                onReportIssuePressed: onReportIssuePressed,
-              ),
-              subtitle: organization.category?.l10nValue(context) ?? '',
+            child: LinkTileButton(
+              child: Text(context.l10n.organizationApprovePageMoreInfoCta),
+              onPressed: () => _openOrganizationDetails(context),
             ),
           ),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverSizedBox(height: 32),
           SliverFillRemaining(
             hasScrollBody: false,
             fillOverscroll: true,
@@ -95,49 +85,51 @@ class OrganizationApprovePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          OrganizationLogo(image: organization.logo, size: 64),
-          const SizedBox(height: 24),
-          Text(
-            _headerTitleText(context),
-            style: context.textTheme.displayMedium,
-            textAlign: TextAlign.start,
+          OrganizationLogo(
+            image: organization.logo,
+            size: 64,
+            fixedRadius: 12,
           ),
+          const SizedBox(height: 24),
+          _buildHeaderTitleText(context),
+          const SizedBox(height: 8),
+          _buildFraudInfoText(context),
         ],
       ),
     );
   }
 
-  String _headerTitleText(BuildContext context) {
-    switch (purpose) {
-      case ApprovalPurpose.issuance:
-        return context.l10n.organizationApprovePageReceiveFromTitle(organization.legalName.l10nValue(context));
-      case ApprovalPurpose.disclosure:
-        return context.l10n.organizationApprovePageShareWithTitle(organization.legalName.l10nValue(context));
-      case ApprovalPurpose.sign:
-        return context.l10n.organizationApprovePageSignWithTitle(organization.legalName.l10nValue(context));
-    }
+  Widget _buildHeaderTitleText(BuildContext context) {
+    return Text(
+      context.l10n.organizationApprovePageGenericTitle(organization.legalName.l10nValue(context)),
+      style: context.textTheme.displayMedium,
+      textAlign: TextAlign.start,
+    );
   }
 
-  Widget _buildInfoRows(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        isFirstInteractionWithOrganization
-            ? IconRow(
-                icon: Image.asset(WalletAssets.icon_first_share),
-                text: Text(context.l10n.organizationApprovePageFirstInteraction),
-              )
-            : const SizedBox.shrink(),
-        IconRow(
-          icon: Icon(
-            Icons.flag_outlined,
-            color: context.colorScheme.primary,
+  Widget _buildFraudInfoText(BuildContext context) {
+    final url = organization.webUrl ?? 'http://example.org';
+    final fullString = context.l10n.organizationApprovePageFraudInfo(url);
+    final parts = fullString.split(url);
+
+    /// We only support the case where the url is somewhere inside the fullString, e.g. "Open {url} for more info"
+    if (parts.length != 2) return Text(fullString, style: context.textTheme.bodyLarge);
+    return RichText(
+      textAlign: TextAlign.start,
+      text: TextSpan(
+        style: context.textTheme.bodyLarge,
+        children: [
+          TextSpan(text: parts.first),
+          TextSpan(
+            text: url,
+            style: TextStyle(
+              color: context.colorScheme.primary,
+              decoration: TextDecoration.underline,
+            ),
           ),
-          text: Text(
-            context.l10n.organizationApprovePagePurpose(requestPurpose?.l10nValue(context) ?? purpose.name),
-          ),
-        ),
-      ],
+          TextSpan(text: parts.last),
+        ],
+      ),
     );
   }
 
@@ -161,6 +153,15 @@ class OrganizationApprovePage extends StatelessWidget {
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageDenyCta;
     }
+  }
+
+  void _openOrganizationDetails(BuildContext context) {
+    OrganizationDetailScreen.showPreloaded(
+      context,
+      organization,
+      isFirstInteractionWithOrganization,
+      onReportIssuePressed: onReportIssuePressed,
+    );
   }
 }
 
