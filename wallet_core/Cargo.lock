@@ -5204,7 +5204,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wallet_common",
 ]
 
 [[package]]

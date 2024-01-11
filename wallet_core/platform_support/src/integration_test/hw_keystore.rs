@@ -1,5 +1,5 @@
 use jni::{objects::JClass, JNIEnv};
-use wallet_common::keys::integration_test::{encrypt_and_decrypt_message, sign_and_verify_signature};
+use wallet_common::keys::test::{encrypt_and_decrypt_message, sign_and_verify_signature};
 
 use crate::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 

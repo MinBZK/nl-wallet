@@ -22,7 +22,6 @@ pub struct SoftwareEcdsaKey {
     identifier: String,
 }
 
-#[cfg(feature = "mock")]
 impl SoftwareEcdsaKey {
     /// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
     /// (e.g. with the keys in ISO 23220).
@@ -152,5 +151,26 @@ impl SecureEncryptionKey for SoftwareEncryptionKey {
             .expect("Could not decrypt message");
 
         Ok(decrypted_msg)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{super::test, *};
+
+    #[tokio::test]
+    async fn test_software_signature() {
+        let payload = b"This is a message that will be signed.";
+        let identifier = "key";
+
+        assert!(test::sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier).await);
+    }
+
+    #[tokio::test]
+    async fn test_software_encryption() {
+        let payload = b"This message will be encrypted.";
+        let identifier = "key";
+
+        assert!(test::encrypt_and_decrypt_message::<SoftwareEncryptionKey>(payload, identifier).await);
     }
 }
