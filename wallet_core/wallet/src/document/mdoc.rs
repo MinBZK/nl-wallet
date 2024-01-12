@@ -291,9 +291,13 @@ impl DisclosureDocument {
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
-pub mod mock {
+#[cfg(test)]
+pub mod tests {
+    use std::{collections::HashMap, mem};
+
+    use assert_matches::assert_matches;
     use chrono::{Days, Utc};
+    use rstest::rstest;
 
     use nl_wallet_mdoc::Tdate;
 
@@ -427,16 +431,6 @@ pub mod mock {
 
         unsigned_mdoc
     }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use std::{collections::HashMap, mem};
-
-    use assert_matches::assert_matches;
-    use rstest::rstest;
-
-    use super::{super::PID_DOCTYPE, mock::*, *};
 
     #[test]
     fn test_minimal_unsigned_mdoc_to_document_mapping() {
