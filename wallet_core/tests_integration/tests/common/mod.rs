@@ -17,7 +17,8 @@ use nl_wallet_mdoc::{
 };
 use pid_issuer::{
     app::{AttributesLookup, BsnLookup},
-    mock::{MockAttributesLookup, MockBsnLookup},
+    mock::MockBsnLookup,
+    mock_attributes::MockAttributesLookup,
     server as PidServer,
     settings::Settings as PidSettings,
 };

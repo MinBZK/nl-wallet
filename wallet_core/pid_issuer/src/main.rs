@@ -1,7 +1,7 @@
 use anyhow::Result;
 use tracing::debug;
 
-use pid_issuer::{digid::OpenIdClient, mock::MockAttributesLookup, server, settings::Settings};
+use pid_issuer::{digid::OpenIdClient, mock_attributes::MockAttributesLookup, server, settings::Settings};
 
 #[tokio::main]
 async fn main() -> Result<()> {
