@@ -2,7 +2,7 @@ use std::{collections::HashMap, result::Result as StdResult, sync::Arc};
 
 use askama::Template;
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -17,7 +17,7 @@ use url::Url;
 use crate::{askama_axum, client::WalletServerClient, settings::Settings};
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    verifier::{ItemsRequests, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, ItemsRequests, SessionType},
 };
 
 #[derive(Debug)]
@@ -54,7 +54,7 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
     let app = Router::new()
         .route("/", get(index))
         .route("/", post(engage))
-        .route("/sessions/:session_id/status", get(status))
+        .route("/sessions/:session_id/disclosed_attributes", get(disclosed_attributes))
         .route("/marx.min.css", get(marxcss))
         .route("/qrcodegen.min.js", get(qrcodegenjs))
         .route("/qrcodegen.wasm", get(qrcodegenwasm))
@@ -73,7 +73,7 @@ struct SelectForm {
 #[derive(Template)]
 #[template(path = "disclosure.html")]
 struct DisclosureTemplate {
-    engagement: Option<(String, String)>,
+    engagement: Option<(String, String, String)>,
     selected: Option<SelectForm>,
     usecases: Vec<String>,
 }
@@ -93,18 +93,18 @@ struct EngageUrlparams {
 }
 
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
-    let mut return_url_template = None;
     // TODO make a third selection option (CrossDevice + return URL)
-    if selected.session_type == SessionType::SameDevice {
-        let status_url = format!("{}{}", state.public_url, "/sessions/{session_id}/status");
-        return_url_template = Some(
-            format!("{}#{}", state.public_url, status_url)
+    // return URL is just http://public.url/#{session_id}
+    let return_url_template = match selected.session_type {
+        SessionType::SameDevice => Some(
+            format!("{}#{{session_id}}", state.public_url)
                 .parse()
                 .expect("should always be a valid ReturnUrlTemplate"),
-        );
-    }
+        ),
+        _ => None,
+    };
 
-    let (session_url, engagement_url) = state
+    let (session_url, engagement_url, disclosed_attributes_url) = state
         .client
         .start(
             selected.usecase.clone(),
@@ -118,11 +118,16 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
         )
         .await?;
 
-    let mut session_url = session_url.path().to_owned();
-    session_url.remove(0); // remove initial '/'
+    // the mrp disclosed attributes url matches the wallet server disclosed attributes url
+    let mut mrp_disclosed_attributes_url: Url = state.public_url.clone();
+    mrp_disclosed_attributes_url.set_path(disclosed_attributes_url.path());
 
     Ok(askama_axum::into_response(&DisclosureTemplate {
-        engagement: Some((engagement_url.to_string(), session_url.to_string())),
+        engagement: Some((
+            engagement_url.to_string(),
+            session_url.to_string(),
+            mrp_disclosed_attributes_url.to_string(),
+        )),
         selected: Some(SelectForm {
             usecase: selected.usecase,
             session_type: selected.session_type,
@@ -131,14 +136,22 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
     }))
 }
 
-// for now this just passes the status incl. the attributes on as it is received
-async fn status(
+#[derive(Deserialize)]
+struct DisclosedAttributesParams {
+    transcript_hash: Option<String>,
+}
+
+// for now this just passes the disclosed attributes on as it is received
+async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
     Path(session_id): Path<SessionToken>,
-) -> Result<Json<StatusResponse>> {
-    let status = state.client.status(session_id).await?;
-
-    Ok(Json(status))
+    Query(params): Query<DisclosedAttributesParams>,
+) -> Result<Json<DisclosedAttributes>> {
+    let attributes = state
+        .client
+        .disclosed_attributes(session_id, params.transcript_hash)
+        .await?;
+    Ok(Json(attributes))
 }
 
 // static files to not depend on external resources

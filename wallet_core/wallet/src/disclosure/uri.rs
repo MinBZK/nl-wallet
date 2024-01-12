@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::prelude::*;
 use serde::Deserialize;
 use url::Url;
 
@@ -60,7 +60,7 @@ impl DisclosureUriData {
         }
 
         // Decode the `ReaderEngagement` bytes from base64.
-        let reader_engagement_bytes = URL_SAFE_NO_PAD.decode(reader_engagement_base64)?;
+        let reader_engagement_bytes = BASE64_URL_SAFE_NO_PAD.decode(reader_engagement_base64)?;
 
         // Parse an optional return URL and session type from the query parameters.
         let DisclosureParams {

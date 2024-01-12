@@ -3,7 +3,7 @@ use std::str::FromStr;
 use indexmap::{IndexMap, IndexSet};
 use p256::pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none, DeserializeFromStr};
+use serde_with::{skip_serializing_none, DeserializeFromStr};
 use url::Url;
 use x509_parser::der_parser::Oid;
 
@@ -200,7 +200,6 @@ impl From<Vec<(&str, &str)>> for LocalizedStrings {
     }
 }
 
-#[serde_as]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RetentionPolicy {

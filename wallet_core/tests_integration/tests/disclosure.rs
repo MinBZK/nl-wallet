@@ -7,7 +7,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
-    verifier::{SessionResult, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };
 use wallet::{errors::DisclosureError, mock::MockDigidSession};
@@ -93,16 +93,21 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    // does it exist for the RP side of things?
     let StartDisclosureResponse {
         session_url,
         engagement_url,
+        mut disclosed_attributes_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
 
+    // after creating the session it should have status "Created"
     assert_matches!(
         get_verifier_status(&client, session_url.clone()).await,
         StatusResponse::Created
     );
+
+    // disclosed attributes endpoint should return a response with code Bad Request
+    let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let proposal = wallet
         .start_disclosure(&engagement_url)
@@ -111,15 +116,32 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
     assert_eq!(proposal.reader_registration.id, "some-service-id");
     assert_eq!(proposal.documents.len(), 1);
 
+    // after the first wallet interaction it should have status "Waiting"
     assert_matches!(
         get_verifier_status(&client, session_url.clone()).await,
         StatusResponse::WaitingForResponse
     );
 
-    wallet
+    // disclosed attributes endpoint should return a response with code Bad Request
+    let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let return_url = wallet
         .accept_disclosure(pin)
         .await
         .expect("Could not accept disclosure");
+
+    // after disclosure it should have status "Done"
+    assert_matches!(get_verifier_status(&client, session_url).await, StatusResponse::Done);
+
+    // this only works reliably if the return_url has only transcript_hash as query
+    if let Some(url) = return_url {
+        disclosed_attributes_url.set_query(url.query());
+    }
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+    let status = response.status();
+    assert_eq!(status, StatusCode::OK);
 
     let expected_entries = vec![
         Entry {
@@ -131,10 +153,16 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
             value: "Willeke Liselotte".into(),
         },
     ];
-    assert_matches!(
-        get_verifier_status(&client, session_url).await,
-        StatusResponse::Done(SessionResult::Done { disclosed_attributes })
-        if disclosed_attributes.get("com.example.pid").unwrap().get("com.example.pid").unwrap() == &expected_entries
+    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+
+    // verify the disclosed attributes
+    assert_eq!(
+        disclosed_attributes
+            .get("com.example.pid")
+            .unwrap()
+            .get("com.example.pid")
+            .unwrap(),
+        &expected_entries
     );
 }
 
@@ -202,6 +230,7 @@ async fn test_disclosure_without_pid() {
     let StartDisclosureResponse {
         session_url,
         engagement_url,
+        disclosed_attributes_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
 
     assert_matches!(
@@ -234,9 +263,21 @@ async fn test_disclosure_without_pid() {
     );
 
     wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
-
     assert_matches!(
-        get_verifier_status(&client, session_url).await,
-        StatusResponse::Done(SessionResult::Cancelled)
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::Cancelled
     );
+
+    let response = client.get(session_url).send().await.unwrap();
+    let status = response.status();
+    // a cancelled disclosure should have status 200
+    assert_eq!(status, StatusCode::OK);
+
+    let status = response.json::<StatusResponse>().await.unwrap();
+    // and report the status as cancelled
+    assert_matches!(status, StatusResponse::Cancelled);
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+    // a cancelled disclosure does not result in any disclosed attributes
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

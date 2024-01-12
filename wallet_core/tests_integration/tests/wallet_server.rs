@@ -173,6 +173,7 @@ async fn test_start_session() {
     let StartDisclosureResponse {
         session_url,
         engagement_url,
+        ..
     } = response.json::<StartDisclosureResponse>().await.unwrap();
     let response = client.get(session_url).send().await.unwrap();
 
@@ -202,7 +203,7 @@ async fn test_session_not_found() {
         .get(
             settings
                 .internal_url
-                .join(&format!("/sessions/{}/status", SessionToken::new()))
+                .join(&format!("/{}/status", SessionToken::new()))
                 .unwrap(),
         )
         .send()
