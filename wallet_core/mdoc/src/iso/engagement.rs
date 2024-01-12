@@ -49,7 +49,7 @@ pub type DeviceAuthenticationBytes = TaggedBytes<DeviceAuthentication>;
 
 /// See [`DeviceAuthentication`].
 // In production code, this struct is never deserialized.
-#[cfg_attr(feature = "examples", derive(Deserialize))]
+#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
 #[derive(Serialize, Debug, Clone)]
 pub struct DeviceAuthenticationKeyed {
     pub device_authentication: RequiredValue<DeviceAuthenticationString>,

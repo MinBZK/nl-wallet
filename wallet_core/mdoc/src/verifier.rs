@@ -875,9 +875,9 @@ mod tests {
             EXAMPLE_NAMESPACE,
         },
         identifiers::AttributeIdentifierHolder,
-        mock::{self, DebugCollapseBts},
         server_keys::{PrivateKey, SingleKeyRing},
         server_state::MemorySessionStore,
+        test::{self, DebugCollapseBts},
         utils::{
             crypto::{SessionKey, SessionKeyUser},
             serialization::cbor_serialize,
@@ -960,7 +960,7 @@ mod tests {
         println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 
         // The first disclosed attribute is the same as we saw earlier in the DeviceResponse
-        mock::assert_disclosure_contains(
+        test::assert_disclosure_contains(
             &disclosed_attrs,
             EXAMPLE_DOC_TYPE,
             EXAMPLE_NAMESPACE,

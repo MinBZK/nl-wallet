@@ -367,8 +367,11 @@ mod tests {
     use serial_test::serial;
 
     use nl_wallet_mdoc::{
-        basic_sa_ext::Entry, examples::Examples, holder::HolderError, iso::disclosure::SessionStatus,
-        mock as mdoc_mock, verifier::SessionType, DataElementValue,
+        basic_sa_ext::Entry,
+        holder::{HolderError, Mdoc},
+        iso::disclosure::SessionStatus,
+        verifier::SessionType,
+        DataElementValue,
     };
     use uuid::uuid;
 
@@ -1220,8 +1223,7 @@ mod tests {
         let wallet = WalletWithMocks::new_unregistered().await;
 
         // Create some fake `Mdoc` entries to place into wallet storage.
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc1 = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc1 = Mdoc::generate_mock_from_example_device_response();
         let mdoc2 = {
             let mut mdoc2 = mdoc1.clone();
 

@@ -12,7 +12,7 @@ use wallet_common::trust_anchor::DerTrustAnchor;
 
 use crate::{
     errors::Result,
-    examples::{Examples, EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+    examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
     holder::{HttpClient, HttpClientError, HttpClientResult, Mdoc},
     identifiers::AttributeIdentifier,
     iso::{
@@ -23,7 +23,6 @@ use crate::{
         disclosure::{SessionData, SessionStatus},
         engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     },
-    mock,
     server_keys::PrivateKey,
     utils::{
         cose::{self, MdocCose},
@@ -144,15 +143,9 @@ pub async fn create_doc_request(
     }
 }
 
-/// Create the example `Mdoc`.
-pub fn create_example_mdoc() -> Mdoc {
-    let trust_anchors = Examples::iaca_trust_anchors();
-    mock::mdoc_from_example_device_response(trust_anchors)
-}
-
 /// Create `ProposedDocument` based on the example `Mdoc`.
 pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
-    let mdoc = create_example_mdoc();
+    let mdoc = Mdoc::generate_mock_from_example_device_response();
 
     ProposedDocument {
         source_identifier: "id_1234".to_string(),
@@ -165,7 +158,7 @@ pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
 
 /// The `AttributeIdentifier`s contained in the example `Mdoc`.
 pub fn example_mdoc_attribute_identifiers() -> IndexSet<AttributeIdentifier> {
-    create_example_mdoc().issuer_signed_attribute_identifiers()
+    Mdoc::generate_mock_from_example_device_response().issuer_signed_attribute_identifiers()
 }
 
 /// Create an ordered set of `AttributeIdentifier`s within the
@@ -253,7 +246,7 @@ pub enum MdocDataSourceError {
 impl Default for MockMdocDataSource {
     fn default() -> Self {
         MockMdocDataSource {
-            mdocs: vec![create_example_mdoc()],
+            mdocs: vec![Mdoc::generate_mock_from_example_device_response()],
             has_error: false,
         }
     }
@@ -480,7 +473,7 @@ where
     let reader_registration = match certificate_kind {
         ReaderCertificateKind::NoReaderRegistration => None,
         ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
-            attributes: mock::reader_registration_attributes(
+            attributes: ReaderRegistration::create_attributes(
                 EXAMPLE_DOC_TYPE.to_string(),
                 EXAMPLE_NAMESPACE.to_string(),
                 EXAMPLE_ATTRIBUTES.iter().copied(),

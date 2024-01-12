@@ -13,7 +13,7 @@ use x509_parser::{
     prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
 };
 
-use wallet_common::generator::Generator;
+use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
 
 use super::reader_auth::ReaderRegistration;
 
@@ -27,7 +27,7 @@ pub enum CertificateError {
     ContentParsing(#[from] x509_parser::nom::Err<X509Error>),
     #[error("certificate private key generation failed: {0}")]
     GeneratingPrivateKey(p256::pkcs8::Error),
-    #[cfg(feature = "generate")]
+    #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
     GeneratingFailed(#[from] rcgen::RcgenError),
     #[error("failed to parse certificate public key: {0}")]
@@ -86,12 +86,11 @@ impl From<Certificate> for Vec<u8> {
     }
 }
 
-#[cfg(feature = "mock")]
-impl<'a> TryInto<wallet_common::trust_anchor::DerTrustAnchor> for &'a Certificate {
+impl<'a> TryInto<DerTrustAnchor> for &'a Certificate {
     type Error = CertificateError;
 
-    fn try_into(self) -> Result<wallet_common::trust_anchor::DerTrustAnchor, Self::Error> {
-        Ok(wallet_common::trust_anchor::DerTrustAnchor::from_der(self.0.to_vec())?)
+    fn try_into(self) -> Result<DerTrustAnchor, Self::Error> {
+        Ok(DerTrustAnchor::from_der(self.0.to_vec())?)
     }
 }
 
@@ -264,7 +263,7 @@ impl From<&CertificateType> for CertificateUsage {
     }
 }
 
-#[cfg(feature = "generate")]
+#[cfg(any(test, feature = "generate"))]
 mod generate {
     use p256::{
         ecdsa::SigningKey,
@@ -349,6 +348,27 @@ mod generate {
             }
 
             Ok(extensions)
+        }
+    }
+
+    mod mock {
+        use crate::server_keys::PrivateKey;
+
+        use super::*;
+
+        const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
+        const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
+
+        impl PrivateKey {
+            pub fn generate_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
+                // Issuer CA certificate and normal certificate
+                let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+                let (issuer_cert, issuer_privkey) =
+                    Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl)?;
+                let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+
+                Ok((issuance_key, ca))
+            }
         }
     }
 }

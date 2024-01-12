@@ -23,8 +23,9 @@ pub use errors::*;
 
 pub mod identifiers;
 
-#[cfg(any(test, feature = "mock"))]
-pub mod mock;
-
 #[cfg(any(test, feature = "examples"))]
 pub mod examples;
+#[cfg(any(test, feature = "software-key-factory"))]
+pub mod software_key_factory;
+#[cfg(test)]
+pub mod test;

@@ -14,7 +14,7 @@ doctest = false
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 disable_tls_validation = []
 env_config = ["dep:dotenvy"]
-mock = ["dep:mockall", "nl_wallet_mdoc/mock"]
+mock = ["dep:mockall", "nl_wallet_mdoc/mdocs-map", "nl_wallet_mdoc/mock"]
 wallet_deps = []
 
 [dependencies]
@@ -67,9 +67,17 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "test-util"] }
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }
+nl_wallet_mdoc = { path = "../mdoc", features = [
+    "generate",
+    "examples",
+    "software-keys",
+    "mdocs-map",
+    "test",
+    "mock",
+] }
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }
+wallet_common = { path = "../wallet_common", features = ["mock-p256-keys"] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }

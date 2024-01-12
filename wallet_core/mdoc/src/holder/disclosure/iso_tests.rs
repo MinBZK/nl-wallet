@@ -11,11 +11,12 @@ use crate::{
         disclosure::DeviceResponse,
         engagement::DeviceAuthenticationBytes,
     },
-    mock::{self, DebugCollapseBts, SoftwareKeyFactory},
+    software_key_factory::SoftwareKeyFactory,
+    test::{self, DebugCollapseBts},
     SessionTranscript,
 };
 
-use super::{request::DeviceRequestMatch, test_utils::*};
+use super::{request::DeviceRequestMatch, test::*};
 
 /// This function uses the `MockMdocDataSource` to provide the mdoc from the example
 /// `DeviceResponse` in the standard. This is used to match against a `DeviceRequest`
@@ -92,7 +93,7 @@ async fn do_and_verify_iso_example_disclosure() {
     println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 
     // The first disclosed attribute is the same as we saw earlier in the DeviceRequest
-    mock::assert_disclosure_contains(
+    test::assert_disclosure_contains(
         &disclosed_attrs,
         EXAMPLE_DOC_TYPE,
         EXAMPLE_NAMESPACE,
@@ -131,7 +132,7 @@ async fn iso_examples_custom_disclosure() {
     println!("My Disclosure: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 
     // The first disclosed attribute is the one we requested in our device request
-    mock::assert_disclosure_contains(
+    test::assert_disclosure_contains(
         &disclosed_attrs,
         EXAMPLE_DOC_TYPE,
         EXAMPLE_NAMESPACE,

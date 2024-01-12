@@ -6,5 +6,5 @@ pub mod x509;
 
 pub(crate) mod crypto;
 
-#[cfg(feature = "mock")]
+#[cfg(feature = "mdocs-map")]
 pub mod mdocs_map;

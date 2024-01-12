@@ -387,7 +387,7 @@ mod tests {
             disclosure::{DeviceAuth, SessionStatus},
             engagement::DeviceAuthentication,
         },
-        mock::SoftwareKeyFactory,
+        software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
@@ -397,7 +397,7 @@ mod tests {
         Error,
     };
 
-    use super::{super::test_utils::*, *};
+    use super::{super::test::*, *};
 
     fn test_payload_session_data_error(payload: &[u8], expected_session_status: SessionStatus) {
         let session_data: SessionData =

@@ -36,7 +36,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "generate"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
 pid_issuer = { path = "../pid_issuer", features = ["mock"] }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = [

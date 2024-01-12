@@ -2570,7 +2570,6 @@ dependencies = [
  "http",
  "indexmap 2.0.2",
  "itertools 0.11.0",
- "nl_wallet_mdoc",
  "once_cell",
  "p256",
  "rcgen",

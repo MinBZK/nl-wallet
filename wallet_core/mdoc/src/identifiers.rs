@@ -91,3 +91,34 @@ impl AttributeIdentifierHolder for ItemsRequest {
             .collect()
     }
 }
+
+#[cfg(any(test, feature = "test"))]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, thiserror::Error, PartialEq, Eq)]
+    pub enum AttributeIdParsingError {
+        #[error("Expected string with 3 parts separated by '/', got {0} parts")]
+        InvalidPartsCount(usize),
+    }
+
+    // This implementation is solely intended for unit testing purposes to easily construct AttributeIdentifiers.
+    // This implementation should never end up in production code, because the use of '/' is officially allowed in the
+    // various parts.
+    impl std::str::FromStr for AttributeIdentifier {
+        type Err = AttributeIdParsingError;
+
+        fn from_str(source: &str) -> Result<Self, Self::Err> {
+            let parts = source.split('/').collect::<Vec<&str>>();
+            if parts.len() != 3 {
+                return Err(AttributeIdParsingError::InvalidPartsCount(parts.len()));
+            }
+            let result = Self {
+                doc_type: parts[0].to_owned(),
+                namespace: parts[1].to_owned(),
+                attribute: parts[2].to_owned(),
+            };
+            Ok(result)
+        }
+    }
+}

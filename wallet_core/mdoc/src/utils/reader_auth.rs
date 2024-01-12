@@ -249,7 +249,7 @@ impl DeviceRequest {
     }
 }
 
-#[cfg(feature = "generate")]
+#[cfg(any(test, feature = "generate"))]
 mod generate {
     use p256::pkcs8::der::{asn1::Utf8StringRef, Encode};
     use rcgen::CustomExtension;
@@ -269,15 +269,47 @@ mod generate {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::{utils::serialization::TaggedBytes, DeviceRequestVersion, DocRequest, ItemsRequest};
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use indexmap::IndexMap;
 
     use super::*;
 
+    impl ReaderRegistration {
+        /// Build attributes for [`ReaderRegistration`] from a list of attributes.
+        pub fn create_attributes(
+            doc_type: String,
+            name_space: String,
+            attributes: impl Iterator<Item = impl Into<String>>,
+        ) -> IndexMap<String, AuthorizedMdoc> {
+            [(
+                doc_type,
+                AuthorizedMdoc(
+                    [(
+                        name_space,
+                        AuthorizedNamespace(
+                            attributes
+                                .map(|attribute| (attribute.into(), AuthorizedAttribute {}))
+                                .collect(),
+                        ),
+                    )]
+                    .into(),
+                ),
+            )]
+            .into()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
     use rstest::rstest;
+
+    use crate::{utils::serialization::TaggedBytes, DeviceRequestVersion, DocRequest, ItemsRequest};
+
+    use super::*;
 
     #[rstest]
     #[case("https://example/", Ok(()))]
