@@ -27,7 +27,7 @@ spec:
         - name: harbor-puller
       containers:
         - name: mrp-wallet-server
-          image: $WALLET_SERVER_IMAGE
+          image: $MRP_WALLET_SERVER_IMAGE
           resources:
             limits:
               memory: "512Mi"
