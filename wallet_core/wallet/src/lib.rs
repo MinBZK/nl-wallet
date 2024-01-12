@@ -16,13 +16,12 @@ pub mod errors;
 
 pub use crate::{
     document::{
-        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, Document,
-        DocumentAttributes, DocumentPersistence, DocumentType, GenderAttributeValue, MissingDisclosureAttributes,
-        ProposedDisclosureDocument,
+        Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, DisclosureDocument,
+        Document, DocumentAttributes, DocumentPersistence, DocumentType, GenderAttributeValue,
+        MissingDisclosureAttributes,
     },
     pin::validation::validate_pin,
-    storage::{EventStatus, EventType, WalletEvent},
-    wallet::{DisclosureProposal, UriType, Wallet},
+    wallet::{DisclosureProposal, EventStatus, HistoryEvent, UriType, Wallet},
 };
 
 pub mod mdoc {
@@ -30,9 +29,6 @@ pub mod mdoc {
         DeletionPolicy, Image, ImageType, LocalizedStrings, Organization, ReaderRegistration, RetentionPolicy,
         SharingPolicy,
     };
-}
-pub mod x509 {
-    pub use nl_wallet_mdoc::utils::x509::{Certificate, CertificateError, CertificateType};
 }
 
 pub use wallet_common::config::wallet_config::{LockTimeoutConfiguration, WalletConfiguration};
@@ -42,8 +38,9 @@ pub mod wallet_deps {
     pub use crate::{
         account_provider::{AccountProviderClient, HttpAccountProviderClient},
         config::{
-            ConfigServerConfiguration, ConfigurationRepository, FileStorageConfigurationRepository,
-            HttpConfigurationRepository, UpdateableConfigurationRepository, UpdatingFileHttpConfigurationRepository,
+            ConfigServerConfiguration, ConfigurationRepository, ConfigurationUpdateState,
+            FileStorageConfigurationRepository, HttpConfigurationRepository, UpdateableConfigurationRepository,
+            UpdatingFileHttpConfigurationRepository,
         },
         digid::{DigidSession, HttpDigidSession, HttpOpenIdClient, S256PkcePair},
         disclosure::{
@@ -60,7 +57,7 @@ pub mod mock {
         account_provider::MockAccountProviderClient,
         config::{default_configuration, LocalConfigurationRepository},
         digid::MockDigidSession,
-        disclosure::MockMdocDisclosureSession,
+        disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
         pid_issuer::MockPidIssuerClient,
         storage::MockStorage,
     };

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
+import '../common/widget/wallet_app_bar.dart';
 import 'bloc/flashlight_cubit.dart';
 import 'tab/my_qr/my_qr_tab.dart';
 import 'tab/qr_scan/bloc/qr_scan_bloc.dart';
@@ -24,7 +25,7 @@ class QrScreen extends StatelessWidget {
         length: tabs.length,
         animationDuration: kDefaultAnimationDuration,
         child: Scaffold(
-          appBar: AppBar(
+          appBar: WalletAppBar(
             title: Text(context.l10n.qrScreenTitle),
             bottom: TabBar(
               tabs: tabs,

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use futures::future::TryFutureExt;
 use http::{
     header::{self},
@@ -71,7 +70,6 @@ impl Default for HttpPidIssuerClient {
     }
 }
 
-#[async_trait]
 impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
     fn has_session(&self) -> bool {
         self.issuance_client.has_issuance_session()
@@ -88,10 +86,10 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         Ok(attestation_previews)
     }
 
-    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        key_factory: &(impl KeyFactory<Key = K> + Sync),
         credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         let mdocs = self
@@ -109,7 +107,6 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
     }
 }
 
-#[async_trait]
 impl PidIssuerClient for HttpPidIssuerClient {
     fn has_session(&self) -> bool {
         self.mdoc_wallet.has_issuance_session()
@@ -156,10 +153,10 @@ impl PidIssuerClient for HttpPidIssuerClient {
         Ok(unsigned_mdocs.to_vec())
     }
 
-    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         let mdocs = self
             .mdoc_wallet

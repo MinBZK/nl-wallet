@@ -1,10 +1,9 @@
 use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 
-use async_trait::async_trait;
 use futures::try_join;
 use sea_orm::{
-    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, LoaderTrait, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, Select, Set, TransactionTrait,
+    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
+    RelationTrait, Select, Set, TransactionTrait,
 };
 use tokio::fs;
 use uuid::Uuid;
@@ -131,34 +130,11 @@ where
 
         Ok(mdocs)
     }
-
-    // TODO remove once requested/issued/disclosed attributes are stored in the database
-    async fn restore_event_type_from_doc_types(
-        &self,
-        events: Vec<history_event::Model>,
-    ) -> StorageResult<Vec<WalletEvent>> {
-        let doc_types = events
-            .load_many_to_many(
-                history_doc_type::Entity,
-                history_event_doc_type::Entity,
-                self.database()?.connection(),
-            )
-            .await?;
-
-        let events = events
-            .into_iter()
-            .zip(doc_types)
-            .map(|(event, doc_types)| (event, doc_types).into())
-            .collect();
-
-        Ok(events)
-    }
 }
 
-#[async_trait]
 impl<K> Storage for DatabaseStorage<K>
 where
-    K: SecureEncryptionKey + Send + Sync,
+    K: SecureEncryptionKey,
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
@@ -215,7 +191,7 @@ where
     }
 
     /// Insert data entry in the key-value table, which will return an error when one is already present.
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         let _ = keyed_data::ActiveModel {
@@ -229,7 +205,7 @@ where
     }
 
     /// Update data entry in the key-value table using the provided key.
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         let database = self.database()?;
 
         keyed_data::Entity::update_many()
@@ -322,7 +298,7 @@ where
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
         let transaction = self.database()?.connection().begin().await?;
 
-        let event_doc_types = event.event_type.doc_types();
+        let event_doc_types = event.associated_doc_types();
 
         // Find existing doc_type entities
         let existing_doc_type_entities = history_doc_type::Entity::find()
@@ -347,7 +323,7 @@ where
             .collect::<Vec<_>>();
 
         // Create the main history event
-        let event_entity: history_event::ActiveModel = history_event::Model::from(event).into();
+        let event_entity: history_event::ActiveModel = history_event::Model::try_from(event)?.into();
 
         // Prepare the event <-> doc_type mapping entities.
         // This is done before inserting the `event_entity`, in order to avoid cloning.
@@ -390,19 +366,22 @@ where
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let events = history_event::Entity::find()
+        let entities = history_event::Entity::find()
             .order_by_desc(history_event::Column::Timestamp)
             .all(connection)
             .await?;
 
-        // TODO Remove once requested attributes and issued/disclosed attributes are stored
-        self.restore_event_type_from_doc_types(events).await
+        let events = entities
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<_, _>>()?;
+        Ok(events)
     }
 
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let events = history_event::Entity::find()
+        let entities = history_event::Entity::find()
             .join_rev(
                 JoinType::InnerJoin,
                 history_event_doc_type::Relation::HistoryEvent.def(),
@@ -416,8 +395,11 @@ where
             .all(connection)
             .await?;
 
-        // TODO Remove once requested attributes and issued/disclosed attributes are stored
-        self.restore_event_type_from_doc_types(events).await
+        let events = entities
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<_, _>>()?;
+        Ok(events)
     }
 }
 
@@ -432,12 +414,12 @@ pub(crate) mod tests {
         account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
     };
 
-    use crate::storage::{
-        data::RegistrationData,
-        event_log::{EventStatus, EventType},
-    };
+    use crate::storage::data::RegistrationData;
 
     use super::*;
+
+    const PID_DOCTYPE: &str = "com.example.pid";
+    const ADDRESS_DOCTYPE: &str = "com.example.address";
 
     #[test]
     fn test_key_file_alias_for_name() {
@@ -675,27 +657,12 @@ pub(crate) mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let disclosure_at_timestamp = WalletEvent::new(
-            Uuid::new_v4(),
-            EventType::disclosure_from_str(vec!["pid"]),
-            timestamp,
-            certificate.clone(),
-            EventStatus::Success,
-        );
-        let issuance_at_older_timestamp = WalletEvent::new(
-            Uuid::new_v4(),
-            EventType::issuance_from_str(vec!["address"]),
-            timestamp_older,
-            certificate.clone(),
-            EventStatus::Success,
-        );
-        let issuance_at_even_older_timestamp = WalletEvent::new(
-            Uuid::new_v4(),
-            EventType::issuance_from_str(vec!["pid"]),
-            timestamp_even_older,
-            certificate.clone(),
-            EventStatus::Success,
-        );
+        let disclosure_at_timestamp =
+            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE], timestamp, certificate.clone());
+        let issuance_at_older_timestamp =
+            WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, certificate.clone());
+        let issuance_at_even_older_timestamp =
+            WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_even_older, certificate.clone());
         // Insert events, in non-standard order, from new to old
         storage.log_wallet_event(disclosure_at_timestamp.clone()).await.unwrap();
         storage
@@ -718,7 +685,7 @@ pub(crate) mod tests {
         );
         // Fetch event by pid and verify events are sorted descending by timestamp
         assert_eq!(
-            storage.fetch_wallet_events_by_doc_type("pid").await.unwrap(),
+            storage.fetch_wallet_events_by_doc_type(PID_DOCTYPE).await.unwrap(),
             vec![
                 disclosure_at_timestamp.clone(),
                 issuance_at_even_older_timestamp.clone()
@@ -726,7 +693,7 @@ pub(crate) mod tests {
         );
         // Fetch event by address
         assert_eq!(
-            storage.fetch_wallet_events_by_doc_type("address").await.unwrap(),
+            storage.fetch_wallet_events_by_doc_type(ADDRESS_DOCTYPE).await.unwrap(),
             vec![issuance_at_older_timestamp]
         );
         // Fetching for unknown-doc-type returns empty Vec
@@ -748,41 +715,26 @@ pub(crate) mod tests {
         let timestamp_newest = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
 
         // Log Issuance of pid and address cards
-        let issuance = WalletEvent::new(
-            Uuid::new_v4(),
-            EventType::issuance_from_str(vec!["pid", "address"]),
-            timestamp,
-            certificate.clone(),
-            EventStatus::Success,
-        );
+        let issuance =
+            WalletEvent::issuance_from_str(vec![PID_DOCTYPE, ADDRESS_DOCTYPE], timestamp, certificate.clone());
         storage.log_wallet_event(issuance.clone()).await.unwrap();
 
         // Log Disclosure of pid and address cards
-        let disclosure_pid_and_address = WalletEvent::new(
-            Uuid::new_v4(),
-            EventType::disclosure_from_str(vec!["pid", "address"]),
-            timestamp_newer,
-            certificate.clone(),
-            EventStatus::Success,
-        );
+        let disclosure_pid_and_address =
+            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE, ADDRESS_DOCTYPE], timestamp_newer, certificate.clone());
         storage
             .log_wallet_event(disclosure_pid_and_address.clone())
             .await
             .unwrap();
 
         // Log Disclosure of pid card only
-        let disclosure_pid_only = WalletEvent::new(
-            Uuid::new_v4(),
-            EventType::disclosure_from_str(vec!["pid"]),
-            timestamp_newest,
-            certificate.clone(),
-            EventStatus::Success,
-        );
+        let disclosure_pid_only =
+            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE], timestamp_newest, certificate.clone());
         storage.log_wallet_event(disclosure_pid_only.clone()).await.unwrap();
 
         // Fetch event by pid and verify events contain issuance of pid, and both full disclosure transactions with pid
         assert_eq!(
-            storage.fetch_wallet_events_by_doc_type("pid").await.unwrap(),
+            storage.fetch_wallet_events_by_doc_type(PID_DOCTYPE).await.unwrap(),
             vec![
                 disclosure_pid_only.clone(),
                 disclosure_pid_and_address.clone(),
@@ -792,7 +744,7 @@ pub(crate) mod tests {
         // Fetch event by address and verify events contain issuance of address, and one full disclosure transactions
         // with address
         assert_eq!(
-            storage.fetch_wallet_events_by_doc_type("address").await.unwrap(),
+            storage.fetch_wallet_events_by_doc_type(ADDRESS_DOCTYPE).await.unwrap(),
             vec![disclosure_pid_and_address, issuance,]
         );
     }

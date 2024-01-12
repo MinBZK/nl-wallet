@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/button/rounded_back_button.dart';
 import '../../common/widget/button/text_icon_button.dart';
 import '../theme_screen.dart';
@@ -35,6 +36,11 @@ class ButtonStylesTab extends StatelessWidget {
         TextIconButton(
           onPressed: () => {},
           child: const Text('TextIconButton'),
+        ),
+        const ThemeSectionSubHeader(title: 'LinkTileButton'),
+        LinkTileButton(
+          onPressed: () => {},
+          child: const Text('LinkTileButton'),
         ),
         const ThemeSectionSubHeader(title: 'LinkButton'),
         Align(

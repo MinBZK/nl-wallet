@@ -46,7 +46,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
 
       switch (result) {
         case CheckPinResultOk():
-          emit(const PinValidateSuccess());
+          emit(PinValidateSuccess(returnUrl: result.returnUrl));
         case CheckPinResultIncorrect():
           emit(PinValidateFailure(leftoverAttempts: result.leftoverAttempts, isFinalAttempt: result.isFinalAttempt));
         case CheckPinResultTimeout():

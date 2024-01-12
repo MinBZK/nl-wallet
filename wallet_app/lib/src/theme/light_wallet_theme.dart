@@ -8,19 +8,22 @@ class LightWalletTheme {
   // ColorScheme
   static const colorScheme = ColorScheme.light(
     brightness: Brightness.light,
-    primary: Color(0xFF383EDE),
+    primary: primary,
     secondary: Color(0x332065E0),
     error: Color(0xFFAB0065),
     background: Color(0xFFFCFCFC),
-    inverseSurface: Color(0xFFEBE4FD), //TODO: See if this is appropriate
+    inverseSurface: Color(0xFFEBE4FD),
+    //TODO: See if this is appropriate
     secondaryContainer: Color(0xFFF3F4F7),
     onPrimary: Color(0xFFFCFCFC),
     onBackground: primaryColorDark,
     onSurface: Color(0xFF445581),
     outlineVariant: Color(0xFFE8EAEF),
+    shadow: Color(0x14000000),
   );
 
   // Other Colors
+  static const primary = Color(0xFF383EDE);
   static const primaryColorDark = Color(0xFF152A62);
   static const sheetBackgroundColor = Color(0xFFFFFFFF);
   static const textColor = primaryColorDark;
@@ -47,7 +50,7 @@ class LightWalletTheme {
   static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
     backgroundColor: colorScheme.background,
     shape: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-    iconTheme: IconThemeData(color: colorScheme.onBackground),
+    iconTheme: const IconThemeData(color: primary),
     titleTextStyle: textTheme.titleMedium,
   );
 
@@ -60,6 +63,7 @@ class LightWalletTheme {
     style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
       foregroundColor: MaterialStatePropertyAll(colorScheme.onPrimary),
       backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
+      overlayColor: MaterialStatePropertyAll(colorScheme.secondary),
     ),
   );
 
@@ -95,5 +99,5 @@ class LightWalletTheme {
 
   static final iconTheme = IconThemeData(color: colorScheme.onBackground);
 
-  static final progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: colorScheme.background);
+  static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFFF2F2FA));
 }

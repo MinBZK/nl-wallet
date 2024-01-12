@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use base64::prelude::*;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
@@ -15,9 +15,11 @@ use wallet_common::{
 // Each of these values can be overridden from environment variables at compile time
 // when the `env_config` feature is enabled. Additionally, environment variables can
 // be added to using a file named `.env` in root directory of this crate.
+const WALLET_CONFIG_VERSION: &str = "1";
+
 const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1/";
 
-const CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC: &str = "900";
+const CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC: &str = "3600";
 const WALLET_PROVIDER_BASE_URL: &str = "http://localhost:3000/api/v1/";
 
 const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
@@ -85,6 +87,7 @@ fn parse_trust_anchors(source: &str) -> Vec<DerTrustAnchor> {
 
 pub fn default_configuration() -> WalletConfiguration {
     WalletConfiguration {
+        version: u64::from_str(config_default!(WALLET_CONFIG_VERSION)).unwrap(),
         lock_timeouts: LockTimeoutConfiguration::default(),
         account_server: AccountServerConfiguration {
             base_url: Url::parse(config_default!(WALLET_PROVIDER_BASE_URL)).unwrap(),

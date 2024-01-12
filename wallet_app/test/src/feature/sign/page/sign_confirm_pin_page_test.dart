@@ -17,7 +17,7 @@ void main() {
           ..addScenario(
             widget: SignConfirmPinPage(
               bloc: PinBloc(Mocks.create()),
-              onPinValidated: () {},
+              onPinValidated: (_) {},
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -31,7 +31,7 @@ void main() {
           ..addScenario(
             widget: SignConfirmPinPage(
               bloc: PinBloc(Mocks.create()),
-              onPinValidated: () {},
+              onPinValidated: (_) {},
             ),
           ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
@@ -46,7 +46,7 @@ void main() {
       await tester.pumpWidget(
         WalletAppTestWidget(
           child: SignConfirmPinPage(
-            onPinValidated: () {},
+            onPinValidated: (_) {},
             bloc: PinBloc(Mocks.create()),
           ),
         ),

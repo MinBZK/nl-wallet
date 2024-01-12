@@ -16,13 +16,13 @@ import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/formatter/timeline_attribute_status_formatter.dart';
-import '../../../wallet_feature_flags.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
@@ -61,7 +61,7 @@ class CardDetailScreen extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     final fallbackAppBarTitleText = Text(cardTitle);
-    return AppBar(
+    return WalletAppBar(
       title: BlocBuilder<CardDetailBloc, CardDetailState>(
         builder: (context, state) {
           return switch (state) {
@@ -259,11 +259,11 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   void _onCardHistoryPressed(BuildContext context, String docType) {
-    if (WalletFeatureFlags.enableCardHistoryOverview) {
-      Navigator.restorablePushNamed(context, WalletRoutes.cardHistoryRoute, arguments: docType);
-    } else {
-      PlaceholderScreen.show(context);
-    }
+    Navigator.pushNamed(
+      context,
+      WalletRoutes.cardHistoryRoute,
+      arguments: docType,
+    );
   }
 
   /// Temporary async logic inside [CardDetailScreen] class;

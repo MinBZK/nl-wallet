@@ -8,8 +8,11 @@ use indexmap::IndexMap;
 
 pub use mdoc::{AttributeValueType, DocumentMdocError};
 
-#[cfg(test)]
-pub use mdoc::tests::{create_full_unsigned_pid_mdoc, create_minimal_unsigned_pid_mdoc};
+#[cfg(feature = "mock")]
+pub use mdoc::mock::{
+    create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
+    create_minimal_unsigned_pid_mdoc,
+};
 
 const PID_DOCTYPE: &str = "com.example.pid";
 const ADDRESS_DOCTYPE: &str = "com.example.address";
@@ -18,14 +21,14 @@ pub type DocumentType = &'static str;
 pub type AttributeKey = &'static str;
 pub type DocumentAttributes = IndexMap<AttributeKey, Attribute>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Document {
     pub persistence: DocumentPersistence,
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DocumentPersistence {
     InMemory,
     Stored(String),
@@ -35,7 +38,7 @@ pub type AttributeLabelLanguage = &'static str;
 pub type AttributeLabel = &'static str;
 pub type AttributeLabels = HashMap<AttributeLabelLanguage, AttributeLabel>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attribute {
     pub key_labels: AttributeLabels,
     pub value: AttributeValue,
@@ -57,14 +60,14 @@ pub enum GenderAttributeValue {
     NotApplicable,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MissingDisclosureAttributes {
     pub doc_type: DocumentType,
     pub attributes: IndexMap<AttributeKey, AttributeLabels>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ProposedDisclosureDocument {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DisclosureDocument {
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
 }

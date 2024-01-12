@@ -9,10 +9,10 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
-import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../data_incorrect/data_incorrect_screen.dart';
 import '../home/home_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
@@ -43,12 +43,14 @@ class IssuanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = context.watch<IssuanceBloc>().state.stepperProgress;
     return Scaffold(
       restorationId: 'issuance_scaffold',
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: _buildTitle(context),
         leading: _buildBackButton(context),
-        actions: [_buildCloseButton(context)],
+        actions: [_buildCloseButton(context, progress)],
+        progress: progress,
       ),
       body: PopScope(
         canPop: false,
@@ -63,15 +65,8 @@ class IssuanceScreen extends StatelessWidget {
             _stopIssuance(context);
           }
         },
-        child: Column(
-          children: [
-            _buildStepper(),
-            Expanded(
-              child: SafeArea(
-                child: _buildPage(),
-              ),
-            ),
-          ],
+        child: SafeArea(
+          child: _buildPage(),
         ),
       ),
     );
@@ -87,13 +82,6 @@ class IssuanceScreen extends StatelessWidget {
           return Text(context.l10n.issuanceScreenTitle);
         }
       },
-    );
-  }
-
-  Widget _buildStepper() {
-    return BlocBuilder<IssuanceBloc, IssuanceState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
     );
   }
 
@@ -142,16 +130,10 @@ class IssuanceScreen extends StatelessWidget {
 
   /// The close button stops/closes the issuance flow.
   /// It is only visible in the semantics tree when the issuance flow is in progress.
-  Widget _buildCloseButton(BuildContext context) {
-    final closeButton = CloseButton(onPressed: () => _stopIssuance(context));
-    return BlocBuilder<IssuanceBloc, IssuanceState>(
-      builder: (context, state) {
-        if (state.stepperProgress == 1.0) {
-          return ExcludeSemantics(child: closeButton);
-        } else {
-          return closeButton;
-        }
-      },
+  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
+    return ExcludeSemantics(
+      excluding: stepperProgress == 1.0,
+      child: CloseButton(onPressed: () => _stopIssuance(context)),
     );
   }
 
@@ -182,7 +164,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildProvidePinPage(BuildContext context, IssuanceProvidePin state) {
     return IssuanceConfirmPinPage(
-      onPinValidated: () => context.bloc.add(const IssuancePinConfirmed()),
+      onPinValidated: (_) => context.bloc.add(const IssuancePinConfirmed()),
     );
   }
 

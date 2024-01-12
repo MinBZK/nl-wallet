@@ -4,12 +4,16 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [features]
-default = ["wallet_server/issuance"]
-db_test = []
+allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
+db_test = ["allow_http_return_url"]
 live_test = []
 digid_test = ["disable_tls_validation"]
 disable_tls_validation = [
+    "allow_http_return_url",
     "wallet_server/disable_tls_validation",
     "wallet/disable_tls_validation",
 ]
@@ -23,7 +27,9 @@ base64.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
+regex.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
+rstest.workspace = true
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
     "runtime-tokio-rustls",

@@ -3,7 +3,6 @@ mod client;
 #[cfg(any(test, feature = "mock"))]
 mod mock;
 
-use async_trait::async_trait;
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -31,7 +30,6 @@ pub enum PidIssuerError {
     Openid(#[from] openid4vc::Error),
 }
 
-#[async_trait]
 pub trait OpenidPidIssuerClient {
     fn has_session(&self) -> bool;
 
@@ -42,17 +40,16 @@ pub trait OpenidPidIssuerClient {
         pre_authorized_code: String,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError>;
 
-    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        key_factory: &(impl KeyFactory<Key = K> + Sync),
         credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError>;
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError>;
 }
 
-#[async_trait]
 pub trait PidIssuerClient {
     fn has_session(&self) -> bool;
 
@@ -62,10 +59,10 @@ pub trait PidIssuerClient {
         access_token: &str,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError>;
 
-    async fn accept_pid<'a, K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a (impl KeyFactory<'a, Key = K> + Sync),
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<MdocCopies>, PidIssuerError>;
 
     async fn reject_pid(&mut self) -> Result<(), PidIssuerError>;

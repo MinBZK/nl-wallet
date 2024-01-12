@@ -1,3 +1,4 @@
+version = 10
 mdoc_trust_anchors = ["${PID_CA_CRT}"]
 
 [lock_timeouts]

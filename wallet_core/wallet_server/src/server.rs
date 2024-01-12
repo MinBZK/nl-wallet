@@ -2,7 +2,6 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{routing::get, Router};
-use tokio;
 use tracing::debug;
 
 #[cfg(feature = "issuance")]
@@ -75,18 +74,32 @@ async fn listen(
     requester_router: Router,
 ) -> anyhow::Result<()> {
     debug!("listening for requester on {}", requester_socket);
-    let server = tokio::spawn(async move {
+    let requester_server = tokio::spawn(async move {
         axum::Server::bind(&requester_socket)
-            .serve(requester_router.into_make_service())
+            .serve(
+                Router::new()
+                    .nest("/sessions", requester_router)
+                    .nest("/sessions", health_router())
+                    .into_make_service(),
+            )
             .await
+            .expect("requester server should be started")
     });
 
     debug!("listening for wallet on {}", wallet_socket);
-    axum::Server::bind(&wallet_socket)
-        .serve(wallet_router.into_make_service())
-        .await?;
+    let wallet_server = tokio::spawn(async move {
+        axum::Server::bind(&wallet_socket)
+            .serve(
+                Router::new()
+                    .nest("/", wallet_router)
+                    .nest("/", health_router())
+                    .into_make_service(),
+            )
+            .await
+            .expect("wallet server should be started")
+    });
 
-    server.await??;
+    tokio::try_join!(requester_server, wallet_server)?;
 
     Ok(())
 }

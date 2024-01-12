@@ -17,7 +17,9 @@ class PinManager {
   WalletInstructionResult checkPin(String pin) {
     if (!isRegistered) throw StateError('Cannot unlock before registration');
     // We've already reached our max attempts, notify blocked.
-    if (_attempts >= _kMaxAttempts) return WalletInstructionResult.blocked();
+    if (_attempts >= _kMaxAttempts) {
+      return WalletInstructionResult.instructionError(error: WalletInstructionError.blocked());
+    }
 
     // Pin matches, grant access and reset state
     if (pin == _selectedPin) {
@@ -28,15 +30,22 @@ class PinManager {
     // Increase the nr of attempts and figure out the new state
     _attempts++;
     // Max attempts reached, block the app
-    if (_attempts >= _kMaxAttempts) return WalletInstructionResult.blocked();
+    if (_attempts >= _kMaxAttempts) {
+      return WalletInstructionResult.instructionError(error: WalletInstructionError.blocked());
+    }
     // Intermediate timeout, report as such
     if (_attempts % _kAttemptsBeforeTimeout == 0) {
-      return WalletInstructionResult.timeout(timeoutMillis: Duration(seconds: _attempts * 2).inMilliseconds);
+      int timeoutMillis = Duration(seconds: _attempts * 2).inMilliseconds;
+      return WalletInstructionResult.instructionError(
+        error: WalletInstructionError.timeout(timeoutMillis: timeoutMillis),
+      );
     }
     // No timeout, not yet blocked, notify about the attempts left
-    return WalletInstructionResult.incorrectPin(
-      leftoverAttempts: _kAttemptsBeforeTimeout - (_attempts % _kAttemptsBeforeTimeout),
-      isFinalAttempt: _attempts == (_kMaxAttempts - 1),
+    return WalletInstructionResult.instructionError(
+      error: WalletInstructionError.incorrectPin(
+        leftoverAttempts: _kAttemptsBeforeTimeout - (_attempts % _kAttemptsBeforeTimeout),
+        isFinalAttempt: _attempts == (_kMaxAttempts - 1),
+      ),
     );
   }
 

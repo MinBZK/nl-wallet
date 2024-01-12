@@ -1,10 +1,10 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2023-11-15T13:44:31+01:00",
+    "@@last_modified": "2024-01-08T11:05:13+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
-    "aboutScreenTitle": "About the app",
+    "aboutScreenTitle": "About the NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Yes, next",
@@ -273,6 +273,8 @@
     "disclosureGenericErrorPageCloseCta": "Stop",
     "disclosureGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
+    "disclosureLoadingSubtitle": "Your request is being loaded",
+    "disclosureLoadingTitle": "One moment",
     "disclosureMissingAttributesPageCloseCta": "Close request",
     "disclosureMissingAttributesPageDescription": "{organization} is requesting information which is not yet in your Wallet.",
     "@disclosureMissingAttributesPageDescription": {
@@ -584,7 +586,7 @@
     },
     "historyDetailScreenTermsTitle": "Terms and Conditions",
     "historyDetailScreenTitle": "Details",
-    "historyOverviewScreenTitle": "Usage history",
+    "historyOverviewScreenTitle": "Interactions",
     "homeBottomNavBarCardsButton": "Cards",
     "homeBottomNavBarQrButton": "QR",
     "homeBottomNavBarSettingsButton": "Settings",
@@ -767,7 +769,6 @@
         }
     },
     "menuMainPageHelpCta": "Help",
-    "menuMainPageHistoryCta": "Usage history",
     "menuMainPageLockCta": "Log out",
     "menuMainPageSettingsCta": "Settings",
     "menuScreenAboutCta": "About this app",
@@ -784,7 +785,7 @@
         }
     },
     "menuScreenHelpCta": "Help",
-    "menuScreenHistoryCta": "Usage history",
+    "menuScreenHistoryCta": "Interactions",
     "menuScreenLockCta": "Log out",
     "menuScreenSettingsCta": "Settings",
     "menuScreenTitle": "Menu",
@@ -800,7 +801,18 @@
     "organizationApprovePageApproveCta": "Yes, next",
     "organizationApprovePageDenyCta": "No, decline",
     "organizationApprovePageFirstInteraction": "First request",
+    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on  {url}.",
+    "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
+    "@organizationApprovePageGenericTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "organizationApprovePageIncorrectCta": "Is something not right?",
+    "organizationApprovePageMoreInfoCta": "More info",
     "organizationApprovePagePurpose": "Purpose: {purpose}",
     "@organizationApprovePagePurpose": {
         "placeholders": {
@@ -819,8 +831,8 @@
             }
         }
     },
-    "organizationApprovePageShareWithApproveCta": "Yes, view request",
-    "organizationApprovePageShareWithDenyCta": "No, stop",
+    "organizationApprovePageShareWithApproveCta": "Yes, continue",
+    "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationApprovePageShareWithTitle": "{organization} is requesting information, is that correct?",
     "@organizationApprovePageShareWithTitle": {
         "placeholders": {
@@ -840,14 +852,23 @@
         }
     },
     "organizationButtonLabel": "About this organization",
+    "organizationDetailScreenCategoryInfo": "Organization type",
+    "organizationDetailScreenDepartmentInfo": "Department",
     "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
     "organizationDetailScreenInfoHeader": "Info",
     "organizationDetailScreenKvk": "KVK: {kvk}",
+    "organizationDetailScreenKvkInfo": "KVK number",
+    "organizationDetailScreenLocationInfo": "Location",
+    "organizationDetailScreenNoInteractions": "No previous interactions with {name}.",
     "organizationDetailScreenPrivacyHeader": "Privacy",
+    "organizationDetailScreenPrivacyInfo": "Privacy statement",
     "organizationDetailScreenPrivacyPolicy": "privacy statement",
+    "organizationDetailScreenPrivacyValue": "Privacy statement",
     "organizationDetailScreenReportIssueCta": "Report a problem",
-    "organizationDetailScreenTitle": "About this organization",
+    "organizationDetailScreenSomeInteractions": "You previously shared information with {name}.",
+    "organizationDetailScreenTitle": "About {name}",
     "organizationDetailScreenViewTerms": "View the",
+    "organizationDetailScreenWebsiteInfo": "Website",
     "pidAddressCardTitle": "Residential address",
     "pidIdCardTitle": "Personal data",
     "pinBlockedScreenDescription": "You've entered the wrong pin too many times.\n\nTo start using the wallet again, please reset the app and select a new pin.",
@@ -941,7 +962,7 @@
     "policyScreenPolicySectionTitle": "Want to know more?",
     "policyScreenReportIssueCta": "Report an issue",
     "policyScreenRetryCta": "Try again",
-    "policyScreenTitle": "Voorwaarden",
+    "policyScreenTitle": "Terms",
     "qrMyCodeTabHowToCta": "How does my QR-code work?",
     "qrMyCodeTabHowToSheetCloseCta": "Close",
     "qrMyCodeTabHowToSheetDescription": "Have a reviewer scan My QR Code to start sharing. You will then receive a data request. Data will only be shared if you agree to the request.",
@@ -1081,8 +1102,6 @@
     },
     "verifierPolicyScreenPolicySectionTitle": "Want to know more?",
     "verifierPolicyScreenRetryCta": "Try again",
-    "verifierPolicyScreenTitle": "Terms",
-    "walletHistoryScreenTitle": "Usage history",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Yes, next",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Address",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Born",
@@ -1111,7 +1130,7 @@
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Something not right?",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Name",
     "walletPersonalizeCheckDataOfferingPageNationalityLabel": "Nationality",
-    "walletPersonalizeCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
+    "walletPersonalizeCheckDataOfferingPageSubtitle": "Your data is retrieved using DigiD.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Is the following information correct?",
     "walletPersonalizeConfirmPinPageDescription": "By doing so you agree to add data to your Wallet.",
     "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
@@ -1132,7 +1151,6 @@
     "walletPersonalizeDataIncorrectScreenNotYourDataTitle": "Isn't this your data?",
     "walletPersonalizeDataIncorrectScreenPrimaryCta": "Do not add data",
     "walletPersonalizeDataIncorrectScreenSubhead": "Is the data incorrect?",
-    "walletPersonalizeDataIncorrectScreenTitle": "Something is not correct",
     "walletPersonalizeDigidCancelledPageDescription": "Still want to retrieve your personal information? Try to login again.",
     "walletPersonalizeDigidCancelledPageTitle": "Login cancelled",
     "walletPersonalizeDigidErrorPageDescription": "Still want to retrieve your personal information? Try to login again.",
@@ -1149,7 +1167,6 @@
     "walletPersonalizeNoDigidPageDescription": "At the moment you can only create a Wallet with the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch ID? Then you can apply for a DigiD.",
     "walletPersonalizeNoDigidPageHeadline": "I don't have DigiD",
     "walletPersonalizeNoDigidPageRequestDigidCta": "Request DigiD",
-    "walletPersonalizeNoDigidPageTitle": "No DigiD",
     "walletPersonalizePhotoAddedPageContinueCta": "Fetch more information",
     "walletPersonalizePhotoAddedPageDataIncorrectCta": "Something not right?",
     "walletPersonalizePhotoAddedPageSubtitle": "Your photo has been added",

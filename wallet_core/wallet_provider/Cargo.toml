@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "wallet_provider"
 
@@ -14,7 +17,6 @@ doctest = false
 db_test = []
 
 [dependencies]
-async-trait.workspace = true
 axum = { workspace = true, features = [
     "http1",
     "json",
@@ -22,9 +24,9 @@ axum = { workspace = true, features = [
     "tower-log",
     "tracing",
 ] }
-base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
+etag.workspace = true
 http.workspace = true
 mime.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }

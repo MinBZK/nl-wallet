@@ -4,15 +4,19 @@ use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use flutter_rust_bridge::StreamSink;
-use wallet::{self, errors::WalletInitError, x509::CertificateError, Wallet};
+use wallet::{self, errors::WalletInitError, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
     logging::init_logging,
     models::{
-        card::Card, config::FlutterConfiguration, disclosure::StartDisclosureResult,
-        instruction::WalletInstructionResult, pin::PinValidationResult, uri::IdentifyUriResult,
-        wallet_event::WalletEvent,
+        card::Card,
+        config::FlutterConfiguration,
+        disclosure::{AcceptDisclosureResult, StartDisclosureResult},
+        instruction::WalletInstructionResult,
+        pin::PinValidationResult,
+        uri::IdentifyUriResult,
+        wallet_event::{WalletEvent, WalletEvents},
     },
     stream::ClosingStreamSink,
 };
@@ -242,7 +246,7 @@ pub async fn cancel_disclosure() -> Result<()> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn accept_disclosure(pin: String) -> Result<WalletInstructionResult> {
+pub async fn accept_disclosure(pin: String) -> Result<AcceptDisclosureResult> {
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_disclosure(pin).await.try_into()?;
@@ -255,11 +259,7 @@ pub async fn accept_disclosure(pin: String) -> Result<WalletInstructionResult> {
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
     let history = wallet.get_history().await?;
-    let history = history
-        .into_iter()
-        .map(WalletEvent::try_from)
-        .collect::<Result<Vec<_>, CertificateError>>()?;
-    let history = history.into_iter().flatten().collect();
+    let history = history.into_iter().flat_map(WalletEvents::from).collect();
     Ok(history)
 }
 
@@ -270,11 +270,7 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
     let history = wallet.get_history_for_card(&doc_type).await?;
     let history = history
         .into_iter()
-        .map(WalletEvent::try_from)
-        .collect::<Result<Vec<_>, CertificateError>>()?;
-    let history = history
-        .into_iter()
-        .flatten()
+        .flat_map(WalletEvents::from)
         .filter(|e| match e {
             WalletEvent::Disclosure { .. } => true,
             WalletEvent::Issuance { card, .. } => card.doc_type == doc_type,

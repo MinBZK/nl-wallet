@@ -98,7 +98,7 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kCancelDisclosureConstMeta;
 
-  Future<WalletInstructionResult> acceptDisclosure({required String pin, dynamic hint});
+  Future<AcceptDisclosureResult> acceptDisclosure({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta;
 
@@ -113,6 +113,16 @@ abstract class WalletCore {
   Future<void> resetWallet({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta;
+}
+
+@freezed
+class AcceptDisclosureResult with _$AcceptDisclosureResult {
+  const factory AcceptDisclosureResult.ok({
+    String? returnUrl,
+  }) = AcceptDisclosureResult_Ok;
+  const factory AcceptDisclosureResult.instructionError({
+    required WalletInstructionError error,
+  }) = AcceptDisclosureResult_InstructionError;
 }
 
 class Card {
@@ -305,7 +315,7 @@ class WalletEvent with _$WalletEvent {
     required String dateTime,
     required Organization relyingParty,
     required List<LocalizedString> purpose,
-    required List<RequestedCard> requestedCards,
+    List<RequestedCard>? requestedCards,
     required RequestPolicy requestPolicy,
     required DisclosureStatus status,
   }) = WalletEvent_Disclosure;
@@ -317,16 +327,23 @@ class WalletEvent with _$WalletEvent {
 }
 
 @freezed
-class WalletInstructionResult with _$WalletInstructionResult {
-  const factory WalletInstructionResult.ok() = WalletInstructionResult_Ok;
-  const factory WalletInstructionResult.incorrectPin({
+class WalletInstructionError with _$WalletInstructionError {
+  const factory WalletInstructionError.incorrectPin({
     required int leftoverAttempts,
     required bool isFinalAttempt,
-  }) = WalletInstructionResult_IncorrectPin;
-  const factory WalletInstructionResult.timeout({
+  }) = WalletInstructionError_IncorrectPin;
+  const factory WalletInstructionError.timeout({
     required int timeoutMillis,
-  }) = WalletInstructionResult_Timeout;
-  const factory WalletInstructionResult.blocked() = WalletInstructionResult_Blocked;
+  }) = WalletInstructionError_Timeout;
+  const factory WalletInstructionError.blocked() = WalletInstructionError_Blocked;
+}
+
+@freezed
+class WalletInstructionResult with _$WalletInstructionResult {
+  const factory WalletInstructionResult.ok() = WalletInstructionResult_Ok;
+  const factory WalletInstructionResult.instructionError({
+    required WalletInstructionError error,
+  }) = WalletInstructionResult_InstructionError;
 }
 
 class WalletCoreImpl implements WalletCore {
@@ -679,11 +696,11 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Future<WalletInstructionResult> acceptDisclosure({required String pin, dynamic hint}) {
+  Future<AcceptDisclosureResult> acceptDisclosure({required String pin, dynamic hint}) {
     var arg0 = _platform.api2wire_String(pin);
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_accept_disclosure(port_, arg0),
-      parseSuccessData: _wire2api_wallet_instruction_result,
+      parseSuccessData: _wire2api_accept_disclosure_result,
       parseErrorData: _wire2api_FrbAnyhowException,
       constMeta: kAcceptDisclosureConstMeta,
       argValues: [pin],
@@ -758,6 +775,21 @@ class WalletCoreImpl implements WalletCore {
     return raw as String;
   }
 
+  AcceptDisclosureResult _wire2api_accept_disclosure_result(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return AcceptDisclosureResult_Ok(
+          returnUrl: _wire2api_opt_String(raw[1]),
+        );
+      case 1:
+        return AcceptDisclosureResult_InstructionError(
+          error: _wire2api_box_autoadd_wallet_instruction_error(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
   bool _wire2api_bool(dynamic raw) {
     return raw as bool;
   }
@@ -780,6 +812,10 @@ class WalletCoreImpl implements WalletCore {
 
   int _wire2api_box_autoadd_u64(dynamic raw) {
     return _wire2api_u64(raw);
+  }
+
+  WalletInstructionError _wire2api_box_autoadd_wallet_instruction_error(dynamic raw) {
+    return _wire2api_wallet_instruction_error(raw);
   }
 
   Card _wire2api_card(dynamic raw) {
@@ -943,6 +979,10 @@ class WalletCoreImpl implements WalletCore {
     return raw == null ? null : _wire2api_list_localized_string(raw);
   }
 
+  List<RequestedCard>? _wire2api_opt_list_requested_card(dynamic raw) {
+    return raw == null ? null : _wire2api_list_requested_card(raw);
+  }
+
   Organization _wire2api_organization(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 10) throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
@@ -1033,7 +1073,7 @@ class WalletCoreImpl implements WalletCore {
           dateTime: _wire2api_String(raw[1]),
           relyingParty: _wire2api_box_autoadd_organization(raw[2]),
           purpose: _wire2api_list_localized_string(raw[3]),
-          requestedCards: _wire2api_list_requested_card(raw[4]),
+          requestedCards: _wire2api_opt_list_requested_card(raw[4]),
           requestPolicy: _wire2api_box_autoadd_request_policy(raw[5]),
           status: _wire2api_disclosure_status(raw[6]),
         );
@@ -1048,21 +1088,32 @@ class WalletCoreImpl implements WalletCore {
     }
   }
 
+  WalletInstructionError _wire2api_wallet_instruction_error(dynamic raw) {
+    switch (raw[0]) {
+      case 0:
+        return WalletInstructionError_IncorrectPin(
+          leftoverAttempts: _wire2api_u8(raw[1]),
+          isFinalAttempt: _wire2api_bool(raw[2]),
+        );
+      case 1:
+        return WalletInstructionError_Timeout(
+          timeoutMillis: _wire2api_u64(raw[1]),
+        );
+      case 2:
+        return WalletInstructionError_Blocked();
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
   WalletInstructionResult _wire2api_wallet_instruction_result(dynamic raw) {
     switch (raw[0]) {
       case 0:
         return WalletInstructionResult_Ok();
       case 1:
-        return WalletInstructionResult_IncorrectPin(
-          leftoverAttempts: _wire2api_u8(raw[1]),
-          isFinalAttempt: _wire2api_bool(raw[2]),
+        return WalletInstructionResult_InstructionError(
+          error: _wire2api_box_autoadd_wallet_instruction_error(raw[1]),
         );
-      case 2:
-        return WalletInstructionResult_Timeout(
-          timeoutMillis: _wire2api_u64(raw[1]),
-        );
-      case 3:
-        return WalletInstructionResult_Blocked();
       default:
         throw Exception("unreachable");
     }

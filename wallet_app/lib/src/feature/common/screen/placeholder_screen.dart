@@ -4,6 +4,7 @@ import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../widget/button/bottom_back_button.dart';
+import '../widget/wallet_app_bar.dart';
 
 enum PlaceholderType { generic, contract }
 
@@ -16,7 +17,7 @@ class PlaceholderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('placeholderScreen'),
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.placeholderScreenTitle),
       ),
       body: SafeArea(

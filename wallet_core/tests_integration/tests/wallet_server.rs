@@ -21,7 +21,7 @@ use wallet_common::{config::wallet_config::PidIssuanceConfiguration, utils::rand
 use wallet_server::{
     pid::attributes::MockPidAttributeService,
     settings::Settings,
-    store::{new_session_stores, SessionStores},
+    store::SessionStores,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
@@ -61,7 +61,7 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
     let settings = common::wallet_server_settings();
-    let sessions = new_session_stores(settings.store_url.clone()).await.unwrap();
+    let sessions = SessionStores::init(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
 
@@ -83,6 +83,7 @@ async fn test_start_session() {
             )]),
         }]
         .into(),
+        return_url_template: None,
     };
     let response = client
         .post(
@@ -102,6 +103,7 @@ async fn test_start_session() {
     let StartDisclosureResponse {
         session_url,
         engagement_url,
+        ..
     } = response.json::<StartDisclosureResponse>().await.unwrap();
     let response = client.get(session_url).send().await.unwrap();
 
@@ -121,7 +123,7 @@ async fn test_start_session() {
 #[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
     let settings = common::wallet_server_settings();
-    let sessions = new_session_stores(settings.store_url.clone()).await.unwrap();
+    let sessions = SessionStores::init(settings.store_url.clone()).await.unwrap();
 
     start_wallet_server(settings.clone(), sessions, MockAttributeService).await;
 
@@ -131,7 +133,7 @@ async fn test_session_not_found() {
         .get(
             settings
                 .internal_url
-                .join(&format!("/disclosure/sessions/{}/status", SessionToken::new()))
+                .join(&format!("/disclosure/{}/status", SessionToken::new()))
                 .unwrap(),
         )
         .send()
@@ -277,7 +279,7 @@ async fn issuance_settings_and_sessions() -> (Settings, SessionStores) {
     #[cfg(not(feature = "db_test"))]
     let store_url = "memory://".parse().unwrap();
 
-    (settings, new_session_stores(store_url).await.unwrap())
+    (settings, SessionStores::init(store_url).await.unwrap())
 }
 
 async fn issuance_settings_and_digid_session() -> (Settings, impl DigidSession) {

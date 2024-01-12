@@ -1,4 +1,5 @@
-use async_trait::async_trait;
+use std::collections::HashMap;
+
 use chrono::{DateTime, Local};
 use uuid::{self, Uuid};
 
@@ -20,7 +21,6 @@ impl Repositories {
     }
 }
 
-#[async_trait]
 impl TransactionStarter for Repositories {
     type TransactionType = Transaction;
 
@@ -29,7 +29,6 @@ impl TransactionStarter for Repositories {
     }
 }
 
-#[async_trait]
 impl WalletUserRepository for Repositories {
     type TransactionType = Transaction;
 
@@ -113,16 +112,16 @@ impl WalletUserRepository for Repositories {
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
         key_identifiers: &[String],
-    ) -> Result<Vec<(String, WrappedKey)>, PersistenceError> {
+    ) -> Result<HashMap<String, WrappedKey>, PersistenceError> {
         wallet_user_key::find_keys_by_identifiers(transaction, wallet_user_id, key_identifiers).await
     }
 }
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use async_trait::async_trait;
     use chrono::{DateTime, Local};
     use mockall;
+    use std::collections::HashMap;
     use uuid::Uuid;
 
     use wallet_provider_domain::{
@@ -136,7 +135,6 @@ pub mod mock {
     mockall::mock! {
         pub TransactionalWalletUserRepository {}
 
-        #[async_trait]
         impl WalletUserRepository for TransactionalWalletUserRepository {
             type TransactionType = MockTransaction;
 
@@ -198,10 +196,9 @@ pub mod mock {
                 _transaction: &MockTransaction,
                 wallet_user_id: Uuid,
                 key_identifiers: &[String],
-            ) -> Result<Vec<(String, WrappedKey)>, PersistenceError>;
+            ) -> Result<HashMap<String, WrappedKey>, PersistenceError>;
         }
 
-        #[async_trait]
         impl TransactionStarter for TransactionalWalletUserRepository {
             type TransactionType = MockTransaction;
 

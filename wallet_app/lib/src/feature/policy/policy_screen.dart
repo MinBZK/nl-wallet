@@ -5,6 +5,7 @@ import '../../domain/model/policy/policy.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
+import '../common/widget/wallet_app_bar.dart';
 import 'model/policy_entry.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';
@@ -29,7 +30,7 @@ class PolicyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       restorationId: 'policy_scaffold',
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.policyScreenTitle),
       ),
       body: SafeArea(

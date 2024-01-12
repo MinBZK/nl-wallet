@@ -1,21 +1,20 @@
 import 'package:fimber/fimber.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/string_extension.dart';
 import '../../../util/formatter/country_code_formatter.dart';
-import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/icon_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
-import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/sliver_wallet_app_bar.dart';
 import 'argument/organization_detail_screen_argument.dart';
 import 'bloc/organization_detail_bloc.dart';
 
@@ -41,10 +40,6 @@ class OrganizationDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.organizationDetailScreenTitle),
-        leading: const BackButton(),
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -61,139 +56,102 @@ class OrganizationDetailScreen extends StatelessWidget {
   Widget _buildBody() {
     return BlocBuilder<OrganizationDetailBloc, OrganizationDetailState>(
       builder: (context, state) {
-        return switch (state) {
-          OrganizationDetailInitial() => const CenteredLoadingIndicator(),
-          OrganizationDetailSuccess() => _buildOrganizationDetailLoaded(context, state),
+        final content = switch (state) {
+          OrganizationDetailInitial() => _buildLoadingSliver(),
           OrganizationDetailFailure() => _buildOrganizationDetailFailure(context, state),
+          OrganizationDetailSuccess() => _buildOrganizationDetailLoaded(context, state),
         };
+        return Scrollbar(
+          child: CustomScrollView(
+            slivers: [
+              SliverWalletAppBar(
+                title: _resolveTitle(context),
+                actions: [
+                  IconButton(
+                    onPressed: () => PlaceholderScreen.show(context),
+                    icon: const Icon(Icons.help_outline_rounded),
+                  ),
+                  const CloseButton(),
+                ],
+              ),
+              content,
+            ],
+          ),
+        );
       },
     );
   }
 
-  Widget _buildOrganizationDetailLoaded(BuildContext context, OrganizationDetailSuccess state) {
-    return Scrollbar(
-      child: CustomScrollView(
-        slivers: [
-          const SliverSizedBox(height: 24),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildHeaderSection(context, state.organization),
-            ),
-          ),
-          const SliverToBoxAdapter(child: Divider(height: 48)),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildPolicySection(context, state),
-            ),
-          ),
-          const SliverToBoxAdapter(child: Divider(height: 48)),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildInfoSection(context, state.organization),
-            ),
-          ),
-          const SliverSizedBox(height: 24),
-          onReportIssuePressed == null
-              ? const SliverSizedBox()
-              : SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Divider(height: 1),
-                      const SizedBox(height: 12),
-                      LinkButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onReportIssuePressed?.call();
-                        },
-                        customPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(context.l10n.organizationDetailScreenReportIssueCta),
-                      ),
-                      const SizedBox(height: 12),
-                      const Divider(height: 1),
-                    ],
-                  ),
-                ),
-        ],
+  String _resolveTitle(BuildContext context) {
+    final state = context.read<OrganizationDetailBloc>().state;
+    if (state is! OrganizationDetailSuccess) return '';
+    return context.l10n.organizationDetailScreenTitle(state.organization.displayName.l10nValue(context));
+  }
+
+  Widget _buildLoadingSliver() {
+    return const SliverFillRemaining(
+      hasScrollBody: false,
+      child: CenteredLoadingIndicator(),
+    );
+  }
+
+  Widget _buildOrganizationDetailFailure(BuildContext context, OrganizationDetailFailure state) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Center(
+        child: TextButton(
+          onPressed: () {
+            final retryEvent = OrganizationLoadTriggered(organizationId: state.organizationId);
+            context.read<OrganizationDetailBloc>().add(retryEvent);
+          },
+          child: Text(context.l10n.generalRetry),
+        ),
       ),
+    );
+  }
+
+  Widget _buildOrganizationDetailLoaded(BuildContext context, OrganizationDetailSuccess state) {
+    return SliverList.list(
+      children: [
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _buildHeaderSection(context, state.organization),
+        ),
+        const SizedBox(height: 24),
+        _buildInteractionRow(context, state),
+        const SizedBox(height: 16),
+        _buildInfoSection(context, state.organization),
+        const SizedBox(height: 16),
+        onReportIssuePressed == null
+            ? const SizedBox()
+            : LinkTileButton(
+                child: Text(context.l10n.organizationDetailScreenReportIssueCta),
+                onPressed: () {
+                  Navigator.pop(context);
+                  onReportIssuePressed?.call();
+                },
+              ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
   Widget _buildHeaderSection(BuildContext context, Organization organization) {
-    return MergeSemantics(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              ExcludeSemantics(
-                child: OrganizationLogo(image: organization.logo, size: 40),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  organization.legalName.l10nValue(context),
-                  textAlign: TextAlign.start,
-                  style: context.textTheme.displayMedium,
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExcludeSemantics(
+          child: OrganizationLogo(image: organization.logo, size: 64, fixedRadius: 12),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
             organization.description?.l10nValue(context) ?? '',
+            textAlign: TextAlign.start,
             style: context.textTheme.bodyLarge,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPolicySection(BuildContext context, OrganizationDetailSuccess state) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          context.l10n.organizationDetailScreenPrivacyHeader,
-          textAlign: TextAlign.start,
-          style: context.textTheme.bodySmall,
-        ),
-        const SizedBox(height: 8),
-        IconRow(
-          icon: const Icon(Icons.policy_outlined),
-          text: Semantics(
-            button: true,
-            child: InkWell(
-              onTap: () => PlaceholderScreen.show(context),
-              child: Text.rich(
-                TextSpan(
-                  text: context.l10n.organizationDetailScreenViewTerms.addSpaceSuffix,
-                  children: [
-                    TextSpan(
-                      text: context.l10n.organizationDetailScreenPrivacyPolicy,
-                      style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-        ),
-        if (state.isFirstInteractionWithOrganization)
-          IconRow(
-            icon: Image.asset(
-              WalletAssets.icon_first_share,
-              color: context.theme.iconTheme.color,
-            ),
-            text: Text(context.l10n.organizationDetailScreenFirstInteraction),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
+        )
       ],
     );
   }
@@ -204,50 +162,131 @@ class OrganizationDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          context.l10n.organizationDetailScreenInfoHeader,
-          textAlign: TextAlign.start,
-          style: context.textTheme.bodySmall,
-        ),
-        const SizedBox(height: 8),
-        IconRow(
-          icon: const Icon(Icons.apartment),
-          text: Text(organization.category?.l10nValue(context) ?? ''),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-        ),
-        if (organization.department != null)
-          IconRow(
-            icon: const Icon(Icons.meeting_room_outlined),
-            text: Text(organization.department!.l10nValue(context)),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
-        if (organization.kvk != null)
-          IconRow(
-            icon: const Icon(Icons.storefront_outlined),
-            text: Text(context.l10n.organizationDetailScreenKvk(organization.kvk!)),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
-        if (country != null || organization.city != null)
-          IconRow(
-            icon: const Icon(Icons.location_on_outlined),
-            text: Text(_generateLocationLabel(context, country, organization.city)),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-          ),
-        if (organization.webUrl != null)
-          IconRow(
-            icon: const Icon(Icons.language_outlined),
-            text: Semantics(
-              link: true,
-              child: InkWell(
-                onTap: () => PlaceholderScreen.show(context),
-                child: Text.rich(TextSpan(
-                  text: organization.webUrl!,
-                  style: context.textTheme.bodyLarge?.copyWith(decoration: TextDecoration.underline),
-                )),
-              ),
+        _buildCategoryRow(context, organization),
+        if (organization.department != null) _buildDepartmentRow(context, organization),
+        if (country != null || organization.city != null) _buildLocationRow(context, country, organization),
+        if (organization.webUrl != null) _buildWebUrlRow(context, organization),
+        _buildPrivacyRow(context),
+        if (organization.kvk != null) _buildKvkRow(context, organization),
+      ],
+    );
+  }
+
+  Widget _buildCategoryRow(BuildContext context, Organization organization) {
+    return _buildInfoRow(
+      context,
+      icon: Icons.apartment,
+      title: Text(context.l10n.organizationDetailScreenCategoryInfo),
+      subtitle: Text(organization.category?.l10nValue(context) ?? ''),
+    );
+  }
+
+  Widget _buildDepartmentRow(BuildContext context, Organization organization) {
+    return _buildInfoRow(
+      context,
+      icon: Icons.meeting_room_outlined,
+      title: Text(context.l10n.organizationDetailScreenDepartmentInfo),
+      subtitle: Text(organization.department!.l10nValue(context)),
+    );
+  }
+
+  Widget _buildLocationRow(BuildContext context, String? country, Organization organization) {
+    return _buildInfoRow(
+      context,
+      icon: Icons.location_on_outlined,
+      title: Text(context.l10n.organizationDetailScreenLocationInfo),
+      subtitle: Text(_generateLocationLabel(context, country, organization.city)),
+    );
+  }
+
+  Widget _buildWebUrlRow(BuildContext context, Organization organization) {
+    return _buildInfoRow(
+      context,
+      icon: Icons.language_outlined,
+      title: Text(context.l10n.organizationDetailScreenWebsiteInfo),
+      subtitle: Semantics(
+        link: true,
+        child: Text.rich(
+          TextSpan(
+            text: organization.webUrl!,
+            style: context.textTheme.bodyLarge!.copyWith(
+              fontWeight: FontWeight.w400,
+              decoration: TextDecoration.underline,
+              color: context.colorScheme.primary,
             ),
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            recognizer: TapGestureRecognizer()..onTap = () => _openUrl(organization.webUrl!),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyRow(BuildContext context) {
+    return _buildInfoRow(
+      context,
+      icon: Icons.policy_outlined,
+      title: Text(context.l10n.organizationDetailScreenPrivacyInfo),
+      subtitle: Semantics(
+        link: true,
+        child: Text.rich(
+          TextSpan(
+            text: context.l10n.organizationDetailScreenPrivacyValue,
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                  fontWeight: FontWeight.w400,
+                  decoration: TextDecoration.underline,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+            recognizer: TapGestureRecognizer()..onTap = () => PlaceholderScreen.show(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKvkRow(BuildContext context, Organization organization) {
+    return _buildInfoRow(
+      context,
+      icon: Icons.storefront_outlined,
+      title: Text(context.l10n.organizationDetailScreenKvkInfo),
+      subtitle: Text(organization.kvk ?? ''),
+    );
+  }
+
+  void _openUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      launchUrl(uri);
+    } catch (ex) {
+      Fimber.e('Failed to launch $url', ex: ex);
+    }
+  }
+
+  Widget _buildInfoRow(BuildContext context,
+      {required IconData icon, required Widget title, required Widget subtitle}) {
+    /// Note: not relying on [InfoRow] widget because the styling here is a bit too custom.
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Icon(icon, size: 24),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DefaultTextStyle(
+                style: Theme.of(context).textTheme.bodySmall!,
+                child: title,
+              ),
+              DefaultTextStyle(
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w400),
+                child: subtitle,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -276,27 +315,40 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrganizationDetailFailure(BuildContext context, OrganizationDetailFailure state) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.max,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        TextButton(
-          onPressed: () {
-            context.read<OrganizationDetailBloc>().add(OrganizationLoadTriggered(organizationId: state.organizationId));
-          },
-          child: Text(context.l10n.generalRetry),
-        ),
-      ],
-    );
-  }
-
   String _generateLocationLabel(BuildContext context, String? country, LocalizedText? city) {
     assert(country != null || city != null, 'At least one of [country, city] needs to be provided');
     final cityLabel = city?.l10nValue(context);
     if (cityLabel == null) return country!;
     if (country == null) return cityLabel;
     return '$cityLabel, $country';
+  }
+
+  Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
+    String interaction;
+    if (state.isFirstInteractionWithOrganization) {
+      interaction =
+          context.l10n.organizationDetailScreenNoInteractions(state.organization.displayName.l10nValue(context));
+    } else {
+      interaction =
+          context.l10n.organizationDetailScreenSomeInteractions(state.organization.displayName.l10nValue(context));
+    }
+    return Column(
+      children: [
+        const Divider(height: 1),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Icon(Icons.history_outlined, size: 24),
+            ),
+            Text(interaction),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Divider(height: 1),
+      ],
+    );
   }
 }

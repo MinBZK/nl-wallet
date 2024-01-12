@@ -1,5 +1,6 @@
 use std::{
     net::{IpAddr, TcpListener},
+    process,
     str::FromStr,
     time::Duration,
 };
@@ -18,6 +19,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_state::{MemorySessionStore, SessionState},
 };
+use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
@@ -36,7 +38,7 @@ use wallet_server::{
     },
     server as ws_server,
     settings::{Server, Settings as WsSettings},
-    store::SessionStores,
+    store::{SessionStores, WalletServerSessionStore},
 };
 
 #[ctor]
@@ -92,8 +94,8 @@ pub async fn setup_wallet_and_env(wp_settings: WpSettings, ws_settings: WsSettin
     start_wallet_server(
         ws_settings,
         SessionStores {
-            disclosure: Box::new(MemorySessionStore::new()),
-            issuance: Box::new(MemorySessionStore::new()),
+            disclosure: WalletServerSessionStore::Memory(MemorySessionStore::new()),
+            issuance: WalletServerSessionStore::Memory(MemorySessionStore::new()),
         },
         MockAttributeService,
     )
@@ -101,7 +103,13 @@ pub async fn setup_wallet_and_env(wp_settings: WpSettings, ws_settings: WsSettin
 
     let pid_issuer_client = HttpOpenidPidIssuerClient::default();
 
-    let config_repository = HttpConfigurationRepository::new(config_base_url, wallet_config);
+    let config_repository = HttpConfigurationRepository::new(
+        config_base_url,
+        SoftwareUtilities::storage_path().await.unwrap(),
+        wallet_config,
+    )
+    .await
+    .unwrap();
     config_repository.fetch().await.unwrap();
 
     Wallet::init_registration(
@@ -141,10 +149,12 @@ pub fn wallet_provider_settings() -> WpSettings {
 
 pub async fn start_wallet_provider(settings: WpSettings, wallet_config: WalletConfiguration) {
     let base_url = local_wp_base_url(&settings.webserver.port);
-    tokio::spawn(async move {
-        wp_server::serve(settings, wallet_config)
-            .await
-            .expect("Could not start wallet_provider")
+    tokio::spawn(async {
+        if let Err(error) = wp_server::serve(settings, wallet_config).await {
+            println!("Could not start wallet_provider: {:?}", error);
+
+            process::exit(1);
+        }
     });
 
     wait_for_server(base_url).await;
@@ -174,9 +184,11 @@ where
 {
     let public_url = settings.public_url.clone();
     tokio::spawn(async move {
-        ws_server::serve_full(&settings, sessions, attr_service)
-            .await
-            .expect("Could not start wallet_server");
+        if let Err(error) = ws_server::serve_full(&settings, sessions, attr_service).await {
+            println!("Could not start wallet_server: {:?}", error);
+
+            process::exit(1);
+        }
     });
 
     wait_for_server(public_url.join("disclosure/").unwrap()).await;

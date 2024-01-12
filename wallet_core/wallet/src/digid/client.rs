@@ -1,5 +1,4 @@
-use async_trait::async_trait;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::prelude::*;
 use openid4vc::token::{TokenRequest, TokenRequestGrantType};
 use url::Url;
 
@@ -36,11 +35,10 @@ pub struct HttpDigidSession<C = HttpOpenIdClient, P = S256PkcePair> {
     client_id: String,
 }
 
-#[async_trait]
 impl<C, P> DigidSession for HttpDigidSession<C, P>
 where
-    P: PkcePair + Send + Sync + 'static,
-    C: OpenIdClient + Send + Sync,
+    P: PkcePair + 'static,
+    C: OpenIdClient,
 {
     async fn start(issuer_url: Url, client_id: String, redirect_uri: Url) -> Result<Self, DigidError> {
         // Remember the `redirect_uri` base.
@@ -52,8 +50,8 @@ where
         let openid_client = C::discover(issuer_url, client_id.clone(), redirect_uri).await?;
 
         // Generate a random CSRF token and nonce.
-        let csrf_token = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
-        let nonce = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
+        let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
+        let nonce = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
         let pkce_pair = P::generate();
 
         // Store the client, generated tokens and auth url in a session for when the redirect URI returns.

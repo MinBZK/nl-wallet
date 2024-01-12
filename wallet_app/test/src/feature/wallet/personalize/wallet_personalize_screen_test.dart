@@ -393,7 +393,8 @@ void main() {
 
         // Verify dialog is gone and confirm attributes screen is shown
         expect(stopDialogTitleFinder, findsNothing);
-        expect(find.text(l10n.walletPersonalizeCheckDataOfferingPageTitle), findsOneWidget);
+        // Look for 2 widgets due to usage of [SliverWalletAppBar]
+        expect(find.text(l10n.walletPersonalizeCheckDataOfferingPageTitle), findsNWidgets(2));
       },
     );
   });

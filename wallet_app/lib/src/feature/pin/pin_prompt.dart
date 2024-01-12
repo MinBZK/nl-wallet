@@ -15,7 +15,7 @@ class PinPrompt extends StatelessWidget {
     return BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read<ConfirmTransactionUseCase>()),
       child: PinScreen(
-        onUnlock: () => Navigator.pop(context, true),
+        onUnlock: (_) => Navigator.pop(context, true),
       ),
     );
   }

@@ -5,6 +5,7 @@ import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/sheet/help_sheet.dart';
+import '../common/widget/wallet_app_bar.dart';
 import 'error_page.dart';
 
 class ErrorScreen extends StatelessWidget {
@@ -32,9 +33,9 @@ class ErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(title),
-        leading: const SizedBox.shrink(),
+        automaticallyImplyLeading: false,
         actions: const [CloseButton()],
       ),
       body: ErrorPage(

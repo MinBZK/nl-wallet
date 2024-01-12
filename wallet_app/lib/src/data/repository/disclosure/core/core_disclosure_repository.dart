@@ -61,5 +61,5 @@ class CoreDisclosureRepository implements DisclosureRepository {
   Future<void> cancelDisclosure() => _walletCore.cancelDisclosure();
 
   @override
-  Future<core.WalletInstructionResult> acceptDisclosure(String pin) => _walletCore.acceptDisclosure(pin);
+  Future<core.AcceptDisclosureResult> acceptDisclosure(String pin) => _walletCore.acceptDisclosure(pin);
 }

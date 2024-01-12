@@ -2,14 +2,14 @@ mod client;
 mod openid_client;
 mod openid_pkce;
 
-use async_trait::async_trait;
-use openid4vc::token::TokenRequest;
 use url::Url;
 
-pub use self::openid_client::{HttpOpenIdClient, OpenIdError};
+use openid4vc::token::TokenRequest;
+
 pub use crate::pkce::S256PkcePair;
 
 pub use self::client::HttpDigidSession;
+pub use self::openid_client::{HttpOpenIdClient, OpenIdError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidError {
@@ -29,7 +29,6 @@ pub enum DigidError {
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-#[async_trait]
 pub trait DigidSession {
     /// Start a new DigiD session by performing OpenID discovery and returning
     /// an authorization URL that can be sent to the system browser.

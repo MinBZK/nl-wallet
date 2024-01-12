@@ -12,7 +12,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     pid_issuer::{OpenidPidIssuerClient, PidIssuerError},
-    storage::{EventType, Storage, StorageError, WalletEvent},
+    storage::{Storage, StorageError, WalletEvent},
 };
 
 use super::Wallet;
@@ -182,8 +182,8 @@ where
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
         S: Storage + Send + Sync,
-        PEK: PlatformEcdsaKey + Sync,
-        APC: AccountProviderClient + Sync,
+        PEK: PlatformEcdsaKey + Send + Sync,
+        APC: AccountProviderClient + Send + Sync,
     {
         info!("Accepting PID issuance");
 
@@ -224,7 +224,7 @@ where
             .pid_issuer
             .accept_pid(
                 &config.mdoc_trust_anchors(),
-                &remote_key_factory,
+                &&remote_key_factory,
                 &config.pid_issuance.pid_issuer_url,
             )
             .await
@@ -253,7 +253,7 @@ where
 
             // This should never fail after successful issuance
             let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
-            WalletEvent::success(EventType::Issuance(mdocs.into()), certificate)
+            WalletEvent::new_issuance(mdocs.into(), certificate)
         };
 
         info!("PID accepted, storing mdoc in database");
@@ -263,9 +263,7 @@ where
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
 
-        self.storage
-            .get_mut()
-            .log_wallet_event(event)
+        self.store_history_event(event)
             .await
             .map_err(PidIssuanceError::HistoryStorage)?;
 
@@ -291,7 +289,6 @@ mod tests {
         digid::{MockDigidSession, OpenIdError},
         document::{self, DocumentPersistence},
         wallet::tests,
-        EventStatus, EventType,
     };
 
     use super::{super::tests::WalletWithMocks, *};
@@ -749,14 +746,7 @@ mod tests {
         // Test that one successful issuance event is logged
         let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
-        assert_matches!(
-            events.first().unwrap(),
-            WalletEvent {
-                event_type: EventType::Issuance(_),
-                status: EventStatus::Success,
-                ..
-            }
-        );
+        assert_matches!(events.first().unwrap(), WalletEvent::Issuance { .. });
 
         // Test which `Document` instances we have received through the callback.
         let documents = documents.lock().unwrap();

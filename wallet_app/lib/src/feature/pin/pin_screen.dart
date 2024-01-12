@@ -2,19 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../common/widget/wallet_app_bar.dart';
 import 'pin_page.dart';
 
 class PinScreen extends StatelessWidget {
-  final VoidCallback? onUnlock;
+  final OnPinValidatedCallback? onUnlock;
 
   const PinScreen({this.onUnlock, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.pinScreenTitle),
-        leading: const SizedBox.shrink(),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),

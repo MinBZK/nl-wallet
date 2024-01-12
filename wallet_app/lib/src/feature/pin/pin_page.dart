@@ -25,12 +25,16 @@ typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, 
 /// by the [PinPage] to trigger potential (navigation) events.
 typedef PinStateInterceptor = bool Function(BuildContext context, PinState state);
 
+/// Signature for a function that is called when the user has entered the correct pin.
+/// [returnUrl] is the url that the user should be redirected to (if not null).
+typedef OnPinValidatedCallback = void Function(String? returnUrl);
+
 /// The required minimum height in the header to be able to show the logo
 const _kHeaderHeightLogoCutOff = 180;
 
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
-  final VoidCallback? onPinValidated;
+  final OnPinValidatedCallback? onPinValidated;
   final PinStateInterceptor? onStateChanged;
   final PinHeaderBuilder? headerBuilder;
 
@@ -57,7 +61,7 @@ class PinPage extends StatelessWidget {
           if (consumed) return;
         }
         if (state is PinValidateSuccess) {
-          onPinValidated?.call();
+          onPinValidated?.call(state.returnUrl);
         }
         if (state is PinValidateGenericError) {
           ErrorScreen.showGeneric(context, secured: false);

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 
 import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../../domain/model/timeline/timeline_section.dart';
-import '../../../../util/extension/build_context_extension.dart';
 import 'timeline_attribute_row.dart';
 import 'timeline_section_header.dart';
 
@@ -20,32 +20,22 @@ class TimelineSectionSliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverMainAxisGroup(
-      slivers: [
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: TimelineSectionHeader(
-            dateTime: section.dateTime,
-            textScaler: context.textScaler,
-          ),
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, i) {
-              final TimelineAttribute attribute = section.attributes[i];
-              return Semantics(
-                button: true,
-                child: TimelineAttributeRow(
-                  attribute: attribute,
-                  onPressed: () => onRowPressed(attribute),
-                  showOperationTitle: showOperationTitle,
-                ),
-              );
-            },
-            childCount: section.attributes.length,
-          ),
-        )
-      ],
+    return SliverStickyHeader(
+      header: TimelineSectionHeader(dateTime: section.dateTime),
+      sliver: SliverList.builder(
+        itemBuilder: (context, i) {
+          final TimelineAttribute attribute = section.attributes[i];
+          return Semantics(
+            button: true,
+            child: TimelineAttributeRow(
+              attribute: attribute,
+              onPressed: () => onRowPressed(attribute),
+              showOperationTitle: showOperationTitle,
+            ),
+          );
+        },
+        itemCount: section.attributes.length,
+      ),
     );
   }
 }

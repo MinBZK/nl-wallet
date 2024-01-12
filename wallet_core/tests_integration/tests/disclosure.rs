@@ -2,21 +2,39 @@ use assert_matches::assert_matches;
 use indexmap::IndexMap;
 use openid4vc::token::TokenRequest;
 use reqwest::StatusCode;
+use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
-use nl_wallet_mdoc::{verifier::SessionType, ItemsRequest};
+use nl_wallet_mdoc::{
+    basic_sa_ext::Entry,
+    verifier::{DisclosedAttributes, SessionType, StatusResponse},
+    ItemsRequest,
+};
 use wallet::{errors::DisclosureError, mock::MockDigidSession};
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
 use crate::common::*;
 
 pub mod common;
 
+async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> StatusResponse {
+    let response = client.get(session_url).send().await.unwrap();
+
+    assert!(response.status().is_success());
+
+    response.json().await.unwrap()
+}
+
+#[rstest]
+#[case(SessionType::SameDevice, None)]
+#[case(SessionType::SameDevice, Some("http://localhost:3004/return".parse().unwrap()))]
+#[case(SessionType::CrossDevice, None)]
+#[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()))]
 #[tokio::test]
 #[serial]
 #[cfg_attr(not(feature = "db_test"), ignore)]
-async fn test_disclosure_ok() {
+async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<ReturnUrlTemplate>) {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
         let mut session = MockDigidSession::default();
@@ -54,7 +72,7 @@ async fn test_disclosure_ok() {
 
     let start_request = StartDisclosureRequest {
         usecase: "driving_license".to_owned(),
-        session_type: SessionType::SameDevice,
+        session_type,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
             request_info: None,
@@ -68,6 +86,9 @@ async fn test_disclosure_ok() {
             )]),
         }]
         .into(),
+        // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
+        // contained in the certificate, so we have to specify a return URL prefixed with that.
+        return_url_template: return_url,
     };
     let response = client
         .post(
@@ -83,23 +104,77 @@ async fn test_disclosure_ok() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    // does it exist for the RP side of things?
     let StartDisclosureResponse {
         session_url,
         engagement_url,
+        mut disclosed_attributes_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
-    let response = client.get(session_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    // after creating the session it should have status "Created"
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::Created
+    );
 
-    let mut url = engagement_url.clone();
-    url.set_query(Some("session_type=same_device"));
+    // disclosed attributes endpoint should return a response with code Bad Request
+    let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    let proposal = wallet.start_disclosure(&url).await.unwrap();
+    let proposal = wallet
+        .start_disclosure(&engagement_url)
+        .await
+        .expect("Could not start disclosure");
     assert_eq!(proposal.reader_registration.id, "some-service-id");
     assert_eq!(proposal.documents.len(), 1);
 
-    wallet.accept_disclosure(pin).await.unwrap();
+    // after the first wallet interaction it should have status "Waiting"
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::WaitingForResponse
+    );
+
+    // disclosed attributes endpoint should return a response with code Bad Request
+    let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    let return_url = wallet
+        .accept_disclosure(pin)
+        .await
+        .expect("Could not accept disclosure");
+
+    // after disclosure it should have status "Done"
+    assert_matches!(get_verifier_status(&client, session_url).await, StatusResponse::Done);
+
+    // this only works reliably if the return_url has only transcript_hash as query
+    if let Some(url) = return_url {
+        disclosed_attributes_url.set_query(url.query());
+    }
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+    let status = response.status();
+    assert_eq!(status, StatusCode::OK);
+
+    let expected_entries = vec![
+        Entry {
+            name: "family_name".into(),
+            value: "De Bruijn".into(),
+        },
+        Entry {
+            name: "given_name".into(),
+            value: "Willeke Liselotte".into(),
+        },
+    ];
+    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+
+    // verify the disclosed attributes
+    assert_eq!(
+        disclosed_attributes
+            .get("com.example.pid")
+            .unwrap()
+            .get("com.example.pid")
+            .unwrap(),
+        &expected_entries
+    );
 }
 
 #[tokio::test]
@@ -146,6 +221,7 @@ async fn test_disclosure_without_pid() {
             )]),
         }]
         .into(),
+        return_url_template: None,
     };
     let response = client
         .post(
@@ -165,10 +241,13 @@ async fn test_disclosure_without_pid() {
     let StartDisclosureResponse {
         session_url,
         engagement_url,
+        disclosed_attributes_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
-    let response = client.get(session_url).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::Created
+    );
 
     let mut url = engagement_url.clone();
     url.set_query(Some("session_type=same_device"));
@@ -177,6 +256,11 @@ async fn test_disclosure_without_pid() {
         .start_disclosure(&url)
         .await
         .expect_err("Should return error that attributes are not available");
+
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::WaitingForResponse
+    );
 
     assert_matches!(
         error,
@@ -188,4 +272,23 @@ async fn test_disclosure_without_pid() {
             .flat_map(|attr| attr.attributes.keys().map(|k| k.to_owned()).collect::<Vec<&str>>())
             .collect::<Vec<&str>>() == vec!["given_name", "family_name"]
     );
+
+    wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+    assert_matches!(
+        get_verifier_status(&client, session_url.clone()).await,
+        StatusResponse::Cancelled
+    );
+
+    let response = client.get(session_url).send().await.unwrap();
+    let status = response.status();
+    // a cancelled disclosure should have status 200
+    assert_eq!(status, StatusCode::OK);
+
+    let status = response.json::<StatusResponse>().await.unwrap();
+    // and report the status as cancelled
+    assert_matches!(status, StatusResponse::Cancelled);
+
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
+    // a cancelled disclosure does not result in any disclosed attributes
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

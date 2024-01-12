@@ -27,12 +27,14 @@ use crate::models::card::CardValue;
 use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
+use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::Organization;
 use crate::models::disclosure::RequestPolicy;
 use crate::models::disclosure::RequestedCard;
 use crate::models::disclosure::StartDisclosureResult;
+use crate::models::instruction::WalletInstructionError;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
@@ -279,7 +281,7 @@ fn wire_cancel_disclosure_impl(port_: MessagePort) {
     )
 }
 fn wire_accept_disclosure_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, WalletInstructionResult, _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, AcceptDisclosureResult, _>(
         WrapInfo {
             debug_name: "accept_disclosure",
             port: Some(port_),
@@ -354,6 +356,22 @@ impl Wire2Api<u8> for u8 {
 }
 
 // Section: impl IntoDart
+
+impl support::IntoDart for AcceptDisclosureResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Ok { return_url } => vec![0.into_dart(), return_url.into_dart()],
+            Self::InstructionError { error } => vec![1.into_dart(), error.into_into_dart().into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for AcceptDisclosureResult {}
+impl rust2dart::IntoIntoDart<AcceptDisclosureResult> for AcceptDisclosureResult {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
 
 impl support::IntoDart for Card {
     fn into_dart(self) -> support::DartAbi {
@@ -667,7 +685,7 @@ impl support::IntoDart for WalletEvent {
                 date_time.into_into_dart().into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 purpose.into_into_dart().into_dart(),
-                requested_cards.into_into_dart().into_dart(),
+                requested_cards.into_dart(),
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
             ],
@@ -692,20 +710,35 @@ impl rust2dart::IntoIntoDart<WalletEvent> for WalletEvent {
     }
 }
 
-impl support::IntoDart for WalletInstructionResult {
+impl support::IntoDart for WalletInstructionError {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::Ok => vec![0.into_dart()],
             Self::IncorrectPin {
                 leftover_attempts,
                 is_final_attempt,
             } => vec![
-                1.into_dart(),
+                0.into_dart(),
                 leftover_attempts.into_into_dart().into_dart(),
                 is_final_attempt.into_into_dart().into_dart(),
             ],
-            Self::Timeout { timeout_millis } => vec![2.into_dart(), timeout_millis.into_into_dart().into_dart()],
-            Self::Blocked => vec![3.into_dart()],
+            Self::Timeout { timeout_millis } => vec![1.into_dart(), timeout_millis.into_into_dart().into_dart()],
+            Self::Blocked => vec![2.into_dart()],
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for WalletInstructionError {}
+impl rust2dart::IntoIntoDart<WalletInstructionError> for WalletInstructionError {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
+impl support::IntoDart for WalletInstructionResult {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Ok => vec![0.into_dart()],
+            Self::InstructionError { error } => vec![1.into_dart(), error.into_into_dart().into_dart()],
         }
         .into_dart()
     }

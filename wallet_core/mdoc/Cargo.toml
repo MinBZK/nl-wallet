@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 examples = ["dep:anyhow", "dep:hex-literal"]
 generate = ["dep:rcgen"]
@@ -18,7 +21,6 @@ allow_http_return_url = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
-async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
@@ -39,7 +41,9 @@ serde-aux.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 serde_json.workspace = true
 serde_repr.workspace = true
-serde_with = { workspace = true, features = ["chrono"] }
+serde_urlencoded.workspace = true
+serde_with = { workspace = true, features = ["chrono", "base64"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }

@@ -10,7 +10,6 @@ mod mock_storage;
 
 use std::{array::TryFromSliceError, collections::HashSet, io};
 
-use async_trait::async_trait;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -22,7 +21,7 @@ use nl_wallet_mdoc::{
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
-    event_log::{DocTypeMap, EventStatus, EventType, WalletEvent},
+    event_log::{DocTypeMap, EventStatus, WalletEvent},
     key_file::KeyFileError,
 };
 
@@ -70,7 +69,6 @@ pub struct StoredMdocCopy {
 }
 
 /// This trait abstracts the persistent storage for the wallet.
-#[async_trait]
 pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
@@ -78,8 +76,8 @@ pub trait Storage {
     async fn clear(&mut self) -> StorageResult<()>;
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()>;
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
 
     async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()>;
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;

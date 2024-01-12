@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false
 
@@ -12,7 +15,6 @@ mock = ["wallet_provider_domain/mock", "dashmap", "hmac"]
 db_test = []
 
 [dependencies]
-async-trait.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
@@ -49,7 +51,10 @@ tracing-subscriber = { workspace = true, features = [
     "parking_lot",
 ] }
 
-wallet_common = { path = "../../wallet_common", features = ["mock", "software-keys"] }
+wallet_common = { path = "../../wallet_common", features = [
+    "mock",
+    "software-keys",
+] }
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

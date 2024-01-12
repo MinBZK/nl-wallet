@@ -1,9 +1,10 @@
+use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
@@ -17,6 +18,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(HistoryEvent::RemotePartyCertificate).binary().not_null())
                     .col(ColumnDef::new(HistoryEvent::Status).text().not_null())
                     .col(ColumnDef::new(HistoryEvent::StatusDescription).text().null())
+                    .col(ColumnDef::new(HistoryEvent::Attributes).binary().null())
                     .to_owned(),
             )
             .await?;
@@ -73,6 +75,7 @@ enum HistoryEvent {
     RemotePartyCertificate,
     Status,
     StatusDescription,
+    Attributes,
 }
 
 #[derive(DeriveIden)]

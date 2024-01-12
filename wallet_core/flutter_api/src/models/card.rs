@@ -1,4 +1,6 @@
-use wallet::{self, Attribute, AttributeValue, Document, DocumentPersistence, GenderAttributeValue};
+use wallet::{
+    self, Attribute, AttributeValue, Document, DocumentAttributes, DocumentPersistence, GenderAttributeValue,
+};
 
 pub struct Card {
     pub persistence: CardPersistence,
@@ -58,24 +60,16 @@ pub struct LocalizedString {
 
 impl From<Document> for Card {
     fn from(value: Document) -> Self {
-        let attributes = value
-            .attributes
-            .into_iter()
-            .map(|(key, attribute)| CardAttribute::from((key.to_string(), attribute)))
-            .collect();
-
         Card {
             persistence: value.persistence.into(),
             doc_type: value.doc_type.to_string(),
-            attributes,
+            attributes: into_card_attributes(value.attributes),
         }
     }
 }
 
 impl From<(String, Attribute)> for CardAttribute {
-    fn from(value: (String, Attribute)) -> Self {
-        let (key, attribute) = value;
-
+    fn from((key, attribute): (String, Attribute)) -> Self {
         let labels = attribute
             .key_labels
             .into_iter()
@@ -84,12 +78,8 @@ impl From<(String, Attribute)> for CardAttribute {
                 value: value.to_string(),
             })
             .collect();
-
-        CardAttribute {
-            key: key.to_string(),
-            labels,
-            value: CardValue::from(attribute.value),
-        }
+        let value = attribute.value.into();
+        CardAttribute { key, labels, value }
     }
 }
 
@@ -104,4 +94,11 @@ impl From<AttributeValue> for CardValue {
             AttributeValue::Gender(g) => Self::Gender { value: g.into() },
         }
     }
+}
+
+pub(crate) fn into_card_attributes(attributes: DocumentAttributes) -> Vec<CardAttribute> {
+    attributes
+        .into_iter()
+        .map(|(key, attribute)| CardAttribute::from((key.to_string(), attribute)))
+        .collect()
 }

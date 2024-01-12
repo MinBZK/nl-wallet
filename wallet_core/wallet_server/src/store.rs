@@ -1,7 +1,8 @@
+use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_state::{MemorySessionStore, SessionState, SessionStore},
+    server_state::{MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionToken},
     verifier::DisclosureData,
 };
 
@@ -11,32 +12,84 @@ use openid4vc::issuer::IssuanceData;
 #[cfg(feature = "postgres")]
 use crate::store::postgres::PostgresSessionStore;
 
-pub type BoxedSessionStore<T> = Box<dyn SessionStore<Data = SessionState<T>> + Send + Sync>;
-
-pub struct SessionStores {
-    pub disclosure: BoxedSessionStore<DisclosureData>,
-
-    #[cfg(feature = "issuance")]
-    pub issuance: BoxedSessionStore<IssuanceData>,
+trait SessionDataType {
+    const TYPE: &'static str;
 }
 
-pub async fn new_session_stores(url: Url) -> Result<SessionStores, anyhow::Error> {
-    match url.scheme() {
-        #[cfg(feature = "postgres")]
-        "postgres" => {
-            let db = std::sync::Arc::new(postgres::connect(url).await?);
-            Ok(SessionStores {
-                disclosure: Box::new(PostgresSessionStore::new(db.clone())),
+impl SessionDataType for DisclosureData {
+    const TYPE: &'static str = "mdoc_disclosure";
+}
+
+#[cfg(feature = "issuance")]
+impl SessionDataType for openid4vc::issuer::IssuanceData {
+    const TYPE: &'static str = "openid4vci_issuance";
+}
+
+pub struct SessionStores {
+    pub disclosure: WalletServerSessionStore<DisclosureData>,
+
+    #[cfg(feature = "issuance")]
+    pub issuance: WalletServerSessionStore<IssuanceData>,
+}
+
+impl SessionStores {
+    pub async fn init(url: Url) -> Result<SessionStores, anyhow::Error> {
+        match url.scheme() {
+            #[cfg(feature = "postgres")]
+            "postgres" => {
+                let db = std::sync::Arc::new(postgres::connect(url).await?);
+                Ok(SessionStores {
+                    disclosure: WalletServerSessionStore::Postgres(PostgresSessionStore::new(db.clone())),
+                    #[cfg(feature = "issuance")]
+                    issuance: WalletServerSessionStore::Postgres(PostgresSessionStore::new(db)),
+                })
+            }
+            "memory" => Ok(SessionStores {
+                disclosure: WalletServerSessionStore::Memory(MemorySessionStore::new()),
                 #[cfg(feature = "issuance")]
-                issuance: Box::new(PostgresSessionStore::new(db)),
-            })
+                issuance: WalletServerSessionStore::Memory(MemorySessionStore::new()),
+            }),
+            e => unimplemented!("{}", e),
         }
-        "memory" => Ok(SessionStores {
-            disclosure: Box::new(MemorySessionStore::new()),
-            #[cfg(feature = "issuance")]
-            issuance: Box::new(MemorySessionStore::new()),
-        }),
-        e => unimplemented!("{}", e),
+    }
+}
+
+/// This enum effectively switches between the different types that implement `DisclosureSessionStore`,
+/// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
+pub enum WalletServerSessionStore<T> {
+    #[cfg(feature = "postgres")]
+    Postgres(PostgresSessionStore<T>),
+    Memory(MemorySessionStore<T>),
+}
+
+impl<T> SessionStore for WalletServerSessionStore<T>
+where
+    T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
+{
+    type Data = SessionState<T>;
+
+    async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
+        match self {
+            #[cfg(feature = "postgres")]
+            WalletServerSessionStore::Postgres(postgres) => postgres.get(id).await,
+            WalletServerSessionStore::Memory(memory) => memory.get(id).await,
+        }
+    }
+
+    async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
+        match self {
+            #[cfg(feature = "postgres")]
+            WalletServerSessionStore::Postgres(postgres) => postgres.write(session).await,
+            WalletServerSessionStore::Memory(memory) => memory.write(session).await,
+        }
+    }
+
+    async fn cleanup(&self) -> Result<(), SessionStoreError> {
+        match self {
+            #[cfg(feature = "postgres")]
+            WalletServerSessionStore::Postgres(postgres) => postgres.cleanup().await,
+            WalletServerSessionStore::Memory(memory) => memory.cleanup().await,
+        }
     }
 }
 
@@ -44,7 +97,6 @@ pub async fn new_session_stores(url: Url) -> Result<SessionStores, anyhow::Error
 pub mod postgres {
     use std::{marker::PhantomData, sync::Arc, time::Duration};
 
-    use axum::async_trait;
     use chrono::Utc;
     use sea_orm::{
         sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
@@ -55,25 +107,13 @@ pub mod postgres {
     use url::Url;
 
     use crate::entity::session_state;
-    use nl_wallet_mdoc::{
-        server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, SESSION_EXPIRY_MINUTES},
-        verifier::DisclosureData,
+    use nl_wallet_mdoc::server_state::{
+        SessionState, SessionStore, SessionStoreError, SessionToken, SESSION_EXPIRY_MINUTES,
     };
 
+    use super::SessionDataType;
+
     const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-
-    trait SessionDataType {
-        const TYPE: &'static str;
-    }
-
-    impl SessionDataType for DisclosureData {
-        const TYPE: &'static str = "mdoc_disclosure";
-    }
-
-    #[cfg(feature = "issuance")]
-    impl SessionDataType for openid4vc::issuer::IssuanceData {
-        const TYPE: &'static str = "openid4vci_issuance";
-    }
 
     pub struct PostgresSessionStore<T> {
         connection: Arc<DatabaseConnection>,
@@ -89,11 +129,7 @@ pub mod postgres {
         }
     }
 
-    #[async_trait]
-    impl<T> SessionStore for PostgresSessionStore<T>
-    where
-        T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
-    {
+    impl<T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync> SessionStore for PostgresSessionStore<T> {
         type Data = SessionState<T>;
 
         async fn get(&self, token: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {

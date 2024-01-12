@@ -80,8 +80,8 @@ class _FakeStartDisclosureResult_2 extends _i1.SmartFake implements _i2.StartDis
         );
 }
 
-class _FakeFuture_3<T1> extends _i1.SmartFake implements _i4.Future<T1> {
-  _FakeFuture_3(
+class _FakeAcceptDisclosureResult_3 extends _i1.SmartFake implements _i2.AcceptDisclosureResult {
+  _FakeAcceptDisclosureResult_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -90,8 +90,18 @@ class _FakeFuture_3<T1> extends _i1.SmartFake implements _i4.Future<T1> {
         );
 }
 
-class _FakeFlutterRustBridgeTaskConstMeta_4 extends _i1.SmartFake implements _i2.FlutterRustBridgeTaskConstMeta {
-  _FakeFlutterRustBridgeTaskConstMeta_4(
+class _FakeFuture_4<T1> extends _i1.SmartFake implements _i4.Future<T1> {
+  _FakeFuture_4(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeFlutterRustBridgeTaskConstMeta_5 extends _i1.SmartFake implements _i2.FlutterRustBridgeTaskConstMeta {
+  _FakeFlutterRustBridgeTaskConstMeta_5(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -334,24 +344,14 @@ class MockWalletCardRepository extends _i1.Mock implements _i11.WalletCardReposi
       ) as _i4.Stream<List<_i3.WalletCard>>);
 
   @override
-  _i4.Future<bool> exists(String? cardId) => (super.noSuchMethod(
+  _i4.Future<bool> exists(String? docType) => (super.noSuchMethod(
         Invocation.method(
           #exists,
-          [cardId],
+          [docType],
         ),
         returnValue: _i4.Future<bool>.value(false),
         returnValueForMissingStub: _i4.Future<bool>.value(false),
       ) as _i4.Future<bool>);
-
-  @override
-  _i4.Future<void> create(_i3.WalletCard? card) => (super.noSuchMethod(
-        Invocation.method(
-          #create,
-          [card],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
 
   @override
   _i4.Future<List<_i3.WalletCard>> readAll() => (super.noSuchMethod(
@@ -364,46 +364,26 @@ class MockWalletCardRepository extends _i1.Mock implements _i11.WalletCardReposi
       ) as _i4.Future<List<_i3.WalletCard>>);
 
   @override
-  _i4.Future<_i3.WalletCard> read(String? cardId) => (super.noSuchMethod(
+  _i4.Future<_i3.WalletCard> read(String? docType) => (super.noSuchMethod(
         Invocation.method(
           #read,
-          [cardId],
+          [docType],
         ),
         returnValue: _i4.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
           this,
           Invocation.method(
             #read,
-            [cardId],
+            [docType],
           ),
         )),
         returnValueForMissingStub: _i4.Future<_i3.WalletCard>.value(_FakeWalletCard_1(
           this,
           Invocation.method(
             #read,
-            [cardId],
+            [docType],
           ),
         )),
       ) as _i4.Future<_i3.WalletCard>);
-
-  @override
-  _i4.Future<void> update(_i3.WalletCard? card) => (super.noSuchMethod(
-        Invocation.method(
-          #update,
-          [card],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> delete(String? cardId) => (super.noSuchMethod(
-        Invocation.method(
-          #delete,
-          [cardId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
 }
 
 /// A class which mocks [OrganizationRepository].
@@ -679,26 +659,26 @@ class MockTypedWalletCore extends _i1.Mock implements _i18.TypedWalletCore {
       ) as _i4.Future<void>);
 
   @override
-  _i4.Future<_i2.WalletInstructionResult> acceptDisclosure(String? pin) => (super.noSuchMethod(
+  _i4.Future<_i2.AcceptDisclosureResult> acceptDisclosure(String? pin) => (super.noSuchMethod(
         Invocation.method(
           #acceptDisclosure,
           [pin],
         ),
-        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.AcceptDisclosureResult>.value(_FakeAcceptDisclosureResult_3(
           this,
           Invocation.method(
             #acceptDisclosure,
             [pin],
           ),
         )),
-        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.AcceptDisclosureResult>.value(_FakeAcceptDisclosureResult_3(
           this,
           Invocation.method(
             #acceptDisclosure,
             [pin],
           ),
         )),
-      ) as _i4.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.AcceptDisclosureResult>);
 
   @override
   _i4.Stream<List<_i2.Card>> observeCards() => (super.noSuchMethod(
@@ -756,7 +736,7 @@ class MockTypedWalletCore extends _i1.Mock implements _i18.TypedWalletCore {
               ),
               (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_3<T>(
+            _FakeFuture_4<T>(
               this,
               Invocation.method(
                 #call,
@@ -773,7 +753,7 @@ class MockTypedWalletCore extends _i1.Mock implements _i18.TypedWalletCore {
               ),
               (T v) => _i4.Future<T>.value(v),
             ) ??
-            _FakeFuture_3<T>(
+            _FakeFuture_4<T>(
               this,
               Invocation.method(
                 #call,
@@ -1118,11 +1098,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kInitConstMeta => (super.noSuchMethod(
         Invocation.getter(#kInitConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kInitConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kInitConstMeta),
         ),
@@ -1131,11 +1111,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kIsInitializedConstMeta => (super.noSuchMethod(
         Invocation.getter(#kIsInitializedConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kIsInitializedConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kIsInitializedConstMeta),
         ),
@@ -1144,11 +1124,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kIsValidPinConstMeta => (super.noSuchMethod(
         Invocation.getter(#kIsValidPinConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kIsValidPinConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kIsValidPinConstMeta),
         ),
@@ -1157,11 +1137,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kSetLockStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kSetLockStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kSetLockStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kSetLockStreamConstMeta),
         ),
@@ -1170,11 +1150,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kClearLockStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kClearLockStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kClearLockStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kClearLockStreamConstMeta),
         ),
@@ -1183,11 +1163,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kSetConfigurationStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kSetConfigurationStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kSetConfigurationStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kSetConfigurationStreamConstMeta),
         ),
@@ -1196,11 +1176,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kClearConfigurationStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kClearConfigurationStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kClearConfigurationStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kClearConfigurationStreamConstMeta),
         ),
@@ -1209,11 +1189,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kSetCardsStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kSetCardsStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kSetCardsStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kSetCardsStreamConstMeta),
         ),
@@ -1222,11 +1202,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta => (super.noSuchMethod(
         Invocation.getter(#kClearCardsStreamConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kClearCardsStreamConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kClearCardsStreamConstMeta),
         ),
@@ -1235,11 +1215,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta => (super.noSuchMethod(
         Invocation.getter(#kUnlockWalletConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kUnlockWalletConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kUnlockWalletConstMeta),
         ),
@@ -1248,11 +1228,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kLockWalletConstMeta => (super.noSuchMethod(
         Invocation.getter(#kLockWalletConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kLockWalletConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kLockWalletConstMeta),
         ),
@@ -1261,11 +1241,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kHasRegistrationConstMeta => (super.noSuchMethod(
         Invocation.getter(#kHasRegistrationConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kHasRegistrationConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kHasRegistrationConstMeta),
         ),
@@ -1274,11 +1254,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kRegisterConstMeta => (super.noSuchMethod(
         Invocation.getter(#kRegisterConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kRegisterConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kRegisterConstMeta),
         ),
@@ -1287,11 +1267,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kIdentifyUriConstMeta => (super.noSuchMethod(
         Invocation.getter(#kIdentifyUriConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kIdentifyUriConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kIdentifyUriConstMeta),
         ),
@@ -1300,11 +1280,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kCreatePidIssuanceRedirectUriConstMeta => (super.noSuchMethod(
         Invocation.getter(#kCreatePidIssuanceRedirectUriConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kCreatePidIssuanceRedirectUriConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kCreatePidIssuanceRedirectUriConstMeta),
         ),
@@ -1313,11 +1293,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kCancelPidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kCancelPidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kCancelPidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kCancelPidIssuanceConstMeta),
         ),
@@ -1326,11 +1306,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kContinuePidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kContinuePidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kContinuePidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kContinuePidIssuanceConstMeta),
         ),
@@ -1339,11 +1319,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kAcceptPidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kAcceptPidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kAcceptPidIssuanceConstMeta),
         ),
@@ -1352,11 +1332,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => (super.noSuchMethod(
         Invocation.getter(#kRejectPidIssuanceConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kRejectPidIssuanceConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kRejectPidIssuanceConstMeta),
         ),
@@ -1365,11 +1345,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta => (super.noSuchMethod(
         Invocation.getter(#kStartDisclosureConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kStartDisclosureConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kStartDisclosureConstMeta),
         ),
@@ -1378,11 +1358,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kCancelDisclosureConstMeta => (super.noSuchMethod(
         Invocation.getter(#kCancelDisclosureConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kCancelDisclosureConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kCancelDisclosureConstMeta),
         ),
@@ -1391,11 +1371,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta => (super.noSuchMethod(
         Invocation.getter(#kAcceptDisclosureConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kAcceptDisclosureConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kAcceptDisclosureConstMeta),
         ),
@@ -1404,11 +1384,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => (super.noSuchMethod(
         Invocation.getter(#kGetHistoryConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kGetHistoryConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kGetHistoryConstMeta),
         ),
@@ -1417,11 +1397,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => (super.noSuchMethod(
         Invocation.getter(#kGetHistoryForCardConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kGetHistoryForCardConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kGetHistoryForCardConstMeta),
         ),
@@ -1430,11 +1410,11 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
   @override
   _i2.FlutterRustBridgeTaskConstMeta get kResetWalletConstMeta => (super.noSuchMethod(
         Invocation.getter(#kResetWalletConstMeta),
-        returnValue: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kResetWalletConstMeta),
         ),
-        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_4(
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_5(
           this,
           Invocation.getter(#kResetWalletConstMeta),
         ),
@@ -1781,7 +1761,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
       ) as _i4.Future<void>);
 
   @override
-  _i4.Future<_i2.WalletInstructionResult> acceptDisclosure({
+  _i4.Future<_i2.AcceptDisclosureResult> acceptDisclosure({
     required String? pin,
     dynamic hint,
   }) =>
@@ -1794,7 +1774,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             #hint: hint,
           },
         ),
-        returnValue: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValue: _i4.Future<_i2.AcceptDisclosureResult>.value(_FakeAcceptDisclosureResult_3(
           this,
           Invocation.method(
             #acceptDisclosure,
@@ -1805,7 +1785,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-        returnValueForMissingStub: _i4.Future<_i2.WalletInstructionResult>.value(_FakeWalletInstructionResult_0(
+        returnValueForMissingStub: _i4.Future<_i2.AcceptDisclosureResult>.value(_FakeAcceptDisclosureResult_3(
           this,
           Invocation.method(
             #acceptDisclosure,
@@ -1816,7 +1796,7 @@ class MockWalletCore extends _i1.Mock implements _i2.WalletCore {
             },
           ),
         )),
-      ) as _i4.Future<_i2.WalletInstructionResult>);
+      ) as _i4.Future<_i2.AcceptDisclosureResult>);
 
   @override
   _i4.Future<List<_i2.WalletEvent>> getHistory({dynamic hint}) => (super.noSuchMethod(

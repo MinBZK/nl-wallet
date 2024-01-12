@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::prelude::*;
 use futures::future::TryFutureExt;
 use indexmap::IndexMap;
 use url::Url;
@@ -12,7 +12,7 @@ use crate::{
     disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
-    holder::{HolderError, HttpClient},
+    holder::{DisclosureError, DisclosureResult, HolderError, HttpClient, HttpClientError, HttpClientResult},
     identifiers::AttributeIdentifier,
     mdocs::{DocType, NameSpace},
     utils::{
@@ -116,32 +116,39 @@ where
             ephemeral_privkey,
         )?;
 
+        // Serialize the `SessionTranscript` for if we need to add it to the `return_url` later.
+        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(&transcript))?;
+
         // Send the `DeviceEngagement` to the verifier and deserialize the expected `SessionData`.
         // If decoding fails, send a `SessionData` to the verifier to report this.
         let session_data: SessionData = client
             .post(verifier_url, &device_engagement)
             .or_else(|error| async {
-                if matches!(error, Error::Cbor(CborError::Deserialization(_))) {
+                if matches!(error, HttpClientError::Cbor(CborError::Deserialization(_))) {
                     // Ignore the response or any errors.
-                    let _: Result<SessionData> = client.post(verifier_url, &SessionData::new_decoding_error()).await;
+                    let _: HttpClientResult<SessionData> =
+                        client.post(verifier_url, &SessionData::new_decoding_error()).await;
                 }
 
                 Err(error)
             })
             .await?;
 
-        // If we have a return URL, add the hash of the `SessionTranscript` to it.
-        let return_url = return_url
-            .map(|url| Self::add_transcript_hash_to_url(url, &transcript))
-            .transpose()?;
-
         // Decrypt and verify the received `DeviceRequest`. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
+        let return_url_ref = return_url.as_ref();
         let (check_result, certificate, reader_registration) =
             async { session_data.decrypt_and_deserialize(&reader_key) }
                 .and_then(|device_request| async move {
-                    Self::verify_device_request(&device_request, transcript, mdoc_data_source, trust_anchors).await
+                    Self::verify_device_request(
+                        &device_request,
+                        return_url_ref,
+                        transcript,
+                        mdoc_data_source,
+                        trust_anchors,
+                    )
+                    .await
                 })
                 .or_else(|error| async { Self::report_error_back(error, &client, verifier_url).await })
                 .await?;
@@ -164,7 +171,8 @@ where
             }
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
-                    return_url,
+                    // If we have a return URL, add the hash of the `SessionTranscript` to it.
+                    return_url: return_url.map(|url| Self::add_transcript_hash_to_url(url, &session_transcript_bytes)),
                     data,
                     device_key,
                     proposed_documents,
@@ -184,7 +192,7 @@ where
         };
 
         // Ignore the response or any errors.
-        let _: Result<SessionData> = client.post(verifier_url, &error_session_data).await;
+        let _: HttpClientResult<SessionData> = client.post(verifier_url, &error_session_data).await;
 
         Err(error)
     }
@@ -193,6 +201,7 @@ where
     /// `SessionData` received from the verifier, which should contain a `DeviceRequest`.
     async fn verify_device_request<'a, S>(
         device_request: &DeviceRequest,
+        return_url: Option<&Url>,
         session_transcript: SessionTranscript,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
@@ -211,6 +220,16 @@ where
             .verify(session_transcript.clone(), &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
+        // Verify the return URL against the prefix in the `ReaderRegistration`,
+        // if it was provided when starting the disclosure session.
+        if let Some(return_url) = return_url {
+            if !reader_registration.return_url_prefix.matches_url(return_url) {
+                let urls = Box::new((reader_registration.return_url_prefix.into(), return_url.clone()));
+
+                return Err(HolderError::ReturnUrlPrefix(urls).into());
+            }
+        }
+
         // Fetch documents from the database, calculate which ones satisfy the request and
         // formulate proposals for those documents. If there is a mismatch, return an error.
         let candidates_by_doc_type = match device_request
@@ -227,7 +246,7 @@ where
         };
 
         // If we have multiple candidates for any of the doc types, return an error.
-        // TODO: Support having the user a choose between multiple candidates.
+        // TODO: Support having the user choose between multiple candidates.
         if candidates_by_doc_type.values().any(|candidates| candidates.len() > 1) {
             let duplicate_doc_types = candidates_by_doc_type
                 .into_iter()
@@ -247,15 +266,13 @@ where
         Ok((result, certificate, reader_registration))
     }
 
-    fn add_transcript_hash_to_url(url: impl Into<Url>, session_transcript: &SessionTranscript) -> Result<Url> {
-        let transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
-        let transcript_hash = utils::sha256(&transcript_bytes);
+    fn add_transcript_hash_to_url(mut url: Url, session_transcript_bytes: &[u8]) -> Url {
+        let transcript_hash = utils::sha256(session_transcript_bytes);
 
-        let mut url = url.into();
         url.query_pairs_mut()
-            .append_pair(TRANSCRIPT_HASH_PARAM, &STANDARD.encode(transcript_hash));
+            .append_pair(TRANSCRIPT_HASH_PARAM, &BASE64_URL_SAFE_NO_PAD.encode(transcript_hash));
 
-        Ok(url)
+        url
     }
 
     fn data(&self) -> &CommonDisclosureData<H> {
@@ -312,16 +329,19 @@ where
             .collect()
     }
 
-    pub async fn disclose<'a, KF, K>(&self, key_factory: &'a KF) -> Result<()>
+    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
     where
-        KF: KeyFactory<'a, Key = K>,
-        K: MdocEcdsaKey + Sync,
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
     {
         // Clone the proposed documents and construct a `DeviceResponse` by
         // signing these, then encrypt the response with the device key.
         let proposed_documents = self.proposed_documents.to_vec();
-        let device_response = DeviceResponse::from_proposed_documents(proposed_documents, key_factory).await?;
-        let session_data = SessionData::serialize_and_encrypt(&device_response, &self.device_key)?;
+        let device_response = DeviceResponse::from_proposed_documents(proposed_documents, key_factory)
+            .await
+            .map_err(DisclosureError::before_sharing)?;
+        let session_data = SessionData::serialize_and_encrypt(&device_response, &self.device_key)
+            .map_err(DisclosureError::before_sharing)?;
 
         // Send the `SessionData` containing the encrypted `DeviceResponse`.
         let response = self.data.send_session_data(&session_data).await?;
@@ -329,7 +349,9 @@ where
         // If we received a `SessionStatus` that is not a
         // termination in the response, return this as an error.
         match response.status {
-            Some(status) if status != SessionStatus::Termination => Err(HolderError::DisclosureResponse(status).into()),
+            Some(status) if status != SessionStatus::Termination => Err(DisclosureError::after_sharing(
+                HolderError::DisclosureResponse(status).into(),
+            )),
             _ => Ok(()),
         }
     }
@@ -339,11 +361,11 @@ impl<H> CommonDisclosureData<H>
 where
     H: HttpClient,
 {
-    async fn send_session_data(&self, session_data: &SessionData) -> Result<SessionData> {
+    async fn send_session_data(&self, session_data: &SessionData) -> HttpClientResult<SessionData> {
         self.client.post(&self.verifier_url, &session_data).await
     }
 
-    async fn terminate(&self) -> Result<SessionData> {
+    async fn terminate(&self) -> HttpClientResult<SessionData> {
         self.send_session_data(&SessionData::new_termination()).await
     }
 }
@@ -372,6 +394,7 @@ mod tests {
             serialization::TaggedBytes,
             x509::CertificateType,
         },
+        Error,
     };
 
     use super::{super::test_utils::*, *};
@@ -484,7 +507,7 @@ mod tests {
             .expect("return URL should be provided by session")
             .query_pairs()
             .find(|(key, _)| key == TRANSCRIPT_HASH_PARAM)
-            .map(|(_, value)| STANDARD.decode(value.as_ref()))
+            .map(|(_, value)| BASE64_URL_SAFE_NO_PAD.decode(value.as_ref()))
             .expect("return URL should contain \"transcript_hash\" query parameter")
             .expect("return URL \"transcript_hash\" query parameter should be base64 encoded");
         let expected_transcript_hash =
@@ -778,7 +801,7 @@ mod tests {
 
     async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (Error, Vec<Vec<u8>>)
     where
-        F: Fn() -> Error + Send + Sync,
+        F: Fn() -> HttpClientError,
     {
         // Set up a `MockHttpClient` with the receiver `error_factory`.
         let (payload_sender, mut payload_receiver) = mpsc::channel(256);
@@ -822,7 +845,12 @@ mod tests {
 
         // Test that we got the expected error and that no `SessionData`
         // was sent to the verifier to report the error.
-        assert_matches!(error, Error::Cbor(CborError::Serialization(_)));
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::RequestError(HttpClientError::Cbor(
+                CborError::Serialization(_)
+            )))
+        );
         assert_eq!(payloads.len(), 1);
     }
 
@@ -836,7 +864,7 @@ mod tests {
                 .unwrap();
             let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
 
-            HolderError::from(reqwest_error).into()
+            HttpClientError::from(reqwest_error)
         })
         .await;
 
@@ -856,7 +884,12 @@ mod tests {
 
         // Test that we got the expected error and that the last payload
         // is a `SessionData` containing the expected `SessionStatus`.
-        assert_matches!(error, Error::Cbor(CborError::Deserialization(_)));
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::RequestError(HttpClientError::Cbor(
+                CborError::Deserialization(_)
+            )))
+        );
         assert_eq!(payloads.len(), 2);
 
         test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::DecodingError);
@@ -1024,6 +1057,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_disclosure_session_start_error_return_url_prefix() {
+        // Starting a `DisclosureSession` where the the return URL does not match the return
+        // URL prefix contained in the verifier certificate should result in an error.
+        let mut payloads = Vec::with_capacity(2);
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            &mut payloads,
+            |mut verifier_session| {
+                verifier_session.return_url = Url::parse("https://not-example.com/return").unwrap().into();
+
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        let expected_urls = (
+            "https://example.com/".parse().unwrap(),
+            "https://not-example.com/return".parse().unwrap(),
+        )
+            .into();
+        assert_matches!(error, Error::Holder(HolderError::ReturnUrlPrefix(urls)) if urls == expected_urls);
+        assert_eq!(payloads.len(), 2);
+
+        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
+    }
+
+    #[tokio::test]
     async fn test_disclosure_session_start_error_mdoc_data_source() {
         // Starting a `DisclosureSession` when the database returns
         // an error should result in that error being forwarded.
@@ -1111,7 +1175,7 @@ mod tests {
         mpsc::Receiver<Vec<u8>>,
     )
     where
-        F: Fn() -> MockHttpClientResponse + Send + Sync,
+        F: Fn() -> MockHttpClientResponse,
     {
         let privkey = SecretKey::random(&mut OsRng);
         let pubkey = SecretKey::random(&mut OsRng).public_key();
@@ -1181,7 +1245,10 @@ mod tests {
             .await
             .expect_err("Terminating DisclosureSession with proposal should have resulted in an error");
 
-        assert_matches!(error, Error::Cbor(_));
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::RequestError(HttpClientError::Cbor(_)))
+        );
     }
 
     #[tokio::test]
@@ -1240,7 +1307,10 @@ mod tests {
             .await
             .expect_err("Terminating DisclosureSession with missing attributes should have resulted in an error");
 
-        assert_matches!(error, Error::Cbor(_));
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::RequestError(HttpClientError::Cbor(_)))
+        );
     }
 
     #[tokio::test]
@@ -1305,7 +1375,7 @@ mod tests {
                 .unwrap();
             let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
 
-            MockHttpClientResponse::Error(HolderError::from(reqwest_error).into())
+            MockHttpClientResponse::Error(HttpClientError::from(reqwest_error))
         });
 
         // Disclosing this session should result in the payload
@@ -1324,7 +1394,7 @@ mod tests {
             payloads.push(payload);
         }
 
-        assert_matches!(error, Error::Holder(HolderError::RequestError(_)));
+        assert_matches!(error, DisclosureError { data_shared, error: Error::Holder(HolderError::RequestError(_)) } if data_shared);
         assert_eq!(payloads.len(), 1);
     }
 
@@ -1353,8 +1423,39 @@ mod tests {
 
         assert_matches!(
             error,
-            Error::Holder(HolderError::DisclosureResponse(SessionStatus::DecodingError))
+            DisclosureError { data_shared, error: Error::Holder(HolderError::DisclosureResponse(SessionStatus::DecodingError)) } if data_shared
         );
+        assert_eq!(payloads.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_http_client_serialization() {
+        // Create a `DisclosureSession` containing a proposal
+        // and a `HttpClient` that will return a `ciborium::ser::Error`.
+        let (proposal_session, mut payload_receiver) = create_disclosure_session_proposal(|| {
+            MockHttpClientResponse::Error(HttpClientError::Cbor(CborError::Serialization(
+                ciborium::ser::Error::Value("some-error".to_string()),
+            )))
+        });
+
+        // Disclosing this session should result in the payload
+        // being sent while returning the wrapped HTTP error.
+        let error = match proposal_session {
+            DisclosureSession::Proposal(proposal) => proposal
+                .disclose(&SoftwareKeyFactory::default())
+                .await
+                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+            _ => unreachable!(),
+        };
+
+        let mut payloads = Vec::with_capacity(1);
+
+        while let Ok(payload) = payload_receiver.try_recv() {
+            payloads.push(payload);
+        }
+
+        // No data should have been shared in this case
+        assert_matches!(error, DisclosureError { data_shared, error: Error::Holder(HolderError::RequestError(_)) } if !data_shared);
         assert_eq!(payloads.len(), 1);
     }
 }

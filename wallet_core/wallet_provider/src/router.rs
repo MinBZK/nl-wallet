@@ -3,12 +3,14 @@ use std::sync::Arc;
 use axum::{
     extract::State,
     http::StatusCode,
-    response::Json,
+    response::{IntoResponse, Json, Response},
     routing::{get, post},
     Router,
 };
+use etag::EntityTag;
+use http::{header, HeaderMap, HeaderValue};
 use tower_http::trace::TraceLayer;
-use tracing::info;
+use tracing::{debug, info};
 
 use wallet_common::{
     account::{
@@ -154,12 +156,35 @@ async fn sign(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn configuration(State(config): State<WalletConfiguration>) -> Result<(StatusCode, Json<WalletConfiguration>)> {
+async fn configuration(
+    State(config): State<WalletConfiguration>,
+    headers: HeaderMap,
+) -> std::result::Result<Response, StatusCode> {
     info!("Received configuration request");
 
-    let body = config;
+    let config_entity_tag: EntityTag = (&config).into();
+
+    if let Some(etag) = headers.get(header::IF_NONE_MATCH) {
+        let entity_tag = etag
+            .to_str()
+            .ok()
+            .and_then(|etag| etag.parse().ok())
+            .ok_or(StatusCode::BAD_REQUEST)?;
+
+        // Comparing etags using the If-None-Match header uses the weak comparison algorithm.
+        if config_entity_tag.weak_eq(&entity_tag) {
+            debug!("Configuration is not modified");
+            return Err(StatusCode::NOT_MODIFIED);
+        }
+    }
+
+    let mut resp: Response = Json(config).into_response();
+    resp.headers_mut().append(
+        header::ETAG,
+        // We can safely unwrap here because we know for sure there are no non-ascii characters used.
+        HeaderValue::from_str(&config_entity_tag.to_string()).unwrap(),
+    );
 
     info!("Replying with the configuration");
-
-    Ok((StatusCode::OK, body.into()))
+    Ok(resp)
 }

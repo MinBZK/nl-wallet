@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false
 
@@ -15,6 +18,7 @@ axum = { workspace = true, features = [
     "headers",
     "http1",
     "json",
+    "query",
     "tokio",
     "tower-log",
     "tracing",
@@ -32,6 +36,7 @@ josekit = { workspace = true, optional = true }
 lazy_static.workspace = true
 mime.workspace = true
 openid = { workspace = true, optional = true, features = ["rustls"] }
+nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 rand = { workspace = true, optional = true }
 reqwest.workspace = true
@@ -45,13 +50,15 @@ sea-orm = { workspace = true, optional = true, features = [
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
+serde_with = { workspace = true, features = ["base64"] }
+strfmt.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = [
-    "rt-multi-thread",
     "macros",
     "parking_lot",
+    "rt-multi-thread",
 ] }
-tower-http = { workspace = true, features = ["trace"] }
+tower-http = { workspace = true, features = ["cors", "trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
 url = { workspace = true, features = ["serde"] }
@@ -90,3 +97,4 @@ platform_support = { path = "../platform_support", features = ["software"] }
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
 wallet = { path = "../wallet", features = ["mock", "wallet_deps", "disable_tls_validation"] }
 wallet_server = { path = ".", features = ["mock", "disable_tls_validation"] }
+rstest.workspace = true

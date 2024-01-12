@@ -1,17 +1,18 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
-use async_trait::async_trait;
 use tokio::{
     sync::watch::{channel, Receiver, Sender},
     task::JoinHandle,
-    time,
+    time::{self, MissedTickBehavior},
 };
+use tracing::info;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use super::{
-    ConfigServerConfiguration, ConfigurationError, ConfigurationRepository, FileStorageConfigurationRepository,
-    ObservableConfigurationRepository, UpdateableConfigurationRepository, UpdatingFileHttpConfigurationRepository,
+    ConfigServerConfiguration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+    FileStorageConfigurationRepository, ObservableConfigurationRepository, UpdateableConfigurationRepository,
+    UpdatingFileHttpConfigurationRepository,
 };
 
 pub struct UpdatingConfigurationRepository<T> {
@@ -40,7 +41,6 @@ where
 {
     pub async fn new(wrapped: T, update_frequency: Duration) -> UpdatingConfigurationRepository<T> {
         let (tx, rx) = channel::<CallbackFunction>(Box::new(|_| {}));
-
         let wrapped = Arc::new(wrapped);
         let updating_task = Self::start_update_task(Arc::clone(&wrapped), rx, update_frequency).await;
         Self {
@@ -54,13 +54,18 @@ where
     async fn start_update_task(wrapped: Arc<T>, rx: Receiver<CallbackFunction>, interval: Duration) -> JoinHandle<()> {
         tokio::spawn(async move {
             let mut interval = time::interval(interval);
+            interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+
             loop {
                 interval.tick().await;
-                let _ = wrapped.fetch().await;
-                // todo: only call callback if config has actually changed
-                let config = wrapped.config();
-                let callback = rx.borrow();
-                callback(config);
+
+                info!("Wallet configuration update timer expired, fetching from remote...");
+
+                if let Ok(ConfigurationUpdateState::Updated) = wrapped.fetch().await {
+                    let config = wrapped.config();
+                    let callback = rx.borrow();
+                    callback(config);
+                }
             }
         })
     }
@@ -75,7 +80,6 @@ where
     }
 }
 
-#[async_trait]
 impl<T> ObservableConfigurationRepository for UpdatingConfigurationRepository<T>
 where
     T: ConfigurationRepository,
@@ -108,14 +112,13 @@ mod tests {
         time::Duration,
     };
 
-    use async_trait::async_trait;
     use tokio::{sync::Notify, time};
 
     use wallet_common::config::wallet_config::WalletConfiguration;
 
     use crate::config::{
-        default_configuration, ConfigurationError, ConfigurationRepository, ObservableConfigurationRepository,
-        UpdateableConfigurationRepository, UpdatingConfigurationRepository,
+        default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+        ObservableConfigurationRepository, UpdateableConfigurationRepository, UpdatingConfigurationRepository,
     };
 
     struct TestConfigRepo(RwLock<WalletConfiguration>);
@@ -126,12 +129,11 @@ mod tests {
         }
     }
 
-    #[async_trait]
     impl UpdateableConfigurationRepository for TestConfigRepo {
-        async fn fetch(&self) -> Result<(), ConfigurationError> {
+        async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
             let mut config = self.0.write().unwrap();
             config.lock_timeouts.background_timeout = 900;
-            Ok(())
+            Ok(ConfigurationUpdateState::Updated)
         }
     }
 
@@ -184,7 +186,7 @@ mod tests {
         let update_frequency = Duration::from_millis(100);
 
         let mut counted = 0;
-        let counter = Arc::new(AtomicU64::new(1));
+        let counter = Arc::new(AtomicU64::new(0));
         let callback_counter = Arc::clone(&counter);
 
         {
@@ -198,17 +200,26 @@ mod tests {
                 callback_counter.fetch_add(1, Ordering::SeqCst);
             });
 
-            for _ in 0..10 {
-                time::advance(Duration::from_millis(101)).await;
+            // Advance the clock so that the initial fetch plus 9 additional ones occur.
+            for _ in 0..(9 * 101) {
+                // The `time::advance()` function does not seem to work if we simply
+                // advance the time by 100ms. This probably has something to do with
+                // the tokio runtime running in `current_thread` mode.
+                time::advance(Duration::from_millis(1)).await;
             }
 
             counted += counter.load(Ordering::SeqCst);
         }
         assert_eq!(10, counted);
 
-        for _ in 0..10 {
-            time::advance(Duration::from_millis(101)).await;
+        for _ in 0..(9 * 101) {
+            time::advance(Duration::from_millis(1)).await;
         }
-        assert_eq!(counted, counter.load(Ordering::SeqCst), "after config is dropped, the update loop should have been aborted and the count should not have been updated");
+        assert_eq!(
+            counted,
+            counter.load(Ordering::SeqCst),
+            "after config is dropped, the update loop should have been aborted \
+             and the count should not have been updated"
+        );
     }
 }

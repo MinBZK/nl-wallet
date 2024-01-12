@@ -1,16 +1,17 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
-import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
-import '../common/widget/animated_linear_progress_indicator.dart';
+import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/wallet_app_bar.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
@@ -41,12 +42,16 @@ class DisclosureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = context.watch<DisclosureBloc>().state.stepperProgress;
     return Scaffold(
       restorationId: 'disclosure_scaffold',
-      appBar: AppBar(
-        title: Text(context.l10n.disclosureScreenTitle),
+      appBar: WalletAppBar(
         leading: _buildBackButton(context),
-        actions: [_buildCloseButton(context)],
+        actions: [
+          _buildHelpButton(context),
+          _buildCloseButton(context, progress),
+        ],
+        progress: progress,
       ),
       body: PopScope(
         canPop: false,
@@ -61,15 +66,8 @@ class DisclosureScreen extends StatelessWidget {
             _stopDisclosure(context);
           }
         },
-        child: Column(
-          children: [
-            _buildStepper(),
-            Expanded(
-              child: SafeArea(
-                child: _buildPage(),
-              ),
-            ),
-          ],
+        child: SafeArea(
+          child: _buildPage(),
         ),
       ),
     );
@@ -86,25 +84,19 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  /// The close button stops/closes the disclosure flow.
-  /// It is only visible in the semantics tree when the disclosure flow is in progress.
-  Widget _buildCloseButton(BuildContext context) {
-    final closeButton = CloseButton(onPressed: () => _stopDisclosure(context));
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      builder: (context, state) {
-        if (state.stepperProgress == 1.0) {
-          return ExcludeSemantics(child: closeButton);
-        } else {
-          return closeButton;
-        }
-      },
+  Widget _buildHelpButton(BuildContext context) {
+    return IconButton(
+      onPressed: () => PlaceholderScreen.show(context),
+      icon: const Icon(Icons.help_outline_rounded),
     );
   }
 
-  Widget _buildStepper() {
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => AnimatedLinearProgressIndicator(progress: state.stepperProgress),
+  /// The close button stops/closes the disclosure flow.
+  /// It is only visible in the semantics tree when the disclosure flow is in progress.
+  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
+    return ExcludeSemantics(
+      excluding: stepperProgress == 1.0,
+      child: CloseButton(onPressed: () => _stopDisclosure(context)),
     );
   }
 
@@ -171,7 +163,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
     return DisclosureConfirmPinPage(
       bloc: PinBloc(context.read<AcceptDisclosureUseCase>()),
-      onPinValidated: () => context.read<DisclosureBloc>().add(const DisclosurePinConfirmed()),
+      onPinValidated: (returnUrl) => context.read<DisclosureBloc>().add(DisclosurePinConfirmed(returnUrl: returnUrl)),
     );
   }
 
@@ -188,8 +180,20 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildSuccessPage(BuildContext context, DisclosureSuccess state) {
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
-      onClosePressed: () => Navigator.pop(context),
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+      onClosePressed: () {
+        Navigator.pop(context);
+
+        // Handle return url
+        if (state.returnUrl != null) {
+          try {
+            final uri = Uri.parse(state.returnUrl!);
+            launchUrl(uri, mode: LaunchMode.externalApplication);
+          } catch (error) {
+            Fimber.e('Failed to open returnUrl', ex: error);
+          }
+        }
+      },
     );
   }
 

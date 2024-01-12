@@ -33,9 +33,6 @@ impl<H: HttpClient> Wallet<H> {
 }
 
 /// Stores multiple copies of mdocs that have identical attributes.
-///
-/// TODO: support marking an mdoc has having been used, so that it can be avoided in future disclosures,
-/// for unlinkability.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
 pub struct MdocCopies {
     pub cred_copies: Vec<Mdoc>,

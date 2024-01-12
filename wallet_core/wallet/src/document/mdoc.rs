@@ -10,8 +10,8 @@ use nl_wallet_mdoc::{
 
 use super::{
     mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
-    Attribute, AttributeValue, Document, DocumentAttributes, DocumentPersistence, GenderAttributeValue,
-    MissingDisclosureAttributes, ProposedDisclosureDocument,
+    Attribute, AttributeValue, DisclosureDocument, Document, DocumentAttributes, DocumentPersistence,
+    GenderAttributeValue, MissingDisclosureAttributes,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -179,8 +179,7 @@ impl Document {
 impl TryFrom<(DataElementValue, &DataElementValueMapping)> for Attribute {
     type Error = DataElementValue;
 
-    fn try_from(value: (DataElementValue, &DataElementValueMapping)) -> Result<Self, Self::Error> {
-        let (value, value_mapping) = value;
+    fn try_from((value, value_mapping): (DataElementValue, &DataElementValueMapping)) -> Result<Self, Self::Error> {
         let value = (value_mapping.value_type, value).try_into()?;
 
         let attribute = Attribute {
@@ -276,14 +275,14 @@ impl MissingDisclosureAttributes {
     }
 }
 
-impl ProposedDisclosureDocument {
+impl DisclosureDocument {
     pub(crate) fn from_mdoc_attributes(
         doc_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, DocumentMdocError> {
         let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, false)?;
 
-        let document = ProposedDisclosureDocument {
+        let document = DisclosureDocument {
             doc_type,
             attributes: document_attributes,
         };
@@ -292,17 +291,16 @@ impl ProposedDisclosureDocument {
     }
 }
 
-#[cfg(test)]
-pub mod tests {
-    use std::{collections::HashMap, mem};
-
-    use assert_matches::assert_matches;
+#[cfg(feature = "mock")]
+pub mod mock {
     use chrono::{Days, Utc};
-    use rstest::rstest;
 
     use nl_wallet_mdoc::Tdate;
 
-    use super::{super::PID_DOCTYPE, *};
+    use super::{
+        super::{ADDRESS_DOCTYPE, PID_DOCTYPE},
+        *,
+    };
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
@@ -376,6 +374,69 @@ pub mod tests {
 
         unsigned_mdoc
     }
+
+    /// This creates a minimal `UnsignedMdoc` that is valid.
+    pub fn create_minimal_unsigned_address_mdoc() -> UnsignedMdoc {
+        UnsignedMdoc {
+            doc_type: ADDRESS_DOCTYPE.to_string(),
+            copy_count: 1,
+            valid_from: Tdate::now(),
+            valid_until: (Utc::now() + Days::new(365)).into(),
+            attributes: IndexMap::from([(
+                ADDRESS_DOCTYPE.to_string(),
+                vec![
+                    Entry {
+                        name: "resident_street".to_string(),
+                        value: DataElementValue::Text("Turfmarkt".to_string()),
+                    },
+                    Entry {
+                        name: "resident_house_number".to_string(),
+                        value: DataElementValue::Text("147".to_string()),
+                    },
+                    Entry {
+                        name: "resident_postal_code".to_string(),
+                        value: DataElementValue::Text("2511 DP".to_string()),
+                    },
+                    Entry {
+                        name: "resident_city".to_string(),
+                        value: DataElementValue::Text("Den Haag".to_string()),
+                    },
+                ],
+            )]),
+        }
+    }
+
+    /// This creates a full `UnsignedMdoc` that is valid.
+    pub fn create_full_unsigned_address_mdoc() -> UnsignedMdoc {
+        let mut unsigned_mdoc = create_minimal_unsigned_address_mdoc();
+
+        unsigned_mdoc.attributes.get_mut(ADDRESS_DOCTYPE).unwrap().extend(vec![
+            Entry {
+                name: "resident_address".to_string(),
+                value: DataElementValue::Text("Turfmarkt 147".to_string()),
+            },
+            Entry {
+                name: "resident_state".to_string(),
+                value: DataElementValue::Text("Zuid-Holland".to_string()),
+            },
+            Entry {
+                name: "resident_country".to_string(),
+                value: DataElementValue::Text("NL".to_string()),
+            },
+        ]);
+
+        unsigned_mdoc
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use std::{collections::HashMap, mem};
+
+    use assert_matches::assert_matches;
+    use rstest::rstest;
+
+    use super::{super::PID_DOCTYPE, mock::*, *};
 
     #[test]
     fn test_minimal_unsigned_mdoc_to_document_mapping() {
@@ -588,7 +649,7 @@ pub mod tests {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
         let disclosure_document =
-            ProposedDisclosureDocument::from_mdoc_attributes(&unsigned_mdoc.doc_type, unsigned_mdoc.attributes)
+            DisclosureDocument::from_mdoc_attributes(&unsigned_mdoc.doc_type, unsigned_mdoc.attributes)
                 .expect("Could not convert attributes to proposed disclosure document");
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
@@ -645,7 +706,7 @@ pub mod tests {
         )]);
 
         // This should not result in a `DocumentMdocError::MissingAttribute` error.
-        let disclosure_document = ProposedDisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes)
+        let disclosure_document = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes)
             .expect("Could not convert attributes to proposed disclosure document");
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
@@ -672,7 +733,7 @@ pub mod tests {
             }],
         )]);
 
-        let result = ProposedDisclosureDocument::from_mdoc_attributes("com.example.foobar", attributes);
+        let result = DisclosureDocument::from_mdoc_attributes("com.example.foobar", attributes);
 
         assert_matches!(
             result,
@@ -690,7 +751,7 @@ pub mod tests {
             }],
         )]);
 
-        let result = ProposedDisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+        let result = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
 
         assert_matches!(
             result,
@@ -715,7 +776,7 @@ pub mod tests {
             }],
         )]);
 
-        let result = ProposedDisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+        let result = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
 
         assert_matches!(
             result,

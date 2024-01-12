@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use async_trait::async_trait;
+use entity::history_event;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -58,7 +58,6 @@ impl Default for MockStorage {
     }
 }
 
-#[async_trait]
 impl Storage for MockStorage {
     async fn state(&self) -> StorageResult<StorageState> {
         Ok(self.state)
@@ -85,7 +84,7 @@ impl Storage for MockStorage {
         Ok(data)
     }
 
-    async fn insert_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         self.check_query_error()?;
 
         if self.data.contains_key(D::KEY) {
@@ -97,7 +96,7 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn update_data<D: KeyedData + Sync>(&mut self, data: &D) -> StorageResult<()> {
+    async fn update_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()> {
         self.check_query_error()?;
 
         if !self.data.contains_key(D::KEY) {
@@ -161,13 +160,17 @@ impl Storage for MockStorage {
     }
 
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
-        self.event_log.push(event);
+        // Convert to database entity and back to check whether the `TryFrom` implementations are complete.
+        let entity = history_event::Model::try_from(event.clone())?;
+        let converted_event = WalletEvent::try_from(entity)?;
+        assert_eq!(event, converted_event);
+        self.event_log.push(converted_event);
         Ok(())
     }
 
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         let mut events = self.event_log.to_vec();
-        events.sort_by(|e1, e2| e2.timestamp.cmp(&e1.timestamp));
+        events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)
     }
 
@@ -176,9 +179,9 @@ impl Storage for MockStorage {
             .event_log
             .clone()
             .into_iter()
-            .filter(|e| e.event_type.doc_types().contains(doc_type))
+            .filter(|e| e.associated_doc_types().contains(doc_type))
             .collect::<Vec<_>>();
-        events.sort_by(|e1, e2| e2.timestamp.cmp(&e1.timestamp));
+        events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)
     }
 }

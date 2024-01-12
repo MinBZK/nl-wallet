@@ -5,17 +5,21 @@ use std::{
     sync::Arc,
 };
 
-use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
 use indexmap::{IndexMap, IndexSet};
-use serde::{de::DeserializeOwned, Serialize};
+use rstest::rstest;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_with::{
+    base64::{Base64, UrlSafe},
+    formats::Unpadded,
+    serde_as,
+};
 use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
-    errors::Result,
-    holder::{DisclosureSession, HttpClient, MdocCopies, MdocDataSource, StoredMdoc, Wallet},
+    holder::{DisclosureSession, HttpClient, HttpClientResult, MdocCopies, MdocDataSource, StoredMdoc, Wallet},
     identifiers::AttributeIdentifier,
     iso::{device_retrieval::ItemsRequest, mdocs::DocType},
     issuer::{IssuanceData, Issuer},
@@ -27,7 +31,7 @@ use nl_wallet_mdoc::{
         serialization,
         x509::{Certificate, CertificateType},
     },
-    verifier::{DisclosureData, SessionResult, SessionType, StatusResponse, Verifier},
+    verifier::{DisclosureData, SessionType, Verifier},
 };
 use webpki::TrustAnchor;
 
@@ -64,11 +68,10 @@ impl MockIssuanceHttpClient {
     }
 }
 
-#[async_trait]
 impl HttpClient for MockIssuanceHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
@@ -93,11 +96,10 @@ impl MockDisclosureHttpClient {
     }
 }
 
-#[async_trait]
 impl HttpClient for MockDisclosureHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
+    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
     where
-        V: Serialize + Sync,
+        V: Serialize,
         R: DeserializeOwned,
     {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
@@ -178,7 +180,6 @@ impl From<Vec<MdocCopies>> for MockMdocDataSource {
     }
 }
 
-#[async_trait]
 impl MdocDataSource for MockMdocDataSource {
     type MdocIdentifier = String;
     type Error = Infallible;
@@ -322,8 +323,13 @@ async fn test_issuance() {
     );
 }
 
+#[rstest]
+#[case(SessionType::SameDevice, None)]
+#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()))]
+#[case(SessionType::CrossDevice, None)]
+#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()))]
 #[tokio::test]
-async fn test_issuance_and_disclosure() {
+async fn test_issuance_and_disclosure(#[case] session_type: SessionType, #[case] return_url: Option<Url>) {
     // Perform issuance and save result in `MockMdocDataSource`.
     let (mut wallet, issuance_server, mdoc_ca) = setup_issuance_test();
     let mdoc_data_source: MockMdocDataSource = issuance_using_consent(
@@ -339,7 +345,6 @@ async fn test_issuance_and_disclosure() {
 
     // Prepare a request and start issuance on the verifier side.
     let (verifier_client, verifier, verifier_ca) = setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()]);
-    let session_type = SessionType::SameDevice;
     let items_requests = vec![ItemsRequest {
         doc_type: ISSUANCE_DOC_TYPE.to_string(),
         name_spaces: IndexMap::from([(
@@ -351,7 +356,7 @@ async fn test_issuance_and_disclosure() {
     .into();
 
     let (session_id, reader_engagement) = verifier
-        .new_session(items_requests, session_type, Default::default())
+        .new_session(items_requests, session_type, Default::default(), return_url.is_some())
         .await
         .expect("creating new verifier session should succeed");
 
@@ -360,7 +365,7 @@ async fn test_issuance_and_disclosure() {
     let disclosure_session = DisclosureSession::start(
         verifier_client,
         &reader_engagement_bytes,
-        None,
+        return_url,
         session_type,
         &mdoc_data_source,
         &[(&verifier_ca).try_into().unwrap()],
@@ -380,14 +385,24 @@ async fn test_issuance_and_disclosure() {
         .await
         .expect("disclosure of proposed attributes should succeed");
 
-    let disclosed_attributes = match verifier
-        .status(&session_id)
+    // Note: same as in wallet_server, but not needed anywhere else in this crate
+    #[serde_as]
+    #[derive(Deserialize)]
+    struct DisclosedAttributesParams {
+        #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
+        transcript_hash: Option<Vec<u8>>,
+    }
+
+    let transcript_hash = disclosure_session_proposal.return_url().and_then(|u| {
+        serde_urlencoded::from_str::<DisclosedAttributesParams>(u.query().unwrap_or(""))
+            .expect("query of return URL should always parse")
+            .transcript_hash
+    });
+
+    let disclosed_attributes = verifier
+        .disclosed_attributes(&session_id, transcript_hash)
         .await
-        .expect("verifier session status should be present")
-    {
-        StatusResponse::Done(SessionResult::Done { disclosed_attributes }) => disclosed_attributes,
-        _ => panic!("verifier session should contain disclosed attributes"),
-    };
+        .expect("verifier disclosed attributes should be present");
 
     // Check the disclosed attributes.
     let attributes_iter = disclosed_attributes

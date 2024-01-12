@@ -7,6 +7,7 @@ use futures::future::try_join_all;
 use indexmap::IndexMap;
 use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
 use serde::{Deserialize, Serialize};
+use strum;
 use tokio::task::JoinHandle;
 use url::Url;
 use webpki::TrustAnchor;
@@ -15,6 +16,7 @@ use wallet_common::{
     account::serialization::DerSecretKey,
     generator::{Generator, TimeGenerator},
     trust_anchor::OwnedTrustAnchor,
+    utils,
 };
 
 use crate::{
@@ -74,6 +76,10 @@ pub enum VerificationError {
     MissingAttributes(Vec<AttributeIdentifier>),
     #[error("error with sessionstore: {0}")]
     SessionStore(SessionStoreError),
+    #[error("disclosed attributes requested for disclosure session with status: {0}")]
+    SessionNotDone(StatusResponse),
+    #[error("transcript hash '{0:?}' does not match expected")]
+    TranscriptHashMismatch(Option<Vec<u8>>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -98,6 +104,7 @@ pub struct Created {
     items_requests: ItemsRequests,
     session_type: SessionType,
     usecase_id: String,
+    return_url_used: bool,
     ephemeral_privkey: DerSecretKey,
     #[serde(with = "cbor_hex")]
     reader_engagement: ReaderEngagement,
@@ -109,6 +116,7 @@ pub struct Created {
 pub struct WaitingForResponse {
     #[allow(unused)] // TODO write function that matches this field against the disclosed attributes
     items_requests: ItemsRequests,
+    return_url_used: bool,
     their_key: SessionKey,
     ephemeral_privkey: DerSecretKey,
     #[serde(with = "cbor_hex")]
@@ -118,15 +126,20 @@ pub struct WaitingForResponse {
 /// State for a session that has ended (for any reason).
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Done {
-    pub session_result: SessionResult,
+    session_result: SessionResult,
 }
 
 /// The outcome of a session: the disclosed attributes if they have been sucessfully received and verified.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum SessionResult {
-    Done { disclosed_attributes: DisclosedAttributes },
-    Failed { error: String },
+    Done {
+        disclosed_attributes: DisclosedAttributes,
+        transcript_hash: Option<Vec<u8>>,
+    },
+    Failed {
+        error: String,
+    },
     Cancelled,
 }
 
@@ -175,18 +188,20 @@ impl SessionState<Done> {
     }
 }
 
-/// status without the underlying data for Created and Waiting
-#[derive(Debug, Deserialize, Serialize)]
+/// status without the underlying data
+#[derive(Debug, strum::Display, Deserialize, Serialize)]
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum StatusResponse {
     Created,
     WaitingForResponse,
-    #[serde(untagged)]
-    Done(SessionResult),
+    Done,
+    Failed,
+    Cancelled,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum SessionType {
     // Using Universal Link
     SameDevice,
@@ -212,7 +227,7 @@ impl<K, S> Drop for Verifier<K, S> {
 impl<K, S> Verifier<K, S>
 where
     K: KeyRing,
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<DisclosureData>>,
 {
     /// Create a new [`Verifier`].
     ///
@@ -222,7 +237,10 @@ where
     /// - `sessions` will contain all sessions.
     /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
-    pub fn new(url: Url, keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>) -> Self {
+    pub fn new(url: Url, keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>) -> Self
+    where
+        S: Send + Sync + 'static,
+    {
         let sessions = Arc::new(sessions);
         Self {
             url,
@@ -245,6 +263,7 @@ where
         items_requests: ItemsRequests,
         session_type: SessionType,
         usecase_id: String,
+        return_url_used: bool,
     ) -> Result<(SessionToken, ReaderEngagement)> {
         if !self.keys.contains_key(&usecase_id) {
             return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
@@ -258,6 +277,7 @@ where
             items_requests,
             session_type,
             usecase_id,
+            return_url_used,
             &self.url.join("disclosure/").unwrap(),
         )?;
         self.sessions
@@ -336,7 +356,54 @@ where
         {
             DisclosureData::Created(_) => Ok(StatusResponse::Created),
             DisclosureData::WaitingForResponse(_) => Ok(StatusResponse::WaitingForResponse),
-            DisclosureData::Done(data) => Ok(StatusResponse::Done(data.session_result)),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Done { .. },
+            }) => Ok(StatusResponse::Done),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Failed { .. },
+            }) => Ok(StatusResponse::Failed),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Cancelled { .. },
+            }) => Ok(StatusResponse::Cancelled),
+        }
+    }
+
+    /// Returns the disclosed attributes for a session with status `Done` and an error otherwise
+    pub async fn disclosed_attributes(
+        &self,
+        session_id: &SessionToken,
+        transcript_hash: Option<Vec<u8>>,
+    ) -> Result<DisclosedAttributes> {
+        match self
+            .sessions
+            .get(session_id)
+            .await
+            .map_err(VerificationError::SessionStore)?
+            .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
+            .session_data
+        {
+            DisclosureData::Created(_) => Err(VerificationError::SessionNotDone(StatusResponse::Created).into()),
+            DisclosureData::WaitingForResponse(_) => {
+                Err(VerificationError::SessionNotDone(StatusResponse::WaitingForResponse).into())
+            }
+            DisclosureData::Done(Done { session_result }) => match session_result {
+                SessionResult::Failed { .. } => Err(VerificationError::SessionNotDone(StatusResponse::Failed).into()),
+                SessionResult::Cancelled { .. } => {
+                    Err(VerificationError::SessionNotDone(StatusResponse::Cancelled).into())
+                }
+                SessionResult::Done {
+                    transcript_hash: None,
+                    disclosed_attributes,
+                } => Ok(disclosed_attributes),
+                SessionResult::Done {
+                    transcript_hash: Some(hash),
+                    disclosed_attributes,
+                } if transcript_hash.as_ref().is_some_and(|h| h == &hash) => Ok(disclosed_attributes),
+                SessionResult::Done {
+                    transcript_hash: Some(_),
+                    ..
+                } => Err(VerificationError::TranscriptHashMismatch(transcript_hash.to_owned()).into()),
+            },
         }
     }
 }
@@ -381,6 +448,7 @@ impl Session<Created> {
         items_requests: ItemsRequests,
         session_type: SessionType,
         usecase_id: String,
+        return_url_used: bool,
         base_url: &Url,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
         let session_token = SessionToken::new();
@@ -393,6 +461,7 @@ impl Session<Created> {
                     items_requests,
                     session_type,
                     usecase_id,
+                    return_url_used,
                     ephemeral_privkey: ephemeral_privkey.into(),
                     reader_engagement: reader_engagement.clone(),
                 },
@@ -510,9 +579,11 @@ impl Session<Created> {
         ephemeral_privkey: SecretKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
+        let return_url_used = self.state.session_data.return_url_used;
         self.transition(WaitingForResponse {
             items_requests,
             their_key,
+            return_url_used,
             ephemeral_privkey: ephemeral_privkey.into(),
             session_transcript,
         })
@@ -566,7 +637,9 @@ impl Session<WaitingForResponse> {
         };
 
         let (response, next) = match self.process_response_inner(&session_data, trust_anchors) {
-            Ok((response, disclosed_attributes)) => (response, self.transition_finish(disclosed_attributes)),
+            Ok((response, disclosed_attributes, transcript_hash)) => {
+                (response, self.transition_finish(disclosed_attributes, transcript_hash))
+            }
             Err(e) => (SessionData::new_decoding_error(), self.transition_fail(e)),
         };
 
@@ -578,7 +651,7 @@ impl Session<WaitingForResponse> {
         &self,
         session_data: &SessionData,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(SessionData, DisclosedAttributes)> {
+    ) -> Result<(SessionData, DisclosedAttributes, Option<Vec<u8>>)> {
         let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&self.state().their_key)?;
 
         let disclosed_attributes = device_response.verify(
@@ -594,12 +667,28 @@ impl Session<WaitingForResponse> {
             status: Some(SessionStatus::Termination),
         };
 
-        Ok((response, disclosed_attributes))
+        let transcript_hash = self
+            .state
+            .session_data
+            .return_url_used
+            .then(|| {
+                cbor_serialize(&TaggedBytes(&self.state.session_data.session_transcript)).map(|b| utils::sha256(&b))
+            })
+            .transpose()?;
+
+        Ok((response, disclosed_attributes, transcript_hash))
     }
 
-    fn transition_finish(self, disclosed_attributes: DisclosedAttributes) -> Session<Done> {
+    fn transition_finish(
+        self,
+        disclosed_attributes: DisclosedAttributes,
+        transcript_hash: Option<Vec<u8>>,
+    ) -> Session<Done> {
         self.transition(Done {
-            session_result: SessionResult::Done { disclosed_attributes },
+            session_result: SessionResult::Done {
+                disclosed_attributes,
+                transcript_hash,
+            },
         })
     }
 }
@@ -1023,6 +1112,7 @@ mod tests {
                 new_disclosure_request(),
                 SessionType::SameDevice,
                 DISCLOSURE_USECASE.to_string(),
+                false,
             )
             .await
             .unwrap();
@@ -1044,8 +1134,7 @@ mod tests {
             SessionKeyUser::Reader,
         )
         .unwrap();
-        let device_request: DeviceRequest = encrypted_device_request.decrypt_and_deserialize(&rp_key).unwrap();
-        dbg!(device_request);
+        let _device_request: DeviceRequest = encrypted_device_request.decrypt_and_deserialize(&rp_key).unwrap();
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
         let end_session_message = cbor_serialize(&SessionData {

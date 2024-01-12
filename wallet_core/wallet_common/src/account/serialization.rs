@@ -1,6 +1,9 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::{
+    fmt::{Debug, Display, Formatter},
+    hash::{Hash, Hasher},
+};
 
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::prelude::*;
 use config::ValueKind;
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
@@ -41,12 +44,12 @@ impl TryFrom<&SigningKey> for Base64Bytes {
 
 impl Serialize for Base64Bytes {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        String::serialize(&STANDARD.encode(&self.0), serializer)
+        String::serialize(&BASE64_STANDARD.encode(&self.0), serializer)
     }
 }
 impl<'de> Deserialize<'de> for Base64Bytes {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bts = STANDARD
+        let bts = BASE64_STANDARD
             .decode(String::deserialize(deserializer)?.as_bytes())
             .map_err(serde::de::Error::custom)?;
         Ok(bts.into())
@@ -55,7 +58,7 @@ impl<'de> Deserialize<'de> for Base64Bytes {
 
 impl Debug for Base64Bytes {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", STANDARD.encode(&self.0))
+        write!(f, "{}", BASE64_STANDARD.encode(&self.0))
     }
 }
 
@@ -126,7 +129,7 @@ impl From<&DerSigningKey> for DerVerifyingKey {
 
 impl Display for DerVerifyingKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let pubkey = STANDARD.encode(self.0.to_public_key_der().unwrap().as_bytes());
+        let pubkey = BASE64_STANDARD.encode(self.0.to_public_key_der().unwrap().as_bytes());
         write!(f, "{}", pubkey)
     }
 }
@@ -185,6 +188,12 @@ impl<'de> Deserialize<'de> for DerVerifyingKey {
         let key =
             VerifyingKey::from_public_key_der(&Base64Bytes::deserialize(deserializer)?.0).map_err(de::Error::custom)?;
         Ok(key.into())
+    }
+}
+
+impl Hash for DerVerifyingKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_sec1_bytes().hash(state)
     }
 }
 

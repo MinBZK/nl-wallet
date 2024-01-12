@@ -1,10 +1,10 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2023-11-15T13:44:31+01:00",
+    "@@last_modified": "2024-01-08T11:05:13+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
-    "aboutScreenTitle": "Over de app",
+    "aboutScreenTitle": "Over de NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Ja, volgende",
@@ -273,6 +273,8 @@
     "disclosureGenericErrorPageCloseCta": "Stoppen",
     "disclosureGenericErrorPageDescription": "Er ging iets mis. Probeer het later nog eens",
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
+    "disclosureLoadingSubtitle": "De aanvraag wordt opgehaald",
+    "disclosureLoadingTitle": "Even geduld",
     "disclosureMissingAttributesPageCloseCta": "Aanvraag sluiten",
     "disclosureMissingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
     "@disclosureMissingAttributesPageDescription": {
@@ -584,7 +586,7 @@
     },
     "historyDetailScreenTermsTitle": "Voorwaarden",
     "historyDetailScreenTitle": "Details",
-    "historyOverviewScreenTitle": "Gebruiksgeschiedenis",
+    "historyOverviewScreenTitle": "Activiteiten",
     "homeBottomNavBarCardsButton": "Kaarten",
     "homeBottomNavBarQrButton": "QR",
     "homeBottomNavBarSettingsButton": "Instellingen",
@@ -767,7 +769,6 @@
         }
     },
     "menuMainPageHelpCta": "Help",
-    "menuMainPageHistoryCta": "Gebruiksgeschiedenis",
     "menuMainPageLockCta": "Uitloggen",
     "menuMainPageSettingsCta": "Instellingen",
     "menuScreenAboutCta": "Over deze app",
@@ -784,7 +785,7 @@
         }
     },
     "menuScreenHelpCta": "Help",
-    "menuScreenHistoryCta": "Gebruiksgeschiedenis",
+    "menuScreenHistoryCta": "Activiteiten",
     "menuScreenLockCta": "Uitloggen",
     "menuScreenSettingsCta": "Instellingen",
     "menuScreenTitle": "Menu",
@@ -800,7 +801,18 @@
     "organizationApprovePageApproveCta": "Ja, volgende",
     "organizationApprovePageDenyCta": "Nee",
     "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
+    "organizationApprovePageFraudInfo": "Pas op voor fraude. Ga alleen verder als de QR-code op {url} staat.",
+    "organizationApprovePageGenericTitle": "Herken je {organization}?",
+    "@organizationApprovePageGenericTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
+    "organizationApprovePageMoreInfoCta": "Meer info",
     "organizationApprovePagePurpose": "Reden: {purpose}",
     "@organizationApprovePagePurpose": {
         "placeholders": {
@@ -819,8 +831,8 @@
             }
         }
     },
-    "organizationApprovePageShareWithApproveCta": "Ja, bekijk verzoek",
-    "organizationApprovePageShareWithDenyCta": "Nee, stoppen",
+    "organizationApprovePageShareWithApproveCta": "Ja, verder",
+    "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationApprovePageShareWithTitle": "{organization} vraagt om gegevens, klopt dat?",
     "@organizationApprovePageShareWithTitle": {
         "placeholders": {
@@ -840,14 +852,23 @@
         }
     },
     "organizationButtonLabel": "Over deze partij",
+    "organizationDetailScreenCategoryInfo": "Soort organisatie",
+    "organizationDetailScreenDepartmentInfo": "Afdeling",
     "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
     "organizationDetailScreenInfoHeader": "Info",
     "organizationDetailScreenKvk": "KVK: {kvk}",
+    "organizationDetailScreenKvkInfo": "KVK nummer",
+    "organizationDetailScreenLocationInfo": "Locatie",
+    "organizationDetailScreenNoInteractions": "Geen eerdere activiteiten met {name}.",
     "organizationDetailScreenPrivacyHeader": "Privacy",
+    "organizationDetailScreenPrivacyInfo": "Privacyverklaring",
     "organizationDetailScreenPrivacyPolicy": "privacy verklaring",
+    "organizationDetailScreenPrivacyValue": "Privacy verklaring",
     "organizationDetailScreenReportIssueCta": "Een probleem melden",
-    "organizationDetailScreenTitle": "Over deze partij",
+    "organizationDetailScreenSomeInteractions": "Je hebt eerder gedeeld met {name}.",
+    "organizationDetailScreenTitle": "Over {name}",
     "organizationDetailScreenViewTerms": "Bekijk de algemene",
+    "organizationDetailScreenWebsiteInfo": "Website",
     "pidAddressCardTitle": "Woonadres",
     "pidIdCardTitle": "Persoonsgegevens",
     "pinBlockedScreenDescription": "Je hebt je toegangscode te vaak verkeerd ingevuld.\n\nWil je weer gebruik maken van de wallet? Dan moet je opnieuw beginnen. Wis de wallet en kies een nieuwe toegangscode.",
@@ -1081,8 +1102,6 @@
     },
     "verifierPolicyScreenPolicySectionTitle": "Meer weten?",
     "verifierPolicyScreenRetryCta": "Probeer opnieuw",
-    "verifierPolicyScreenTitle": "Voorwaarden",
-    "walletHistoryScreenTitle": "Gebruiksgeschiedenis",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Ja, klopt",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",
@@ -1111,7 +1130,7 @@
     "walletPersonalizeCheckDataOfferingPageIncorrectCta": "Klopt er iets niet?",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
     "walletPersonalizeCheckDataOfferingPageNationalityLabel": "Nationaliteit",
-    "walletPersonalizeCheckDataOfferingPageSubtitle": "Als de gegevens kloppen kun je je wallet aanmaken.",
+    "walletPersonalizeCheckDataOfferingPageSubtitle": "Je gegevens zijn opgehaald via DigiD.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
     "walletPersonalizeConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens toe te voegen aan je Wallet",
     "walletPersonalizeConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
@@ -1132,7 +1151,6 @@
     "walletPersonalizeDataIncorrectScreenNotYourDataTitle": "Zijn dit niet jouw gegevens?",
     "walletPersonalizeDataIncorrectScreenPrimaryCta": "Gegevens niet toevoegen",
     "walletPersonalizeDataIncorrectScreenSubhead": "Kloppen de gegevens niet?",
-    "walletPersonalizeDataIncorrectScreenTitle": "Er klopt iets niet",
     "walletPersonalizeDigidCancelledPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
     "walletPersonalizeDigidCancelledPageTitle": "Inloggen afgebroken",
     "walletPersonalizeDigidErrorPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
@@ -1149,7 +1167,6 @@
     "walletPersonalizeNoDigidPageDescription": "Op dit moment kan je alleen een Wallet aanmaken met de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
     "walletPersonalizeNoDigidPageHeadline": "Ik heb geen DigiD",
     "walletPersonalizeNoDigidPageRequestDigidCta": "DigiD aanvragen",
-    "walletPersonalizeNoDigidPageTitle": "Geen DigiD",
     "walletPersonalizePhotoAddedPageContinueCta": "Meer gegevens ophalen",
     "walletPersonalizePhotoAddedPageDataIncorrectCta": "Klopt er iets niet?",
     "walletPersonalizePhotoAddedPageSubtitle": "Je hebt je pasfoto toegevoegd",

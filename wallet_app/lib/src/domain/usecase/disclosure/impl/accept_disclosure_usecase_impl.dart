@@ -1,6 +1,6 @@
 import 'package:fimber/fimber.dart';
 
-import '../../../../util/extension/wallet_instruction_result_extension.dart';
+import '../../../../util/extension/accept_disclosure_result_extension.dart';
 import '../../../model/pin/check_pin_result.dart';
 import '../accept_disclosure_usecase.dart';
 

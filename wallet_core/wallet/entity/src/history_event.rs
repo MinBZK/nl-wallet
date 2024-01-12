@@ -33,8 +33,9 @@ pub struct Model {
     pub timestamp: DateTime<Utc>,
     pub remote_party_certificate: Vec<u8>,
     pub status: EventStatus,
-    // TODO How to translate a generic description? Shouldn't this be part of the audit log?
+    // TODO: How to translate a generic description? Shouldn't this be part of the audit log?
     pub status_description: Option<String>,
+    pub attributes: Option<Vec<u8>>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

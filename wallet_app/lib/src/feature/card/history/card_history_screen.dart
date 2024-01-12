@@ -11,6 +11,8 @@ import '../../../util/timeline/timeline_section_list_factory.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/timeline_section_sliver.dart';
+import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../history/detail/argument/history_detail_screen_argument.dart';
 import 'bloc/card_history_bloc.dart';
 
@@ -30,60 +32,59 @@ class CardHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.l10n.cardHistoryScreenTitle),
-      ),
       body: SafeArea(
-        child: _buildBody(context),
+        child: Column(
+          children: [
+            Expanded(child: _buildContent(context)),
+            const BottomBackButton(showDivider: true),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildContent(BuildContext context) {
     return BlocBuilder<CardHistoryBloc, CardHistoryState>(
       builder: (context, state) {
-        return switch (state) {
-          CardHistoryInitial() => _buildLoading(),
-          CardHistoryLoadInProgress() => _buildLoading(),
-          CardHistoryLoadSuccess() => _buildHistory(context, state),
-          CardHistoryLoadFailure() => _buildError(context),
+        final slivers = switch (state) {
+          CardHistoryInitial() => [_buildLoadingSliver()],
+          CardHistoryLoadInProgress() => [_buildLoadingSliver()],
+          CardHistoryLoadSuccess() => _buildTimelineSliver(context, state),
+          CardHistoryLoadFailure() => [_buildErrorSliver(context)],
         };
+        return Scrollbar(
+          child: CustomScrollView(
+            slivers: [
+              SliverWalletAppBar(title: context.l10n.cardHistoryScreenTitle),
+              ...slivers,
+            ],
+          ),
+        );
       },
     );
   }
 
-  Widget _buildLoading() => const CenteredLoadingIndicator();
-
-  Widget _buildHistory(BuildContext context, CardHistoryLoadSuccess state) {
-    final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
-    List<Widget> slivers = sections
-        .map((section) => TimelineSectionSliver(
-              section: section,
-              onRowPressed: (attribute) => _onTimelineRowPressed(context, attribute, state.card),
-            ))
-        .toList();
-
-    return Column(
-      children: [
-        Expanded(
-          child: Scrollbar(
-            child: CustomScrollView(
-              slivers: slivers,
-            ),
-          ),
-        ),
-        Container(
-          color: context.colorScheme.background,
-          child: const BottomBackButton(
-            showDivider: true,
-          ),
-        ),
-      ],
+  Widget _buildLoadingSliver() {
+    return const SliverFillRemaining(
+      child: CenteredLoadingIndicator(),
     );
   }
 
+  List<Widget> _buildTimelineSliver(BuildContext context, CardHistoryLoadSuccess state) {
+    final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
+    List<Widget> slivers = sections
+        .map(
+          (section) => TimelineSectionSliver(
+            section: section,
+            onRowPressed: (attribute) => _onTimelineRowPressed(context, attribute, state.card),
+          ),
+        )
+        .toList();
+    return [...slivers, const SliverSizedBox(height: 24)];
+  }
+
   void _onTimelineRowPressed(BuildContext context, TimelineAttribute attribute, WalletCard card) {
-    Navigator.restorablePushNamed(
+    Navigator.pushNamed(
       context,
       WalletRoutes.historyDetailRoute,
       arguments: HistoryDetailScreenArgument(
@@ -93,32 +94,36 @@ class CardHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildError(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Spacer(),
-          Text(
-            context.l10n.errorScreenGenericDescription,
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: () {
-              final settings = ModalRoute.of(context)?.settings;
-              if (settings != null) {
-                final cardId = getArguments(settings);
-                context.read<CardHistoryBloc>().add(CardHistoryLoadTriggered(cardId));
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            child: Text(context.l10n.generalRetry),
-          ),
-        ],
+  Widget _buildErrorSliver(BuildContext context) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Spacer(),
+            Text(
+              context.l10n.errorScreenGenericDescription,
+              textAlign: TextAlign.center,
+            ),
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () {
+                final settings = ModalRoute.of(context)?.settings;
+                if (settings != null) {
+                  final cardId = getArguments(settings);
+                  context.read<CardHistoryBloc>().add(CardHistoryLoadTriggered(cardId));
+                } else {
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(context.l10n.generalRetry),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

@@ -966,6 +966,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28c122c3980598d243d63d9a704629a2d748d101f278052ff068be5a4423ab6f"
 
 [[package]]
+name = "convert_case"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1379,6 +1388,16 @@ checksum = "ac3e13f66a2f95e32a39eaa81f6b95d42878ca0e1db0c7543723dfe12557e860"
 dependencies = [
  "libc",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "etag"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b3d0661a2ccddc26cba0b834e9b717959ed6fdd76c7129ee159c170a875bf44"
+dependencies = [
+ "str-buf",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -2298,6 +2317,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "kinded"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce4bdbb2f423660b19f0e9f7115182214732d8dd5f840cd0a3aee3e22562f34c"
+dependencies = [
+ "kinded_macros",
+]
+
+[[package]]
+name = "kinded_macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a13b4ddc5dcb32f45dac3d6f606da2a52fdb9964a18427e63cd5ef6c0d13288d"
+dependencies = [
+ "convert_case",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
+]
+
+[[package]]
 name = "kv-log-macro"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2415,6 +2455,7 @@ checksum = "f665ee40bc4a3c5590afb1e9677db74a508659dfd71e126420da8274909a0167"
 name = "migration"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "sea-orm-migration",
 ]
 
@@ -2474,7 +2515,6 @@ dependencies = [
  "nl_wallet_mdoc",
  "reqwest",
  "serde",
- "serde_urlencoded",
  "thiserror",
  "tokio",
  "tower-http",
@@ -2519,7 +2559,6 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "assert_matches",
- "async-trait",
  "base64 0.21.4",
  "chrono",
  "ciborium",
@@ -2545,7 +2584,9 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "serde_repr",
+ "serde_urlencoded",
  "serde_with",
+ "strum",
  "thiserror",
  "tokio",
  "url",
@@ -2646,6 +2687,28 @@ checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
 dependencies = [
  "hermit-abi",
  "libc",
+]
+
+[[package]]
+name = "nutype"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38fd38251d275b6a3cecbf4d2f8ce83b80609f0e33e2508a8bc3a7d94401d007"
+dependencies = [
+ "nutype_macros",
+]
+
+[[package]]
+name = "nutype_macros"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b9dc33172cb6abafee47925b6a188f2d3c3726cb5df12f39132a53df98501d2"
+dependencies = [
+ "cfg-if",
+ "kinded",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
 ]
 
 [[package]]
@@ -2915,7 +2978,6 @@ name = "pid_issuer"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "axum",
  "base64 0.21.4",
  "chrono",
@@ -2939,6 +3001,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "trait-variant",
  "url",
  "wallet",
  "wallet_common",
@@ -3024,7 +3087,6 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "jni",
  "once_cell",
  "p256",
@@ -4305,6 +4367,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "str-buf"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e75b72ee54e2f93c3ea1354066162be893ee5e25773ab743de3e088cecbb4f31"
+
+[[package]]
+name = "strfmt"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a8348af2d9fc3258c8733b8d9d8db2e56f54b2363a4b5b81585c7875ed65e65"
+
+[[package]]
 name = "stringprep"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4326,6 +4400,22 @@ name = "strum"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.25.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.38",
+]
 
 [[package]]
 name = "subtle"
@@ -4426,7 +4516,9 @@ dependencies = [
  "openid4vc",
  "p256",
  "platform_support",
+ "regex",
  "reqwest",
+ "rstest",
  "sea-orm",
  "serial_test",
  "tokio",
@@ -4720,6 +4812,17 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-serde",
+]
+
+[[package]]
+name = "trait-variant"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45e1a477061e97925d81a2f89fb73b2b8038e6baa5a0023bad380ac23b5f4fa6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
 ]
 
 [[package]]
@@ -5048,7 +5151,6 @@ name = "wallet"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "async-trait",
  "base64 0.21.4",
  "chrono",
  "ciborium",
@@ -5081,6 +5183,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "trait-variant",
  "url",
  "uuid",
  "wallet",
@@ -5112,10 +5215,10 @@ name = "wallet_common"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
- "async-trait",
  "base64 0.21.4",
  "chrono",
  "config",
+ "etag",
  "futures",
  "http",
  "jsonwebtoken",
@@ -5138,11 +5241,10 @@ dependencies = [
 name = "wallet_provider"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "axum",
- "base64 0.21.4",
  "chrono",
  "config",
+ "etag",
  "http",
  "mime",
  "once_cell",
@@ -5176,7 +5278,6 @@ dependencies = [
 name = "wallet_provider_domain"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "dashmap",
  "futures",
@@ -5194,6 +5295,7 @@ dependencies = [
 name = "wallet_provider_migrations"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "sea-orm-migration",
  "tokio",
  "wallet_provider_database_settings",
@@ -5203,7 +5305,6 @@ dependencies = [
 name = "wallet_provider_persistence"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "chrono",
  "ctor",
  "mockall",
@@ -5224,7 +5325,6 @@ name = "wallet_provider_service"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "async-trait",
  "chrono",
  "cryptoki",
  "dashmap",
@@ -5272,16 +5372,20 @@ dependencies = [
  "lazy_static",
  "mime",
  "nl_wallet_mdoc",
+ "nutype",
  "openid",
  "openid4vc",
  "p256",
  "platform_support",
  "rand 0.8.5",
  "reqwest",
+ "rstest",
  "sea-orm",
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "serde_with",
+ "strfmt",
  "thiserror",
  "tokio",
  "tower-http",
@@ -5664,6 +5768,12 @@ dependencies = [
  "thiserror",
  "time",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53be06678ed9e83edb1745eb72efc0bbcd7b5c3c35711a860906aed827a13d61"
 
 [[package]]
 name = "yasna"

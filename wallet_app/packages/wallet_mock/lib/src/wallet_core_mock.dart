@@ -63,20 +63,22 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<WalletInstructionResult> acceptDisclosure({required String pin, hint}) async {
+  Future<AcceptDisclosureResult> acceptDisclosure({required String pin, hint}) async {
     final disclosure = _ongoingDisclosure;
     assert(disclosure != null, 'No ongoing disclosure to accept');
     assert(disclosure is StartDisclosureResult_Request, 'Can\'t accept disclosure with missing attributes');
 
     // Check if correct pin was provided
     final result = _pinManager.checkPin(pin);
-    if (result is! WalletInstructionResult_Ok) return result;
+    if (result is WalletInstructionResult_InstructionError) {
+      return AcceptDisclosureResult.instructionError(error: result.error);
+    }
 
     // Log successful disclosure
     _eventLog.logDisclosure(disclosure!, DisclosureStatus.Success);
     _ongoingDisclosure = null;
 
-    return result;
+    return AcceptDisclosureResult.ok();
   }
 
   @override
@@ -189,7 +191,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   @override
   Future<WalletInstructionResult> unlockWallet({required String pin, hint}) async {
     final result = _pinManager.checkPin(pin);
-    bool pinMatches = result is! WalletInstructionResult_Ok;
+    bool pinMatches = result is WalletInstructionResult_Ok;
     if (pinMatches) {
       _wallet.unlock();
     } else {

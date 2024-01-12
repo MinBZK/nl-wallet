@@ -3,7 +3,7 @@ use anyhow::Result;
 #[cfg(feature = "issuance")]
 use openid4vc::issuer::AttributeService;
 
-use wallet_server::{server, settings::Settings, store::new_session_stores};
+use wallet_server::{server, settings::Settings, store::SessionStores};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
 
     let settings = Settings::new()?;
 
-    let sessions = new_session_stores(settings.store_url.clone()).await?;
+    let sessions = SessionStores::init(settings.store_url.clone()).await?;
 
     // This will block until the server shuts down.
     #[cfg(feature = "issuance")]

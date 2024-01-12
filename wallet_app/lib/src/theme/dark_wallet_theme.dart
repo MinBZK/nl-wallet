@@ -8,7 +8,7 @@ class DarkWalletTheme {
   // ColorScheme
   static const colorScheme = ColorScheme.dark(
     brightness: Brightness.dark,
-    primary: Color(0xFFA2B7FF),
+    primary: primary,
     secondary: Color(0xFFA5C8FF),
     error: Color(0xFFFF8989),
     background: Color(0xFF1C1E25),
@@ -18,9 +18,11 @@ class DarkWalletTheme {
     onBackground: primaryColorDark,
     onSurface: Color(0xFF8292CC),
     outlineVariant: Color(0xFF44464F),
+    shadow: Color(0x14FFFFFF),
   );
 
   // Other Colors
+  static const primary = Color(0xFFA2B7FF);
   static const primaryColorDark = Color(0xFFFFFFFF);
   static const sheetBackgroundColor = Color(0xFF03282F);
   static const textColor = primaryColorDark;
@@ -47,7 +49,7 @@ class DarkWalletTheme {
   static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
     backgroundColor: colorScheme.background,
     shape: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
-    iconTheme: IconThemeData(color: colorScheme.onBackground),
+    iconTheme: const IconThemeData(color: primary),
     titleTextStyle: textTheme.titleMedium,
   );
 
@@ -60,6 +62,7 @@ class DarkWalletTheme {
     style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
       foregroundColor: MaterialStatePropertyAll(colorScheme.onPrimary),
       backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
+      overlayColor: MaterialStatePropertyAll(colorScheme.secondary),
     ),
   );
 
@@ -95,5 +98,5 @@ class DarkWalletTheme {
 
   static final iconTheme = IconThemeData(color: colorScheme.onBackground);
 
-  static final progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: colorScheme.background);
+  static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFF292D3A));
 }

@@ -21,6 +21,7 @@ import '../../common/widget/info_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/wallet_app_bar.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../../policy/policy_screen.dart';
 import 'argument/history_detail_screen_argument.dart';
@@ -45,7 +46,7 @@ class HistoryDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.historyDetailScreenTitle),
       ),
       body: SafeArea(

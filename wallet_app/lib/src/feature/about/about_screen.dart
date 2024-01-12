@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/version_text.dart';
 import '../menu/widget/menu_row.dart';
 
@@ -16,40 +17,39 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('aboutScreen'),
-      appBar: AppBar(
-        title: Text(context.l10n.aboutScreenTitle),
+      body: CustomScrollView(
+        slivers: [
+          SliverWalletAppBar(title: context.l10n.aboutScreenTitle),
+          _buildContentSliver(context),
+        ],
       ),
-      body: SafeArea(child: _buildBody(context)),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    return Scrollbar(
-      child: ListView(
-        children: [
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildDescription(context),
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          MenuRow(
-            label: context.l10n.aboutScreenPrivacyCta,
-            onTap: () => PlaceholderScreen.show(context, secured: false),
-          ),
-          const Divider(height: 1),
-          MenuRow(
-            label: context.l10n.aboutScreenTermsCta,
-            onTap: () => PlaceholderScreen.show(context, secured: false),
-          ),
-          const Divider(height: 1),
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: VersionText(),
-          ),
-        ],
-      ),
+  Widget _buildContentSliver(BuildContext context) {
+    return SliverList.list(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _buildDescription(context),
+        ),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        MenuRow(
+          label: context.l10n.aboutScreenPrivacyCta,
+          onTap: () => PlaceholderScreen.show(context, secured: false),
+        ),
+        const Divider(height: 1),
+        MenuRow(
+          label: context.l10n.aboutScreenTermsCta,
+          onTap: () => PlaceholderScreen.show(context, secured: false),
+        ),
+        const Divider(height: 1),
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: VersionText(),
+        ),
+      ],
     );
   }
 

@@ -15,6 +15,343 @@ final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
 
 /// @nodoc
+mixin _$AcceptDisclosureResult {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String? returnUrl) ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String? returnUrl)? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String? returnUrl)? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(AcceptDisclosureResult_Ok value) ok,
+    required TResult Function(AcceptDisclosureResult_InstructionError value) instructionError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult? Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $AcceptDisclosureResultCopyWith<$Res> {
+  factory $AcceptDisclosureResultCopyWith(AcceptDisclosureResult value, $Res Function(AcceptDisclosureResult) then) =
+      _$AcceptDisclosureResultCopyWithImpl<$Res, AcceptDisclosureResult>;
+}
+
+/// @nodoc
+class _$AcceptDisclosureResultCopyWithImpl<$Res, $Val extends AcceptDisclosureResult>
+    implements $AcceptDisclosureResultCopyWith<$Res> {
+  _$AcceptDisclosureResultCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+}
+
+/// @nodoc
+abstract class _$$AcceptDisclosureResult_OkImplCopyWith<$Res> {
+  factory _$$AcceptDisclosureResult_OkImplCopyWith(
+          _$AcceptDisclosureResult_OkImpl value, $Res Function(_$AcceptDisclosureResult_OkImpl) then) =
+      __$$AcceptDisclosureResult_OkImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String? returnUrl});
+}
+
+/// @nodoc
+class __$$AcceptDisclosureResult_OkImplCopyWithImpl<$Res>
+    extends _$AcceptDisclosureResultCopyWithImpl<$Res, _$AcceptDisclosureResult_OkImpl>
+    implements _$$AcceptDisclosureResult_OkImplCopyWith<$Res> {
+  __$$AcceptDisclosureResult_OkImplCopyWithImpl(
+      _$AcceptDisclosureResult_OkImpl _value, $Res Function(_$AcceptDisclosureResult_OkImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? returnUrl = freezed,
+  }) {
+    return _then(_$AcceptDisclosureResult_OkImpl(
+      returnUrl: freezed == returnUrl
+          ? _value.returnUrl
+          : returnUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$AcceptDisclosureResult_OkImpl implements AcceptDisclosureResult_Ok {
+  const _$AcceptDisclosureResult_OkImpl({this.returnUrl});
+
+  @override
+  final String? returnUrl;
+
+  @override
+  String toString() {
+    return 'AcceptDisclosureResult.ok(returnUrl: $returnUrl)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$AcceptDisclosureResult_OkImpl &&
+            (identical(other.returnUrl, returnUrl) || other.returnUrl == returnUrl));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, returnUrl);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$AcceptDisclosureResult_OkImplCopyWith<_$AcceptDisclosureResult_OkImpl> get copyWith =>
+      __$$AcceptDisclosureResult_OkImplCopyWithImpl<_$AcceptDisclosureResult_OkImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String? returnUrl) ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) {
+    return ok(returnUrl);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String? returnUrl)? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) {
+    return ok?.call(returnUrl);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String? returnUrl)? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) {
+    if (ok != null) {
+      return ok(returnUrl);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(AcceptDisclosureResult_Ok value) ok,
+    required TResult Function(AcceptDisclosureResult_InstructionError value) instructionError,
+  }) {
+    return ok(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult? Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+  }) {
+    return ok?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) {
+    if (ok != null) {
+      return ok(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class AcceptDisclosureResult_Ok implements AcceptDisclosureResult {
+  const factory AcceptDisclosureResult_Ok({final String? returnUrl}) = _$AcceptDisclosureResult_OkImpl;
+
+  String? get returnUrl;
+  @JsonKey(ignore: true)
+  _$$AcceptDisclosureResult_OkImplCopyWith<_$AcceptDisclosureResult_OkImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$AcceptDisclosureResult_InstructionErrorImplCopyWith<$Res> {
+  factory _$$AcceptDisclosureResult_InstructionErrorImplCopyWith(_$AcceptDisclosureResult_InstructionErrorImpl value,
+          $Res Function(_$AcceptDisclosureResult_InstructionErrorImpl) then) =
+      __$$AcceptDisclosureResult_InstructionErrorImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({WalletInstructionError error});
+
+  $WalletInstructionErrorCopyWith<$Res> get error;
+}
+
+/// @nodoc
+class __$$AcceptDisclosureResult_InstructionErrorImplCopyWithImpl<$Res>
+    extends _$AcceptDisclosureResultCopyWithImpl<$Res, _$AcceptDisclosureResult_InstructionErrorImpl>
+    implements _$$AcceptDisclosureResult_InstructionErrorImplCopyWith<$Res> {
+  __$$AcceptDisclosureResult_InstructionErrorImplCopyWithImpl(_$AcceptDisclosureResult_InstructionErrorImpl _value,
+      $Res Function(_$AcceptDisclosureResult_InstructionErrorImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? error = null,
+  }) {
+    return _then(_$AcceptDisclosureResult_InstructionErrorImpl(
+      error: null == error
+          ? _value.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as WalletInstructionError,
+    ));
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $WalletInstructionErrorCopyWith<$Res> get error {
+    return $WalletInstructionErrorCopyWith<$Res>(_value.error, (value) {
+      return _then(_value.copyWith(error: value));
+    });
+  }
+}
+
+/// @nodoc
+
+class _$AcceptDisclosureResult_InstructionErrorImpl implements AcceptDisclosureResult_InstructionError {
+  const _$AcceptDisclosureResult_InstructionErrorImpl({required this.error});
+
+  @override
+  final WalletInstructionError error;
+
+  @override
+  String toString() {
+    return 'AcceptDisclosureResult.instructionError(error: $error)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$AcceptDisclosureResult_InstructionErrorImpl &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, error);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$AcceptDisclosureResult_InstructionErrorImplCopyWith<_$AcceptDisclosureResult_InstructionErrorImpl> get copyWith =>
+      __$$AcceptDisclosureResult_InstructionErrorImplCopyWithImpl<_$AcceptDisclosureResult_InstructionErrorImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String? returnUrl) ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) {
+    return instructionError(error);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String? returnUrl)? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) {
+    return instructionError?.call(error);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String? returnUrl)? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) {
+    if (instructionError != null) {
+      return instructionError(error);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(AcceptDisclosureResult_Ok value) ok,
+    required TResult Function(AcceptDisclosureResult_InstructionError value) instructionError,
+  }) {
+    return instructionError(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult? Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+  }) {
+    return instructionError?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(AcceptDisclosureResult_Ok value)? ok,
+    TResult Function(AcceptDisclosureResult_InstructionError value)? instructionError,
+    required TResult orElse(),
+  }) {
+    if (instructionError != null) {
+      return instructionError(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class AcceptDisclosureResult_InstructionError implements AcceptDisclosureResult {
+  const factory AcceptDisclosureResult_InstructionError({required final WalletInstructionError error}) =
+      _$AcceptDisclosureResult_InstructionErrorImpl;
+
+  WalletInstructionError get error;
+  @JsonKey(ignore: true)
+  _$$AcceptDisclosureResult_InstructionErrorImplCopyWith<_$AcceptDisclosureResult_InstructionErrorImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
 mixin _$CardPersistence {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
@@ -2114,7 +2451,7 @@ mixin _$WalletEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
     required TResult Function(String dateTime, Organization issuer, Card card) issuance,
   }) =>
@@ -2122,7 +2459,7 @@ mixin _$WalletEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
   }) =>
@@ -2130,7 +2467,7 @@ mixin _$WalletEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult Function(String dateTime, Organization issuer, Card card)? issuance,
     required TResult orElse(),
@@ -2202,7 +2539,7 @@ abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEve
       {String dateTime,
       Organization relyingParty,
       List<LocalizedString> purpose,
-      List<RequestedCard> requestedCards,
+      List<RequestedCard>? requestedCards,
       RequestPolicy requestPolicy,
       DisclosureStatus status});
 }
@@ -2221,7 +2558,7 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
     Object? dateTime = null,
     Object? relyingParty = null,
     Object? purpose = null,
-    Object? requestedCards = null,
+    Object? requestedCards = freezed,
     Object? requestPolicy = null,
     Object? status = null,
   }) {
@@ -2238,10 +2575,10 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
           ? _value._purpose
           : purpose // ignore: cast_nullable_to_non_nullable
               as List<LocalizedString>,
-      requestedCards: null == requestedCards
+      requestedCards: freezed == requestedCards
           ? _value._requestedCards
           : requestedCards // ignore: cast_nullable_to_non_nullable
-              as List<RequestedCard>,
+              as List<RequestedCard>?,
       requestPolicy: null == requestPolicy
           ? _value.requestPolicy
           : requestPolicy // ignore: cast_nullable_to_non_nullable
@@ -2261,7 +2598,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
       {required this.dateTime,
       required this.relyingParty,
       required final List<LocalizedString> purpose,
-      required final List<RequestedCard> requestedCards,
+      final List<RequestedCard>? requestedCards,
       required this.requestPolicy,
       required this.status})
       : _purpose = purpose,
@@ -2279,12 +2616,14 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
     return EqualUnmodifiableListView(_purpose);
   }
 
-  final List<RequestedCard> _requestedCards;
+  final List<RequestedCard>? _requestedCards;
   @override
-  List<RequestedCard> get requestedCards {
+  List<RequestedCard>? get requestedCards {
+    final value = _requestedCards;
+    if (value == null) return null;
     if (_requestedCards is EqualUnmodifiableListView) return _requestedCards;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_requestedCards);
+    return EqualUnmodifiableListView(value);
   }
 
   @override
@@ -2324,7 +2663,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
     required TResult Function(String dateTime, Organization issuer, Card card) issuance,
   }) {
@@ -2335,7 +2674,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
   }) {
@@ -2346,7 +2685,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult Function(String dateTime, Organization issuer, Card card)? issuance,
     required TResult orElse(),
@@ -2394,7 +2733,7 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
       {required final String dateTime,
       required final Organization relyingParty,
       required final List<LocalizedString> purpose,
-      required final List<RequestedCard> requestedCards,
+      final List<RequestedCard>? requestedCards,
       required final RequestPolicy requestPolicy,
       required final DisclosureStatus status}) = _$WalletEvent_DisclosureImpl;
 
@@ -2402,7 +2741,7 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
   String get dateTime;
   Organization get relyingParty;
   List<LocalizedString> get purpose;
-  List<RequestedCard> get requestedCards;
+  List<RequestedCard>? get requestedCards;
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
   @override
@@ -2492,7 +2831,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
     required TResult Function(String dateTime, Organization issuer, Card card) issuance,
   }) {
@@ -2503,7 +2842,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
   }) {
@@ -2514,7 +2853,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard> requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult Function(String dateTime, Organization issuer, Card card)? issuance,
     required TResult orElse(),
@@ -2573,10 +2912,9 @@ abstract class WalletEvent_Issuance implements WalletEvent {
 }
 
 /// @nodoc
-mixin _$WalletInstructionResult {
+mixin _$WalletInstructionError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function() ok,
     required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
@@ -2584,7 +2922,6 @@ mixin _$WalletInstructionResult {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? ok,
     TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
@@ -2592,7 +2929,6 @@ mixin _$WalletInstructionResult {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? ok,
     TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
@@ -2601,26 +2937,481 @@ mixin _$WalletInstructionResult {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletInstructionError_Timeout value) timeout,
+    required TResult Function(WalletInstructionError_Blocked value) blocked,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletInstructionError_Timeout value)? timeout,
+    TResult? Function(WalletInstructionError_Blocked value)? blocked,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletInstructionError_Timeout value)? timeout,
+    TResult Function(WalletInstructionError_Blocked value)? blocked,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $WalletInstructionErrorCopyWith<$Res> {
+  factory $WalletInstructionErrorCopyWith(WalletInstructionError value, $Res Function(WalletInstructionError) then) =
+      _$WalletInstructionErrorCopyWithImpl<$Res, WalletInstructionError>;
+}
+
+/// @nodoc
+class _$WalletInstructionErrorCopyWithImpl<$Res, $Val extends WalletInstructionError>
+    implements $WalletInstructionErrorCopyWith<$Res> {
+  _$WalletInstructionErrorCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+}
+
+/// @nodoc
+abstract class _$$WalletInstructionError_IncorrectPinImplCopyWith<$Res> {
+  factory _$$WalletInstructionError_IncorrectPinImplCopyWith(_$WalletInstructionError_IncorrectPinImpl value,
+          $Res Function(_$WalletInstructionError_IncorrectPinImpl) then) =
+      __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({int leftoverAttempts, bool isFinalAttempt});
+}
+
+/// @nodoc
+class __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>
+    extends _$WalletInstructionErrorCopyWithImpl<$Res, _$WalletInstructionError_IncorrectPinImpl>
+    implements _$$WalletInstructionError_IncorrectPinImplCopyWith<$Res> {
+  __$$WalletInstructionError_IncorrectPinImplCopyWithImpl(
+      _$WalletInstructionError_IncorrectPinImpl _value, $Res Function(_$WalletInstructionError_IncorrectPinImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? leftoverAttempts = null,
+    Object? isFinalAttempt = null,
+  }) {
+    return _then(_$WalletInstructionError_IncorrectPinImpl(
+      leftoverAttempts: null == leftoverAttempts
+          ? _value.leftoverAttempts
+          : leftoverAttempts // ignore: cast_nullable_to_non_nullable
+              as int,
+      isFinalAttempt: null == isFinalAttempt
+          ? _value.isFinalAttempt
+          : isFinalAttempt // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$WalletInstructionError_IncorrectPinImpl implements WalletInstructionError_IncorrectPin {
+  const _$WalletInstructionError_IncorrectPinImpl({required this.leftoverAttempts, required this.isFinalAttempt});
+
+  @override
+  final int leftoverAttempts;
+  @override
+  final bool isFinalAttempt;
+
+  @override
+  String toString() {
+    return 'WalletInstructionError.incorrectPin(leftoverAttempts: $leftoverAttempts, isFinalAttempt: $isFinalAttempt)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WalletInstructionError_IncorrectPinImpl &&
+            (identical(other.leftoverAttempts, leftoverAttempts) || other.leftoverAttempts == leftoverAttempts) &&
+            (identical(other.isFinalAttempt, isFinalAttempt) || other.isFinalAttempt == isFinalAttempt));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, leftoverAttempts, isFinalAttempt);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WalletInstructionError_IncorrectPinImplCopyWith<_$WalletInstructionError_IncorrectPinImpl> get copyWith =>
+      __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<_$WalletInstructionError_IncorrectPinImpl>(
+          this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+  }) {
+    return incorrectPin(leftoverAttempts, isFinalAttempt);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+  }) {
+    return incorrectPin?.call(leftoverAttempts, isFinalAttempt);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    required TResult orElse(),
+  }) {
+    if (incorrectPin != null) {
+      return incorrectPin(leftoverAttempts, isFinalAttempt);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletInstructionError_Timeout value) timeout,
+    required TResult Function(WalletInstructionError_Blocked value) blocked,
+  }) {
+    return incorrectPin(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletInstructionError_Timeout value)? timeout,
+    TResult? Function(WalletInstructionError_Blocked value)? blocked,
+  }) {
+    return incorrectPin?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletInstructionError_Timeout value)? timeout,
+    TResult Function(WalletInstructionError_Blocked value)? blocked,
+    required TResult orElse(),
+  }) {
+    if (incorrectPin != null) {
+      return incorrectPin(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletInstructionError_IncorrectPin implements WalletInstructionError {
+  const factory WalletInstructionError_IncorrectPin(
+      {required final int leftoverAttempts,
+      required final bool isFinalAttempt}) = _$WalletInstructionError_IncorrectPinImpl;
+
+  int get leftoverAttempts;
+  bool get isFinalAttempt;
+  @JsonKey(ignore: true)
+  _$$WalletInstructionError_IncorrectPinImplCopyWith<_$WalletInstructionError_IncorrectPinImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$WalletInstructionError_TimeoutImplCopyWith<$Res> {
+  factory _$$WalletInstructionError_TimeoutImplCopyWith(
+          _$WalletInstructionError_TimeoutImpl value, $Res Function(_$WalletInstructionError_TimeoutImpl) then) =
+      __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({int timeoutMillis});
+}
+
+/// @nodoc
+class __$$WalletInstructionError_TimeoutImplCopyWithImpl<$Res>
+    extends _$WalletInstructionErrorCopyWithImpl<$Res, _$WalletInstructionError_TimeoutImpl>
+    implements _$$WalletInstructionError_TimeoutImplCopyWith<$Res> {
+  __$$WalletInstructionError_TimeoutImplCopyWithImpl(
+      _$WalletInstructionError_TimeoutImpl _value, $Res Function(_$WalletInstructionError_TimeoutImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? timeoutMillis = null,
+  }) {
+    return _then(_$WalletInstructionError_TimeoutImpl(
+      timeoutMillis: null == timeoutMillis
+          ? _value.timeoutMillis
+          : timeoutMillis // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$WalletInstructionError_TimeoutImpl implements WalletInstructionError_Timeout {
+  const _$WalletInstructionError_TimeoutImpl({required this.timeoutMillis});
+
+  @override
+  final int timeoutMillis;
+
+  @override
+  String toString() {
+    return 'WalletInstructionError.timeout(timeoutMillis: $timeoutMillis)';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$WalletInstructionError_TimeoutImpl &&
+            (identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, timeoutMillis);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$WalletInstructionError_TimeoutImplCopyWith<_$WalletInstructionError_TimeoutImpl> get copyWith =>
+      __$$WalletInstructionError_TimeoutImplCopyWithImpl<_$WalletInstructionError_TimeoutImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+  }) {
+    return timeout(timeoutMillis);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+  }) {
+    return timeout?.call(timeoutMillis);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    required TResult orElse(),
+  }) {
+    if (timeout != null) {
+      return timeout(timeoutMillis);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletInstructionError_Timeout value) timeout,
+    required TResult Function(WalletInstructionError_Blocked value) blocked,
+  }) {
+    return timeout(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletInstructionError_Timeout value)? timeout,
+    TResult? Function(WalletInstructionError_Blocked value)? blocked,
+  }) {
+    return timeout?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletInstructionError_Timeout value)? timeout,
+    TResult Function(WalletInstructionError_Blocked value)? blocked,
+    required TResult orElse(),
+  }) {
+    if (timeout != null) {
+      return timeout(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletInstructionError_Timeout implements WalletInstructionError {
+  const factory WalletInstructionError_Timeout({required final int timeoutMillis}) =
+      _$WalletInstructionError_TimeoutImpl;
+
+  int get timeoutMillis;
+  @JsonKey(ignore: true)
+  _$$WalletInstructionError_TimeoutImplCopyWith<_$WalletInstructionError_TimeoutImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$WalletInstructionError_BlockedImplCopyWith<$Res> {
+  factory _$$WalletInstructionError_BlockedImplCopyWith(
+          _$WalletInstructionError_BlockedImpl value, $Res Function(_$WalletInstructionError_BlockedImpl) then) =
+      __$$WalletInstructionError_BlockedImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$WalletInstructionError_BlockedImplCopyWithImpl<$Res>
+    extends _$WalletInstructionErrorCopyWithImpl<$Res, _$WalletInstructionError_BlockedImpl>
+    implements _$$WalletInstructionError_BlockedImplCopyWith<$Res> {
+  __$$WalletInstructionError_BlockedImplCopyWithImpl(
+      _$WalletInstructionError_BlockedImpl _value, $Res Function(_$WalletInstructionError_BlockedImpl) _then)
+      : super(_value, _then);
+}
+
+/// @nodoc
+
+class _$WalletInstructionError_BlockedImpl implements WalletInstructionError_Blocked {
+  const _$WalletInstructionError_BlockedImpl();
+
+  @override
+  String toString() {
+    return 'WalletInstructionError.blocked()';
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$WalletInstructionError_BlockedImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int timeoutMillis) timeout,
+    required TResult Function() blocked,
+  }) {
+    return blocked();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int timeoutMillis)? timeout,
+    TResult? Function()? blocked,
+  }) {
+    return blocked?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int timeoutMillis)? timeout,
+    TResult Function()? blocked,
+    required TResult orElse(),
+  }) {
+    if (blocked != null) {
+      return blocked();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(WalletInstructionError_IncorrectPin value) incorrectPin,
+    required TResult Function(WalletInstructionError_Timeout value) timeout,
+    required TResult Function(WalletInstructionError_Blocked value) blocked,
+  }) {
+    return blocked(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult? Function(WalletInstructionError_Timeout value)? timeout,
+    TResult? Function(WalletInstructionError_Blocked value)? blocked,
+  }) {
+    return blocked?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(WalletInstructionError_IncorrectPin value)? incorrectPin,
+    TResult Function(WalletInstructionError_Timeout value)? timeout,
+    TResult Function(WalletInstructionError_Blocked value)? blocked,
+    required TResult orElse(),
+  }) {
+    if (blocked != null) {
+      return blocked(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class WalletInstructionError_Blocked implements WalletInstructionError {
+  const factory WalletInstructionError_Blocked() = _$WalletInstructionError_BlockedImpl;
+}
+
+/// @nodoc
+mixin _$WalletInstructionResult {
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function() ok,
+    required TResult Function(WalletInstructionError error) instructionError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function()? ok,
+    TResult? Function(WalletInstructionError error)? instructionError,
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function()? ok,
+    TResult Function(WalletInstructionError error)? instructionError,
+    required TResult orElse(),
+  }) =>
+      throw _privateConstructorUsedError;
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
     required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_IncorrectPin value) incorrectPin,
-    required TResult Function(WalletInstructionResult_Timeout value) timeout,
-    required TResult Function(WalletInstructionResult_Blocked value) blocked,
+    required TResult Function(WalletInstructionResult_InstructionError value) instructionError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult? Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult? Function(WalletInstructionResult_Blocked value)? blocked,
+    TResult? Function(WalletInstructionResult_InstructionError value)? instructionError,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult Function(WalletInstructionResult_Blocked value)? blocked,
+    TResult Function(WalletInstructionResult_InstructionError value)? instructionError,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -2681,9 +3472,7 @@ class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
-    required TResult Function(int timeoutMillis) timeout,
-    required TResult Function() blocked,
+    required TResult Function(WalletInstructionError error) instructionError,
   }) {
     return ok();
   }
@@ -2692,9 +3481,7 @@ class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? ok,
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult? Function(int timeoutMillis)? timeout,
-    TResult? Function()? blocked,
+    TResult? Function(WalletInstructionError error)? instructionError,
   }) {
     return ok?.call();
   }
@@ -2703,9 +3490,7 @@ class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? ok,
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult Function(int timeoutMillis)? timeout,
-    TResult Function()? blocked,
+    TResult Function(WalletInstructionError error)? instructionError,
     required TResult orElse(),
   }) {
     if (ok != null) {
@@ -2718,9 +3503,7 @@ class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_IncorrectPin value) incorrectPin,
-    required TResult Function(WalletInstructionResult_Timeout value) timeout,
-    required TResult Function(WalletInstructionResult_Blocked value) blocked,
+    required TResult Function(WalletInstructionResult_InstructionError value) instructionError,
   }) {
     return ok(this);
   }
@@ -2729,9 +3512,7 @@ class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult? Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult? Function(WalletInstructionResult_Blocked value)? blocked,
+    TResult? Function(WalletInstructionResult_InstructionError value)? instructionError,
   }) {
     return ok?.call(this);
   }
@@ -2740,9 +3521,7 @@ class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult Function(WalletInstructionResult_Blocked value)? blocked,
+    TResult Function(WalletInstructionResult_InstructionError value)? instructionError,
     required TResult orElse(),
   }) {
     if (ok != null) {
@@ -2757,108 +3536,105 @@ abstract class WalletInstructionResult_Ok implements WalletInstructionResult {
 }
 
 /// @nodoc
-abstract class _$$WalletInstructionResult_IncorrectPinImplCopyWith<$Res> {
-  factory _$$WalletInstructionResult_IncorrectPinImplCopyWith(_$WalletInstructionResult_IncorrectPinImpl value,
-          $Res Function(_$WalletInstructionResult_IncorrectPinImpl) then) =
-      __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl<$Res>;
+abstract class _$$WalletInstructionResult_InstructionErrorImplCopyWith<$Res> {
+  factory _$$WalletInstructionResult_InstructionErrorImplCopyWith(_$WalletInstructionResult_InstructionErrorImpl value,
+          $Res Function(_$WalletInstructionResult_InstructionErrorImpl) then) =
+      __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({int leftoverAttempts, bool isFinalAttempt});
+  $Res call({WalletInstructionError error});
+
+  $WalletInstructionErrorCopyWith<$Res> get error;
 }
 
 /// @nodoc
-class __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_IncorrectPinImpl>
-    implements _$$WalletInstructionResult_IncorrectPinImplCopyWith<$Res> {
-  __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl(_$WalletInstructionResult_IncorrectPinImpl _value,
-      $Res Function(_$WalletInstructionResult_IncorrectPinImpl) _then)
+class __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<$Res>
+    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_InstructionErrorImpl>
+    implements _$$WalletInstructionResult_InstructionErrorImplCopyWith<$Res> {
+  __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl(_$WalletInstructionResult_InstructionErrorImpl _value,
+      $Res Function(_$WalletInstructionResult_InstructionErrorImpl) _then)
       : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? leftoverAttempts = null,
-    Object? isFinalAttempt = null,
+    Object? error = null,
   }) {
-    return _then(_$WalletInstructionResult_IncorrectPinImpl(
-      leftoverAttempts: null == leftoverAttempts
-          ? _value.leftoverAttempts
-          : leftoverAttempts // ignore: cast_nullable_to_non_nullable
-              as int,
-      isFinalAttempt: null == isFinalAttempt
-          ? _value.isFinalAttempt
-          : isFinalAttempt // ignore: cast_nullable_to_non_nullable
-              as bool,
+    return _then(_$WalletInstructionResult_InstructionErrorImpl(
+      error: null == error
+          ? _value.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as WalletInstructionError,
     ));
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $WalletInstructionErrorCopyWith<$Res> get error {
+    return $WalletInstructionErrorCopyWith<$Res>(_value.error, (value) {
+      return _then(_value.copyWith(error: value));
+    });
   }
 }
 
 /// @nodoc
 
-class _$WalletInstructionResult_IncorrectPinImpl implements WalletInstructionResult_IncorrectPin {
-  const _$WalletInstructionResult_IncorrectPinImpl({required this.leftoverAttempts, required this.isFinalAttempt});
+class _$WalletInstructionResult_InstructionErrorImpl implements WalletInstructionResult_InstructionError {
+  const _$WalletInstructionResult_InstructionErrorImpl({required this.error});
 
   @override
-  final int leftoverAttempts;
-  @override
-  final bool isFinalAttempt;
+  final WalletInstructionError error;
 
   @override
   String toString() {
-    return 'WalletInstructionResult.incorrectPin(leftoverAttempts: $leftoverAttempts, isFinalAttempt: $isFinalAttempt)';
+    return 'WalletInstructionResult.instructionError(error: $error)';
   }
 
   @override
   bool operator ==(dynamic other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$WalletInstructionResult_IncorrectPinImpl &&
-            (identical(other.leftoverAttempts, leftoverAttempts) || other.leftoverAttempts == leftoverAttempts) &&
-            (identical(other.isFinalAttempt, isFinalAttempt) || other.isFinalAttempt == isFinalAttempt));
+            other is _$WalletInstructionResult_InstructionErrorImpl &&
+            (identical(other.error, error) || other.error == error));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, leftoverAttempts, isFinalAttempt);
+  int get hashCode => Object.hash(runtimeType, error);
 
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletInstructionResult_IncorrectPinImplCopyWith<_$WalletInstructionResult_IncorrectPinImpl> get copyWith =>
-      __$$WalletInstructionResult_IncorrectPinImplCopyWithImpl<_$WalletInstructionResult_IncorrectPinImpl>(
-          this, _$identity);
+  _$$WalletInstructionResult_InstructionErrorImplCopyWith<_$WalletInstructionResult_InstructionErrorImpl>
+      get copyWith =>
+          __$$WalletInstructionResult_InstructionErrorImplCopyWithImpl<_$WalletInstructionResult_InstructionErrorImpl>(
+              this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
-    required TResult Function(int timeoutMillis) timeout,
-    required TResult Function() blocked,
+    required TResult Function(WalletInstructionError error) instructionError,
   }) {
-    return incorrectPin(leftoverAttempts, isFinalAttempt);
+    return instructionError(error);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function()? ok,
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult? Function(int timeoutMillis)? timeout,
-    TResult? Function()? blocked,
+    TResult? Function(WalletInstructionError error)? instructionError,
   }) {
-    return incorrectPin?.call(leftoverAttempts, isFinalAttempt);
+    return instructionError?.call(error);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function()? ok,
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult Function(int timeoutMillis)? timeout,
-    TResult Function()? blocked,
+    TResult Function(WalletInstructionError error)? instructionError,
     required TResult orElse(),
   }) {
-    if (incorrectPin != null) {
-      return incorrectPin(leftoverAttempts, isFinalAttempt);
+    if (instructionError != null) {
+      return instructionError(error);
     }
     return orElse();
   }
@@ -2867,308 +3643,40 @@ class _$WalletInstructionResult_IncorrectPinImpl implements WalletInstructionRes
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_IncorrectPin value) incorrectPin,
-    required TResult Function(WalletInstructionResult_Timeout value) timeout,
-    required TResult Function(WalletInstructionResult_Blocked value) blocked,
+    required TResult Function(WalletInstructionResult_InstructionError value) instructionError,
   }) {
-    return incorrectPin(this);
+    return instructionError(this);
   }
 
   @override
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
     TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult? Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult? Function(WalletInstructionResult_Blocked value)? blocked,
+    TResult? Function(WalletInstructionResult_InstructionError value)? instructionError,
   }) {
-    return incorrectPin?.call(this);
+    return instructionError?.call(this);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
     TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult Function(WalletInstructionResult_Blocked value)? blocked,
+    TResult Function(WalletInstructionResult_InstructionError value)? instructionError,
     required TResult orElse(),
   }) {
-    if (incorrectPin != null) {
-      return incorrectPin(this);
+    if (instructionError != null) {
+      return instructionError(this);
     }
     return orElse();
   }
 }
 
-abstract class WalletInstructionResult_IncorrectPin implements WalletInstructionResult {
-  const factory WalletInstructionResult_IncorrectPin(
-      {required final int leftoverAttempts,
-      required final bool isFinalAttempt}) = _$WalletInstructionResult_IncorrectPinImpl;
+abstract class WalletInstructionResult_InstructionError implements WalletInstructionResult {
+  const factory WalletInstructionResult_InstructionError({required final WalletInstructionError error}) =
+      _$WalletInstructionResult_InstructionErrorImpl;
 
-  int get leftoverAttempts;
-  bool get isFinalAttempt;
+  WalletInstructionError get error;
   @JsonKey(ignore: true)
-  _$$WalletInstructionResult_IncorrectPinImplCopyWith<_$WalletInstructionResult_IncorrectPinImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$WalletInstructionResult_TimeoutImplCopyWith<$Res> {
-  factory _$$WalletInstructionResult_TimeoutImplCopyWith(
-          _$WalletInstructionResult_TimeoutImpl value, $Res Function(_$WalletInstructionResult_TimeoutImpl) then) =
-      __$$WalletInstructionResult_TimeoutImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({int timeoutMillis});
-}
-
-/// @nodoc
-class __$$WalletInstructionResult_TimeoutImplCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_TimeoutImpl>
-    implements _$$WalletInstructionResult_TimeoutImplCopyWith<$Res> {
-  __$$WalletInstructionResult_TimeoutImplCopyWithImpl(
-      _$WalletInstructionResult_TimeoutImpl _value, $Res Function(_$WalletInstructionResult_TimeoutImpl) _then)
-      : super(_value, _then);
-
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? timeoutMillis = null,
-  }) {
-    return _then(_$WalletInstructionResult_TimeoutImpl(
-      timeoutMillis: null == timeoutMillis
-          ? _value.timeoutMillis
-          : timeoutMillis // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
-}
-
-/// @nodoc
-
-class _$WalletInstructionResult_TimeoutImpl implements WalletInstructionResult_Timeout {
-  const _$WalletInstructionResult_TimeoutImpl({required this.timeoutMillis});
-
-  @override
-  final int timeoutMillis;
-
-  @override
-  String toString() {
-    return 'WalletInstructionResult.timeout(timeoutMillis: $timeoutMillis)';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$WalletInstructionResult_TimeoutImpl &&
-            (identical(other.timeoutMillis, timeoutMillis) || other.timeoutMillis == timeoutMillis));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, timeoutMillis);
-
-  @JsonKey(ignore: true)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$WalletInstructionResult_TimeoutImplCopyWith<_$WalletInstructionResult_TimeoutImpl> get copyWith =>
-      __$$WalletInstructionResult_TimeoutImplCopyWithImpl<_$WalletInstructionResult_TimeoutImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
-    required TResult Function(int timeoutMillis) timeout,
-    required TResult Function() blocked,
-  }) {
-    return timeout(timeoutMillis);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? ok,
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult? Function(int timeoutMillis)? timeout,
-    TResult? Function()? blocked,
-  }) {
-    return timeout?.call(timeoutMillis);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? ok,
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult Function(int timeoutMillis)? timeout,
-    TResult Function()? blocked,
-    required TResult orElse(),
-  }) {
-    if (timeout != null) {
-      return timeout(timeoutMillis);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_IncorrectPin value) incorrectPin,
-    required TResult Function(WalletInstructionResult_Timeout value) timeout,
-    required TResult Function(WalletInstructionResult_Blocked value) blocked,
-  }) {
-    return timeout(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult? Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult? Function(WalletInstructionResult_Blocked value)? blocked,
-  }) {
-    return timeout?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult Function(WalletInstructionResult_Blocked value)? blocked,
-    required TResult orElse(),
-  }) {
-    if (timeout != null) {
-      return timeout(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class WalletInstructionResult_Timeout implements WalletInstructionResult {
-  const factory WalletInstructionResult_Timeout({required final int timeoutMillis}) =
-      _$WalletInstructionResult_TimeoutImpl;
-
-  int get timeoutMillis;
-  @JsonKey(ignore: true)
-  _$$WalletInstructionResult_TimeoutImplCopyWith<_$WalletInstructionResult_TimeoutImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$WalletInstructionResult_BlockedImplCopyWith<$Res> {
-  factory _$$WalletInstructionResult_BlockedImplCopyWith(
-          _$WalletInstructionResult_BlockedImpl value, $Res Function(_$WalletInstructionResult_BlockedImpl) then) =
-      __$$WalletInstructionResult_BlockedImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$WalletInstructionResult_BlockedImplCopyWithImpl<$Res>
-    extends _$WalletInstructionResultCopyWithImpl<$Res, _$WalletInstructionResult_BlockedImpl>
-    implements _$$WalletInstructionResult_BlockedImplCopyWith<$Res> {
-  __$$WalletInstructionResult_BlockedImplCopyWithImpl(
-      _$WalletInstructionResult_BlockedImpl _value, $Res Function(_$WalletInstructionResult_BlockedImpl) _then)
-      : super(_value, _then);
-}
-
-/// @nodoc
-
-class _$WalletInstructionResult_BlockedImpl implements WalletInstructionResult_Blocked {
-  const _$WalletInstructionResult_BlockedImpl();
-
-  @override
-  String toString() {
-    return 'WalletInstructionResult.blocked()';
-  }
-
-  @override
-  bool operator ==(dynamic other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$WalletInstructionResult_BlockedImpl);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() ok,
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
-    required TResult Function(int timeoutMillis) timeout,
-    required TResult Function() blocked,
-  }) {
-    return blocked();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? ok,
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult? Function(int timeoutMillis)? timeout,
-    TResult? Function()? blocked,
-  }) {
-    return blocked?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? ok,
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
-    TResult Function(int timeoutMillis)? timeout,
-    TResult Function()? blocked,
-    required TResult orElse(),
-  }) {
-    if (blocked != null) {
-      return blocked();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(WalletInstructionResult_Ok value) ok,
-    required TResult Function(WalletInstructionResult_IncorrectPin value) incorrectPin,
-    required TResult Function(WalletInstructionResult_Timeout value) timeout,
-    required TResult Function(WalletInstructionResult_Blocked value) blocked,
-  }) {
-    return blocked(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(WalletInstructionResult_Ok value)? ok,
-    TResult? Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult? Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult? Function(WalletInstructionResult_Blocked value)? blocked,
-  }) {
-    return blocked?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(WalletInstructionResult_Ok value)? ok,
-    TResult Function(WalletInstructionResult_IncorrectPin value)? incorrectPin,
-    TResult Function(WalletInstructionResult_Timeout value)? timeout,
-    TResult Function(WalletInstructionResult_Blocked value)? blocked,
-    required TResult orElse(),
-  }) {
-    if (blocked != null) {
-      return blocked(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class WalletInstructionResult_Blocked implements WalletInstructionResult {
-  const factory WalletInstructionResult_Blocked() = _$WalletInstructionResult_BlockedImpl;
+  _$$WalletInstructionResult_InstructionErrorImplCopyWith<_$WalletInstructionResult_InstructionErrorImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }

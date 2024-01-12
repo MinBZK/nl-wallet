@@ -1,11 +1,8 @@
-use async_trait::async_trait;
-use futures::future::{self, TryFutureExt};
+use futures::future;
 use indexmap::IndexMap;
-use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
 use url::Url;
 pub use webpki::TrustAnchor;
-use x509_parser::nom::AsBytes;
 
 use wallet_common::generator::TimeGenerator;
 
@@ -19,44 +16,12 @@ use crate::{
     utils::{
         cose::ClonePayload,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::{cbor_deserialize, cbor_serialize, TaggedBytes},
+        serialization::{cbor_serialize, TaggedBytes},
     },
     Result,
 };
 
-use super::{HolderError, Mdoc, MdocCopies, Wallet};
-
-#[async_trait]
-pub trait HttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
-    where
-        V: Serialize + Sync,
-        R: DeserializeOwned;
-}
-
-/// Send and receive CBOR-encoded messages over HTTP using a [`reqwest::Client`].
-pub struct CborHttpClient(pub reqwest::Client);
-
-#[async_trait]
-impl HttpClient for CborHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> Result<R>
-    where
-        V: Serialize + Sync,
-        R: DeserializeOwned,
-    {
-        let bytes = cbor_serialize(val)?;
-        let response_bytes = self
-            .0
-            .post(url.clone())
-            .body(bytes)
-            .send()
-            .and_then(|response| async { response.error_for_status()?.bytes().await })
-            .await
-            .map_err(HolderError::RequestError)?;
-        let response = cbor_deserialize(response_bytes.as_bytes())?;
-        Ok(response)
-    }
-}
+use super::{HolderError, HttpClient, HttpClientResult, Mdoc, MdocCopies, Wallet};
 
 #[derive(Debug)]
 pub(crate) struct IssuanceSessionState {
@@ -103,10 +68,10 @@ impl<H: HttpClient> Wallet<H> {
         Ok(&self.session_state.as_ref().unwrap().request.unsigned_mdocs)
     }
 
-    pub async fn finish_issuance<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn finish_issuance<K: MdocEcdsaKey>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<MdocCopies>> {
         let state = self
             .session_state
@@ -138,22 +103,22 @@ impl<H: HttpClient> Wallet<H> {
         let end_msg = RequestEndSessionMessage {
             e_session_id: request.e_session_id,
         };
-        let _: Result<EndSessionMessage> = self.client.post(&url, &end_msg).await;
+        let _: HttpClientResult<EndSessionMessage> = self.client.post(&url, &end_msg).await;
 
         Ok(())
     }
 }
 
 impl IssuanceSessionState {
-    pub async fn keys_and_responses<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn keys_and_responses<K: MdocEcdsaKey>(
         &self,
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<(Vec<Vec<K>>, KeyGenerationResponseMessage)> {
         let (private_keys, response) = KeyGenerationResponseMessage::new(&self.request, key_factory).await?;
         Ok((private_keys, response))
     }
 
-    pub async fn construct_mdocs<K: MdocEcdsaKey + Sync>(
+    pub async fn construct_mdocs<K: MdocEcdsaKey>(
         &self,
         private_keys: Vec<Vec<K>>,
         issuer_response: DataToIssueMessage,
@@ -170,7 +135,7 @@ impl IssuanceSessionState {
         .await
     }
 
-    async fn create_cred_copies<K: MdocEcdsaKey + Sync>(
+    async fn create_cred_copies<K: MdocEcdsaKey>(
         doc: &basic_sa_ext::MobileeIDDocuments,
         unsigned: &UnsignedMdoc,
         keys: &[K],
@@ -189,7 +154,7 @@ impl IssuanceSessionState {
 }
 
 impl SparseIssuerSigned {
-    pub(super) async fn to_mdoc<K: MdocEcdsaKey + Sync>(
+    pub(super) async fn to_mdoc<K: MdocEcdsaKey>(
         &self,
         private_key: &K,
         unsigned: &UnsignedMdoc,

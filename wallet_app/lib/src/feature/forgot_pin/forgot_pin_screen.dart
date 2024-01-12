@@ -6,6 +6,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/wallet_app_bar.dart';
 
 class ForgotPinScreen extends StatelessWidget {
   const ForgotPinScreen({Key? key}) : super(key: key);
@@ -13,7 +14,7 @@ class ForgotPinScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: WalletAppBar(
         title: Text(context.l10n.forgotPinScreenTitle),
       ),
       body: SafeArea(

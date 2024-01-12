@@ -95,7 +95,7 @@ impl CredentialRequestProof {
         wallet_client_id: String,
         credential_issuer_identifier: &Url,
         number_of_keys: u64,
-        key_factory: &'a impl KeyFactory<'a, Key = K>,
+        key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<(K, CredentialRequestProof)>> {
         // TODO: extend key factory so that it can do this in a single instruction
         let keys = key_factory
