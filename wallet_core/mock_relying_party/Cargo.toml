@@ -32,6 +32,7 @@ config.workspace = true
 dashmap.workspace = true
 reqwest.workspace = true
 serde = { workspace = true, features = ["derive"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = [
     "macros",

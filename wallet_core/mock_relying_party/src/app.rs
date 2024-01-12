@@ -10,6 +10,7 @@ use axum::{
 };
 use axum_extra::response::{Css, JavaScript, Wasm};
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
 use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
@@ -66,8 +67,17 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
 
 #[derive(Deserialize, Serialize)]
 struct SelectForm {
-    session_type: SessionType,
+    session_type: MrpSessionType,
     usecase: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, strum::Display, strum::EnumIter)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+enum MrpSessionType {
+    SameDevice,
+    CrossDevice,
+    Hybrid,
 }
 
 #[derive(Template)]
@@ -88,15 +98,14 @@ async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
 
 #[derive(Serialize)]
 struct EngageUrlparams {
-    session_type: SessionType,
+    session_type: MrpSessionType,
     return_url: Url,
 }
 
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
-    // TODO make a third selection option (CrossDevice + return URL)
     // return URL is just http://public.url/#{session_id}
     let return_url_template = match selected.session_type {
-        SessionType::SameDevice => Some(
+        MrpSessionType::Hybrid | MrpSessionType::SameDevice => Some(
             format!("{}#{{session_id}}", state.public_url)
                 .parse()
                 .expect("should always be a valid ReturnUrlTemplate"),
@@ -113,7 +122,10 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
                 .get(&selected.usecase)
                 .ok_or(anyhow::Error::msg("usecase not found"))?
                 .clone(),
-            selected.session_type,
+            match selected.session_type {
+                MrpSessionType::SameDevice => SessionType::SameDevice,
+                _ => SessionType::CrossDevice,
+            },
             return_url_template,
         )
         .await?;
@@ -141,7 +153,7 @@ struct DisclosedAttributesParams {
     transcript_hash: Option<String>,
 }
 
-// for now this just passes the disclosed attributes on as it is received
+// for now this just passes the disclosed attributes on as they are received
 async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
     Path(session_id): Path<SessionToken>,
