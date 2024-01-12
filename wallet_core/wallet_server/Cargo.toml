@@ -10,6 +10,11 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "postgres"
+path = "tests/postgres.rs"
+required-features = ["postgres", "db_test"]
+
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = [
@@ -60,3 +65,4 @@ rstest.workspace = true
 default = ["postgres"]
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 postgres = ["dep:sea-orm"]
+db_test = []
