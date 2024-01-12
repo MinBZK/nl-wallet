@@ -225,7 +225,7 @@ async fn wait_for_server(base_url: Url) {
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(10));
         loop {
-            match client.get(base_url.join("/health").unwrap()).send().await {
+            match client.get(base_url.join("health").unwrap()).send().await {
                 Ok(_) => break,
                 _ => {
                     println!("Waiting for wallet_server...");

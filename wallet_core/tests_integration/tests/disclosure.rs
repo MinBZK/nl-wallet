@@ -83,7 +83,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         .post(
             ws_settings
                 .internal_url
-                .join("/sessions")
+                .join("sessions")
                 .expect("could not join url with endpoint"),
         )
         .json(&start_request)
@@ -216,7 +216,7 @@ async fn test_disclosure_without_pid() {
         .post(
             ws_settings
                 .internal_url
-                .join("/sessions")
+                .join("sessions")
                 .expect("could not join url with endpoint"),
         )
         .json(&start_request)
