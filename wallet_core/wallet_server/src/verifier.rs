@@ -253,11 +253,11 @@ where
 
     let session_url = state
         .public_url
-        .join(&format!("/{session_id}/status"))
+        .join(&format!("{session_id}/status"))
         .expect("should always be a valid URL");
     let disclosed_attributes_url = state
         .internal_url
-        .join(&format!("/sessions/{session_id}/disclosed_attributes"))
+        .join(&format!("sessions/{session_id}/disclosed_attributes"))
         .expect("should always be a valid URL");
 
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here
