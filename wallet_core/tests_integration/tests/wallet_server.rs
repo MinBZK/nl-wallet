@@ -128,7 +128,6 @@ fn parse_wallet_url(engagement_url: Url) -> Url {
 }
 
 #[tokio::test]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_start_session() {
     let settings = wallet_server_settings();
     let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await.unwrap();
@@ -189,7 +188,6 @@ async fn test_start_session() {
 }
 
 #[tokio::test]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_session_not_found() {
     let settings = wallet_server_settings();
     let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await.unwrap();

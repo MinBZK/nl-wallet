@@ -7,10 +7,39 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[test]]
+name = "config_server"
+path = "tests/config_server.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "disclosure"
+path = "tests/disclosure.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "issuance"
+path = "tests/issuance.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "locking"
+path = "tests/locking.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "registration"
+path = "tests/registration.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "wallet_server"
+path = "tests/wallet_server.rs"
+required-features = ["db_test"]
+
 [features]
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 db_test = ["allow_http_return_url"]
-live_test = []
 
 [dependencies]
 
@@ -19,12 +48,13 @@ assert_matches.workspace = true
 base64.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
-p256 = { workspace = true, features = ["ecdsa"] }
+p256 = { workspace = true, features = ["pkcs8"] }
 regex.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
 sea-orm = { workspace = true, features = [
     "sqlx-sqlite",
+    "sqlx-postgres",
     "runtime-tokio-rustls",
     "macros",
     "with-uuid",
@@ -36,7 +66,12 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
+nl_wallet_mdoc = { path = "../mdoc", features = [
+    "generate",
+    "software-key-factory",
+    "test",
+    "mock",
+] } # Enable the features necessary to run all integration tests
 pid_issuer = { path = "../pid_issuer", features = ["mock"] }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = [
@@ -44,10 +79,12 @@ wallet = { path = "../wallet", features = [
     "wallet_deps",
     "env_config",
 ] }
-wallet_common = { path = "../wallet_common", features = ["software-keys"] }
+wallet_common.path = "../wallet_common"
 wallet_provider = { path = "../wallet_provider" }
-wallet_provider_database_settings = { path = "../wallet_provider/database_settings" }
-wallet_provider_domain = { path = "../wallet_provider/domain" }
 wallet_provider_persistence = { path = "../wallet_provider/persistence" }
-wallet_provider_service = { path = "../wallet_provider/service" }
+wallet_provider_service = { path = "../wallet_provider/service", features = [
+    "software-keys",
+    "mock",
+    "db_test",
+] } # Enable the features necessary to run all integration tests, minus "db_test"
 wallet_server = { path = "../wallet_server" }
