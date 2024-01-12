@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-mock = []
+mock-p256-keys = []
 software-keys = ["dep:aes-gcm", "dep:rand_core"]
 integration-test = []
 

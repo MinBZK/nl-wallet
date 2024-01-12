@@ -14,7 +14,7 @@ mock = [
     "examples",
     "generate",
     "regex",
-    "wallet_common/mock",
+    "wallet_common/mock-p256-keys",
     "wallet_common/software-keys",
 ]
 allow_http_return_url = []
