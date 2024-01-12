@@ -9,7 +9,6 @@ use wallet_provider_persistence::wallet_user_key::{create_keys, find_keys_by_ide
 
 pub mod common;
 
-#[cfg_attr(not(feature = "db_test"), ignore)]
 #[tokio::test]
 async fn test_create_keys() {
     let db = common::db_from_env().await.expect("Could not connect to database");
