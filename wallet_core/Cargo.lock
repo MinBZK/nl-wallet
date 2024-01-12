@@ -2515,6 +2515,7 @@ dependencies = [
  "nl_wallet_mdoc",
  "reqwest",
  "serde",
+ "strum",
  "thiserror",
  "tokio",
  "tower-http",

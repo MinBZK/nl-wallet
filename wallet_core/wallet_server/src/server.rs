@@ -76,12 +76,7 @@ async fn listen(
     debug!("listening for requester on {}", requester_socket);
     let requester_server = tokio::spawn(async move {
         axum::Server::bind(&requester_socket)
-            .serve(
-                Router::new()
-                    .nest("/sessions", requester_router)
-                    .nest("/sessions", health_router())
-                    .into_make_service(),
-            )
+            .serve(requester_router.into_make_service())
             .await
             .expect("requester server should be started")
     });
@@ -89,12 +84,7 @@ async fn listen(
     debug!("listening for wallet on {}", wallet_socket);
     let wallet_server = tokio::spawn(async move {
         axum::Server::bind(&wallet_socket)
-            .serve(
-                Router::new()
-                    .nest("/", wallet_router)
-                    .nest("/", health_router())
-                    .into_make_service(),
-            )
+            .serve(wallet_router.into_make_service())
             .await
             .expect("wallet server should be started")
     });

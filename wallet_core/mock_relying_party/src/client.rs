@@ -30,7 +30,7 @@ impl WalletServerClient {
         // TODO check if base_url ends with '/' (possibly already on init)
         let response = self
             .client
-            .post(self.base_url.join("/sessions")?)
+            .post(self.base_url.join("sessions")?)
             .json(&StartDisclosureRequest {
                 usecase,
                 items_requests,

@@ -68,12 +68,11 @@
             </p>
             {% endfor -%}
             <h4>Submit a session type</h4>
+            {%- for type in MrpSessionType::iter() %}
             <p>
-                <input type="submit" name="session_type" value="cross_device">
+                <input type="submit" name="session_type" value="{{ type }}">
             </p>
-            <p>
-                <input type="submit" name="session_type" value="same_device">
-            </p>
+            {% endfor -%}
         </form>
         <div id="session" {% if engagement.is_none() %}style="display: none;" {% endif %}>
             <h2>Session</h2>
@@ -91,8 +90,14 @@
             <dd>{{ selected.as_ref().unwrap().usecase }}</dd>
 
             <dt>Type</dt>
-            {% if selected.as_ref().unwrap().session_type == SessionType::CrossDevice %}
-            <dd>cross_device</dd>
+            {% if selected.as_ref().unwrap().session_type == MrpSessionType::SameDevice %}
+            <dd>same_device</dd>
+        </dl>
+        <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;">
+            Open NL Wallet
+        </a>
+        {% else %}
+        <dd>{{ selected.as_ref().unwrap().session_type }}</dd>
         </dl>
         <canvas width="400" height="400" id="canvas" style="cursor: none;"></canvas>
 
@@ -106,12 +111,6 @@
                 qrcodegen.drawCanvas(canvas, matrix)
             })
         </script>
-        {% else %}
-        <dd>same_device</dd>
-        </dl>
-        <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;">
-            Open NL Wallet
-        </a>
         {% endif %}
         <script>
             console.log('Engagement URL: {{ urls.0 }}') // write engagement URL to console

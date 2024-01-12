@@ -89,7 +89,7 @@ async fn test_start_session() {
         .post(
             settings
                 .internal_url
-                .join("/disclosure/sessions")
+                .join("disclosure/sessions")
                 .expect("could not join url with endpoint"),
         )
         .json(&start_request)
