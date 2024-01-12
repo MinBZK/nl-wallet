@@ -15,7 +15,6 @@ mock = ["dep:rand"]
 default = [
     "mock",
 ] # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
-digid_test = []
 disable_tls_validation = []
 
 [dependencies]
@@ -56,9 +55,3 @@ url.workspace = true
 rand = { workspace = true, optional = true }
 
 nl_wallet_mdoc.path = "../mdoc"
-
-[dev-dependencies]
-pid_issuer = { path = ".", features = ["mock"] }
-platform_support = { path = "../platform_support", features = ["software"] }
-wallet = { path = "../wallet", features = ["mock", "wallet_deps"] }
-wallet_common.path = "../wallet_common"
