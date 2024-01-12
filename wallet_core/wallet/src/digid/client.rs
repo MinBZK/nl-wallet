@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::prelude::*;
 use url::Url;
 
 use wallet_common::utils;
@@ -47,8 +47,8 @@ where
         let openid_client = C::discover(issuer_url, client_id, redirect_uri).await?;
 
         // Generate a random CSRF token and nonce.
-        let csrf_token = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
-        let nonce = URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
+        let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
+        let nonce = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
         let pkce_pair = P::generate();
 
         // Store the client, generated tokens and auth url in a session for when the redirect URI returns.

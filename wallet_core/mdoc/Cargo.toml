@@ -41,7 +41,8 @@ serde-aux.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 serde_json.workspace = true
 serde_repr.workspace = true
-serde_with = { workspace = true, features = ["chrono"] }
+serde_urlencoded.workspace = true
+serde_with = { workspace = true, features = ["chrono", "base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
