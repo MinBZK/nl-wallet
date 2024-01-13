@@ -1,8 +1,7 @@
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
-use async_trait::async_trait;
 use chrono::Utc;
-use futures::future::try_join_all;
+use futures::{future::try_join_all, Future};
 use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
@@ -142,20 +141,19 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
-#[async_trait]
 pub trait AttributeService: Send + Sync + 'static {
     type Error: std::error::Error + Send + Sync + 'static;
     type Settings;
 
-    async fn new(settings: &Self::Settings) -> Result<Self, Self::Error>
+    fn new(settings: &Self::Settings) -> impl Future<Output = Result<Self, Self::Error>> + Send
     where
         Self: Sized;
 
-    async fn attributes(
+    fn attributes(
         &self,
         session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Self::Error>;
+    ) -> impl Future<Output = Result<Vec<UnsignedMdoc>, Self::Error>> + Send;
 }
 
 type CredentialResponse = crate::credential::CredentialResponse<CborBase64<IssuerSigned>>;

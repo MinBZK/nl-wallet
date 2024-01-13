@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use futures::TryFutureExt;
 use mime::APPLICATION_WWW_FORM_URLENCODED;
 use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
@@ -41,7 +40,6 @@ pub struct MockPidAttributeService {
     attrs_lookup: MockAttributesLookup,
 }
 
-#[async_trait]
 impl AttributeService for MockPidAttributeService {
     type Error = Error;
     type Settings = Issuer;

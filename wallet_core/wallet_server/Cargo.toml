@@ -12,7 +12,6 @@ doctest = false
 
 [dependencies]
 anyhow.workspace = true
-async-trait = { workspace = true, optional = true }
 axum = { workspace = true, features = [
     "form",
     "headers",
@@ -75,7 +74,6 @@ default = [
 issuance = [
     "mock", # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
     "axum/form",
-    "dep:async-trait",
     "dep:ciborium",
     "dep:futures",
     "dep:http",

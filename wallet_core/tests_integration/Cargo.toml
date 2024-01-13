@@ -22,7 +22,6 @@ disable_tls_validation = [
 
 [dev-dependencies]
 assert_matches.workspace = true
-async-trait.workspace = true
 base64.workspace = true
 ctor.workspace = true
 indexmap.workspace = true

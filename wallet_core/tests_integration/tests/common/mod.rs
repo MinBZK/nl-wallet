@@ -5,7 +5,6 @@ use std::{
     time::Duration,
 };
 
-use async_trait::async_trait;
 use ctor::ctor;
 use openid4vc::{
     issuer::{AttributeService, Created},
@@ -247,7 +246,6 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
 
 pub struct MockAttributeService;
 
-#[async_trait]
 impl AttributeService for MockAttributeService {
     type Error = wallet_server::verifier::Error; // arbitrary type that implements the required trait bounds
     type Settings = ();
