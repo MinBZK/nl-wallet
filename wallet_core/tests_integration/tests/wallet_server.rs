@@ -176,7 +176,7 @@ async fn test_mock_issuance() {
     let mdocs = pid_issuer_client
         .accept_pid(
             &trust_anchors(&default_configuration()),
-            &SoftwareKeyFactory::default(),
+            SoftwareKeyFactory::default(),
             &server_url,
         )
         .await
@@ -209,7 +209,7 @@ async fn test_reject_issuance() {
         pid_issuer_client
             .accept_pid(
                 &trust_anchors(&default_configuration()),
-                &SoftwareKeyFactory::default(),
+                SoftwareKeyFactory::default(),
                 &server_url
             )
             .await,
@@ -262,7 +262,7 @@ async fn test_pid_issuance_digid_bridge() {
     let mdocs = pid_issuer_client
         .accept_pid(
             &trust_anchors(&default_configuration()),
-            &SoftwareKeyFactory::default(),
+            SoftwareKeyFactory::default(),
             &server_url,
         )
         .await

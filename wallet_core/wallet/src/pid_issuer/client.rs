@@ -89,7 +89,7 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
     async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &(impl KeyFactory<Key = K> + Sync),
+        key_factory: impl KeyFactory<Key = K> + Sync,
         credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         let mdocs = self

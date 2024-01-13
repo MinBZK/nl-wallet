@@ -37,7 +37,7 @@ impl OpenidPidIssuerClient for MockPidIssuerClient {
     async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
         &mut self,
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
-        _key_factory: &(impl KeyFactory<Key = K> + Sync),
+        _key_factory: impl KeyFactory<Key = K> + Sync,
         _credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         match self.next_error.take() {

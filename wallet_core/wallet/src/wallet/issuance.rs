@@ -224,7 +224,7 @@ where
             .pid_issuer
             .accept_pid(
                 &config.mdoc_trust_anchors(),
-                &&remote_key_factory,
+                &remote_key_factory,
                 &config.pid_issuance.pid_issuer_url,
             )
             .await
