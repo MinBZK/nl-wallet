@@ -38,7 +38,7 @@ use wallet_server::{
     },
     server as ws_server,
     settings::{Server, Settings as WsSettings},
-    store::{SessionStores, WalletServerSessionStore},
+    store::{SessionStoreEnum, SessionStores},
 };
 
 #[ctor]
@@ -94,8 +94,8 @@ pub async fn setup_wallet_and_env(wp_settings: WpSettings, ws_settings: WsSettin
     start_wallet_server(
         ws_settings,
         SessionStores {
-            disclosure: WalletServerSessionStore::Memory(MemorySessionStore::new()),
-            issuance: WalletServerSessionStore::Memory(MemorySessionStore::new()),
+            disclosure: SessionStoreEnum::Memory(MemorySessionStore::new()),
+            issuance: SessionStoreEnum::Memory(MemorySessionStore::new()),
         },
         MockAttributeService,
     )

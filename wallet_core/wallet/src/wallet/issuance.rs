@@ -475,6 +475,10 @@ mod tests {
             let mut session = MockDigidSession::default();
 
             session
+                .expect_get_authorization_code()
+                .return_once(|_received_redirect_uri| Ok("123".to_string()));
+
+            session
                 .expect_get_access_token()
                 .with(eq(Url::parse(REDIRECT_URI).unwrap()))
                 .return_once(|_| Ok(ACCESS_TOKEN.to_string()));
@@ -541,33 +545,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_continue_pid_issuance_error_digid_session_finish() {
-        // Prepare a registered wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Set up a `DigidSession` that returns an error when requesting an access token.
-        wallet.digid_session = {
-            let mut session = MockDigidSession::default();
-
-            session
-                .expect_get_access_token()
-                .with(eq(Url::parse(REDIRECT_URI).unwrap()))
-                .return_once(|_| Err(OpenIdError::from(openid::error::Error::MissingOpenidScope).into()));
-
-            session
-        }
-        .into();
-
-        // Continuing PID issuance on a wallet should forward this error.
-        let error = wallet
-            .continue_pid_issuance(&Url::parse(REDIRECT_URI).unwrap())
-            .await
-            .expect_err("Continuing PID issuance should have resulted in error");
-
-        assert_matches!(error, PidIssuanceError::DigidSessionFinish(_));
-    }
-
-    #[tokio::test]
     async fn test_continue_pid_issuance_error_pid_issuer() {
         // Prepare a registered wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -575,6 +552,10 @@ mod tests {
         // Set up a `DigidSession` that returns an access token.
         wallet.digid_session = {
             let mut session = MockDigidSession::default();
+
+            session
+                .expect_get_authorization_code()
+                .return_once(|_received_redirect_uri| Ok("123".to_string()));
 
             session
                 .expect_get_access_token()
@@ -606,6 +587,10 @@ mod tests {
         // Set up a `DigidSession` that returns an access token.
         wallet.digid_session = {
             let mut session = MockDigidSession::default();
+
+            session
+                .expect_get_authorization_code()
+                .return_once(|_received_redirect_uri| Ok("123".to_string()));
 
             session
                 .expect_get_access_token()

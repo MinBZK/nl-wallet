@@ -6,10 +6,11 @@ use url::Url;
 
 use openid4vc::token::TokenRequest;
 
-pub use crate::pkce::S256PkcePair;
-
 pub use self::client::HttpDigidSession;
-pub use self::openid_client::{HttpOpenIdClient, OpenIdError};
+pub use self::openid_client::OpenIdError;
+
+#[cfg(feature = "wallet_deps")]
+pub use {self::openid_client::HttpOpenIdClient, crate::pkce::S256PkcePair};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidError {

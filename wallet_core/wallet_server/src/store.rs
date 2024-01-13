@@ -26,10 +26,10 @@ impl SessionDataType for openid4vc::issuer::IssuanceData {
 }
 
 pub struct SessionStores {
-    pub disclosure: WalletServerSessionStore<DisclosureData>,
+    pub disclosure: SessionStoreEnum<DisclosureData>,
 
     #[cfg(feature = "issuance")]
-    pub issuance: WalletServerSessionStore<IssuanceData>,
+    pub issuance: SessionStoreEnum<IssuanceData>,
 }
 
 impl SessionStores {
@@ -39,15 +39,15 @@ impl SessionStores {
             "postgres" => {
                 let db = std::sync::Arc::new(postgres::connect(url).await?);
                 Ok(SessionStores {
-                    disclosure: WalletServerSessionStore::Postgres(PostgresSessionStore::new(db.clone())),
+                    disclosure: SessionStoreEnum::Postgres(PostgresSessionStore::new(db.clone())),
                     #[cfg(feature = "issuance")]
-                    issuance: WalletServerSessionStore::Postgres(PostgresSessionStore::new(db)),
+                    issuance: SessionStoreEnum::Postgres(PostgresSessionStore::new(db)),
                 })
             }
             "memory" => Ok(SessionStores {
-                disclosure: WalletServerSessionStore::Memory(MemorySessionStore::new()),
+                disclosure: SessionStoreEnum::Memory(MemorySessionStore::new()),
                 #[cfg(feature = "issuance")]
-                issuance: WalletServerSessionStore::Memory(MemorySessionStore::new()),
+                issuance: SessionStoreEnum::Memory(MemorySessionStore::new()),
             }),
             e => unimplemented!("{}", e),
         }
@@ -56,13 +56,13 @@ impl SessionStores {
 
 /// This enum effectively switches between the different types that implement `DisclosureSessionStore`,
 /// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
-pub enum WalletServerSessionStore<T> {
+pub enum SessionStoreEnum<T> {
     #[cfg(feature = "postgres")]
     Postgres(PostgresSessionStore<T>),
     Memory(MemorySessionStore<T>),
 }
 
-impl<T> SessionStore for WalletServerSessionStore<T>
+impl<T> SessionStore for SessionStoreEnum<T>
 where
     T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
 {
@@ -71,24 +71,24 @@ where
     async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            WalletServerSessionStore::Postgres(postgres) => postgres.get(id).await,
-            WalletServerSessionStore::Memory(memory) => memory.get(id).await,
+            SessionStoreEnum::Postgres(postgres) => postgres.get(id).await,
+            SessionStoreEnum::Memory(memory) => memory.get(id).await,
         }
     }
 
     async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            WalletServerSessionStore::Postgres(postgres) => postgres.write(session).await,
-            WalletServerSessionStore::Memory(memory) => memory.write(session).await,
+            SessionStoreEnum::Postgres(postgres) => postgres.write(session).await,
+            SessionStoreEnum::Memory(memory) => memory.write(session).await,
         }
     }
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            WalletServerSessionStore::Postgres(postgres) => postgres.cleanup().await,
-            WalletServerSessionStore::Memory(memory) => memory.cleanup().await,
+            SessionStoreEnum::Postgres(postgres) => postgres.cleanup().await,
+            SessionStoreEnum::Memory(memory) => memory.cleanup().await,
         }
     }
 }

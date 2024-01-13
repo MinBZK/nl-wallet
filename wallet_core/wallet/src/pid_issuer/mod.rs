@@ -11,7 +11,10 @@ use nl_wallet_mdoc::{
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 
-pub use client::{HttpOpenidPidIssuerClient, HttpPidIssuerClient};
+#[cfg(feature = "wallet_deps")]
+pub use client::HttpPidIssuerClient;
+
+pub use client::HttpOpenidPidIssuerClient;
 
 use crate::digid::DigidSession;
 
