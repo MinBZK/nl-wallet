@@ -89,8 +89,11 @@ test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:201d58b0c6ed13531383011a0bed692f303dc3ec345ff139f72c17894ad26a63"
+  variables:
+    SKIP_DIGID_CONNECTOR: "true"
   before_script:
-    - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${WALLET_PROVIDER_HSM__USER_PIN}"
+    - set -euxo pipefail
+    - ./scripts/setup-devenv.sh
   script:
     - set -euxo pipefail
     # Check Rust formatting
