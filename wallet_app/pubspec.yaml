@@ -44,6 +44,7 @@ dependencies:
   mobile_scanner: ^3.4.1
   package_info_plus: ^4.1.0
   permission_handler: ^10.4.3
+  provider: ^6.1.1
   qr_flutter: ^4.1.0
   rxdart: ^0.27.7
   screen_brightness: ^0.2.2+1

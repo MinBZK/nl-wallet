@@ -6,10 +6,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
+import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
+import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../organization/approve/organization_approve_page.dart';
@@ -43,31 +46,35 @@ class DisclosureScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = context.watch<DisclosureBloc>().state.stepperProgress;
-    return Scaffold(
-      restorationId: 'disclosure_scaffold',
-      appBar: WalletAppBar(
-        leading: _buildBackButton(context),
-        actions: [
-          _buildHelpButton(context),
-          _buildCloseButton(context, progress),
-        ],
-        progress: progress,
-      ),
-      body: PopScope(
-        canPop: false,
-        onPopInvoked: (didPop) {
-          if (didPop) {
-            return;
-          }
-          final bloc = context.read<DisclosureBloc>();
-          if (bloc.state.canGoBack) {
-            bloc.add(const DisclosureBackPressed());
-          } else {
-            _stopDisclosure(context);
-          }
-        },
-        child: SafeArea(
-          child: _buildPage(),
+    return ScrollOffsetProvider(
+      debugLabel: 'disclosure',
+      child: Scaffold(
+        restorationId: 'disclosure_scaffold',
+        appBar: WalletAppBar(
+          leading: _buildBackButton(context),
+          actions: [
+            _buildHelpButton(context),
+            _buildCloseButton(context, progress),
+          ],
+          title: _buildTitle(context),
+          progress: progress,
+        ),
+        body: PopScope(
+          canPop: false,
+          onPopInvoked: (didPop) {
+            if (didPop) {
+              return;
+            }
+            final bloc = context.read<DisclosureBloc>();
+            if (bloc.state.canGoBack) {
+              bloc.add(const DisclosureBackPressed());
+            } else {
+              _stopDisclosure(context);
+            }
+          },
+          child: SafeArea(
+            child: _buildPage(),
+          ),
         ),
       ),
     );
@@ -101,7 +108,9 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildPage() {
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
+    return BlocConsumer<DisclosureBloc, DisclosureState>(
+      /// Reset the [ScrollOffset] used by [FadeInAtOffset] when the state (and thus the visible page) changes.
+      listener: (context, state) => context.read<ScrollOffset>().offset = 0,
       builder: (context, state) {
         Widget result = switch (state) {
           DisclosureInitial() => _buildLoading(),
@@ -257,5 +266,47 @@ class DisclosureScreen extends StatelessWidget {
       ];
     }
     return <ReportingOption>[];
+  }
+
+  Widget _buildTitle(BuildContext context) {
+    return BlocBuilder<DisclosureBloc, DisclosureState>(
+      builder: (context, state) {
+        Widget? result = switch (state) {
+          DisclosureInitial() => null,
+          DisclosureLoadInProgress() => null,
+          DisclosureCheckOrganization() => FadeInAtOffset(
+              appearOffset: 120,
+              visibleOffset: 150,
+              child: Text(
+                context.l10n.organizationApprovePageGenericTitle(
+                  state.relyingParty.displayName.l10nValue(context),
+                ),
+              ),
+            ),
+          DisclosureMissingAttributes() => null,
+          DisclosureConfirmDataAttributes() => FadeInAtOffset(
+              appearOffset: 70,
+              visibleOffset: 100,
+              child: Text(
+                context.l10n.disclosureConfirmDataAttributesShareWithTitle(
+                  state.relyingParty.displayName.l10nValue(context),
+                ),
+              ),
+            ),
+          DisclosureConfirmPin() => null,
+          DisclosureStopped() => null,
+          DisclosureLeftFeedback() => null,
+          DisclosureSuccess() => FadeInAtOffset(
+              appearOffset: 150,
+              visibleOffset: 180,
+              child: Text(context.l10n.disclosureSuccessPageTitle),
+            ),
+          DisclosureNetworkError() => null,
+          DisclosureGenericError() => null,
+        };
+
+        return result ?? const SizedBox.shrink();
+      },
+    );
   }
 }
