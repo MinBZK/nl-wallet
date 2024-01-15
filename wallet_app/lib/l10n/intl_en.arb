@@ -805,7 +805,7 @@
     "organizationApprovePageApproveCta": "Yes, next",
     "organizationApprovePageDenyCta": "No, decline",
     "organizationApprovePageFirstInteraction": "First request",
-    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on  {url}.",
+    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on {url}.",
     "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
     "@organizationApprovePageGenericTitle": {
         "placeholders": {

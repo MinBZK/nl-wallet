@@ -143,6 +143,7 @@ class DisclosureScreen extends StatelessWidget {
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.read<DisclosureBloc>().add(const DisclosureOrganizationApproved()),
       organization: state.relyingParty,
+      originUrl: state.originUrl,
       isFirstInteractionWithOrganization: state.isFirstInteractionWithOrganization,
       purpose: ApprovalPurpose.disclosure,
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),

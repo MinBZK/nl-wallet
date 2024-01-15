@@ -45,6 +45,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: _startDisclosureResult!.relyingParty,
+          originUrl: _startDisclosureResult!.originUrl,
           isFirstInteractionWithOrganization: _startDisclosureResult!.isFirstInteractionWithOrganization,
         ),
       );
@@ -76,6 +77,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
+          originUrl: _startDisclosureResult!.originUrl,
           isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),
@@ -85,6 +87,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
+          originUrl: _startDisclosureResult!.originUrl,
           isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),

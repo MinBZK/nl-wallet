@@ -188,13 +188,15 @@ function generate_mock_relying_party_root_ca {
 
 # Generate an EC key pair for the mock_relying_party
 function generate_mock_relying_party_key_pair {
+    render_template "${DEVENV}/reader_auth.json" "${TARGET_DIR}/mock_relying_party/reader_auth.json"
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --features "allow_http_return_url" \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
         --common-name "rp.example.com" \
-        --reader-auth-file "${DEVENV}/reader_auth.json" \
+        --reader-auth-file "${TARGET_DIR}/mock_relying_party/reader_auth.json" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/rp" \
         --force
 

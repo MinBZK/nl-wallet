@@ -639,6 +639,7 @@ impl support::IntoDart for StartDisclosureResult {
                 requested_cards,
                 is_first_interaction_with_relying_party,
                 request_purpose,
+                request_origin_base_url,
             } => vec![
                 0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
@@ -646,18 +647,21 @@ impl support::IntoDart for StartDisclosureResult {
                 requested_cards.into_into_dart().into_dart(),
                 is_first_interaction_with_relying_party.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
+                request_origin_base_url.into_into_dart().into_dart(),
             ],
             Self::RequestAttributesMissing {
                 relying_party,
                 missing_attributes,
                 is_first_interaction_with_relying_party,
                 request_purpose,
+                request_origin_base_url,
             } => vec![
                 1.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 missing_attributes.into_into_dart().into_dart(),
                 is_first_interaction_with_relying_party.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
+                request_origin_base_url.into_into_dart().into_dart(),
             ],
         }
         .into_dart()

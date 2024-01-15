@@ -65,6 +65,7 @@ void main() {
               MockDisclosureBloc(),
               DisclosureCheckOrganization(
                 relyingParty: WalletMockData.organization,
+                originUrl: 'http://origin.org',
                 isFirstInteractionWithOrganization: false,
               ),
             ),
@@ -205,6 +206,7 @@ void main() {
           MockDisclosureBloc(),
           DisclosureCheckOrganization(
             relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
             isFirstInteractionWithOrganization: false,
           ),
         ),
