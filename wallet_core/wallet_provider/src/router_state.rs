@@ -7,7 +7,6 @@ use uuid::Uuid;
 
 use wallet_common::{
     account::messages::instructions::{Instruction, InstructionEndpoint, InstructionResultMessage},
-    config::wallet_config::WalletConfiguration,
     generator::Generator,
     keys::EcdsaKey,
 };
@@ -32,10 +31,7 @@ pub struct RouterState {
 }
 
 impl RouterState {
-    pub async fn new_from_settings(
-        settings: Settings,
-        wallet_config: WalletConfiguration,
-    ) -> Result<(RouterState, WalletConfiguration), Box<dyn Error>> {
+    pub async fn new_from_settings(settings: Settings) -> Result<RouterState, Box<dyn Error>> {
         let hsm = Pkcs11Hsm::new(
             settings.hsm.library_path,
             settings.hsm.user_pin,
@@ -52,11 +48,6 @@ impl RouterState {
         ));
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
-        let instruction_result_signing_pubkey = instruction_result_signing_key.verifying_key().await?;
-
-        let mut wallet_config = wallet_config;
-        wallet_config.account_server.certificate_public_key = certificate_signing_pubkey.into();
-        wallet_config.account_server.instruction_result_public_key = instruction_result_signing_pubkey.into();
 
         let account_server = AccountServer::new(
             settings.instruction_challenge_timeout_in_ms,
@@ -91,7 +82,7 @@ impl RouterState {
             instruction_result_signing_key,
         };
 
-        Ok((state, wallet_config))
+        Ok(state)
     }
 
     pub async fn handle_instruction<I, R>(

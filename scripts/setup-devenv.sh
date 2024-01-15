@@ -78,6 +78,8 @@ else
     BASE64="base64 --wrap=0"
 fi
 
+base64_url_encode() { ${BASE64} | tr '/+' '_-' | tr -d '=\n'; }
+
 ########################################################################
 # Configuration
 ########################################################################
@@ -228,8 +230,26 @@ export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"
 
-render_template "${DEVENV}/wallet.toml.template" "${WP_DIR}/wallet.toml"
-render_template "${DEVENV}/wallet.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet.toml"
+render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
+
+generate_wp_signing_key config_signing
+CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
+export CONFIG_SIGNING_PUBLIC_KEY
+
+BASE64_JWS_HEADER=$(echo -n '{"typ":"JOSE+JSON","alg":"ES256"}' | base64_url_encode)
+BASE64_JWS_PAYLOAD=$(jq --compact-output --join-output "." "${TARGET_DIR}/wallet-config.json" | base64_url_encode)
+BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
+DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
+  | openssl dgst -sha256 -sign "${TARGET_DIR}/wallet_provider/config_signing.pem" -keyform PEM -binary \
+  | openssl asn1parse -inform DER)
+R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | sed -n '1s/.*: //p' | sed -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | sed -n '2s/.*: //p' | sed -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+BASE64_JWS_SIGNATURE=$(echo -n "${R}${S}" | xxd -p -r | base64_url_encode)
+
+echo -n "${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}.${BASE64_JWS_SIGNATURE}" > "${TARGET_DIR}/wallet-config-jws-compact.txt"
+cp "${TARGET_DIR}/wallet-config-jws-compact.txt" "${CS_DIR}/wallet-config-jws-compact.txt"
+cp "${TARGET_DIR}/wallet-config.json" "${BASE_DIR}/wallet_core/tests_integration/wallet-config.json"
+cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/tests_integration/config_signing.pem"
 
 ########################################################################
 # Configure HSM

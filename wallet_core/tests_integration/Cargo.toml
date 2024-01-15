@@ -19,6 +19,7 @@ assert_matches.workspace = true
 base64.workspace = true
 ctor.workspace = true
 indexmap.workspace = true
+jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa"] }
 regex.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
@@ -30,12 +31,15 @@ sea-orm = { workspace = true, features = [
     "with-uuid",
     "debug-print",
 ] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 serial_test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
 
+configuration_server = { path = "../configuration_server" }
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "generate"] }
 pid_issuer = { path = "../pid_issuer", features = ["mock"] }
 platform_support = { path = "../platform_support", features = ["software"] }

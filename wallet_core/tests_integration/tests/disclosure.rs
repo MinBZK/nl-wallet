@@ -53,7 +53,13 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
     let ws_settings = wallet_server_settings();
 
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_env(wallet_provider_settings(), ws_settings.clone(), pid_issuer_settings()).await;
+    let mut wallet = setup_wallet_and_env(
+        config_server_settings(),
+        wallet_provider_settings(),
+        ws_settings.clone(),
+        pid_issuer_settings(),
+    )
+    .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
 
@@ -189,7 +195,13 @@ async fn test_disclosure_without_pid() {
     let ws_settings = wallet_server_settings();
 
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_env(wallet_provider_settings(), ws_settings.clone(), pid_issuer_settings()).await;
+    let mut wallet = setup_wallet_and_env(
+        config_server_settings(),
+        wallet_provider_settings(),
+        ws_settings.clone(),
+        pid_issuer_settings(),
+    )
+    .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     let client = reqwest::Client::new();
