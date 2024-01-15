@@ -1,11 +1,16 @@
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/feature/check_attributes/bloc/check_attributes_bloc.dart';
 import 'package:wallet/src/feature/check_attributes/check_attributes_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/mock_data.dart';
 import '../../util/device_utils.dart';
+
+class MockCheckAttributesBloc extends MockBloc<CheckAttributesEvent, CheckAttributesState>
+    implements CheckAttributesBloc {}
 
 void main() {
   group('goldens', () {
@@ -13,11 +18,14 @@ void main() {
       return DeviceUtils.deviceBuilderWithPrimaryScrollController
         ..addScenario(
           widget: CheckAttributesScreen(
-            cardsToAttributes: {
-              WalletMockData.card: WalletMockData.card.attributes,
-              WalletMockData.altCard: WalletMockData.altCard.attributes.sublist(1, 2),
-            },
             onDataIncorrectPressed: () {},
+          ).withState<CheckAttributesBloc, CheckAttributesState>(
+            MockCheckAttributesBloc(),
+            CheckAttributesSuccess(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              cardIssuer: WalletMockData.organization,
+            ),
           ),
         );
     }
@@ -44,8 +52,14 @@ void main() {
       bool isCalled = false;
       await tester.pumpWidgetWithAppWrapper(
         CheckAttributesScreen(
-          cardsToAttributes: {WalletMockData.card: WalletMockData.card.attributes},
           onDataIncorrectPressed: () => isCalled = true,
+        ).withState<CheckAttributesBloc, CheckAttributesState>(
+          MockCheckAttributesBloc(),
+          CheckAttributesSuccess(
+            card: WalletMockData.card,
+            attributes: WalletMockData.card.attributes,
+            cardIssuer: WalletMockData.organization,
+          ),
         ),
       );
 

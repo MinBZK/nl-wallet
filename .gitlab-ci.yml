@@ -1,11 +1,12 @@
 variables:
   FLUTTER_APP_PROJECT_DIR: "wallet_app"
+  CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   RENEW_ON_LETSENCRYPT_STAGING:
     value: "false"
-    description: "Try to renew the wallet_provider server certificate from the Let's encrypt staging environment."
+    description: "Try to renew the server certificates from the Let's encrypt staging environment."
   RENEW_ON_LETSENCRYPT_LIVE:
     value: "false"
-    description: "Try to renew the wallet_provider server certificate from the Let's encrypt live environment."
+    description: "Try to renew the server certificates from the Let's encrypt live environment."
 
 .env:
   environment:
@@ -20,7 +21,7 @@ variables:
 
 .deploy-k8s:
   extends: .env-k8s
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:0f89f392d517649775d0e55b4ad2e1c89248a28686e0e033eeb8f957a6a96b6a"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:a9fe57c25ab826a5a8a333902a2c63016361cc1961d0cb4a02790aa586fc7382"
   resource_group: testcluster
   environment:
     action: start
@@ -88,7 +89,7 @@ test-flutter-ui:
 test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:201d58b0c6ed13531383011a0bed692f303dc3ec345ff139f72c17894ad26a63"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
   variables:
     SKIP_DIGID_CONNECTOR: "true"
   before_script:
@@ -115,7 +116,7 @@ test-rust:
 test-rust-integration:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:201d58b0c6ed13531383011a0bed692f303dc3ec345ff139f72c17894ad26a63"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
@@ -221,7 +222,7 @@ dependency-check:
 dependency-check-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:201d58b0c6ed13531383011a0bed692f303dc3ec345ff139f72c17894ad26a63"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
@@ -629,22 +630,6 @@ deploy-wallet-provider:
     - kubectl apply -f kubernetes/wallet-provider-network-policies.yaml
     - kubectl rollout status deployment/wallet-provider
 
-deploy-wallet-provider-staging-cert:
-  extends: .deploy-k8s
-  rules:
-    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
-  script:
-    - envsubst < kubernetes/certificates/stage/cert.yaml | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/stage/cert.yaml
-
-deploy-wallet-provider-live-cert:
-  extends: .deploy-k8s
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
-  script:
-    - envsubst < kubernetes/certificates/live/cert.yaml | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/cert.yaml
-
 deploy-pid-issuer:
   extends: .deploy-k8s
   rules: !reference [ .default-branch, rules ]
@@ -720,3 +705,21 @@ run-automation-tests:
     - cd uiautomation
     - gradle wrapper --gradle-version=7.3.3
     - ./gradlew --debug --stacktrace test --tests suite.FeatureTestSuite
+
+deploy-staging-certs:
+  extends: .deploy-k8s
+  rules:
+    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
+  script:
+    - envsubst < kubernetes/certificates/stage/static-cert.yaml | kubectl apply -f -
+    - envsubst < kubernetes/certificates/stage/wp-cert.yaml | kubectl apply -f -
+    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/stage/static-cert.yaml -f kubernetes/certificates/stage/wp-cert.yaml
+
+deploy-live-certs:
+  extends: .deploy-k8s
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
+  script:
+    - envsubst < kubernetes/certificates/live/static-cert.yaml | kubectl apply -f -
+    - envsubst < kubernetes/certificates/live/wp-cert.yaml | kubectl apply -f -
+    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/static-cert.yaml -f kubernetes/certificates/live/wp-cert.yaml

@@ -3,7 +3,7 @@ ARG HARBOR_NLW_PROJECT
 
 ### Build Stage ###
 # rust 1.73
-FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:201d58b0c6ed13531383011a0bed692f303dc3ec345ff139f72c17894ad26a63 AS builder
+FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c AS builder
 WORKDIR /usr/src/
 RUN update-ca-certificates && \
     rustup target add x86_64-unknown-linux-gnu

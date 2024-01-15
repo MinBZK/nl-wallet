@@ -64,7 +64,12 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
     let ws_settings = wallet_server_settings();
 
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_env(wallet_provider_settings(), ws_settings.clone()).await;
+    let mut wallet = setup_wallet_and_env(
+        config_server_settings(),
+        wallet_provider_settings(),
+        ws_settings.clone(),
+    )
+    .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
 
@@ -124,7 +129,6 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         .start_disclosure(&engagement_url)
         .await
         .expect("Could not start disclosure");
-    assert_eq!(proposal.reader_registration.id, "some-service-id");
     assert_eq!(proposal.documents.len(), 1);
 
     // after the first wallet interaction it should have status "Waiting"
@@ -200,7 +204,12 @@ async fn test_disclosure_without_pid() {
     let ws_settings = wallet_server_settings();
 
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_env(wallet_provider_settings(), ws_settings.clone()).await;
+    let mut wallet = setup_wallet_and_env(
+        config_server_settings(),
+        wallet_provider_settings(),
+        ws_settings.clone(),
+    )
+    .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     let client = reqwest::Client::new();

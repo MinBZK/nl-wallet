@@ -6,7 +6,7 @@ use std::{
 use tracing::info;
 use url::Url;
 
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};
 
 use crate::config::{
     http_client::HttpConfigurationClient, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
@@ -21,11 +21,12 @@ pub struct HttpConfigurationRepository {
 impl HttpConfigurationRepository {
     pub async fn new(
         base_url: Url,
+        signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
         Ok(Self {
-            client: HttpConfigurationClient::new(base_url, storage_path).await?,
+            client: HttpConfigurationClient::new(base_url, signing_public_key, storage_path).await?,
             config: RwLock::new(Arc::new(initial_config)),
         })
     }

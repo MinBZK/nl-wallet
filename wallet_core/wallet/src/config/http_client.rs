@@ -7,7 +7,10 @@ use http::{header, HeaderMap, HeaderValue, StatusCode};
 use tokio::fs;
 use url::Url;
 
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::{
+    config::wallet_config::WalletConfiguration,
+    jwt::{validations, EcdsaDecodingKey, Jwt},
+};
 
 use crate::{config::ConfigurationError, utils::reqwest::default_reqwest_client_builder};
 
@@ -16,6 +19,7 @@ use super::FileStorageError;
 pub struct HttpConfigurationClient {
     http_client: reqwest::Client,
     base_url: Url,
+    signing_public_key: EcdsaDecodingKey,
     storage_path: PathBuf,
     latest_etag: Mutex<Option<HeaderValue>>,
 }
@@ -23,7 +27,11 @@ pub struct HttpConfigurationClient {
 const ETAG_FILENAME: &str = "latest-configuration-etag.txt";
 
 impl HttpConfigurationClient {
-    pub async fn new(base_url: Url, storage_path: PathBuf) -> Result<Self, ConfigurationError> {
+    pub async fn new(
+        base_url: Url,
+        signing_public_key: EcdsaDecodingKey,
+        storage_path: PathBuf,
+    ) -> Result<Self, ConfigurationError> {
         let initial_etag = Self::read_latest_etag(storage_path.as_path()).await?;
 
         let client = Self {
@@ -35,6 +43,7 @@ impl HttpConfigurationClient {
                 .build()
                 .expect("Could not build reqwest HTTP client"),
             base_url,
+            signing_public_key,
             storage_path,
             latest_etag: Mutex::new(initial_etag),
         };
@@ -77,8 +86,7 @@ impl HttpConfigurationClient {
         let response = self.http_client.execute(request).await?;
 
         // Try to get the body from any 4xx or 5xx error responses,
-        // in order to create an Error::PidIssuerResponse.
-        // TODO: Implement proper JSON-based error reporting?
+        // in order to create an ConfigurationError::Response.
         let response = match response.error_for_status_ref() {
             Ok(_) => Ok(response),
             Err(error) => {
@@ -100,7 +108,9 @@ impl HttpConfigurationClient {
             *self.latest_etag.lock().unwrap() = Some(etag.to_owned());
         }
 
-        let body = response.json().await?;
-        Ok(body)
+        let body = response.text().await?;
+        let wallet_config = Jwt::from(body).parse_and_verify(&self.signing_public_key, &validations())?;
+
+        Ok(Some(wallet_config))
     }
 }

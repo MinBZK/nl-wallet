@@ -13,7 +13,8 @@ class LightWalletTheme {
     error: Color(0xFFAB0065),
     background: Color(0xFFFCFCFC),
     inverseSurface: Color(0xFFEBE4FD),
-    //TODO: See if this is appropriate
+    primaryContainer: Color(0xFFF1F5FF),
+    onPrimaryContainer: textColor,
     secondaryContainer: Color(0xFFF3F4F7),
     onPrimary: Color(0xFFFCFCFC),
     onBackground: primaryColorDark,

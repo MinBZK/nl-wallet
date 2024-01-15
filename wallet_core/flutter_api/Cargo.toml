@@ -16,6 +16,7 @@ doctest = false
 anyhow.workspace = true
 backtrace.workspace = true
 flutter_rust_bridge.workspace = true
+itertools.workspace = true
 once_cell.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

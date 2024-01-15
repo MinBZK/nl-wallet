@@ -3,14 +3,13 @@ use std::sync::Arc;
 use axum::{
     extract::State,
     http::StatusCode,
-    response::{IntoResponse, Json, Response},
+    response::Json,
     routing::{get, post},
     Router,
 };
-use etag::EntityTag;
-use http::{header, HeaderMap, HeaderValue};
+use serde::Serialize;
 use tower_http::trace::TraceLayer;
-use tracing::{debug, info};
+use tracing::info;
 
 use wallet_common::{
     account::{
@@ -21,9 +20,10 @@ use wallet_common::{
                 InstructionEndpoint, InstructionResultMessage, Sign, SignResult,
             },
         },
+        serialization::DerVerifyingKey,
         signed::SignedDouble,
     },
-    config::wallet_config::WalletConfiguration,
+    keys::EcdsaKey,
 };
 
 use crate::{errors::WalletProviderError, router_state::RouterState};
@@ -41,7 +41,8 @@ use crate::{errors::WalletProviderError, router_state::RouterState};
 /// be able to handle these errors appropriately.
 type Result<T> = std::result::Result<T, WalletProviderError>;
 
-pub fn router(router_state: RouterState, wallet_config: WalletConfiguration) -> Router {
+pub fn router(router_state: RouterState) -> Router {
+    let state = Arc::new(router_state);
     Router::new()
         .nest("/", health_router())
         .nest(
@@ -54,13 +55,14 @@ pub fn router(router_state: RouterState, wallet_config: WalletConfiguration) -> 
                 .route(&format!("/instructions/{}", GenerateKey::ENDPOINT), post(generate_key))
                 .route(&format!("/instructions/{}", Sign::ENDPOINT), post(sign))
                 .layer(TraceLayer::new_for_http())
-                .with_state(Arc::new(router_state)),
+                .with_state(Arc::clone(&state)),
         )
         .nest(
-            "/config/v1",
+            "/config",
             Router::new()
-                .route("/wallet-config", get(configuration))
-                .with_state(wallet_config),
+                .route("/public-keys", get(public_keys))
+                .layer(TraceLayer::new_for_http())
+                .with_state(Arc::clone(&state)),
         )
 }
 
@@ -156,35 +158,20 @@ async fn sign(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn configuration(
-    State(config): State<WalletConfiguration>,
-    headers: HeaderMap,
-) -> std::result::Result<Response, StatusCode> {
-    info!("Received configuration request");
+#[derive(Serialize)]
+struct PublicKeys {
+    certificate_public_key: DerVerifyingKey,
+    instruction_result_public_key: DerVerifyingKey,
+}
 
-    let config_entity_tag: EntityTag = (&config).into();
+async fn public_keys(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Json<PublicKeys>)> {
+    let certificate_public_key = state.certificate_signing_key.verifying_key().await?.into();
+    let instruction_result_public_key = state.instruction_result_signing_key.verifying_key().await?.into();
 
-    if let Some(etag) = headers.get(header::IF_NONE_MATCH) {
-        let entity_tag = etag
-            .to_str()
-            .ok()
-            .and_then(|etag| etag.parse().ok())
-            .ok_or(StatusCode::BAD_REQUEST)?;
+    let body = PublicKeys {
+        certificate_public_key,
+        instruction_result_public_key,
+    };
 
-        // Comparing etags using the If-None-Match header uses the weak comparison algorithm.
-        if config_entity_tag.weak_eq(&entity_tag) {
-            debug!("Configuration is not modified");
-            return Err(StatusCode::NOT_MODIFIED);
-        }
-    }
-
-    let mut resp: Response = Json(config).into_response();
-    resp.headers_mut().append(
-        header::ETAG,
-        // We can safely unwrap here because we know for sure there are no non-ascii characters used.
-        HeaderValue::from_str(&config_entity_tag.to_string()).unwrap(),
-    );
-
-    info!("Replying with the configuration");
-    Ok(resp)
+    Ok((StatusCode::OK, body.into()))
 }

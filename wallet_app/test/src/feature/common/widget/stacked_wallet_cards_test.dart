@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/stacked_wallet_cards.dart';
 
 import '../../../../wallet_app_test_widget.dart';
@@ -39,7 +40,7 @@ void main() {
       );
 
       // Validate that the widget exists
-      final widgetFinder = find.text('Sample Card');
+      final widgetFinder = find.text(WalletMockData.card.front.title.testValue);
       expect(widgetFinder, findsNWidgets(2));
     });
   });

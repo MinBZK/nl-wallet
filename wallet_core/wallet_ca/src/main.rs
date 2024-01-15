@@ -2,8 +2,12 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use clio::CachedInput;
 
-use nl_wallet_mdoc::utils::x509::{Certificate, CertificateType};
-use wallet_ca::{read_certificate, read_reader_registration, read_signing_key, write_key_pair};
+use nl_wallet_mdoc::utils::{
+    issuer_auth::IssuerRegistration,
+    reader_auth::ReaderRegistration,
+    x509::{Certificate, CertificateType},
+};
+use wallet_ca::{read_certificate, read_signing_key, write_key_pair};
 
 /// Generate private keys and certificates
 ///
@@ -31,7 +35,7 @@ enum Command {
         force: bool,
     },
     /// Generate an Mdl private key and certificate
-    MdlCert {
+    Issuer {
         /// Path to the CA key file in PEM format
         #[arg(short = 'k', long, value_parser)]
         ca_key_file: CachedInput,
@@ -41,6 +45,9 @@ enum Command {
         /// Subject Common Name to use in the new certificate
         #[arg(short = 'n', long)]
         common_name: String,
+        /// Path to Issuer Authentication file in JSON format
+        #[arg(short, long, value_parser)]
+        issuer_auth_file: CachedInput,
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
@@ -49,7 +56,7 @@ enum Command {
         force: bool,
     },
     /// Generate a private key and certificate for Relying Party Authentication
-    ReaderAuthCert {
+    Reader {
         /// Path to the CA key file in PEM format
         #[arg(short = 'k', long, value_parser)]
         ca_key_file: CachedInput,
@@ -84,20 +91,27 @@ impl Command {
                 write_key_pair(key, certificate, &file_prefix, force)?;
                 Ok(())
             }
-            MdlCert {
+            Issuer {
                 ca_key_file,
                 ca_crt_file,
                 common_name,
+                issuer_auth_file,
                 file_prefix,
                 force,
             } => {
                 let ca_crt = read_certificate(ca_crt_file)?;
                 let ca_key = read_signing_key(ca_key_file)?;
-                let (certificate, key) = Certificate::new(&ca_crt, &ca_key, &common_name, CertificateType::Mdl)?;
+                let issuer_registration: IssuerRegistration = serde_json::from_reader(issuer_auth_file)?;
+                let (certificate, key) = Certificate::new(
+                    &ca_crt,
+                    &ca_key,
+                    &common_name,
+                    CertificateType::Mdl(Box::new(issuer_registration).into()),
+                )?;
                 write_key_pair(key, certificate, &file_prefix, force)?;
                 Ok(())
             }
-            ReaderAuthCert {
+            Reader {
                 ca_key_file,
                 ca_crt_file,
                 common_name,
@@ -107,7 +121,7 @@ impl Command {
             } => {
                 let ca_crt = read_certificate(ca_crt_file)?;
                 let ca_key = read_signing_key(ca_key_file)?;
-                let reader_registration = read_reader_registration(reader_auth_file)?;
+                let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
                 let (certificate, key) = Certificate::new(
                     &ca_crt,
                     &ca_key,

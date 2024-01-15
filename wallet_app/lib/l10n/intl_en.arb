@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-08T11:05:13+01:00",
+    "@@last_modified": "2024-01-10T17:32:04+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -162,7 +162,8 @@
     "checkAgreementPageSubtitle": "Check the agreement before continuing",
     "checkAgreementPageTitle": "Are you aware of the agreement?",
     "checkAttributesScreenDataIncorrectCta": "Something not right?",
-    "checkAttributesScreenTitle": "Your data",
+    "checkAttributesScreenSubtitle": "Card issued by {issuer}",
+    "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} attribute from {title}} other {{count} attributes from {title}}}",
     "confirmAgreementPageCancelCta": "No",
     "confirmAgreementPageConfirmCta": "Yes, sign",
     "confirmAgreementPageDataIncorrectCta": "Something not right?",
@@ -222,7 +223,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible",
+    "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible.",
     "disclosureConfirmDataAttributesPageAllTermsCta": "All terms",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
     "disclosureConfirmDataAttributesPageDataCanBeDeleted": "You can request data deletion",
@@ -240,16 +241,7 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
     "disclosureConfirmDataAttributesPageDenyCta": "No, decline",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Is something not right?",
-    "disclosureConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Do you want to share this attribute?} other {Do you want to share these {count} attributes?}}",
-    "@disclosureConfirmDataAttributesPageShareDataTitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesShareWithTitle": "Share with {organization}",
+    "disclosureConfirmDataAttributesShareWithTitle": "Share information with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
             "organization": {
@@ -258,6 +250,18 @@
             }
         }
     },
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, =1 {Only this attribute is shared. Nothing more.} other {Only these {count} attributes are shared. Nothing more.}}",
+    "@disclosureConfirmDataAttributesSharedAttributesInfo": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesSubtitleData": "Data",
+    "disclosureConfirmDataAttributesSubtitlePurpose": "Reason",
+    "disclosureConfirmDataAttributesSubtitleTerms": "Agreements",
     "disclosureConfirmPinPageDescription": "By entering your pin you agree to share your information.",
     "disclosureConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
     "@disclosureConfirmPinPageErrorDescription": {
@@ -1037,6 +1041,7 @@
     "setupSecuritySelectPinErrorPageTitle": "This code is too simple",
     "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Select a code with at least two different digits.",
     "setupSecuritySelectPinPageTitle": "Choose a 6 digit code",
+    "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "showDetailsCta": "Show details",
     "signConfirmPinPageDescription": "By entering your pin you agree to exchange your information.",
     "signConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",

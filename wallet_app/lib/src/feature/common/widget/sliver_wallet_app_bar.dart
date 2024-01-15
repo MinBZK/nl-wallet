@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/num_extensions.dart';
 import 'button/wallet_back_button.dart';
 import 'stepper_indicator.dart';
 
@@ -58,7 +59,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
       title: ValueListenableBuilder<double>(
         builder: (context, collapsedRatio, child) {
           return Opacity(
-            opacity: 1 - _normalize(collapsedRatio, 0.0, _titleCrossFadePoint),
+            opacity: 1.0 - collapsedRatio.normalize(0.0, _titleCrossFadePoint),
             child: child,
           );
         },
@@ -78,13 +79,13 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
           /// Calculate the flexibleSpace's collapsed ratio, used to animate titles
           final minHeight = _topPadding + toolbarHeight;
           final maxHeight = _topPadding + expandedHeight;
-          final collapsedRatio = _normalize(constraints.maxHeight, minHeight, maxHeight);
+          final collapsedRatio = constraints.maxHeight.normalize(minHeight, maxHeight).toDouble();
 
           /// Notify the [collapsedRatio] ValueNotifier so the SliverAppBar.title can be animated.
           WidgetsBinding.instance.addPostFrameCallback((duration) => this.collapsedRatio.value = collapsedRatio);
 
           /// Calculate the opacity of the expanded title
-          final expandedTextOpacity = _normalize(collapsedRatio, _titleCrossFadePoint, 1.0);
+          final expandedTextOpacity = collapsedRatio.normalize(_titleCrossFadePoint, 1.0).toDouble();
 
           /// Render the flexible space, which includes the (optional) progress bar and expanded title
           return Stack(
@@ -143,9 +144,4 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
     tp.layout(maxWidth: MediaQuery.of(context).size.width - _expandedTitlePadding.horizontal);
     return _textHeightCache = tp.height;
   }
-}
-
-double _normalize(double value, double min, double max) {
-  value = value.clamp(min, max);
-  return ((value - min) / (max - min));
 }
