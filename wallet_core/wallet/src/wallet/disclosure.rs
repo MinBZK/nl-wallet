@@ -392,7 +392,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration { ..Default::default() };
+        let reader_registration = ReaderRegistration::mock_reader_registration();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             IndexMap::from([(
@@ -543,7 +543,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::mock_reader_registration(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -578,7 +578,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::mock_reader_registration(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -623,7 +623,7 @@ mod tests {
         };
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::mock_reader_registration(),
             MdocDisclosureSessionState::Proposal(proposal_session),
         );
 
@@ -651,7 +651,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration { ..Default::default() };
+        let reader_registration = ReaderRegistration::mock_reader_registration();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             IndexMap::from([(
@@ -726,7 +726,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::mock_reader_registration(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 

@@ -380,7 +380,7 @@ mod generate {
 
     #[cfg(feature = "mock")]
     mod mock {
-        use crate::{server_keys::PrivateKey, utils::issuer_auth::issuer_registration_mock};
+        use crate::{server_keys::PrivateKey, utils::issuer_auth::IssuerRegistration};
 
         use super::*;
 
@@ -395,7 +395,7 @@ mod generate {
                     &ca,
                     &ca_privkey,
                     ISSUANCE_CERT_CN,
-                    CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+                    CertificateType::Mdl(Box::new(IssuerRegistration::mock_issuer_registration()).into()),
                 )?;
                 let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
 
@@ -422,9 +422,7 @@ mod test {
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::utils::{
-        issuer_auth::issuer_registration_mock, reader_auth::reader_registration_mock, x509::CertificateType,
-    };
+    use crate::utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateType};
 
     use super::{Certificate, CertificateUsage};
 
@@ -443,7 +441,7 @@ mod test {
             &ca,
             &ca_privkey,
             "mycert",
-            CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::mock_issuer_registration()).into()),
         )
         .unwrap();
 
@@ -456,7 +454,7 @@ mod test {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
         let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
 
-        let reader_auth = CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into());
+        let reader_auth = CertificateType::ReaderAuth(Box::new(ReaderRegistration::mock_reader_registration()).into());
 
         let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone()).unwrap();
 

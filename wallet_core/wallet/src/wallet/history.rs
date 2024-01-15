@@ -173,8 +173,8 @@ mod tests {
 
     use chrono::{Duration, TimeZone, Utc};
     use nl_wallet_mdoc::utils::{
-        issuer_auth::issuer_registration_mock,
-        reader_auth::reader_registration_mock,
+        issuer_auth::IssuerRegistration,
+        reader_auth::ReaderRegistration,
         x509::{Certificate, CertificateType},
     };
 
@@ -230,14 +230,14 @@ mod tests {
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
+            CertificateType::ReaderAuth(Box::new(ReaderRegistration::mock_reader_registration()).into()),
         )
         .unwrap();
         let (mdl_certificate, _) = Certificate::new(
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::mock_issuer_registration()).into()),
         )
         .unwrap();
 

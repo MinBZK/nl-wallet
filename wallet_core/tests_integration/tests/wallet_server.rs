@@ -9,7 +9,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     server_state::SessionToken,
     utils::{
-        reader_auth::reader_registration_mock,
+        reader_auth::ReaderRegistration,
         serialization::cbor_deserialize,
         x509::{Certificate, CertificateType},
     },
@@ -45,7 +45,7 @@ fn wallet_server_settings() -> Settings {
         &ca,
         &ca_privkey,
         "cert.example.com",
-        CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
+        CertificateType::ReaderAuth(Box::new(ReaderRegistration::mock_reader_registration()).into()),
     )
     .unwrap();
 

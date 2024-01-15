@@ -195,48 +195,43 @@ mod generate {
 }
 
 #[cfg(any(test, feature = "mock"))]
-pub use mock::*;
-
-#[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use super::*;
 
-    impl Default for ReaderRegistration {
-        fn default() -> Self {
-            reader_registration_mock()
-        }
-    }
+    impl ReaderRegistration {
+        pub fn mock_reader_registration() -> Self {
+            let organization = Organization {
+                display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
+                legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
+                description: vec![
+                    ("nl", "Beschrijving van Mijn Organisatie"),
+                    ("en", "Description of My Organization"),
+                ]
+                .into(),
+                category: vec![("nl", "Categorie"), ("en", "Category")].into(),
+                kvk: Some("some-kvk".to_owned()),
+                city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
+                department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
+                country_code: Some("nl".to_owned()),
+                web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
+                privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
+                logo: None,
+            };
 
-    pub fn reader_registration_mock() -> ReaderRegistration {
-        let my_organization = Organization {
-            display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
-            legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
-            description: vec![
-                ("nl", "Beschrijving van Mijn Organisatie"),
-                ("en", "Description of My Organization"),
-            ]
-            .into(),
-            category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-            kvk: Some("some-kvk".to_owned()),
-            city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-            department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
-            country_code: Some("nl".to_owned()),
-            web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
-            privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
-            logo: None,
-        };
-        ReaderRegistration {
-            purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
-            retention_policy: RetentionPolicy {
-                intent_to_retain: true,
-                max_duration_in_minutes: Some(60 * 24 * 365),
-            },
-            sharing_policy: SharingPolicy { intent_to_share: true },
-            deletion_policy: DeletionPolicy { deleteable: true },
-            organization: my_organization,
-            return_url_prefix: "https://example.com/".parse().unwrap(),
-            request_origin_base_url: "https://example.com/".parse().unwrap(),
-            attributes: Default::default(),
+            ReaderRegistration {
+                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
+                    .into(),
+                retention_policy: RetentionPolicy {
+                    intent_to_retain: true,
+                    max_duration_in_minutes: Some(60 * 24 * 365),
+                },
+                sharing_policy: SharingPolicy { intent_to_share: true },
+                deletion_policy: DeletionPolicy { deleteable: true },
+                organization,
+                return_url_prefix: "https://example.com/".parse().unwrap(),
+                request_origin_base_url: "https://example.com/".parse().unwrap(),
+                attributes: Default::default(),
+            }
         }
     }
 }
@@ -575,7 +570,7 @@ mod tests {
 
         ReaderRegistration {
             attributes,
-            ..reader_registration_mock()
+            ..ReaderRegistration::mock_reader_registration()
         }
     }
 
