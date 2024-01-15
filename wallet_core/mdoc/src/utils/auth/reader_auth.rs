@@ -95,6 +95,8 @@ pub struct ReaderRegistration {
     pub deletion_policy: DeletionPolicy,
     pub organization: Organization,
     pub return_url_prefix: ReturnUrlPrefix,
+    /// Origin base url, for visual user inspection
+    pub request_origin_base_url: Url,
     pub attributes: IndexMap<String, AuthorizedMdoc>,
 }
 
@@ -233,6 +235,7 @@ pub mod mock {
             deletion_policy: DeletionPolicy { deleteable: true },
             organization: my_organization,
             return_url_prefix: "https://example.com/".parse().unwrap(),
+            request_origin_base_url: "https://example.com/".parse().unwrap(),
             attributes: Default::default(),
         }
     }

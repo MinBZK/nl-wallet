@@ -43,6 +43,7 @@ void _setupMockitoDummies() {
     WalletMockData.organization,
     WalletMockData.policy,
     'requestPurpose'.untranslated,
+    'http://origin.org',
     false,
     {},
   ));

@@ -47,7 +47,8 @@
     "kvk": "56846846",
     "privacyPolicyUrl": "https://example.com/privacy"
   },
-  "returnUrlPrefix": "http://localhost:3004/",
+  "returnUrlPrefix": "http://${SERVICES_HOST}:3004/",
+  "requestOriginBaseUrl": "http://${SERVICES_HOST}:3004/",
   "attributes": {
     "com.example.pid": {
       "com.example.pid": {

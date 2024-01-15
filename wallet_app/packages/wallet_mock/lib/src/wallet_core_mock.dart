@@ -36,6 +36,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         policy: request.policy,
         requestedCards: _wallet.getRequestedCards(request.requestedAttributes.map((attribute) => attribute.key)),
         isFirstInteractionWithRelyingParty: !_eventLog.includesInteractionWith(request.relyingParty),
+        requestOriginBaseUrl: 'http://origin.org',
         requestPurpose: request.purpose.untranslated,
       );
     } else {
@@ -48,6 +49,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       return _ongoingDisclosure = StartDisclosureResult.requestAttributesMissing(
         relyingParty: request.relyingParty,
         isFirstInteractionWithRelyingParty: !_eventLog.includesInteractionWith(request.relyingParty),
+        requestOriginBaseUrl: 'http://origin.org',
         requestPurpose: request.purpose.untranslated,
         missingAttributes: missingAttributes.toList(),
       );
