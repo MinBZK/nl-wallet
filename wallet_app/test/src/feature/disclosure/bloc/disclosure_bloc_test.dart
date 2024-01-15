@@ -62,6 +62,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -79,6 +80,7 @@ void main() {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           [],
         );
@@ -97,6 +99,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -118,6 +121,7 @@ void main() {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           [],
         );
@@ -140,6 +144,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -160,6 +165,7 @@ void main() {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           [],
         );
@@ -180,6 +186,7 @@ void main() {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           [],
         );
@@ -208,6 +215,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -231,6 +239,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -255,6 +264,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -281,6 +291,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -307,6 +318,7 @@ void main() {
           WalletMockData.organization,
           WalletMockData.policy,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           {},
         );
@@ -334,6 +346,7 @@ void main() {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'requestPurpose'.untranslated,
+          'http://origin.org',
           false,
           [],
         );

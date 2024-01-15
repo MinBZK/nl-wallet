@@ -2,7 +2,11 @@ use std::borrow::Cow;
 
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use p256::{ecdsa::VerifyingKey, elliptic_curve::pkcs8::DecodePublicKey};
+use p256::{
+    ecdsa::VerifyingKey,
+    elliptic_curve::pkcs8::DecodePublicKey,
+    pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader},
+};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
@@ -15,7 +19,7 @@ use x509_parser::{
 
 use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
 
-use super::reader_auth::ReaderRegistration;
+use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CertificateError {
@@ -170,6 +174,21 @@ impl Certificate {
 
         Ok(subject)
     }
+
+    pub(crate) fn extract_custom_ext<'a, T: Deserialize<'a>>(
+        &'a self,
+        oid: Oid,
+    ) -> Result<Option<T>, CertificateError> {
+        let x509_cert = self.to_x509()?;
+        let ext = x509_cert.iter_extensions().find(|ext| ext.oid == oid);
+        ext.map(|ext| {
+            let mut reader = SliceReader::new(ext.value)?;
+            let json = Utf8StringRef::decode(&mut reader)?;
+            let registration = serde_json::from_str(json.as_str())?;
+            Ok::<_, CertificateError>(registration)
+        })
+        .transpose()
+    }
 }
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
@@ -233,7 +252,7 @@ impl CertificateUsage {
 /// Acts as configuration for the [Certificate::new] function.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CertificateType {
-    Mdl,
+    Mdl(Option<Box<IssuerRegistration>>),
     ReaderAuth(Option<Box<ReaderRegistration>>),
 }
 
@@ -241,10 +260,12 @@ impl CertificateType {
     pub fn from_certificate(cert: &Certificate) -> Result<Self, CertificateError> {
         let usage = CertificateUsage::from_certificate(cert)?;
         let result = match usage {
-            CertificateUsage::Mdl => CertificateType::Mdl,
+            CertificateUsage::Mdl => {
+                let registration: Option<IssuerRegistration> = IssuerRegistration::from_certificate(cert)?;
+                CertificateType::Mdl(registration.map(Box::new))
+            }
             CertificateUsage::ReaderAuth => {
                 let registration: Option<ReaderRegistration> = ReaderRegistration::from_certificate(cert)?;
-
                 CertificateType::ReaderAuth(registration.map(Box::new))
             }
         };
@@ -257,7 +278,7 @@ impl From<&CertificateType> for CertificateUsage {
     fn from(source: &CertificateType) -> Self {
         use CertificateType::*;
         match source {
-            Mdl => Self::Mdl,
+            Mdl(_) => Self::Mdl,
             ReaderAuth(_) => Self::ReaderAuth,
         }
     }
@@ -342,17 +363,24 @@ mod generate {
             let usage: CertificateUsage = self.into();
             let mut extensions = vec![usage.to_custom_ext()];
 
-            if let Self::ReaderAuth(Some(reader_registration)) = self {
-                let ext_reader_auth = reader_registration.to_custom_ext()?;
-                extensions.push(ext_reader_auth);
-            }
-
+            match self {
+                Self::ReaderAuth(Some(reader_registration)) => {
+                    let ext_reader_auth = reader_registration.to_custom_ext()?;
+                    extensions.push(ext_reader_auth);
+                }
+                Self::Mdl(Some(issuer_registration)) => {
+                    let ext_issuer_auth = issuer_registration.to_custom_ext()?;
+                    extensions.push(ext_issuer_auth);
+                }
+                _ => {}
+            };
             Ok(extensions)
         }
     }
 
+    #[cfg(feature = "mock")]
     mod mock {
-        use crate::server_keys::PrivateKey;
+        use crate::{server_keys::PrivateKey, utils::issuer_auth::issuer_registration_mock};
 
         use super::*;
 
@@ -363,8 +391,22 @@ mod generate {
             pub fn generate_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
                 // Issuer CA certificate and normal certificate
                 let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+                let (issuer_cert, issuer_privkey) = Certificate::new(
+                    &ca,
+                    &ca_privkey,
+                    ISSUANCE_CERT_CN,
+                    CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+                )?;
+                let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+
+                Ok((issuance_key, ca))
+            }
+
+            pub fn generate_unauthenticated_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
+                // Issuer CA certificate and normal certificate, without issuer registration
+                let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
                 let (issuer_cert, issuer_privkey) =
-                    Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl)?;
+                    Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl(None))?;
                 let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
 
                 Ok((issuance_key, ca))
@@ -376,12 +418,13 @@ mod generate {
 #[cfg(test)]
 mod test {
     use p256::pkcs8::ObjectIdentifier;
-    use url::Url;
     use webpki::TrustAnchor;
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::utils::{reader_auth::*, x509::CertificateType};
+    use crate::utils::{
+        issuer_auth::issuer_registration_mock, reader_auth::reader_registration_mock, x509::CertificateType,
+    };
 
     use super::{Certificate, CertificateUsage};
 
@@ -396,7 +439,13 @@ mod test {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
         let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", CertificateType::Mdl).unwrap();
+        let (cert, _) = Certificate::new(
+            &ca,
+            &ca_privkey,
+            "mycert",
+            CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+        )
+        .unwrap();
 
         cert.verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
             .unwrap();
@@ -407,7 +456,7 @@ mod test {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
         let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
 
-        let reader_auth = CertificateType::ReaderAuth(Box::new(get_my_reader_auth()).into());
+        let reader_auth = CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into());
 
         let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone()).unwrap();
 
@@ -424,39 +473,5 @@ mod test {
         let mdl_kp: ObjectIdentifier = "1.0.18013.5.1.2".parse().unwrap();
         let mdl_kp: &'static [u8] = Box::leak(mdl_kp.into()).as_bytes();
         assert_eq!(mdl_kp, CertificateUsage::Mdl.to_eku());
-    }
-
-    // Test fixture
-    fn get_my_reader_auth() -> ReaderRegistration {
-        let my_organization = Organization {
-            display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
-            legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
-            description: vec![
-                ("nl", "Beschrijving van Mijn Organisatie"),
-                ("en", "Description of My Organization"),
-            ]
-            .into(),
-            category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-            kvk: Some("some-kvk".to_owned()),
-            city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-            department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
-            country_code: Some("nl".to_owned()),
-            web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
-            privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
-            logo: None,
-        };
-        ReaderRegistration {
-            id: "some-service-id".to_owned(),
-            purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
-            retention_policy: RetentionPolicy {
-                intent_to_retain: true,
-                max_duration_in_minutes: Some(60 * 24 * 365),
-            },
-            sharing_policy: SharingPolicy { intent_to_share: true },
-            deletion_policy: DeletionPolicy { deleteable: true },
-            organization: my_organization,
-            return_url_prefix: "https://example.com/".parse().unwrap(),
-            attributes: Default::default(),
-        }
     }
 }

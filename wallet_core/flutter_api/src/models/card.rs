@@ -53,6 +53,7 @@ impl From<GenderAttributeValue> for GenderCardValue {
     }
 }
 
+#[derive(Clone)]
 pub struct LocalizedString {
     pub language: String,
     pub value: String,

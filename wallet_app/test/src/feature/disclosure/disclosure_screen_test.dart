@@ -65,7 +65,7 @@ void main() {
               MockDisclosureBloc(),
               DisclosureCheckOrganization(
                 relyingParty: WalletMockData.organization,
-                requestPurpose: 'requestPurpose'.untranslated,
+                originUrl: 'http://origin.org',
                 isFirstInteractionWithOrganization: false,
               ),
             ),
@@ -143,6 +143,7 @@ void main() {
                 requestedAttributes: {
                   WalletMockData.card: [WalletMockData.textDataAttribute]
                 },
+                requestPurpose: 'Sample reason'.untranslated,
                 policy: WalletMockData.policy,
               ),
             ),
@@ -205,7 +206,7 @@ void main() {
           MockDisclosureBloc(),
           DisclosureCheckOrganization(
             relyingParty: WalletMockData.organization,
-            requestPurpose: 'requestPurpose'.untranslated,
+            originUrl: 'http://origin.org',
             isFirstInteractionWithOrganization: false,
           ),
         ),

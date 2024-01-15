@@ -300,12 +300,14 @@ class StartDisclosureResult with _$StartDisclosureResult {
     required List<RequestedCard> requestedCards,
     required bool isFirstInteractionWithRelyingParty,
     required List<LocalizedString> requestPurpose,
+    required String requestOriginBaseUrl,
   }) = StartDisclosureResult_Request;
   const factory StartDisclosureResult.requestAttributesMissing({
     required Organization relyingParty,
     required List<MissingAttribute> missingAttributes,
     required bool isFirstInteractionWithRelyingParty,
     required List<LocalizedString> requestPurpose,
+    required String requestOriginBaseUrl,
   }) = StartDisclosureResult_RequestAttributesMissing;
 }
 
@@ -1033,6 +1035,7 @@ class WalletCoreImpl implements WalletCore {
           requestedCards: _wire2api_list_requested_card(raw[3]),
           isFirstInteractionWithRelyingParty: _wire2api_bool(raw[4]),
           requestPurpose: _wire2api_list_localized_string(raw[5]),
+          requestOriginBaseUrl: _wire2api_String(raw[6]),
         );
       case 1:
         return StartDisclosureResult_RequestAttributesMissing(
@@ -1040,6 +1043,7 @@ class WalletCoreImpl implements WalletCore {
           missingAttributes: _wire2api_list_missing_attribute(raw[2]),
           isFirstInteractionWithRelyingParty: _wire2api_bool(raw[3]),
           requestPurpose: _wire2api_list_localized_string(raw[4]),
+          requestOriginBaseUrl: _wire2api_String(raw[5]),
         );
       default:
         throw Exception("unreachable");

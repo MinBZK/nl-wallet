@@ -1,196 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="marx.min.css">
-  <style>
-    dl {
-      display: flex;
-      flex-flow: row;
-      flex-wrap: wrap;
-      width: 500px;
-      overflow: visible;
-    }
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="marx.min.css">
+    <style>
+        dl {
+            display: flex;
+            flex-flow: row;
+            flex-wrap: wrap;
+            width: 500px;
+            overflow: visible;
+        }
 
-    dl > dl {
-      margin-bottom: 0;
-      padding-left: 1rem;
-      border-left: 1.5px solid black;
-    }
+        dl>dl {
+            margin-bottom: 0;
+            padding-left: 1rem;
+            border-left: 1.5px solid black;
+        }
 
-    #result {
-        border: none;
-    }
+        #result {
+            border: none;
+        }
 
-    dl dt {
-      flex: 0 0 50%;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
+        dl dt {
+            flex: 0 0 50%;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
 
-    dl dd {
-      flex:0 0 50%;
-      margin-left: auto;
-      text-align: left;
-      text-overflow: ellipsis;
-      overflow: hidden;
-    }
-  </style>
-  <script>
-    let sessionUrl = document.location.hash;
-    if (sessionUrl !== '') {
-      sessionUrl = sessionUrl.substring(1); // remove '#'
-    }
-    console.log('Session URL: ', sessionUrl);
-  </script>
+        dl dd {
+            flex: 0 0 50%;
+            margin-left: auto;
+            text-align: left;
+            text-overflow: ellipsis;
+            overflow: hidden;
+        }
+    </style>
+    <script>
+        let sessionUrl;
+        let disclosedAttributesUrl;
+        if (window.location.hash) {
+            let sessionId = window.location.hash.substring(1)
+            disclosedAttributesUrl = `/sessions/${sessionId}/disclosed_attributes`
+            if (window.location.search.startsWith("?transcript_hash=")) {
+                let end = window.location.search.search("&")
+                end = end == -1 ? window.location.search.length : end
+                disclosedAttributesUrl += window.location.search.substring(0, end)
+            }
+        }
+
+        console.log('Results URL: ', disclosedAttributesUrl);
+    </script>
 </head>
+
 <body>
-  <main>
-  <h1>Mock Relying Party</h1>
-  <form method="POST">
-    <h4>Select a usecase</h4>
-    {% for (idx, option) in usecases.iter().enumerate() -%}
-    <p>
-      <input type="radio" name="usecase" id="{{ option }}" value="{{ option }}" {% if selected.is_some() && option == selected.as_ref().unwrap().usecase[..] || idx == 0 %}checked{% endif %}>
-      <label for="{{ option }}">{{ option }}</label>
-    </p>
-    {% endfor -%}
-    <h4>Submit a session type</h4>
-    <p>
-      <input type="submit" name="session_type" value="cross_device">
-    </p>
-    <p>
-      <input type="submit" name="session_type" value="same_device">
-    </p>
-  </form>
-  <div id="session" {% if engagement.is_none() %}style="display: none;"{% endif %}>
-    <h2>Session</h2>
-    <h3><span id="attributes"></span></h3>
-    <dl>
-      <dt>Status</dt>
-      <dd><span id="status"></span></dd>
-      <dl id="result">
-      </dl>
-    </dl>
-  </div>
-  {% match engagement -%}
-    {% when Some(urls) -%}
-    <dl>
-      <dt>Usecase</dt>
-      <dd>{{ selected.as_ref().unwrap().usecase }}</dd>
+    <main>
+        <h1>Mock Relying Party</h1>
+        <form method="POST">
+            <h4>Select a usecase</h4>
+            {% for (idx, option) in usecases.iter().enumerate() -%}
+            <p>
+                <input type="radio" name="usecase" id="{{ option }}" value="{{ option }}" {% if selected.is_some() &&
+                    option==selected.as_ref().unwrap().usecase[..] || idx==0 %}checked{% endif %}>
+                <label for="{{ option }}">{{ option }}</label>
+            </p>
+            {% endfor -%}
+            <h4>Submit a session type</h4>
+            {%- for type in MrpSessionType::iter() %}
+            <p>
+                <input type="submit" name="session_type" value="{{ type }}">
+            </p>
+            {% endfor -%}
+        </form>
+        <div id="session" {% if engagement.is_none() %}style="display: none;" {% endif %}>
+            <h2>Session</h2>
+            <h3><span id="attributes"></span></h3>
+            <dl id="result">
+            </dl>
+        </div>
+        {% match engagement -%}
+        {% when Some(urls) -%}
+        <dl>
+            <dt>Status</dt>
+            <dd><span id="status"></span></dd>
 
-      <dt>Type</dt>
-    {% if selected.as_ref().unwrap().session_type == SessionType::CrossDevice %}
-      <dd>cross_device</dd>
-    </dl>
-    <canvas width="400" height="400" id="canvas" style="cursor: none;"></canvas>
+            <dt>Usecase</dt>
+            <dd>{{ selected.as_ref().unwrap().usecase }}</dd>
 
-    <script src="qrcodegen.min.js"></script>
+            <dt>Type</dt>
+            {% if selected.as_ref().unwrap().session_type == MrpSessionType::SameDevice %}
+            <dd>same_device</dd>
+        </dl>
+        <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;">
+            Open NL Wallet
+        </a>
+        {% else %}
+        <dd>{{ selected.as_ref().unwrap().session_type }}</dd>
+        </dl>
+        <canvas width="400" height="400" id="canvas" style="cursor: none;"></canvas>
+
+        <script src="qrcodegen.min.js"></script>
+        <script>
+            document.getElementById("status").innerText = 'CREATED'
+
+            qrcodegen.init().then(function (api) {
+                let matrix = api.encodeText('{{ urls.0 }}', qrcodegen.Ecc.LOW)
+                let canvas = document.getElementById('canvas')
+                qrcodegen.drawCanvas(canvas, matrix)
+            })
+        </script>
+        {% endif %}
+        <script>
+            console.log('Engagement URL: {{ urls.0 }}') // write engagement URL to console
+            sessionUrl = '{{ urls.1 }}' // overwrite sessionUrl
+            disclosedAttributesUrl = '{{ urls.2 }}' // overwrite disclosedAttributesUrl
+        </script>
+        {% when None -%}
+        {% endmatch -%}
+    </main>
     <script>
-    document.getElementById("status").innerText = 'CREATED';
+        let sessionDiv = document.getElementById('session')
+        let statusSpan = document.getElementById('status')
+        let resultList = document.getElementById('result')
+        let attributesSpan = document.getElementById('attributes')
+        let interval = null
 
-    qrcodegen.init().then(function (api) {
-      var matrix = api.encodeText('{{ urls.0 }}', qrcodegen.Ecc.LOW);
-      var canvas = document.getElementById('canvas');
-      qrcodegen.drawCanvas(canvas, matrix);
-    });
-    </script>
-    {% else %}
-      <dd>same_device</dd>
-    </dl>
-    <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;">
-      Open NL Wallet
-    </a>
-    {% endif %}
-    <script>
-    sessionUrl = '{{ urls.1 }}'; // overwrite sessionUrl
-    </script>
-    {% when None -%}
-  {% endmatch -%}
-  </main>
-  <script>
-    let sessionDiv = document.getElementById('session');
-    let statusSpan = document.getElementById('status');
-    let resultList = document.getElementById('result');
-    let attributesSpan = document.getElementById('attributes');
-    let interval = null;
-
-    const loadStatus = (session_id) => {
-      fetch(sessionUrl).then(res => res.json()).then(body => {
-        sessionDiv.style = 'display: block;';
-        statusSpan.innerText = body.status;
-        if (body.status == 'CREATED') {
-          console.log('session created, nothing happened yet');
-        } else if (body.status == 'WAITING') {
-          console.log('waiting for response, qr is scanned');
-        } else if (body.status == 'DONE') {
-          console.log('we are done, result:')
-          showResults(body.disclosed_attributes);
-          clearInterval(interval);
-        } else if (body.status == 'FAILED') {
-          console.log('session failed: ' + body.error)
-          clearInterval(interval);
-        } else if (body.status == 'CANCELED') {
-          console.log('session got canceled')
-          clearInterval(interval);
+        const loadStatus = (session_id) => {
+            fetch(sessionUrl).then(res => res.json()).then(body => {
+                sessionDiv.style = 'display: block;'
+                statusSpan.innerText = body.status
+                if (body.status == 'CREATED') {
+                    console.log('session created, nothing happened yet')
+                } else if (body.status == 'WAITING') {
+                    console.log('waiting for response, qr is scanned')
+                } else if (body.status == 'DONE') {
+                    console.log('we are done')
+                    fetch(disclosedAttributesUrl).then(res => res.json()).then(disclosed_attributes => {
+                        console.log('results: ', disclosed_attributes)
+                        showResults(disclosed_attributes)
+                    }).catch(e => {
+                        console.error(e)
+                        statusSpan.innerText = 'ERROR'
+                    })
+                    clearInterval(interval);
+                } else if (body.status == 'FAILED') {
+                    console.log('session failed: ' + body.error)
+                    clearInterval(interval)
+                } else if (body.status == 'CANCELLED') {
+                    console.log('session got cancelled')
+                    clearInterval(interval)
+                }
+            }).catch(e => {
+                console.error(e)
+                statusSpan.innerText = 'ERROR'
+            })
         }
-      }).catch(_ => statusSpan.innerText = 'ERROR');
-    }
 
-    const showResults = (attributes) => {
-      for (doctype in attributes) {
-        console.log(doctype);
-        let doctypeElem = document.createElement('dt');
-        doctypeElem.innerText = 'Doctype';
+        const showResults = (attributes) => {
+            for (doctype in attributes) {
+                let doctypeElem = document.createElement('dt')
+                doctypeElem.innerText = 'Doctype'
 
-        let doctypeTextElem = document.createElement('dd');
-        doctypeTextElem.innerText = doctype;
+                let doctypeTextElem = document.createElement('dd')
+                doctypeTextElem.innerText = doctype
 
-        resultList.appendChild(doctypeElem);
-        resultList.appendChild(doctypeTextElem);
+                resultList.appendChild(doctypeElem)
+                resultList.appendChild(doctypeTextElem)
 
-        let doctypeList = document.createElement('dl');
-        for (namespace in attributes[doctype]) {
-          let namespaceElem = document.createElement('dt');
-          namespaceElem.innerText = 'Namespace';
+                let doctypeList = document.createElement('dl')
+                for (namespace in attributes[doctype]) {
+                    let namespaceElem = document.createElement('dt')
+                    namespaceElem.innerText = 'Namespace'
 
-          let namespaceTextElem = document.createElement('dd');
-          namespaceTextElem.innerText = namespace;
+                    let namespaceTextElem = document.createElement('dd')
+                    namespaceTextElem.innerText = namespace
 
-          doctypeList.appendChild(namespaceElem);
-          doctypeList.appendChild(namespaceTextElem);
+                    doctypeList.appendChild(namespaceElem)
+                    doctypeList.appendChild(namespaceTextElem)
 
-          let namespaceList = document.createElement('dl');
-          for (idx in attributes[doctype][namespace]) {
-            let attributeElem = document.createElement('dt');
-            attributeElem.innerText = attributes[doctype][namespace][idx]['name'];
+                    let namespaceList = document.createElement('dl')
+                    for (idx in attributes[doctype][namespace]) {
+                        let attributeElem = document.createElement('dt')
+                        attributeElem.innerText = attributes[doctype][namespace][idx]['name']
 
-            let attributeTextElem = document.createElement('dd');
-            attributeTextElem.innerText = attributes[doctype][namespace][idx]['value'];
+                        let attributeTextElem = document.createElement('dd')
+                        attributeTextElem.innerText = attributes[doctype][namespace][idx]['value']
 
-            namespaceList.appendChild(attributeElem);
-            namespaceList.appendChild(attributeTextElem);
-          }
-          doctypeList.appendChild(namespaceList);
+                        namespaceList.appendChild(attributeElem)
+                        namespaceList.appendChild(attributeTextElem)
+                    }
+                    doctypeList.appendChild(namespaceList)
+                }
+                resultList.appendChild(doctypeList)
+
+                let resultElem = document.createElement('dt')
+                resultElem.innerText = 'Result'
+
+                resultList.parentElement.insertBefore(resultElem, resultList)
+            }
         }
-        resultList.appendChild(doctypeList);
 
-        let resultElem = document.createElement('dt');
-        resultElem.innerText = 'Result';
+        // either start polling or, if we have a disclosedAttributesUrl, fetch the results
+        if (sessionUrl) {
+            console.log('Session URL: ', sessionUrl)
+            loadStatus(sessionUrl)
 
-        resultList.parentElement.insertBefore(resultElem, resultList);
-      }
-    }
-
-    console.log('Session URL: ', sessionUrl);
-    if (sessionUrl) {
-      loadStatus(sessionUrl);
-
-      interval = setInterval(() => {
-        loadStatus(sessionUrl);
-      }, 1000);
-    }
-  </script>
+            interval = setInterval(() => {
+                loadStatus(sessionUrl)
+            }, 1000);
+        } else if (disclosedAttributesUrl) {
+            sessionDiv.style = 'display: block;'
+            fetch(disclosedAttributesUrl).then(res => res.json()).then(disclosed_attributes => {
+                console.log('results: ', disclosed_attributes)
+                showResults(disclosed_attributes)
+            }).catch(e => {
+                console.error(e)
+                statusSpan.innerText = 'ERROR'
+            })
+        }
+    </script>
 </body>
+
 </html>

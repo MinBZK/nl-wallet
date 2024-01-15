@@ -7,12 +7,14 @@ import '../wallet_card.dart';
 
 sealed class StartDisclosureResult {
   final Organization relyingParty;
+  final String originUrl;
   final LocalizedText requestPurpose;
   final bool isFirstInteractionWithOrganization;
 
   StartDisclosureResult(
     this.relyingParty,
     this.requestPurpose,
+    this.originUrl,
     this.isFirstInteractionWithOrganization,
   );
 }
@@ -24,6 +26,7 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
   StartDisclosureReadyToDisclose(
     super.relyingParty,
     this.policy,
+    super.originUrl,
     super.requestPurpose,
     super.isFirstInteractionWithOrganization,
     this.requestedAttributes,
@@ -36,6 +39,7 @@ class StartDisclosureMissingAttributes extends StartDisclosureResult {
   StartDisclosureMissingAttributes(
     super.relyingParty,
     super.requestPurpose,
+    super.originUrl,
     super.isFirstInteractionWithOrganization,
     this.missingAttributes,
   );

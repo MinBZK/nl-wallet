@@ -95,12 +95,12 @@ mod tests {
         let unverified = msg.dangerous_parse_unverified()?;
 
         // wallet provider takes the public keys from the message, and verifies the signatures
-        dbg!(msg.parse_and_verify(
+        msg.parse_and_verify(
             challenge,
             SequenceNumberComparison::EqualTo(0),
             &unverified.payload.hw_pubkey.0,
             &unverified.payload.pin_pubkey.0,
-        )?);
+        )?;
 
         Ok(())
     }

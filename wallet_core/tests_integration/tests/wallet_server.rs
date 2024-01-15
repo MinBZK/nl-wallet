@@ -9,7 +9,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     server_state::SessionToken,
     utils::{
-        reader_auth::{DeletionPolicy, Organization, ReaderRegistration, RetentionPolicy, SharingPolicy},
+        reader_auth::reader_registration_mock,
         serialization::cbor_deserialize,
         x509::{Certificate, CertificateType},
     },
@@ -25,40 +25,6 @@ use wallet_server::{
 use crate::common::*;
 
 pub mod common;
-
-// Test fixture
-fn get_my_reader_auth() -> ReaderRegistration {
-    let my_organization = Organization {
-        display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
-        legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
-        description: vec![
-            ("nl", "Beschrijving van Mijn Organisatie"),
-            ("en", "Description of My Organization"),
-        ]
-        .into(),
-        category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-        kvk: Some("1234 1234".to_owned()),
-        city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-        department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
-        country_code: Some("nl".to_owned()),
-        web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
-        privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
-        logo: None,
-    };
-    ReaderRegistration {
-        id: "some-service-id".to_owned(),
-        purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
-        retention_policy: RetentionPolicy {
-            intent_to_retain: true,
-            max_duration_in_minutes: Some(60 * 24 * 365),
-        },
-        sharing_policy: SharingPolicy { intent_to_share: true },
-        deletion_policy: DeletionPolicy { deleteable: true },
-        organization: my_organization,
-        return_url_prefix: "https://example.com/".parse().unwrap(),
-        attributes: Default::default(),
-    }
-}
 
 fn wallet_server_settings() -> Settings {
     let mut settings = common::wallet_server_settings();
@@ -79,7 +45,7 @@ fn wallet_server_settings() -> Settings {
         &ca,
         &ca_privkey,
         "cert.example.com",
-        CertificateType::ReaderAuth(Box::new(get_my_reader_auth()).into()),
+        CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
     )
     .unwrap();
 
@@ -158,7 +124,7 @@ async fn test_start_session() {
         .post(
             settings
                 .internal_url
-                .join("/sessions")
+                .join("sessions")
                 .expect("could not join url with endpoint"),
         )
         .json(&start_request)
@@ -172,6 +138,7 @@ async fn test_start_session() {
     let StartDisclosureResponse {
         session_url,
         engagement_url,
+        ..
     } = response.json::<StartDisclosureResponse>().await.unwrap();
     let response = client.get(session_url).send().await.unwrap();
 
@@ -200,7 +167,7 @@ async fn test_session_not_found() {
         .get(
             settings
                 .internal_url
-                .join(&format!("/sessions/{}/status", SessionToken::new()))
+                .join(&format!("/{}/status", SessionToken::new()))
                 .unwrap(),
         )
         .send()

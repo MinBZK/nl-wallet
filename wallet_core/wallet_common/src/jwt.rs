@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::prelude::*;
 
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
@@ -58,7 +58,7 @@ pub trait JwtSubject {
 /// takes to construct it. From a `VerifyingKey` of the `ecdsa` crate, this encoding may be obtained by calling
 /// `public_key.to_encoded_point(false).as_bytes()`.
 #[derive(Clone)]
-pub struct EcdsaDecodingKey(DecodingKey);
+pub struct EcdsaDecodingKey(pub DecodingKey);
 
 impl From<DecodingKey> for EcdsaDecodingKey {
     fn from(value: DecodingKey) -> Self {
@@ -103,15 +103,15 @@ where
     T: Serialize,
 {
     pub async fn sign(payload: &T, header: &Header, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
-        let encoded_header = URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
-        let encoded_claims = URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
+        let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
+        let encoded_claims = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
         let message = [encoded_header, encoded_claims].join(".");
 
         let signature = privkey
             .try_sign(message.as_bytes())
             .await
             .map_err(|err| JwtError::Signing(Box::new(err)))?;
-        let encoded_signature = URL_SAFE_NO_PAD.encode(signature.to_vec());
+        let encoded_signature = BASE64_URL_SAFE_NO_PAD.encode(signature.to_vec());
 
         Ok([message, encoded_signature].join(".").into())
     }
@@ -268,7 +268,7 @@ mod tests {
 
     /// Decode and deserialize the specified part of the JWT.
     fn part<T: DeserializeOwned>(i: u8, jwt: &str) -> T {
-        let bts = URL_SAFE_NO_PAD
+        let bts = BASE64_URL_SAFE_NO_PAD
             .decode(jwt.split('.').take((i + 1) as usize).last().unwrap())
             .unwrap();
         serde_json::from_slice(&bts).unwrap()

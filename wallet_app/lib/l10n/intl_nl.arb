@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-08T11:05:13+01:00",
+    "@@last_modified": "2024-01-10T17:32:04+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -161,8 +161,9 @@
     },
     "checkAgreementPageSubtitle": "Controleer de afspraken voor je verder gaat.",
     "checkAgreementPageTitle": "Ken je de afspraken?",
-    "checkAttributesScreenDataIncorrectCta": "Klopt er iets niet?",
-    "checkAttributesScreenTitle": "Jouw gegevens",
+    "checkAttributesScreenDataIncorrectCta": "Kloppen je gegevens niet?",
+    "checkAttributesScreenSubtitle": "Kaart uitgegeven door {issuer}",
+    "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} gegeven uit {title}} other {{count} gegevens uit {title}}}",
     "confirmAgreementPageCancelCta": "Nee",
     "confirmAgreementPageConfirmCta": "Ja, tekenen",
     "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",
@@ -222,7 +223,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is",
+    "disclosureConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is.",
     "disclosureConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
     "disclosureConfirmDataAttributesPageApproveCta": "Delen",
     "disclosureConfirmDataAttributesPageDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
@@ -240,16 +241,7 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
     "disclosureConfirmDataAttributesPageDenyCta": "Nee",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
-    "disclosureConfirmDataAttributesPageShareDataTitle": "{count, plural, =1 {Wil je dit gegeven delen?} other {Wil je deze {count} gegevens delen?}}",
-    "@disclosureConfirmDataAttributesPageShareDataTitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesShareWithTitle": "Delen met {organization}",
+    "disclosureConfirmDataAttributesShareWithTitle": "Wil je delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
             "organization": {
@@ -258,6 +250,18 @@
             }
         }
     },
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, =1 {Alleen dit gegeven wordt gedeeld. Niet meer.} other {Alleen deze {count} gegevens worden gedeeld. Niet meer.}}",
+    "@disclosureConfirmDataAttributesSharedAttributesInfo": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesSubtitleData": "Gegevens",
+    "disclosureConfirmDataAttributesSubtitlePurpose": "Reden",
+    "disclosureConfirmDataAttributesSubtitleTerms": "Afspraken",
     "disclosureConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
     "disclosureConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
     "@disclosureConfirmPinPageErrorDescription": {
@@ -1037,6 +1041,7 @@
     "setupSecuritySelectPinErrorPageTitle": "Deze toegangscode is te simpel",
     "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Kies een toegangscode met minstens twee verschillende cijfers.",
     "setupSecuritySelectPinPageTitle": "Kies een 6-cijferige toegangscode",
+    "sharedAttributesCardTitle": "{count} uit {cardTitle}",
     "showDetailsCta": "Bekijk details",
     "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
     "signConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",

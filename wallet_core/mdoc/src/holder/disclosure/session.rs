@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::prelude::*;
 use futures::future::TryFutureExt;
 use indexmap::IndexMap;
 use url::Url;
@@ -270,7 +270,7 @@ where
         let transcript_hash = utils::sha256(session_transcript_bytes);
 
         url.query_pairs_mut()
-            .append_pair(TRANSCRIPT_HASH_PARAM, &STANDARD.encode(transcript_hash));
+            .append_pair(TRANSCRIPT_HASH_PARAM, &BASE64_URL_SAFE_NO_PAD.encode(transcript_hash));
 
         url
     }
@@ -391,6 +391,7 @@ mod tests {
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
+            reader_auth::reader_registration_mock,
             serialization::TaggedBytes,
             x509::CertificateType,
         },
@@ -507,7 +508,7 @@ mod tests {
             .expect("return URL should be provided by session")
             .query_pairs()
             .find(|(key, _)| key == TRANSCRIPT_HASH_PARAM)
-            .map(|(_, value)| STANDARD.decode(value.as_ref()))
+            .map(|(_, value)| BASE64_URL_SAFE_NO_PAD.decode(value.as_ref()))
             .expect("return URL should contain \"transcript_hash\" query parameter")
             .expect("return URL \"transcript_hash\" query parameter should be base64 encoded");
         let expected_transcript_hash =
@@ -1194,7 +1195,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: vec![].into(),
-                reader_registration: Default::default(),
+                reader_registration: reader_registration_mock(),
             },
             device_key,
             proposed_documents: vec![create_example_proposed_document()],
@@ -1264,7 +1265,7 @@ mod tests {
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::ReaderAuth(Some(Box::default())),
+            CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
         )
         .unwrap();
 
@@ -1274,7 +1275,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: certificate.clone(),
-                reader_registration: Default::default(),
+                reader_registration: reader_registration_mock(),
             },
             missing_attributes: Default::default(),
         });
@@ -1296,7 +1297,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate,
-                reader_registration: Default::default(),
+                reader_registration: reader_registration_mock(),
             },
             missing_attributes: Default::default(),
         });

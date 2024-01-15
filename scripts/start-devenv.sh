@@ -50,6 +50,7 @@ Where:
     pi, pid_issuer:             Start the pid_issuer.
     mrp, mock_relying_party:    Start the mock_relying_party (this also starts a wallet_server).
     digid, digid_connector:     Start the digid_connector and a redis on docker.
+    cs, configuration_server:   Start the configuration server
     docker:                     Start a PostgreSQL database, including pgadmin4, on docker.
 
   OPTION is any of:
@@ -76,6 +77,7 @@ MOCK_RELYING_PARTY=1
 WALLET_PROVIDER=1
 WALLET=1
 DIGID_CONNECTOR=1
+CONFIG_SERVER=1
 DOCKER=1
 
 USAGE=1
@@ -111,6 +113,10 @@ do
             DIGID_CONNECTOR=0
             shift # past argument
             ;;
+        cs|configuration_server)
+            CONFIG_SERVER=0
+            shift
+            ;;
         docker)
             DOCKER=0
             shift # past argument
@@ -121,6 +127,7 @@ do
             MOCK_RELYING_PARTY=0
             WALLET_PROVIDER=0
             WALLET=0
+            CONFIG_SERVER=0
             shift # past argument
             ;;
         --all)
@@ -130,6 +137,7 @@ do
             PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
+            CONFIG_SERVER=0
             shift # past argument
             ;;
         -h|--help)
@@ -291,13 +299,37 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Running wallet_provider database migrations${NC}"
-        pushd ${WALLET_CORE_DIR}
+        pushd "${WALLET_CORE_DIR}"
         cargo run --bin wallet_provider_migrations -- fresh
         popd
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
         RUST_LOG=debug cargo run --bin wallet_provider > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 
         echo -e "wallet_provider logs can be found at ${CYAN}${TARGET_DIR}/wallet_provider.log${NC}"
+    fi
+fi
+
+########################################################################
+# Manage configuration_server
+
+if [ "${CONFIG_SERVER}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage configuration_server${NC}"
+
+    cd "${CS_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}configuration_server${NC}"
+        killall configuration_server || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "${INFO}Start ${ORANGE}configuration_server${NC}"
+        RUST_LOG=debug cargo run --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
+
+        echo -e "configuration_server logs can be found at ${CYAN}${TARGET_DIR}/configuration_server.log${NC}"
     fi
 fi
 

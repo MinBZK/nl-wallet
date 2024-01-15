@@ -78,20 +78,38 @@ pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
     }
 });
 
+/// The unauthenticated issuer key material, generated once for testing.
+pub static ISSUER_KEY_UNAUTHENTICATED: Lazy<IssuerKey> = Lazy::new(|| {
+    let (issuance_key, ca) = PrivateKey::generate_unauthenticated_mock_with_ca().unwrap();
+
+    IssuerKey {
+        issuance_key,
+        trust_anchor: (&ca).try_into().unwrap(),
+    }
+});
+
 /// Generates a valid `Mdoc` that contains a full PID.
 pub async fn create_full_pid_mdoc() -> Mdoc {
     let private_key_id = utils::random_string(16);
     let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, private_key_id).await
+    mdoc_from_unsigned(unsigned_mdoc, private_key_id, &ISSUER_KEY).await
+}
+
+/// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
+pub async fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
+    let private_key_id = utils::random_string(16);
+    let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+
+    mdoc_from_unsigned(unsigned_mdoc, private_key_id, &ISSUER_KEY_UNAUTHENTICATED).await
 }
 
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and key identifier.
-pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: String) -> Mdoc {
+pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: String, issuer_key: &IssuerKey) -> Mdoc {
     let mdoc_public_key = (&SoftwareEcdsaKey::new(&private_key_id).verifying_key().await.unwrap())
         .try_into()
         .unwrap();
-    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &ISSUER_KEY.issuance_key)
+    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuer_key.issuance_key)
         .await
         .unwrap();
 
@@ -99,7 +117,7 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: Str
         private_key_id,
         issuer_signed,
         &TimeGenerator,
-        &[(&ISSUER_KEY.trust_anchor.owned_trust_anchor).into()],
+        &[(&issuer_key.trust_anchor.owned_trust_anchor).into()],
     )
     .unwrap()
 }

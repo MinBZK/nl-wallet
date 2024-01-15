@@ -40,8 +40,8 @@ class DisclosureNetworkError extends DisclosureState {
 
 class DisclosureCheckOrganization extends DisclosureState {
   final Organization relyingParty;
-  final LocalizedText requestPurpose;
   final bool isFirstInteractionWithOrganization;
+  final String originUrl;
   final bool afterBackPressed;
 
   @override
@@ -52,15 +52,14 @@ class DisclosureCheckOrganization extends DisclosureState {
 
   const DisclosureCheckOrganization({
     required this.relyingParty,
-    required this.requestPurpose,
     required this.isFirstInteractionWithOrganization,
+    required this.originUrl,
     this.afterBackPressed = false,
   });
 
   @override
   List<Object?> get props => [
         relyingParty,
-        requestPurpose,
         isFirstInteractionWithOrganization,
         ...super.props,
       ];
@@ -96,6 +95,7 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   final Organization relyingParty;
   final Map<WalletCard, List<DataAttribute>> requestedAttributes;
   final Policy policy;
+  final LocalizedText requestPurpose;
   final bool afterBackPressed;
 
   @override
@@ -109,6 +109,7 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
 
   const DisclosureConfirmDataAttributes({
     required this.relyingParty,
+    required this.requestPurpose,
     required this.requestedAttributes,
     required this.policy,
     this.afterBackPressed = false,
@@ -117,6 +118,7 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   @override
   List<Object?> get props => [
         relyingParty,
+        requestPurpose,
         requestedAttributes,
         policy,
         ...super.props,

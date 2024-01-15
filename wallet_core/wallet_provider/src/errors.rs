@@ -10,8 +10,9 @@ use once_cell::sync::Lazy;
 use tracing::log::debug;
 
 use wallet_common::account::messages::errors::{ErrorData, ErrorType};
-use wallet_provider_service::account_server::{
-    ChallengeError, InstructionError, RegistrationError, WalletCertificateError,
+use wallet_provider_service::{
+    account_server::{ChallengeError, InstructionError, RegistrationError, WalletCertificateError},
+    hsm,
 };
 
 pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
@@ -121,6 +122,12 @@ impl ConvertibleError for InstructionError {
             | InstructionError::WalletCertificate(_)
             | InstructionError::HsmError(_) => ErrorType::Unexpected,
         }
+    }
+}
+
+impl ConvertibleError for hsm::HsmError {
+    fn error_type(&self) -> ErrorType {
+        ErrorType::Unexpected
     }
 }
 

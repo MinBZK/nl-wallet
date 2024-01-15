@@ -22,11 +22,11 @@ class OrganizationApprovePage extends StatelessWidget {
   /// The organization that user is interacting with
   final Organization organization;
 
+  /// The organization that user is interacting with
+  final String originUrl;
+
   /// Tells the Page in which flow it's currently used, used to select the correct string resources
   final ApprovalPurpose purpose;
-
-  /// Inform the user what the purpose is of this request
-  final LocalizedText? requestPurpose;
 
   /// If true, the 'first interaction' banner will be shown. //FIXME: This should eventually be a interactionCount
   final bool isFirstInteractionWithOrganization;
@@ -35,8 +35,8 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.onDeclinePressed,
     required this.onAcceptPressed,
     required this.organization,
+    required this.originUrl,
     required this.purpose,
-    this.requestPurpose,
     this.onReportIssuePressed,
     this.isFirstInteractionWithOrganization = true,
     Key? key,
@@ -108,9 +108,8 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 
   Widget _buildFraudInfoText(BuildContext context) {
-    final url = organization.webUrl ?? 'http://example.org';
-    final fullString = context.l10n.organizationApprovePageFraudInfo(url);
-    final parts = fullString.split(url);
+    final fullString = context.l10n.organizationApprovePageFraudInfo(originUrl);
+    final parts = fullString.split(originUrl);
 
     /// We only support the case where the url is somewhere inside the fullString, e.g. "Open {url} for more info"
     if (parts.length != 2) return Text(fullString, style: context.textTheme.bodyLarge);
@@ -121,7 +120,7 @@ class OrganizationApprovePage extends StatelessWidget {
         children: [
           TextSpan(text: parts.first),
           TextSpan(
-            text: url,
+            text: originUrl,
             style: TextStyle(
               color: context.colorScheme.primary,
               decoration: TextDecoration.underline,

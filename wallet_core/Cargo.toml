@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "configuration_server",
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "mdoc",
@@ -23,9 +24,6 @@ members = [
 ]
 exclude = ["flutter_rust_bridge_codegen", "uniffi-bindgen"]
 resolver = "2"
-
-[profile.test]
-debug = 1
 
 [workspace.package]
 version = "0.1.0"

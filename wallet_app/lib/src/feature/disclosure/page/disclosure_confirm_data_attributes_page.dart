@@ -10,10 +10,11 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/duration_extension.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../common/widget/button/confirm_buttons.dart';
-import '../../common/widget/info_row.dart';
+import '../../common/widget/button/link_button.dart';
+import '../../common/widget/card/shared_attributes_card.dart';
+import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../policy/policy_screen.dart';
-import '../widget/card_attribute_row.dart';
 
 const _kStorageDurationInMonthsFallback = 3;
 
@@ -26,6 +27,9 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   final Map<WalletCard, List<DataAttribute>> requestedAttributes;
   final Policy policy;
 
+  /// Inform the user what the purpose is of this request
+  final LocalizedText requestPurpose;
+
   int get totalNrOfAttributes => requestedAttributes.values.map((attributes) => attributes.length).sum;
 
   const DisclosureConfirmDataAttributesPage({
@@ -35,37 +39,32 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     required this.relyingParty,
     required this.requestedAttributes,
     required this.policy,
+    required this.requestPurpose,
     Key? key,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
+      thumbVisibility: true,
+      trackVisibility: true,
       child: CustomScrollView(
         restorationId: 'confirm_data_attributes_scrollview',
         slivers: <Widget>[
           const SliverSizedBox(height: 8),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          SliverList(delegate: _getDataAttributesDelegate()),
-          const SliverSizedBox(height: 24),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
-          SliverToBoxAdapter(
-            child: InfoRow(
-              icon: Icons.remove_red_eye_outlined,
-              title: Text(context.l10n.disclosureConfirmDataAttributesCheckAttributesCta),
-              onTap: () => CheckAttributesScreen.show(
-                context,
-                requestedAttributes,
-                onDataIncorrectPressed: () {
-                  Navigator.pop(context);
-                  onReportIssuePressed?.call();
-                },
-              ),
-            ),
+          const SliverDivider(height: 1),
+          SliverToBoxAdapter(child: _buildReasonSection(context)),
+          const SliverDivider(height: 1),
+          const SliverSizedBox(height: 32),
+          SliverToBoxAdapter(child: _buildCardsSectionHeader(context)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            sliver: _buildSharedAttributeCardsSliver(),
           ),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
-          SliverToBoxAdapter(child: _buildConditionsRow(context)),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
+          const SliverSizedBox(height: 8),
+          const SliverDivider(height: 1),
+          SliverToBoxAdapter(child: _buildPrivacySection(context)),
           SliverFillRemaining(
             hasScrollBody: false,
             fillOverscroll: true,
@@ -76,26 +75,37 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     );
   }
 
-  Widget _buildConditionsRow(BuildContext context) {
+  Widget _buildSharedAttributeCardsSliver() {
+    return SliverList.separated(
+      itemCount: requestedAttributes.length,
+      itemBuilder: (context, i) {
+        final entry = requestedAttributes.entries.elementAt(i);
+        return SharedAttributesCard(
+          card: entry.key,
+          attributes: entry.value,
+          onTap: () => CheckAttributesScreen.show(
+            context,
+            card: entry.key,
+            attributes: entry.value,
+            onDataIncorrectPressed: () {
+              Navigator.pop(context);
+              onReportIssuePressed?.call();
+            },
+          ),
+        );
+      },
+      separatorBuilder: (context, i) => const SizedBox(height: 16),
+    );
+  }
+
+  String _buildConditionsText(BuildContext context) {
     // currently defaults to 3 months for mocks with undefined storageDuration
     final storageDurationInMonths = policy.storageDuration?.inMonths ?? _kStorageDurationInMonthsFallback;
-    final String subtitle;
     if (policy.dataIsShared) {
-      subtitle = context.l10n.disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
+      return context.l10n.disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
     } else {
-      subtitle = context.l10n.disclosureConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
+      return context.l10n.disclosureConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
     }
-
-    return InfoRow(
-      icon: Icons.policy_outlined,
-      title: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
-      subtitle: Text(subtitle),
-      onTap: () => PolicyScreen.show(
-        context,
-        policy,
-        onReportIssuePressed: onReportIssuePressed,
-      ),
-    );
   }
 
   Widget _buildHeaderSection(BuildContext context) {
@@ -106,14 +116,14 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.legalName.l10nValue(context)),
-              style: context.textTheme.bodySmall,
+              context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.displayName.l10nValue(context)),
+              style: context.textTheme.displayMedium,
               textAlign: TextAlign.start,
             ),
             const SizedBox(height: 8),
             Text(
-              context.l10n.disclosureConfirmDataAttributesPageShareDataTitle(totalNrOfAttributes),
-              style: context.textTheme.displayMedium,
+              context.l10n.disclosureConfirmDataAttributesDisclaimer,
+              style: context.textTheme.bodyLarge,
               textAlign: TextAlign.start,
             ),
           ],
@@ -122,42 +132,102 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     );
   }
 
-  SliverChildBuilderDelegate _getDataAttributesDelegate() {
-    final entries = requestedAttributes.entries.toList();
-    return SliverChildBuilderDelegate(
-      (context, index) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: CardAttributeRow(entry: entries[index]),
-      ),
-      childCount: requestedAttributes.length,
-    );
-  }
-
   Widget _buildBottomSection(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const SizedBox(height: 24),
-        Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            context.l10n.disclosureConfirmDataAttributesDisclaimer,
-            style: context.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
-          ),
-        ),
-        Container(
-          alignment: Alignment.bottomCenter,
-          child: ConfirmButtons(
-            onAcceptPressed: onAcceptPressed,
-            acceptText: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
-            onDeclinePressed: onDeclinePressed,
-            acceptIcon: Icons.arrow_forward,
-            declineText: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
-          ),
+        const Divider(height: 1),
+        ConfirmButtons(
+          onAcceptPressed: onAcceptPressed,
+          acceptText: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
+          onDeclinePressed: onDeclinePressed,
+          acceptIcon: Icons.arrow_forward,
+          declineText: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
         ),
       ],
+    );
+  }
+
+  Widget _buildReasonSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, size: 24),
+          const SizedBox(height: 16),
+          Text(
+            context.l10n.disclosureConfirmDataAttributesSubtitlePurpose,
+            style: context.textTheme.displaySmall,
+            textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            requestPurpose.l10nValue(context),
+            style: context.textTheme.bodyLarge,
+            textAlign: TextAlign.start,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardsSectionHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.credit_card_outlined, size: 24),
+          const SizedBox(height: 16),
+          Text(
+            context.l10n.disclosureConfirmDataAttributesSubtitleData,
+            style: context.textTheme.displaySmall,
+            textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes),
+            style: context.textTheme.bodyLarge,
+            textAlign: TextAlign.start,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrivacySection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.handshake_outlined, size: 24),
+          const SizedBox(height: 16),
+          Text(
+            context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
+            style: context.textTheme.displaySmall,
+            textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _buildConditionsText(context),
+            style: context.textTheme.bodyLarge,
+            textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 4),
+          LinkButton(
+            customPadding: EdgeInsets.zero,
+            child: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
+            onPressed: () => PolicyScreen.show(
+              context,
+              policy,
+              onReportIssuePressed: onReportIssuePressed,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

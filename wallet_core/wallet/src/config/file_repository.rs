@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use url::Url;
 
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};
 
 use super::{
     config_file, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState, HttpConfigurationRepository,
@@ -18,6 +18,7 @@ impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
     pub async fn init(
         storage_path: PathBuf,
         base_url: Url,
+        signing_public_key: EcdsaDecodingKey,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
         let default_config = match config_file::get_config_file(storage_path.as_path()).await? {
@@ -32,7 +33,8 @@ impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
         };
 
         Ok(Self::new(
-            HttpConfigurationRepository::new(base_url, storage_path.clone(), default_config).await?,
+            HttpConfigurationRepository::new(base_url, signing_public_key, storage_path.clone(), default_config)
+                .await?,
             storage_path,
         ))
     }
@@ -75,9 +77,11 @@ where
 #[cfg(test)]
 mod tests {
     use std::sync::{Arc, RwLock};
+
+    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use url::Url;
 
-    use wallet_common::config::wallet_config::WalletConfiguration;
+    use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};
 
     use crate::config::{
         config_file, default_configuration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
@@ -142,6 +146,8 @@ mod tests {
     async fn should_use_newer_embedded_wallet_config() {
         let config_dir = tempfile::tempdir().unwrap();
         let path = config_dir.into_path();
+        let verifying_key = *SigningKey::random(&mut OsRng).verifying_key();
+        let config_decoding_key: EcdsaDecodingKey = verifying_key.into();
 
         let mut initially_stored_wallet_config = default_configuration();
         initially_stored_wallet_config.version = 10;
@@ -154,6 +160,7 @@ mod tests {
         let repo = FileStorageConfigurationRepository::init(
             path.clone(),
             Url::parse("http://localhost").unwrap(),
+            config_decoding_key.clone(),
             default_configuration(),
         )
         .await
@@ -166,6 +173,7 @@ mod tests {
         let repo = FileStorageConfigurationRepository::init(
             path.clone(),
             Url::parse("http://localhost").unwrap(),
+            config_decoding_key,
             embedded_wallet_config,
         )
         .await

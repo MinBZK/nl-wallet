@@ -2,7 +2,7 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::server_keys::KeysError;
+use nl_wallet_mdoc::{server_keys::KeysError, utils::issuer_auth::IssuerRegistration};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
 use crate::{
@@ -43,6 +43,8 @@ pub enum PidIssuanceError {
     HistoryStorage(#[source] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
+    #[error("issuer not authenticated")]
+    MissingIssuerRegistration,
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
@@ -251,6 +253,12 @@ where
 
             // This should never fail after successful issuance
             let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
+
+            // Verify that the certificate contains IssuerRegistration
+            if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
+                return Err(PidIssuanceError::MissingIssuerRegistration);
+            }
+
             WalletEvent::new_issuance(mdocs.into(), certificate)
         };
 
@@ -758,6 +766,29 @@ mod tests {
         let document = &documents[1][0];
         assert_matches!(document.persistence, DocumentPersistence::Stored(_));
         assert_eq!(document.doc_type, "com.example.pid");
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_missing_issuer_registration() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Have the `PidIssuerClient` accept the PID with a single instance of `MdocCopies`, which contains a single
+        // valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
+        wallet.pid_issuer.has_session = true;
+        wallet.pid_issuer.mdoc_copies = vec![vec![test::create_full_pid_mdoc_unauthenticated().await].into()];
+
+        // Accept the PID issuance with the PIN.
+        let error = wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, PidIssuanceError::MissingIssuerRegistration);
+
+        // No issuance event is logged
+        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
+        assert!(events.is_empty());
     }
 
     #[tokio::test]

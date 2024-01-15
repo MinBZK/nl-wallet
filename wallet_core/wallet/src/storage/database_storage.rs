@@ -354,9 +354,11 @@ where
         try_join!(insert_events, insert_new_doc_types)?;
 
         // Insert the event <-> doc_type mappings
-        history_event_doc_type::Entity::insert_many(event_doc_type_entities)
-            .exec(&transaction)
-            .await?;
+        if !event_doc_type_entities.is_empty() {
+            history_event_doc_type::Entity::insert_many(event_doc_type_entities)
+                .exec(&transaction)
+                .await?;
+        }
 
         transaction.commit().await?;
 
@@ -647,6 +649,42 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         test_history_by_doc_type(&mut storage).await;
+    }
+
+    #[tokio::test]
+    async fn test_storing_disclosure_cancel_event() {
+        let mut storage = open_test_database_storage().await;
+
+        // State should be Opened.
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, certificate.clone());
+        storage.log_wallet_event(disclosure_cancel.clone()).await.unwrap();
+        assert_eq!(
+            storage.fetch_wallet_events().await.unwrap(),
+            vec![disclosure_cancel.clone(),]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_storing_disclosure_error_event() {
+        let mut storage = open_test_database_storage().await;
+
+        // State should be Opened.
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let disclosure_error = WalletEvent::disclosure_error(timestamp, certificate.clone(), "Some ERROR".to_string());
+        storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
+        assert_eq!(
+            storage.fetch_wallet_events().await.unwrap(),
+            vec![disclosure_error.clone(),]
+        );
     }
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {

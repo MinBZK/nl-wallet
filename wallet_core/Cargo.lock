@@ -950,6 +950,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "configuration_server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "config",
+ "etag",
+ "http",
+ "mime",
+ "serde",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "console_error_panic_hook"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1509,6 +1525,7 @@ dependencies = [
  "cstr",
  "flutter_api_macros",
  "flutter_rust_bridge",
+ "itertools 0.11.0",
  "once_cell",
  "oslog",
  "serde",
@@ -2515,6 +2532,7 @@ dependencies = [
  "nl_wallet_mdoc",
  "reqwest",
  "serde",
+ "strum",
  "thiserror",
  "tokio",
  "tower-http",
@@ -2583,6 +2601,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "serde_repr",
+ "serde_urlencoded",
  "serde_with",
  "strum",
  "thiserror",
@@ -4476,8 +4495,10 @@ version = "0.1.0"
 dependencies = [
  "assert_matches",
  "base64 0.21.4",
+ "configuration_server",
  "ctor",
  "indexmap 2.0.2",
+ "jsonwebtoken",
  "nl_wallet_mdoc",
  "p256",
  "pid_issuer",
@@ -4486,6 +4507,8 @@ dependencies = [
  "reqwest",
  "rstest",
  "sea-orm",
+ "serde",
+ "serde_json",
  "serial_test",
  "tokio",
  "tracing",
@@ -5205,7 +5228,6 @@ dependencies = [
  "axum",
  "chrono",
  "config",
- "etag",
  "http",
  "mime",
  "once_cell",
@@ -5329,6 +5351,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_with",
  "strfmt",
  "thiserror",
  "tokio",

@@ -36,7 +36,6 @@ axum = { workspace = true, features = [
 ] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-etag.workspace = true
 http.workspace = true
 mime.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }

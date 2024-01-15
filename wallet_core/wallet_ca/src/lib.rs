@@ -8,7 +8,7 @@ use p256::{
 };
 use pem::{EncodeConfig, LineEnding, Pem};
 
-use nl_wallet_mdoc::utils::{reader_auth::ReaderRegistration, x509::Certificate};
+use nl_wallet_mdoc::utils::x509::Certificate;
 
 pub fn read_certificate(input: CachedInput) -> Result<Certificate> {
     let input_string = io::read_to_string(input)?;
@@ -20,11 +20,6 @@ pub fn read_signing_key(input: CachedInput) -> Result<SigningKey> {
     let pem: Pem = io::read_to_string(input)?.parse()?;
     let key = SigningKey::from_pkcs8_der(pem.contents())?;
     Ok(key)
-}
-
-pub fn read_reader_registration(path: CachedInput) -> Result<ReaderRegistration> {
-    let reader_registration = serde_json::from_reader(path)?;
-    Ok(reader_registration)
 }
 
 pub fn write_key_pair(key: SigningKey, certificate: Certificate, file_prefix: &str, force: bool) -> Result<()> {

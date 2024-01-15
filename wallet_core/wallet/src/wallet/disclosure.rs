@@ -392,10 +392,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration {
-            id: "1234".to_string(),
-            ..Default::default()
-        };
+        let reader_registration = ReaderRegistration { ..Default::default() };
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             IndexMap::from([(
@@ -434,7 +431,6 @@ mod tests {
         // Test that the returned `DisclosureProposal` contains the
         // `ReaderRegistration` we set up earlier, as well as the
         // proposed attributes converted to a `ProposedDisclosureDocument`.
-        assert_eq!(proposal.reader_registration.id, "1234");
         assert_eq!(proposal.documents.len(), 1);
         let document = proposal.documents.first().unwrap();
         assert_eq!(document.doc_type, "com.example.pid");
@@ -655,10 +651,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration {
-            id: "1234".to_string(),
-            ..Default::default()
-        };
+        let reader_registration = ReaderRegistration { ..Default::default() };
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             IndexMap::from([(

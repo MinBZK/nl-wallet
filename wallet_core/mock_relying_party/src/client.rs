@@ -3,7 +3,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    verifier::{ItemsRequests, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, ItemsRequests, SessionType, StatusResponse},
 };
 use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
@@ -26,11 +26,11 @@ impl WalletServerClient {
         items_requests: ItemsRequests,
         session_type: SessionType,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<(Url, Url), anyhow::Error> {
+    ) -> Result<(Url, Url, Url), anyhow::Error> {
         // TODO check if base_url ends with '/' (possibly already on init)
         let response = self
             .client
-            .post(self.base_url.join("/sessions")?)
+            .post(self.base_url.join("sessions")?)
             .json(&StartDisclosureRequest {
                 usecase,
                 items_requests,
@@ -42,17 +42,43 @@ impl WalletServerClient {
             .error_for_status()?
             .json::<StartDisclosureResponse>()
             .await?;
-        Ok((response.session_url, response.engagement_url))
+        Ok((
+            response.session_url,
+            response.engagement_url,
+            response.disclosed_attributes_url,
+        ))
     }
 
     pub async fn status(&self, session_id: SessionToken) -> Result<StatusResponse, anyhow::Error> {
         Ok(self
             .client
-            .get(self.base_url.join(&format!("/sessions/{session_id}/status"))?)
+            .get(self.base_url.join(&format!("/{session_id}/status"))?)
             .send()
             .await?
             .error_for_status()?
             .json::<StatusResponse>()
+            .await?)
+    }
+
+    pub async fn disclosed_attributes(
+        &self,
+        session_id: SessionToken,
+        transcript_hash: Option<String>,
+    ) -> Result<DisclosedAttributes, anyhow::Error> {
+        let mut disclosed_attributes_url = self
+            .base_url
+            .join(&format!("/sessions/{session_id}/disclosed_attributes"))?;
+        if let Some(hash) = transcript_hash {
+            disclosed_attributes_url.set_query(Some(&format!("transcript_hash={}", hash)));
+        }
+
+        Ok(self
+            .client
+            .get(disclosed_attributes_url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<DisclosedAttributes>()
             .await?)
     }
 }

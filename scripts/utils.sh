@@ -145,46 +145,33 @@ function generate_wp_random_key {
 
 # Generate an EC root CA for the pid_issuer
 function generate_pid_issuer_root_ca {
-    echo -e "${INFO}Generating PID root CA${NC}"
-    openssl req -x509 \
-            -nodes \
-            -newkey ec \
-            -pkeyopt ec_paramgen_curve:prime256v1 \
-            -keyout "${TARGET_DIR}/pid_issuer/ca_privkey.pem" \
-            -out "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
-            -days 365 \
-            -addext keyUsage=keyCertSign,cRLSign \
-            -subj '/CN=ca.example.com'
+    echo -e "${INFO}Generating PID CA key pair${NC}"
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
+        --common-name "ca.example.com" \
+        --file-prefix "${TARGET_DIR}/pid_issuer/ca" \
+        --force
 
-    openssl x509 -in "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
+    openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
             -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
 }
 
 # Generate an EC key pair for the pid_issuer
 function generate_pid_issuer_key_pair {
-    echo -e "${INFO}Generating PID issuer private key and CSR${NC}"
-    openssl req -new \
-            -nodes \
-            -newkey ec \
-            -pkeyopt ec_paramgen_curve:prime256v1 \
-            -keyout "${TARGET_DIR}/pid_issuer/issuer_key.pem" \
-            -out "${TARGET_DIR}/pid_issuer/issuer_csr.pem" \
-            -subj "/CN=pid.example.com"
-
-    echo -e "${INFO}Generate PID certificate from CSR using root CA${NC}"
-    openssl x509 -req \
-            -extfile <(printf "keyUsage=digitalSignature\nextendedKeyUsage=1.0.18013.5.1.2\nbasicConstraints=CA:FALSE") \
-            -in "${TARGET_DIR}/pid_issuer/issuer_csr.pem" \
-            -days 500 \
-            -CA "${TARGET_DIR}/pid_issuer/ca_cert.pem" \
-            -CAkey "${TARGET_DIR}/pid_issuer/ca_privkey.pem" \
-            -CAcreateserial \
-            -out "${TARGET_DIR}/pid_issuer/issuer_crt.pem"
+    echo -e "${INFO}Generating PID Issuer key pair${NC}"
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --features "allow_http_return_url" \
+        --bin wallet_ca issuer \
+        --ca-key-file "${TARGET_DIR}/pid_issuer/ca.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
+        --common-name "pid.example.com" \
+        --issuer-auth-file "${DEVENV}/issuer_auth.json" \
+        --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
+        --force
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/pid_issuer/issuer_key.pem" -out "${TARGET_DIR}/pid_issuer/issuer_key.der" -nocrypt
+        -in "${TARGET_DIR}/pid_issuer/issuer.key.pem" -out "${TARGET_DIR}/pid_issuer/issuer_key.der" -nocrypt
 
-    openssl x509 -in "${TARGET_DIR}/pid_issuer/issuer_crt.pem" \
+    openssl x509 -in "${TARGET_DIR}/pid_issuer/issuer.crt.pem" \
         -outform der -out "${TARGET_DIR}/pid_issuer/issuer_crt.der"
 }
 
@@ -201,13 +188,15 @@ function generate_mock_relying_party_root_ca {
 
 # Generate an EC key pair for the mock_relying_party
 function generate_mock_relying_party_key_pair {
+    render_template "${DEVENV}/reader_auth.json" "${TARGET_DIR}/mock_relying_party/reader_auth.json"
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --features "allow_http_return_url" \
-        --bin wallet_ca reader-auth-cert \
+        --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
         --common-name "rp.example.com" \
-        --reader-auth-file "${DEVENV}/reader_auth.json" \
+        --reader-auth-file "${TARGET_DIR}/mock_relying_party/reader_auth.json" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/rp" \
         --force
 

@@ -343,7 +343,9 @@ class OrganizationDetailScreen extends StatelessWidget {
               padding: EdgeInsets.all(16),
               child: Icon(Icons.history_outlined, size: 24),
             ),
-            Text(interaction),
+            Expanded(
+              child: Text(interaction),
+            ),
           ],
         ),
         const SizedBox(height: 8),

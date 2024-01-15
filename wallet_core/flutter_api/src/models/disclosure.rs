@@ -10,6 +10,7 @@ use super::{
     instruction::WalletInstructionError,
 };
 
+#[derive(Clone)]
 pub enum Image {
     Svg { xml: String },
     Png { base64: String },
@@ -17,6 +18,7 @@ pub enum Image {
     Asset { path: String },
 }
 
+#[derive(Clone)]
 pub struct Organization {
     pub legal_name: Vec<LocalizedString>,
     pub display_name: Vec<LocalizedString>,
@@ -53,12 +55,14 @@ pub enum StartDisclosureResult {
         requested_cards: Vec<RequestedCard>,
         is_first_interaction_with_relying_party: bool,
         request_purpose: Vec<LocalizedString>,
+        request_origin_base_url: String,
     },
     RequestAttributesMissing {
         relying_party: Organization,
         missing_attributes: Vec<MissingAttribute>,
         is_first_interaction_with_relying_party: bool,
         request_purpose: Vec<LocalizedString>,
+        request_origin_base_url: String,
     },
 }
 
@@ -179,6 +183,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     requested_cards: RequestedCard::from_disclosure_documents(proposal.documents),
                     is_first_interaction_with_relying_party: false, //TODO: Resolve this value
                     request_purpose,
+                    request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
                 };
 
                 Ok(result)
@@ -196,6 +201,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                         missing_attributes,
                         is_first_interaction_with_relying_party: false, //TODO: Resolve this value
                         request_purpose,
+                        request_origin_base_url: reader_registration.request_origin_base_url.into(),
                     };
 
                     Ok(result)

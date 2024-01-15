@@ -144,7 +144,7 @@ fn ecdsa_pubkey(x: &str, y: &str) -> Result<VerifyingKey> {
     .context("failed to instantiate public key")
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, all(feature = "mock", feature = "software-keys")))]
 pub mod mock {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 

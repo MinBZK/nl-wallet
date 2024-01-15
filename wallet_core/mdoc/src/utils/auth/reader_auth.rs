@@ -1,9 +1,8 @@
 use std::str::FromStr;
 
 use indexmap::{IndexMap, IndexSet};
-use p256::pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, skip_serializing_none, DeserializeFromStr};
+use serde_with::{skip_serializing_none, DeserializeFromStr};
 use url::Url;
 use x509_parser::der_parser::Oid;
 
@@ -12,6 +11,8 @@ use crate::{
     utils::x509::{Certificate, CertificateError},
     DeviceRequest,
 };
+
+use super::{LocalizedStrings, Organization};
 
 /// oid: 2.1.123.1
 /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
@@ -42,13 +43,6 @@ pub struct ReturnUrlPrefix(Url);
 impl ReturnUrlPrefix {
     pub fn matches_url(&self, url: &Url) -> bool {
         url.authority() == self.0.authority() && url.path().starts_with(self.0.path())
-    }
-}
-
-#[cfg(any(test, feature = "mock"))]
-impl Default for ReturnUrlPrefix {
-    fn default() -> Self {
-        ReturnUrlPrefix("https://example.com/".parse().unwrap())
     }
 }
 
@@ -92,17 +86,17 @@ impl From<ReturnUrlPrefix> for Url {
 }
 
 #[skip_serializing_none]
-#[cfg_attr(any(test, feature = "mock"), derive(Default))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReaderRegistration {
-    pub id: String,
     pub purpose_statement: LocalizedStrings,
     pub retention_policy: RetentionPolicy,
     pub sharing_policy: SharingPolicy,
     pub deletion_policy: DeletionPolicy,
     pub organization: Organization,
     pub return_url_prefix: ReturnUrlPrefix,
+    /// Origin base url, for visual user inspection
+    pub request_origin_base_url: Url,
     pub attributes: IndexMap<String, AuthorizedMdoc>,
 }
 
@@ -110,18 +104,7 @@ impl ReaderRegistration {
     pub fn from_certificate(source: &Certificate) -> Result<Option<Self>, CertificateError> {
         // unwrap() is safe here, because we process a fixed value
         let oid = Oid::from(OID_EXT_READER_AUTH).unwrap();
-        let x509_cert = source.to_x509()?;
-        let ext = x509_cert.iter_extensions().find(|ext| ext.oid == oid);
-        let registration = match ext {
-            Some(ext) => {
-                let mut reader = SliceReader::new(ext.value)?;
-                let json = Utf8StringRef::decode(&mut reader)?;
-                let registration = serde_json::from_str(json.as_str())?;
-                Some(registration)
-            }
-            None => None,
-        };
-        Ok(registration)
+        source.extract_custom_ext(oid)
     }
 }
 
@@ -144,63 +127,6 @@ impl AttributeIdentifierHolder for ReaderRegistration {
     }
 }
 
-#[skip_serializing_none]
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Organization {
-    pub display_name: LocalizedStrings,
-    pub legal_name: LocalizedStrings,
-    pub description: LocalizedStrings,
-    pub category: LocalizedStrings,
-    pub logo: Option<Image>,
-    pub web_url: Option<Url>,
-    pub kvk: Option<String>,
-    pub city: Option<LocalizedStrings>,
-    pub department: Option<LocalizedStrings>,
-    pub country_code: Option<String>,
-    pub privacy_policy_url: Option<Url>,
-}
-
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ImageType {
-    #[default]
-    #[serde(rename = "image/svg+xml")]
-    Svg,
-    #[serde(rename = "image/png")]
-    Png,
-    #[serde(rename = "image/jpeg")]
-    Jpeg,
-}
-
-/// Encapsulates an image.
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Image {
-    /// Media Type of the image, expected to start with: `image/`.
-    pub mime_type: ImageType,
-    /// String encoded data of the image, f.e. XML text for `image/xml+svg`, or Base64 encoded binary data for
-    /// `image/png`.
-    pub image_data: String,
-}
-
-type Language = String;
-
-/// Holds multiple translations of the same field
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LocalizedStrings(pub IndexMap<Language, String>);
-
-/// Allows convenient definitions of [`LocalizedStrings`] in Rust code.
-impl From<Vec<(&str, &str)>> for LocalizedStrings {
-    fn from(source: Vec<(&str, &str)>) -> Self {
-        let mut map = IndexMap::new();
-        for (language, value) in source.into_iter() {
-            map.insert(language.to_owned(), value.to_owned());
-        }
-        LocalizedStrings(map)
-    }
-}
-
-#[serde_as]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RetentionPolicy {
@@ -254,10 +180,9 @@ mod generate {
     use p256::pkcs8::der::{asn1::Utf8StringRef, Encode};
     use rcgen::CustomExtension;
 
-    use crate::utils::{
-        reader_auth::{ReaderRegistration, OID_EXT_READER_AUTH},
-        x509::CertificateError,
-    };
+    use crate::utils::x509::CertificateError;
+
+    use super::{ReaderRegistration, OID_EXT_READER_AUTH};
 
     impl ReaderRegistration {
         pub fn to_custom_ext(&self) -> Result<CustomExtension, CertificateError> {
@@ -265,6 +190,53 @@ mod generate {
             let string = Utf8StringRef::new(&json_string)?;
             let ext = CustomExtension::from_oid_content(OID_EXT_READER_AUTH, string.to_der()?);
             Ok(ext)
+        }
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+pub use mock::*;
+
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use super::*;
+
+    impl Default for ReaderRegistration {
+        fn default() -> Self {
+            reader_registration_mock()
+        }
+    }
+
+    pub fn reader_registration_mock() -> ReaderRegistration {
+        let my_organization = Organization {
+            display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
+            legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
+            description: vec![
+                ("nl", "Beschrijving van Mijn Organisatie"),
+                ("en", "Description of My Organization"),
+            ]
+            .into(),
+            category: vec![("nl", "Categorie"), ("en", "Category")].into(),
+            kvk: Some("some-kvk".to_owned()),
+            city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
+            department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
+            country_code: Some("nl".to_owned()),
+            web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
+            privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
+            logo: None,
+        };
+        ReaderRegistration {
+            purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
+            retention_policy: RetentionPolicy {
+                intent_to_retain: true,
+                max_duration_in_minutes: Some(60 * 24 * 365),
+            },
+            sharing_policy: SharingPolicy { intent_to_share: true },
+            deletion_policy: DeletionPolicy { deleteable: true },
+            organization: my_organization,
+            return_url_prefix: "https://example.com/".parse().unwrap(),
+            request_origin_base_url: "https://example.com/".parse().unwrap(),
+            attributes: Default::default(),
         }
     }
 }
@@ -603,7 +575,7 @@ mod tests {
 
         ReaderRegistration {
             attributes,
-            ..Default::default()
+            ..reader_registration_mock()
         }
     }
 
