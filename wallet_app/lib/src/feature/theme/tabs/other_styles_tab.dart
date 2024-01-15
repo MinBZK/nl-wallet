@@ -20,6 +20,7 @@ import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/button/wallet_back_button.dart';
+import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/timeline_attribute_row.dart';
@@ -49,6 +50,29 @@ final _kSampleCardFront = CardFront(
   info: 'Info'.untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
   subtitle: 'Subtitle'.untranslated,
+);
+
+final _kSampleAttributes = [
+  DataAttribute(
+    key: 'key1',
+    label: 'Sample #1'.untranslated,
+    value: const StringValue('1'),
+    sourceCardDocType: 'sourceCardDocType',
+  ),
+  DataAttribute(
+    key: 'key2',
+    label: 'Sample #2'.untranslated,
+    value: const StringValue('2'),
+    sourceCardDocType: 'sourceCardDocType',
+  )
+];
+
+final _kSampleCard = WalletCard(
+  id: 'id',
+  docType: 'docType',
+  issuerId: 'issuerId',
+  front: _kSampleCardFront,
+  attributes: _kSampleAttributes,
 );
 
 class OtherStylesTab extends StatelessWidget {
@@ -168,7 +192,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'CardAttributeRow'),
         CardAttributeRow(
           entry: MapEntry(
-            WalletCard(id: 'id', docType: 'docType', front: _kSampleCardFront, attributes: const [], issuerId: ''),
+            _kSampleCard,
             [
               DataAttribute.untranslated(
                 label: 'Voornaam',
@@ -213,11 +237,14 @@ class OtherStylesTab extends StatelessWidget {
         ),
         const ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(cards: [
-          WalletCard(
-              id: 'id', docType: 'docType', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
-          WalletCard(
-              id: 'id', docType: 'docType', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
+          _kSampleCard,
+          _kSampleCard,
         ]),
+        const ThemeSectionSubHeader(title: 'SharedWalletCard'),
+        SharedAttributesCard(
+          card: _kSampleCard,
+          attributes: _kSampleCard.attributes,
+        ),
       ],
     );
   }

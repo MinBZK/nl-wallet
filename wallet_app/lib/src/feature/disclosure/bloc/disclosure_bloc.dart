@@ -45,7 +45,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: _startDisclosureResult!.relyingParty,
-          requestPurpose: _startDisclosureResult!.requestPurpose,
           isFirstInteractionWithOrganization: _startDisclosureResult!.isFirstInteractionWithOrganization,
         ),
       );
@@ -77,7 +76,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
-          requestPurpose: _startDisclosureResult!.requestPurpose,
           isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),
@@ -87,7 +85,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
-          requestPurpose: _startDisclosureResult!.requestPurpose,
           isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
           afterBackPressed: true,
         ),
@@ -100,6 +97,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           relyingParty: _startDisclosureResult!.relyingParty,
           requestedAttributes: result.requestedAttributes,
           policy: result.policy,
+          requestPurpose: result.requestPurpose,
           afterBackPressed: true,
         ),
       );
@@ -115,6 +113,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         emit(
           DisclosureConfirmDataAttributes(
             relyingParty: startDisclosureResult.relyingParty,
+            requestPurpose: startDisclosureResult.requestPurpose,
             requestedAttributes: startDisclosureResult.requestedAttributes,
             policy: startDisclosureResult.policy,
           ),

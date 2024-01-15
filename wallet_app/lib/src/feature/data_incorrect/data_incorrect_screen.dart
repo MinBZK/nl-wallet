@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/sliver_sized_box.dart';
@@ -81,9 +82,11 @@ class DataIncorrectScreen extends StatelessWidget {
   }
 
   static Future<DataIncorrectResult?> show(BuildContext context) {
-    return Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return const DataIncorrectScreen();
-    }));
+    return Navigator.of(context).push(
+      SecuredPageRoute(
+        builder: (context) => const DataIncorrectScreen(),
+      ),
+    );
   }
 }
 

@@ -8,88 +8,196 @@ class ColorStylesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
       children: [
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.primary,
-          ),
-          text: const Text('colorScheme.primary'),
+        _ColorRow(
+          name: 'colorScheme.primary',
+          color: colorScheme.primary,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.primaryContainer,
-          ),
-          text: const Text('colorScheme.primaryContainer'),
+        _ColorRow(
+          name: 'colorScheme.onPrimary',
+          color: colorScheme.onPrimary,
+          bgColor: colorScheme.primary,
+          textColor: colorScheme.onPrimary,
         ),
-        Container(
-          color: context.colorScheme.primary,
-          child: IconRow(
-            icon: Icon(
-              Icons.circle,
-              color: context.colorScheme.onPrimary,
-            ),
-            text: Text(
-              'colorScheme.onPrimary',
-              style: context.textTheme.bodyLarge?.copyWith(
-                color: context.colorScheme.onPrimary,
-              ),
-            ),
-          ),
+        _ColorRow(
+          name: 'colorScheme.primaryContainer',
+          color: colorScheme.primaryContainer,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.secondary,
-          ),
-          text: const Text('colorScheme.secondary'),
+        _ColorRow(
+          name: 'colorScheme.onPrimaryContainer',
+          color: colorScheme.onPrimaryContainer,
+          bgColor: colorScheme.primaryContainer,
+          textColor: colorScheme.onPrimaryContainer,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.secondaryContainer,
-          ),
-          text: const Text('colorScheme.secondaryContainer'),
+        _ColorRow(
+          name: 'colorScheme.secondary',
+          color: colorScheme.secondary,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.background,
-          ),
-          text: const Text('colorScheme.background'),
+        _ColorRow(
+          name: 'colorScheme.onSecondary',
+          color: colorScheme.onSecondary,
+          bgColor: colorScheme.secondary,
+          textColor: colorScheme.onSecondary,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.onBackground,
-          ),
-          text: const Text('colorScheme.onBackground'),
+        _ColorRow(
+          name: 'colorScheme.secondaryContainer',
+          color: colorScheme.secondaryContainer,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.error,
-          ),
-          text: const Text('colorScheme.error'),
+        _ColorRow(
+          name: 'colorScheme.onSecondaryContainer',
+          color: colorScheme.onSecondaryContainer,
+          bgColor: colorScheme.secondaryContainer,
+          textColor: colorScheme.onSecondaryContainer,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.onSurface,
-          ),
-          text: const Text('colorScheme.onSurface'),
+        _ColorRow(
+          name: 'colorScheme.tertiary',
+          color: colorScheme.tertiary,
         ),
-        IconRow(
-          icon: Icon(
-            Icons.circle,
-            color: context.colorScheme.outlineVariant,
-          ),
-          text: const Text('colorScheme.outlineVariant'),
+        _ColorRow(
+          name: 'colorScheme.onTertiary',
+          color: colorScheme.onTertiary,
+          bgColor: colorScheme.tertiary,
+          textColor: colorScheme.onTertiary,
+        ),
+        _ColorRow(
+          name: 'colorScheme.tertiaryContainer',
+          color: colorScheme.tertiaryContainer,
+        ),
+        _ColorRow(
+          name: 'colorScheme.onTertiaryContainer',
+          color: colorScheme.onTertiaryContainer,
+          bgColor: colorScheme.tertiaryContainer,
+          textColor: colorScheme.onTertiaryContainer,
+        ),
+        _ColorRow(
+          name: 'colorScheme.background',
+          color: colorScheme.background,
+        ),
+        _ColorRow(
+          name: 'colorScheme.onBackground',
+          color: colorScheme.onBackground,
+          bgColor: colorScheme.background,
+          textColor: colorScheme.onBackground,
+        ),
+        _ColorRow(
+          name: 'colorScheme.error',
+          color: colorScheme.error,
+        ),
+        _ColorRow(
+          name: 'colorScheme.onError',
+          color: colorScheme.onError,
+          bgColor: colorScheme.error,
+          textColor: colorScheme.onError,
+        ),
+        _ColorRow(
+          name: 'colorScheme.errorContainer',
+          color: colorScheme.errorContainer,
+        ),
+        _ColorRow(
+          name: 'colorScheme.onErrorContainer',
+          color: colorScheme.onErrorContainer,
+          bgColor: colorScheme.errorContainer,
+          textColor: colorScheme.onErrorContainer,
+        ),
+        _ColorRow(
+          name: 'colorScheme.surface',
+          color: colorScheme.surface,
+        ),
+        _ColorRow(
+          name: 'colorScheme.onSurface',
+          color: colorScheme.onSurface,
+          bgColor: colorScheme.surface,
+          textColor: colorScheme.onSurface,
+        ),
+        _ColorRow(
+          name: 'colorScheme.surfaceTint',
+          color: colorScheme.surfaceTint,
+        ),
+        _ColorRow(
+          name: 'colorScheme.surfaceVariant',
+          color: colorScheme.surfaceVariant,
+        ),
+        _ColorRow(
+          name: 'colorScheme.onSurfaceVariant',
+          color: colorScheme.onSurfaceVariant,
+          bgColor: colorScheme.surfaceVariant,
+          textColor: colorScheme.onSurfaceVariant,
+        ),
+        _ColorRow(
+          name: 'colorScheme.outline',
+          color: colorScheme.outline,
+        ),
+        _ColorRow(
+          name: 'colorScheme.outlineVariant',
+          color: colorScheme.outlineVariant,
+        ),
+        _ColorRow(
+          name: 'colorScheme.scrim',
+          color: colorScheme.scrim,
+        ),
+        _ColorRow(
+          name: 'colorScheme.shadow',
+          color: colorScheme.shadow,
         ),
       ],
     );
   }
+}
+
+/// Simple widget to demonstrate a color, only used in the design system color tab.
+class _ColorRow extends StatelessWidget {
+  final Color color;
+  final Color? bgColor;
+  final Color? textColor;
+  final String name;
+
+  const _ColorRow({
+    required this.name,
+    required this.color,
+    this.bgColor,
+    this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: bgColor,
+      child: IconRow(
+        icon: Container(
+          height: 36,
+          width: 36,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.black, width: 2),
+          ),
+        ),
+        text: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              name,
+              style: context.textTheme.bodyLarge?.copyWith(color: textColor),
+            ),
+            Text(
+              color.toHex(),
+              style: context.textTheme.bodySmall?.copyWith(color: textColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+extension _HexColor on Color {
+  String toHex() => '#'
+          '${alpha.toRadixString(16).padLeft(2, '0')}'
+          '${red.toRadixString(16).padLeft(2, '0')}'
+          '${green.toRadixString(16).padLeft(2, '0')}'
+          '${blue.toRadixString(16).padLeft(2, '0')}'
+      .toUpperCase();
 }

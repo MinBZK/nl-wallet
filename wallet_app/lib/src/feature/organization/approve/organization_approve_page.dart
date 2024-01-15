@@ -25,9 +25,6 @@ class OrganizationApprovePage extends StatelessWidget {
   /// Tells the Page in which flow it's currently used, used to select the correct string resources
   final ApprovalPurpose purpose;
 
-  /// Inform the user what the purpose is of this request
-  final LocalizedText? requestPurpose;
-
   /// If true, the 'first interaction' banner will be shown. //FIXME: This should eventually be a interactionCount
   final bool isFirstInteractionWithOrganization;
 
@@ -36,7 +33,6 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.onAcceptPressed,
     required this.organization,
     required this.purpose,
-    this.requestPurpose,
     this.onReportIssuePressed,
     this.isFirstInteractionWithOrganization = true,
     Key? key,
