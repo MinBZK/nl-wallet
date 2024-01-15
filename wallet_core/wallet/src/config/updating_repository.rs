@@ -29,7 +29,13 @@ impl UpdatingFileHttpConfigurationRepository {
         config: ConfigServerConfiguration,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
-        let wrapped = FileStorageConfigurationRepository::init(storage_path, config.base_url, initial_config).await?;
+        let wrapped = FileStorageConfigurationRepository::init(
+            storage_path,
+            config.base_url,
+            config.signing_public_key.into(),
+            initial_config,
+        )
+        .await?;
         let config = Self::new(wrapped, config.update_frequency).await;
         Ok(config)
     }

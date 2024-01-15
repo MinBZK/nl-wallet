@@ -58,7 +58,7 @@ pub trait JwtSubject {
 /// takes to construct it. From a `VerifyingKey` of the `ecdsa` crate, this encoding may be obtained by calling
 /// `public_key.to_encoded_point(false).as_bytes()`.
 #[derive(Clone)]
-pub struct EcdsaDecodingKey(DecodingKey);
+pub struct EcdsaDecodingKey(pub DecodingKey);
 
 impl From<DecodingKey> for EcdsaDecodingKey {
     fn from(value: DecodingKey) -> Self {

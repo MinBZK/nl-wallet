@@ -1,0 +1,32 @@
+[package]
+name = "configuration_server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "configuration_server"
+
+[lib]
+doctest = false
+
+[dependencies]
+axum = { workspace = true, features = [
+    "http1",
+    "tokio",
+    "tower-log",
+    "tracing",
+] }
+config.workspace = true
+etag.workspace = true
+http.workspace = true
+mime.workspace = true
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "parking_lot",
+    "macros",
+] }
+tower-http = { workspace = true, features = ["trace"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["parking_lot"] }

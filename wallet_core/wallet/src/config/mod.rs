@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use url::ParseError;
 
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
 
 pub use self::{
     data::{default_configuration, ConfigServerConfiguration},
@@ -36,6 +36,8 @@ pub enum ConfigurationError {
     BaseUrl(#[from] ParseError),
     #[error("could not store or load configuration: {0}")]
     ConfigFile(#[from] FileStorageError),
+    #[error("could not validate JWT: {0}")]
+    Jwt(#[from] JwtError),
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -43,7 +43,13 @@ async fn test_block() {
     settings.pin_policy.attempts_per_round = 2;
     settings.pin_policy.timeouts_in_ms = vec![];
 
-    let mut wallet = setup_wallet_and_env(settings, wallet_server_settings(), pid_issuer_settings()).await;
+    let mut wallet = setup_wallet_and_env(
+        config_server_settings(),
+        settings,
+        wallet_server_settings(),
+        pid_issuer_settings(),
+    )
+    .await;
     wallet = do_wallet_registration(wallet, pin).await;
 
     wallet.lock();
