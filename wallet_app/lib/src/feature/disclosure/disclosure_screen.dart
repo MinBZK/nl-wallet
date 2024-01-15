@@ -136,7 +136,6 @@ class DisclosureScreen extends StatelessWidget {
       organization: state.relyingParty,
       isFirstInteractionWithOrganization: state.isFirstInteractionWithOrganization,
       purpose: ApprovalPurpose.disclosure,
-      requestPurpose: state.requestPurpose,
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
     );
   }
@@ -157,6 +156,7 @@ class DisclosureScreen extends StatelessWidget {
       relyingParty: state.relyingParty,
       requestedAttributes: state.requestedAttributes,
       policy: state.policy,
+      requestPurpose: state.requestPurpose,
     );
   }
 

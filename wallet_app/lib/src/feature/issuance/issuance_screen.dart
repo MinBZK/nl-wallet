@@ -143,7 +143,6 @@ class IssuanceScreen extends StatelessWidget {
       onAcceptPressed: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
-      requestPurpose: 'Kaart uitgifte'.untranslated, //TODO: Fetch through core?
     );
   }
 

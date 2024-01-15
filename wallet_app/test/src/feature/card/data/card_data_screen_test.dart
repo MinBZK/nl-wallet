@@ -101,7 +101,7 @@ void main() {
       );
 
       // Validate that the widget exists
-      final titleFinder = find.text('Sample Card');
+      final titleFinder = find.text(WalletMockData.card.front.title.testValue);
       final labelFinder = find.text(WalletMockData.textDataAttribute.label.l10nValueFromLocale('en'));
       final valueFinder = find
           .text(AttributeValueFormatter.formatWithLocale(const Locale('en'), WalletMockData.textDataAttribute.value));

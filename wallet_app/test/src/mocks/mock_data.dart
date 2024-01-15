@@ -24,7 +24,7 @@ abstract class WalletMockData {
 
   static WalletCard altCard = WalletCard(
     front: CardFront(
-      title: 'Alt Sample Card'.untranslated,
+      title: 'Sample Card #2'.untranslated,
       backgroundImage: WalletAssets.svg_rijks_card_bg_light,
       theme: CardFrontTheme.light,
       info: 'Alt Info'.untranslated,
@@ -38,7 +38,7 @@ abstract class WalletMockData {
   );
 
   static CardFront cardFront = CardFront(
-    title: 'Sample Card'.untranslated,
+    title: 'Sample Card #1'.untranslated,
     backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
     theme: CardFrontTheme.dark,
     info: 'Info'.untranslated,
@@ -55,9 +55,9 @@ abstract class WalletMockData {
 
   static final Organization organization = Organization(
     id: 'id',
-    legalName: 'Organization Name'.untranslated,
+    legalName: 'Organization Legal Name'.untranslated,
     category: 'Category'.untranslated,
-    displayName: 'Name'.untranslated,
+    displayName: 'Display Name'.untranslated,
     description: 'Organization description'.untranslated,
     logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
   );

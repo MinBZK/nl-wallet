@@ -13,6 +13,8 @@ class DarkWalletTheme {
     error: Color(0xFFFF8989),
     background: Color(0xFF1C1E25),
     inverseSurface: Color(0xFF414966),
+    primaryContainer: Color(0xFF2F3444),
+    onPrimaryContainer: textColor,
     secondaryContainer: Color(0xFF004785),
     onPrimary: Color(0xFF002C71),
     onBackground: primaryColorDark,

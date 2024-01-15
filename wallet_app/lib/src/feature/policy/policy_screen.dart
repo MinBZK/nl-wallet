@@ -2,6 +2,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/model/policy/policy.dart';
+import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
@@ -105,7 +106,7 @@ class PolicyScreen extends StatelessWidget {
   static void show(BuildContext context, Policy policy, {VoidCallback? onReportIssuePressed}) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      SecuredPageRoute(
         builder: (c) => PolicyScreen(
           policy: policy,
           onReportIssuePressed: onReportIssuePressed,
