@@ -23,6 +23,7 @@ import '../../common/widget/button/wallet_back_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/history/timeline_attribute_row.dart';
 import '../../common/widget/history/timeline_section_header.dart';
 import '../../common/widget/icon_row.dart';
@@ -108,6 +109,11 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () => _showWalletAppBarPage(context),
           child: const Text('WalletAppBar'),
+        ),
+        const ThemeSectionSubHeader(title: 'Wallet App Bar + FadeInAtOffset'),
+        TextButton(
+          onPressed: () => _showWalletAppBarPageWithFadeInTitle(context),
+          child: const Text('WalletAppBar + FadeInAtOffset'),
         ),
       ],
     );
@@ -414,7 +420,50 @@ class OtherStylesTab extends StatelessWidget {
                     padding: const EdgeInsets.all(12),
                     alignment: Alignment.center,
                     child: const Text(
-                      'This is a more static variant of the custom AppBar and does not support the collapse effect',
+                      'This is a more static variant of the custom AppBar without collapse effect',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+                return Container(
+                  height: 100,
+                  color: index.isOdd ? Colors.greenAccent : Colors.transparent,
+                );
+              },
+              itemCount: 50,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showWalletAppBarPageWithFadeInTitle(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) {
+          return Scaffold(
+            appBar: WalletAppBar(
+              title: const FadeInAtOffset(
+                appearOffset: 50,
+                visibleOffset: 150,
+                child: Text('FadeInAtOffset'),
+              ),
+              progress: 0.55,
+              leading: const WalletBackButton(),
+              actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
+            ),
+            body: ListView.builder(
+              itemBuilder: (context, index) {
+                if (index == 2) {
+                  return Container(
+                    height: 100,
+                    padding: const EdgeInsets.all(12),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'This is the Static WalletAppBar combined with a '
+                      'FadeInAtOffset to recreate the collapse and show title effect.',
                       textAlign: TextAlign.center,
                     ),
                   );
