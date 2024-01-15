@@ -17,6 +17,7 @@ use crate::{
     iso::{disclosure::DeviceResponse, mdocs::DataElementValue},
     server_keys::PrivateKey,
     utils::{
+        issuer_auth::issuer_registration_mock,
         keys::{KeyFactory, MdocEcdsaKey, MdocKeyType},
         reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
         x509::{Certificate, CertificateError, CertificateType},
@@ -56,7 +57,22 @@ const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
 pub fn generate_issuance_key_and_ca() -> Result<(PrivateKey, Certificate), CertificateError> {
     // Issuer CA certificate and normal certificate
     let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
-    let (issuer_cert, issuer_privkey) = Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl)?;
+    let (issuer_cert, issuer_privkey) = Certificate::new(
+        &ca,
+        &ca_privkey,
+        ISSUANCE_CERT_CN,
+        CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+    )?;
+    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+
+    Ok((issuance_key, ca))
+}
+
+pub fn generate_issuance_key_and_ca_unauthenticated() -> Result<(PrivateKey, Certificate), CertificateError> {
+    // Issuer CA certificate and normal certificate
+    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+    let (issuer_cert, issuer_privkey) =
+        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl(None))?;
     let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
 
     Ok((issuance_key, ca))

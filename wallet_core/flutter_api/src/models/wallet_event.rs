@@ -36,15 +36,20 @@ impl IntoIterator for WalletEvents {
 impl From<HistoryEvent> for WalletEvents {
     fn from(source: HistoryEvent) -> Self {
         let result = match source {
-            HistoryEvent::Issuance { timestamp, mdocs } => {
+            HistoryEvent::Issuance {
+                timestamp,
+                mdocs,
+                issuer_registration,
+            } => {
+                let issuer = Organization::from(issuer_registration.organization);
+                let mdocs_count = mdocs.len();
                 mdocs
                     .into_iter()
-                    .map(|mdoc| {
-                        WalletEvent::Issuance {
-                            date_time: timestamp.to_rfc3339(),
-                            issuer: pid_issuer_organization(), // TODO: read from certificate
-                            card: mdoc.into(),
-                        }
+                    .zip(itertools::repeat_n(issuer, mdocs_count))
+                    .map(|(mdoc, issuer)| WalletEvent::Issuance {
+                        date_time: timestamp.to_rfc3339(),
+                        issuer,
+                        card: mdoc.into(),
                     })
                     .collect()
             }
@@ -82,36 +87,5 @@ impl From<EventStatus> for DisclosureStatus {
             EventStatus::Cancelled => DisclosureStatus::Cancelled,
             EventStatus::Error(_) => DisclosureStatus::Error,
         }
-    }
-}
-
-/// Hardcoded organization info for PID Issuer.
-fn pid_issuer_organization() -> Organization {
-    Organization {
-        legal_name: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "RvIG".to_owned(),
-        }],
-        display_name: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "Rijksdienst voor Identiteitsgegevens".to_owned(),
-        }],
-        description: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "Opvragen van PID (Person Identification Data)".to_owned(),
-        }],
-        category: vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "Overheid".to_owned(),
-        }],
-        image: None,
-        web_url: Some("https://www.rvig.nl".to_owned()),
-        kvk: Some(" 27373207".to_owned()),
-        city: Some(vec![LocalizedString {
-            language: "nl".to_owned(),
-            value: "'s-Gravenhage".to_owned(),
-        }]),
-        department: None,
-        country_code: Some("nl".to_owned()),
     }
 }
