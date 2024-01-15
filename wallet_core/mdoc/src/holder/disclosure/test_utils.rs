@@ -28,7 +28,7 @@ use crate::{
     utils::{
         cose::{self, MdocCose},
         crypto::{SessionKey, SessionKeyUser},
-        reader_auth::ReaderRegistration,
+        reader_auth::{reader_registration_mock, ReaderRegistration},
         serialization::{self, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateType},
     },
@@ -485,7 +485,7 @@ where
                 EXAMPLE_NAMESPACE.to_string(),
                 EXAMPLE_ATTRIBUTES.iter().copied(),
             ),
-            ..Default::default()
+            ..reader_registration_mock()
         }
         .into(),
     };

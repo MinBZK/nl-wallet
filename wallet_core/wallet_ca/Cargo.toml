@@ -30,3 +30,5 @@ nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
 assert_cmd.workspace = true
 assert_fs.workspace = true
 predicates.workspace = true
+
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock"] }

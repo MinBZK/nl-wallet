@@ -119,7 +119,6 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         .start_disclosure(&engagement_url)
         .await
         .expect("Could not start disclosure");
-    assert_eq!(proposal.reader_registration.id, "some-service-id");
     assert_eq!(proposal.documents.len(), 1);
 
     // after the first wallet interaction it should have status "Waiting"

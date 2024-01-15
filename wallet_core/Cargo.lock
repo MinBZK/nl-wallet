@@ -1525,6 +1525,7 @@ dependencies = [
  "cstr",
  "flutter_api_macros",
  "flutter_rust_bridge",
+ "itertools 0.11.0",
  "once_cell",
  "oslog",
  "serde",

@@ -27,6 +27,7 @@ use nl_wallet_mdoc::{
     server_keys::{KeyRing, PrivateKey},
     server_state::MemorySessionStore,
     utils::{
+        auth::reader_auth::mock::reader_registration_mock,
         reader_auth::ReaderRegistration,
         serialization,
         x509::{Certificate, CertificateType},
@@ -143,7 +144,7 @@ fn setup_verifier_test(
             ISSUANCE_NAME_SPACE.to_string(),
             ISSUANCE_ATTRS.iter().map(|(key, _)| key).copied(),
         ),
-        ..Default::default()
+        ..reader_registration_mock()
     };
     let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
     let (disclosure_cert, disclosure_privkey) = Certificate::new(

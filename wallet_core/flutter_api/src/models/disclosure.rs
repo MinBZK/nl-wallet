@@ -10,6 +10,7 @@ use super::{
     instruction::WalletInstructionError,
 };
 
+#[derive(Clone)]
 pub enum Image {
     Svg { xml: String },
     Png { base64: String },
@@ -17,6 +18,7 @@ pub enum Image {
     Asset { path: String },
 }
 
+#[derive(Clone)]
 pub struct Organization {
     pub legal_name: Vec<LocalizedString>,
     pub display_name: Vec<LocalizedString>,

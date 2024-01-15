@@ -391,6 +391,7 @@ mod tests {
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
+            reader_auth::reader_registration_mock,
             serialization::TaggedBytes,
             x509::CertificateType,
         },
@@ -1194,7 +1195,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: vec![].into(),
-                reader_registration: Default::default(),
+                reader_registration: reader_registration_mock(),
             },
             device_key,
             proposed_documents: vec![create_example_proposed_document()],
@@ -1264,7 +1265,7 @@ mod tests {
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::ReaderAuth(Some(Box::default())),
+            CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
         )
         .unwrap();
 
@@ -1274,7 +1275,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: certificate.clone(),
-                reader_registration: Default::default(),
+                reader_registration: reader_registration_mock(),
             },
             missing_attributes: Default::default(),
         });
@@ -1296,7 +1297,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate,
-                reader_registration: Default::default(),
+                reader_registration: reader_registration_mock(),
             },
             missing_attributes: Default::default(),
         });
