@@ -22,7 +22,7 @@ class OrganizationApprovePage extends StatelessWidget {
   /// The organization that user is interacting with
   final Organization organization;
 
-  /// The organization that user is interacting with
+  /// The url from which the user should have opened the flow. Prominently displayed for the user to check.
   final String originUrl;
 
   /// Tells the Page in which flow it's currently used, used to select the correct string resources
