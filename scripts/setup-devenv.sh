@@ -152,7 +152,7 @@ cd "${BASE_DIR}"
 if [ ! -f "${TARGET_DIR}/pid_issuer/ca.key.pem" ]; then
     generate_pid_issuer_root_ca
 else
-    echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca_privkey.pem' already exists, not (re-)generating PID root CA"
+    echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca.key.pem' already exists, not (re-)generating PID root CA"
 fi
 
 # Generate pid issuer key and cert
