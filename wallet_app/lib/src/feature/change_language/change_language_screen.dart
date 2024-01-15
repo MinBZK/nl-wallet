@@ -15,6 +15,7 @@ class ChangeLanguageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('changeLanguageScreen'),
       body: CustomScrollView(
         slivers: [
           SliverWalletAppBar(

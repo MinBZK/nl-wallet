@@ -1,8 +1,8 @@
 package screen.card
 
-import util.MobileActions
+import screen.home.HomeScreen
 
-class CardOverviewScreen : MobileActions() {
+class CardOverviewScreen : HomeScreen() {
 
     private val screen = find.byValueKey("cardOverviewScreen")
 

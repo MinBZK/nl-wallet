@@ -12,6 +12,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('settingsScreen'),
       body: CustomScrollView(
         slivers: [
           SliverWalletAppBar(
