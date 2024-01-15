@@ -18,6 +18,7 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
+      key: const Key('menuScreen'),
       child: CustomScrollView(
         slivers: [
           SliverWalletAppBar(
