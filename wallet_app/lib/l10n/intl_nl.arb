@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-10T17:32:04+01:00",
+    "@@last_modified": "2024-01-15T14:26:20+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -966,7 +966,8 @@
     "policyScreenPolicySectionTitle": "Meer weten?",
     "policyScreenReportIssueCta": "Een probleem melden",
     "policyScreenRetryCta": "Probeer opnieuw",
-    "policyScreenTitle": "Voorwaarden",
+    "policyScreenSubtitle": "De volgende afspraken gelden alléén voor deze uitnodiging tot delen.",
+    "policyScreenTitle": "Afspraken",
     "qrMyCodeTabHowToCta": "Hoe werkt mijn QR code?",
     "qrMyCodeTabHowToSheetCloseCta": "Sluiten",
     "qrMyCodeTabHowToSheetDescription": "Laat Mijn QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",

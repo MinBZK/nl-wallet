@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-10T17:32:04+01:00",
+    "@@last_modified": "2024-01-15T14:26:20+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -805,7 +805,7 @@
     "organizationApprovePageApproveCta": "Yes, next",
     "organizationApprovePageDenyCta": "No, decline",
     "organizationApprovePageFirstInteraction": "First request",
-    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on  {url}.",
+    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on {url}.",
     "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
     "@organizationApprovePageGenericTitle": {
         "placeholders": {
@@ -966,7 +966,8 @@
     "policyScreenPolicySectionTitle": "Want to know more?",
     "policyScreenReportIssueCta": "Report an issue",
     "policyScreenRetryCta": "Try again",
-    "policyScreenTitle": "Terms",
+    "policyScreenSubtitle": "The following terms only apply to the current request.",
+    "policyScreenTitle": "Agreements",
     "qrMyCodeTabHowToCta": "How does my QR-code work?",
     "qrMyCodeTabHowToSheetCloseCta": "Close",
     "qrMyCodeTabHowToSheetDescription": "Have a reviewer scan My QR Code to start sharing. You will then receive a data request. Data will only be shared if you agree to the request.",

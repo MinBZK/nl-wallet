@@ -77,20 +77,22 @@ class OrganizationApprovePage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          OrganizationLogo(
-            image: organization.logo,
-            size: 64,
-            fixedRadius: 12,
-          ),
-          const SizedBox(height: 24),
-          _buildHeaderTitleText(context),
-          const SizedBox(height: 8),
-          _buildFraudInfoText(context),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OrganizationLogo(
+              image: organization.logo,
+              size: 64,
+              fixedRadius: 12,
+            ),
+            const SizedBox(height: 24),
+            _buildHeaderTitleText(context),
+            const SizedBox(height: 8),
+            _buildFraudInfoText(context),
+          ],
+        ),
       ),
     );
   }

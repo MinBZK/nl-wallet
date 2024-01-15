@@ -5,9 +5,10 @@ import '../../domain/model/policy/policy.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/button/link_button.dart';
-import '../common/widget/wallet_app_bar.dart';
-import 'model/policy_entry.dart';
+import '../common/widget/button/link_tile_button.dart';
+import '../common/widget/sliver_divider.dart';
+import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
 import 'policy_entries_builder.dart';
 import 'widget/policy_entry_row.dart';
 
@@ -31,9 +32,6 @@ class PolicyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       restorationId: 'policy_scaffold',
-      appBar: WalletAppBar(
-        title: Text(context.l10n.policyScreenTitle),
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -55,51 +53,47 @@ class PolicyScreen extends StatelessWidget {
       decoration: TextDecoration.underline,
     );
     final policyBuilder = PolicyEntriesBuilder(context, urlTheme);
+    final entries = policyBuilder.build(policy);
     return Scrollbar(
       child: CustomScrollView(
         slivers: [
-          SliverList(
-            delegate: _getPolicyEntriesDelegate(policyBuilder.build(policy)),
+          SliverWalletAppBar(
+            title: context.l10n.policyScreenTitle,
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(context.l10n.policyScreenSubtitle),
+            ),
+          ),
+          const SliverSizedBox(height: 24),
+          const SliverDivider(height: 1),
+          SliverList.separated(
+            itemBuilder: (context, index) {
+              return PolicyEntryRow(
+                icon: entries[index].icon,
+                title: Text.rich(entries[index].title),
+                description: Text.rich(entries[index].description),
+              );
+            },
+            separatorBuilder: (context, i) => const Divider(height: 1),
+            itemCount: entries.length,
           ),
           SliverToBoxAdapter(child: _buildReportIssueButton(context)),
+          const SliverSizedBox(height: 24),
         ],
       ),
-    );
-  }
-
-  SliverChildBuilderDelegate _getPolicyEntriesDelegate(List<PolicyEntry> entries) {
-    return SliverChildBuilderDelegate(
-      (context, index) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PolicyEntryRow(
-            icon: entries[index].icon,
-            title: Text.rich(entries[index].title),
-            description: Text.rich(entries[index].description),
-          ),
-          const Divider(height: 1),
-        ],
-      ),
-      childCount: entries.length,
     );
   }
 
   Widget _buildReportIssueButton(BuildContext context) {
     if (onReportIssuePressed == null) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(height: 1),
-        LinkButton(
-          onPressed: () {
-            Navigator.pop(context);
-            onReportIssuePressed?.call();
-          },
-          customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(context.l10n.policyScreenReportIssueCta),
-        ),
-        const Divider(height: 1),
-      ],
+    return LinkTileButton(
+      child: Text(context.l10n.policyScreenReportIssueCta),
+      onPressed: () {
+        Navigator.pop(context);
+        onReportIssuePressed?.call();
+      },
     );
   }
 
