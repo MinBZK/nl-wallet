@@ -149,10 +149,10 @@ echo -e "${SECTION}Configure pid_issuer${NC}"
 cd "${BASE_DIR}"
 
 # Generate root CA for cose signing
-if [ ! -f "${TARGET_DIR}"/pid_issuer/ca_privkey.pem ]; then
+if [ ! -f "${TARGET_DIR}/pid_issuer/ca.key.pem" ]; then
     generate_pid_issuer_root_ca
 else
-    echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca_privkey.pem' already exists, not (re-)generating PID root CA"
+    echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca.key.pem' already exists, not (re-)generating PID root CA"
 fi
 
 # Generate pid issuer key and cert
@@ -177,7 +177,7 @@ echo -e "${SECTION}Configure relying_party${NC}"
 cd "${BASE_DIR}"
 
 # Generate MRP root CA
-if [ ! -f "${TARGET_DIR}"/mock_relying_party/ca.key.pem ]; then
+if [ ! -f "${TARGET_DIR}/mock_relying_party/ca.key.pem" ]; then
     generate_mock_relying_party_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/mock_relying_party/ca.key.pem' already exists, not (re-)generating root CA"

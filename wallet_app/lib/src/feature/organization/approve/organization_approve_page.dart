@@ -22,7 +22,7 @@ class OrganizationApprovePage extends StatelessWidget {
   /// The organization that user is interacting with
   final Organization organization;
 
-  /// The organization that user is interacting with
+  /// The url from which the user should have opened the flow. Prominently displayed for the user to check.
   final String originUrl;
 
   /// Tells the Page in which flow it's currently used, used to select the correct string resources
@@ -81,20 +81,22 @@ class OrganizationApprovePage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          OrganizationLogo(
-            image: organization.logo,
-            size: 64,
-            fixedRadius: 12,
-          ),
-          const SizedBox(height: 24),
-          _buildHeaderTitleText(context),
-          const SizedBox(height: 8),
-          _buildFraudInfoText(context),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OrganizationLogo(
+              image: organization.logo,
+              size: 64,
+              fixedRadius: 12,
+            ),
+            const SizedBox(height: 24),
+            _buildHeaderTitleText(context),
+            const SizedBox(height: 8),
+            _buildFraudInfoText(context),
+          ],
+        ),
       ),
     );
   }

@@ -152,23 +152,25 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildReasonSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info_outline_rounded, size: 24),
-          const SizedBox(height: 16),
-          Text(
-            context.l10n.disclosureConfirmDataAttributesSubtitlePurpose,
-            style: context.textTheme.displaySmall,
-            textAlign: TextAlign.start,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            requestPurpose.l10nValue(context),
-            style: context.textTheme.bodyLarge,
-            textAlign: TextAlign.start,
-          ),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.info_outline_rounded, size: 24),
+            const SizedBox(height: 16),
+            Text(
+              context.l10n.disclosureConfirmDataAttributesSubtitlePurpose,
+              style: context.textTheme.displaySmall,
+              textAlign: TextAlign.start,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              requestPurpose.l10nValue(context),
+              style: context.textTheme.bodyLarge,
+              textAlign: TextAlign.start,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -176,23 +178,25 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildCardsSectionHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.credit_card_outlined, size: 24),
-          const SizedBox(height: 16),
-          Text(
-            context.l10n.disclosureConfirmDataAttributesSubtitleData,
-            style: context.textTheme.displaySmall,
-            textAlign: TextAlign.start,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes),
-            style: context.textTheme.bodyLarge,
-            textAlign: TextAlign.start,
-          ),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.credit_card_outlined, size: 24),
+            const SizedBox(height: 16),
+            Text(
+              context.l10n.disclosureConfirmDataAttributesSubtitleData,
+              style: context.textTheme.displaySmall,
+              textAlign: TextAlign.start,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes),
+              style: context.textTheme.bodyLarge,
+              textAlign: TextAlign.start,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -200,33 +204,35 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildPrivacySection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.handshake_outlined, size: 24),
-          const SizedBox(height: 16),
-          Text(
-            context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
-            style: context.textTheme.displaySmall,
-            textAlign: TextAlign.start,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _buildConditionsText(context),
-            style: context.textTheme.bodyLarge,
-            textAlign: TextAlign.start,
-          ),
-          const SizedBox(height: 4),
-          LinkButton(
-            customPadding: EdgeInsets.zero,
-            child: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
-            onPressed: () => PolicyScreen.show(
-              context,
-              policy,
-              onReportIssuePressed: onReportIssuePressed,
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.handshake_outlined, size: 24),
+            const SizedBox(height: 16),
+            Text(
+              context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
+              style: context.textTheme.displaySmall,
+              textAlign: TextAlign.start,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              _buildConditionsText(context),
+              style: context.textTheme.bodyLarge,
+              textAlign: TextAlign.start,
+            ),
+            const SizedBox(height: 4),
+            LinkButton(
+              customPadding: EdgeInsets.zero,
+              child: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
+              onPressed: () => PolicyScreen.show(
+                context,
+                policy,
+                onReportIssuePressed: onReportIssuePressed,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
