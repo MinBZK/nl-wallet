@@ -52,12 +52,12 @@ pub trait SecureEncryptionKey: ConstructibleWithIdentifier {
 
 #[cfg(any(test, feature = "mock-p256-keys"))]
 mod mock {
-    use p256::ecdsa::{Signature, VerifyingKey};
+    use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 
     use super::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey};
 
     // make sure we can substitute a SigningKey instead in tests
-    impl EcdsaKey for p256::ecdsa::SigningKey {
+    impl EcdsaKey for SigningKey {
         type Error = p256::ecdsa::Error;
 
         async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -69,6 +69,6 @@ mod mock {
         }
     }
 
-    impl EphemeralEcdsaKey for p256::ecdsa::SigningKey {}
-    impl SecureEcdsaKey for p256::ecdsa::SigningKey {}
+    impl EphemeralEcdsaKey for SigningKey {}
+    impl SecureEcdsaKey for SigningKey {}
 }

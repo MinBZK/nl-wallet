@@ -11,10 +11,15 @@ workspace = true
 doctest = false
 
 [features]
+# Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
+# Skip TLS certificate validation for HTTP requests
 disable_tls_validation = []
+# Read an .env file with configuration overrides when compiling
 env_config = ["dep:dotenvy"]
+# Include mock implementations and constructors for testing
 mock = ["dep:mockall", "nl_wallet_mdoc/mdocs-map", "nl_wallet_mdoc/mock"]
+# Export the traits and actual implementations of the Wallet dependencies
 wallet_deps = []
 
 [dependencies]

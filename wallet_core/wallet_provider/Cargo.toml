@@ -24,6 +24,7 @@ path = "tests/settings.rs"
 required-features = ["db_test"]
 
 [features]
+# Include and run test that depend on an external PostgreSQL database
 db_test = []
 
 [dependencies]

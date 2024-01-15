@@ -15,6 +15,15 @@ name = "postgres"
 path = "tests/postgres.rs"
 required-features = ["postgres", "db_test"]
 
+[features]
+default = ["postgres"]
+# Allow the disclosure return URL and its prefix to use http://
+allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
+# Include session storage in PostgreSQL
+postgres = ["dep:sea-orm"]
+# Include and run test that depend on an external PostgreSQL database
+db_test = []
+
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = [
@@ -62,9 +71,3 @@ wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
 rstest.workspace = true
-
-[features]
-default = ["postgres"]
-allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
-postgres = ["dep:sea-orm"]
-db_test = []

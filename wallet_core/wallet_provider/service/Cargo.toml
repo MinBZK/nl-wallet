@@ -16,8 +16,11 @@ path = "tests/account_server.rs"
 required-features = ["software-keys", "mock", "db_test"]
 
 [features]
+# Implement InstructionResultSigningKey and related traits on SoftwareEcdsaKey
 software-keys = ["wallet_common/software-keys"]
+# Include mock implementations and constructors for testing
 mock = ["dep:hmac", "wallet_provider_domain/mock"]
+# Include and run test that depend on an external PostgreSQL database
 db_test = []
 
 [dependencies]

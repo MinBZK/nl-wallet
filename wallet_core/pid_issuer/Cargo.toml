@@ -17,8 +17,11 @@ doctest = false
 
 [features]
 default = ["mock-attributes"]
+# Allow the disclosure return URL and its prefix to use http://
 disable_tls_validation = []
+# Include MockAttributesLookup, which implements AttributesLookup
 mock-attributes = []
+# Include both MockAttributesLookup and MockBsnLookup, which implements BsnLookup
 mock = ["dep:rand", "mock-attributes"]
 
 [dependencies]

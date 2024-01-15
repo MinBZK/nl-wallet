@@ -11,6 +11,7 @@ workspace = true
 doctest = false
 
 [features]
+# Include mock implementations and constructors for testing
 mock = ["dashmap", "hmac", "rand", "sha2"]
 
 [dependencies]

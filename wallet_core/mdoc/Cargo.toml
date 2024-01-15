@@ -13,13 +13,21 @@ path = "tests/tests.rs"
 required-features = ["generate", "software-key-factory", "test", "mock"]
 
 [features]
+# Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = []
+# Include code for generating certificates and keys
 generate = ["dep:rcgen"]
+# Include examples from the ISO specification
 examples = ["dep:anyhow", "dep:hex-literal"]
+# Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
 software-keys = ["wallet_common/software-keys"]
+# Include SoftwareKeyFactory, which implements KeyFactory for testing
 software-key-factory = ["wallet_common/software-keys"]
+# Include MdocsMap, which can be used for tests that store Mdocs
 mdocs-map = []
+# Include miscellaneous test utilities
 test = []
+# Include mock implementations and constructors for testing
 mock = []
 
 [dependencies]
