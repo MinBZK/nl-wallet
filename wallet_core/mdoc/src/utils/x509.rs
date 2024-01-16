@@ -7,7 +7,7 @@ use p256::{
     elliptic_curve::pkcs8::DecodePublicKey,
     pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader},
 };
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
@@ -285,8 +285,30 @@ impl From<&CertificateType> for CertificateUsage {
     }
 }
 
+pub trait MdocCertificateExtension
+where
+    Self: Serialize + DeserializeOwned + Sized,
+{
+    const OID: &'static [u64];
+
+    fn from_certificate(source: &Certificate) -> Result<Option<Self>, CertificateError> {
+        // unwrap() is safe here, because we process a fixed value
+        let oid = Oid::from(Self::OID).unwrap();
+        source.extract_custom_ext(oid)
+    }
+
+    #[cfg(feature = "generate")]
+    fn to_custom_ext(&self) -> Result<rcgen::CustomExtension, CertificateError> {
+        use p256::pkcs8::der::Encode;
+        let json_string = serde_json::to_string(self)?;
+        let string = Utf8StringRef::new(&json_string)?;
+        let ext = rcgen::CustomExtension::from_oid_content(Self::OID, string.to_der()?);
+        Ok(ext)
+    }
+}
+
 #[cfg(feature = "generate")]
-mod generate {
+pub mod generate {
     use p256::{
         ecdsa::SigningKey,
         pkcs8::{
@@ -297,6 +319,8 @@ mod generate {
     use rcgen::{BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa};
 
     use crate::utils::x509::{Certificate, CertificateError, CertificateType, CertificateUsage, OID_EXT_KEY_USAGE};
+
+    use super::MdocCertificateExtension;
 
     impl Certificate {
         /// Generate a new self-signed CA certificate.
