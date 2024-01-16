@@ -22,6 +22,7 @@ class MenuScreen extends StatelessWidget {
       child: CustomScrollView(
         slivers: [
           SliverWalletAppBar(
+            leading: const SizedBox.shrink(),
             title: context.l10n.menuScreenTitle,
           ),
           _buildContentSliver(),
