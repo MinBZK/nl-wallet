@@ -376,6 +376,7 @@ impl rust2dart::IntoIntoDart<AcceptDisclosureResult> for AcceptDisclosureResult 
 impl support::IntoDart for Card {
     fn into_dart(self) -> support::DartAbi {
         vec![
+            self.issuer.into_into_dart().into_dart(),
             self.persistence.into_into_dart().into_dart(),
             self.doc_type.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),

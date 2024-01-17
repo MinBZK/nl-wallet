@@ -30,7 +30,7 @@ pub use self::{
     disclosure::{DisclosureError, DisclosureProposal},
     history::{EventStatus, HistoryError, HistoryEvent},
     init::WalletInitError,
-    issuance::PidIssuanceError,
+    issuance::{rvig_registration, PidIssuanceError},
     lock::WalletUnlockError,
     registration::WalletRegistrationError,
     uri::{UriIdentificationError, UriType},

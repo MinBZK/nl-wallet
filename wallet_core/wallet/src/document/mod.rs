@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+
 pub use mdoc::{AttributeValueType, DocumentMdocError};
 
 #[cfg(feature = "mock")]
@@ -26,6 +28,7 @@ pub struct Document {
     pub persistence: DocumentPersistence,
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
+    pub issuer_registration: IssuerRegistration,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,6 +93,8 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
+    use crate::rvig_registration;
+
     use super::*;
 
     fn empty_document(doc_type: &'static str) -> Document {
@@ -97,6 +102,7 @@ mod tests {
             persistence: DocumentPersistence::InMemory,
             doc_type,
             attributes: Default::default(),
+            issuer_registration: rvig_registration(),
         }
     }
 

@@ -126,11 +126,13 @@ class AcceptDisclosureResult with _$AcceptDisclosureResult {
 }
 
 class Card {
+  final Organization issuer;
   final CardPersistence persistence;
   final String docType;
   final List<CardAttribute> attributes;
 
   const Card({
+    required this.issuer,
     required this.persistence,
     required this.docType,
     required this.attributes,
@@ -796,10 +798,6 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
-  Card _wire2api_box_autoadd_card(dynamic raw) {
-    return _wire2api_card(raw);
-  }
-
   Image _wire2api_box_autoadd_image(dynamic raw) {
     return _wire2api_image(raw);
   }
@@ -820,13 +818,18 @@ class WalletCoreImpl implements WalletCore {
     return _wire2api_wallet_instruction_error(raw);
   }
 
+  Card _wire2api_box_card(dynamic raw) {
+    return _wire2api_card(raw);
+  }
+
   Card _wire2api_card(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return Card(
-      persistence: _wire2api_card_persistence(arr[0]),
-      docType: _wire2api_String(arr[1]),
-      attributes: _wire2api_list_card_attribute(arr[2]),
+      issuer: _wire2api_organization(arr[0]),
+      persistence: _wire2api_card_persistence(arr[1]),
+      docType: _wire2api_String(arr[2]),
+      attributes: _wire2api_list_card_attribute(arr[3]),
     );
   }
 
@@ -1085,7 +1088,7 @@ class WalletCoreImpl implements WalletCore {
         return WalletEvent_Issuance(
           dateTime: _wire2api_String(raw[1]),
           issuer: _wire2api_box_autoadd_organization(raw[2]),
-          card: _wire2api_box_autoadd_card(raw[3]),
+          card: _wire2api_box_card(raw[3]),
         );
       default:
         throw Exception("unreachable");

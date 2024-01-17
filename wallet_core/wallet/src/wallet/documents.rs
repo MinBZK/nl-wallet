@@ -1,3 +1,4 @@
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use tracing::info;
 
 use crate::{
@@ -33,10 +34,17 @@ where
             .await?
             .into_iter()
             .map(|StoredMdocCopy { mdoc_id, mdoc, .. }| {
+                let issuer_certificate = mdoc
+                    .issuer_certificate()
+                    .expect("Could not get issuer certificate from stored mdoc");
+                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
+                    .expect("Could not extract issuer registration from stored mdoc certificate")
+                    .expect("No issuer registration found in stored mdoc certificate");
                 Document::from_mdoc_attributes(
                     DocumentPersistence::Stored(mdoc_id.to_string()),
                     &mdoc.doc_type,
                     mdoc.attributes(),
+                    issuer_registration,
                 )
                 .expect("Could not interpret stored mdoc attributes")
             })

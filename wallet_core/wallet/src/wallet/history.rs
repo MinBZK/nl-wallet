@@ -1,11 +1,7 @@
 use chrono::{DateTime, Utc};
 use tracing::info;
 
-use nl_wallet_mdoc::utils::{
-    issuer_auth::IssuerRegistration,
-    reader_auth::ReaderRegistration,
-    x509::{CertificateError, CertificateType},
-};
+use nl_wallet_mdoc::utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateError};
 
 pub use crate::storage::EventStatus;
 use crate::{
@@ -111,27 +107,27 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 remote_party_certificate,
                 timestamp,
                 mdocs,
-            } => Self::Issuance {
-                timestamp,
-                mdocs: mdocs
-                    .0
-                    .into_iter()
-                    .map(|(doc_type, namespaces)| {
-                        // TODO: Refer to persisted mdoc from the mdoc table, or not?
-                        Document::from_mdoc_attributes(DocumentPersistence::InMemory, &doc_type, namespaces)
-                    })
-                    .collect::<Result<_, _>>()?,
-                issuer_registration: {
-                    let certificate_type = CertificateType::from_certificate(&remote_party_certificate)?;
-                    let issuer_registration = if let CertificateType::Mdl(Some(issuer_registration)) = certificate_type
-                    {
-                        *issuer_registration
-                    } else {
-                        return Err(HistoryError::NoIssuerRegistrationFound);
-                    };
-                    Box::new(issuer_registration)
-                },
-            },
+            } => {
+                let issuer_registration = IssuerRegistration::from_certificate(&remote_party_certificate)?
+                    .ok_or(HistoryError::NoIssuerRegistrationFound)?;
+                Self::Issuance {
+                    timestamp,
+                    mdocs: mdocs
+                        .0
+                        .into_iter()
+                        .map(|(doc_type, namespaces)| {
+                            // TODO: Refer to persisted mdoc from the mdoc table, or not?
+                            Document::from_mdoc_attributes(
+                                DocumentPersistence::InMemory,
+                                &doc_type,
+                                namespaces,
+                                issuer_registration.clone(),
+                            )
+                        })
+                        .collect::<Result<_, _>>()?,
+                    issuer_registration: { Box::new(issuer_registration) },
+                }
+            }
             WalletEvent::Disclosure {
                 id: _,
                 remote_party_certificate,
@@ -152,13 +148,8 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                     })
                     .transpose()?,
                 reader_registration: {
-                    let certificate_type = CertificateType::from_certificate(&remote_party_certificate)?;
-                    let reader_registration =
-                        if let CertificateType::ReaderAuth(Some(reader_registration)) = certificate_type {
-                            *reader_registration
-                        } else {
-                            return Err(HistoryError::NoReaderRegistrationFound);
-                        };
+                    let reader_registration = ReaderRegistration::from_certificate(&remote_party_certificate)?
+                        .ok_or(HistoryError::NoReaderRegistrationFound)?;
                     Box::new(reader_registration)
                 },
             },

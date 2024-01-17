@@ -19,7 +19,7 @@ pub enum WalletEvent {
         //ISO8601
         date_time: String,
         issuer: Organization,
-        card: Card,
+        card: Box<Card>,
     },
 }
 
@@ -49,7 +49,7 @@ impl From<HistoryEvent> for WalletEvents {
                     .map(|(mdoc, issuer)| WalletEvent::Issuance {
                         date_time: timestamp.to_rfc3339(),
                         issuer,
-                        card: mdoc.into(),
+                        card: Box::new(mdoc.into()),
                     })
                     .collect()
             }

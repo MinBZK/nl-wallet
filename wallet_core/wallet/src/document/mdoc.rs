@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
     identifiers::AttributeIdentifier,
+    utils::issuer_auth::IssuerRegistration,
     DataElementIdentifier, DataElementValue, NameSpace,
 };
 
@@ -150,19 +151,12 @@ fn document_attributes_from_mdoc_attributes(
     Ok((doc_type, document_attributes))
 }
 
-impl TryFrom<UnsignedMdoc> for Document {
-    type Error = DocumentMdocError;
-
-    fn try_from(value: UnsignedMdoc) -> Result<Self, Self::Error> {
-        Document::from_mdoc_attributes(DocumentPersistence::InMemory, &value.doc_type, value.attributes)
-    }
-}
-
 impl Document {
     pub(crate) fn from_mdoc_attributes(
         persistence: DocumentPersistence,
         doc_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
+        issuer_registration: IssuerRegistration,
     ) -> Result<Self, DocumentMdocError> {
         let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, true)?;
 
@@ -170,9 +164,22 @@ impl Document {
             persistence,
             doc_type,
             attributes: document_attributes,
+            issuer_registration,
         };
 
         Ok(document)
+    }
+
+    pub(crate) fn from_unsigned_mdoc(
+        mdoc: UnsignedMdoc,
+        issuer_registration: IssuerRegistration,
+    ) -> Result<Self, DocumentMdocError> {
+        Document::from_mdoc_attributes(
+            DocumentPersistence::InMemory,
+            &mdoc.doc_type,
+            mdoc.attributes,
+            issuer_registration,
+        )
     }
 }
 
@@ -436,13 +443,16 @@ pub mod tests {
     use assert_matches::assert_matches;
     use rstest::rstest;
 
+    use crate::rvig_registration;
+
     use super::{super::PID_DOCTYPE, mock::*, *};
 
     #[test]
     fn test_minimal_unsigned_mdoc_to_document_mapping() {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
-        let document = Document::try_from(unsigned_mdoc).expect("Could not convert minimal mdoc to document");
+        let document = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+            .expect("Could not convert minimal mdoc to document");
 
         assert_matches!(document.persistence, DocumentPersistence::InMemory);
         assert_eq!(document.doc_type, PID_DOCTYPE);
@@ -492,7 +502,8 @@ pub mod tests {
     fn test_full_unsigned_mdoc_to_document_mapping() {
         let unsigned_mdoc = create_full_unsigned_pid_mdoc();
 
-        let document = Document::try_from(unsigned_mdoc).expect("Could not convert full mdoc to document");
+        let document = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+            .expect("Could not convert full mdoc to document");
 
         assert_matches!(
             document.attributes.get("gender").unwrap(),
@@ -509,7 +520,7 @@ pub mod tests {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.doc_type = "com.example.foobar".to_string();
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -523,7 +534,7 @@ pub mod tests {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -538,7 +549,8 @@ pub mod tests {
         unsigned_mdoc = create_full_unsigned_pid_mdoc();
         unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
-        _ = Document::try_from(unsigned_mdoc).expect("Could not convert full mdoc to document");
+        _ = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+            .expect("Could not convert full mdoc to document");
     }
 
     #[test]
@@ -553,7 +565,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -577,7 +589,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -606,7 +618,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -630,7 +642,7 @@ pub mod tests {
             value: DataElementValue::Text("Foo Bar".to_string()),
         });
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
