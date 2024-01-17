@@ -300,6 +300,7 @@ where
     #[cfg(feature = "generate")]
     fn to_custom_ext(&self) -> Result<rcgen::CustomExtension, CertificateError> {
         use p256::pkcs8::der::Encode;
+
         let json_string = serde_json::to_string(self)?;
         let string = Utf8StringRef::new(&json_string)?;
         let ext = rcgen::CustomExtension::from_oid_content(Self::OID, string.to_der()?);
@@ -308,7 +309,7 @@ where
 }
 
 #[cfg(feature = "generate")]
-pub mod generate {
+mod generate {
     use p256::{
         ecdsa::SigningKey,
         pkcs8::{
