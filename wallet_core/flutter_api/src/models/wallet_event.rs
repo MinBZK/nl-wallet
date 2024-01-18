@@ -2,7 +2,7 @@ use wallet::{EventStatus, HistoryEvent};
 
 use crate::models::{
     card::{Card, LocalizedString},
-    disclosure::{Organization, RPLocalizedStrings, RequestPolicy, RequestedCard},
+    disclosure::{DisclosureCard, Organization, RPLocalizedStrings, RequestPolicy},
 };
 
 pub enum WalletEvent {
@@ -11,7 +11,7 @@ pub enum WalletEvent {
         date_time: String,
         relying_party: Organization,
         purpose: Vec<LocalizedString>,
-        requested_cards: Option<Vec<RequestedCard>>,
+        requested_cards: Option<Vec<DisclosureCard>>,
         request_policy: RequestPolicy,
         status: DisclosureStatus,
     },
@@ -65,7 +65,7 @@ impl From<HistoryEvent> for WalletEvents {
                     request_policy: RequestPolicy::from(&reader_registration),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
-                    requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(RequestedCard::from).collect()),
+                    requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(DisclosureCard::from).collect()),
                     status: status.into(),
                 }]
             }

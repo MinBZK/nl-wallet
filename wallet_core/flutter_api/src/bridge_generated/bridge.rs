@@ -28,11 +28,11 @@ use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
+use crate::models::disclosure::DisclosureCard;
 use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::Organization;
 use crate::models::disclosure::RequestPolicy;
-use crate::models::disclosure::RequestedCard;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::WalletInstructionError;
 use crate::models::instruction::WalletInstructionResult;
@@ -442,6 +442,23 @@ impl rust2dart::IntoIntoDart<CardValue> for CardValue {
     }
 }
 
+impl support::IntoDart for DisclosureCard {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.issuer.into_into_dart().into_dart(),
+            self.doc_type.into_into_dart().into_dart(),
+            self.attributes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DisclosureCard {}
+impl rust2dart::IntoIntoDart<DisclosureCard> for DisclosureCard {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for DisclosureStatus {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -610,23 +627,6 @@ impl support::IntoDart for RequestPolicy {
 }
 impl support::IntoDartExceptPrimitive for RequestPolicy {}
 impl rust2dart::IntoIntoDart<RequestPolicy> for RequestPolicy {
-    fn into_into_dart(self) -> Self {
-        self
-    }
-}
-
-impl support::IntoDart for RequestedCard {
-    fn into_dart(self) -> support::DartAbi {
-        vec![
-            self.issuer.into_into_dart().into_dart(),
-            self.doc_type.into_into_dart().into_dart(),
-            self.attributes.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl support::IntoDartExceptPrimitive for RequestedCard {}
-impl rust2dart::IntoIntoDart<RequestedCard> for RequestedCard {
     fn into_into_dart(self) -> Self {
         self
     }

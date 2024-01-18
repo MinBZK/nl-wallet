@@ -1919,7 +1919,7 @@ mixin _$StartDisclosureResult {
   String get requestOriginBaseUrl => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    required TResult Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)
         request,
     required TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -1929,7 +1929,7 @@ mixin _$StartDisclosureResult {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult? Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)?
         request,
     TResult? Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -1939,7 +1939,7 @@ mixin _$StartDisclosureResult {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)?
         request,
     TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -2033,7 +2033,7 @@ abstract class _$$StartDisclosureResult_RequestImplCopyWith<$Res> implements $St
   $Res call(
       {Organization relyingParty,
       RequestPolicy policy,
-      List<RequestedCard> requestedCards,
+      List<DisclosureCard> requestedCards,
       bool isFirstInteractionWithRelyingParty,
       List<LocalizedString> requestPurpose,
       String requestOriginBaseUrl});
@@ -2069,7 +2069,7 @@ class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
       requestedCards: null == requestedCards
           ? _value._requestedCards
           : requestedCards // ignore: cast_nullable_to_non_nullable
-              as List<RequestedCard>,
+              as List<DisclosureCard>,
       isFirstInteractionWithRelyingParty: null == isFirstInteractionWithRelyingParty
           ? _value.isFirstInteractionWithRelyingParty
           : isFirstInteractionWithRelyingParty // ignore: cast_nullable_to_non_nullable
@@ -2092,7 +2092,7 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   const _$StartDisclosureResult_RequestImpl(
       {required this.relyingParty,
       required this.policy,
-      required final List<RequestedCard> requestedCards,
+      required final List<DisclosureCard> requestedCards,
       required this.isFirstInteractionWithRelyingParty,
       required final List<LocalizedString> requestPurpose,
       required this.requestOriginBaseUrl})
@@ -2103,9 +2103,9 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   final Organization relyingParty;
   @override
   final RequestPolicy policy;
-  final List<RequestedCard> _requestedCards;
+  final List<DisclosureCard> _requestedCards;
   @override
-  List<RequestedCard> get requestedCards {
+  List<DisclosureCard> get requestedCards {
     if (_requestedCards is EqualUnmodifiableListView) return _requestedCards;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_requestedCards);
@@ -2163,7 +2163,7 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    required TResult Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)
         request,
     required TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -2177,7 +2177,7 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult? Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)?
         request,
     TResult? Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -2191,7 +2191,7 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)?
         request,
     TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -2242,7 +2242,7 @@ abstract class StartDisclosureResult_Request implements StartDisclosureResult {
   const factory StartDisclosureResult_Request(
       {required final Organization relyingParty,
       required final RequestPolicy policy,
-      required final List<RequestedCard> requestedCards,
+      required final List<DisclosureCard> requestedCards,
       required final bool isFirstInteractionWithRelyingParty,
       required final List<LocalizedString> requestPurpose,
       required final String requestOriginBaseUrl}) = _$StartDisclosureResult_RequestImpl;
@@ -2250,7 +2250,7 @@ abstract class StartDisclosureResult_Request implements StartDisclosureResult {
   @override
   Organization get relyingParty;
   RequestPolicy get policy;
-  List<RequestedCard> get requestedCards;
+  List<DisclosureCard> get requestedCards;
   @override
   bool get isFirstInteractionWithRelyingParty;
   @override
@@ -2391,7 +2391,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    required TResult Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)
         request,
     required TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -2405,7 +2405,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult? Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)?
         request,
     TResult? Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -2419,7 +2419,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(Organization relyingParty, RequestPolicy policy, List<RequestedCard> requestedCards,
+    TResult Function(Organization relyingParty, RequestPolicy policy, List<DisclosureCard> requestedCards,
             bool isFirstInteractionWithRelyingParty, List<LocalizedString> requestPurpose, String requestOriginBaseUrl)?
         request,
     TResult Function(Organization relyingParty, List<MissingAttribute> missingAttributes,
@@ -2495,7 +2495,7 @@ mixin _$WalletEvent {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
     required TResult Function(String dateTime, Organization issuer, Card card) issuance,
   }) =>
@@ -2503,7 +2503,7 @@ mixin _$WalletEvent {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
   }) =>
@@ -2511,7 +2511,7 @@ mixin _$WalletEvent {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult Function(String dateTime, Organization issuer, Card card)? issuance,
     required TResult orElse(),
@@ -2583,7 +2583,7 @@ abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEve
       {String dateTime,
       Organization relyingParty,
       List<LocalizedString> purpose,
-      List<RequestedCard>? requestedCards,
+      List<DisclosureCard>? requestedCards,
       RequestPolicy requestPolicy,
       DisclosureStatus status});
 }
@@ -2622,7 +2622,7 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
       requestedCards: freezed == requestedCards
           ? _value._requestedCards
           : requestedCards // ignore: cast_nullable_to_non_nullable
-              as List<RequestedCard>?,
+              as List<DisclosureCard>?,
       requestPolicy: null == requestPolicy
           ? _value.requestPolicy
           : requestPolicy // ignore: cast_nullable_to_non_nullable
@@ -2642,7 +2642,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
       {required this.dateTime,
       required this.relyingParty,
       required final List<LocalizedString> purpose,
-      final List<RequestedCard>? requestedCards,
+      final List<DisclosureCard>? requestedCards,
       required this.requestPolicy,
       required this.status})
       : _purpose = purpose,
@@ -2660,9 +2660,9 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
     return EqualUnmodifiableListView(_purpose);
   }
 
-  final List<RequestedCard>? _requestedCards;
+  final List<DisclosureCard>? _requestedCards;
   @override
-  List<RequestedCard>? get requestedCards {
+  List<DisclosureCard>? get requestedCards {
     final value = _requestedCards;
     if (value == null) return null;
     if (_requestedCards is EqualUnmodifiableListView) return _requestedCards;
@@ -2707,7 +2707,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
     required TResult Function(String dateTime, Organization issuer, Card card) issuance,
   }) {
@@ -2718,7 +2718,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
   }) {
@@ -2729,7 +2729,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult Function(String dateTime, Organization issuer, Card card)? issuance,
     required TResult orElse(),
@@ -2777,7 +2777,7 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
       {required final String dateTime,
       required final Organization relyingParty,
       required final List<LocalizedString> purpose,
-      final List<RequestedCard>? requestedCards,
+      final List<DisclosureCard>? requestedCards,
       required final RequestPolicy requestPolicy,
       required final DisclosureStatus status}) = _$WalletEvent_DisclosureImpl;
 
@@ -2785,7 +2785,7 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
   String get dateTime;
   Organization get relyingParty;
   List<LocalizedString> get purpose;
-  List<RequestedCard>? get requestedCards;
+  List<DisclosureCard>? get requestedCards;
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
   @override
@@ -2875,7 +2875,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
     required TResult Function(String dateTime, Organization issuer, Card card) issuance,
   }) {
@@ -2886,7 +2886,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
   }) {
@@ -2897,7 +2897,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<RequestedCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
     TResult Function(String dateTime, Organization issuer, Card card)? issuance,
     required TResult orElse(),

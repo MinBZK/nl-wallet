@@ -175,6 +175,18 @@ class CardValue with _$CardValue {
   }) = CardValue_Gender;
 }
 
+class DisclosureCard {
+  final Organization issuer;
+  final String docType;
+  final List<CardAttribute> attributes;
+
+  const DisclosureCard({
+    required this.issuer,
+    required this.docType,
+    required this.attributes,
+  });
+}
+
 enum DisclosureStatus {
   Success,
   Cancelled,
@@ -284,24 +296,12 @@ class RequestPolicy {
   });
 }
 
-class RequestedCard {
-  final Organization issuer;
-  final String docType;
-  final List<CardAttribute> attributes;
-
-  const RequestedCard({
-    required this.issuer,
-    required this.docType,
-    required this.attributes,
-  });
-}
-
 @freezed
 class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.request({
     required Organization relyingParty,
     required RequestPolicy policy,
-    required List<RequestedCard> requestedCards,
+    required List<DisclosureCard> requestedCards,
     required bool isFirstInteractionWithRelyingParty,
     required List<LocalizedString> requestPurpose,
     required String requestOriginBaseUrl,
@@ -321,7 +321,7 @@ class WalletEvent with _$WalletEvent {
     required String dateTime,
     required Organization relyingParty,
     required List<LocalizedString> purpose,
-    List<RequestedCard>? requestedCards,
+    List<DisclosureCard>? requestedCards,
     required RequestPolicy requestPolicy,
     required DisclosureStatus status,
   }) = WalletEvent_Disclosure;
@@ -881,6 +881,16 @@ class WalletCoreImpl implements WalletCore {
     }
   }
 
+  DisclosureCard _wire2api_disclosure_card(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return DisclosureCard(
+      issuer: _wire2api_organization(arr[0]),
+      docType: _wire2api_String(arr[1]),
+      attributes: _wire2api_list_card_attribute(arr[2]),
+    );
+  }
+
   DisclosureStatus _wire2api_disclosure_status(dynamic raw) {
     return DisclosureStatus.values[raw as int];
   }
@@ -937,16 +947,16 @@ class WalletCoreImpl implements WalletCore {
     return (raw as List<dynamic>).map(_wire2api_card_attribute).toList();
   }
 
+  List<DisclosureCard> _wire2api_list_disclosure_card(dynamic raw) {
+    return (raw as List<dynamic>).map(_wire2api_disclosure_card).toList();
+  }
+
   List<LocalizedString> _wire2api_list_localized_string(dynamic raw) {
     return (raw as List<dynamic>).map(_wire2api_localized_string).toList();
   }
 
   List<MissingAttribute> _wire2api_list_missing_attribute(dynamic raw) {
     return (raw as List<dynamic>).map(_wire2api_missing_attribute).toList();
-  }
-
-  List<RequestedCard> _wire2api_list_requested_card(dynamic raw) {
-    return (raw as List<dynamic>).map(_wire2api_requested_card).toList();
   }
 
   List<WalletEvent> _wire2api_list_wallet_event(dynamic raw) {
@@ -982,12 +992,12 @@ class WalletCoreImpl implements WalletCore {
     return raw == null ? null : _wire2api_box_autoadd_u64(raw);
   }
 
-  List<LocalizedString>? _wire2api_opt_list_localized_string(dynamic raw) {
-    return raw == null ? null : _wire2api_list_localized_string(raw);
+  List<DisclosureCard>? _wire2api_opt_list_disclosure_card(dynamic raw) {
+    return raw == null ? null : _wire2api_list_disclosure_card(raw);
   }
 
-  List<RequestedCard>? _wire2api_opt_list_requested_card(dynamic raw) {
-    return raw == null ? null : _wire2api_list_requested_card(raw);
+  List<LocalizedString>? _wire2api_opt_list_localized_string(dynamic raw) {
+    return raw == null ? null : _wire2api_list_localized_string(raw);
   }
 
   Organization _wire2api_organization(dynamic raw) {
@@ -1022,23 +1032,13 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
-  RequestedCard _wire2api_requested_card(dynamic raw) {
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return RequestedCard(
-      issuer: _wire2api_organization(arr[0]),
-      docType: _wire2api_String(arr[1]),
-      attributes: _wire2api_list_card_attribute(arr[2]),
-    );
-  }
-
   StartDisclosureResult _wire2api_start_disclosure_result(dynamic raw) {
     switch (raw[0]) {
       case 0:
         return StartDisclosureResult_Request(
           relyingParty: _wire2api_box_autoadd_organization(raw[1]),
           policy: _wire2api_box_autoadd_request_policy(raw[2]),
-          requestedCards: _wire2api_list_requested_card(raw[3]),
+          requestedCards: _wire2api_list_disclosure_card(raw[3]),
           isFirstInteractionWithRelyingParty: _wire2api_bool(raw[4]),
           requestPurpose: _wire2api_list_localized_string(raw[5]),
           requestOriginBaseUrl: _wire2api_String(raw[6]),
@@ -1083,7 +1083,7 @@ class WalletCoreImpl implements WalletCore {
           dateTime: _wire2api_String(raw[1]),
           relyingParty: _wire2api_box_autoadd_organization(raw[2]),
           purpose: _wire2api_list_localized_string(raw[3]),
-          requestedCards: _wire2api_opt_list_requested_card(raw[4]),
+          requestedCards: _wire2api_opt_list_disclosure_card(raw[4]),
           requestPolicy: _wire2api_box_autoadd_request_policy(raw[5]),
           status: _wire2api_disclosure_status(raw[6]),
         );
