@@ -14,11 +14,7 @@ use tokio::time;
 use url::Url;
 
 use configuration_server::settings::Settings as CsSettings;
-use nl_wallet_mdoc::{
-    holder::{CborHttpClient, Wallet as MdocWallet},
-    server_state::{MemorySessionStore, SessionState, SessionStore},
-    verifier::DisclosureData,
-};
+use nl_wallet_mdoc::holder::{CborHttpClient, Wallet as MdocWallet};
 use pid_issuer::{
     app::{AttributesLookup, BsnLookup},
     mock::{MockAttributesLookup, MockBsnLookup},
@@ -37,7 +33,10 @@ use wallet::{
 use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey};
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_server::settings::{Server, Settings as WsSettings};
+use wallet_server::{
+    settings::{Server, Settings as WsSettings},
+    store::DisclosureSessionStore,
+};
 
 #[ctor]
 fn init_logging() {
@@ -109,7 +108,7 @@ pub async fn setup_wallet_and_env(
 
     start_config_server(cs_settings, config_jwt(&served_wallet_config)).await;
     start_wallet_provider(wp_settings).await;
-    start_wallet_server(ws_settings, MemorySessionStore::new()).await;
+    start_wallet_server(ws_settings).await;
     start_pid_issuer(pid_settings, MockAttributesLookup::default(), MockBsnLookup::default()).await;
 
     let pid_issuer_client = HttpPidIssuerClient::new(MdocWallet::new(CborHttpClient(reqwest::Client::new())));
@@ -254,13 +253,11 @@ pub fn wallet_server_settings() -> WsSettings {
     settings
 }
 
-pub async fn start_wallet_server<S>(settings: WsSettings, sessions: S)
-where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
-{
+pub async fn start_wallet_server(settings: WsSettings) {
     let public_url = settings.public_url.clone();
+    let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await.unwrap();
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve::<S>(&settings, sessions).await {
+        if let Err(error) = wallet_server::server::serve(&settings, sessions).await {
             println!("Could not start wallet_server: {:?}", error);
 
             process::exit(1);
