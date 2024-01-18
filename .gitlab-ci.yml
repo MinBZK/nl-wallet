@@ -407,17 +407,6 @@ build-ws-migrations-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migration:$CI_COMMIT_SHORT_SHA
       --cache=true
 
-build-static-files-image:
-  extends: .kaniko
-  rules: !reference [ .default-or-release, rules ]
-  script:
-    - /kaniko/executor
-      --context kubernetes/static-files
-      --dockerfile kubernetes/static-files/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-static-files-hosting:$CI_COMMIT_SHORT_SHA
-      --cache=true
-
 build-android-app:
   extends: .env-k8s
   rules: !reference [ .default-or-release, rules ]
@@ -663,21 +652,6 @@ deploy-mock-relying-party:
     - envsubst < kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mock-relying-party-service.yaml
     - kubectl rollout status deployment/mock-relying-party
-
-deploy-static-files-hosting:
-  extends: .deploy-k8s
-  rules: !reference [ .default-branch, rules ]
-  when: manual
-  needs:
-    - job: build-static-files-image
-      artifacts: false
-  variables:
-    STATIC_FILES_HOSTING_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-static-files-hosting:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < kubernetes/static-files-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/static-files-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f kubernetes/static-files-service.yaml
-    - kubectl rollout status deployment/static-files
 
 run-automation-tests:
   extends: .env-k8s
