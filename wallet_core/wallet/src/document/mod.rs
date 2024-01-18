@@ -71,6 +71,7 @@ pub struct MissingDisclosureAttributes {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisclosureDocument {
+    pub issuer_registration: IssuerRegistration,
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
 }

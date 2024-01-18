@@ -2,7 +2,8 @@ use std::{fmt::Debug, iter};
 
 use futures::{executor, future};
 use indexmap::IndexMap;
-use p256::ecdsa::{Signature, VerifyingKey};
+use once_cell::sync::Lazy;
+use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use webpki::TrustAnchor;
 
 use wallet_common::{
@@ -19,7 +20,7 @@ use crate::{
     utils::{
         issuer_auth::issuer_registration_mock,
         keys::{KeyFactory, MdocEcdsaKey, MdocKeyType},
-        reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
+        reader_auth::{reader_registration_mock, AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace},
         x509::{Certificate, CertificateError, CertificateType},
     },
     verifier::DisclosedAttributes,
@@ -54,28 +55,51 @@ pub fn mdoc_from_example_device_response(trust_anchors: &[TrustAnchor<'_>]) -> M
 const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
 const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
 
-pub fn generate_issuance_key_and_ca() -> Result<(PrivateKey, Certificate), CertificateError> {
-    // Issuer CA certificate and normal certificate
-    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
-    let (issuer_cert, issuer_privkey) = Certificate::new(
-        &ca,
-        &ca_privkey,
+pub static CA_KEY_PAIR: Lazy<(Certificate, SigningKey)> =
+    Lazy::new(|| Certificate::new_ca(ISSUANCE_CA_CN).expect("generation of CA key pair failed"));
+
+pub static ISSUER_KEY_PAIR: Lazy<(Certificate, SigningKey)> = Lazy::new(|| {
+    let (ca, ca_privkey) = &*CA_KEY_PAIR;
+    Certificate::new(
+        ca,
+        ca_privkey,
         ISSUANCE_CERT_CN,
         CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
-    )?;
-    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+    )
+    .expect("generation of Issuer key pair failed")
+});
 
-    Ok((issuance_key, ca))
+pub static ISSUER_KEY_PAIR_WITHOUT_READER_REGISTRATION: Lazy<(Certificate, SigningKey)> = Lazy::new(|| {
+    let (ca, ca_privkey) = &*CA_KEY_PAIR;
+    Certificate::new(ca, ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl(None))
+        .expect("generation of Issuer key pair failed")
+});
+
+pub static READER_KEY_PAIR: Lazy<(Certificate, SigningKey)> = Lazy::new(|| {
+    let (ca, ca_privkey) = &*CA_KEY_PAIR;
+    Certificate::new(
+        ca,
+        ca_privkey,
+        ISSUANCE_CERT_CN,
+        CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
+    )
+    .expect("generation of Reader key pair failed")
+});
+
+pub fn generate_issuance_key_and_ca() -> Result<(PrivateKey, Certificate), CertificateError> {
+    let (ca, _) = &*CA_KEY_PAIR;
+    let (issuer_cert, issuer_privkey) = &*ISSUER_KEY_PAIR;
+    let issuance_key = PrivateKey::new(issuer_privkey.clone(), issuer_cert.clone());
+
+    Ok((issuance_key, ca.clone()))
 }
 
 pub fn generate_issuance_key_and_ca_unauthenticated() -> Result<(PrivateKey, Certificate), CertificateError> {
-    // Issuer CA certificate and normal certificate
-    let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
-    let (issuer_cert, issuer_privkey) =
-        Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl(None))?;
-    let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+    let (ca, _) = &*CA_KEY_PAIR;
+    let (issuer_cert, issuer_privkey) = &*ISSUER_KEY_PAIR_WITHOUT_READER_REGISTRATION;
+    let issuance_key = PrivateKey::new(issuer_privkey.clone(), issuer_cert.clone());
 
-    Ok((issuance_key, ca))
+    Ok((issuance_key, ca.clone()))
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]

@@ -2,7 +2,10 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::{server_keys::KeysError, utils::issuer_auth::IssuerRegistration};
+use nl_wallet_mdoc::{
+    server_keys::KeysError,
+    utils::{cose::CoseError, issuer_auth::IssuerRegistration},
+};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
 use crate::{
@@ -43,6 +46,8 @@ pub enum PidIssuanceError {
     HistoryStorage(#[source] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
+    #[error("invalid issuer certificate: {0}")]
+    InvalidIssuerCertificate(#[source] CoseError),
     #[error("issuer not authenticated")]
     MissingIssuerRegistration,
 }
@@ -290,7 +295,10 @@ where
                 return Err(PidIssuanceError::MissingIssuerRegistration);
             }
 
-            WalletEvent::new_issuance(mdocs.into(), certificate)
+            WalletEvent::new_issuance(
+                mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?,
+                certificate,
+            )
         };
 
         info!("PID accepted, storing mdoc in database");

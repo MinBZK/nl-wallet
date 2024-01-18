@@ -134,7 +134,7 @@ where
         self.dangerous_parse_unverified()
     }
 
-    pub fn unprotected_header_item(&self, label: &Label) -> Result<&Value> {
+    pub fn unprotected_header_item(&self, label: &Label) -> std::result::Result<&Value, CoseError> {
         let header_item = &self
             .0
             .unprotected()
@@ -203,7 +203,7 @@ impl<T> MdocCose<CoseSign1, T> {
 
     // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
     /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
-    pub fn signing_cert(&self) -> Result<Certificate>
+    pub fn signing_cert(&self) -> std::result::Result<Certificate, CoseError>
     where
         T: DeserializeOwned,
     {
@@ -551,7 +551,7 @@ mod tests {
 
         assert!(matches!(
             cose.unprotected_header_item(&Label::Text("not_present".to_string())),
-            Err(Error::Cose(CoseError::MissingLabel(_)))
+            Err(CoseError::MissingLabel(_))
         ))
     }
 

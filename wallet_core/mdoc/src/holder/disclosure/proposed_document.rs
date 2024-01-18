@@ -1,17 +1,16 @@
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 
 use crate::{
     errors::Result,
     identifiers::AttributeIdentifier,
     iso::{
-        basic_sa_ext::Entry,
         disclosure::{DeviceSigned, Document, IssuerSigned},
-        mdocs::{DocType, NameSpace},
+        mdocs::DocType,
     },
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 
-use super::StoredMdoc;
+use super::{session::ProposedCard, StoredMdoc};
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
 /// for disclosure. Note that this is for internal use of [`DisclosureSession`] only.
@@ -129,9 +128,11 @@ impl<I> ProposedDocument<I> {
         }
     }
 
-    /// Return the attributes contained within this [`ProposedDocument`].
-    pub fn name_spaces(&self) -> IndexMap<NameSpace, Vec<Entry>> {
-        self.issuer_signed
+    /// Return the issuer and attributes contained within this [`ProposedDocument`].
+    pub fn proposed_card(&self) -> Result<ProposedCard> {
+        let issuer = self.issuer_signed.issuer_auth.signing_cert()?;
+        let attributes = self
+            .issuer_signed
             .name_spaces
             .as_ref()
             .map(|name_spaces| {
@@ -140,7 +141,9 @@ impl<I> ProposedDocument<I> {
                     .map(|(name_space, attributes)| (name_space.clone(), attributes.into()))
                     .collect()
             })
-            .unwrap_or_default()
+            .unwrap_or_default();
+        let proposed_card = ProposedCard { issuer, attributes };
+        Ok(proposed_card)
     }
 
     /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.

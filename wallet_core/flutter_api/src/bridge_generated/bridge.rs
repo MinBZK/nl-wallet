@@ -618,6 +618,7 @@ impl rust2dart::IntoIntoDart<RequestPolicy> for RequestPolicy {
 impl support::IntoDart for RequestedCard {
     fn into_dart(self) -> support::DartAbi {
         vec![
+            self.issuer.into_into_dart().into_dart(),
             self.doc_type.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),
         ]

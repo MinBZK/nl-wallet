@@ -1,6 +1,7 @@
 use base64::prelude::*;
 use futures::future::TryFutureExt;
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
 
@@ -30,7 +31,13 @@ use super::{proposed_document::ProposedDocument, request::DeviceRequestMatch, Md
 const REFERRER_URL: &str = "https://referrer.url/";
 const TRANSCRIPT_HASH_PARAM: &str = "transcript_hash";
 
-pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProposedCard {
+    pub issuer: Certificate,
+    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+}
+
+pub type ProposedAttributes = IndexMap<DocType, ProposedCard>;
 
 /// This represents a started disclosure session, which can be in one of two states.
 /// Regardless of which state it is in, it provides the `ReaderRegistration` through
@@ -320,13 +327,16 @@ where
             .collect()
     }
 
-    pub fn proposed_attributes(&self) -> ProposedAttributes {
+    pub fn proposed_attributes(&self) -> Result<ProposedAttributes> {
         // Get all of the attributes to be disclosed from the
         // prepared `IssuerSigned` on the `ProposedDocument`s.
         self.proposed_documents
             .iter()
-            .map(|document| (document.doc_type.clone(), document.name_spaces()))
-            .collect()
+            .map(|document| {
+                let proposed_card = document.proposed_card()?;
+                Ok((document.doc_type.clone(), proposed_card))
+            })
+            .collect::<Result<ProposedAttributes>>()
     }
 
     pub async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
@@ -588,8 +598,9 @@ mod tests {
         // Test that the proposal for disclosure contains the example attributes, in order.
         let entry_keys = proposal_session
             .proposed_attributes()
+            .unwrap()
             .remove(EXAMPLE_DOC_TYPE)
-            .and_then(|mut name_space| name_space.remove(EXAMPLE_NAMESPACE))
+            .and_then(|mut name_space| name_space.attributes.remove(EXAMPLE_NAMESPACE))
             .map(|entries| entries.into_iter().map(|entry| entry.name).collect::<Vec<_>>())
             .unwrap_or_default();
 

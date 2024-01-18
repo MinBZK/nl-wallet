@@ -9,6 +9,7 @@ use crate::{
     basic_sa_ext::Entry,
     iso::*,
     utils::{
+        cose::CoseError,
         keys::{MdocEcdsaKey, MdocKeyType},
         x509::Certificate,
     },
@@ -97,7 +98,7 @@ impl Mdoc {
             .collect::<IndexMap<_, _>>()
     }
 
-    pub fn issuer_certificate(&self) -> Result<Certificate> {
+    pub fn issuer_certificate(&self) -> std::result::Result<Certificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
     }
 }

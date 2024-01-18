@@ -285,10 +285,12 @@ class RequestPolicy {
 }
 
 class RequestedCard {
+  final Organization issuer;
   final String docType;
   final List<CardAttribute> attributes;
 
   const RequestedCard({
+    required this.issuer,
     required this.docType,
     required this.attributes,
   });
@@ -1022,10 +1024,11 @@ class WalletCoreImpl implements WalletCore {
 
   RequestedCard _wire2api_requested_card(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return RequestedCard(
-      docType: _wire2api_String(arr[0]),
-      attributes: _wire2api_list_card_attribute(arr[1]),
+      issuer: _wire2api_organization(arr[0]),
+      docType: _wire2api_String(arr[1]),
+      attributes: _wire2api_list_card_attribute(arr[2]),
     );
   }
 

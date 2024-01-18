@@ -58,6 +58,8 @@ pub enum DisclosureError {
     IncrementUsageCount(#[source] StorageError),
     #[error("could not store history in database: {0}")]
     HistoryStorage(#[source] StorageError),
+    #[error("mdoc error")]
+    Mdoc(#[from] nl_wallet_mdoc::Error),
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
@@ -135,7 +137,7 @@ where
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents = proposal_session
-            .proposed_attributes()
+            .proposed_attributes()?
             .into_iter()
             .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
             .collect::<Result<_, _>>()
@@ -274,7 +276,10 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         if let Err(error) = session_proposal.disclose(&&remote_key_factory).await {
-            let shared_data = error.data_shared.then(|| session_proposal.proposed_attributes());
+            let shared_data = error
+                .data_shared
+                .then(|| session_proposal.proposed_attributes())
+                .transpose()?;
             self.log_disclosure_error(
                 shared_data,
                 session.rp_certificate().clone(),
@@ -301,7 +306,7 @@ where
 
         // Save data for disclosure in event log.
         let event = WalletEvent::new_disclosure(
-            Some(DocTypeMap(session_proposal.proposed_attributes())),
+            Some(DocTypeMap(session_proposal.proposed_attributes()?)),
             session.rp_certificate().clone(),
             EventStatus::Success,
         );
@@ -367,8 +372,13 @@ mod tests {
     use serial_test::serial;
 
     use nl_wallet_mdoc::{
-        basic_sa_ext::Entry, examples::Examples, holder::HolderError, iso::disclosure::SessionStatus,
-        mock as mdoc_mock, verifier::SessionType, DataElementValue,
+        basic_sa_ext::Entry,
+        examples::Examples,
+        holder::{HolderError, ProposedCard},
+        iso::disclosure::SessionStatus,
+        mock::{self as mdoc_mock, ISSUER_KEY_PAIR},
+        verifier::SessionType,
+        DataElementValue,
     };
     use uuid::uuid;
 
@@ -392,13 +402,16 @@ mod tests {
         let reader_registration = ReaderRegistration { ..Default::default() };
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "age_over_18".to_string(),
-                    value: DataElementValue::Bool(true),
-                }],
-            )]),
+            ProposedCard {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "age_over_18".to_string(),
+                        value: DataElementValue::Bool(true),
+                    }],
+                )]),
+                issuer: (ISSUER_KEY_PAIR).0.clone(),
+            },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
@@ -606,13 +619,16 @@ mod tests {
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "foo".to_string(),
-                    value: DataElementValue::Text("bar".to_string()),
-                }],
-            )]),
+            ProposedCard {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "foo".to_string(),
+                        value: DataElementValue::Text("bar".to_string()),
+                    }],
+                )]),
+                issuer: ISSUER_KEY_PAIR.0.clone(),
+            },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_attributes,
@@ -651,13 +667,16 @@ mod tests {
         let reader_registration = ReaderRegistration { ..Default::default() };
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "age_over_18".to_string(),
-                    value: DataElementValue::Bool(true),
-                }],
-            )]),
+            ProposedCard {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "age_over_18".to_string(),
+                        value: DataElementValue::Bool(true),
+                    }],
+                )]),
+                issuer: ISSUER_KEY_PAIR.0.clone(),
+            },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
@@ -824,13 +843,16 @@ mod tests {
 
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "age_over_18".to_string(),
-                    value: DataElementValue::Bool(true),
-                }],
-            )]),
+            ProposedCard {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "age_over_18".to_string(),
+                        value: DataElementValue::Bool(true),
+                    }],
+                )]),
+                issuer: ISSUER_KEY_PAIR.0.clone(),
+            },
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
             return_url: return_url.clone().into(),

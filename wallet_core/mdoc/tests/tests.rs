@@ -23,7 +23,7 @@ use nl_wallet_mdoc::{
     identifiers::AttributeIdentifier,
     iso::{device_retrieval::ItemsRequest, mdocs::DocType},
     issuer::{IssuanceData, Issuer},
-    mock::{self, SoftwareKeyFactory},
+    mock::{self, SoftwareKeyFactory, CA_KEY_PAIR},
     server_keys::{KeyRing, PrivateKey},
     server_state::MemorySessionStore,
     utils::{
@@ -146,10 +146,10 @@ fn setup_verifier_test(
         ),
         ..reader_registration_mock()
     };
-    let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+    let (ca, ca_privkey) = &*CA_KEY_PAIR;
     let (disclosure_cert, disclosure_privkey) = Certificate::new(
-        &ca,
-        &ca_privkey,
+        ca,
+        ca_privkey,
         RP_CERT_CN,
         CertificateType::ReaderAuth(Box::new(reader_registration).into()),
     )
@@ -165,7 +165,7 @@ fn setup_verifier_test(
     .into();
     let client = MockDisclosureHttpClient::new(Arc::clone(&verifier));
 
-    (client, verifier, ca)
+    (client, verifier, ca.clone())
 }
 
 struct MockMdocDataSource(HashMap<DocType, MdocCopies>);

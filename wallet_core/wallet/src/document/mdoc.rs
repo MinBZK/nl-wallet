@@ -4,8 +4,9 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    holder::ProposedCard,
     identifiers::AttributeIdentifier,
-    utils::issuer_auth::IssuerRegistration,
+    utils::{issuer_auth::IssuerRegistration, x509::CertificateError},
     DataElementIdentifier, DataElementValue, NameSpace,
 };
 
@@ -43,6 +44,8 @@ pub enum DocumentMdocError {
         name: DataElementIdentifier,
         value: Option<DataElementValue>,
     },
+    #[error("certificate error for \"{doc_type}\": {error}")]
+    Certificate { error: CertificateError, doc_type: String },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -283,13 +286,18 @@ impl MissingDisclosureAttributes {
 }
 
 impl DisclosureDocument {
-    pub(crate) fn from_mdoc_attributes(
-        doc_type: &str,
-        attributes: IndexMap<NameSpace, Vec<Entry>>,
-    ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, false)?;
+    pub(crate) fn from_mdoc_attributes(doc_type: &str, attributes: ProposedCard) -> Result<Self, DocumentMdocError> {
+        let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
+            .map_err(|error| DocumentMdocError::Certificate {
+                doc_type: doc_type.to_owned(),
+                error,
+            })?
+            .expect("IssuerRegistration must exist after successful issuance");
+        let (doc_type, document_attributes) =
+            document_attributes_from_mdoc_attributes(doc_type, attributes.attributes, false)?;
 
         let document = DisclosureDocument {
+            issuer_registration,
             doc_type,
             attributes: document_attributes,
         };
@@ -441,6 +449,7 @@ pub mod tests {
     use std::{collections::HashMap, mem};
 
     use assert_matches::assert_matches;
+    use nl_wallet_mdoc::mock::ISSUER_KEY_PAIR;
     use rstest::rstest;
 
     use crate::rvig_registration;
@@ -660,9 +669,15 @@ pub mod tests {
     fn test_mdoc_to_proposed_disclosure_document_mapping_minimal() {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
-        let disclosure_document =
-            DisclosureDocument::from_mdoc_attributes(&unsigned_mdoc.doc_type, unsigned_mdoc.attributes)
-                .expect("Could not convert attributes to proposed disclosure document");
+        let (issuer_certificate, _) = &*ISSUER_KEY_PAIR;
+        let disclosure_document = DisclosureDocument::from_mdoc_attributes(
+            &unsigned_mdoc.doc_type,
+            ProposedCard {
+                attributes: unsigned_mdoc.attributes,
+                issuer: issuer_certificate.clone(),
+            },
+        )
+        .expect("Could not convert attributes to proposed disclosure document");
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
@@ -717,9 +732,16 @@ pub mod tests {
             }],
         )]);
 
+        let (issuer_certificate, _) = &*ISSUER_KEY_PAIR;
         // This should not result in a `DocumentMdocError::MissingAttribute` error.
-        let disclosure_document = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes)
-            .expect("Could not convert attributes to proposed disclosure document");
+        let disclosure_document = DisclosureDocument::from_mdoc_attributes(
+            PID_DOCTYPE,
+            ProposedCard {
+                attributes,
+                issuer: issuer_certificate.clone(),
+            },
+        )
+        .expect("Could not convert attributes to proposed disclosure document");
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
@@ -745,7 +767,14 @@ pub mod tests {
             }],
         )]);
 
-        let result = DisclosureDocument::from_mdoc_attributes("com.example.foobar", attributes);
+        let (issuer_certificate, _) = &*ISSUER_KEY_PAIR;
+        let result = DisclosureDocument::from_mdoc_attributes(
+            "com.example.foobar",
+            ProposedCard {
+                attributes,
+                issuer: issuer_certificate.clone(),
+            },
+        );
 
         assert_matches!(
             result,
@@ -763,7 +792,14 @@ pub mod tests {
             }],
         )]);
 
-        let result = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+        let (issuer_certificate, _) = &*ISSUER_KEY_PAIR;
+        let result = DisclosureDocument::from_mdoc_attributes(
+            PID_DOCTYPE,
+            ProposedCard {
+                attributes,
+                issuer: issuer_certificate.clone(),
+            },
+        );
 
         assert_matches!(
             result,
@@ -788,7 +824,14 @@ pub mod tests {
             }],
         )]);
 
-        let result = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+        let (issuer_certificate, _) = &*ISSUER_KEY_PAIR;
+        let result = DisclosureDocument::from_mdoc_attributes(
+            PID_DOCTYPE,
+            ProposedCard {
+                attributes,
+                issuer: issuer_certificate.clone(),
+            },
+        );
 
         assert_matches!(
             result,

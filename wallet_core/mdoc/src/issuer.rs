@@ -390,11 +390,11 @@ impl IssuerSigned {
         };
 
         let doc_type = unsigned_mdoc.doc_type;
-        let attrs = unsigned_mdoc
+        let attrs: IssuerNameSpaces = unsigned_mdoc
             .attributes
             .into_iter()
-            .map(|(namespace, attrs)| Ok((namespace, Attributes::try_from(attrs)?)))
-            .collect::<Result<IssuerNameSpaces>>()?;
+            .map(|(namespace, attrs)| (namespace, Attributes::from(attrs)))
+            .collect();
 
         let mso = MobileSecurityObject {
             version: MobileSecurityObjectVersion::V1_0,

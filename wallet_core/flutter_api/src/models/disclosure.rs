@@ -44,6 +44,7 @@ pub struct MissingAttribute {
 }
 
 pub struct RequestedCard {
+    pub issuer: Organization,
     pub doc_type: String,
     pub attributes: Vec<CardAttribute>,
 }
@@ -142,6 +143,7 @@ impl RequestedCard {
 impl From<DisclosureDocument> for RequestedCard {
     fn from(value: DisclosureDocument) -> Self {
         RequestedCard {
+            issuer: value.issuer_registration.organization.into(),
             doc_type: value.doc_type.to_string(),
             attributes: into_card_attributes(value.attributes),
         }

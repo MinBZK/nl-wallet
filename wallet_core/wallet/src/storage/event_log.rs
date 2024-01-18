@@ -4,9 +4,9 @@ use uuid::Uuid;
 
 pub use entity::history_event;
 use nl_wallet_mdoc::{
-    basic_sa_ext::Entry,
-    holder::Mdoc,
+    holder::{Mdoc, ProposedCard},
     utils::{
+        cose::CoseError,
         serialization::{cbor_deserialize, cbor_serialize, CborError},
         x509::Certificate,
     },
@@ -52,20 +52,21 @@ impl From<&history_event::Model> for EventStatus {
     }
 }
 
-type NamespaceMap = IndexMap<String, Vec<Entry>>;
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct DocTypeMap(pub IndexMap<String, NamespaceMap>);
+pub struct DocTypeMap(pub IndexMap<String, ProposedCard>);
 
-impl From<Vec<Mdoc>> for DocTypeMap {
-    fn from(source: Vec<Mdoc>) -> Self {
+impl TryFrom<Vec<Mdoc>> for DocTypeMap {
+    type Error = CoseError;
+    fn try_from(source: Vec<Mdoc>) -> Result<Self, Self::Error> {
         let doc_type_map = source
             .into_iter()
             .map(|mdoc| {
-                let namespace_map = mdoc.attributes(); // extracted to prevent borrow after move compilation error
-                (mdoc.doc_type, namespace_map)
+                let issuer = mdoc.issuer_certificate()?;
+                let attributes = mdoc.attributes(); // extracted to prevent borrow after move compilation error
+                Ok((mdoc.doc_type, ProposedCard { issuer, attributes }))
             })
-            .collect();
-        Self(doc_type_map)
+            .collect::<Result<IndexMap<_, _>, CoseError>>()?;
+        Ok(Self(doc_type_map))
     }
 }
 
@@ -75,37 +76,33 @@ pub enum WalletEvent {
         id: Uuid,
         mdocs: DocTypeMap,
         timestamp: DateTime<Utc>,
-        remote_party_certificate: Certificate,
+        issuer_certificate: Certificate,
     },
     Disclosure {
         id: Uuid,
         documents: Option<DocTypeMap>,
         timestamp: DateTime<Utc>,
-        remote_party_certificate: Certificate,
+        reader_certificate: Certificate,
         status: EventStatus,
     },
 }
 
 impl WalletEvent {
-    pub fn new_issuance(mdocs: DocTypeMap, remote_party_certificate: Certificate) -> Self {
+    pub fn new_issuance(mdocs: DocTypeMap, issuer_certificate: Certificate) -> Self {
         Self::Issuance {
             id: Uuid::new_v4(),
             mdocs,
             timestamp: Utc::now(),
-            remote_party_certificate,
+            issuer_certificate,
         }
     }
 
-    pub fn new_disclosure(
-        documents: Option<DocTypeMap>,
-        remote_party_certificate: Certificate,
-        status: EventStatus,
-    ) -> Self {
+    pub fn new_disclosure(documents: Option<DocTypeMap>, reader_certificate: Certificate, status: EventStatus) -> Self {
         Self::Disclosure {
             id: Uuid::new_v4(),
             documents,
             timestamp: Utc::now(),
-            remote_party_certificate,
+            reader_certificate,
             status,
         }
     }
@@ -134,7 +131,7 @@ impl TryFrom<history_event::Model> for WalletEvent {
                 id: event.id,
                 mdocs: DocTypeMap(cbor_deserialize(event.attributes.unwrap().as_slice())?), // Unwrap is safe here
                 timestamp: event.timestamp,
-                remote_party_certificate: event.remote_party_certificate.into(),
+                issuer_certificate: event.remote_party_certificate.into(),
             },
             history_event::EventType::Disclosure => Self::Disclosure {
                 id: event.id,
@@ -144,7 +141,7 @@ impl TryFrom<history_event::Model> for WalletEvent {
                     .map(|attributes| Ok::<DocTypeMap, CborError>(DocTypeMap(cbor_deserialize(attributes.as_slice())?)))
                     .transpose()?,
                 timestamp: event.timestamp,
-                remote_party_certificate: event.remote_party_certificate.into(),
+                reader_certificate: event.remote_party_certificate.into(),
             },
         };
         Ok(result)
@@ -159,13 +156,13 @@ impl TryFrom<WalletEvent> for history_event::Model {
                 id,
                 mdocs: DocTypeMap(mdocs),
                 timestamp,
-                remote_party_certificate,
+                issuer_certificate,
             } => Self {
                 attributes: Some(cbor_serialize(&mdocs)?),
                 id,
                 event_type: history_event::EventType::Issuance,
                 timestamp,
-                remote_party_certificate: remote_party_certificate.into(),
+                remote_party_certificate: issuer_certificate.into(),
                 status_description: None,
                 status: history_event::EventStatus::Success,
             },
@@ -174,13 +171,13 @@ impl TryFrom<WalletEvent> for history_event::Model {
                 status,
                 documents,
                 timestamp,
-                remote_party_certificate,
+                reader_certificate,
             } => Self {
                 attributes: documents.map(|DocTypeMap(mdocs)| cbor_serialize(&mdocs)).transpose()?,
                 id,
                 event_type: history_event::EventType::Disclosure,
                 timestamp,
-                remote_party_certificate: remote_party_certificate.into(),
+                remote_party_certificate: reader_certificate.into(),
                 status_description: status.description().map(ToString::to_string),
                 status: status.into(),
             },
@@ -191,6 +188,8 @@ impl TryFrom<WalletEvent> for history_event::Model {
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
+    use nl_wallet_mdoc::mock::ISSUER_KEY_PAIR;
+
     use crate::document::{
         create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
         create_minimal_unsigned_pid_mdoc,
@@ -202,27 +201,36 @@ mod mock {
         pub fn issuance_from_str(
             doc_types: Vec<&str>,
             timestamp: DateTime<Utc>,
-            remote_party_certificate: Certificate,
+            issuer_certificate: Certificate,
         ) -> Self {
             let docs = vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()];
             let map = docs
                 .into_iter()
                 .filter(|doc| doc_types.contains(&doc.doc_type.as_str()))
-                .map(|doc| (doc.doc_type, doc.attributes))
+                .map(|doc| {
+                    (
+                        doc.doc_type,
+                        ProposedCard {
+                            issuer: issuer_certificate.clone(),
+                            attributes: doc.attributes,
+                        },
+                    )
+                })
                 .collect();
             Self::Issuance {
                 id: Uuid::new_v4(),
                 mdocs: DocTypeMap(map),
                 timestamp,
-                remote_party_certificate,
+                issuer_certificate,
             }
         }
 
         pub fn disclosure_from_str(
             doc_types: Vec<&str>,
             timestamp: DateTime<Utc>,
-            remote_party_certificate: Certificate,
+            reader_certificate: Certificate,
         ) -> Self {
+            let issuer_certificate = ISSUER_KEY_PAIR.0.clone();
             let docs = vec![
                 create_minimal_unsigned_pid_mdoc(),
                 create_minimal_unsigned_address_mdoc(),
@@ -230,37 +238,45 @@ mod mock {
             let map = docs
                 .into_iter()
                 .filter(|doc| doc_types.contains(&doc.doc_type.as_str()))
-                .map(|doc| (doc.doc_type, doc.attributes))
+                .map(|doc| {
+                    (
+                        doc.doc_type,
+                        ProposedCard {
+                            issuer: issuer_certificate.clone(),
+                            attributes: doc.attributes,
+                        },
+                    )
+                })
                 .collect();
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents: Some(DocTypeMap(map)),
                 timestamp,
-                remote_party_certificate,
+                reader_certificate,
                 status: EventStatus::Success,
             }
         }
 
-        pub fn disclosure_cancel(timestamp: DateTime<Utc>, remote_party_certificate: Certificate) -> Self {
+        pub fn disclosure_cancel(timestamp: DateTime<Utc>, reader_certificate: Certificate) -> Self {
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents: None,
                 timestamp,
-                remote_party_certificate,
+                reader_certificate,
                 status: EventStatus::Cancelled,
             }
         }
 
         pub fn disclosure_error(
             timestamp: DateTime<Utc>,
-            remote_party_certificate: Certificate,
+            reader_certificate: Certificate,
             error_message: String,
         ) -> Self {
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents: None,
                 timestamp,
-                remote_party_certificate,
+                reader_certificate,
                 status: EventStatus::Error(error_message),
             }
         }
