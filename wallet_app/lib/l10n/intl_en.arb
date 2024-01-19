@@ -867,7 +867,6 @@
     "organizationDetailScreenPrivacyHeader": "Privacy",
     "organizationDetailScreenPrivacyInfo": "Privacy statement",
     "organizationDetailScreenPrivacyPolicy": "privacy statement",
-    "organizationDetailScreenPrivacyValue": "Privacy statement",
     "organizationDetailScreenReportIssueCta": "Report a problem",
     "organizationDetailScreenSomeInteractions": "You previously shared information with {name}.",
     "organizationDetailScreenTitle": "About {name}",
