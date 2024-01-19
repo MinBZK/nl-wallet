@@ -71,7 +71,6 @@ final _kSampleAttributes = [
 final _kSampleCard = WalletCard(
   id: 'id',
   docType: 'docType',
-  issuerId: 'issuerId',
   front: _kSampleCardFront,
   attributes: _kSampleAttributes,
 );
@@ -337,8 +336,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
           onCardSelectionToggled: (_) {},
-          card: WalletCard(
-              id: 'id', docType: 'docType', issuerId: 'issuerId', front: _kSampleCardFront, attributes: const []),
+          card: WalletCard(id: 'id', docType: 'docType', front: _kSampleCardFront, attributes: const []),
           isSelected: true,
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),

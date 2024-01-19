@@ -39,8 +39,6 @@ void main() {
       final WalletCard mockCard = WalletMockData.card;
 
       when(mockWalletCardRepository.observeWalletCards()).thenAnswer((_) => mockWalletCardsStream);
-      when(mockOrganizationRepository.read(mockCard.issuerId))
-          .thenAnswer((_) => Future.value(WalletMockData.organization));
       when(mockTimelineAttributeRepository.readMostRecentInteraction(mockCard.id, InteractionStatus.success))
           .thenAnswer((_) => Future.value(null));
       when(mockTimelineAttributeRepository.readMostRecentOperation(mockCard.id, OperationStatus.issued))
@@ -51,7 +49,6 @@ void main() {
       mockWalletCardsStream.add([WalletMockData.altCard, WalletMockData.card]);
 
       verify(mockWalletCardRepository.read(mockCard.id)).called(1);
-      verify(mockOrganizationRepository.read(mockCard.id)).called(1);
       verify(mockTimelineAttributeRepository.readFiltered(docType: mockCard.docType)).called(1);
     });
   });

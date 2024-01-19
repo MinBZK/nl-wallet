@@ -11,11 +11,6 @@ class OrganizationRepositoryImpl extends OrganizationRepository {
   OrganizationRepositoryImpl(this._core, this._organizationMapper);
 
   @override
-  Future<Organization?> read(String organizationId) {
-    throw UnsupportedError('mock leftover');
-  }
-
-  @override
   Future<Organization?> findIssuer(String docType) async {
     final coreOrganization = await _core.getIssuer(docType);
     return _organizationMapper.map(coreOrganization);

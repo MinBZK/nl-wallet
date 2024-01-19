@@ -391,16 +391,6 @@ class MockWalletCardRepository extends _i1.Mock implements _i11.WalletCardReposi
 /// See the documentation for Mockito's code generation for more information.
 class MockOrganizationRepository extends _i1.Mock implements _i12.OrganizationRepository {
   @override
-  _i4.Future<_i13.Organization?> read(String? organizationId) => (super.noSuchMethod(
-        Invocation.method(
-          #read,
-          [organizationId],
-        ),
-        returnValue: _i4.Future<_i13.Organization?>.value(),
-        returnValueForMissingStub: _i4.Future<_i13.Organization?>.value(),
-      ) as _i4.Future<_i13.Organization?>);
-
-  @override
   _i4.Future<_i13.Organization?> findIssuer(String? docType) => (super.noSuchMethod(
         Invocation.method(
           #findIssuer,
