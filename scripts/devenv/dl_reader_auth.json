@@ -1,7 +1,7 @@
 {
   "purposeStatement": {
-    "nl": "Reden voor dit verzoek",
-    "en": "Purpose of this request"
+    "nl": "Rijbewijs",
+    "en": "Driving License"
   },
   "retentionPolicy": {
     "intentToRetain": true,
@@ -15,18 +15,18 @@
   },
   "organization": {
     "displayName": {
-      "nl": "Mijn Organisatienaam",
-      "en": "My Organization Name"
+      "nl": "Rijbewijzen Online",
+      "en": "Rijbewijzen Online"
     },
     "legalName": {
-      "nl": "Organisatie",
-      "en": "Organization"
+      "nl": "Rijbewijzen",
+      "en": "Rijbewijzen"
     },
     "description": {
-      "nl": "Beschrijving van Mijn Organisatie",
-      "en": "Description of My Organization"
+      "nl": "Regel alles rondom uw rijbewijs online.",
+      "en": "Manage your driving license online."
     },
-    "webUrl": "https://example.com/",
+    "webUrl": "https://dl.example.com/",
     "city": {
       "nl": "Den Haag",
       "en": "The Hague"
@@ -45,7 +45,7 @@
     },
     "countryCode": "nl",
     "kvk": "56846846",
-    "privacyPolicyUrl": "https://example.com/privacy"
+    "privacyPolicyUrl": "https://dl.example.com/privacy"
   },
   "returnUrlPrefix": "http://${SERVICES_HOST}:3004/",
   "requestOriginBaseUrl": "http://${SERVICES_HOST}:3004/",

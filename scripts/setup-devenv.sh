@@ -183,15 +183,23 @@ else
     echo -e "${INFO}Target file '${TARGET_DIR}/mock_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
 fi
 
-# Generate relying party key and cert
-generate_mock_relying_party_key_pair
-
+# Generate CA for RPs
 RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
 export RP_CA_CRT
-MOCK_RELYING_PARTY_KEY=$(< "${TARGET_DIR}/mock_relying_party/rp.key.der" ${BASE64})
-export MOCK_RELYING_PARTY_KEY
-MOCK_RELYING_PARTY_CRT=$(< "${TARGET_DIR}/mock_relying_party/rp.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT
+
+# Generate relying party key and cert
+generate_mock_relying_party_key_pair dl
+MOCK_RELYING_PARTY_KEY_DL=$(< "${TARGET_DIR}/mock_relying_party/dl.key.der" ${BASE64})
+export MOCK_RELYING_PARTY_KEY_DL
+MOCK_RELYING_PARTY_CRT_DL=$(< "${TARGET_DIR}/mock_relying_party/dl.crt.der" ${BASE64})
+export MOCK_RELYING_PARTY_CRT_DL
+
+# Generate relying party key and cert
+generate_mock_relying_party_key_pair pp
+MOCK_RELYING_PARTY_KEY_PP=$(< "${TARGET_DIR}/mock_relying_party/pp.key.der" ${BASE64})
+export MOCK_RELYING_PARTY_KEY_PP
+MOCK_RELYING_PARTY_CRT_PP=$(< "${TARGET_DIR}/mock_relying_party/pp.crt.der" ${BASE64})
+export MOCK_RELYING_PARTY_CRT_PP
 
 render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
 render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
