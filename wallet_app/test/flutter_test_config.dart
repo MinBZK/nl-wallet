@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
+import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
@@ -36,6 +37,7 @@ void _setupMockitoDummies() {
   provideDummy<DataAttribute>(
     DataAttribute.untranslated(key: '', label: '', value: const StringValue(''), sourceCardDocType: ''),
   );
+  provideDummy<Organization>(WalletMockData.organization);
   provideDummy<AttributeValue>(const StringValue(''));
   provideDummy<CardFront>(CardFront(title: ''.untranslated, backgroundImage: '', theme: CardFrontTheme.light));
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
