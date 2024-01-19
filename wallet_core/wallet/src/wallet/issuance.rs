@@ -189,7 +189,7 @@ where
 
         let mut documents = unsigned_mdocs
             .into_iter()
-            .map(|mdoc| Document::from_unsigned_mdoc(mdoc, rvig_registration()))
+            .map(|mdoc| Document::from_unsigned_mdoc(mdoc, rvig_registration())) // TODO: obtain IssuerRegistration via some Issuer Authentication mechanism
             .collect::<Result<Vec<_>, _>>()?;
 
         documents.sort_by_key(Document::priority);
