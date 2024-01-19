@@ -13,7 +13,7 @@ import '../sign_repository.dart';
 class CoreSignRepository implements SignRepository {
   final WalletCoreForSigning _coreForSigning;
 
-  final Mapper<core.RequestedCard, WalletCard> _requestedCardMapper;
+  final Mapper<core.DisclosureCard, WalletCard> _requestedCardMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<core.Document, Document> _documentMapper;

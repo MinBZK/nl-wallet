@@ -19,6 +19,7 @@ const _kSampleCard = Card(
   persistence: CardPersistence_InMemory(),
   docType: _kSampleDocType,
   attributes: [_kSampleCardAttributeName, _kSampleCardAttributeCity],
+  issuer: TODO(),
 );
 
 void main() {
@@ -45,7 +46,8 @@ void main() {
     });
 
     test('card with `stored` persistence should return storage `id`', () {
-      const input = Card(persistence: CardPersistence_Stored(id: 'id-987'), docType: _kSampleDocType, attributes: []);
+      const input = Card(
+          persistence: CardPersistence_Stored(id: 'id-987'), docType: _kSampleDocType, attributes: [], issuer: TODO());
       expect(mapper.map(input).id, 'id-987');
     });
 

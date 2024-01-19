@@ -132,8 +132,9 @@ void main() {
   group('observeCards', () {
     test('observeCards should fetch cards through WalletCore', () {
       List<Card> mockCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [], issuer: TODO()),
+        const Card(
+            persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: [], issuer: TODO()),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.value(mockCards));
       expect(
@@ -144,11 +145,12 @@ void main() {
 
     test('observeCards should emit a new value when WalletCore exposes new cards', () {
       List<Card> initialCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [])
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [], issuer: TODO())
       ];
       List<Card> updatedCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [], issuer: TODO()),
+        const Card(
+            persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: [], issuer: TODO()),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
 
@@ -160,11 +162,12 @@ void main() {
 
     test('observeCards should emit only the last value on a new subscription', () async {
       List<Card> initialCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [])
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [], issuer: TODO())
       ];
       List<Card> updatedCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
+        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [], issuer: TODO()),
+        const Card(
+            persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: [], issuer: TODO()),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
 

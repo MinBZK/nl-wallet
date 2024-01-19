@@ -24,7 +24,8 @@ void main() {
 
   group('map', () {
     test('card with `com.example.pid` docType should return light localized card front', () {
-      const coreCard = Card(persistence: CardPersistence.inMemory(), docType: 'com.example.pid', attributes: []);
+      const coreCard =
+          Card(persistence: CardPersistence.inMemory(), docType: 'com.example.pid', attributes: [], issuer: TODO());
 
       when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 
@@ -44,7 +45,8 @@ void main() {
     });
 
     test('card with `com.example.address` docType should return dark localized card front', () {
-      const coreCard = Card(persistence: CardPersistence.inMemory(), docType: 'com.example.address', attributes: []);
+      const coreCard =
+          Card(persistence: CardPersistence.inMemory(), docType: 'com.example.address', attributes: [], issuer: TODO());
 
       when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 
@@ -64,7 +66,7 @@ void main() {
     });
 
     test('card with unknown docType should throw exception', () {
-      const input = Card(persistence: CardPersistence.inMemory(), docType: 'unknown', attributes: []);
+      const input = Card(persistence: CardPersistence.inMemory(), docType: 'unknown', attributes: [], issuer: TODO());
 
       expect(() => mapper.map(input), throwsException);
     });

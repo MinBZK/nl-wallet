@@ -12,7 +12,7 @@ import '../disclosure_repository.dart';
 class CoreDisclosureRepository implements DisclosureRepository {
   final TypedWalletCore _walletCore;
 
-  final Mapper<core.RequestedCard, WalletCard> _cardMapper;
+  final Mapper<core.DisclosureCard, WalletCard> _cardMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;

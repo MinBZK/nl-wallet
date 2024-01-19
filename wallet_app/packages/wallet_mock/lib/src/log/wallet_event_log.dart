@@ -50,7 +50,7 @@ class WalletEventLog {
   }
 
   void logDisclosureStep(
-      Organization organization, RequestPolicy policy, List<RequestedCard> requestedCards, DisclosureStatus status) {
+      Organization organization, RequestPolicy policy, List<DisclosureCard> requestedCards, DisclosureStatus status) {
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: organization,

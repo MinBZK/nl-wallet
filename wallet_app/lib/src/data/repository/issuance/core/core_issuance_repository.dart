@@ -15,7 +15,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
   final WalletCoreForIssuance _core;
 
   final Mapper<core.Card, WalletCard> _cardMapper;
-  final Mapper<core.RequestedCard, WalletCard> _requestedCardMapper;
+  final Mapper<core.DisclosureCard, WalletCard> _requestedCardMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;

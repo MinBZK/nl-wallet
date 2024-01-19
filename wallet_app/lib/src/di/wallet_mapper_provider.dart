@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_core/core.dart'
-    show Card, CardValue, LocalizedString, PinValidationResult, RequestedCard, WalletEvent;
+    show Card, CardValue, LocalizedString, PinValidationResult, DisclosureCard, WalletEvent;
 import 'package:wallet_mock/mock.dart' as core show Document;
 
 import '../data/repository/organization/organization_repository.dart';
@@ -84,8 +84,8 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<Card, WalletCard>>(
           create: (context) => CardMapper(context.read(), context.read(), context.read()),
         ),
-        RepositoryProvider<Mapper<RequestedCard, WalletCard>>(
-          create: (context) => RequestedCardMapper(context.read()),
+        RepositoryProvider<Mapper<DisclosureCard, WalletCard>>(
+          create: (context) => DisclosureCardMapper(context.read()),
         ),
 
         /// Organization / Relying party mappers

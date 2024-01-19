@@ -2,6 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
+import '../data/mock/mock_organizations.dart';
+
 class Wallet {
   final BehaviorSubject<bool> _isLockedSubject = BehaviorSubject.seeded(true);
   final BehaviorSubject<List<Card>> _cardsSubject = BehaviorSubject.seeded([]);
@@ -26,11 +28,13 @@ class Wallet {
 
   CardAttribute? findAttribute(String key) => _allAttributes.firstWhereOrNull((attribute) => attribute.key == key);
 
-  List<RequestedCard> getRequestedCards(Iterable<String> keys) {
+  List<DisclosureCard> getRequestedCards(Iterable<String> keys) {
     final allRequestedAttributes = keys.map((key) => findAttribute(key)).nonNulls;
     final cardToAttributes = allRequestedAttributes
         .groupListsBy((attribute) => _cards.firstWhere((card) => card.attributes.contains(attribute)));
-    return cardToAttributes.entries.map((e) => RequestedCard(docType: e.key.docType, attributes: e.value)).toList();
+    return cardToAttributes.entries
+        .map((e) => DisclosureCard(docType: e.key.docType, attributes: e.value, issuer: kOrganizations[kRvigId]!))
+        .toList(); // TODO: What should issuer be?
   }
 
   List<String> getMissingAttributeKeys(Iterable<String> keys) {

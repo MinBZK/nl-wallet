@@ -24,7 +24,8 @@ void main() {
   });
 
   Card createSampleCard(String docType, List<CardAttribute> attributes) {
-    return Card(persistence: const CardPersistence_InMemory(), docType: docType, attributes: attributes);
+    return Card(
+        persistence: const CardPersistence_InMemory(), docType: docType, attributes: attributes, issuer: TODO());
   }
 
   group('map', () {

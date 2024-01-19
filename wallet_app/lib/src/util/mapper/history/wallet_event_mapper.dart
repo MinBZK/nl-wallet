@@ -15,7 +15,7 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<RequestPolicy, Policy> _policyMapper;
   final Mapper<Card, WalletCard> _cardMapper;
-  final Mapper<RequestedCard, WalletCard> _requestedCardMapper;
+  final Mapper<DisclosureCard, WalletCard> _requestedCardMapper;
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
 
   WalletEventMapper(
