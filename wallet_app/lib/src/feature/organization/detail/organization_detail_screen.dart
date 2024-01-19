@@ -2,13 +2,13 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/country_code_formatter.dart';
+import '../../../util/launch_util.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_tile_button.dart';
@@ -162,8 +162,8 @@ class OrganizationDetailScreen extends StatelessWidget {
         _buildCategoryRow(context, organization),
         if (organization.department != null) _buildDepartmentRow(context, organization),
         if (country != null || organization.city != null) _buildLocationRow(context, country, organization),
-        if (organization.webUrl != null) _buildWebUrlRow(context, organization),
-        _buildPrivacyRow(context),
+        if (organization.webUrl != null) _buildWebUrlRow(context, organization.webUrl!),
+        if (organization.privacyPolicyUrl != null) _buildPrivacyRow(context, organization.privacyPolicyUrl!),
         if (organization.kvk != null) _buildKvkRow(context, organization),
       ],
     );
@@ -196,7 +196,7 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWebUrlRow(BuildContext context, Organization organization) {
+  Widget _buildWebUrlRow(BuildContext context, String webUrl) {
     return _buildInfoRow(
       context,
       icon: Icons.language_outlined,
@@ -205,20 +205,20 @@ class OrganizationDetailScreen extends StatelessWidget {
         link: true,
         child: Text.rich(
           TextSpan(
-            text: organization.webUrl!,
+            text: webUrl,
             style: context.textTheme.bodyLarge!.copyWith(
               fontWeight: FontWeight.w400,
               decoration: TextDecoration.underline,
               color: context.colorScheme.primary,
             ),
-            recognizer: TapGestureRecognizer()..onTap = () => _openUrl(organization.webUrl!),
+            recognizer: TapGestureRecognizer()..onTap = () => launchUrlStringCatching(webUrl),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildPrivacyRow(BuildContext context) {
+  Widget _buildPrivacyRow(BuildContext context, String privacyPolicyUrl) {
     return _buildInfoRow(
       context,
       icon: Icons.policy_outlined,
@@ -227,13 +227,13 @@ class OrganizationDetailScreen extends StatelessWidget {
         link: true,
         child: Text.rich(
           TextSpan(
-            text: context.l10n.organizationDetailScreenPrivacyValue,
+            text: privacyPolicyUrl,
             style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                   fontWeight: FontWeight.w400,
                   decoration: TextDecoration.underline,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-            recognizer: TapGestureRecognizer()..onTap = () => PlaceholderScreen.show(context),
+            recognizer: TapGestureRecognizer()..onTap = () => launchUrlStringCatching(privacyPolicyUrl),
           ),
         ),
       ),
@@ -247,15 +247,6 @@ class OrganizationDetailScreen extends StatelessWidget {
       title: Text(context.l10n.organizationDetailScreenKvkInfo),
       subtitle: Text(organization.kvk ?? ''),
     );
-  }
-
-  void _openUrl(String url) {
-    try {
-      final uri = Uri.parse(url);
-      launchUrl(uri);
-    } catch (ex) {
-      Fimber.e('Failed to launch $url', ex: ex);
-    }
   }
 
   Widget _buildInfoRow(BuildContext context,
