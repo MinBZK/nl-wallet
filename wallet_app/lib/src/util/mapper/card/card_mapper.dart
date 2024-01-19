@@ -24,8 +24,6 @@ class CardMapper extends Mapper<Card, WalletCard> {
     return WalletCard(
       id: cardId,
       docType: input.docType,
-      issuerId: '',
-      // FIXME: Remove issuerId
       front: _cardFrontMapper.map(input),
       attributes: _attributeMapper.mapList(
         input.attributes.map(
