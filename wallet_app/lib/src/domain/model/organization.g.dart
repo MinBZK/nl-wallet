@@ -18,6 +18,7 @@ Organization _$OrganizationFromJson(Map<String, dynamic> json) => Organization(
       ),
       logo: const AppImageDataConverter().fromJson(json['logo'] as Map<String, dynamic>),
       webUrl: json['webUrl'] as String?,
+      privacyPolicyUrl: json['privacyPolicyUrl'] as String?,
       countryCode: json['countryCode'] as String?,
       city: (json['city'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
@@ -36,6 +37,7 @@ Map<String, dynamic> _$OrganizationToJson(Organization instance) => <String, dyn
       'description': instance.description,
       'logo': const AppImageDataConverter().toJson(instance.logo),
       'webUrl': instance.webUrl,
+      'privacyPolicyUrl': instance.privacyPolicyUrl,
       'countryCode': instance.countryCode,
       'city': instance.city,
       'department': instance.department,
