@@ -100,11 +100,8 @@ class OrganizationDetailScreen extends StatelessWidget {
       hasScrollBody: false,
       child: Center(
         child: TextButton(
-          onPressed: () {
-            final retryEvent = OrganizationLoadTriggered(organizationId: state.organizationId);
-            context.read<OrganizationDetailBloc>().add(retryEvent);
-          },
-          child: Text(context.l10n.generalRetry),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.l10n.generalBottomBackCta),
         ),
       ),
     );
@@ -302,12 +299,13 @@ class OrganizationDetailScreen extends StatelessWidget {
       SecuredPageRoute(
         builder: (context) {
           return BlocProvider<OrganizationDetailBloc>(
-            create: (BuildContext context) => OrganizationDetailBloc.forOrganization(
-              context.read(),
-              context.read(),
-              organization: organization,
-              isFirstInteractionWithOrganization: isFirstInteractionWithOrganization,
-            ),
+            create: (BuildContext context) => OrganizationDetailBloc()
+              ..add(
+                OrganizationProvided(
+                  organization: organization,
+                  isFirstInteractionWithOrganization: isFirstInteractionWithOrganization,
+                ),
+              ),
             child: OrganizationDetailScreen(onReportIssuePressed: onReportIssuePressed),
           );
         },
