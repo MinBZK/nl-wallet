@@ -10,7 +10,7 @@ import 'package:wallet/src/feature/issuance/issuance_screen.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../mocks/mock_data.dart';
+import '../../mocks/wallet_mock_data.dart';
 import '../../util/device_utils.dart';
 import '../../util/test_utils.dart';
 import '../pin/pin_page_test.dart';

@@ -8,7 +8,7 @@ import 'package:wallet/src/feature/card/detail/bloc/card_detail_bloc.dart';
 import 'package:wallet/src/feature/card/detail/card_detail_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
 
 class MockCardSummaryBloc extends MockBloc<CardDetailEvent, CardDetailState> implements CardDetailBloc {}

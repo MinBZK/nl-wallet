@@ -9,7 +9,10 @@ import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_assets.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
+
+const _kSampleIssuer = CoreMockData.organization;
 
 void main() {
   late Mapper<Card, LocalizedText?> mockSubtitleMapper;
@@ -24,8 +27,12 @@ void main() {
 
   group('map', () {
     test('card with `com.example.pid` docType should return light localized card front', () {
-      const coreCard =
-          Card(persistence: CardPersistence.inMemory(), docType: 'com.example.pid', attributes: [], issuer: TODO());
+      const coreCard = Card(
+        persistence: CardPersistence.inMemory(),
+        docType: 'com.example.pid',
+        attributes: [],
+        issuer: _kSampleIssuer,
+      );
 
       when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 
@@ -45,8 +52,11 @@ void main() {
     });
 
     test('card with `com.example.address` docType should return dark localized card front', () {
-      const coreCard =
-          Card(persistence: CardPersistence.inMemory(), docType: 'com.example.address', attributes: [], issuer: TODO());
+      const coreCard = Card(
+          persistence: CardPersistence.inMemory(),
+          docType: 'com.example.address',
+          attributes: [],
+          issuer: _kSampleIssuer);
 
       when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 
@@ -66,7 +76,8 @@ void main() {
     });
 
     test('card with unknown docType should throw exception', () {
-      const input = Card(persistence: CardPersistence.inMemory(), docType: 'unknown', attributes: [], issuer: TODO());
+      const input =
+          Card(persistence: CardPersistence.inMemory(), docType: 'unknown', attributes: [], issuer: _kSampleIssuer);
 
       expect(() => mapper.map(input), throwsException);
     });

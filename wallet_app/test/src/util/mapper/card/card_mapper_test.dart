@@ -9,17 +9,19 @@ import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
 
 const _kSampleDocType = 'pid_id';
-const _kSampleCardAttributeName = CardAttribute(key: 'name', labels: [], value: CardValue_String(value: 'Willeke'));
-const _kSampleCardAttributeCity = CardAttribute(key: 'city', labels: [], value: CardValue_String(value: 'Den Haag'));
+const _kSampleCardAttributeName = CoreMockData.cardAttributeName;
+const _kSampleCardAttributeCity = CoreMockData.cardAttributeCity;
+const _kSampleIssuer = CoreMockData.organization;
 
 const _kSampleCard = Card(
   persistence: CardPersistence_InMemory(),
   docType: _kSampleDocType,
   attributes: [_kSampleCardAttributeName, _kSampleCardAttributeCity],
-  issuer: TODO(),
+  issuer: _kSampleIssuer,
 );
 
 void main() {
@@ -47,7 +49,11 @@ void main() {
 
     test('card with `stored` persistence should return storage `id`', () {
       const input = Card(
-          persistence: CardPersistence_Stored(id: 'id-987'), docType: _kSampleDocType, attributes: [], issuer: TODO());
+        persistence: CardPersistence_Stored(id: 'id-987'),
+        docType: _kSampleDocType,
+        attributes: [],
+        issuer: _kSampleIssuer,
+      );
       expect(mapper.map(input).id, 'id-987');
     });
 

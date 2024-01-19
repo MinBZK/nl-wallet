@@ -7,7 +7,7 @@ import 'package:wallet/src/feature/card/overview/bloc/card_overview_bloc.dart';
 import 'package:wallet/src/feature/card/overview/card_overview_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
 
 class MockCardOverviewBloc extends MockBloc<CardOverviewEvent, CardOverviewState> implements CardOverviewBloc {}

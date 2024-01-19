@@ -10,7 +10,7 @@ import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/domain/usecase/card/impl/observe_wallet_card_detail_usecase_impl.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 
-import '../../../../mocks/mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {

@@ -11,7 +11,7 @@ import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
-import 'src/mocks/mock_data.dart';
+import 'src/mocks/wallet_mock_data.dart';
 import 'src/mocks/wallet_mocks.dart';
 import 'src/util/golden_diff_comparator.dart';
 

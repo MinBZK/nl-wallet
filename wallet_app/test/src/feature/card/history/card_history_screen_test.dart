@@ -7,7 +7,7 @@ import 'package:wallet/src/feature/card/history/bloc/card_history_bloc.dart';
 import 'package:wallet/src/feature/card/history/card_history_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
 import '../../../util/test_utils.dart';
 
