@@ -4,7 +4,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_keys::KeysError,
-    utils::{cose::CoseError, issuer_auth::IssuerRegistration},
+    utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 

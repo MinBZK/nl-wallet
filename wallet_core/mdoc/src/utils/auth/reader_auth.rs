@@ -4,11 +4,10 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use serde_with::{skip_serializing_none, DeserializeFromStr};
 use url::Url;
-use x509_parser::der_parser::Oid;
 
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    utils::x509::{Certificate, CertificateError},
+    utils::x509::MdocCertificateExtension,
     DeviceRequest,
 };
 
@@ -100,14 +99,6 @@ pub struct ReaderRegistration {
     pub attributes: IndexMap<String, AuthorizedMdoc>,
 }
 
-impl ReaderRegistration {
-    pub fn from_certificate(source: &Certificate) -> Result<Option<Self>, CertificateError> {
-        // unwrap() is safe here, because we process a fixed value
-        let oid = Oid::from(OID_EXT_READER_AUTH).unwrap();
-        source.extract_custom_ext(oid)
-    }
-}
-
 impl AttributeIdentifierHolder for ReaderRegistration {
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.attributes
@@ -175,23 +166,8 @@ impl DeviceRequest {
     }
 }
 
-#[cfg(feature = "generate")]
-mod generate {
-    use p256::pkcs8::der::{asn1::Utf8StringRef, Encode};
-    use rcgen::CustomExtension;
-
-    use crate::utils::x509::CertificateError;
-
-    use super::{ReaderRegistration, OID_EXT_READER_AUTH};
-
-    impl ReaderRegistration {
-        pub fn to_custom_ext(&self) -> Result<CustomExtension, CertificateError> {
-            let json_string = serde_json::to_string(self)?;
-            let string = Utf8StringRef::new(&json_string)?;
-            let ext = CustomExtension::from_oid_content(OID_EXT_READER_AUTH, string.to_der()?);
-            Ok(ext)
-        }
-    }
+impl MdocCertificateExtension for ReaderRegistration {
+    const OID: &'static [u64] = OID_EXT_READER_AUTH;
 }
 
 #[cfg(feature = "mock")]

@@ -1,7 +1,11 @@
 use chrono::{DateTime, Utc};
 use tracing::info;
 
-use nl_wallet_mdoc::utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateError};
+use nl_wallet_mdoc::utils::{
+    issuer_auth::IssuerRegistration,
+    reader_auth::ReaderRegistration,
+    x509::{CertificateError, MdocCertificateExtension},
+};
 
 pub use crate::storage::EventStatus;
 use crate::{

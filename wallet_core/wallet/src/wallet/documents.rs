@@ -1,5 +1,6 @@
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use tracing::info;
+
+use nl_wallet_mdoc::utils::{issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 
 use crate::{
     document::{Document, DocumentPersistence},

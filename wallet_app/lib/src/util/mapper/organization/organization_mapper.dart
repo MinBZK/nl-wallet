@@ -28,5 +28,6 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
         countryCode: input.countryCode,
         city: input.city == null ? null : _localizedStringMapper.map(input.city!),
         webUrl: input.webUrl,
+        privacyPolicyUrl: input.privacyPolicyUrl,
       );
 }

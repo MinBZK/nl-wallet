@@ -25,6 +25,7 @@ pub struct Organization {
     pub description: Vec<LocalizedString>,
     pub image: Option<Image>,
     pub web_url: Option<String>,
+    pub privacy_policy_url: Option<String>,
     pub kvk: Option<String>,
     pub city: Option<Vec<LocalizedString>>,
     pub category: Vec<LocalizedString>,
@@ -114,6 +115,7 @@ impl From<wallet::mdoc::Organization> for Organization {
             department: value.department.map(|department| RPLocalizedStrings(department).into()),
             country_code: value.country_code,
             web_url: value.web_url.map(|url| url.to_string()),
+            privacy_policy_url: value.privacy_policy_url.map(|url| url.to_string()),
         }
     }
 }

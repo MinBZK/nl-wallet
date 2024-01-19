@@ -6,7 +6,10 @@ use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
     holder::ProposedCard,
     identifiers::AttributeIdentifier,
-    utils::{issuer_auth::IssuerRegistration, x509::CertificateError},
+    utils::{
+        issuer_auth::IssuerRegistration,
+        x509::{CertificateError, MdocCertificateExtension},
+    },
     DataElementIdentifier, DataElementValue, NameSpace,
 };
 
