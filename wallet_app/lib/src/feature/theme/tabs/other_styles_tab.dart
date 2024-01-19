@@ -73,6 +73,16 @@ final _kSampleCard = WalletCard(
   docType: 'docType',
   front: _kSampleCardFront,
   attributes: _kSampleAttributes,
+  issuer: _kSampleOrganization,
+);
+
+final _kSampleOrganization = Organization(
+  id: 'id',
+  legalName: 'Organization Name'.untranslated,
+  category: 'Category'.untranslated,
+  displayName: 'This is a TimelineAttributeRow'.untranslated,
+  description: 'Organization description'.untranslated,
+  logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
 );
 
 class OtherStylesTab extends StatelessWidget {
@@ -264,14 +274,7 @@ class OtherStylesTab extends StatelessWidget {
         TimelineAttributeRow(
           attribute: InteractionTimelineAttribute(
             dateTime: DateTime.now(),
-            organization: Organization(
-              id: 'id',
-              legalName: 'Organization Name'.untranslated,
-              category: 'Category'.untranslated,
-              displayName: 'This is a TimelineAttributeRow'.untranslated,
-              description: 'Organization description'.untranslated,
-              logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
-            ),
+            organization: _kSampleOrganization,
             dataAttributes: const [],
             status: InteractionStatus.success,
             policy: const Policy(
@@ -336,7 +339,13 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
           onCardSelectionToggled: (_) {},
-          card: WalletCard(id: 'id', docType: 'docType', front: _kSampleCardFront, attributes: const []),
+          card: WalletCard(
+            id: 'id',
+            docType: 'docType',
+            front: _kSampleCardFront,
+            attributes: const [],
+            issuer: _kSampleOrganization,
+          ),
           isSelected: true,
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),

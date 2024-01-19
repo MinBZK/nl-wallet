@@ -33,8 +33,14 @@ class Wallet {
     final cardToAttributes = allRequestedAttributes
         .groupListsBy((attribute) => _cards.firstWhere((card) => card.attributes.contains(attribute)));
     return cardToAttributes.entries
-        .map((e) => DisclosureCard(docType: e.key.docType, attributes: e.value, issuer: kOrganizations[kRvigId]!))
-        .toList(); // TODO: What should issuer be?
+        .map(
+          (e) => DisclosureCard(
+            docType: e.key.docType,
+            attributes: e.value,
+            issuer: kOrganizations[kRvigId]!,
+          ),
+        )
+        .toList();
   }
 
   List<String> getMissingAttributeKeys(Iterable<String> keys) {

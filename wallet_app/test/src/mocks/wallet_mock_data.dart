@@ -17,6 +17,7 @@ abstract class WalletMockData {
   static WalletCard card = WalletCard(
     docType: 'com.example.docType',
     front: cardFront,
+    issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
     id: 'id',
   );
@@ -30,6 +31,7 @@ abstract class WalletMockData {
       logoImage: WalletAssets.logo_card_rijksoverheid,
       subtitle: 'Alt Subtitle'.untranslated,
     ),
+    issuer: WalletMockData.organization,
     docType: 'com.example.alt.docType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     id: 'id2',

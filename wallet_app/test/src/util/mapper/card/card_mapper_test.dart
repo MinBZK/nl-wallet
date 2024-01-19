@@ -3,11 +3,12 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_config.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
+import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
 import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
@@ -17,19 +18,20 @@ const _kSampleCardAttributeName = CoreMockData.cardAttributeName;
 const _kSampleCardAttributeCity = CoreMockData.cardAttributeCity;
 const _kSampleIssuer = CoreMockData.organization;
 
-const _kSampleCard = Card(
-  persistence: CardPersistence_InMemory(),
+const _kSampleCard = core.Card(
+  persistence: core.CardPersistence_InMemory(),
   docType: _kSampleDocType,
   attributes: [_kSampleCardAttributeName, _kSampleCardAttributeCity],
   issuer: _kSampleIssuer,
 );
 
 void main() {
-  late Mapper<Card, CardFront> mockCardFrontMapper;
+  late Mapper<core.Card, CardFront> mockCardFrontMapper;
   late Mapper<CardAttributeWithDocType, DataAttribute> mockCardAttributeMapper;
   late Mapper<String, CardConfig> mockCardConfigMapper;
+  late Mapper<core.Organization, Organization> mockOrganizationMapper;
 
-  late Mapper<Card, WalletCard> mapper;
+  late Mapper<core.Card, WalletCard> mapper;
 
   setUp(() {
     provideDummy<CardConfig>(const CardConfig());
@@ -37,8 +39,14 @@ void main() {
     mockCardFrontMapper = MockMapper();
     mockCardAttributeMapper = MockMapper();
     mockCardConfigMapper = MockMapper();
+    mockOrganizationMapper = MockMapper();
 
-    mapper = CardMapper(mockCardFrontMapper, mockCardConfigMapper, mockCardAttributeMapper);
+    mapper = CardMapper(
+      mockCardFrontMapper,
+      mockCardConfigMapper,
+      mockCardAttributeMapper,
+      mockOrganizationMapper,
+    );
   });
 
   group('map', () {
@@ -48,8 +56,8 @@ void main() {
     });
 
     test('card with `stored` persistence should return storage `id`', () {
-      const input = Card(
-        persistence: CardPersistence_Stored(id: 'id-987'),
+      const input = core.Card(
+        persistence: core.CardPersistence_Stored(id: 'id-987'),
         docType: _kSampleDocType,
         attributes: [],
         issuer: _kSampleIssuer,

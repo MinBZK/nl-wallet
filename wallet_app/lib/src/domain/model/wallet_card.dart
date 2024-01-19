@@ -4,6 +4,7 @@ import 'package:json_annotation/json_annotation.dart';
 import 'attribute/data_attribute.dart';
 import 'card_config.dart';
 import 'card_front.dart';
+import 'organization.dart';
 
 part 'wallet_card.g.dart';
 
@@ -11,6 +12,7 @@ part 'wallet_card.g.dart';
 class WalletCard extends Equatable {
   final String id;
   final String docType;
+  final Organization issuer;
   final CardFront front;
   final List<DataAttribute> attributes;
   final CardConfig config;
@@ -18,6 +20,7 @@ class WalletCard extends Equatable {
   const WalletCard({
     required this.id,
     required this.docType,
+    required this.issuer,
     required this.front,
     required this.attributes,
     this.config = const CardConfig(),
@@ -28,5 +31,12 @@ class WalletCard extends Equatable {
   Map<String, dynamic> toJson() => _$WalletCardToJson(this);
 
   @override
-  List<Object> get props => [id, front, attributes, config];
+  List<Object> get props => [
+        id,
+        docType,
+        issuer,
+        front,
+        attributes,
+        config,
+      ];
 }
