@@ -420,7 +420,7 @@ mod generate {
                     &ca,
                     &ca_privkey,
                     ISSUANCE_CERT_CN,
-                    CertificateType::Mdl(Box::new(IssuerRegistration::mock_issuer_registration()).into()),
+                    CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
                 )?;
                 let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
 
@@ -466,7 +466,7 @@ mod test {
             &ca,
             &ca_privkey,
             "mycert",
-            CertificateType::Mdl(Box::new(IssuerRegistration::mock_issuer_registration()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
         )
         .unwrap();
 
@@ -479,7 +479,7 @@ mod test {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
         let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
 
-        let reader_auth = CertificateType::ReaderAuth(Box::new(ReaderRegistration::mock_reader_registration()).into());
+        let reader_auth = CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into());
 
         let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone()).unwrap();
 

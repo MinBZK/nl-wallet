@@ -246,7 +246,7 @@ mod mock {
             Self {
                 disclosure_uri: Default::default(),
                 certificate: vec![].into(),
-                reader_registration: ReaderRegistration::mock_reader_registration(),
+                reader_registration: ReaderRegistration::new_mock(),
                 session_state: Default::default(),
                 was_terminated: Default::default(),
             }
@@ -270,7 +270,7 @@ mod mock {
                 .lock()
                 .unwrap()
                 .take()
-                .unwrap_or_else(|| (ReaderRegistration::mock_reader_registration(), SessionState::default()));
+                .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default()));
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri,

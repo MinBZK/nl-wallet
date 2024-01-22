@@ -145,7 +145,7 @@ pub async fn create_doc_request(
 
 /// Create `ProposedDocument` based on the example `Mdoc`.
 pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
-    let mdoc = Mdoc::generate_mock_from_example_device_response();
+    let mdoc = Mdoc::new_example_mock();
 
     ProposedDocument {
         source_identifier: "id_1234".to_string(),
@@ -158,7 +158,7 @@ pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
 
 /// The `AttributeIdentifier`s contained in the example `Mdoc`.
 pub fn example_mdoc_attribute_identifiers() -> IndexSet<AttributeIdentifier> {
-    Mdoc::generate_mock_from_example_device_response().issuer_signed_attribute_identifiers()
+    Mdoc::new_example_mock().issuer_signed_attribute_identifiers()
 }
 
 /// Create an ordered set of `AttributeIdentifier`s within the
@@ -246,7 +246,7 @@ pub enum MdocDataSourceError {
 impl Default for MockMdocDataSource {
     fn default() -> Self {
         MockMdocDataSource {
-            mdocs: vec![Mdoc::generate_mock_from_example_device_response()],
+            mdocs: vec![Mdoc::new_example_mock()],
             has_error: false,
         }
     }
@@ -478,7 +478,7 @@ where
                 EXAMPLE_NAMESPACE.to_string(),
                 EXAMPLE_ATTRIBUTES.iter().copied(),
             ),
-            ..ReaderRegistration::mock_reader_registration()
+            ..ReaderRegistration::new_mock()
         }
         .into(),
     };

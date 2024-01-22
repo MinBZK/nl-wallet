@@ -161,7 +161,7 @@ pub mod mock {
         /// the example mdoc with all attributes present.
         ///
         /// Using tests should not rely on all attributes being present.
-        pub fn generate_mock_from_example_device_response() -> Mdoc {
+        pub fn new_example_mock() -> Self {
             let trust_anchors = Examples::iaca_trust_anchors();
             // Prepare the mdoc's private key
             let static_device_key = Examples::static_device_key();

@@ -284,7 +284,7 @@ mod tests {
         // Create two certificates and private keys.
         let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
         let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
-        let reader_registration = ReaderRegistration::mock_reader_registration();
+        let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
         let private_key2 = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
 
@@ -488,7 +488,7 @@ mod tests {
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
         let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
-        let reader_registration = ReaderRegistration::mock_reader_registration();
+        let reader_registration = ReaderRegistration::new_mock();
         let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
         let der_trust_anchor = DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap();
 

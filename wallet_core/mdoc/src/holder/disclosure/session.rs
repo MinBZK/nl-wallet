@@ -1194,7 +1194,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: vec![].into(),
-                reader_registration: ReaderRegistration::mock_reader_registration(),
+                reader_registration: ReaderRegistration::new_mock(),
             },
             device_key,
             proposed_documents: vec![create_example_proposed_document()],
@@ -1264,7 +1264,7 @@ mod tests {
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::ReaderAuth(Box::new(ReaderRegistration::mock_reader_registration()).into()),
+            CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
         )
         .unwrap();
 
@@ -1274,7 +1274,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: certificate.clone(),
-                reader_registration: ReaderRegistration::mock_reader_registration(),
+                reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),
         });
@@ -1296,7 +1296,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate,
-                reader_registration: ReaderRegistration::mock_reader_registration(),
+                reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),
         });

@@ -175,7 +175,7 @@ pub mod mock {
     use super::*;
 
     impl ReaderRegistration {
-        pub fn mock_reader_registration() -> Self {
+        pub fn new_mock() -> Self {
             let organization = Organization {
                 display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
                 legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
@@ -546,7 +546,7 @@ mod tests {
 
         ReaderRegistration {
             attributes,
-            ..ReaderRegistration::mock_reader_registration()
+            ..ReaderRegistration::new_mock()
         }
     }
 

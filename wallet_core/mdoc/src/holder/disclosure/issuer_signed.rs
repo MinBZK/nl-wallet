@@ -20,7 +20,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {
-        let mdoc = Mdoc::generate_mock_from_example_device_response();
+        let mdoc = Mdoc::new_example_mock();
 
         let public_key = mdoc
             .issuer_signed

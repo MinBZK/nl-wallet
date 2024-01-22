@@ -230,14 +230,14 @@ mod tests {
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::ReaderAuth(Box::new(ReaderRegistration::mock_reader_registration()).into()),
+            CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
         )
         .unwrap();
         let (mdl_certificate, _) = Certificate::new(
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::Mdl(Box::new(IssuerRegistration::mock_issuer_registration()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
         )
         .unwrap();
 

@@ -562,7 +562,7 @@ mod tests {
             &ca,
             &ca_privkey,
             "cert.example.com",
-            CertificateType::Mdl(Box::new(IssuerRegistration::mock_issuer_registration()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
         )
         .unwrap();
 

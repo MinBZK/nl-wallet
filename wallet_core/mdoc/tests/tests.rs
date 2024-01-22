@@ -143,7 +143,7 @@ fn setup_verifier_test(
             ISSUANCE_NAME_SPACE.to_string(),
             ISSUANCE_ATTRS.iter().map(|(key, _)| key).copied(),
         ),
-        ..ReaderRegistration::mock_reader_registration()
+        ..ReaderRegistration::new_mock()
     };
     let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
     let (disclosure_cert, disclosure_privkey) = Certificate::new(

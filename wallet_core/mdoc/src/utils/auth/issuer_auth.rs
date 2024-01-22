@@ -28,7 +28,7 @@ pub mod mock {
     use super::*;
 
     impl IssuerRegistration {
-        pub fn mock_issuer_registration() -> Self {
+        pub fn new_mock() -> Self {
             let organization = Organization {
                 display_name: vec![("nl", "Mijn Uitgever"), ("en", "My Issuer")].into(),
                 legal_name: vec![("nl", "Uitgever"), ("en", "Issuer")].into(),

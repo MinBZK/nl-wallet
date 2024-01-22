@@ -392,7 +392,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration::mock_reader_registration();
+        let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             IndexMap::from([(
@@ -543,7 +543,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            ReaderRegistration::mock_reader_registration(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -578,7 +578,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            ReaderRegistration::mock_reader_registration(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -623,7 +623,7 @@ mod tests {
         };
 
         MockMdocDisclosureSession::next_fields(
-            ReaderRegistration::mock_reader_registration(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::Proposal(proposal_session),
         );
 
@@ -651,7 +651,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration::mock_reader_registration();
+        let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             IndexMap::from([(
@@ -726,7 +726,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            ReaderRegistration::mock_reader_registration(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -1216,7 +1216,7 @@ mod tests {
         let wallet = WalletWithMocks::new_unregistered().await;
 
         // Create some fake `Mdoc` entries to place into wallet storage.
-        let mdoc1 = Mdoc::generate_mock_from_example_device_response();
+        let mdoc1 = Mdoc::new_example_mock();
         let mdoc2 = {
             let mut mdoc2 = mdoc1.clone();
 

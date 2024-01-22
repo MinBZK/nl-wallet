@@ -153,7 +153,7 @@ mod tests {
 
         // Test with a wallet with a database file, no registration.
         let wallet =
-            WalletWithMocks::init_registration_mocks_with_storage(MockStorage::mock(StorageState::Unopened, None))
+            WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(StorageState::Unopened, None))
                 .await
                 .expect("Could not initialize wallet");
 
@@ -167,7 +167,7 @@ mod tests {
 
         // Test with a wallet with a database file, contains registration.
         let pin_salt = pin_key::new_pin_salt();
-        let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::mock(
+        let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
             StorageState::Unopened,
             Some(RegistrationData {
                 pin_salt: pin_salt.clone().into(),
