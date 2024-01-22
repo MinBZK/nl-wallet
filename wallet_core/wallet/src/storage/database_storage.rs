@@ -410,10 +410,7 @@ pub(crate) mod tests {
     use chrono::{TimeZone, Utc};
     use tokio::fs;
 
-    use nl_wallet_mdoc::{
-        examples::Examples,
-        mock::{self as mdoc_mock, ISSUER_KEY_PAIR, READER_KEY_PAIR},
-    };
+    use nl_wallet_mdoc::{holder::Mdoc, server_keys::PrivateKey};
     use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
     use wallet_common::{
         account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
@@ -557,8 +554,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create MdocsMap from example Mdoc
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc = Mdoc::new_example_mock();
         let mdoc_copies = MdocCopies::from([mdoc.clone(), mdoc.clone(), mdoc].to_vec());
 
         // Insert mdocs
@@ -663,9 +659,9 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = &*READER_KEY_PAIR;
+        let (reader_key, _) = PrivateKey::generate_reader_mock_with_ca().unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, certificate.clone());
+        let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, reader_key.certificate().clone());
         storage.log_wallet_event(disclosure_cancel.clone()).await.unwrap();
         assert_eq!(
             storage.fetch_wallet_events().await.unwrap(),
@@ -681,9 +677,10 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = &*READER_KEY_PAIR;
+        let (reader_key, _) = PrivateKey::generate_reader_mock_with_ca().unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error = WalletEvent::disclosure_error(timestamp, certificate.clone(), "Some ERROR".to_string());
+        let disclosure_error =
+            WalletEvent::disclosure_error(timestamp, reader_key.certificate().clone(), "Some ERROR".to_string());
         storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
         assert_eq!(
             storage.fetch_wallet_events().await.unwrap(),
@@ -692,19 +689,26 @@ pub(crate) mod tests {
     }
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {
-        let (issuer_certificate, _) = &*ISSUER_KEY_PAIR;
-        let (reader_certificate, _) = &*READER_KEY_PAIR;
+        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
+        let (reader_key, _) = PrivateKey::generate_reader_mock_with_ca().unwrap();
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let disclosure_at_timestamp =
-            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE], timestamp, reader_certificate.clone());
+        let disclosure_at_timestamp = WalletEvent::disclosure_from_str(
+            vec![PID_DOCTYPE],
+            timestamp,
+            reader_key.certificate().clone(),
+            issuer_key.certificate(),
+        );
         let issuance_at_older_timestamp =
-            WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, issuer_certificate.clone());
-        let issuance_at_even_older_timestamp =
-            WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_even_older, issuer_certificate.clone());
+            WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, issuer_key.certificate().clone());
+        let issuance_at_even_older_timestamp = WalletEvent::issuance_from_str(
+            vec![PID_DOCTYPE],
+            timestamp_even_older,
+            issuer_key.certificate().clone(),
+        );
         // Insert events, in non-standard order, from new to old
         storage.log_wallet_event(disclosure_at_timestamp.clone()).await.unwrap();
         storage
@@ -749,8 +753,8 @@ pub(crate) mod tests {
     }
 
     pub(crate) async fn test_history_by_doc_type(storage: &mut impl Storage) {
-        let (issuer_certificate, _) = &*ISSUER_KEY_PAIR;
-        let (reader_certificate, _) = &*READER_KEY_PAIR;
+        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
+        let (reader_key, _) = PrivateKey::generate_reader_mock_with_ca().unwrap();
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
@@ -760,7 +764,7 @@ pub(crate) mod tests {
         let issuance = WalletEvent::issuance_from_str(
             vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
             timestamp,
-            issuer_certificate.clone(),
+            issuer_key.certificate().clone(),
         );
         storage.log_wallet_event(issuance.clone()).await.unwrap();
 
@@ -768,7 +772,8 @@ pub(crate) mod tests {
         let disclosure_pid_and_address = WalletEvent::disclosure_from_str(
             vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
             timestamp_newer,
-            reader_certificate.clone(),
+            reader_key.certificate().clone(),
+            issuer_key.certificate(),
         );
         storage
             .log_wallet_event(disclosure_pid_and_address.clone())
@@ -776,8 +781,12 @@ pub(crate) mod tests {
             .unwrap();
 
         // Log Disclosure of pid card only
-        let disclosure_pid_only =
-            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE], timestamp_newest, reader_certificate.clone());
+        let disclosure_pid_only = WalletEvent::disclosure_from_str(
+            vec![PID_DOCTYPE],
+            timestamp_newest,
+            reader_key.certificate().clone(),
+            issuer_key.certificate(),
+        );
         storage.log_wallet_event(disclosure_pid_only.clone()).await.unwrap();
 
         // Fetch event by pid and verify events contain issuance of pid, and both full disclosure transactions with pid

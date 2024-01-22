@@ -171,9 +171,9 @@ mod tests {
     use assert_matches::assert_matches;
 
     use chrono::{Duration, TimeZone, Utc};
-    use nl_wallet_mdoc::mock::{ISSUER_KEY_PAIR, READER_KEY_PAIR};
+    use nl_wallet_mdoc::server_keys::PrivateKey;
 
-    use crate::{storage::WalletEvent, wallet::tests::WalletWithMocks};
+    use crate::{storage::WalletEvent, wallet::test::WalletWithMocks};
 
     use super::HistoryError;
 
@@ -220,8 +220,8 @@ mod tests {
     async fn test_history() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let issuer_certificate = ISSUER_KEY_PAIR.0.clone();
-        let reader_certificate = READER_KEY_PAIR.0.clone();
+        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
+        let (reader_key, _) = PrivateKey::generate_reader_mock_with_ca().unwrap();
 
         // history should be empty
         let history = wallet.get_history().await.unwrap();
@@ -231,11 +231,11 @@ mod tests {
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
 
         let pid_doc_type_event =
-            WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_older, issuer_certificate.clone());
+            WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_older, issuer_key.certificate().clone());
         wallet.store_history_event(pid_doc_type_event.clone()).await.unwrap();
 
         let disclosure_cancelled_event =
-            WalletEvent::disclosure_cancel(timestamp_older + Duration::days(1), reader_certificate.clone());
+            WalletEvent::disclosure_cancel(timestamp_older + Duration::days(1), reader_key.certificate().clone());
         wallet
             .store_history_event(disclosure_cancelled_event.clone())
             .await
@@ -243,7 +243,7 @@ mod tests {
 
         let disclosure_error_event = WalletEvent::disclosure_error(
             timestamp_older + Duration::days(2),
-            reader_certificate.clone(),
+            reader_key.certificate().clone(),
             "Some Error".to_owned(),
         );
         wallet
@@ -251,8 +251,12 @@ mod tests {
             .await
             .unwrap();
 
-        let address_doc_type_event =
-            WalletEvent::disclosure_from_str(vec![ADDRESS_DOCTYPE], timestamp_newer, reader_certificate);
+        let address_doc_type_event = WalletEvent::disclosure_from_str(
+            vec![ADDRESS_DOCTYPE],
+            timestamp_newer,
+            reader_key.certificate().clone(),
+            issuer_key.certificate(),
+        );
         wallet
             .store_history_event(address_doc_type_event.clone())
             .await

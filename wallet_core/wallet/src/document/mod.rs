@@ -10,8 +10,8 @@ use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 
 pub use mdoc::{AttributeValueType, DocumentMdocError};
 
-#[cfg(feature = "mock")]
-pub use mdoc::mock::{
+#[cfg(test)]
+pub use mdoc::tests::{
     create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
     create_minimal_unsigned_pid_mdoc,
 };

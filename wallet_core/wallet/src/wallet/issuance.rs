@@ -333,10 +333,10 @@ mod tests {
     use crate::{
         digid::{MockDigidSession, OpenIdError},
         document::{self, DocumentPersistence},
-        wallet::tests,
+        wallet::test,
     };
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     #[tokio::test]
     #[serial]
@@ -780,7 +780,7 @@ mod tests {
         // Have the `PidIssuerClient` accept the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc().await].into()];
+        wallet.pid_issuer.mdoc_copies = vec![vec![test::create_full_pid_mdoc().await].into()];
 
         // Accept the PID issuance with the PIN.
         wallet
@@ -815,7 +815,7 @@ mod tests {
         // Have the `PidIssuerClient` accept the PID with a single instance of `MdocCopies`, which contains a single
         // valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
         wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc_unauthenticated().await].into()];
+        wallet.pid_issuer.mdoc_copies = vec![vec![test::create_full_pid_mdoc_unauthenticated().await].into()];
 
         // Accept the PID issuance with the PIN.
         let error = wallet
@@ -947,7 +947,7 @@ mod tests {
         // Have the `PidIssuerClient` report a a session
         // and have the database return an error on query.
         wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc().await].into()];
+        wallet.pid_issuer.mdoc_copies = vec![vec![test::create_full_pid_mdoc().await].into()];
         wallet.storage.get_mut().has_query_error = true;
 
         // Accepting PID issuance should result in an error.

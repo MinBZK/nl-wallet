@@ -9,7 +9,6 @@ use crate::common::*;
 pub mod common;
 
 #[tokio::test]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {

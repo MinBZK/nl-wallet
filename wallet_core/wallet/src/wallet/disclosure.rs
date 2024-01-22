@@ -373,10 +373,9 @@ mod tests {
 
     use nl_wallet_mdoc::{
         basic_sa_ext::Entry,
-        examples::Examples,
-        holder::{HolderError, ProposedCard},
+        holder::{HolderError, Mdoc, ProposedCard},
         iso::disclosure::SessionStatus,
-        mock::{self as mdoc_mock, ISSUER_KEY_PAIR},
+        server_keys::PrivateKey,
         verifier::SessionType,
         DataElementValue,
     };
@@ -387,7 +386,7 @@ mod tests {
         Attribute, AttributeValue, EventStatus,
     };
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     const DISCLOSURE_URI: &str =
         "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device";
@@ -398,8 +397,10 @@ mod tests {
     async fn test_wallet_start_disclosure() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
+
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration { ..Default::default() };
+        let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             ProposedCard {
@@ -410,7 +411,7 @@ mod tests {
                         value: DataElementValue::Bool(true),
                     }],
                 )]),
-                issuer: (ISSUER_KEY_PAIR).0.clone(),
+                issuer: issuer_key.certificate().clone(),
             },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
@@ -553,7 +554,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -588,7 +589,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -616,6 +617,8 @@ mod tests {
     async fn test_wallet_start_disclosure_error_mdoc_attributes() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
+
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
@@ -627,7 +630,7 @@ mod tests {
                         value: DataElementValue::Text("bar".to_string()),
                     }],
                 )]),
-                issuer: ISSUER_KEY_PAIR.0.clone(),
+                issuer: issuer_key.certificate().clone(),
             },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
@@ -636,7 +639,7 @@ mod tests {
         };
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::Proposal(proposal_session),
         );
 
@@ -663,8 +666,10 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
+
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let reader_registration = ReaderRegistration { ..Default::default() };
+        let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
             ProposedCard {
@@ -675,7 +680,7 @@ mod tests {
                         value: DataElementValue::Bool(true),
                     }],
                 )]),
-                issuer: ISSUER_KEY_PAIR.0.clone(),
+                issuer: issuer_key.certificate().clone(),
             },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
@@ -742,7 +747,7 @@ mod tests {
             .return_const(missing_attributes);
 
         MockMdocDisclosureSession::next_fields(
-            Default::default(),
+            ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
         );
 
@@ -839,6 +844,8 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
+
         let return_url = Url::parse("https://example.com/return/here").unwrap();
 
         let proposed_attributes = IndexMap::from([(
@@ -851,7 +858,7 @@ mod tests {
                         value: DataElementValue::Bool(true),
                     }],
                 )]),
-                issuer: ISSUER_KEY_PAIR.0.clone(),
+                issuer: issuer_key.certificate().clone(),
             },
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
@@ -1235,8 +1242,7 @@ mod tests {
         let wallet = WalletWithMocks::new_unregistered().await;
 
         // Create some fake `Mdoc` entries to place into wallet storage.
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc1 = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc1 = Mdoc::new_example_mock();
         let mdoc2 = {
             let mut mdoc2 = mdoc1.clone();
 

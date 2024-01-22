@@ -90,7 +90,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use super::{
-        super::tests::{self, WalletWithMocks},
+        super::test::{self, WalletWithMocks},
         *,
     };
 
@@ -136,7 +136,7 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked().await;
 
         // The database contains a single `Mdoc`.
-        let mdoc = tests::create_full_pid_mdoc().await;
+        let mdoc = test::create_full_pid_mdoc().await;
         let mdoc_doc_type = mdoc.doc_type.clone();
         wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
 

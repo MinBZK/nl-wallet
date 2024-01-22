@@ -17,7 +17,7 @@ use x509_parser::{
     prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
 };
 
-use wallet_common::generator::Generator;
+use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
 
 use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
 
@@ -31,7 +31,7 @@ pub enum CertificateError {
     ContentParsing(#[from] x509_parser::nom::Err<X509Error>),
     #[error("certificate private key generation failed: {0}")]
     GeneratingPrivateKey(p256::pkcs8::Error),
-    #[cfg(feature = "generate")]
+    #[cfg(any(test, feature = "generate"))]
     #[error("certificate creation failed: {0}")]
     GeneratingFailed(#[from] rcgen::RcgenError),
     #[error("failed to parse certificate public key: {0}")]
@@ -90,12 +90,11 @@ impl From<Certificate> for Vec<u8> {
     }
 }
 
-#[cfg(feature = "mock")]
-impl<'a> TryInto<wallet_common::trust_anchor::DerTrustAnchor> for &'a Certificate {
+impl<'a> TryInto<DerTrustAnchor> for &'a Certificate {
     type Error = CertificateError;
 
-    fn try_into(self) -> Result<wallet_common::trust_anchor::DerTrustAnchor, Self::Error> {
-        Ok(wallet_common::trust_anchor::DerTrustAnchor::from_der(self.0.to_vec())?)
+    fn try_into(self) -> Result<DerTrustAnchor, Self::Error> {
+        Ok(DerTrustAnchor::from_der(self.0.to_vec())?)
     }
 }
 
@@ -297,7 +296,7 @@ where
         source.extract_custom_ext(oid)
     }
 
-    #[cfg(feature = "generate")]
+    #[cfg(any(test, feature = "generate"))]
     fn to_custom_ext(&self) -> Result<rcgen::CustomExtension, CertificateError> {
         use p256::pkcs8::der::Encode;
 
@@ -308,7 +307,7 @@ where
     }
 }
 
-#[cfg(feature = "generate")]
+#[cfg(any(test, feature = "generate"))]
 mod generate {
     use p256::{
         ecdsa::SigningKey,
@@ -403,6 +402,76 @@ mod generate {
             Ok(extensions)
         }
     }
+
+    #[cfg(feature = "mock")]
+    mod mock {
+        use crate::{
+            server_keys::PrivateKey,
+            utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration},
+        };
+
+        use super::*;
+
+        const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
+        const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
+
+        const RP_CA_CN: &str = "ca.rp.example.com";
+        const RP_CERT_CN: &str = "cert.rp.example.com";
+
+        impl PrivateKey {
+            pub fn generate_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
+                // Issuer CA certificate and normal certificate
+                let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+                let (issuer_cert, issuer_privkey) = Certificate::new(
+                    &ca,
+                    &ca_privkey,
+                    ISSUANCE_CERT_CN,
+                    CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
+                )?;
+                let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+
+                Ok((issuance_key, ca))
+            }
+
+            pub fn generate_unauthenticated_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
+                // Issuer CA certificate and normal certificate, without issuer registration
+                let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+                let (issuer_cert, issuer_privkey) =
+                    Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl(None))?;
+                let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+
+                Ok((issuance_key, ca))
+            }
+
+            pub fn generate_reader_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
+                // Reader CA certificate
+                let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN)?;
+                let (reader_cert, reader_privkey) = Certificate::new(
+                    &ca,
+                    &ca_privkey,
+                    RP_CERT_CN,
+                    CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
+                )?;
+                let reader_key = PrivateKey::new(reader_privkey, reader_cert);
+                Ok((reader_key, ca))
+            }
+
+            pub fn generate_reader_mock_with_ca_from_registration(
+                reader_registration: ReaderRegistration,
+            ) -> Result<(Self, Certificate), CertificateError> {
+                // Reader CA certificate
+                let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN)?;
+                let (reader_cert, reader_privkey) = Certificate::new(
+                    &ca,
+                    &ca_privkey,
+                    RP_CERT_CN,
+                    CertificateType::ReaderAuth(Box::new(reader_registration).into()),
+                )?;
+                let reader_key = PrivateKey::new(reader_privkey, reader_cert);
+                Ok((reader_key, ca))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -412,9 +481,7 @@ mod test {
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::utils::{
-        issuer_auth::issuer_registration_mock, reader_auth::reader_registration_mock, x509::CertificateType,
-    };
+    use crate::utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateType};
 
     use super::{Certificate, CertificateUsage};
 
@@ -433,7 +500,7 @@ mod test {
             &ca,
             &ca_privkey,
             "mycert",
-            CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
         )
         .unwrap();
 
@@ -446,7 +513,7 @@ mod test {
         let (ca, ca_privkey) = Certificate::new_ca("myca").unwrap();
         let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
 
-        let reader_auth = CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into());
+        let reader_auth = CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into());
 
         let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone()).unwrap();
 

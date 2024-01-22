@@ -23,15 +23,10 @@ use nl_wallet_mdoc::{
     identifiers::AttributeIdentifier,
     iso::{device_retrieval::ItemsRequest, mdocs::DocType},
     issuer::{IssuanceData, Issuer},
-    mock::{self, SoftwareKeyFactory, CA_KEY_PAIR},
     server_keys::{KeyRing, PrivateKey},
     server_state::MemorySessionStore,
-    utils::{
-        auth::reader_auth::mock::reader_registration_mock,
-        reader_auth::ReaderRegistration,
-        serialization,
-        x509::{Certificate, CertificateType},
-    },
+    software_key_factory::SoftwareKeyFactory,
+    utils::{reader_auth::ReaderRegistration, serialization, x509::Certificate},
     verifier::{DisclosureData, SessionType, Verifier},
 };
 use webpki::TrustAnchor;
@@ -116,7 +111,7 @@ impl HttpClient for MockDisclosureHttpClient {
 }
 
 fn setup_issuance_test() -> (Wallet<MockIssuanceHttpClient>, Arc<MockIssuanceServer>, Certificate) {
-    let (issuance_key, ca) = mock::generate_issuance_key_and_ca().unwrap();
+    let (issuance_key, ca) = PrivateKey::generate_mock_with_ca().unwrap();
 
     // Setup issuer
     let issuance_server = MockIssuanceServer::new(
@@ -139,22 +134,14 @@ fn setup_verifier_test(
     mdoc_trust_anchors: &[TrustAnchor<'_>],
 ) -> (MockDisclosureHttpClient, Arc<MockVerifier>, Certificate) {
     let reader_registration = ReaderRegistration {
-        attributes: mock::reader_registration_attributes(
+        attributes: ReaderRegistration::create_attributes(
             ISSUANCE_DOC_TYPE.to_string(),
             ISSUANCE_NAME_SPACE.to_string(),
             ISSUANCE_ATTRS.iter().map(|(key, _)| key).copied(),
         ),
-        ..reader_registration_mock()
+        ..ReaderRegistration::new_mock()
     };
-    let (ca, ca_privkey) = &*CA_KEY_PAIR;
-    let (disclosure_cert, disclosure_privkey) = Certificate::new(
-        ca,
-        ca_privkey,
-        RP_CERT_CN,
-        CertificateType::ReaderAuth(Box::new(reader_registration).into()),
-    )
-    .unwrap();
-    let disclosure_key = PrivateKey::new(disclosure_privkey, disclosure_cert);
+    let (disclosure_key, ca) = PrivateKey::generate_reader_mock_with_ca_from_registration(reader_registration).unwrap();
 
     let verifier = MockVerifier::new(
         "http://example.com".parse().unwrap(),

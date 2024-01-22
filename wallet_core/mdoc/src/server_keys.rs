@@ -32,6 +32,10 @@ impl PrivateKey {
         );
         Ok(key)
     }
+
+    pub fn certificate(&self) -> &Certificate {
+        &self.cert_bts
+    }
 }
 
 impl EcdsaKey for PrivateKey {

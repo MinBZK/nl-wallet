@@ -121,6 +121,13 @@ impl WalletEvent {
             Self::Disclosure { documents: None, .. } => Default::default(),
         }
     }
+
+    pub fn timestamp(&self) -> &DateTime<Utc> {
+        match self {
+            Self::Issuance { timestamp, .. } => timestamp,
+            Self::Disclosure { timestamp, .. } => timestamp,
+        }
+    }
 }
 
 impl TryFrom<history_event::Model> for WalletEvent {
@@ -186,10 +193,8 @@ impl TryFrom<WalletEvent> for history_event::Model {
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
-mod mock {
-    use nl_wallet_mdoc::mock::ISSUER_KEY_PAIR;
-
+#[cfg(test)]
+mod test {
     use crate::document::{
         create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
         create_minimal_unsigned_pid_mdoc,
@@ -229,8 +234,8 @@ mod mock {
             doc_types: Vec<&str>,
             timestamp: DateTime<Utc>,
             reader_certificate: Certificate,
+            issuer_certificate: &Certificate,
         ) -> Self {
-            let issuer_certificate = ISSUER_KEY_PAIR.0.clone();
             let docs = vec![
                 create_minimal_unsigned_pid_mdoc(),
                 create_minimal_unsigned_address_mdoc(),
@@ -278,13 +283,6 @@ mod mock {
                 timestamp,
                 reader_certificate,
                 status: EventStatus::Error(error_message),
-            }
-        }
-
-        pub fn timestamp(&self) -> &DateTime<Utc> {
-            match self {
-                Self::Issuance { timestamp, .. } => timestamp,
-                Self::Disclosure { timestamp, .. } => timestamp,
             }
         }
     }

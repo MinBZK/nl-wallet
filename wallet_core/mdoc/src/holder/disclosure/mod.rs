@@ -17,7 +17,7 @@ mod session;
 #[cfg(test)]
 mod iso_tests;
 #[cfg(test)]
-mod test_utils;
+mod test;
 
 #[derive(Debug, Clone)]
 pub struct StoredMdoc<I> {

@@ -145,9 +145,9 @@ mod tests {
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use wallet_common::{account::signed::SequenceNumberComparison, jwt::Jwt, utils};
 
-    use crate::{account_provider::AccountProviderResponseError, wallet::tests::ACCOUNT_SERVER_KEYS};
+    use crate::{account_provider::AccountProviderResponseError, wallet::test::ACCOUNT_SERVER_KEYS};
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     const PIN: &str = "051097";
 
