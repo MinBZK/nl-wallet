@@ -173,12 +173,12 @@ mod tests {
 
     use chrono::{Duration, TimeZone, Utc};
     use nl_wallet_mdoc::utils::{
-        issuer_auth::issuer_registration_mock,
-        reader_auth::reader_registration_mock,
+        issuer_auth::IssuerRegistration,
+        reader_auth::ReaderRegistration,
         x509::{Certificate, CertificateType},
     };
 
-    use crate::{storage::WalletEvent, wallet::tests::WalletWithMocks};
+    use crate::{storage::WalletEvent, wallet::test::WalletWithMocks};
 
     use super::HistoryError;
 
@@ -230,14 +230,14 @@ mod tests {
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
+            CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
         )
         .unwrap();
         let (mdl_certificate, _) = Certificate::new(
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
         )
         .unwrap();
 

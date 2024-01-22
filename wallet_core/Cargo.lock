@@ -2589,7 +2589,6 @@ dependencies = [
  "http",
  "indexmap 2.0.2",
  "itertools 0.11.0",
- "nl_wallet_mdoc",
  "once_cell",
  "p256",
  "rcgen",
@@ -2983,8 +2982,6 @@ dependencies = [
  "nl_wallet_mdoc",
  "openid",
  "openssl",
- "pid_issuer",
- "platform_support",
  "rand 0.8.5",
  "reqwest",
  "serde",
@@ -2996,8 +2993,6 @@ dependencies = [
  "tracing-subscriber",
  "trait-variant",
  "url",
- "wallet",
- "wallet_common",
 ]
 
 [[package]]
@@ -3083,7 +3078,6 @@ dependencies = [
  "jni",
  "once_cell",
  "p256",
- "platform_support",
  "thiserror",
  "tokio",
  "uniffi",
@@ -4524,8 +4518,6 @@ dependencies = [
  "wallet",
  "wallet_common",
  "wallet_provider",
- "wallet_provider_database_settings",
- "wallet_provider_domain",
  "wallet_provider_persistence",
  "wallet_provider_service",
  "wallet_server",
@@ -5181,7 +5173,6 @@ dependencies = [
  "trait-variant",
  "url",
  "uuid",
- "wallet",
  "wallet_common",
  "wiremock",
 ]
@@ -5229,7 +5220,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "wallet_common",
 ]
 
 [[package]]
@@ -5321,9 +5311,7 @@ dependencies = [
  "assert_matches",
  "chrono",
  "cryptoki",
- "dashmap",
  "der",
- "futures",
  "hmac",
  "jsonwebtoken",
  "p256",
@@ -5332,7 +5320,6 @@ dependencies = [
  "rstest",
  "sec1",
  "serde",
- "serde_json",
  "sha2",
  "thiserror",
  "tokio",
@@ -5343,7 +5330,6 @@ dependencies = [
  "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
- "wallet_provider_service",
 ]
 
 [[package]]

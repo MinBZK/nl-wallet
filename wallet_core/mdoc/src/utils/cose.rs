@@ -465,7 +465,7 @@ mod tests {
     use crate::{
         utils::{
             cose::{self, CoseError},
-            issuer_auth::issuer_registration_mock,
+            issuer_auth::IssuerRegistration,
             x509::{Certificate, CertificateType, CertificateUsage},
         },
         Error,
@@ -562,7 +562,7 @@ mod tests {
             &ca,
             &ca_privkey,
             "cert.example.com",
-            CertificateType::Mdl(Box::new(issuer_registration_mock()).into()),
+            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
         )
         .unwrap();
 

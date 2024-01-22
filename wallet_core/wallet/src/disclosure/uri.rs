@@ -14,8 +14,7 @@ pub enum DisclosureUriError {
     InvalidParameters(#[from] serde_urlencoded::de::Error),
 }
 
-#[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(any(test, feature = "mock"), derive(Debug))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisclosureUriData {
     pub reader_engagement_bytes: Vec<u8>,
     pub return_url: Option<Url>,

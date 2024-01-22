@@ -66,14 +66,14 @@ This functionality is provided by traits that have multiple concrete implementat
 The module contains the following features:
 
 * `software`: This compiles a software fallback implementation, which can be used during both testing and local development.
-* `integration-test`: This feature is automatically enabled when running integration tests, it contains some helper code.
-* `hardware-integration-test`: This should only be enabled when running integration tests from either Android or iOS (see below).
+* `integration_test`: This feature is automatically enabled when running integration tests, it contains some helper code.
+* `hardware_integration_test`: This should only be enabled when running integration tests from either Android or iOS (see below).
 
 ## Integration tests
 
 ### Software fallback
 
-The crate contains an integration test for the software fallback, which can be run using `cargo test --features software-integration-test`.
+The crate contains an integration test for the software fallback, which can be run using `cargo test --features software-integration_test`.
 This test simply uses the crate to create a new private key, get its public key, sign a payload and then verify the returned signature using the public key.
 
 ### Android

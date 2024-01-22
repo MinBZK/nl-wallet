@@ -55,7 +55,7 @@ mod tests {
 
     use crate::digid::MockDigidSession;
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     #[tokio::test]
     async fn test_wallet_identify_redirect_uri() {

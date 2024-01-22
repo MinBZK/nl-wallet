@@ -6,7 +6,7 @@ pub mod x509;
 
 pub(crate) mod crypto;
 
-#[cfg(feature = "mock")]
+#[cfg(feature = "mdocs_map")]
 pub mod mdocs_map;
 
 pub use auth::issuer_auth;

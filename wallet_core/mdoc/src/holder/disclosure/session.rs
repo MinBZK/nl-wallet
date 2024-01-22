@@ -387,18 +387,17 @@ mod tests {
             disclosure::{DeviceAuth, SessionStatus},
             engagement::DeviceAuthentication,
         },
-        mock::SoftwareKeyFactory,
+        software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
-            reader_auth::reader_registration_mock,
             serialization::TaggedBytes,
             x509::CertificateType,
         },
         Error,
     };
 
-    use super::{super::test_utils::*, *};
+    use super::{super::test::*, *};
 
     fn test_payload_session_data_error(payload: &[u8], expected_session_status: SessionStatus) {
         let session_data: SessionData =
@@ -1195,7 +1194,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: vec![].into(),
-                reader_registration: reader_registration_mock(),
+                reader_registration: ReaderRegistration::new_mock(),
             },
             device_key,
             proposed_documents: vec![create_example_proposed_document()],
@@ -1265,7 +1264,7 @@ mod tests {
             &ca_cert,
             &ca_key,
             "test-certificate",
-            CertificateType::ReaderAuth(Box::new(reader_registration_mock()).into()),
+            CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
         )
         .unwrap();
 
@@ -1275,7 +1274,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: certificate.clone(),
-                reader_registration: reader_registration_mock(),
+                reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),
         });
@@ -1297,7 +1296,7 @@ mod tests {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate,
-                reader_registration: reader_registration_mock(),
+                reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),
         });

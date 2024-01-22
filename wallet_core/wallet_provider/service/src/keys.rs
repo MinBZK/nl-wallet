@@ -85,7 +85,7 @@ impl WithIdentifier for WalletProviderEcdsaKey {
 
 impl SecureEcdsaKey for WalletProviderEcdsaKey {}
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "software_keys"))]
 pub mod mock {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 

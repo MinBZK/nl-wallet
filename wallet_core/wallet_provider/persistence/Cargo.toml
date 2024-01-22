@@ -10,8 +10,20 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "wallet_user"
+path = "tests/wallet_user.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "wallet_user_keys"
+path = "tests/wallet_user_key.rs"
+required-features = ["db_test"]
+
 [features]
+# Include mock implementations and constructors for testing
 mock = ["mockall"]
+# Include and run test that depend on an external PostgreSQL database
 db_test = []
 
 [dependencies]

@@ -24,7 +24,7 @@ pub struct MockStorage {
 }
 
 impl MockStorage {
-    pub fn mock(state: StorageState, registration: Option<RegistrationData>) -> Self {
+    pub fn new(state: StorageState, registration: Option<RegistrationData>) -> Self {
         let mut data = HashMap::new();
 
         if let Some(registration) = registration {
@@ -54,7 +54,7 @@ impl MockStorage {
 
 impl Default for MockStorage {
     fn default() -> Self {
-        Self::mock(StorageState::Uninitialized, None)
+        Self::new(StorageState::Uninitialized, None)
     }
 }
 

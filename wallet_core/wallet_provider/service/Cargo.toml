@@ -10,52 +10,53 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "account_server"
+path = "tests/account_server.rs"
+required-features = ["software_keys", "mock", "db_test"]
+
 [features]
-mock = ["wallet_provider_domain/mock", "dashmap", "hmac"]
+# Implement InstructionResultSigningKey and related traits on SoftwareEcdsaKey
+software_keys = ["wallet_common/software_keys"]
+# Include mock implementations and constructors for testing
+mock = ["dep:hmac", "wallet_provider_domain/mock"]
+# Include and run test that depend on an external PostgreSQL database
 db_test = []
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock"] }
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
-futures.workspace = true
-hmac = { workspace = true, optional = true, features = ["std"] }
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 r2d2-cryptoki.workspace = true
-rand.workspace = true
 sec1.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-uuid = { workspace = true, features = ["serde", "v4"] }
+uuid = { workspace = true, features = ["v4"] }
 
-dashmap = { workspace = true, optional = true }
+hmac = { workspace = true, optional = true, features = ["std"] }
 
 wallet_provider_domain.path = "../domain"
 wallet_common.path = "../../wallet_common"
 
 [dev-dependencies]
 assert_matches.workspace = true
-dashmap.workspace = true
+hmac = { workspace = true, features = ["std"] }
+rand.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "macros",
-    "parking_lot",
-] }
+tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "parking_lot",
 ] }
 
 wallet_common = { path = "../../wallet_common", features = [
-    "mock",
-    "software-keys",
+    "mock_p256_keys",
+    "software_keys",
 ] }
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }
-wallet_provider_service = { path = ".", features = ["mock"] }

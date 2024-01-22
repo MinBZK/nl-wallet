@@ -121,7 +121,7 @@ mod tests {
     use crate::{account_provider::AccountProviderResponseError, pin::key::PinKey};
 
     use super::{
-        super::tests::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
+        super::test::{WalletWithMocks, ACCOUNT_SERVER_KEYS},
         *,
     };
 

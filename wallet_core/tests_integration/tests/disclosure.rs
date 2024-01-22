@@ -33,7 +33,6 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 #[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()))]
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<ReturnUrlTemplate>) {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
@@ -174,7 +173,6 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_disclosure_without_pid() {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
@@ -295,7 +293,6 @@ async fn test_disclosure_without_pid() {
 }
 
 #[tokio::test]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_disclosure_not_found() {
     let settings = wallet_server_settings();
     start_wallet_server(settings.clone()).await;

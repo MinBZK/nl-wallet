@@ -23,11 +23,10 @@ use nl_wallet_mdoc::{
     identifiers::AttributeIdentifier,
     iso::{device_retrieval::ItemsRequest, mdocs::DocType},
     issuer::{IssuanceData, Issuer},
-    mock::{self, SoftwareKeyFactory},
     server_keys::{KeyRing, PrivateKey},
     server_state::MemorySessionStore,
+    software_key_factory::SoftwareKeyFactory,
     utils::{
-        auth::reader_auth::mock::reader_registration_mock,
         reader_auth::ReaderRegistration,
         serialization,
         x509::{Certificate, CertificateType},
@@ -116,7 +115,7 @@ impl HttpClient for MockDisclosureHttpClient {
 }
 
 fn setup_issuance_test() -> (Wallet<MockIssuanceHttpClient>, Arc<MockIssuanceServer>, Certificate) {
-    let (issuance_key, ca) = mock::generate_issuance_key_and_ca().unwrap();
+    let (issuance_key, ca) = PrivateKey::generate_mock_with_ca().unwrap();
 
     // Setup issuer
     let issuance_server = MockIssuanceServer::new(
@@ -139,12 +138,12 @@ fn setup_verifier_test(
     mdoc_trust_anchors: &[TrustAnchor<'_>],
 ) -> (MockDisclosureHttpClient, Arc<MockVerifier>, Certificate) {
     let reader_registration = ReaderRegistration {
-        attributes: mock::reader_registration_attributes(
+        attributes: ReaderRegistration::create_attributes(
             ISSUANCE_DOC_TYPE.to_string(),
             ISSUANCE_NAME_SPACE.to_string(),
             ISSUANCE_ATTRS.iter().map(|(key, _)| key).copied(),
         ),
-        ..reader_registration_mock()
+        ..ReaderRegistration::new_mock()
     };
     let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
     let (disclosure_cert, disclosure_privkey) = Certificate::new(

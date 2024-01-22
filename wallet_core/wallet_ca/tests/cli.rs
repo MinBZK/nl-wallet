@@ -1,6 +1,9 @@
+use std::{path::Path, process::Command}; // Run programs
+
 use anyhow::Result;
 use assert_cmd::prelude::*; // Add methods on commands
-use assert_fs::{fixture::ChildPath, prelude::*, TempDir}; // Used for test files
+use assert_fs::{fixture::ChildPath, prelude::*, TempDir};
+// Used for test files
 use p256::{
     ecdsa::SigningKey,
     pkcs8::{
@@ -14,9 +17,7 @@ use predicates::{
 }; // Used for writing assertions
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
 
-use std::{path::Path, process::Command}; // Run programs
-
-use nl_wallet_mdoc::utils::{issuer_auth::issuer_registration_mock, reader_auth::reader_registration_mock};
+use nl_wallet_mdoc::utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
 
 fn predicate_successfully_generated(crt: &Path, key: &Path) -> Result<RegexPredicate> {
     let result = predicate::str::is_match(format!(
@@ -177,7 +178,7 @@ fn happy_flow() -> Result<()> {
         let issuer_auth_json = temp.child("test-issuer-auth.json");
 
         // Generate reader-auth JSON input file
-        issuer_auth_json.write_str(&serde_json::to_string(&issuer_registration_mock())?)?;
+        issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
         // Execute command and assert success and stderr output
         Command::cargo_bin("wallet_ca")?
@@ -197,7 +198,7 @@ fn happy_flow() -> Result<()> {
         let rp_auth_json = temp.child("test-reader-auth.json");
 
         // Generate reader-auth JSON input file
-        rp_auth_json.write_str(&serde_json::to_string(&reader_registration_mock())?)?;
+        rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
 
         // Execute command and assert success and stderr output
         Command::cargo_bin("wallet_ca")?
@@ -271,7 +272,7 @@ fn regenerating_mdl() -> Result<()> {
     let issuer_auth_json = temp.child("test-issuer-auth.json");
 
     // Generate reader-auth JSON input file
-    issuer_auth_json.write_str(&serde_json::to_string(&issuer_registration_mock())?)?;
+    issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
     // Generate mdl certificate and assert success
     Command::cargo_bin("wallet_ca")?
@@ -323,7 +324,7 @@ fn regenerating_rp_auth() -> Result<()> {
     let rp_auth_json = temp.child("test-reader-auth.json");
 
     // Generate reader-auth JSON input file
-    rp_auth_json.write_str(&serde_json::to_string(&reader_registration_mock())?)?;
+    rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
 
     // Generate rp_auth certificate and assert success
     Command::cargo_bin("wallet_ca")?
@@ -382,7 +383,7 @@ fn missing_input_files() -> Result<()> {
         .stderr(predicate_missing_json_file(&rp_auth_json));
 
     // Generate reader-auth JSON input file
-    rp_auth_json.write_str(&serde_json::to_string(&reader_registration_mock())?)?;
+    rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
 
     // Generate certificates with missing crt should fail on crt
     std::fs::remove_file(&ca_crt)?;
@@ -397,7 +398,7 @@ fn missing_input_files() -> Result<()> {
         .stderr(predicate_missing_crt_file(&ca_crt));
 
     // Generate reader-auth JSON input file
-    issuer_auth_json.write_str(&serde_json::to_string(&issuer_registration_mock())?)?;
+    issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
     // Execute command and assert failure and stderr output
     Command::cargo_bin("wallet_ca")?

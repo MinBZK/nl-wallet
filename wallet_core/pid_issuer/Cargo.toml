@@ -7,16 +7,22 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[bin]]
+name = "pid_issuer"
+# TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
+required-features = ["mock_attributes"]
+
 [lib]
 doctest = false
 
 [features]
-mock = ["dep:rand"]
-default = [
-    "mock",
-] # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
-digid_test = []
+default = ["mock_attributes"]
+# Allow the disclosure return URL and its prefix to use http://
 disable_tls_validation = []
+# Include MockAttributesLookup, which implements AttributesLookup
+mock_attributes = []
+# Include both MockAttributesLookup and MockBsnLookup, which implements BsnLookup
+mock = ["dep:rand", "mock_attributes"]
 
 [dependencies]
 anyhow.workspace = true
@@ -56,10 +62,3 @@ url.workspace = true
 rand = { workspace = true, optional = true }
 
 nl_wallet_mdoc.path = "../mdoc"
-
-[dev-dependencies]
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }
-pid_issuer = { path = ".", features = ["mock"] }
-platform_support = { path = "../platform_support", features = ["software"] }
-wallet = { path = "../wallet", features = ["mock", "wallet_deps"] }
-wallet_common.path = "../wallet_common"

@@ -6,9 +6,7 @@ use p256::{
     elliptic_curve::rand_core::OsRng,
 };
 
-use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc, holder::Mdoc, mock as mdoc_mock, server_keys::PrivateKey, IssuerSigned,
-};
+use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::PrivateKey, IssuerSigned};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
@@ -72,7 +70,7 @@ pub static ACCOUNT_SERVER_KEYS: Lazy<AccountServerKeys> = Lazy::new(|| AccountSe
 
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
-    let (issuance_key, ca) = mdoc_mock::generate_issuance_key_and_ca().unwrap();
+    let (issuance_key, ca) = PrivateKey::generate_mock_with_ca().unwrap();
 
     IssuerKey {
         issuance_key,
@@ -82,7 +80,7 @@ pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
 
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: Lazy<IssuerKey> = Lazy::new(|| {
-    let (issuance_key, ca) = mdoc_mock::generate_issuance_key_and_ca_unauthenticated().unwrap();
+    let (issuance_key, ca) = PrivateKey::generate_unauthenticated_mock_with_ca().unwrap();
 
     IssuerKey {
         issuance_key,

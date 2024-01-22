@@ -11,6 +11,7 @@ workspace = true
 doctest = false
 
 [features]
+# Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["wallet_server/allow_http_return_url"]
 
 [dependencies]
