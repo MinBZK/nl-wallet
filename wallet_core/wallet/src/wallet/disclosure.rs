@@ -887,8 +887,9 @@ mod tests {
             WalletEvent::Disclosure {
                 status: EventStatus::Success,
                 documents: Some(_),
+                remote_party_certificate,
                 ..
-            }
+            } if wallet.storage.read().await.did_share_data_with_relying_party(remote_party_certificate).await.unwrap()
         );
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
@@ -1215,8 +1216,13 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: Some(_), .. }
-            if error == "Error occurred while disclosing attributes"
+            WalletEvent::Disclosure {
+                status: EventStatus::Error(error),
+                documents: Some(_),
+                remote_party_certificate,
+                ..
+            } if error == "Error occurred while disclosing attributes" &&
+                wallet.storage.read().await.did_share_data_with_relying_party(remote_party_certificate).await.unwrap()
         );
     }
 

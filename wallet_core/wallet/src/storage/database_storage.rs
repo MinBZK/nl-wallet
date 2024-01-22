@@ -3,8 +3,8 @@ use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 use futures::try_join;
 use sea_orm::{
     sea_query::{Alias, Expr, Query},
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
-    RelationTrait, Select, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QueryResult,
+    QuerySelect, RelationTrait, Select, Set, StatementBuilder, TransactionTrait,
 };
 use tokio::fs;
 use uuid::Uuid;
@@ -61,12 +61,7 @@ impl<K> DatabaseStorage<K> {
             _key: PhantomData,
         }
     }
-}
 
-impl<K> DatabaseStorage<K>
-where
-    K: SecureEncryptionKey,
-{
     // Helper method, should be called before accessing database.
     fn database(&self) -> StorageResult<&Database> {
         self.database.as_ref().ok_or(StorageError::NotOpened)
@@ -77,6 +72,21 @@ where
         self.storage_path.join(format!("{}.{}", name, DATABASE_FILE_EXT))
     }
 
+    async fn execute_query<S>(&self, query: S) -> StorageResult<Option<QueryResult>>
+    where
+        S: StatementBuilder,
+    {
+        let connection = self.database()?.connection();
+        let query = connection.get_database_backend().build(&query);
+        let query_result = connection.query_one(query).await?;
+        Ok(query_result)
+    }
+}
+
+impl<K> DatabaseStorage<K>
+where
+    K: SecureEncryptionKey,
+{
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
     /// instance.
@@ -417,7 +427,6 @@ where
             .column(history_event::Column::RemotePartyCertificate)
             .from(history_event::Entity)
             .and_where(Expr::col(history_event::Column::RemotePartyCertificate).eq(certificate.as_bytes()))
-            // .and_where(Expr::col(history_event::Column::Status).eq(EventStatus::Success))
             .and_where(Expr::col(history_event::Column::EventType).eq(EventType::Disclosure))
             .and_where(Expr::col(history_event::Column::Attributes).is_not_null())
             .limit(1)
@@ -427,9 +436,7 @@ where
             .expr_as(Expr::exists(select_statement), Alias::new("certificate_exists"))
             .to_owned();
 
-        let connection = self.database()?.connection();
-        let exists_query = connection.get_database_backend().build(&exists_query);
-        let exists_result = connection.query_one(exists_query).await?;
+        let exists_result = self.execute_query(exists_query).await?;
         let exists = exists_result
             .map(|result| result.try_get("", "certificate_exists"))
             .transpose()?
@@ -698,7 +705,7 @@ pub(crate) mod tests {
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, certificate.clone());
 
-        // No event with our certificate should exist
+        // No data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
 
         // Log cancel event
@@ -710,7 +717,7 @@ pub(crate) mod tests {
             vec![disclosure_cancel.clone(),]
         );
 
-        // No event with our certificate should exist
+        // Still no data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
     }
 
@@ -724,9 +731,10 @@ pub(crate) mod tests {
 
         let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error = WalletEvent::disclosure_error(timestamp, certificate.clone(), "Some ERROR".to_string());
+        let disclosure_error =
+            WalletEvent::disclosure_error(timestamp, certificate.clone(), "Something went wrong".to_string());
 
-        // No event with our certificate should exist
+        // No data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
 
         // Log error event
@@ -738,7 +746,7 @@ pub(crate) mod tests {
             vec![disclosure_error.clone(),]
         );
 
-        // No event with our certificate should exist
+        // Still no data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
     }
 
@@ -756,10 +764,10 @@ pub(crate) mod tests {
             vec![PID_DOCTYPE],
             timestamp,
             certificate.clone(),
-            "Some ERROR".to_string(),
+            "Something went wrong".to_string(),
         );
 
-        // No event with our certificate should exist
+        // No data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
 
         storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
@@ -768,7 +776,8 @@ pub(crate) mod tests {
             storage.fetch_wallet_events().await.unwrap(),
             vec![disclosure_error.clone(),]
         );
-        // An event with our certificate should exist
+
+        // Data has been shared with RP
         assert!(storage.did_share_data_with_relying_party(&certificate).await.unwrap());
     }
 
@@ -786,7 +795,7 @@ pub(crate) mod tests {
         let issuance_at_even_older_timestamp =
             WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_even_older, certificate.clone());
 
-        // No event with our certificate should exist
+        // No data shared with RP
         assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
 
         // Insert events, in non-standard order, from new to old
@@ -800,7 +809,7 @@ pub(crate) mod tests {
             .await
             .unwrap();
 
-        // An event with our certificate should exist
+        // Data has been shared with RP
         assert!(storage.did_share_data_with_relying_party(&certificate).await.unwrap());
 
         // Fetch and verify events are sorted descending by timestamp

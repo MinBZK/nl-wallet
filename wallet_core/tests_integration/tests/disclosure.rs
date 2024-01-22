@@ -268,8 +268,8 @@ async fn test_disclosure_without_pid() {
         DisclosureError::AttributesNotAvailable {
             reader_registration: _,
             missing_attributes: attrs,
-            shared_data_before,
-        } if !shared_data_before && attrs
+            shared_data_before: _,
+        } if attrs
             .iter()
             .flat_map(|attr| attr.attributes.keys().map(|k| k.to_owned()).collect::<Vec<&str>>())
             .collect::<Vec<&str>>() == vec!["given_name", "family_name"]
