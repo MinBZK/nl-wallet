@@ -390,14 +390,14 @@ WidgetBuilder _createPinBlockedScreenBuilder(RouteSettings settings) {
 WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     OrganizationDetailScreenArgument argument = OrganizationDetailScreen.getArgument(settings);
-    assert(argument.organization != null, 'Currently only navigation with organization is supported');
     return BlocProvider<OrganizationDetailBloc>(
-      create: (BuildContext context) => OrganizationDetailBloc.forOrganization(
-        context.read(),
-        context.read(),
-        organization: argument.organization!,
-        isFirstInteractionWithOrganization: false,
-      ),
+      create: (BuildContext context) => OrganizationDetailBloc()
+        ..add(
+          OrganizationProvided(
+            organization: argument.organization,
+            isFirstInteractionWithOrganization: argument.isFirstInteractionWithOrganization,
+          ),
+        ),
       child: const OrganizationDetailScreen(),
     );
   };

@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-use x509_parser::der_parser::Oid;
 
-use crate::utils::x509::{Certificate, CertificateError};
+use crate::utils::x509::MdocCertificateExtension;
 
 use super::Organization;
 
@@ -18,31 +17,8 @@ pub struct IssuerRegistration {
     pub organization: Organization,
 }
 
-impl IssuerRegistration {
-    pub fn from_certificate(source: &Certificate) -> Result<Option<Self>, CertificateError> {
-        // unwrap() is safe here, because we process a fixed value
-        let oid = Oid::from(OID_EXT_ISSUER_AUTH).unwrap();
-        source.extract_custom_ext(oid)
-    }
-}
-
-#[cfg(any(test, feature = "generate"))]
-mod generate {
-    use p256::pkcs8::der::{asn1::Utf8StringRef, Encode};
-    use rcgen::CustomExtension;
-
-    use crate::utils::x509::CertificateError;
-
-    use super::{IssuerRegistration, OID_EXT_ISSUER_AUTH};
-
-    impl IssuerRegistration {
-        pub fn to_custom_ext(&self) -> Result<CustomExtension, CertificateError> {
-            let json_string = serde_json::to_string(self)?;
-            let string = Utf8StringRef::new(&json_string)?;
-            let ext = CustomExtension::from_oid_content(OID_EXT_ISSUER_AUTH, string.to_der()?);
-            Ok(ext)
-        }
-    }
+impl MdocCertificateExtension for IssuerRegistration {
+    const OID: &'static [u64] = OID_EXT_ISSUER_AUTH;
 }
 
 #[cfg(any(test, feature = "mock"))]

@@ -9,6 +9,7 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../util/launch_util.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -196,12 +197,7 @@ class DisclosureScreen extends StatelessWidget {
 
         // Handle return url
         if (state.returnUrl != null) {
-          try {
-            final uri = Uri.parse(state.returnUrl!);
-            launchUrl(uri, mode: LaunchMode.externalApplication);
-          } catch (error) {
-            Fimber.e('Failed to open returnUrl', ex: error);
-          }
+          launchUrlStringCatching(state.returnUrl!, mode: LaunchMode.externalApplication);
         }
       },
     );

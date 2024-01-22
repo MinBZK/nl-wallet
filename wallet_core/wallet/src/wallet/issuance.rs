@@ -2,7 +2,10 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::{server_keys::KeysError, utils::issuer_auth::IssuerRegistration};
+use nl_wallet_mdoc::{
+    server_keys::KeysError,
+    utils::{issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
+};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
 use crate::{

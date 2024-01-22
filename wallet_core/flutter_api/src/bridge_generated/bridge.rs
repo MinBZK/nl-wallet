@@ -562,6 +562,7 @@ impl support::IntoDart for Organization {
             self.description.into_into_dart().into_dart(),
             self.image.into_dart(),
             self.web_url.into_dart(),
+            self.privacy_policy_url.into_dart(),
             self.kvk.into_dart(),
             self.city.into_dart(),
             self.category.into_into_dart().into_dart(),

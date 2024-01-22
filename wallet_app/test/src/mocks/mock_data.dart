@@ -19,7 +19,6 @@ abstract class WalletMockData {
     front: cardFront,
     attributes: [textDataAttribute],
     id: 'id',
-    issuerId: 'id',
   );
 
   static WalletCard altCard = WalletCard(
@@ -34,7 +33,6 @@ abstract class WalletMockData {
     docType: 'com.example.alt.docType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     id: 'id2',
-    issuerId: 'id2',
   );
 
   static CardFront cardFront = CardFront(

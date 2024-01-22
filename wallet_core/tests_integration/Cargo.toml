@@ -32,11 +32,6 @@ name = "registration"
 path = "tests/registration.rs"
 required-features = ["db_test"]
 
-[[test]]
-name = "wallet_server"
-path = "tests/wallet_server.rs"
-required-features = ["db_test"]
-
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
