@@ -9,7 +9,6 @@ use wallet_provider_persistence::{
 
 pub mod common;
 
-#[cfg_attr(not(feature = "db_test"), ignore)]
 #[tokio::test]
 async fn test_create_wallet_user() {
     let db = common::db_from_env().await.expect("Could not connect to database");
@@ -26,7 +25,6 @@ async fn test_create_wallet_user() {
     assert_eq!(wallet_id, wallet_user.wallet_id);
 }
 
-#[cfg_attr(not(feature = "db_test"), ignore)]
 #[tokio::test]
 async fn test_create_wallet_user_transaction_commit() {
     let db = common::db_from_env().await.expect("Could not connect to database");
@@ -56,7 +54,6 @@ async fn test_create_wallet_user_transaction_commit() {
     assert_eq!(wallet_id, wallet_user.wallet_id);
 }
 
-#[cfg_attr(not(feature = "db_test"), ignore)]
 #[tokio::test]
 async fn test_create_wallet_user_transaction_rollback() {
     let db = common::db_from_env().await.expect("Could not connect to database");
@@ -76,7 +73,6 @@ async fn test_create_wallet_user_transaction_rollback() {
     assert!(maybe_wallet_user.is_none());
 }
 
-#[cfg_attr(not(feature = "db_test"), ignore)]
 #[tokio::test]
 async fn test_insert_instruction_challenge_on_conflict() {
     let db = common::db_from_env().await.expect("Could not connect to database");
@@ -144,7 +140,6 @@ async fn test_insert_instruction_challenge_on_conflict() {
     assert_eq!(challenges[0].wallet_user_id, wallet_user_id.clone());
 }
 
-#[cfg_attr(not(feature = "db_test"), ignore)]
 #[tokio::test]
 async fn test_register_unsuccessful_pin_entry() {
     let db = common::db_from_env().await.expect("Could not connect to database");

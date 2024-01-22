@@ -124,6 +124,13 @@ impl WalletEvent {
             Self::Disclosure { documents: None, .. } => Default::default(),
         }
     }
+
+    pub fn timestamp(&self) -> &DateTime<Utc> {
+        match self {
+            Self::Issuance { timestamp, .. } => timestamp,
+            Self::Disclosure { timestamp, .. } => timestamp,
+        }
+    }
 }
 
 impl TryFrom<history_event::Model> for WalletEvent {
@@ -189,8 +196,8 @@ impl TryFrom<WalletEvent> for history_event::Model {
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
-mod mock {
+#[cfg(test)]
+mod test {
     use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
 
     use crate::document::{
@@ -287,13 +294,6 @@ mod mock {
                 timestamp,
                 remote_party_certificate,
                 status: EventStatus::Error(error_message),
-            }
-        }
-
-        pub fn timestamp(&self) -> &DateTime<Utc> {
-            match self {
-                Self::Issuance { timestamp, .. } => timestamp,
-                Self::Disclosure { timestamp, .. } => timestamp,
             }
         }
     }

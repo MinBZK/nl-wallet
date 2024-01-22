@@ -31,7 +31,7 @@ mod tests {
 
     use crate::config::default_configuration;
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     // Tests both setting and clearing the configuration callback.
     #[tokio::test]

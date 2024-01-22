@@ -9,7 +9,7 @@ mod registration;
 mod uri;
 
 #[cfg(test)]
-mod tests;
+mod test;
 
 use tokio::sync::RwLock;
 use uuid::Uuid;

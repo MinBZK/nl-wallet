@@ -43,10 +43,11 @@ pub trait KeyFactory {
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 }
 
-#[cfg(any(test, feature = "mock"))]
-mod mock {
-    use crate::utils::keys::MdocKeyType;
+#[cfg(any(test, feature = "software_keys"))]
+mod software {
     use wallet_common::keys::software::SoftwareEcdsaKey;
+
+    use crate::utils::keys::MdocKeyType;
 
     use super::MdocEcdsaKey;
 

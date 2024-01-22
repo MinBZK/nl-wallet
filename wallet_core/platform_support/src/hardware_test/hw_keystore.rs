@@ -1,5 +1,6 @@
 use jni::{objects::JClass, JNIEnv};
-use wallet_common::keys::integration_test::{encrypt_and_decrypt_message, sign_and_verify_signature};
+
+use wallet_common::keys::test;
 
 use crate::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
@@ -14,7 +15,7 @@ fn hw_keystore_test_hardware_signature() -> bool {
         .build()
         .unwrap();
 
-    rt.block_on(sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier))
+    rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier))
 }
 
 #[no_mangle]
@@ -36,7 +37,7 @@ fn hw_keystore_test_hardware_encryption() -> bool {
         .build()
         .unwrap();
 
-    rt.block_on(encrypt_and_decrypt_message::<HardwareEncryptionKey>(
+    rt.block_on(test::encrypt_and_decrypt_message::<HardwareEncryptionKey>(
         payload, identifier,
     ))
 }

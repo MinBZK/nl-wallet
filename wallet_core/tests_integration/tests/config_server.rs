@@ -24,7 +24,6 @@ pub mod common;
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_config() {
     let mut served_wallet_config = default_configuration();
     served_wallet_config.lock_timeouts.inactive_timeout = 1;
@@ -78,7 +77,6 @@ async fn test_wallet_config() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_config_stale() {
     let settings = wallet_provider_settings();
 
@@ -116,7 +114,6 @@ async fn test_wallet_config_stale() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_config_signature_verification_failed() {
     let settings = wallet_provider_settings();
 

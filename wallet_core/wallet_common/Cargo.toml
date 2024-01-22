@@ -11,9 +11,12 @@ workspace = true
 doctest = false
 
 [features]
-mock = []
-software-keys = ["dep:aes-gcm", "dep:rand_core"]
-integration-test = []
+# Implement EcdsaKey and related traits for p256::ecdsa::SigningKey 
+mock_p256_keys = []
+# Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
+software_keys = ["dep:aes-gcm", "dep:rand_core"]
+# Enable helper code for integration tests
+integration_test = []
 
 [dependencies]
 base64.workspace = true
@@ -39,10 +42,10 @@ aes-gcm = { workspace = true, optional = true, features = ["std"] }
 rand_core = { workspace = true, optional = true }
 
 [dev-dependencies]
+aes-gcm = { workspace = true, features = ["std"] }
+rand_core.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "macros",
     "parking_lot",
 ] }
-
-wallet_common = { path = ".", features = ["software-keys", "integration-test"] }

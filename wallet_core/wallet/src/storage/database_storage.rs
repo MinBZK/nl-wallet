@@ -451,7 +451,7 @@ pub(crate) mod tests {
     use chrono::{TimeZone, Utc};
     use tokio::fs;
 
-    use nl_wallet_mdoc::{examples::Examples, mock as mdoc_mock, utils::x509::Certificate};
+    use nl_wallet_mdoc::{holder::Mdoc, utils::x509::Certificate};
     use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
     use wallet_common::{
         account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
@@ -595,8 +595,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create MdocsMap from example Mdoc
-        let trust_anchors = Examples::iaca_trust_anchors();
-        let mdoc = mdoc_mock::mdoc_from_example_device_response(trust_anchors);
+        let mdoc = Mdoc::new_example_mock();
         let mdoc_copies = MdocCopies::from([mdoc.clone(), mdoc.clone(), mdoc].to_vec());
 
         // Insert mdocs

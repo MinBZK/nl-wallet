@@ -3,7 +3,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::utils::PlatformUtilities;
 
-// This utility function is used both by the Rust integration test for the "software" feature
+// This utility function is used both by the Rust unit tests test for the "software" feature
 // and by integration test performed from Android / iOS.
 // This would normally fall under dev-dependencies, however we need it in the main binary
 // for the Android / iOS integration test.
@@ -43,31 +43,4 @@ pub async fn get_and_verify_storage_path<K: PlatformUtilities>() -> bool {
     fs::remove_file(&path).await.expect("Could not delete test.txt");
 
     contents == original_message
-}
-
-#[cfg(feature = "hardware-integration-test")]
-mod hardware {
-    use jni::{objects::JClass, JNIEnv};
-
-    use super::get_and_verify_storage_path;
-    use crate::utils::hardware::HardwareUtilities;
-
-    // this is the starting point for the integration test performed from Android / iOS.
-    #[no_mangle]
-    fn utils_test_get_storage_path() -> bool {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
-
-        rt.block_on(get_and_verify_storage_path::<HardwareUtilities>())
-    }
-
-    #[no_mangle]
-    extern "C" fn Java_nl_rijksoverheid_edi_wallet_platform_1support_utilities_UtilitiesBridgeInstrumentedTest_utilities_1test_1storage_1path(
-        _env: JNIEnv,
-        _: JClass,
-    ) -> bool {
-        utils_test_get_storage_path()
-    }
 }

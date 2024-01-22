@@ -170,62 +170,89 @@ impl MdocCertificateExtension for ReaderRegistration {
     const OID: &'static [u64] = OID_EXT_READER_AUTH;
 }
 
-#[cfg(feature = "mock")]
-pub use mock::*;
-
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use super::*;
 
-    impl Default for ReaderRegistration {
-        fn default() -> Self {
-            reader_registration_mock()
+    impl ReaderRegistration {
+        pub fn new_mock() -> Self {
+            let organization = Organization {
+                display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
+                legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
+                description: vec![
+                    ("nl", "Beschrijving van Mijn Organisatie"),
+                    ("en", "Description of My Organization"),
+                ]
+                .into(),
+                category: vec![("nl", "Categorie"), ("en", "Category")].into(),
+                kvk: Some("some-kvk".to_owned()),
+                city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
+                department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
+                country_code: Some("nl".to_owned()),
+                web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
+                privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
+                logo: None,
+            };
+
+            ReaderRegistration {
+                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
+                    .into(),
+                retention_policy: RetentionPolicy {
+                    intent_to_retain: true,
+                    max_duration_in_minutes: Some(60 * 24 * 365),
+                },
+                sharing_policy: SharingPolicy { intent_to_share: true },
+                deletion_policy: DeletionPolicy { deleteable: true },
+                organization,
+                return_url_prefix: "https://example.com/".parse().unwrap(),
+                request_origin_base_url: "https://example.com/".parse().unwrap(),
+                attributes: Default::default(),
+            }
         }
     }
+}
 
-    pub fn reader_registration_mock() -> ReaderRegistration {
-        let my_organization = Organization {
-            display_name: vec![("nl", "Mijn Organisatienaam"), ("en", "My Organization Name")].into(),
-            legal_name: vec![("nl", "Organisatie"), ("en", "Organization")].into(),
-            description: vec![
-                ("nl", "Beschrijving van Mijn Organisatie"),
-                ("en", "Description of My Organization"),
-            ]
-            .into(),
-            category: vec![("nl", "Categorie"), ("en", "Category")].into(),
-            kvk: Some("some-kvk".to_owned()),
-            city: Some(vec![("nl", "Den Haag"), ("en", "The Hague")].into()),
-            department: Some(vec![("nl", "Afdeling"), ("en", "Department")].into()),
-            country_code: Some("nl".to_owned()),
-            web_url: Some(Url::parse("https://www.ons-dorp.nl").unwrap()),
-            privacy_policy_url: Some(Url::parse("https://www.ons-dorp.nl/privacy").unwrap()),
-            logo: None,
-        };
-        ReaderRegistration {
-            purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")].into(),
-            retention_policy: RetentionPolicy {
-                intent_to_retain: true,
-                max_duration_in_minutes: Some(60 * 24 * 365),
-            },
-            sharing_policy: SharingPolicy { intent_to_share: true },
-            deletion_policy: DeletionPolicy { deleteable: true },
-            organization: my_organization,
-            return_url_prefix: "https://example.com/".parse().unwrap(),
-            request_origin_base_url: "https://example.com/".parse().unwrap(),
-            attributes: Default::default(),
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use indexmap::IndexMap;
+
+    use super::*;
+
+    impl ReaderRegistration {
+        /// Build attributes for [`ReaderRegistration`] from a list of attributes.
+        pub fn create_attributes(
+            doc_type: String,
+            name_space: String,
+            attributes: impl Iterator<Item = impl Into<String>>,
+        ) -> IndexMap<String, AuthorizedMdoc> {
+            [(
+                doc_type,
+                AuthorizedMdoc(
+                    [(
+                        name_space,
+                        AuthorizedNamespace(
+                            attributes
+                                .map(|attribute| (attribute.into(), AuthorizedAttribute {}))
+                                .collect(),
+                        ),
+                    )]
+                    .into(),
+                ),
+            )]
+            .into()
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::serialization::TaggedBytes, DeviceRequestVersion, DocRequest, ItemsRequest};
-
-    use super::{mock::*, *};
-
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
     use rstest::rstest;
+
+    use crate::{utils::serialization::TaggedBytes, DeviceRequestVersion, DocRequest, ItemsRequest};
+
+    use super::*;
 
     #[rstest]
     #[case("https://example/", Ok(()))]
@@ -519,7 +546,7 @@ mod tests {
 
         ReaderRegistration {
             attributes,
-            ..reader_registration_mock()
+            ..ReaderRegistration::new_mock()
         }
     }
 

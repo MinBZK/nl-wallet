@@ -189,21 +189,22 @@ mod tests {
     use crate::{
         errors::Error,
         examples::EXAMPLE_NAMESPACE,
+        holder::Mdoc,
         iso::disclosure::DeviceAuth,
-        mock::SoftwareKeyFactory,
+        software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{self, CoseError},
             serialization::TaggedBytes,
         },
     };
 
-    use super::{super::test_utils::*, *};
+    use super::{super::test::*, *};
 
     #[test]
     fn test_proposed_document_from_stored_mdoc() {
         let stored_mdoc = StoredMdoc {
             id: "id_1234",
-            mdoc: create_example_mdoc(),
+            mdoc: Mdoc::new_example_mock(),
         };
         let id = stored_mdoc.id;
         let doc_type = stored_mdoc.mdoc.doc_type.clone();
@@ -244,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
-        let mdoc1 = create_example_mdoc();
+        let mdoc1 = Mdoc::new_example_mock();
         let mdoc2 = {
             let mut mdoc = mdoc1.clone();
             let attributes = &mut mdoc
