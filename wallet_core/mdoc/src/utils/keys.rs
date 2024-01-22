@@ -43,7 +43,7 @@ pub trait KeyFactory {
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 }
 
-#[cfg(any(test, feature = "software-keys"))]
+#[cfg(any(test, feature = "software_keys"))]
 mod software {
     use wallet_common::keys::software::SoftwareEcdsaKey;
 

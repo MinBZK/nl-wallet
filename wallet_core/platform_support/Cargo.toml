@@ -13,15 +13,15 @@ doctest = false
 
 [features]
 # Implement the PlatformEcdsaKey trait on SoftwareEcdsaKey
-software = ["wallet_common/software-keys"]
+software = ["wallet_common/software_keys"]
 # Enable helper code for integration tests
-integration-test = [
-    "wallet_common/integration-test",
+integration_test = [
+    "wallet_common/integration_test",
     "tokio/fs",
     "tokio/io-util",
 ]
 # Enable helper code for iOS and Android integration tests
-hardware-integration-test = ["integration-test", "dep:jni"]
+hardware_integration_test = ["integration_test", "dep:jni"]
 
 [dependencies]
 once_cell.workspace = true

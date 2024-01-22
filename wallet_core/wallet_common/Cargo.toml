@@ -12,11 +12,11 @@ doctest = false
 
 [features]
 # Implement EcdsaKey and related traits for p256::ecdsa::SigningKey 
-mock-p256-keys = []
+mock_p256_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
-software-keys = ["dep:aes-gcm", "dep:rand_core"]
+software_keys = ["dep:aes-gcm", "dep:rand_core"]
 # Enable helper code for integration tests
-integration-test = []
+integration_test = []
 
 [dependencies]
 base64.workspace = true

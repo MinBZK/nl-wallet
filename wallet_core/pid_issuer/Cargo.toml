@@ -10,19 +10,19 @@ workspace = true
 [[bin]]
 name = "pid_issuer"
 # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
-required-features = ["mock-attributes"]
+required-features = ["mock_attributes"]
 
 [lib]
 doctest = false
 
 [features]
-default = ["mock-attributes"]
+default = ["mock_attributes"]
 # Allow the disclosure return URL and its prefix to use http://
 disable_tls_validation = []
 # Include MockAttributesLookup, which implements AttributesLookup
-mock-attributes = []
+mock_attributes = []
 # Include both MockAttributesLookup and MockBsnLookup, which implements BsnLookup
-mock = ["dep:rand", "mock-attributes"]
+mock = ["dep:rand", "mock_attributes"]
 
 [dependencies]
 anyhow.workspace = true

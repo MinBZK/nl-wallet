@@ -2,7 +2,7 @@ use p256::ecdsa::signature::Verifier;
 
 use super::{ConstructibleWithIdentifier, SecureEcdsaKey, SecureEncryptionKey};
 
-// This utility function is used both by the Rust unit tests for the "software-keys" feature
+// This utility function is used both by the Rust unit tests for the "software_keys" feature
 // and by integration test performed in platform_support from Android / iOS.
 pub async fn sign_and_verify_signature<K: ConstructibleWithIdentifier + SecureEcdsaKey>(
     payload: &[u8],

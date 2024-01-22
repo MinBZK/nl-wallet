@@ -60,7 +60,7 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
 
 // Register a task to build the Rust code and copy the resulting library files
 [
-        Debug  : [false, ['--features', 'hardware-integration-test']],
+        Debug  : [false, ['--features', 'hardware_integration_test']],
         Profile: [true, ['--locked', '--release']],
         Release: [true, ['--locked', '--release']]
 ].each {

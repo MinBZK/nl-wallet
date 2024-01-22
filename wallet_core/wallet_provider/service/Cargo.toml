@@ -13,11 +13,11 @@ doctest = false
 [[test]]
 name = "account_server"
 path = "tests/account_server.rs"
-required-features = ["software-keys", "mock", "db_test"]
+required-features = ["software_keys", "mock", "db_test"]
 
 [features]
 # Implement InstructionResultSigningKey and related traits on SoftwareEcdsaKey
-software-keys = ["wallet_common/software-keys"]
+software_keys = ["wallet_common/software_keys"]
 # Include mock implementations and constructors for testing
 mock = ["dep:hmac", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
@@ -54,8 +54,8 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 
 wallet_common = { path = "../../wallet_common", features = [
-    "mock-p256-keys",
-    "software-keys",
+    "mock_p256_keys",
+    "software_keys",
 ] }
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain = { path = "../domain", features = ["mock"] }

@@ -10,7 +10,7 @@ workspace = true
 [[test]]
 name = "test"
 path = "tests/tests.rs"
-required-features = ["generate", "software-key-factory", "test", "mock"]
+required-features = ["generate", "software_key_factory", "test", "mock"]
 
 [features]
 # Allow the disclosure return URL and its prefix to use http://
@@ -20,11 +20,11 @@ generate = ["dep:rcgen"]
 # Include examples from the ISO specification
 examples = ["dep:anyhow", "dep:hex-literal"]
 # Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
-software-keys = ["wallet_common/software-keys"]
+software_keys = ["wallet_common/software_keys"]
 # Include SoftwareKeyFactory, which implements KeyFactory for testing
-software-key-factory = ["wallet_common/software-keys"]
+software_key_factory = ["wallet_common/software_keys"]
 # Include MdocsMap, which can be used for tests that store Mdocs
-mdocs-map = []
+mdocs_map = []
 # Include miscellaneous test utilities
 test = []
 # Include mock implementations and constructors for testing
@@ -77,6 +77,6 @@ tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
 
 wallet_common = { path = "../wallet_common", features = [
-    "software-keys",
-    "mock-p256-keys",
+    "software_keys",
+    "mock_p256_keys",
 ] }

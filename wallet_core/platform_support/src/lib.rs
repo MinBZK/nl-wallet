@@ -3,7 +3,7 @@ mod bridge;
 pub mod hw_keystore;
 pub mod utils;
 
-#[cfg(feature = "hardware-integration-test")]
+#[cfg(feature = "hardware_integration_test")]
 pub mod hardware_test;
 
 // import generated Rust bindings

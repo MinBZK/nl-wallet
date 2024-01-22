@@ -69,7 +69,7 @@ url.workspace = true
 configuration_server = { path = "../configuration_server" }
 nl_wallet_mdoc = { path = "../mdoc", features = [
     "generate",
-    "software-key-factory",
+    "software_key_factory",
     "test",
     "mock",
 ] } # Enable the features necessary to run all integration tests
@@ -84,7 +84,7 @@ wallet_common.path = "../wallet_common"
 wallet_provider = { path = "../wallet_provider" }
 wallet_provider_persistence = { path = "../wallet_provider/persistence" }
 wallet_provider_service = { path = "../wallet_provider/service", features = [
-    "software-keys",
+    "software_keys",
     "mock",
 ] } # Enable the features necessary to run all integration tests, minus "db_test"
 wallet_server = { path = "../wallet_server" }

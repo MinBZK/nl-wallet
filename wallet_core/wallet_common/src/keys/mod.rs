@@ -2,9 +2,9 @@ use std::error::Error;
 
 use p256::ecdsa::{Signature, VerifyingKey};
 
-#[cfg(feature = "software-keys")]
+#[cfg(feature = "software_keys")]
 pub mod software;
-#[cfg(any(all(feature = "software-keys", test), feature = "integration-test"))]
+#[cfg(any(all(feature = "software_keys", test), feature = "integration_test"))]
 pub mod test;
 
 pub trait EcdsaKey {
@@ -50,7 +50,7 @@ pub trait SecureEncryptionKey: ConstructibleWithIdentifier {
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
 }
 
-#[cfg(any(test, feature = "mock-p256-keys"))]
+#[cfg(any(test, feature = "mock_p256_keys"))]
 mod mock {
     use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 
