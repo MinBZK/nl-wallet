@@ -46,7 +46,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         DisclosureCheckOrganization(
           relyingParty: _startDisclosureResult!.relyingParty,
           originUrl: _startDisclosureResult!.originUrl,
-          isFirstInteractionWithOrganization: _startDisclosureResult!.isFirstInteractionWithOrganization,
+          sharedDataWithOrganizationBefore: _startDisclosureResult!.sharedDataWithOrganizationBefore,
         ),
       );
     } catch (ex) {
@@ -78,7 +78,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
           originUrl: _startDisclosureResult!.originUrl,
-          isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
+          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
           afterBackPressed: true,
         ),
       );
@@ -88,7 +88,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
           originUrl: _startDisclosureResult!.originUrl,
-          isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
+          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
           afterBackPressed: true,
         ),
       );

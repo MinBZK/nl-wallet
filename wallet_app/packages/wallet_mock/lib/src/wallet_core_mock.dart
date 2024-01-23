@@ -35,7 +35,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         relyingParty: request.relyingParty,
         policy: request.policy,
         requestedCards: _wallet.getRequestedCards(request.requestedAttributes.map((attribute) => attribute.key)),
-        isFirstInteractionWithRelyingParty: !_eventLog.includesInteractionWith(request.relyingParty),
+        sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         requestOriginBaseUrl: 'http://origin.org',
         requestPurpose: request.purpose.untranslated,
       );
@@ -48,7 +48,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       });
       return _ongoingDisclosure = StartDisclosureResult.requestAttributesMissing(
         relyingParty: request.relyingParty,
-        isFirstInteractionWithRelyingParty: !_eventLog.includesInteractionWith(request.relyingParty),
+        sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         requestOriginBaseUrl: 'http://origin.org',
         requestPurpose: request.purpose.untranslated,
         missingAttributes: missingAttributes.toList(),

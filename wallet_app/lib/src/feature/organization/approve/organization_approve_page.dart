@@ -29,7 +29,7 @@ class OrganizationApprovePage extends StatelessWidget {
   final ApprovalPurpose purpose;
 
   /// If true, the 'first interaction' banner will be shown. //FIXME: This should eventually be a interactionCount
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
 
   const OrganizationApprovePage({
     required this.onDeclinePressed,
@@ -38,7 +38,7 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.originUrl,
     required this.purpose,
     this.onReportIssuePressed,
-    this.isFirstInteractionWithOrganization = true,
+    this.sharedDataWithOrganizationBefore = false,
     Key? key,
   }) : super(key: key);
 
@@ -160,7 +160,7 @@ class OrganizationApprovePage extends StatelessWidget {
     OrganizationDetailScreen.showPreloaded(
       context,
       organization,
-      isFirstInteractionWithOrganization,
+      sharedDataWithOrganizationBefore,
       onReportIssuePressed: onReportIssuePressed,
     );
   }

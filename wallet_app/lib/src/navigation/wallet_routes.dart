@@ -395,7 +395,7 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
         ..add(
           OrganizationProvided(
             organization: argument.organization,
-            isFirstInteractionWithOrganization: argument.isFirstInteractionWithOrganization,
+            sharedDataWithOrganizationBefore: argument.sharedDataWithOrganizationBefore,
           ),
         ),
       child: const OrganizationDetailScreen(),

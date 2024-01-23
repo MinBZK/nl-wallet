@@ -31,6 +31,7 @@ use super::Wallet;
 pub struct DisclosureProposal {
     pub documents: Vec<DisclosureDocument>,
     pub reader_registration: ReaderRegistration,
+    pub shared_data_with_relying_party_before: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -49,6 +50,7 @@ pub enum DisclosureError {
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
         missing_attributes: Vec<MissingDisclosureAttributes>,
+        shared_data_with_relying_party_before: bool,
     },
     #[error("could not interpret (missing) mdoc attributes: {0}")]
     MdocAttributes(#[source] DocumentMdocError),
@@ -97,6 +99,14 @@ where
             .await
             .map_err(DisclosureError::DisclosureSession)?;
 
+        let shared_data_with_relying_party_before = self
+            .storage
+            .read()
+            .await
+            .did_share_data_with_relying_party(session.rp_certificate())
+            .await
+            .map_err(DisclosureError::HistoryStorage)?;
+
         let proposal_session = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
                 // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
@@ -118,6 +128,7 @@ where
                         DisclosureError::AttributesNotAvailable {
                             reader_registration,
                             missing_attributes: attributes,
+                            shared_data_with_relying_party_before,
                         }
                     }
                     // TODO: What to do when the missing attributes could not be translated?
@@ -145,6 +156,7 @@ where
         let proposal = DisclosureProposal {
             documents,
             reader_registration: session.reader_registration().clone(),
+            shared_data_with_relying_party_before,
         };
 
         // Retain the session as `Wallet` state.
@@ -558,8 +570,9 @@ mod tests {
             error,
             DisclosureError::AttributesNotAvailable {
                 reader_registration: _,
-                missing_attributes
-            } if missing_attributes[0].doc_type == "com.example.pid" &&
+                missing_attributes,
+                shared_data_with_relying_party_before,
+            } if !shared_data_with_relying_party_before && missing_attributes[0].doc_type == "com.example.pid" &&
                  *missing_attributes[0].attributes.first().unwrap().0 == "age_over_18"
         );
         assert!(wallet.disclosure_session.is_some());
@@ -870,6 +883,7 @@ mod tests {
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
 
         // Verify a single Disclosure Success event is logged, and documents are shared
+        // Also verify that `did_share_data_with_relying_party()` now returns `true`
         let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_matches!(
@@ -877,8 +891,9 @@ mod tests {
             WalletEvent::Disclosure {
                 status: EventStatus::Success,
                 documents: Some(_),
+                remote_party_certificate,
                 ..
-            }
+            } if wallet.storage.read().await.did_share_data_with_relying_party(remote_party_certificate).await.unwrap()
         );
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
@@ -1205,8 +1220,13 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: Some(_), .. }
-            if error == "Error occurred while disclosing attributes"
+            WalletEvent::Disclosure {
+                status: EventStatus::Error(error),
+                documents: Some(_),
+                remote_party_certificate,
+                ..
+            } if error == "Error occurred while disclosing attributes" &&
+                wallet.storage.read().await.did_share_data_with_relying_party(remote_party_certificate).await.unwrap()
         );
     }
 

@@ -6,13 +6,13 @@ abstract class OrganizationDetailEvent extends Equatable {
 
 class OrganizationProvided extends OrganizationDetailEvent {
   final Organization organization;
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
 
   const OrganizationProvided({
     required this.organization,
-    required this.isFirstInteractionWithOrganization,
+    required this.sharedDataWithOrganizationBefore,
   });
 
   @override
-  List<Object?> get props => [organization, isFirstInteractionWithOrganization];
+  List<Object?> get props => [organization, sharedDataWithOrganizationBefore];
 }

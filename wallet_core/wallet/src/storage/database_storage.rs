@@ -2,13 +2,18 @@ use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 
 use futures::try_join;
 use sea_orm::{
-    sea_query::Expr, ActiveModelTrait, ColumnTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
-    RelationTrait, Select, Set, TransactionTrait,
+    sea_query::{Alias, Expr, Query},
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QueryResult,
+    QuerySelect, RelationTrait, Select, Set, StatementBuilder, TransactionTrait,
 };
 use tokio::fs;
 use uuid::Uuid;
 
-use entity::{history_doc_type, history_event, history_event_doc_type, keyed_data, mdoc, mdoc_copy};
+use entity::{
+    history_doc_type,
+    history_event::{self, EventStatus, EventType},
+    history_event_doc_type, keyed_data, mdoc, mdoc_copy,
+};
 use nl_wallet_mdoc::{
     holder::MdocCopies,
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
@@ -56,12 +61,7 @@ impl<K> DatabaseStorage<K> {
             _key: PhantomData,
         }
     }
-}
 
-impl<K> DatabaseStorage<K>
-where
-    K: SecureEncryptionKey,
-{
     // Helper method, should be called before accessing database.
     fn database(&self) -> StorageResult<&Database> {
         self.database.as_ref().ok_or(StorageError::NotOpened)
@@ -72,6 +72,21 @@ where
         self.storage_path.join(format!("{}.{}", name, DATABASE_FILE_EXT))
     }
 
+    async fn execute_query<S>(&self, query: S) -> StorageResult<Option<QueryResult>>
+    where
+        S: StatementBuilder,
+    {
+        let connection = self.database()?.connection();
+        let query = connection.get_database_backend().build(&query);
+        let query_result = connection.query_one(query).await?;
+        Ok(query_result)
+    }
+}
+
+impl<K> DatabaseStorage<K>
+where
+    K: SecureEncryptionKey,
+{
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
     /// instance.
@@ -403,6 +418,33 @@ where
             .collect::<Result<_, _>>()?;
         Ok(events)
     }
+
+    async fn did_share_data_with_relying_party(
+        &self,
+        certificate: &nl_wallet_mdoc::utils::x509::Certificate,
+    ) -> StorageResult<bool> {
+        let select_statement = Query::select()
+            .column(history_event::Column::RemotePartyCertificate)
+            .from(history_event::Entity)
+            .and_where(Expr::col(history_event::Column::RemotePartyCertificate).eq(certificate.as_bytes()))
+            .and_where(Expr::col(history_event::Column::EventType).eq(EventType::Disclosure))
+            .and_where(Expr::col(history_event::Column::Status).eq(EventStatus::Success))
+            .and_where(Expr::col(history_event::Column::Attributes).is_not_null())
+            .limit(1)
+            .take();
+
+        let exists_query = Query::select()
+            .expr_as(Expr::exists(select_statement), Alias::new("certificate_exists"))
+            .to_owned();
+
+        let exists_result = self.execute_query(exists_query).await?;
+        let exists = exists_result
+            .map(|result| result.try_get("", "certificate_exists"))
+            .transpose()?
+            .unwrap_or(false);
+
+        Ok(exists)
+    }
 }
 
 #[cfg(test)]
@@ -662,15 +704,25 @@ pub(crate) mod tests {
         let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, certificate.clone());
+
+        // No data shared with RP
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+
+        // Log cancel event
         storage.log_wallet_event(disclosure_cancel.clone()).await.unwrap();
+
+        // Cancel event should exist
         assert_eq!(
             storage.fetch_wallet_events().await.unwrap(),
             vec![disclosure_cancel.clone(),]
         );
+
+        // Still no data shared with RP
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
     }
 
     #[tokio::test]
-    async fn test_storing_disclosure_error_event() {
+    async fn test_storing_disclosure_error_event_without_data() {
         let mut storage = open_test_database_storage().await;
 
         // State should be Opened.
@@ -679,12 +731,54 @@ pub(crate) mod tests {
 
         let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error = WalletEvent::disclosure_error(timestamp, certificate.clone(), "Some ERROR".to_string());
+        let disclosure_error =
+            WalletEvent::disclosure_error(timestamp, certificate.clone(), "Something went wrong".to_string());
+
+        // No data shared with RP
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+
+        // Log error event
         storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
+
+        // Error event should exist
         assert_eq!(
             storage.fetch_wallet_events().await.unwrap(),
             vec![disclosure_error.clone(),]
         );
+
+        // Still no data shared with RP
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_storing_disclosure_error_event_with_data() {
+        let mut storage = open_test_database_storage().await;
+
+        // State should be Opened.
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let disclosure_error = WalletEvent::disclosure_error_from_str(
+            vec![PID_DOCTYPE],
+            timestamp,
+            certificate.clone(),
+            "Something went wrong".to_string(),
+        );
+
+        // No data shared with RP
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+
+        storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
+
+        assert_eq!(
+            storage.fetch_wallet_events().await.unwrap(),
+            vec![disclosure_error.clone(),]
+        );
+
+        // Still no data has been shared with RP, because we only consider Successful events
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
     }
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {
@@ -700,6 +794,10 @@ pub(crate) mod tests {
             WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, certificate.clone());
         let issuance_at_even_older_timestamp =
             WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_even_older, certificate.clone());
+
+        // No data shared with RP
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+
         // Insert events, in non-standard order, from new to old
         storage.log_wallet_event(disclosure_at_timestamp.clone()).await.unwrap();
         storage
@@ -710,6 +808,9 @@ pub(crate) mod tests {
             .log_wallet_event(issuance_at_even_older_timestamp.clone())
             .await
             .unwrap();
+
+        // Data has been shared with RP
+        assert!(storage.did_share_data_with_relying_party(&certificate).await.unwrap());
 
         // Fetch and verify events are sorted descending by timestamp
         assert_eq!(

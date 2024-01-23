@@ -54,14 +54,14 @@ pub enum StartDisclosureResult {
         relying_party: Organization,
         policy: RequestPolicy,
         requested_cards: Vec<RequestedCard>,
-        is_first_interaction_with_relying_party: bool,
+        shared_data_with_relying_party_before: bool,
         request_purpose: Vec<LocalizedString>,
         request_origin_base_url: String,
     },
     RequestAttributesMissing {
         relying_party: Organization,
         missing_attributes: Vec<MissingAttribute>,
-        is_first_interaction_with_relying_party: bool,
+        shared_data_with_relying_party_before: bool,
         request_purpose: Vec<LocalizedString>,
         request_origin_base_url: String,
     },
@@ -183,7 +183,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
                     requested_cards: RequestedCard::from_disclosure_documents(proposal.documents),
-                    is_first_interaction_with_relying_party: false, //TODO: Resolve this value
+                    shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     request_purpose,
                     request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
                 };
@@ -194,6 +194,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 DisclosureError::AttributesNotAvailable {
                     reader_registration,
                     missing_attributes,
+                    shared_data_with_relying_party_before,
                 } => {
                     let request_purpose: Vec<LocalizedString> =
                         RPLocalizedStrings(reader_registration.purpose_statement).into();
@@ -201,7 +202,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     let result = StartDisclosureResult::RequestAttributesMissing {
                         relying_party: reader_registration.organization.into(),
                         missing_attributes,
-                        is_first_interaction_with_relying_party: false, //TODO: Resolve this value
+                        shared_data_with_relying_party_before,
                         request_purpose,
                         request_origin_base_url: reader_registration.request_origin_base_url.into(),
                     };

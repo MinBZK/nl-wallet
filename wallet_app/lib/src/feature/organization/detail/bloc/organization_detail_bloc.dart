@@ -15,7 +15,7 @@ class OrganizationDetailBloc extends Bloc<OrganizationDetailEvent, OrganizationD
     emit(
       OrganizationDetailSuccess(
         organization: event.organization,
-        isFirstInteractionWithOrganization: event.isFirstInteractionWithOrganization,
+        sharedDataWithOrganizationBefore: event.sharedDataWithOrganizationBefore,
       ),
     );
   }

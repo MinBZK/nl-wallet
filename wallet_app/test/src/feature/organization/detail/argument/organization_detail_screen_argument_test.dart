@@ -9,7 +9,7 @@ void main() {
     () {
       final expected = OrganizationDetailScreenArgument(
         organization: WalletMockData.organization,
-        isFirstInteractionWithOrganization: true,
+        sharedDataWithOrganizationBefore: false,
       );
       final serialized = expected.toMap();
       final result = OrganizationDetailScreenArgument.fromMap(serialized);
