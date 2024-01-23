@@ -2,7 +2,7 @@ import '../../../../data/repository/organization/organization_repository.dart';
 
 class OrganizationDetailScreenArgument {
   static const _kOrganizationKey = 'organization';
-  static const _kIsFirstInteractionKey = 'first_interaction';
+  static const _kSharedDataBeforeKey = 'shared_data_before';
 
   final Organization organization;
   final bool sharedDataWithOrganizationBefore;
@@ -15,14 +15,14 @@ class OrganizationDetailScreenArgument {
   Map<String, dynamic> toMap() {
     return {
       _kOrganizationKey: organization,
-      _kIsFirstInteractionKey: !sharedDataWithOrganizationBefore,
+      _kSharedDataBeforeKey: sharedDataWithOrganizationBefore,
     };
   }
 
   static OrganizationDetailScreenArgument fromMap(Map<String, dynamic> map) {
     return OrganizationDetailScreenArgument(
       organization: map[_kOrganizationKey],
-      sharedDataWithOrganizationBefore: !map[_kIsFirstInteractionKey],
+      sharedDataWithOrganizationBefore: map[_kSharedDataBeforeKey],
     );
   }
 
