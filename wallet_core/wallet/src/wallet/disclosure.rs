@@ -883,6 +883,7 @@ mod tests {
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
 
         // Verify a single Disclosure Success event is logged, and documents are shared
+        // Also verify that `did_share_data_with_relying_party()` now returns `true`
         let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_matches!(
