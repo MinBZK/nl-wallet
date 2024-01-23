@@ -39,4 +39,4 @@ networks:
   wallet_provider_network:
     ipam:
       config:
-        - subnet: 172.20.20.0/16
+        - subnet: 172.20.20.0/24
