@@ -116,8 +116,10 @@ class OrganizationDetailScreen extends StatelessWidget {
           child: _buildHeaderSection(context, state.organization),
         ),
         const SizedBox(height: 24),
-        _buildInteractionRow(context, state),
-        const SizedBox(height: 16),
+        if (state.sharedDataWithOrganizationBefore) ...[
+          _buildInteractionRow(context, state),
+          const SizedBox(height: 16),
+        ],
         _buildInfoSection(context, state.organization),
         const SizedBox(height: 16),
         onReportIssuePressed == null
@@ -314,13 +316,8 @@ class OrganizationDetailScreen extends StatelessWidget {
 
   Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
     String interaction;
-    if (state.sharedDataWithOrganizationBefore) {
-      interaction =
-          context.l10n.organizationDetailScreenSomeInteractions(state.organization.displayName.l10nValue(context));
-    } else {
-      interaction =
-          context.l10n.organizationDetailScreenNoInteractions(state.organization.displayName.l10nValue(context));
-    }
+    interaction =
+      context.l10n.organizationDetailScreenSomeInteractions(state.organization.displayName.l10nValue(context));
     return Column(
       children: [
         const Divider(height: 1),
