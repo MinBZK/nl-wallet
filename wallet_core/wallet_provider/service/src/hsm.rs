@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use cryptoki::{
     context::{CInitializeArgs, Pkcs11},
@@ -120,7 +120,13 @@ pub struct Pkcs11Hsm {
 }
 
 impl Pkcs11Hsm {
-    pub fn new(library_path: PathBuf, user_pin: String, wrapping_key_identifier: String) -> Result<Self> {
+    pub fn new(
+        library_path: PathBuf,
+        user_pin: String,
+        max_sessions: u8,
+        max_session_lifetime: Duration,
+        wrapping_key_identifier: String,
+    ) -> Result<Self> {
         let pkcs11_client = Pkcs11::new(library_path)?;
         pkcs11_client.initialize(CInitializeArgs::OsThreads)?;
 
@@ -131,7 +137,14 @@ impl Pkcs11Hsm {
 
         let manager = SessionManager::new(pkcs11_client, slot, SessionType::RwUser(AuthPin::new(user_pin)));
 
-        let pool = Pool::builder().build(manager).unwrap();
+        let pool = Pool::builder()
+            .max_size(max_sessions.into())
+            .max_lifetime(Some(max_session_lifetime))
+            // This makes a pkcs11 call every time a connection is check out of the pool and should be evaluated in a future performance test.
+            .test_on_check_out(true)
+            .build(manager)
+            .unwrap();
+
         Ok(Self {
             pool,
             wrapping_key_identifier,

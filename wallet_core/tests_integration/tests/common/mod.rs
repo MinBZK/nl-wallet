@@ -180,7 +180,7 @@ pub fn wallet_provider_settings() -> WpSettings {
     let mut settings = WpSettings::new().expect("Could not read settings");
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.webserver.port = port;
-    settings.pin_policy.timeouts_in_ms = vec![200, 400, 600];
+    settings.pin_policy.timeouts = vec![200, 400, 600].into_iter().map(Duration::from_millis).collect();
     settings
 }
 

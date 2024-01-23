@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
-use chrono::{DateTime, Duration, Local};
+use chrono::{DateTime, Local};
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::debug;
@@ -671,7 +671,6 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use chrono::Duration;
     use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 
     use super::*;
@@ -680,7 +679,7 @@ pub mod mock {
         certificate_signing_pubkey: EcdsaDecodingKey,
     ) -> (AccountServer, MockPkcs11Client<HsmError>) {
         let account_server = AccountServer::new(
-            Duration::milliseconds(15000),
+            Duration::from_millis(15000),
             "mock_account_server".into(),
             certificate_signing_pubkey,
             "encryption_key_1".into(),
@@ -823,7 +822,7 @@ mod tests {
                 last_unsuccessful_pin_entry: None,
                 instruction_challenge: self.challenge.clone().map(|c| InstructionChallenge {
                     bytes: c,
-                    expiration_date_time: Local::now() + Duration::milliseconds(15000),
+                    expiration_date_time: Local::now() + Duration::from_millis(15000),
                 }),
                 instruction_sequence_number: self.instruction_sequence_number,
             })))

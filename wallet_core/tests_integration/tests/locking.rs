@@ -39,7 +39,7 @@ async fn test_block() {
     let mut settings = wallet_provider_settings();
     settings.pin_policy.rounds = 1;
     settings.pin_policy.attempts_per_round = 2;
-    settings.pin_policy.timeouts_in_ms = vec![];
+    settings.pin_policy.timeouts = vec![];
 
     let mut wallet = setup_wallet_and_env(
         config_server_settings(),

@@ -35,6 +35,8 @@ impl RouterState {
         let hsm = Pkcs11Hsm::new(
             settings.hsm.library_path,
             settings.hsm.user_pin,
+            settings.hsm.max_sessions,
+            settings.hsm.max_session_lifetime,
             settings.attestation_wrapping_key_identifier,
         )?;
 
@@ -50,7 +52,7 @@ impl RouterState {
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
 
         let account_server = AccountServer::new(
-            settings.instruction_challenge_timeout_in_ms,
+            settings.instruction_challenge_timeout,
             "account_server".into(),
             certificate_signing_pubkey.into(),
             settings.pin_pubkey_encryption_key_identifier,
@@ -65,10 +67,10 @@ impl RouterState {
             settings.pin_policy.attempts_per_round,
             settings
                 .pin_policy
-                .timeouts_in_ms
+                .timeouts
                 .into_iter()
-                .map(|t| Duration::milliseconds(i64::from(t)))
-                .collect(),
+                .map(Duration::from_std)
+                .collect::<Result<_, _>>()?,
         );
 
         let repositories = Repositories::new(db);

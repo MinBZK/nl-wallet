@@ -1,9 +1,8 @@
-use std::{env, net::IpAddr, path::PathBuf};
+use std::{env, net::IpAddr, path::PathBuf, time::Duration};
 
-use chrono::Duration;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
-use serde_with::{serde_as, DurationMilliSeconds};
+use serde_with::{serde_as, DurationMilliSeconds, DurationSeconds};
 
 use wallet_provider_database_settings::{Database, DatabaseDefaults};
 
@@ -20,8 +19,10 @@ pub struct Settings {
     pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
-    #[serde_as(as = "DurationMilliSeconds<i64>")]
-    pub instruction_challenge_timeout_in_ms: Duration,
+
+    #[serde(rename = "instruction_challenge_timeout_in_ms")]
+    #[serde_as(as = "DurationMilliSeconds")]
+    pub instruction_challenge_timeout: Duration,
 }
 
 #[derive(Clone, Deserialize)]
@@ -30,17 +31,27 @@ pub struct Webserver {
     pub port: u16,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct PinPolicySettings {
     pub rounds: u8,
     pub attempts_per_round: u8,
-    pub timeouts_in_ms: Vec<u32>,
+
+    #[serde(rename = "timeouts_in_ms")]
+    #[serde_as(as = "Vec<DurationMilliSeconds>")]
+    pub timeouts: Vec<Duration>,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Hsm {
     pub library_path: PathBuf,
     pub user_pin: String,
+    pub max_sessions: u8,
+
+    #[serde(rename = "max_session_lifetime_in_sec")]
+    #[serde_as(as = "DurationSeconds")]
+    pub max_session_lifetime: Duration,
 }
 
 impl Settings {
@@ -69,6 +80,8 @@ impl Settings {
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?
             .set_default("structured_logging", false)?
             .set_default("instruction_challenge_timeout_in_ms", 15_000)?
+            .set_default("hsm.max_sessions", 10)?
+            .set_default("hsm.max_session_lifetime_in_sec", 900)?
             .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
