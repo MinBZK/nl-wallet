@@ -152,7 +152,7 @@ fn setup_verifier_test(
     .into();
     let client = MockDisclosureHttpClient::new(Arc::clone(&verifier));
 
-    (client, verifier, ca.clone())
+    (client, verifier, ca)
 }
 
 struct MockMdocDataSource(HashMap<DocType, MdocCopies>);

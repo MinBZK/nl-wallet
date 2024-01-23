@@ -679,8 +679,11 @@ pub(crate) mod tests {
 
         let (reader_key, _) = PrivateKey::generate_reader_mock_with_ca().unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error =
-            WalletEvent::disclosure_error(timestamp, reader_key.certificate().clone(), "Some ERROR".to_string());
+        let disclosure_error = WalletEvent::disclosure_error(
+            timestamp,
+            reader_key.certificate().clone(),
+            "Something went wrong".to_string(),
+        );
         storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
         assert_eq!(
             storage.fetch_wallet_events().await.unwrap(),
