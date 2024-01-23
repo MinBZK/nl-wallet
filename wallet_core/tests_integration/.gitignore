@@ -3,5 +3,6 @@
 /wallet_provider.toml
 /mock_relying_party.toml
 /wallet_server.toml
-/config_signing.pem
+/config_server.toml
 /wallet-config.json
+/*.pem

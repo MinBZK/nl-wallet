@@ -61,6 +61,7 @@ source "${SCRIPTS_DIR}/utils.sh"
 expect_command cargo "Missing binary 'cargo', please install the Rust toolchain"
 expect_command openssl "Missing binary 'openssl', please install OpenSSL"
 expect_command jq "Missing binary 'jq', please install"
+expect_command xxd "Missing binary 'xxd', please install"
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
 fi
@@ -111,6 +112,7 @@ fi
 ########################################################################
 
 mkdir -p "${TARGET_DIR}"
+mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
 mkdir -p "${TARGET_DIR}/mock_relying_party"
 mkdir -p "${TARGET_DIR}/wallet_provider"
@@ -128,7 +130,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
   render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
 
-  generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server
+  generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
 
   # Build max docker container
   docker compose build max
@@ -232,25 +234,6 @@ render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_co
 
 render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-config.json"
 
-generate_wp_signing_key config_signing
-CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
-export CONFIG_SIGNING_PUBLIC_KEY
-
-BASE64_JWS_HEADER=$(echo -n '{"typ":"JOSE+JSON","alg":"ES256"}' | base64_url_encode)
-BASE64_JWS_PAYLOAD=$(jq --compact-output --join-output "." "${TARGET_DIR}/wallet-config.json" | base64_url_encode)
-BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
-DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
-  | openssl dgst -sha256 -sign "${TARGET_DIR}/wallet_provider/config_signing.pem" -keyform PEM -binary \
-  | openssl asn1parse -inform DER)
-R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | sed -n '1s/.*: //p' | sed -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
-S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | sed -n '2s/.*: //p' | sed -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
-BASE64_JWS_SIGNATURE=$(echo -n "${R}${S}" | xxd -p -r | base64_url_encode)
-
-echo -n "${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}.${BASE64_JWS_SIGNATURE}" > "${TARGET_DIR}/wallet-config-jws-compact.txt"
-cp "${TARGET_DIR}/wallet-config-jws-compact.txt" "${CS_DIR}/wallet-config-jws-compact.txt"
-cp "${TARGET_DIR}/wallet-config.json" "${BASE_DIR}/wallet_core/tests_integration/wallet-config.json"
-cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/tests_integration/config_signing.pem"
-
 ########################################################################
 # Configure HSM
 
@@ -266,14 +249,10 @@ render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/sof
 
 softhsm2-util --delete-token --token test_token --force > /dev/null || true
 softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
-# id = echo "certificate_signing" | xxd -p
-softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "63657274696669636174655f7369676e696e670a" --label "certificate_signing_key" --token "test_token"
-# id = echo "instruction_result_signing" | xxd -p
-softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "696e737472756374696f6e5f726573756c745f7369676e696e670a" --label "instruction_result_signing_key" --token "test_token"
-# id = echo "attestation_wrapping" | xxd -p
-softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "6174746573746174696f6e5f7772617070696e670a" --label "attestation_wrapping_key" --token "test_token"
-# id = echo "pin_pubkey_encryption" | xxd -p
-softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "70696e5f7075626b65795f656e6372797074696f6e0a" --label "pin_pubkey_encryption_key" --token "test_token"
+softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
+softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
+softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "test_token"
+softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "test_token"
 
 p11tool --login --write \
   --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" \
@@ -281,6 +260,60 @@ p11tool --login --write \
   --label="pin_public_disclosure_protection_key" \
   --provider="${HSM_LIBRARY_PATH}" \
   "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
+
+
+########################################################################
+# Configure configuration-server
+
+echo
+echo -e "${SECTION}Configure configuration-server${NC}"
+
+cd "${BASE_DIR}"
+
+# Generate root CA
+if [ ! -f "${TARGET_DIR}/configuration_server/ca.key.pem" ]; then
+    generate_root_ca "${TARGET_DIR}/configuration_server" "nl-wallet-configuration-server"
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/configuration_server/ca.key.pem' already exists, not (re-)generating root CA"
+fi
+
+generate_ssl_key_pair_with_san "${TARGET_DIR}/configuration_server" config_server "${TARGET_DIR}/configuration_server/ca.crt.pem" "${TARGET_DIR}/configuration_server/ca.key.pem"
+
+cp "${TARGET_DIR}/configuration_server/ca.crt.pem" "${BASE_DIR}/wallet_core/tests_integration/"
+CONFIG_SERVER_CA_CRT=$(< "${TARGET_DIR}/configuration_server/ca.crt.der" ${BASE64})
+export CONFIG_SERVER_CA_CRT
+
+CONFIG_SERVER_CERT=$(< "${TARGET_DIR}/configuration_server/config_server.crt.der" ${BASE64})
+export CONFIG_SERVER_CERT
+
+CONFIG_SERVER_KEY=$(< "${TARGET_DIR}/configuration_server/config_server.key.der" ${BASE64})
+export CONFIG_SERVER_KEY
+
+
+generate_wp_signing_key config_signing
+CONFIG_SIGNING_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/config_signing.pub.der" ${BASE64})
+export CONFIG_SIGNING_PUBLIC_KEY
+
+BASE64_JWS_HEADER=$(echo -n '{"typ":"JOSE+JSON","alg":"ES256"}' | base64_url_encode)
+BASE64_JWS_PAYLOAD=$(jq --compact-output --join-output "." "${TARGET_DIR}/wallet-config.json" | base64_url_encode)
+BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
+DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
+  | openssl dgst -sha256 -sign "${TARGET_DIR}/wallet_provider/config_signing.pem" -keyform PEM -binary \
+  | openssl asn1parse -inform DER)
+R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${GNUSED} -n '1s/.*: //p' | ${GNUSED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${GNUSED} -n '2s/.*: //p' | ${GNUSED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
+BASE64_JWS_SIGNATURE=$(echo -n "${R}${S}" | xxd -p -r | base64_url_encode)
+
+echo -n "${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}.${BASE64_JWS_SIGNATURE}" > "${TARGET_DIR}/wallet-config-jws-compact.txt"
+cp "${TARGET_DIR}/wallet-config.json" "${BASE_DIR}/wallet_core/tests_integration/wallet-config.json"
+cp "${TARGET_DIR}/wallet_provider/config_signing.pem" "${BASE_DIR}/wallet_core/tests_integration/config_signing.pem"
+
+
+WALLET_CONFIG_JWT=$(< "${TARGET_DIR}/wallet-config-jws-compact.txt")
+export WALLET_CONFIG_JWT
+
+render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
+cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
 
 ########################################################################
 # Configure wallet
