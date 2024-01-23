@@ -158,32 +158,32 @@ pub enum DisclosureData {
     Done(Done),
 }
 
-impl SessionState<Created> {
-    fn into_enum(self) -> SessionState<DisclosureData> {
+impl From<SessionState<Created>> for SessionState<DisclosureData> {
+    fn from(value: SessionState<Created>) -> Self {
         SessionState {
-            session_data: DisclosureData::Created(self.session_data),
-            token: self.token,
-            last_active: self.last_active,
+            session_data: DisclosureData::Created(value.session_data),
+            token: value.token,
+            last_active: value.last_active,
         }
     }
 }
 
-impl SessionState<WaitingForResponse> {
-    fn into_enum(self) -> SessionState<DisclosureData> {
+impl From<SessionState<WaitingForResponse>> for SessionState<DisclosureData> {
+    fn from(value: SessionState<WaitingForResponse>) -> Self {
         SessionState {
-            session_data: DisclosureData::WaitingForResponse(self.session_data),
-            token: self.token,
-            last_active: self.last_active,
+            session_data: DisclosureData::WaitingForResponse(value.session_data),
+            token: value.token,
+            last_active: value.last_active,
         }
     }
 }
 
-impl SessionState<Done> {
-    fn into_enum(self) -> SessionState<DisclosureData> {
+impl From<SessionState<Done>> for SessionState<DisclosureData> {
+    fn from(value: SessionState<Done>) -> Self {
         SessionState {
-            session_data: DisclosureData::Done(self.session_data),
-            token: self.token,
-            last_active: self.last_active,
+            session_data: DisclosureData::Done(value.session_data),
+            token: value.token,
+            last_active: value.last_active,
         }
     }
 }
@@ -276,7 +276,7 @@ where
         let (session_token, reader_engagement, session_state) =
             Session::<Created>::new(items_requests, session_type, usecase_id, return_url_used, &self.url)?;
         self.sessions
-            .write(&session_state.state.into_enum())
+            .write(&session_state.state.into())
             .await
             .map_err(VerificationError::SessionStore)?;
         Ok((session_token, reader_engagement))
@@ -307,8 +307,8 @@ where
                     .process_device_engagement(cbor_deserialize(msg)?, &self.keys)
                     .await;
                 match session {
-                    Ok(next) => Ok((response, next.state.into_enum())),
-                    Err(next) => Ok((response, next.state.into_enum())),
+                    Ok(next) => Ok((response, next.state.into())),
+                    Err(next) => Ok((response, next.state.into())),
                 }
             }
             DisclosureData::WaitingForResponse(session_data) => {
@@ -327,7 +327,7 @@ where
                         .collect::<Vec<_>>()
                         .as_slice(),
                 );
-                Ok((response, session.state.into_enum()))
+                Ok((response, session.state.into()))
             }
             DisclosureData::Done(_) => Err(Error::from(VerificationError::UnexpectedInput)),
         }?;
