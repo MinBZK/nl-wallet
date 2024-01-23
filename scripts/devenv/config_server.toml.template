@@ -1,0 +1,5 @@
+# ip = "0.0.0.0"
+# port = 3005
+wallet_config_jwt = "${WALLET_CONFIG_JWT}"
+config_server_cert = "${CONFIG_SERVER_CERT}"
+config_server_key = "${CONFIG_SERVER_KEY}"

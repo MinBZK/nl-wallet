@@ -3,7 +3,7 @@ use crate::common::*;
 pub mod common;
 
 #[tokio::test]
-async fn test_wallet_registration_in_process() {
+async fn test_wallet_registration() {
     let settings = wallet_provider_settings();
     let connection = database_connection(&settings).await;
 

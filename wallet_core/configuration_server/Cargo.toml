@@ -20,7 +20,8 @@ axum = { workspace = true, features = [
     "tower-log",
     "tracing",
 ] }
-config.workspace = true
+axum-server = { workspace = true, features = ["tls-rustls"] }
+config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
 mime.workspace = true
@@ -33,3 +34,5 @@ tokio = { workspace = true, features = [
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
+
+wallet_common = { path = "../wallet_common" }

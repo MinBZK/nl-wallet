@@ -3,10 +3,15 @@ use std::{env, net::IpAddr, path::PathBuf};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
+use wallet_common::account::serialization::Base64Bytes;
+
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
+    pub wallet_config_jwt: String,
+    pub config_server_cert: Base64Bytes,
+    pub config_server_key: Base64Bytes,
 }
 
 impl Settings {
