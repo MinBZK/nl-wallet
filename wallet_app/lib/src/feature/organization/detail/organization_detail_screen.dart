@@ -282,7 +282,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   static Future<void> showPreloaded(
     BuildContext context,
     Organization organization,
-    bool isFirstInteractionWithOrganization, {
+    bool sharedDataWithOrganizationBefore, {
     VoidCallback? onReportIssuePressed,
   }) {
     return Navigator.push(
@@ -294,7 +294,7 @@ class OrganizationDetailScreen extends StatelessWidget {
               ..add(
                 OrganizationProvided(
                   organization: organization,
-                  isFirstInteractionWithOrganization: isFirstInteractionWithOrganization,
+                  sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
                 ),
               ),
             child: OrganizationDetailScreen(onReportIssuePressed: onReportIssuePressed),
@@ -314,12 +314,12 @@ class OrganizationDetailScreen extends StatelessWidget {
 
   Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
     String interaction;
-    if (state.isFirstInteractionWithOrganization) {
-      interaction =
-          context.l10n.organizationDetailScreenNoInteractions(state.organization.displayName.l10nValue(context));
-    } else {
+    if (state.sharedDataWithOrganizationBefore) {
       interaction =
           context.l10n.organizationDetailScreenSomeInteractions(state.organization.displayName.l10nValue(context));
+    } else {
+      interaction =
+          context.l10n.organizationDetailScreenNoInteractions(state.organization.displayName.l10nValue(context));
     }
     return Column(
       children: [

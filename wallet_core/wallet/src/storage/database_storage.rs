@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use entity::{
     history_doc_type,
-    history_event::{self, EventType},
+    history_event::{self, EventStatus, EventType},
     history_event_doc_type, keyed_data, mdoc, mdoc_copy,
 };
 use nl_wallet_mdoc::{
@@ -428,6 +428,7 @@ where
             .from(history_event::Entity)
             .and_where(Expr::col(history_event::Column::RemotePartyCertificate).eq(certificate.as_bytes()))
             .and_where(Expr::col(history_event::Column::EventType).eq(EventType::Disclosure))
+            .and_where(Expr::col(history_event::Column::Status).eq(EventStatus::Success))
             .and_where(Expr::col(history_event::Column::Attributes).is_not_null())
             .limit(1)
             .take();
@@ -776,8 +777,8 @@ pub(crate) mod tests {
             vec![disclosure_error.clone(),]
         );
 
-        // Data has been shared with RP
-        assert!(storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        // Still no data has been shared with RP, because we only consider Successful events
+        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
     }
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {

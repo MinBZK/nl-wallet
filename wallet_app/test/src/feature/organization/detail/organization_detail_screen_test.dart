@@ -25,7 +25,7 @@ void main() {
               MockOrganizationDetailBloc(),
               OrganizationDetailSuccess(
                 organization: WalletMockData.organization,
-                isFirstInteractionWithOrganization: true,
+                sharedDataWithOrganizationBefore: false,
               ),
             ),
           ),
@@ -43,7 +43,7 @@ void main() {
               MockOrganizationDetailBloc(),
               OrganizationDetailSuccess(
                 organization: WalletMockData.organization,
-                isFirstInteractionWithOrganization: true,
+                sharedDataWithOrganizationBefore: false,
               ),
             ),
           ),
@@ -80,7 +80,7 @@ void main() {
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
             organization: WalletMockData.organization,
-            isFirstInteractionWithOrganization: true,
+            sharedDataWithOrganizationBefore: false,
           ),
         ),
       );
@@ -100,7 +100,7 @@ void main() {
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
             organization: WalletMockData.organization,
-            isFirstInteractionWithOrganization: true,
+            sharedDataWithOrganizationBefore: false,
           ),
         ),
       );

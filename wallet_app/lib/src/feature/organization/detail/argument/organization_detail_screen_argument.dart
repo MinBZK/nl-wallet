@@ -5,24 +5,24 @@ class OrganizationDetailScreenArgument {
   static const _kIsFirstInteractionKey = 'first_interaction';
 
   final Organization organization;
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
 
   const OrganizationDetailScreenArgument({
     required this.organization,
-    required this.isFirstInteractionWithOrganization,
+    required this.sharedDataWithOrganizationBefore,
   });
 
   Map<String, dynamic> toMap() {
     return {
       _kOrganizationKey: organization,
-      _kIsFirstInteractionKey: isFirstInteractionWithOrganization,
+      _kIsFirstInteractionKey: !sharedDataWithOrganizationBefore,
     };
   }
 
   static OrganizationDetailScreenArgument fromMap(Map<String, dynamic> map) {
     return OrganizationDetailScreenArgument(
       organization: map[_kOrganizationKey],
-      isFirstInteractionWithOrganization: map[_kIsFirstInteractionKey],
+      sharedDataWithOrganizationBefore: !map[_kIsFirstInteractionKey],
     );
   }
 
@@ -31,13 +31,13 @@ class OrganizationDetailScreenArgument {
       identical(this, other) ||
       other is OrganizationDetailScreenArgument &&
           runtimeType == other.runtimeType &&
-          isFirstInteractionWithOrganization == other.isFirstInteractionWithOrganization &&
+          sharedDataWithOrganizationBefore == other.sharedDataWithOrganizationBefore &&
           organization == other.organization;
 
   @override
   int get hashCode => Object.hash(
         runtimeType,
-        isFirstInteractionWithOrganization,
+        sharedDataWithOrganizationBefore,
         organization,
       );
 }
