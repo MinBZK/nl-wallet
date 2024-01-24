@@ -1,11 +1,19 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-15T14:26:20+01:00",
+    "@@last_modified": "2024-01-22T11:17:34+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
     "aboutScreenTitle": "Over de NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
+    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd.} other {{count} kaarten toegevoegd.}}",
+    "activitySummaryEmpty": "Geen activiteiten",
+    "activitySummaryLastMonth": "Afgelopen maand",
+    "activitySummaryLastWeek": "Afgelopen week",
+    "activitySummarySharedWith": "Gedeeld met {organization}.",
+    "activitySummarySharedWithMultiple": "Gedeeld met {organizations} en {organization}.",
+    "activitySummarySharedWithOthers": "nog {nrOrganizations} partijen",
+    "activitySummaryToday": "Vandaag",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Ja, volgende",
     "approveOrganizationPageDenyCta": "Nee",
@@ -177,6 +185,10 @@
         }
     },
     "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
+    "dashboardScreenFooter": "De overheid ontwikkelt deze app voor jouw gemak, privacy en veiligheid. Lees meer in {cta}.",
+    "dashboardScreenFooterCta": "Over de app",
+    "dashboardScreenQrCta": "QR-code",
+    "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "Uit {source}",
     "@dataAttributeSectionTitle": {
         "placeholders": {
@@ -241,6 +253,8 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
     "disclosureConfirmDataAttributesPageDenyCta": "Nee",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
+    "disclosureConfirmDataAttributesPageNotStoredNotSharedSubtitle": "Gegevens worden niet bewaard en niet gedeeld met derden.",
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Gegevens worden niet bewaard maar wel gedeeld met derden.",
     "disclosureConfirmDataAttributesShareWithTitle": "Wil je delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -925,6 +939,8 @@
     "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
     "policyScreenDataCanNotBeDeletedDescription": "De partij biedt geen manier aan om je opgeslagen gegevens te laten verwijderen.",
     "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+    "policyScreenDataNotBeStored": "Je gegevens worden niet bewaard",
+    "policyScreenDataNotBeStoredDescription": "Je gegevens worden alleen gebruikt in deze sessie, en niet verder opgeslagen.",
     "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doeleinden gebruikt.",
     "policyScreenDataRetentionDuration": "{months, plural, one {Gegevens worden {months} maand bewaard} other {Gegevens worden {months} maanden bewaard}}",
     "@policyScreenDataRetentionDuration": {

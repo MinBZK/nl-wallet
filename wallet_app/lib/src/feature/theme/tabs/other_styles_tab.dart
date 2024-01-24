@@ -9,12 +9,14 @@ import '../../../domain/model/card_front.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
+import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/sheet/help_sheet.dart';
+import '../../common/widget/activity_summary.dart';
 import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bullet_list.dart';
@@ -83,6 +85,45 @@ final _kSampleOrganization = Organization(
   displayName: 'This is a TimelineAttributeRow'.untranslated,
   description: 'Organization description'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
+);
+
+final _kSampleOperationAttribute = OperationTimelineAttribute(
+  dateTime: DateTime.now(),
+  organization: Organization(
+    id: 'id',
+    legalName: 'Organization legalName'.untranslated,
+    category: 'Category'.untranslated,
+    displayName: 'Organization'.untranslated,
+    description: 'Organization description'.untranslated,
+    logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
+  ),
+  dataAttributes: const [],
+  status: OperationStatus.issued,
+  cardTitle: 'Card Title'.untranslated,
+);
+
+final _kSampleInteractionAttribute = InteractionTimelineAttribute(
+  dateTime: DateTime.now(),
+  organization: Organization(
+    id: 'id',
+    legalName: 'Organization legalName'.untranslated,
+    category: 'Category'.untranslated,
+    displayName: 'Organization'.untranslated,
+    description: 'Organization description'.untranslated,
+    logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
+  ),
+  dataAttributes: const [],
+  status: InteractionStatus.success,
+  policy: const Policy(
+    storageDuration: Duration(days: 90),
+    dataPurpose: 'Kaart uitgifte',
+    dataIsShared: false,
+    dataIsSignature: false,
+    dataContainsSingleViewProfilePhoto: false,
+    deletionCanBeRequested: true,
+    privacyPolicyUrl: 'https://www.example.org',
+  ),
+  requestPurpose: 'Kaart uitgifte'.untranslated,
 );
 
 class OtherStylesTab extends StatelessWidget {
@@ -375,6 +416,16 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'NumberedList'),
         const NumberedList(
           items: ['Item', 'Item', 'Item'],
+        ),
+        const ThemeSectionSubHeader(title: 'ActivitySummary'),
+        ActivitySummary(
+          attributes: [
+            _kSampleOperationAttribute,
+            _kSampleOperationAttribute,
+            _kSampleInteractionAttribute,
+            _kSampleInteractionAttribute,
+            _kSampleInteractionAttribute,
+          ],
         ),
       ],
     );
