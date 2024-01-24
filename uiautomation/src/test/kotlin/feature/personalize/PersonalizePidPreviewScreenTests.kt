@@ -94,7 +94,7 @@ class PersonalizePidPreviewScreenTests : TestBase() {
     }
 
     @Test
-    @DisplayName("7. When the User rejects, the App displays a support screen (FEAT 'User reports that PID/address is incorrect').")
+    @DisplayName("7. When the User rejects, the App displays a support screen.")
     fun verifyRejectPidPreview() {
         personalizePidPreviewScreen.clickRejectButton()
 
