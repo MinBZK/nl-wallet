@@ -6,6 +6,7 @@ import '../../common/widget/button/link_button.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/button/rounded_back_button.dart';
 import '../../common/widget/button/text_icon_button.dart';
+import '../../common/widget/text_with_link.dart';
 import '../theme_screen.dart';
 
 class ButtonStylesTab extends StatelessWidget {
@@ -36,6 +37,12 @@ class ButtonStylesTab extends StatelessWidget {
         TextIconButton(
           onPressed: () => {},
           child: const Text('TextIconButton'),
+        ),
+        const ThemeSectionSubHeader(title: 'TextWithLink'),
+        TextWithLink(
+          fullText: 'This is the full text {WITH} a clickable placeholder.',
+          ctaText: 'WITH',
+          onCtaPressed: () {},
         ),
         const ThemeSectionSubHeader(title: 'LinkTileButton'),
         LinkTileButton(

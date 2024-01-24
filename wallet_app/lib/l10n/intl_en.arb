@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-22T11:17:34+01:00",
+    "@@last_modified": "2024-01-18T15:33:23+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -132,8 +132,6 @@
     "cardHistoryTimelineOperationRenewed": "Card updated",
     "cardHistoryTimelineSigningRejected": "Signing stopped",
     "cardHistoryTimelineSigningSuccess": "Signed",
-    "cardOverviewScreenAddCardCta": "Add data",
-    "cardOverviewScreenTitle": "My cards",
     "cardTitleSemanticsLabel": "Card: {cardTitle}",
     "@cardTitleSemanticsLabel": {
         "placeholders": {

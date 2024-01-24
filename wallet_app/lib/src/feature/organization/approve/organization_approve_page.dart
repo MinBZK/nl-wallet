@@ -7,6 +7,7 @@ import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text_with_link.dart';
 import '../detail/organization_detail_screen.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
@@ -111,27 +112,7 @@ class OrganizationApprovePage extends StatelessWidget {
 
   Widget _buildFraudInfoText(BuildContext context) {
     final fullString = context.l10n.organizationApprovePageFraudInfo(originUrl);
-    final parts = fullString.split(originUrl);
-
-    /// We only support the case where the url is somewhere inside the fullString, e.g. "Open {url} for more info"
-    if (parts.length != 2) return Text(fullString, style: context.textTheme.bodyLarge);
-    return RichText(
-      textAlign: TextAlign.start,
-      text: TextSpan(
-        style: context.textTheme.bodyLarge,
-        children: [
-          TextSpan(text: parts.first),
-          TextSpan(
-            text: originUrl,
-            style: TextStyle(
-              color: context.colorScheme.primary,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-          TextSpan(text: parts.last),
-        ],
-      ),
-    );
+    return TextWithLink(fullText: fullString, ctaText: originUrl);
   }
 
   String _approveButtonText(BuildContext context) {

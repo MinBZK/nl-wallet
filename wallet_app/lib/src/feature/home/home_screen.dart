@@ -7,7 +7,8 @@ import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
-import '../card/overview/card_overview_screen.dart';
+import '../dashboard/bloc/dashboard_bloc.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../menu/menu_screen.dart';
 import '../qr/qr_screen.dart';
 import 'argument/home_screen_argument.dart';
@@ -41,7 +42,7 @@ class HomeScreen extends StatelessWidget {
         final Widget tab;
         switch (state.tab) {
           case HomeTab.cards:
-            tab = const CardOverviewScreen();
+            tab = const DashboardScreen();
             break;
           case HomeTab.qr:
             tab = const QrScreen();
@@ -98,7 +99,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   /// Show the [HomeScreen], placing it at the root of the navigation stack. When [cards] are provided the
-  /// nested [CardOverviewScreen]'s [CardOverviewBloc] is initialized with these cards, so that they are instantly
+  /// nested [DashboardScreen]'s [DashboardBloc] is initialized with these cards, so that they are instantly
   /// available, e.g. useful when triggering Hero animations.
   static void show(BuildContext context, {List<WalletCard>? cards}) {
     if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 800));

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-22T11:17:34+01:00",
+    "@@last_modified": "2024-01-18T15:33:23+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -132,8 +132,6 @@
     "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
     "cardHistoryTimelineSigningRejected": "Ondertekenen gestopt",
     "cardHistoryTimelineSigningSuccess": "Ondertekend",
-    "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
-    "cardOverviewScreenTitle": "Mijn kaarten",
     "cardTitleSemanticsLabel": "Kaart: {cardTitle}",
     "@cardTitleSemanticsLabel": {
         "placeholders": {
