@@ -14,10 +14,10 @@ import '../feature/card/detail/bloc/card_detail_bloc.dart';
 import '../feature/card/detail/card_detail_screen.dart';
 import '../feature/card/history/bloc/card_history_bloc.dart';
 import '../feature/card/history/card_history_screen.dart';
-import '../feature/card/overview/bloc/card_overview_bloc.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
 import '../feature/common/widget/utility/do_on_init.dart';
+import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
@@ -225,8 +225,8 @@ WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
         BlocProvider<HomeBloc>(
           create: (BuildContext context) => HomeBloc(),
         ),
-        BlocProvider<CardOverviewBloc>(
-          create: (BuildContext context) => CardOverviewBloc(
+        BlocProvider<DashboardBloc>(
+          create: (BuildContext context) => DashboardBloc(
             context.read(),
             argument?.cards,
           ),
