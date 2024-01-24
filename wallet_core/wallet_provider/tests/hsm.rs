@@ -21,6 +21,8 @@ fn setup_hsm() -> (Pkcs11Hsm, Settings) {
     let hsm = Pkcs11Hsm::new(
         settings.hsm.library_path,
         settings.hsm.user_pin,
+        settings.hsm.max_sessions,
+        settings.hsm.max_session_lifetime,
         settings.attestation_wrapping_key_identifier,
     )
     .unwrap();
