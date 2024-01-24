@@ -288,7 +288,11 @@ where
                 .collect::<Vec<_>>();
 
             // This should never fail after successful issuance
-            let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
+            let certificate = mdocs
+                .first()
+                .expect("Issuance should result in at least one mdoc")
+                .issuer_certificate()
+                .expect("Could not extract issuer certificate from mdoc");
 
             // Verify that the certificate contains IssuerRegistration
             if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {

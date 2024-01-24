@@ -35,6 +35,7 @@ where
             .await?
             .into_iter()
             .map(|StoredMdocCopy { mdoc_id, mdoc, .. }| {
+                // These `expect`s are 'safe' because reading [IssuerRegistration] from stored mdocs should never fail.
                 let issuer_certificate = mdoc
                     .issuer_certificate()
                     .expect("Could not get issuer certificate from stored mdoc");
