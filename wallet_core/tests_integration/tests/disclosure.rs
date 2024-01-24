@@ -264,8 +264,8 @@ async fn test_disclosure_without_pid() {
     assert_matches!(
         error,
         DisclosureError::AttributesNotAvailable {
-            reader_registration: _,
-            missing_attributes: attrs
+            missing_attributes: attrs,
+            ..
         } if attrs
             .iter()
             .flat_map(|attr| attr.attributes.keys().map(|k| k.to_owned()).collect::<Vec<&str>>())

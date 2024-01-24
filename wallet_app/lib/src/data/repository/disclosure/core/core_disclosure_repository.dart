@@ -41,7 +41,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
           policy,
           _localizedStringMapper.map(value.requestPurpose),
           value.requestOriginBaseUrl,
-          value.isFirstInteractionWithRelyingParty,
+          value.sharedDataWithRelyingPartyBefore,
           requestedAttributes,
         );
       },
@@ -52,7 +52,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
           relyingParty,
           _localizedStringMapper.map(value.requestPurpose),
           value.requestOriginBaseUrl,
-          value.isFirstInteractionWithRelyingParty,
+          value.sharedDataWithRelyingPartyBefore,
           missingAttributes,
         );
       },

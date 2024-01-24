@@ -40,7 +40,7 @@ class DisclosureNetworkError extends DisclosureState {
 
 class DisclosureCheckOrganization extends DisclosureState {
   final Organization relyingParty;
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
   final String originUrl;
   final bool afterBackPressed;
 
@@ -52,7 +52,7 @@ class DisclosureCheckOrganization extends DisclosureState {
 
   const DisclosureCheckOrganization({
     required this.relyingParty,
-    required this.isFirstInteractionWithOrganization,
+    required this.sharedDataWithOrganizationBefore,
     required this.originUrl,
     this.afterBackPressed = false,
   });
@@ -60,7 +60,7 @@ class DisclosureCheckOrganization extends DisclosureState {
   @override
   List<Object?> get props => [
         relyingParty,
-        isFirstInteractionWithOrganization,
+        sharedDataWithOrganizationBefore,
         ...super.props,
       ];
 }

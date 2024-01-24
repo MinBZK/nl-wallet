@@ -3,7 +3,8 @@ use std::{
     sync::Mutex,
 };
 
-use http::{header, HeaderMap, HeaderValue, StatusCode};
+use http::{header, HeaderValue, StatusCode};
+use reqwest::Certificate;
 use tokio::fs;
 use url::Url;
 
@@ -12,7 +13,7 @@ use wallet_common::{
     jwt::{validations, EcdsaDecodingKey, Jwt},
 };
 
-use crate::{config::ConfigurationError, utils::reqwest::default_reqwest_client_builder};
+use crate::{config::ConfigurationError, utils::reqwest::tls_pinned_client_builder};
 
 use super::FileStorageError;
 
@@ -29,17 +30,14 @@ const ETAG_FILENAME: &str = "latest-configuration-etag.txt";
 impl HttpConfigurationClient {
     pub async fn new(
         base_url: Url,
+        trust_anchors: Vec<Certificate>,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
     ) -> Result<Self, ConfigurationError> {
         let initial_etag = Self::read_latest_etag(storage_path.as_path()).await?;
 
         let client = Self {
-            http_client: default_reqwest_client_builder()
-                .default_headers(HeaderMap::from_iter([(
-                    header::ACCEPT,
-                    HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
-                )]))
+            http_client: tls_pinned_client_builder(trust_anchors)
                 .build()
                 .expect("Could not build reqwest HTTP client"),
             base_url,

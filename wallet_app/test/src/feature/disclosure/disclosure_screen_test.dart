@@ -66,7 +66,7 @@ void main() {
               DisclosureCheckOrganization(
                 relyingParty: WalletMockData.organization,
                 originUrl: 'http://origin.org',
-                isFirstInteractionWithOrganization: false,
+                sharedDataWithOrganizationBefore: true,
               ),
             ),
             name: 'check_organization',
@@ -207,7 +207,7 @@ void main() {
           DisclosureCheckOrganization(
             relyingParty: WalletMockData.organization,
             originUrl: 'http://origin.org',
-            isFirstInteractionWithOrganization: false,
+            sharedDataWithOrganizationBefore: true,
           ),
         ),
       );

@@ -4,7 +4,10 @@ use entity::history_event;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::{holder::MdocCopies, utils::mdocs_map::MdocsMap};
+use nl_wallet_mdoc::{
+    holder::MdocCopies,
+    utils::{mdocs_map::MdocsMap, x509::Certificate},
+};
 
 use super::{
     data::{KeyedData, RegistrationData},
@@ -183,6 +186,14 @@ impl Storage for MockStorage {
             .collect::<Vec<_>>();
         events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)
+    }
+
+    async fn did_share_data_with_relying_party(&self, certificate: &Certificate) -> StorageResult<bool> {
+        let exists = self.event_log.iter().any(|event| match event {
+            WalletEvent::Issuance { .. } => false,
+            WalletEvent::Disclosure { reader_certificate, .. } => reader_certificate == certificate,
+        });
+        Ok(exists)
     }
 }
 

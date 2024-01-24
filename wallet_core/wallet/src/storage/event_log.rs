@@ -195,6 +195,8 @@ impl TryFrom<WalletEvent> for history_event::Model {
 
 #[cfg(test)]
 mod test {
+    use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
+
     use crate::document::{
         create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
         create_minimal_unsigned_pid_mdoc,
@@ -202,13 +204,12 @@ mod test {
 
     use super::*;
 
-    impl WalletEvent {
-        pub fn issuance_from_str(
-            doc_types: Vec<&str>,
-            timestamp: DateTime<Utc>,
-            issuer_certificate: Certificate,
+    impl DocTypeMap {
+        fn from_unsigned_mdocs_filtered(
+            docs: Vec<UnsignedMdoc>,
+            doc_types: &[&str],
+            issuer_certificate: &Certificate,
         ) -> Self {
-            let docs = vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()];
             let map = docs
                 .into_iter()
                 .filter(|doc| doc_types.contains(&doc.doc_type.as_str()))
@@ -222,9 +223,21 @@ mod test {
                     )
                 })
                 .collect();
+            Self(map)
+        }
+    }
+
+    impl WalletEvent {
+        pub fn issuance_from_str(
+            doc_types: Vec<&str>,
+            timestamp: DateTime<Utc>,
+            issuer_certificate: Certificate,
+        ) -> Self {
+            let docs = vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()];
+            let mdocs = DocTypeMap::from_unsigned_mdocs_filtered(docs, &doc_types, &issuer_certificate);
             Self::Issuance {
                 id: Uuid::new_v4(),
-                mdocs: DocTypeMap(map),
+                mdocs,
                 timestamp,
                 issuer_certificate,
             }
@@ -240,25 +253,34 @@ mod test {
                 create_minimal_unsigned_pid_mdoc(),
                 create_minimal_unsigned_address_mdoc(),
             ];
-            let map = docs
-                .into_iter()
-                .filter(|doc| doc_types.contains(&doc.doc_type.as_str()))
-                .map(|doc| {
-                    (
-                        doc.doc_type,
-                        ProposedCard {
-                            issuer: issuer_certificate.clone(),
-                            attributes: doc.attributes,
-                        },
-                    )
-                })
-                .collect();
+            let documents = DocTypeMap::from_unsigned_mdocs_filtered(docs, &doc_types, issuer_certificate).into();
             Self::Disclosure {
                 id: Uuid::new_v4(),
-                documents: Some(DocTypeMap(map)),
+                documents,
                 timestamp,
                 reader_certificate,
                 status: EventStatus::Success,
+            }
+        }
+
+        pub fn disclosure_error_from_str(
+            doc_types: Vec<&str>,
+            timestamp: DateTime<Utc>,
+            reader_certificate: Certificate,
+            issuer_certificate: &Certificate,
+            error_message: String,
+        ) -> Self {
+            let docs = vec![
+                create_minimal_unsigned_pid_mdoc(),
+                create_minimal_unsigned_address_mdoc(),
+            ];
+            let documents = DocTypeMap::from_unsigned_mdocs_filtered(docs, &doc_types, issuer_certificate).into();
+            Self::Disclosure {
+                id: Uuid::new_v4(),
+                documents,
+                timestamp,
+                reader_certificate,
+                status: EventStatus::Error(error_message),
             }
         }
 

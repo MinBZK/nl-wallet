@@ -9,13 +9,13 @@ sealed class StartDisclosureResult {
   final Organization relyingParty;
   final String originUrl;
   final LocalizedText requestPurpose;
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
 
   StartDisclosureResult(
     this.relyingParty,
     this.requestPurpose,
     this.originUrl,
-    this.isFirstInteractionWithOrganization,
+    this.sharedDataWithOrganizationBefore,
   );
 }
 
@@ -28,7 +28,7 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
     this.policy,
     super.originUrl,
     super.requestPurpose,
-    super.isFirstInteractionWithOrganization,
+    super.sharedDataWithOrganizationBefore,
     this.requestedAttributes,
   );
 }
@@ -40,7 +40,7 @@ class StartDisclosureMissingAttributes extends StartDisclosureResult {
     super.relyingParty,
     super.requestPurpose,
     super.originUrl,
-    super.isFirstInteractionWithOrganization,
+    super.sharedDataWithOrganizationBefore,
     this.missingAttributes,
   );
 }
