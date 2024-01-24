@@ -275,6 +275,7 @@ mod tests {
         errors::Error,
         examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
         iso::device_retrieval::DeviceRequestVersion,
+        server_keys::PrivateKey,
     };
 
     use super::{super::test::*, *};
@@ -282,11 +283,11 @@ mod tests {
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
-        let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
+        let ca = PrivateKey::generate_reader_mock_ca().unwrap();
+        let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.cert_bts.as_bytes().to_vec()).unwrap()];
         let reader_registration = ReaderRegistration::new_mock();
-        let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
-        let private_key2 = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
+        let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
+        let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
 
         let session_transcript = create_basic_session_transcript();
 
@@ -487,10 +488,10 @@ mod tests {
     #[tokio::test]
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let ca = PrivateKey::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
-        let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
-        let der_trust_anchor = DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap();
+        let private_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
+        let der_trust_anchor = DerTrustAnchor::from_der(ca.cert_bts.as_bytes().to_vec()).unwrap();
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = create_basic_session_transcript();
@@ -508,8 +509,8 @@ mod tests {
 
         assert_matches!(certificate, Some(cert) if cert == private_key.cert_bts);
 
-        let (other_ca, _) = Certificate::new_ca(RP_CA_CN).unwrap();
-        let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.as_bytes().to_vec()).unwrap();
+        let other_ca = PrivateKey::generate_reader_mock_ca().unwrap();
+        let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.cert_bts.as_bytes().to_vec()).unwrap();
         let error = doc_request
             .verify(
                 session_transcript.clone(),

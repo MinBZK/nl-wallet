@@ -315,6 +315,7 @@ pub mod tests {
 
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
+    use once_cell::sync::Lazy;
     use rstest::rstest;
 
     use nl_wallet_mdoc::{server_keys::PrivateKey, Tdate};
@@ -325,6 +326,11 @@ pub mod tests {
         super::{ADDRESS_DOCTYPE, PID_DOCTYPE},
         *,
     };
+
+    static ISSUER_KEY: Lazy<PrivateKey> = Lazy::new(|| {
+        let ca = PrivateKey::generate_issuer_mock_ca().unwrap();
+        ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
+    });
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
@@ -665,13 +671,11 @@ pub mod tests {
     fn test_mdoc_to_proposed_disclosure_document_mapping_minimal() {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
-        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
-
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             &unsigned_mdoc.doc_type,
             ProposedCard {
                 attributes: unsigned_mdoc.attributes,
-                issuer: issuer_key.certificate().clone(),
+                issuer: ISSUER_KEY.certificate().clone(),
             },
         )
         .expect("Could not convert attributes to proposed disclosure document");
@@ -729,14 +733,12 @@ pub mod tests {
             }],
         )]);
 
-        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
-
         // This should not result in a `DocumentMdocError::MissingAttribute` error.
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
             ProposedCard {
                 attributes,
-                issuer: issuer_key.certificate().clone(),
+                issuer: ISSUER_KEY.certificate().clone(),
             },
         )
         .expect("Could not convert attributes to proposed disclosure document");
@@ -765,12 +767,11 @@ pub mod tests {
             }],
         )]);
 
-        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
         let result = DisclosureDocument::from_mdoc_attributes(
             "com.example.foobar",
             ProposedCard {
                 attributes,
-                issuer: issuer_key.certificate().clone(),
+                issuer: ISSUER_KEY.certificate().clone(),
             },
         );
 
@@ -790,13 +791,11 @@ pub mod tests {
             }],
         )]);
 
-        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
-
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
             ProposedCard {
                 attributes,
-                issuer: issuer_key.certificate().clone(),
+                issuer: ISSUER_KEY.certificate().clone(),
             },
         );
 
@@ -823,12 +822,11 @@ pub mod tests {
             }],
         )]);
 
-        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
             ProposedCard {
                 attributes,
-                issuer: issuer_key.certificate().clone(),
+                issuer: ISSUER_KEY.certificate().clone(),
             },
         );
 

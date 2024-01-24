@@ -963,8 +963,8 @@ mod tests {
         test::{self, DebugCollapseBts},
         utils::{
             crypto::{SessionKey, SessionKeyUser},
+            reader_auth::ReaderRegistration,
             serialization::cbor_serialize,
-            x509::{Certificate, CertificateType},
         },
         verifier::{
             SessionType, ValidityError,
@@ -1052,8 +1052,6 @@ mod tests {
         );
     }
 
-    const RP_CA_CN: &str = "ca.rp.example.com";
-    const RP_CERT_CN: &str = "cert.rp.example.com";
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
     const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
     const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
@@ -1078,20 +1076,14 @@ mod tests {
     #[tokio::test]
     async fn disclosure() {
         // Initialize server state
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let ca = PrivateKey::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![
-            DerTrustAnchor::from_der(ca.as_bytes().to_vec())
+            DerTrustAnchor::from_der(ca.cert_bts.as_bytes().to_vec())
                 .unwrap()
                 .owned_trust_anchor,
         ];
-        let (rp_cert, rp_privkey) = Certificate::new(
-            &ca,
-            &ca_privkey,
-            RP_CERT_CN,
-            CertificateType::ReaderAuth(Default::default()),
-        )
-        .unwrap();
-        let keys = SingleKeyRing(PrivateKey::new(rp_privkey, rp_cert));
+        let rp_privkey = ca.generate_reader_mock(ReaderRegistration::new_mock().into()).unwrap();
+        let keys = SingleKeyRing(rp_privkey);
         let session_store = MemorySessionStore::new();
 
         let verifier = Verifier::new(

@@ -171,9 +171,12 @@ mod tests {
     use assert_matches::assert_matches;
 
     use chrono::{Duration, TimeZone, Utc};
-    use nl_wallet_mdoc::server_keys::PrivateKey;
+    use nl_wallet_mdoc::{server_keys::PrivateKey, utils::reader_auth::ReaderRegistration};
 
-    use crate::{storage::WalletEvent, wallet::test::WalletWithMocks};
+    use crate::{
+        storage::WalletEvent,
+        wallet::test::{WalletWithMocks, ISSUER_KEY},
+    };
 
     use super::HistoryError;
 
@@ -220,8 +223,10 @@ mod tests {
     async fn test_history() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let (issuer_key, _) = PrivateKey::generate_mock_with_ca().unwrap();
-        let (reader_key, _) = PrivateKey::generate_reader_mock_with_ca().unwrap();
+        let reader_ca = PrivateKey::generate_reader_mock_ca().unwrap();
+        let reader_key = reader_ca
+            .generate_reader_mock(ReaderRegistration::new_mock().into())
+            .unwrap();
 
         // history should be empty
         let history = wallet.get_history().await.unwrap();
@@ -230,8 +235,11 @@ mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
 
-        let pid_doc_type_event =
-            WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_older, issuer_key.certificate().clone());
+        let pid_doc_type_event = WalletEvent::issuance_from_str(
+            vec![PID_DOCTYPE],
+            timestamp_older,
+            ISSUER_KEY.issuance_key.certificate().clone(),
+        );
         wallet.store_history_event(pid_doc_type_event.clone()).await.unwrap();
 
         let disclosure_cancelled_event =
@@ -255,7 +263,7 @@ mod tests {
             vec![ADDRESS_DOCTYPE],
             timestamp_newer,
             reader_key.certificate().clone(),
-            issuer_key.certificate(),
+            ISSUER_KEY.issuance_key.certificate(),
         );
         wallet
             .store_history_event(address_doc_type_event.clone())

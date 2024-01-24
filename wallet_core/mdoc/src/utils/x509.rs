@@ -419,56 +419,44 @@ mod generate {
         const RP_CERT_CN: &str = "cert.rp.example.com";
 
         impl PrivateKey {
-            pub fn generate_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
-                // Issuer CA certificate and normal certificate
-                let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+            pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
+                let (crt, key) = Certificate::new_ca(ISSUANCE_CA_CN)?;
+                let pk = Self::new(key, crt);
+                Ok(pk)
+            }
+
+            pub fn generate_reader_mock_ca() -> Result<Self, CertificateError> {
+                let (crt, key) = Certificate::new_ca(RP_CA_CN)?;
+                let pk = Self::new(key, crt);
+                Ok(pk)
+            }
+
+            pub fn generate_issuer_mock(
+                &self,
+                issuer_registration: Option<IssuerRegistration>,
+            ) -> Result<Self, CertificateError> {
                 let (issuer_cert, issuer_privkey) = Certificate::new(
-                    &ca,
-                    &ca_privkey,
+                    &self.cert_bts,
+                    &self.private_key,
                     ISSUANCE_CERT_CN,
-                    CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
+                    CertificateType::Mdl(issuer_registration.map(Box::new)),
                 )?;
                 let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
-
-                Ok((issuance_key, ca))
+                Ok(issuance_key)
             }
 
-            pub fn generate_unauthenticated_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
-                // Issuer CA certificate and normal certificate, without issuer registration
-                let (ca, ca_privkey) = Certificate::new_ca(ISSUANCE_CA_CN)?;
-                let (issuer_cert, issuer_privkey) =
-                    Certificate::new(&ca, &ca_privkey, ISSUANCE_CERT_CN, CertificateType::Mdl(None))?;
-                let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
-
-                Ok((issuance_key, ca))
-            }
-
-            pub fn generate_reader_mock_with_ca() -> Result<(Self, Certificate), CertificateError> {
-                // Reader CA certificate
-                let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN)?;
+            pub fn generate_reader_mock(
+                &self,
+                reader_registration: Option<ReaderRegistration>,
+            ) -> Result<Self, CertificateError> {
                 let (reader_cert, reader_privkey) = Certificate::new(
-                    &ca,
-                    &ca_privkey,
+                    &self.cert_bts,
+                    &self.private_key,
                     RP_CERT_CN,
-                    CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
+                    CertificateType::ReaderAuth(reader_registration.map(Box::new)),
                 )?;
                 let reader_key = PrivateKey::new(reader_privkey, reader_cert);
-                Ok((reader_key, ca))
-            }
-
-            pub fn generate_reader_mock_with_ca_from_registration(
-                reader_registration: ReaderRegistration,
-            ) -> Result<(Self, Certificate), CertificateError> {
-                // Reader CA certificate
-                let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN)?;
-                let (reader_cert, reader_privkey) = Certificate::new(
-                    &ca,
-                    &ca_privkey,
-                    RP_CERT_CN,
-                    CertificateType::ReaderAuth(Box::new(reader_registration).into()),
-                )?;
-                let reader_key = PrivateKey::new(reader_privkey, reader_cert);
-                Ok((reader_key, ca))
+                Ok(reader_key)
             }
         }
     }
