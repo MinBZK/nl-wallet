@@ -47,4 +47,21 @@ class Organization extends Equatable {
         department,
         kvk,
       ];
+
+  Organization copyWith({LocalizedText? displayName}) {
+    return Organization(
+      id: id,
+      legalName: legalName,
+      displayName: displayName ?? this.displayName,
+      category: category,
+      description: description,
+      logo: logo,
+      webUrl: webUrl,
+      privacyPolicyUrl: privacyPolicyUrl,
+      countryCode: countryCode,
+      city: city,
+      department: department,
+      kvk: kvk,
+    );
+  }
 }

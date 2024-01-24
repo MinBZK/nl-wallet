@@ -1,11 +1,19 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-15T14:26:20+01:00",
+    "@@last_modified": "2024-01-22T11:17:34+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
     "aboutScreenTitle": "About the NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
+    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} card added.} other {{count} cards added.}}",
+    "activitySummaryEmpty": "No activities",
+    "activitySummaryLastMonth": "Last month",
+    "activitySummaryLastWeek": "Last week",
+    "activitySummarySharedWith": "Shared with {organization}.",
+    "activitySummarySharedWithMultiple": "Shared with {organizations} and {organization}.",
+    "activitySummarySharedWithOthers": "{nrOrganizations} other parties",
+    "activitySummaryToday": "Today",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Yes, next",
     "approveOrganizationPageDenyCta": "No, decline",
@@ -177,6 +185,10 @@
         }
     },
     "confirmAgreementPageTitle": "Do you want to sign using this information",
+    "dashboardScreenFooter": "The government is developing this app for your convenience, privacy and security. Read more at {cta}.",
+    "dashboardScreenFooterCta": "About this app",
+    "dashboardScreenQrCta": "QR-code",
+    "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",
     "@dataAttributeSectionTitle": {
         "placeholders": {
@@ -241,6 +253,8 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
     "disclosureConfirmDataAttributesPageDenyCta": "No, decline",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Is something not right?",
+    "disclosureConfirmDataAttributesPageNotStoredNotSharedSubtitle": "Data is not stored and not shared with third parties.",
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Data is not stored but is shared with third parties.",
     "disclosureConfirmDataAttributesShareWithTitle": "Share information with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -928,6 +942,8 @@
     "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
     "policyScreenDataCanNotBeDeletedDescription": "This organizations does not allow you to delete your data.",
     "policyScreenDataIsSignature": "By continuing the agreement will be definitive",
+    "policyScreenDataNotBeStored": "Your information will not be stored",
+    "policyScreenDataNotBeStoredDescription": "Your information will only be used during the current session, and not saved for later use.",
     "policyScreenDataPurposeDescription": "Your information is not used for anything besides the stated purpose.",
     "policyScreenDataRetentionDuration": "{months, plural, one {Data is stored for {months} month} other {Data is stored for {months} months}}",
     "@policyScreenDataRetentionDuration": {
