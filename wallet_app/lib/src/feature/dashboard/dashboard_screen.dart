@@ -31,7 +31,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: const Key('cardOverviewScreen'),
+      key: const Key('dashboardScreen'),
       appBar: _buildAppBar(context),
       body: _buildBody(context),
     );
@@ -155,6 +155,7 @@ class DashboardScreen extends StatelessWidget {
       tag: walletCard.id,
       child: WalletCardItem.fromCardFront(
         context: context,
+        key: Key(walletCard.docType),
         front: walletCard.front,
         onPressed: () => _onCardPressed(context, walletCard),
       ),

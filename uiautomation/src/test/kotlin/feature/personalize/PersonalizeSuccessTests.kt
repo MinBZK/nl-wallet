@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import screen.card.CardOverviewScreen
+import screen.dashboard.DashboardScreen
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
 import screen.introduction.IntroductionConditionsScreen
@@ -80,7 +80,7 @@ class PersonalizeSuccessTests : TestBase() {
     fun verifyNavigateToDashboardButton() {
         personalizeSuccessScreen.clickNextButton()
 
-        val cardOverviewScreen = CardOverviewScreen()
-        assertTrue(cardOverviewScreen.visible(), "card overview screen is not visible")
+        val dashboardScreen = DashboardScreen()
+        assertTrue(dashboardScreen.visible(), "dashboard screen is not visible")
     }
 }

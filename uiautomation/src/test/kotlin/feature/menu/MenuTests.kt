@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import screen.card.CardOverviewScreen
+import screen.dashboard.DashboardScreen
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
 import screen.introduction.IntroductionConditionsScreen
@@ -40,7 +40,7 @@ class MenuTests : TestBase() {
         val digidLoginMockWebPage = DigidLoginMockWebPage()
         val personalizePidPreviewScreen = PersonalizePidPreviewScreen()
         val personalizeSuccessScreen = PersonalizeSuccessScreen()
-        val cardOverviewScreen = CardOverviewScreen()
+        val dashboardScreen = DashboardScreen()
 
         // Start all tests on digid login start web page
         introductionScreen.clickSkipButton()
@@ -58,7 +58,7 @@ class MenuTests : TestBase() {
         personalizePidPreviewScreen.clickAcceptButton()
         pinScreen.enterPin(chosenPin)
         personalizeSuccessScreen.clickNextButton()
-        cardOverviewScreen.clickMenuButton()
+        dashboardScreen.clickMenuButton()
 
         menuScreen = MenuScreen()
     }

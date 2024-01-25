@@ -32,9 +32,9 @@ open class MobileActions {
      * @param frameSync Whether to wait executing an action until no pending frames are scheduled. Defaults to `true`, set to `false` when testing a screen with a long or infinite animation.
      */
     protected fun isElementVisible(element: FlutterElement, frameSync: Boolean = true): Boolean {
-        driver.executeScript("flutter:setFrameSync", frameSync, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
-        driver.executeScript("flutter:waitFor", element, WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS)
-        driver.executeScript("flutter:setFrameSync", true, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+        performAction(frameSync) {
+            driver.executeScript("flutter:waitFor", element, WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS)
+        }
 
         // Ideally we would use `element.isDisplayed` as return value,
         // but this isn't possible due to missing `FlutterElement` implementations.
@@ -44,8 +44,10 @@ open class MobileActions {
         return true
     }
 
-    protected fun isElementAbsent(element: FlutterElement): Boolean {
-        driver.executeScript("flutter:waitForAbsent", element, WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS)
+    protected fun isElementAbsent(element: FlutterElement, frameSync: Boolean = true): Boolean {
+        performAction(frameSync) {
+            driver.executeScript("flutter:waitForAbsent", element, WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS)
+        }
 
         // Ideally we would use `!element.isDisplayed` as return value,
         // but this isn't possible due to missing `FlutterElement` implementations.
@@ -64,9 +66,31 @@ open class MobileActions {
     protected fun findElement(locator: By): WebElement = driver.findElement(locator)
 
     protected fun clickElement(element: WebElement, frameSync: Boolean = true) {
-        driver.executeScript("flutter:setFrameSync", frameSync, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
-        element.click()
-        driver.executeScript("flutter:setFrameSync", true, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+        performAction(frameSync) {
+            element.click()
+        }
+    }
+
+    /**
+     * Resolves the top left coordinates of the given element in logical pixels (not taking into account the screen density).
+     *
+     * @param element The element to get the top left coordinates from.
+     * @param frameSync Whether to wait executing an action until no pending frames are scheduled. Defaults to `true`, set to `false` when testing a screen with a long or infinite animation.
+     * @return The top left coordinates of the given element in logical pixels, or `null` if the element is not found.
+     */
+    protected fun getTopLeft(element: WebElement, frameSync: Boolean = true): Pair<Double, Double>? {
+        return performAction(frameSync) {
+
+            when (val result = driver.executeScript("flutter:getTopLeft", element)) {
+                is Map<*, *> -> {
+                    val dx = (result["dx"] as? Number)?.toDouble() ?: return@performAction null
+                    val dy = (result["dy"] as? Number)?.toDouble() ?: return@performAction null
+                    Pair(dx, dy)
+                }
+
+                else -> null
+            }
+        }
     }
 
     protected fun readElementText(element: WebElement): String? = element.text
@@ -104,6 +128,15 @@ open class MobileActions {
             }
         } else {
             throw Exception("Platform $platform is not supported")
+        }
+    }
+
+    private fun <T> performAction(frameSync: Boolean = true, action: () -> T): T {
+        if (!frameSync) driver.executeScript("flutter:setFrameSync", false, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+        return try {
+            action()
+        } finally {
+            if (!frameSync) driver.executeScript("flutter:setFrameSync", true, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
         }
     }
 
