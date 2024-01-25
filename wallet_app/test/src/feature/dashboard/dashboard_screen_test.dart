@@ -6,9 +6,9 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/dashboard/dashboard_screen.dart';
 
-import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/mock_data.dart';
-import '../../../util/device_utils.dart';
+import '../../../wallet_app_test_widget.dart';
+import '../../mocks/mock_data.dart';
+import '../../util/device_utils.dart';
 
 class MockDashboardBloc extends MockBloc<DashboardEvent, DashboardState> implements DashboardBloc {}
 

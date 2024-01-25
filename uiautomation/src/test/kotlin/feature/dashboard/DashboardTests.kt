@@ -1,14 +1,13 @@
-package feature.menu
+package feature.dashboard
 
 import helper.TestBase
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.Test
-import screen.change_language.ChangeLanguageScreen
+import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
@@ -16,20 +15,18 @@ import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionExpectationsScreen
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
-import screen.menu.MenuScreen
 import screen.personalize.PersonalizeInformScreen
 import screen.personalize.PersonalizePidPreviewScreen
 import screen.personalize.PersonalizeSuccessScreen
 import screen.security.PinScreen
 import screen.security.SetupSecurityCompletedScreen
-import screen.settings.SettingsScreen
 
-@DisplayName("UC 9.3 - User changes language [PVW-1224]")
-class ChangeLanguageTests : TestBase() {
+@DisplayName("UC 7.1 - App shows all cards available in the app [PVW-1227]")
+class DashboardTests : TestBase() {
 
     private val chosenPin = "122222"
 
-    private lateinit var changeLanguageScreen: ChangeLanguageScreen
+    private lateinit var dashboardScreen: DashboardScreen
 
     @BeforeEach
     fun setUp() {
@@ -44,11 +41,8 @@ class ChangeLanguageTests : TestBase() {
         val digidLoginMockWebPage = DigidLoginMockWebPage()
         val personalizePidPreviewScreen = PersonalizePidPreviewScreen()
         val personalizeSuccessScreen = PersonalizeSuccessScreen()
-        val dashboardScreen = DashboardScreen()
-        val menuScreen = MenuScreen()
-        val settingsScreen = SettingsScreen()
 
-        // Start all tests on digid login start web page
+        // Start all tests on dashboard screen
         introductionScreen.clickSkipButton()
         expectationsScreen.clickNextButton()
         privacyScreen.clickNextButton()
@@ -64,47 +58,41 @@ class ChangeLanguageTests : TestBase() {
         personalizePidPreviewScreen.clickAcceptButton()
         pinScreen.enterPin(chosenPin)
         personalizeSuccessScreen.clickNextButton()
-        dashboardScreen.clickMenuButton()
-        menuScreen.clickSettingsButton()
-        settingsScreen.clickChangeLanguageButton()
 
-        changeLanguageScreen = ChangeLanguageScreen()
+        dashboardScreen = DashboardScreen()
     }
 
     @Test
-    @DisplayName("1. App settings menu displays option to change language.")
-    fun verifyChangeLanguageScreen() {
-        assertTrue(changeLanguageScreen.visible(), "change language screen is not visible")
+    @DisplayName("1. The card overview page displays all cards currently available in the app.")
+    fun verifyIssuedCardsVisible() {
+        assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible")
+    }
+
+    //@Test
+    @DisplayName("2. Each card is recognizable as a physical card (fixed ratio, unless the font size is too big, then the card ratio constraint is relaxed) and includes the following: a title, subtitle, background image, logo, CTA button.")
+    fun verifyCardPhysicalFixedRatioAndFaceElements() {
+        // Manual test: https://SSSS/jira/browse/PVW-1976
     }
 
     @Test
-    @DisplayName("2. Language screen offers two options: English & Dutch.")
-    fun verifyLanguageButtonsVisible() {
-        assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible")
+    @DisplayName("3. The card information (and images) is displayed in the active language.")
+    @Tags(Tag("english"))
+    fun verifyActiveLanguage() {
+        assertTrue(dashboardScreen.cardFaceTextsInActiveLanguage(), "Card face texts are not in active language")
     }
 
-    @Nested
-    @DisplayName("3. When the User selects a language, the app immediately uses the newly selected language.")
-    inner class LanguageChange {
+    @Test
+    @DisplayName("4. Tapping the card opens the card's details [UC 7.2]")
+    fun verifyCardDetailScreen() {
+        dashboardScreen.clickPidCard()
 
-        @Test
-        @Tags(Tag("english"))
-        @DisplayName("3.1. When the User selects Dutch, the app immediately uses Dutch.")
-        fun verifyDutchLanguageSelect() {
-            assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible")
-            changeLanguageScreen.clickDutchButton()
+        val cardDetailScreen = CardDetailScreen()
+        assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")
+    }
 
-            assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
-        }
-
-        @Test
-        @Tags(Tag("dutch"))
-        @DisplayName("3.2. When the User selects English, the app immediately uses English.")
-        fun verifyEnglishLanguageSelect() {
-            assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
-            changeLanguageScreen.clickEnglishButton()
-
-            assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible")
-        }
+    @Test
+    @DisplayName("5. The card sorting is initially fixed: PID is first, Address is second.")
+    fun verifyCardsFixedSorting() {
+        assertTrue(dashboardScreen.checkCardSorting(), "card sorting not as expected")
     }
 }
