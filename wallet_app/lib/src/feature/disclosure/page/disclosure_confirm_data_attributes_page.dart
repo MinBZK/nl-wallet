@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/repository/organization/organization_repository.dart';
@@ -15,8 +16,6 @@ import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../policy/policy_screen.dart';
-
-const _kStorageDurationInMonthsFallback = 3;
 
 class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -99,13 +98,23 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   }
 
   String _buildConditionsText(BuildContext context) {
-    // currently defaults to 3 months for mocks with undefined storageDuration
-    final storageDurationInMonths = policy.storageDuration?.inMonths ?? _kStorageDurationInMonthsFallback;
-    if (policy.dataIsShared) {
-      return context.l10n.disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle(storageDurationInMonths);
-    } else {
-      return context.l10n.disclosureConfirmDataAttributesCheckConditionsSubtitle(storageDurationInMonths);
+    bool dataIsStored = policy.storageDuration != null;
+    if (policy.dataIsShared && !dataIsStored) {
+      // Data IS shared but NOT stored
+      return context.l10n.disclosureConfirmDataAttributesPageSharedNotStoredSubtitle;
+    } else if (policy.dataIsShared && dataIsStored) {
+      // Data IS shared and IS stored
+      return context.l10n.disclosureConfirmDataAttributesPageSharedAndStoredSubtitle(policy.storageDuration!.inMonths);
+    } else if (!policy.dataIsShared && !dataIsStored) {
+      // Data is NOT shared and NOT stored
+      return context.l10n.disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle;
+    } else if (!policy.dataIsShared && dataIsStored) {
+      // Data is NOT shared but IS stored
+      return context.l10n
+          .disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle(policy.storageDuration!.inMonths);
     }
+    if (kDebugMode) throw UnsupportedError('No valid condition combination found');
+    return '';
   }
 
   Widget _buildHeaderSection(BuildContext context) {
