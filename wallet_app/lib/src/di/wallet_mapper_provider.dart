@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_core/core.dart'
     show Card, CardValue, LocalizedString, PinValidationResult, RequestedCard, WalletEvent;
+import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' as core show Document;
 
 import '../data/repository/organization/organization_repository.dart';
@@ -35,7 +35,7 @@ import '../util/mapper/pid/core_pid_attribute_mapper.dart';
 import '../util/mapper/pid/mock_pid_attribute_mapper.dart';
 import '../util/mapper/pid/pid_attribute_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
-import '../util/mapper/policy/request_policy.dart';
+import '../util/mapper/policy/request_policy_mapper.dart';
 import '../wallet_core/error/core_error.dart';
 import '../wallet_core/error/core_error_mapper.dart';
 

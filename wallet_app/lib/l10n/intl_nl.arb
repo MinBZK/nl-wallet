@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-18T15:33:23+01:00",
+    "@@last_modified": "2024-01-24T16:38:47+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -215,24 +215,6 @@
     "digidHelpScreenTitle": "Hulp nodig met DigiD?",
     "disclosureConfirmDataAttributesCheckAttributesCta": "Bekijk jouw gegevens",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
-    "disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
-    "@disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
-    "@disclosureConfirmDataAttributesCheckConditionsSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
     "disclosureConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is.",
     "disclosureConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
     "disclosureConfirmDataAttributesPageApproveCta": "Delen",
@@ -251,7 +233,25 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
     "disclosureConfirmDataAttributesPageDenyCta": "Nee",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
-    "disclosureConfirmDataAttributesPageNotStoredNotSharedSubtitle": "Gegevens worden niet bewaard en niet gedeeld met derden.",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
+    "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "Gegevens worden niet bewaard en niet gedeeld met derden.",
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
+    "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
     "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Gegevens worden niet bewaard maar wel gedeeld met derden.",
     "disclosureConfirmDataAttributesShareWithTitle": "Wil je delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
@@ -652,6 +652,9 @@
         }
     },
     "introductionWCAGDutchGovernmentLogoLabel": "Rijksoverheid logo",
+    "invalidQrDialogCta": "OK",
+    "invalidQrDialogDescription": "Deze QR-code is not geldig.",
+    "invalidQrDialogTitle": "Ongeldige QR-code",
     "issuanceCardAddedCloseCta": "Naar mijn kaarten",
     "issuanceCardAddedSubtitle": "Je kunt de gegevens vinden in je kaarten overzicht.",
     "issuanceCardAddedTitle": "Gelukt!",
@@ -993,11 +996,15 @@
     "qrScanTabHowToScanSheetCloseCta": "Sluiten",
     "qrScanTabHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt, zal aangeven wat nodig is.\n\nNa het scannen krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
     "qrScanTabHowToScanSheetTitle": "Hoe werkt scannen?",
+    "qrScreenDisableTorchCta": "Zet zaklamp uit",
+    "qrScreenEnableTorchCta": "Zet zaklamp aan",
     "qrScreenHowToScanButton": "Hoe werkt scannen?",
     "qrScreenHowToScanSheetCloseButton": "Sluiten",
     "qrScreenHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt, zal aangeven wat nodig is.\n\nNa het scannen krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
     "qrScreenHowToScanSheetTitle": "Hoe werkt scannen?",
     "qrScreenMyCodeTabTitle": "Mijn code",
+    "qrScreenPermissionHint": "De NL wallet heeft toegang nodig tot je camera om een QR-code te scannen",
+    "qrScreenScanHint": "Richt je camera op een QR-code",
     "qrScreenScanTabContinueButton": "Nog een QR scannen",
     "qrScreenScanTabErrorButton": "Probeer opnieuw",
     "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
