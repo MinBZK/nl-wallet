@@ -58,9 +58,21 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     final items = [
-      BottomNavigationBarItem(icon: const Icon(Icons.credit_card), label: context.l10n.homeScreenBottomNavBarCardsCta),
-      BottomNavigationBarItem(icon: const Icon(Icons.qr_code), label: context.l10n.homeScreenBottomNavBarQrCta),
-      BottomNavigationBarItem(icon: const Icon(Icons.menu), label: context.l10n.homeScreenBottomNavBarMenuCta),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.credit_card),
+        label: context.l10n.homeScreenBottomNavBarCardsCta,
+        tooltip: context.l10n.homeScreenBottomNavBarCardsCta,
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.qr_code),
+        label: context.l10n.homeScreenBottomNavBarQrCta,
+        tooltip: context.l10n.homeScreenBottomNavBarQrCta,
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.menu),
+        label: context.l10n.homeScreenBottomNavBarMenuCta,
+        tooltip: context.l10n.homeScreenBottomNavBarMenuCta,
+      ),
     ];
 
     final indicatorWidth = context.mediaQuery.size.width / items.length;
@@ -72,6 +84,7 @@ class HomeScreen extends StatelessWidget {
         return Stack(
           children: [
             BottomNavigationBar(
+              key: const Key('homeScreenBottomNavigationBar'),
               currentIndex: state.tab.index,
               onTap: (value) {
                 final homeTab = HomeTab.values[value];
