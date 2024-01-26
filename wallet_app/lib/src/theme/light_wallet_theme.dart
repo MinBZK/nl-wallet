@@ -10,6 +10,7 @@ class LightWalletTheme {
     brightness: Brightness.light,
     primary: primary,
     secondary: Color(0x332065E0),
+    onSecondary: Color(0XFF383EDE),
     error: Color(0xFFAB0065),
     background: Color(0xFFFCFCFC),
     inverseSurface: Color(0xFFEBE4FD),

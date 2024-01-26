@@ -1,27 +1,27 @@
-part of 'qr_scan_bloc.dart';
+part of 'qr_bloc.dart';
 
-sealed class QrScanState extends Equatable {
-  const QrScanState();
+sealed class QrState extends Equatable {
+  const QrState();
 }
 
-class QrScanInitial extends QrScanState {
+class QrScanInitial extends QrState {
   @override
   List<Object> get props => [];
 }
 
-class QrScanScanning extends QrScanState {
+class QrScanScanning extends QrState {
   @override
   List<Object> get props => [];
 }
 
-class QrScanLoading extends QrScanState {
+class QrScanLoading extends QrState {
   const QrScanLoading();
 
   @override
   List<Object> get props => [];
 }
 
-class QrScanSuccess extends QrScanState {
+class QrScanSuccess extends QrState {
   final NavigationRequest request;
 
   const QrScanSuccess(this.request);
@@ -30,12 +30,12 @@ class QrScanSuccess extends QrScanState {
   List<Object> get props => [request];
 }
 
-class QrScanFailure extends QrScanState {
+class QrScanFailure extends QrState {
   @override
   List<Object> get props => [];
 }
 
-class QrScanNoPermission extends QrScanState {
+class QrScanNoPermission extends QrState {
   final bool permanentlyDenied;
 
   const QrScanNoPermission(this.permanentlyDenied);

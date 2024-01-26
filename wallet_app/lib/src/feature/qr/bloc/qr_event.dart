@@ -1,10 +1,10 @@
-part of 'qr_scan_bloc.dart';
+part of 'qr_bloc.dart';
 
-abstract class QrScanEvent extends Equatable {
-  const QrScanEvent();
+abstract class QrEvent extends Equatable {
+  const QrEvent();
 }
 
-class QrScanCodeDetected extends QrScanEvent {
+class QrScanCodeDetected extends QrEvent {
   final Barcode code;
 
   const QrScanCodeDetected(this.code);
@@ -13,14 +13,14 @@ class QrScanCodeDetected extends QrScanEvent {
   List<Object?> get props => [code];
 }
 
-class QrScanReset extends QrScanEvent {
+class QrScanReset extends QrEvent {
   const QrScanReset();
 
   @override
   List<Object?> get props => [];
 }
 
-class QrScanCheckPermission extends QrScanEvent {
+class QrScanCheckPermission extends QrEvent {
   const QrScanCheckPermission();
 
   @override

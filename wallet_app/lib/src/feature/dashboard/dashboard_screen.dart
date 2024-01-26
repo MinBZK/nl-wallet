@@ -42,17 +42,27 @@ class DashboardScreen extends StatelessWidget {
       leading: IconButton(
         onPressed: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.menu)),
         icon: const Icon(Icons.menu),
+        tooltip: context.l10n.dashboardScreenTitle,
       ),
-      title: Text(
-        context.l10n.dashboardScreenTitle,
-        style: context.textTheme.titleMedium!.copyWith(color: context.colorScheme.primary, fontWeight: FontWeight.bold),
+      title: ExcludeSemantics(
+        excluding: true /* Excluding as the IconButton above is already read out, including the 'menu' tooltip */,
+        child: GestureDetector(
+          onTap: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.menu)),
+          child: Text(
+            context.l10n.dashboardScreenTitle,
+            style: context.textTheme.titleMedium!.copyWith(
+              color: context.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
       ),
       actions: [
         FadeInAtOffset(
             visibleOffset: 150,
             appearOffset: 100,
             child: IconButton(
-              onPressed: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.qr)),
+              onPressed: () => Navigator.pushNamed(context, WalletRoutes.qrRoute),
               icon: const Icon(Icons.qr_code_rounded),
             )),
         IconButton(
@@ -132,7 +142,7 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildQrLogo(BuildContext context) {
-    onTapQr() => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.qr));
+    onTapQr() => Navigator.pushNamed(context, WalletRoutes.qrRoute);
     return GestureDetector(
       onTap: onTapQr,
       child: MergeSemantics(
