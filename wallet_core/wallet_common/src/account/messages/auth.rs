@@ -1,21 +1,20 @@
 use futures::{try_join, TryFutureExt};
 use serde::{Deserialize, Serialize};
+use serde_with::{base64::Base64, serde_as};
 
 use crate::{
-    account::{
-        serialization::{Base64Bytes, DerVerifyingKey},
-        signed::SignedDouble,
-    },
+    account::{serialization::DerVerifyingKey, signed::SignedDouble},
     errors::{Error, Result},
     jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
 // Registration challenge response
-
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Challenge {
-    pub challenge: Base64Bytes,
+    #[serde_as(as = "Base64")]
+    pub challenge: Vec<u8>,
 }
 
 // Registration request and response
@@ -51,11 +50,13 @@ impl Registration {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletCertificateClaims {
     pub wallet_id: String,
     pub hw_pubkey: DerVerifyingKey,
-    pub pin_pubkey_hash: Base64Bytes,
+    #[serde_as(as = "Base64")]
+    pub pin_pubkey_hash: Vec<u8>,
     pub version: u32,
 
     pub iss: String,

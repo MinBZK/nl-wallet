@@ -97,11 +97,7 @@ where
         let result = self
             .instruction_client
             .send(Sign {
-                messages_with_identifiers: messages
-                    .into_iter()
-                    .zip(identifiers)
-                    .map(|(msg, keys)| (msg.into(), keys))
-                    .collect(),
+                messages_with_identifiers: messages.into_iter().zip(identifiers).collect(),
             })
             .await?;
 
@@ -147,7 +143,7 @@ where
             .key_factory
             .instruction_client
             .send(Sign {
-                messages_with_identifiers: vec![(msg.to_vec().into(), vec![self.identifier.clone()])],
+                messages_with_identifiers: vec![(msg.to_vec(), vec![self.identifier.clone()])],
             })
             .await?;
 

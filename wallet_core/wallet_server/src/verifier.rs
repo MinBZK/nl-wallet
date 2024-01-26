@@ -110,8 +110,8 @@ where
                         Ok((
                             usecase,
                             PrivateKey::new(
-                                SigningKey::from_pkcs8_der(&keypair.private_key.0)?,
-                                Certificate::from(&keypair.certificate.0),
+                                SigningKey::from_pkcs8_der(&keypair.private_key)?,
+                                Certificate::from(&keypair.certificate),
                             ),
                         ))
                     })

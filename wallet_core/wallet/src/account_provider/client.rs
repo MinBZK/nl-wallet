@@ -113,7 +113,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
         let request = self.http_client.post(url).build()?;
         let challenge: Challenge = self.send_json_request::<Challenge>(request).await?;
 
-        Ok(challenge.challenge.0)
+        Ok(challenge.challenge)
     }
 
     async fn register(
@@ -135,7 +135,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
         let url = base_url.join("instructions/challenge")?;
         let challenge: Challenge = self.send_json_post_request(url, &challenge_request).await?;
 
-        Ok(challenge.challenge.0)
+        Ok(challenge.challenge)
     }
 
     async fn instruction<I>(

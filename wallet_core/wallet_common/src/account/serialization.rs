@@ -12,59 +12,20 @@ use p256::{
 };
 use serde::{de, ser, Deserialize, Serialize};
 use serde_json::value::RawValue;
+use serde_with::{
+    base64::{Base64, Standard},
+    formats::Padded,
+    DeserializeAs, SerializeAs,
+};
 
-use crate::{errors::Error, jwt::EcdsaDecodingKey};
+use crate::jwt::EcdsaDecodingKey;
 
 use super::signed::{SignedDouble, SignedInner};
-
-/// Bytes that (de)serialize to base64.
-#[derive(Clone, Eq, PartialEq)]
-pub struct Base64Bytes(pub Vec<u8>);
-impl From<Vec<u8>> for Base64Bytes {
-    fn from(val: Vec<u8>) -> Self {
-        Base64Bytes(val)
-    }
-}
-
-impl TryFrom<Base64Bytes> for SigningKey {
-    type Error = Error;
-
-    fn try_from(value: Base64Bytes) -> Result<Self, Self::Error> {
-        Ok(SigningKey::from_pkcs8_der(&value.0)?)
-    }
-}
-
-impl TryFrom<&SigningKey> for Base64Bytes {
-    type Error = Error;
-
-    fn try_from(value: &SigningKey) -> Result<Self, Self::Error> {
-        Ok(value.to_pkcs8_der()?.as_bytes().to_vec().into())
-    }
-}
-
-impl Serialize for Base64Bytes {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        String::serialize(&BASE64_STANDARD.encode(&self.0), serializer)
-    }
-}
-impl<'de> Deserialize<'de> for Base64Bytes {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let bts = BASE64_STANDARD
-            .decode(String::deserialize(deserializer)?.as_bytes())
-            .map_err(serde::de::Error::custom)?;
-        Ok(bts.into())
-    }
-}
-
-impl Debug for Base64Bytes {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", BASE64_STANDARD.encode(&self.0))
-    }
-}
 
 /// ECDSA signature that (de)serializes from/to base64-encoded DER.
 #[derive(Debug, Clone)]
 pub struct DerSignature(pub Signature);
+
 impl From<Signature> for DerSignature {
     fn from(val: Signature) -> Self {
         DerSignature(val)
@@ -73,12 +34,14 @@ impl From<Signature> for DerSignature {
 
 impl Serialize for DerSignature {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        Base64Bytes::serialize(&self.0.to_der().as_bytes().to_vec().into(), serializer)
+        Base64::<Standard, Padded>::serialize_as(&self.0.to_der().as_bytes().to_vec(), serializer)
     }
 }
+
 impl<'de> Deserialize<'de> for DerSignature {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let sig = Signature::from_der(&Base64Bytes::deserialize(deserializer)?.0).map_err(de::Error::custom)?;
+        let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
+        let sig = Signature::from_der(&bytes).map_err(de::Error::custom)?;
         Ok(sig.into())
     }
 }
@@ -102,6 +65,7 @@ impl<'de> Deserialize<'de> for DerSecretKey {
         DerSigningKey::deserialize(deserializer).map(|x| DerSecretKey(x.0.into()))
     }
 }
+
 impl Serialize for DerSecretKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -136,9 +100,8 @@ impl Display for DerVerifyingKey {
 
 impl<'de> Deserialize<'de> for DerSigningKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let key: SigningKey = Base64Bytes::deserialize(deserializer)?
-            .try_into()
-            .map_err(de::Error::custom)?;
+        let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
+        let key: SigningKey = SigningKey::from_pkcs8_der(&bytes).map_err(de::Error::custom)?;
         Ok(key.into())
     }
 }
@@ -148,9 +111,10 @@ impl Serialize for DerSigningKey {
     where
         S: serde::Serializer,
     {
-        Base64Bytes::try_from(&self.0)
-            .map_err(ser::Error::custom)?
-            .serialize(serializer)
+        Base64::<Standard, Padded>::serialize_as(
+            &self.0.to_pkcs8_der().map_err(ser::Error::custom)?.as_bytes().to_vec(),
+            serializer,
+        )
     }
 }
 
@@ -172,21 +136,17 @@ impl From<EcdsaDecodingKey> for DerVerifyingKey {
 
 impl Serialize for DerVerifyingKey {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        Base64Bytes::serialize(
-            &self
-                .0
-                .to_public_key_der()
-                .map_err(ser::Error::custom)?
-                .into_vec()
-                .into(),
+        Base64::<Standard, Padded>::serialize_as(
+            &self.0.to_public_key_der().map_err(ser::Error::custom)?.into_vec(),
             serializer,
         )
     }
 }
+
 impl<'de> Deserialize<'de> for DerVerifyingKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let key =
-            VerifyingKey::from_public_key_der(&Base64Bytes::deserialize(deserializer)?.0).map_err(de::Error::custom)?;
+        let bytes: Vec<u8> = Base64::<Standard, Padded>::deserialize_as::<D>(deserializer)?;
+        let key = VerifyingKey::from_public_key_der(&bytes).map_err(de::Error::custom)?;
         Ok(key.into())
     }
 }
@@ -211,6 +171,7 @@ impl<T> Serialize for SignedDouble<T> {
         RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
     }
 }
+
 impl<'de, T> Deserialize<'de> for SignedDouble<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
@@ -222,6 +183,7 @@ impl<T> Serialize for SignedInner<T> {
         RawValue::serialize(&RawValue::from_string(self.0.clone()).unwrap(), serializer)
     }
 }
+
 impl<'de, T> Deserialize<'de> for SignedInner<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
         Ok(Box::<RawValue>::deserialize(deserializer)?.get().into())
