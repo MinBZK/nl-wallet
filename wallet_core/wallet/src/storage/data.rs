@@ -1,14 +1,17 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_with::{base64::Base64, serde_as};
 
-use wallet_common::account::{messages::auth::WalletCertificate, serialization::Base64Bytes};
+use wallet_common::account::messages::auth::WalletCertificate;
 
 pub trait KeyedData: Serialize + DeserializeOwned {
     const KEY: &'static str;
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegistrationData {
-    pub pin_salt: Base64Bytes,
+    #[serde_as(as = "Base64")]
+    pub pin_salt: Vec<u8>,
     pub wallet_certificate: WalletCertificate,
 }
 

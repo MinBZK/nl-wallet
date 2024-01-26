@@ -209,7 +209,7 @@ impl WalletWithMocks {
 
         // Generate registration data.
         let registration = RegistrationData {
-            pin_salt: pin_key::new_pin_salt().into(),
+            pin_salt: pin_key::new_pin_salt(),
             wallet_certificate: wallet.valid_certificate().await,
         };
 
@@ -241,7 +241,7 @@ impl WalletWithMocks {
         WalletCertificateClaims {
             wallet_id: utils::random_string(32),
             hw_pubkey: self.hw_privkey.verifying_key().await.unwrap().into(),
-            pin_pubkey_hash: utils::random_bytes(32).into(),
+            pin_pubkey_hash: utils::random_bytes(32),
             version: 0,
             iss: "wallet_unit_test".to_string(),
             iat: jsonwebtoken::get_current_timestamp(),

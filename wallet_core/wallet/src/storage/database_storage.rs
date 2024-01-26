@@ -513,7 +513,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_database_storage() {
         let registration = RegistrationData {
-            pin_salt: vec![1, 2, 3, 4].into(),
+            pin_salt: vec![1, 2, 3, 4],
             wallet_certificate: WalletCertificate::from("thisisdefinitelyvalid"),
         };
 
@@ -544,7 +544,7 @@ pub(crate) mod tests {
 
         assert!(fetched_registration.is_some());
         let fetched_registration = fetched_registration.unwrap();
-        assert_eq!(fetched_registration.pin_salt.0, registration.pin_salt.0);
+        assert_eq!(fetched_registration.pin_salt, registration.pin_salt);
         assert_eq!(
             fetched_registration.wallet_certificate.0,
             registration.wallet_certificate.0
@@ -555,7 +555,7 @@ pub(crate) mod tests {
         assert!(save_result.is_err());
 
         // Update registration
-        let new_salt = random_bytes(64).into();
+        let new_salt = random_bytes(64);
         let updated_registration = RegistrationData {
             pin_salt: new_salt,
             wallet_certificate: registration.wallet_certificate.clone(),
@@ -572,8 +572,8 @@ pub(crate) mod tests {
         assert!(fetched_after_update_registration.is_some());
         let fetched_after_update_registration = fetched_after_update_registration.unwrap();
         assert_eq!(
-            fetched_after_update_registration.pin_salt.0,
-            updated_registration.pin_salt.0
+            fetched_after_update_registration.pin_salt,
+            updated_registration.pin_salt
         );
         assert_eq!(
             fetched_after_update_registration.wallet_certificate.0,

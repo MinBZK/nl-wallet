@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use chrono::{DateTime, Local};
 use p256::{ecdsa::VerifyingKey, pkcs8::EncodePublicKey};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_with::{base64::Base64, serde_as};
 use tracing::debug;
 use uuid::Uuid;
 
@@ -15,7 +16,6 @@ use wallet_common::{
                 Instruction, InstructionChallengeRequestMessage, InstructionResult, InstructionResultClaims,
             },
         },
-        serialization::Base64Bytes,
         signed::{ChallengeResponsePayload, SequenceNumberComparison, SignedDouble},
     },
     generator::Generator,
@@ -167,13 +167,15 @@ impl From<PinPolicyEvaluation> for InstructionError {
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
 /// Used as the challenge in the challenge-response protocol during wallet registration.
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 struct RegistrationChallengeClaims {
     wallet_id: String,
     exp: u64,
 
     /// Random bytes to serve as the actual challenge for the wallet to sign.
-    random: Base64Bytes,
+    #[serde_as(as = "Base64")]
+    random: Vec<u8>,
 }
 
 impl JwtSubject for RegistrationChallengeClaims {
@@ -216,7 +218,7 @@ impl AccountServer {
         let challenge = Jwt::sign_with_sub(
             &RegistrationChallengeClaims {
                 wallet_id: random_string(32),
-                random: random_bytes(32).into(),
+                random: random_bytes(32),
                 exp: jsonwebtoken::get_current_timestamp() + 60,
             },
             certificate_signing_key,
@@ -414,7 +416,7 @@ impl AccountServer {
 
         debug!("Extracting challenge, wallet id, hw pubkey and pin pubkey");
 
-        let challenge = &unverified.challenge.0;
+        let challenge = &unverified.challenge;
         let wallet_id = self
             .verify_registration_challenge(&self.certificate_signing_pubkey, challenge)?
             .wallet_id;
@@ -635,7 +637,7 @@ async fn sign_pin_pubkey<H>(
     pubkey: VerifyingKey,
     key_identifier: &str,
     hsm: &H,
-) -> Result<Base64Bytes, WalletCertificateError>
+) -> Result<Vec<u8>, WalletCertificateError>
 where
     H: Hsm<Error = HsmError>,
 {
@@ -646,12 +648,12 @@ where
 
     let signature = hsm.sign_hmac(key_identifier, Arc::new(pin_pubkey_bts)).await?;
 
-    Ok(signature.into())
+    Ok(signature)
 }
 
 async fn verify_pin_pubkey<H>(
     pubkey: VerifyingKey,
-    pin_pubkey_hash: Base64Bytes,
+    pin_pubkey_hash: Vec<u8>,
     key_identifier: &str,
     hsm: &H,
 ) -> Result<(), WalletCertificateError>
@@ -663,7 +665,7 @@ where
         .map_err(WalletCertificateError::PinPubKeyDecoding)?
         .to_vec();
 
-    hsm.verify_hmac(key_identifier, Arc::new(pin_pubkey_bts), pin_pubkey_hash.0)
+    hsm.verify_hmac(key_identifier, Arc::new(pin_pubkey_bts), pin_pubkey_hash)
         .await?;
 
     Ok(())

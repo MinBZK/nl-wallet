@@ -78,9 +78,7 @@ async fn enroll(State(state): State<Arc<RouterState>>) -> Result<(StatusCode, Js
         .registration_challenge(&state.certificate_signing_key)
         .await?;
 
-    let body = Challenge {
-        challenge: challenge.into(),
-    };
+    let body = Challenge { challenge };
 
     info!("Replying with registration challenge");
 
@@ -122,9 +120,7 @@ async fn instruction_challenge(
         .instruction_challenge(payload, &state.repositories, state.as_ref(), &state.hsm)
         .await?;
 
-    let body = Challenge {
-        challenge: challenge.into(),
-    };
+    let body = Challenge { challenge };
 
     info!("Replying with the created challenge");
 
