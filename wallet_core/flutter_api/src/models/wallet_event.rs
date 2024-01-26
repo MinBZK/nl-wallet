@@ -18,8 +18,7 @@ pub enum WalletEvent {
     Issuance {
         //ISO8601
         date_time: String,
-        issuer: Organization,
-        card: Box<Card>,
+        card: Card,
     },
 }
 
@@ -36,23 +35,13 @@ impl IntoIterator for WalletEvents {
 impl From<HistoryEvent> for WalletEvents {
     fn from(source: HistoryEvent) -> Self {
         let result = match source {
-            HistoryEvent::Issuance {
-                timestamp,
-                mdocs,
-                issuer_registration,
-            } => {
-                let issuer = Organization::from(issuer_registration.organization);
-                let mdocs_count = mdocs.len();
-                mdocs
-                    .into_iter()
-                    .zip(itertools::repeat_n(issuer, mdocs_count))
-                    .map(|(mdoc, issuer)| WalletEvent::Issuance {
-                        date_time: timestamp.to_rfc3339(),
-                        issuer,
-                        card: Box::new(mdoc.into()),
-                    })
-                    .collect()
-            }
+            HistoryEvent::Issuance { timestamp, mdocs } => mdocs
+                .into_iter()
+                .map(|mdoc| WalletEvent::Issuance {
+                    date_time: timestamp.to_rfc3339(),
+                    card: mdoc.into(),
+                })
+                .collect(),
             HistoryEvent::Disclosure {
                 status,
                 timestamp,

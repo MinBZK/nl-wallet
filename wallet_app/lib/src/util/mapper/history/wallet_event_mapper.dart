@@ -42,7 +42,7 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
       final card = _cardMapper.map(issuance.card);
       return OperationTimelineAttribute(
         dateTime: DateTime.parse(issuance.dateTime),
-        organization: _relyingPartyMapper.map(issuance.issuer),
+        organization: _relyingPartyMapper.map(issuance.card.issuer),
         status: OperationStatus.issued,
         cardTitle: card.front.title,
         dataAttributes: card.attributes,

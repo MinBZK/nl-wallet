@@ -1,5 +1,4 @@
 use indexmap::{IndexMap, IndexSet};
-use serde::{Deserialize, Serialize};
 
 use crate::{
     basic_sa_ext::Entry,
@@ -18,7 +17,7 @@ use crate::{
 
 use super::StoredMdoc;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ProposedDocumentAttributes {
     pub issuer: Certificate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,

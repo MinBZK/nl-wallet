@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(HistoryEvent::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(HistoryEvent::Type).text().not_null())
                     .col(ColumnDef::new(HistoryEvent::Timestamp).timestamp().not_null())
-                    .col(ColumnDef::new(HistoryEvent::RemotePartyCertificate).binary().not_null())
+                    .col(ColumnDef::new(HistoryEvent::RelyingPartyCertificate).binary().null())
                     .col(ColumnDef::new(HistoryEvent::Status).text().not_null())
                     .col(ColumnDef::new(HistoryEvent::StatusDescription).text().null())
                     .col(ColumnDef::new(HistoryEvent::Attributes).binary().null())
@@ -72,7 +72,7 @@ enum HistoryEvent {
     Id,
     Type,
     Timestamp,
-    RemotePartyCertificate,
+    RelyingPartyCertificate,
     Status,
     StatusDescription,
     Attributes,

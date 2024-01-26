@@ -21,7 +21,7 @@ use crate::{
     },
     document::{DisclosureDocument, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{DocTypeMap, Storage, StorageError, StoredMdocCopy, WalletEvent},
+    storage::{Storage, StorageError, StoredMdocCopy, WalletEvent},
     EventStatus,
 };
 
@@ -208,7 +208,7 @@ where
         message: String,
     ) {
         let event = WalletEvent::new_disclosure(
-            session_proposal.map(DocTypeMap),
+            session_proposal.map(Into::into),
             remote_party_certificate,
             EventStatus::Error(message),
         );
@@ -312,7 +312,7 @@ where
 
         // Save data for disclosure in event log.
         let event = WalletEvent::new_disclosure(
-            Some(DocTypeMap(session_proposal.proposed_attributes())),
+            Some(session_proposal.proposed_attributes().into()),
             session.rp_certificate().clone(),
             EventStatus::Success,
         );

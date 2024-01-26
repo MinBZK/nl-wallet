@@ -2497,7 +2497,7 @@ mixin _$WalletEvent {
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
-    required TResult Function(String dateTime, Organization issuer, Card card) issuance,
+    required TResult Function(String dateTime, Card card) issuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -2505,7 +2505,7 @@ mixin _$WalletEvent {
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
-    TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
+    TResult? Function(String dateTime, Card card)? issuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -2513,7 +2513,7 @@ mixin _$WalletEvent {
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
-    TResult Function(String dateTime, Organization issuer, Card card)? issuance,
+    TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -2709,7 +2709,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
-    required TResult Function(String dateTime, Organization issuer, Card card) issuance,
+    required TResult Function(String dateTime, Card card) issuance,
   }) {
     return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
   }
@@ -2720,7 +2720,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
-    TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
+    TResult? Function(String dateTime, Card card)? issuance,
   }) {
     return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
   }
@@ -2731,7 +2731,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
-    TResult Function(String dateTime, Organization issuer, Card card)? issuance,
+    TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
   }) {
     if (disclosure != null) {
@@ -2801,7 +2801,7 @@ abstract class _$$WalletEvent_IssuanceImplCopyWith<$Res> implements $WalletEvent
       __$$WalletEvent_IssuanceImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String dateTime, Organization issuer, Card card});
+  $Res call({String dateTime, Card card});
 }
 
 /// @nodoc
@@ -2815,7 +2815,6 @@ class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWi
   @override
   $Res call({
     Object? dateTime = null,
-    Object? issuer = null,
     Object? card = null,
   }) {
     return _then(_$WalletEvent_IssuanceImpl(
@@ -2823,10 +2822,6 @@ class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWi
           ? _value.dateTime
           : dateTime // ignore: cast_nullable_to_non_nullable
               as String,
-      issuer: null == issuer
-          ? _value.issuer
-          : issuer // ignore: cast_nullable_to_non_nullable
-              as Organization,
       card: null == card
           ? _value.card
           : card // ignore: cast_nullable_to_non_nullable
@@ -2838,18 +2833,16 @@ class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWi
 /// @nodoc
 
 class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
-  const _$WalletEvent_IssuanceImpl({required this.dateTime, required this.issuer, required this.card});
+  const _$WalletEvent_IssuanceImpl({required this.dateTime, required this.card});
 
   @override
   final String dateTime;
-  @override
-  final Organization issuer;
   @override
   final Card card;
 
   @override
   String toString() {
-    return 'WalletEvent.issuance(dateTime: $dateTime, issuer: $issuer, card: $card)';
+    return 'WalletEvent.issuance(dateTime: $dateTime, card: $card)';
   }
 
   @override
@@ -2858,12 +2851,11 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
         (other.runtimeType == runtimeType &&
             other is _$WalletEvent_IssuanceImpl &&
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
-            (identical(other.issuer, issuer) || other.issuer == issuer) &&
             (identical(other.card, card) || other.card == card));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, dateTime, issuer, card);
+  int get hashCode => Object.hash(runtimeType, dateTime, card);
 
   @JsonKey(ignore: true)
   @override
@@ -2877,9 +2869,9 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
     required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
         disclosure,
-    required TResult Function(String dateTime, Organization issuer, Card card) issuance,
+    required TResult Function(String dateTime, Card card) issuance,
   }) {
-    return issuance(dateTime, issuer, card);
+    return issuance(dateTime, card);
   }
 
   @override
@@ -2888,9 +2880,9 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
     TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
-    TResult? Function(String dateTime, Organization issuer, Card card)? issuance,
+    TResult? Function(String dateTime, Card card)? issuance,
   }) {
-    return issuance?.call(dateTime, issuer, card);
+    return issuance?.call(dateTime, card);
   }
 
   @override
@@ -2899,11 +2891,11 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
     TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
             List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
         disclosure,
-    TResult Function(String dateTime, Organization issuer, Card card)? issuance,
+    TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
   }) {
     if (issuance != null) {
-      return issuance(dateTime, issuer, card);
+      return issuance(dateTime, card);
     }
     return orElse();
   }
@@ -2941,14 +2933,11 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
 }
 
 abstract class WalletEvent_Issuance implements WalletEvent {
-  const factory WalletEvent_Issuance(
-      {required final String dateTime,
-      required final Organization issuer,
-      required final Card card}) = _$WalletEvent_IssuanceImpl;
+  const factory WalletEvent_Issuance({required final String dateTime, required final Card card}) =
+      _$WalletEvent_IssuanceImpl;
 
   @override
   String get dateTime;
-  Organization get issuer;
   Card get card;
   @override
   @JsonKey(ignore: true)

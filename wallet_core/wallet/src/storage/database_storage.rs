@@ -424,9 +424,9 @@ where
         certificate: &nl_wallet_mdoc::utils::x509::Certificate,
     ) -> StorageResult<bool> {
         let select_statement = Query::select()
-            .column(history_event::Column::RemotePartyCertificate)
+            .column(history_event::Column::RelyingPartyCertificate)
             .from(history_event::Entity)
-            .and_where(Expr::col(history_event::Column::RemotePartyCertificate).eq(certificate.as_bytes()))
+            .and_where(Expr::col(history_event::Column::RelyingPartyCertificate).eq(certificate.as_bytes()))
             .and_where(Expr::col(history_event::Column::EventType).eq(EventType::Disclosure))
             .and_where(Expr::col(history_event::Column::Status).eq(EventStatus::Success))
             .and_where(Expr::col(history_event::Column::Attributes).is_not_null())

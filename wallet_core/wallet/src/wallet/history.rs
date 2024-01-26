@@ -1,17 +1,20 @@
 use chrono::{DateTime, Utc};
 use tracing::info;
 
-use nl_wallet_mdoc::utils::{
-    issuer_auth::IssuerRegistration,
-    reader_auth::ReaderRegistration,
-    x509::{CertificateError, MdocCertificateExtension},
+use nl_wallet_mdoc::{
+    holder::ProposedDocumentAttributes,
+    utils::{
+        issuer_auth::IssuerRegistration,
+        reader_auth::ReaderRegistration,
+        x509::{CertificateError, MdocCertificateExtension},
+    },
 };
 
 pub use crate::storage::EventStatus;
 use crate::{
     document::DocumentMdocError,
     errors::StorageError,
-    storage::{DocTypeMap, Storage, WalletEvent},
+    storage::{EventDocuments, Storage, WalletEvent},
     DisclosureDocument, Document, DocumentPersistence,
 };
 
@@ -90,7 +93,6 @@ where
 pub enum HistoryEvent {
     Issuance {
         timestamp: DateTime<Utc>,
-        issuer_registration: Box<IssuerRegistration>,
         mdocs: Vec<Document>,
     },
     Disclosure {
@@ -108,12 +110,9 @@ impl TryFrom<WalletEvent> for HistoryEvent {
         let result = match source {
             WalletEvent::Issuance {
                 id: _,
-                issuer_certificate,
                 timestamp,
                 mdocs,
             } => {
-                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
-                    .ok_or(HistoryError::NoIssuerRegistrationFound)?;
                 Self::Issuance {
                     timestamp,
                     mdocs: mdocs
@@ -127,13 +126,12 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                             let document = Document::from_mdoc_attributes(
                                 DocumentPersistence::InMemory,
                                 &doc_type,
-                                proposed_card.attributes,
+                                proposed_card.into(),
                                 issuer_registration,
                             )?;
                             Ok(document)
                         })
                         .collect::<Result<_, HistoryError>>()?,
-                    issuer_registration: { Box::new(issuer_registration) },
                 }
             }
             WalletEvent::Disclosure {
@@ -146,11 +144,17 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 status,
                 timestamp,
                 attributes: documents
-                    .map(|DocTypeMap(mdocs)| {
+                    .map(|EventDocuments(mdocs)| {
                         mdocs
                             .into_iter()
                             .map(|(doc_type, namespaces)| {
-                                DisclosureDocument::from_mdoc_attributes(&doc_type, namespaces)
+                                DisclosureDocument::from_mdoc_attributes(
+                                    &doc_type,
+                                    ProposedDocumentAttributes {
+                                        issuer: namespaces.issuer.clone(),
+                                        attributes: namespaces.into(),
+                                    },
+                                )
                             })
                             .collect::<Result<Vec<_>, _>>()
                     })

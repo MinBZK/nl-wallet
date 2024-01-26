@@ -696,14 +696,9 @@ impl support::IntoDart for WalletEvent {
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
             ],
-            Self::Issuance {
-                date_time,
-                issuer,
-                card,
-            } => vec![
+            Self::Issuance { date_time, card } => vec![
                 1.into_dart(),
                 date_time.into_into_dart().into_dart(),
-                issuer.into_into_dart().into_dart(),
                 card.into_into_dart().into_dart(),
             ],
         }

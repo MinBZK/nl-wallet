@@ -281,28 +281,25 @@ where
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
+            // Extract first copy from cred_copies
             let mdocs = mdocs
                 .iter()
                 .flat_map(|mdoc| mdoc.cred_copies.first())
                 .cloned()
                 .collect::<Vec<_>>();
 
-            // This should never fail after successful issuance
-            let certificate = mdocs
-                .first()
-                .expect("Issuance should result in at least one mdoc")
-                .issuer_certificate()
-                .expect("Could not extract issuer certificate from mdoc");
+            // Validate all issuer_certificates
+            for mdoc in mdocs.iter() {
+                let certificate = mdoc
+                    .issuer_certificate()
+                    .map_err(PidIssuanceError::InvalidIssuerCertificate)?;
 
-            // Verify that the certificate contains IssuerRegistration
-            if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
-                return Err(PidIssuanceError::MissingIssuerRegistration);
+                // Verify that the certificate contains IssuerRegistration
+                if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
+                    return Err(PidIssuanceError::MissingIssuerRegistration);
+                }
             }
-
-            WalletEvent::new_issuance(
-                mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?,
-                certificate,
-            )
+            WalletEvent::new_issuance(mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?)
         };
 
         info!("PID accepted, storing mdoc in database");

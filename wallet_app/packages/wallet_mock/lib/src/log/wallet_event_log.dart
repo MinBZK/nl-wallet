@@ -65,7 +65,6 @@ class WalletEventLog {
   void logIssuance(Card card) {
     final event = WalletEvent.issuance(
       dateTime: DateTime.now().toIso8601String(),
-      issuer: kOrganizations[kRvigId]!,
       card: card,
     );
     _logEvent(event);
@@ -84,7 +83,7 @@ class WalletEventLog {
             return disclosure.relyingParty == organization;
           },
           issuance: (issuance) {
-            return issuance.issuer == organization;
+            return issuance.card.issuer == organization;
           },
         );
       },

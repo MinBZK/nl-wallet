@@ -329,7 +329,6 @@ class WalletEvent with _$WalletEvent {
   }) = WalletEvent_Disclosure;
   const factory WalletEvent.issuance({
     required String dateTime,
-    required Organization issuer,
     required Card card,
   }) = WalletEvent_Issuance;
 }
@@ -802,6 +801,10 @@ class WalletCoreImpl implements WalletCore {
     return raw as bool;
   }
 
+  Card _wire2api_box_autoadd_card(dynamic raw) {
+    return _wire2api_card(raw);
+  }
+
   Image _wire2api_box_autoadd_image(dynamic raw) {
     return _wire2api_image(raw);
   }
@@ -820,10 +823,6 @@ class WalletCoreImpl implements WalletCore {
 
   WalletInstructionError _wire2api_box_autoadd_wallet_instruction_error(dynamic raw) {
     return _wire2api_wallet_instruction_error(raw);
-  }
-
-  Card _wire2api_box_card(dynamic raw) {
-    return _wire2api_card(raw);
   }
 
   Card _wire2api_card(dynamic raw) {
@@ -1093,8 +1092,7 @@ class WalletCoreImpl implements WalletCore {
       case 1:
         return WalletEvent_Issuance(
           dateTime: _wire2api_String(raw[1]),
-          issuer: _wire2api_box_autoadd_organization(raw[2]),
-          card: _wire2api_box_card(raw[3]),
+          card: _wire2api_box_autoadd_card(raw[2]),
         );
       default:
         throw Exception("unreachable");
