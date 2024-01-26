@@ -246,6 +246,8 @@ where
                 }
             })?;
 
+        // TODO: Wipe the wallet when receiving a PIN timeout from the WP or when it is blocked.
+
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
             let mdocs = mdocs
