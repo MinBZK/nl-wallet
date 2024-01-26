@@ -377,7 +377,8 @@ mod tests {
     use assert_matches::assert_matches;
     use http::StatusCode;
     use indexmap::IndexSet;
-    use p256::{ecdsa::VerifyingKey, elliptic_curve::rand_core::OsRng, SecretKey};
+    use p256::{ecdsa::VerifyingKey, SecretKey};
+    use rand_core::OsRng;
     use tokio::sync::mpsc;
 
     use crate::{

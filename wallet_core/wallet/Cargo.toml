@@ -68,6 +68,7 @@ wallet_common.path = "../wallet_common"
 assert_matches.workspace = true
 jsonwebtoken.workspace = true
 mockall.workspace = true
+rand_core.workspace = true
 rstest.workspace = true
 serial_test.workspace = true
 tempfile.workspace = true

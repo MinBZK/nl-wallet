@@ -86,7 +86,8 @@ where
 mod tests {
     use std::sync::{Arc, RwLock};
 
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use url::Url;
 
     use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};

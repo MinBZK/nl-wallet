@@ -2,7 +2,8 @@ use std::env;
 
 use assert_matches::assert_matches;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
-use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng, pkcs8::EncodePrivateKey};
+use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use rand_core::OsRng;
 use regex::Regex;
 use reqwest::header::HeaderValue;
 use serial_test::serial;
