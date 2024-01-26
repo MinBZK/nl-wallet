@@ -13,9 +13,10 @@ class PersonalizeInformScreen : MobileActions() {
 
     fun loginWithDigidButtonVisible() = isElementVisible(loginWithDigidButton)
 
-    fun clickLoginWithDigidButton() = clickElement(loginWithDigidButton)
+    fun clickLoginWithDigidButton(switchToWebViewContext: Boolean = true) {
+        clickElement(loginWithDigidButton)
+        if (switchToWebViewContext) switchToWebViewContext()
+    }
 
     fun clickNoDigidButton() = clickElement(noDigidButton)
-
-    fun switchToWebView() = switchToWebViewContext()
 }

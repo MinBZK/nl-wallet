@@ -19,5 +19,8 @@ class DigidLoginMockWebPage : MobileActions() {
         bsnInput.sendKeys(bsn)
     }
 
-    fun clickLoginButton() = findElement(mockLoginButtonLocator).click()
+    fun clickLoginButton() {
+        findElement(mockLoginButtonLocator).click()
+        switchToAppContext()
+    }
 }

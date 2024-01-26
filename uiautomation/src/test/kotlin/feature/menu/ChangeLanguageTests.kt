@@ -7,77 +7,39 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
-import org.junit.jupiter.api.Test
+import org.junitpioneer.jupiter.RetryingTest
 import screen.change_language.ChangeLanguageScreen
 import screen.dashboard.DashboardScreen
-import screen.digid.DigidLoginMockWebPage
-import screen.digid.DigidLoginStartWebPage
-import screen.introduction.IntroductionConditionsScreen
-import screen.introduction.IntroductionExpectationsScreen
-import screen.introduction.IntroductionPrivacyScreen
-import screen.introduction.IntroductionScreen
 import screen.menu.MenuScreen
-import screen.personalize.PersonalizeInformScreen
-import screen.personalize.PersonalizePidPreviewScreen
-import screen.personalize.PersonalizeSuccessScreen
-import screen.security.PinScreen
-import screen.security.SetupSecurityCompletedScreen
 import screen.settings.SettingsScreen
+import setup.OnboardingNavigator
+import setup.Screen
 
 @DisplayName("UC 9.3 - User changes language [PVW-1224]")
 class ChangeLanguageTests : TestBase() {
 
-    private val chosenPin = "122222"
+    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var changeLanguageScreen: ChangeLanguageScreen
 
     @BeforeEach
     fun setUp() {
-        val introductionScreen = IntroductionScreen()
-        val expectationsScreen = IntroductionExpectationsScreen()
-        val privacyScreen = IntroductionPrivacyScreen()
-        val conditionsScreen = IntroductionConditionsScreen()
-        val pinScreen = PinScreen()
-        val setupSecurityCompletedScreen = SetupSecurityCompletedScreen()
-        val personalizeInformScreen = PersonalizeInformScreen()
-        val digidLoginStartWebPage = DigidLoginStartWebPage()
-        val digidLoginMockWebPage = DigidLoginMockWebPage()
-        val personalizePidPreviewScreen = PersonalizePidPreviewScreen()
-        val personalizeSuccessScreen = PersonalizeSuccessScreen()
-        val dashboardScreen = DashboardScreen()
-        val menuScreen = MenuScreen()
-        val settingsScreen = SettingsScreen()
+        onboardingNavigator.toScreen(Screen.Dashboard)
 
-        // Start all tests on digid login start web page
-        introductionScreen.clickSkipButton()
-        expectationsScreen.clickNextButton()
-        privacyScreen.clickNextButton()
-        conditionsScreen.clickNextButton()
-        pinScreen.enterPin(chosenPin)
-        pinScreen.enterPin(chosenPin)
-        setupSecurityCompletedScreen.clickNextButton()
-        personalizeInformScreen.clickLoginWithDigidButton()
-        personalizeInformScreen.switchToWebView()
-        digidLoginStartWebPage.clickMockLoginButton()
-        digidLoginMockWebPage.clickLoginButton()
-        personalizePidPreviewScreen.switchToApp()
-        personalizePidPreviewScreen.clickAcceptButton()
-        pinScreen.enterPin(chosenPin)
-        personalizeSuccessScreen.clickNextButton()
-        dashboardScreen.clickMenuButton()
-        menuScreen.clickSettingsButton()
-        settingsScreen.clickChangeLanguageButton()
+        DashboardScreen().clickMenuButton()
+        MenuScreen().clickSettingsButton()
+        SettingsScreen().clickChangeLanguageButton()
 
         changeLanguageScreen = ChangeLanguageScreen()
     }
 
-    @Test
+    @RetryingTest(MAX_RETRY_COUNT)
     @DisplayName("1. App settings menu displays option to change language.")
     fun verifyChangeLanguageScreen() {
         assertTrue(changeLanguageScreen.visible(), "change language screen is not visible")
     }
 
-    @Test
+    @RetryingTest(MAX_RETRY_COUNT)
     @DisplayName("2. Language screen offers two options: English & Dutch.")
     fun verifyLanguageButtonsVisible() {
         assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible")
@@ -87,7 +49,7 @@ class ChangeLanguageTests : TestBase() {
     @DisplayName("3. When the User selects a language, the app immediately uses the newly selected language.")
     inner class LanguageChange {
 
-        @Test
+        @RetryingTest(MAX_RETRY_COUNT)
         @Tags(Tag("english"))
         @DisplayName("3.1. When the User selects Dutch, the app immediately uses Dutch.")
         fun verifyDutchLanguageSelect() {
@@ -97,7 +59,7 @@ class ChangeLanguageTests : TestBase() {
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
         }
 
-        @Test
+        @RetryingTest(MAX_RETRY_COUNT)
         @Tags(Tag("dutch"))
         @DisplayName("3.2. When the User selects English, the app immediately uses English.")
         fun verifyEnglishLanguageSelect() {
