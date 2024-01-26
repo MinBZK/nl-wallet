@@ -144,7 +144,7 @@ where
                     Self::verify_device_request(
                         &device_request,
                         return_url_ref,
-                        transcript,
+                        &transcript,
                         mdoc_data_source,
                         trust_anchors,
                     )
@@ -202,7 +202,7 @@ where
     async fn verify_device_request<'a, S>(
         device_request: &DeviceRequest,
         return_url: Option<&Url>,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<(VerifierSessionDataCheckResult<I>, Certificate, ReaderRegistration)>
@@ -217,7 +217,7 @@ where
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
         // Reader authentication is required to be present at this time.
         let (certificate, reader_registration) = device_request
-            .verify(&session_transcript, &TimeGenerator, trust_anchors)?
+            .verify(session_transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
         // Verify the return URL against the prefix in the `ReaderRegistration`,
@@ -386,13 +386,13 @@ mod tests {
         identifiers::AttributeIdentifierHolder,
         iso::{
             disclosure::{DeviceAuth, SessionStatus},
-            engagement::DeviceAuthentication,
+            engagement::DeviceAuthenticationKeyed,
         },
         software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
-            serialization::TaggedBytes,
+            serialization::{CborSeq, TaggedBytes},
             x509::CertificateType,
         },
         Error,
@@ -525,10 +525,9 @@ mod tests {
             .into_iter()
             .zip(public_keys)
             .for_each(|(document, public_key)| {
-                let device_authentication =
-                    DeviceAuthentication::from_session_transcript(session_transcript.clone(), document.doc_type);
+                let device_authentication = DeviceAuthenticationKeyed::new(&document.doc_type, &session_transcript);
                 let device_authentication_bytes =
-                    serialization::cbor_serialize(&TaggedBytes(device_authentication)).unwrap();
+                    serialization::cbor_serialize(&TaggedBytes(CborSeq(device_authentication))).unwrap();
 
                 match document.device_signed.device_auth {
                     DeviceAuth::DeviceSignature(signature) => signature

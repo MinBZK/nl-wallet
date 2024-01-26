@@ -902,9 +902,8 @@ impl Document {
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
-        let device_authentication =
-            DeviceAuthentication::from_session_transcript(session_transcript.clone(), self.doc_type.clone());
-        let device_authentication_bts = cbor_serialize(&TaggedBytes(device_authentication))?;
+        let device_authentication = DeviceAuthenticationKeyed::new(&self.doc_type, session_transcript);
+        let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {

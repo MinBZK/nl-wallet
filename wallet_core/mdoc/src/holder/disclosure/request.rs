@@ -8,7 +8,7 @@ use webpki::TrustAnchor;
 
 use crate::{
     device_retrieval::{DeviceRequest, DocRequest, ReaderAuthenticationKeyed},
-    engagement::{DeviceAuthentication, SessionTranscript},
+    engagement::{DeviceAuthenticationKeyed, SessionTranscript},
     errors::Result,
     holder::HolderError,
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
@@ -97,7 +97,7 @@ impl DeviceRequest {
     pub(super) async fn match_stored_documents<S, I>(
         &self,
         mdoc_data_source: &S,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
     ) -> Result<DeviceRequestMatch<I>>
     where
         S: MdocDataSource<MdocIdentifier = I>,
@@ -165,11 +165,9 @@ impl DeviceRequest {
             .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
             .collect::<Vec<_>>();
 
-        let mdocs_count = stored_mdocs.len();
         let candidates_by_doc_type = stored_mdocs
             .into_iter()
-            .zip(itertools::repeat_n(session_transcript, mdocs_count))
-            .map(|(doc_type_stored_mdocs, session_transcript)| {
+            .map(|doc_type_stored_mdocs| {
                 // First, remove the `IndexSet` of attributes that are required for this
                 // `doc_type` from the global `HashSet`. If this cannot be found, then
                 // `MdocDataSource` did not obey the contract as noted in the comment above.
@@ -188,9 +186,9 @@ impl DeviceRequest {
 
                 // Calculate the `DeviceAuthentication` for this `doc_type` and turn it into bytes,
                 // so that it can be used as a challenge when constructing `DeviceSigned` later on.
-                let device_authentication =
-                    DeviceAuthentication::from_session_transcript(session_transcript, doc_type.to_string());
-                let device_signed_challenge = serialization::cbor_serialize(&TaggedBytes(device_authentication))?;
+                let device_authentication = DeviceAuthenticationKeyed::new(doc_type, session_transcript);
+                let device_signed_challenge =
+                    serialization::cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
 
                 // Get all the candidates and missing attributes from the provided `Mdoc`s.
                 let (candidates, missing_attributes) =
@@ -365,7 +363,7 @@ mod tests {
 
         // An empty `DeviceRequest` should result in an empty set of candidates.
         let match_result = empty_device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
@@ -440,7 +438,7 @@ mod tests {
         // Only two of the `Mdoc` should match and be returned as a `DocumentProposal`,
         // which should contain only the requested attributes.
         let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
@@ -467,7 +465,7 @@ mod tests {
 
         // Now there should not be a match, one of the attributes should be reported as missing.
         let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript)
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
