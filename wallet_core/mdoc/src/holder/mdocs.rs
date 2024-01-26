@@ -1,3 +1,5 @@
+use std::result::Result;
+
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -14,7 +16,6 @@ use crate::{
         x509::Certificate,
     },
     verifier::ValidityRequirement,
-    Result,
 };
 
 use super::{CborHttpClient, HttpClient, IssuanceSessionState};
@@ -76,7 +77,7 @@ impl Mdoc {
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<Mdoc> {
+    ) -> crate::Result<Mdoc> {
         let (_, mso) = issuer_signed.verify(ValidityRequirement::AllowNotYetValid, time, trust_anchors)?;
         let mdoc = Mdoc {
             doc_type: mso.doc_type,
@@ -98,7 +99,7 @@ impl Mdoc {
             .collect::<IndexMap<_, _>>()
     }
 
-    pub fn issuer_certificate(&self) -> std::result::Result<Certificate, CoseError> {
+    pub fn issuer_certificate(&self) -> Result<Certificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
     }
 }

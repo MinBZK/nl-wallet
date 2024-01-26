@@ -74,7 +74,8 @@ impl Response {
         let expected_payload = &ResponseSignaturePayload::new(challenge.to_vec());
         self.signature
             .clone_with_payload(cbor_serialize(&expected_payload)?)
-            .verify(&(&self.public_key).try_into()?)
+            .verify(&(&self.public_key).try_into()?)?;
+        Ok(())
     }
 }
 
