@@ -7,7 +7,7 @@ use p256::{
 };
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::PrivateKey, utils::issuer_auth::IssuerRegistration,
+    basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
     IssuerSigned,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -41,7 +41,7 @@ pub struct AccountServerKeys {
 
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
-    pub issuance_key: PrivateKey,
+    pub issuance_key: KeyPair,
     pub trust_anchor: DerTrustAnchor,
 }
 
@@ -73,7 +73,7 @@ pub static ACCOUNT_SERVER_KEYS: Lazy<AccountServerKeys> = Lazy::new(|| AccountSe
 
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
-    let ca = PrivateKey::generate_issuer_mock_ca().unwrap();
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
     IssuerKey {
@@ -84,7 +84,7 @@ pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
 
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: Lazy<IssuerKey> = Lazy::new(|| {
-    let ca = PrivateKey::generate_issuer_mock_ca().unwrap();
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(None).unwrap();
 
     IssuerKey {

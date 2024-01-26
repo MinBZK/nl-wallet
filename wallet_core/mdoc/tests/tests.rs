@@ -23,7 +23,7 @@ use nl_wallet_mdoc::{
     identifiers::AttributeIdentifier,
     iso::{device_retrieval::ItemsRequest, mdocs::DocType},
     issuer::{IssuanceData, Issuer},
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
     utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, serialization, x509::Certificate},
@@ -39,17 +39,17 @@ type MockIssuanceServer = Issuer<MockKeyring, MemorySessionStore<IssuanceData>>;
 type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
 
 struct MockKeyring {
-    private_key: PrivateKey,
+    private_key: KeyPair,
 }
 
 impl MockKeyring {
-    pub fn new(private_key: PrivateKey) -> Self {
+    pub fn new(private_key: KeyPair) -> Self {
         MockKeyring { private_key }
     }
 }
 
 impl KeyRing for MockKeyring {
-    fn private_key(&self, _: &str) -> Option<&PrivateKey> {
+    fn private_key(&self, _: &str) -> Option<&KeyPair> {
         Some(&self.private_key)
     }
 }
@@ -111,7 +111,7 @@ impl HttpClient for MockDisclosureHttpClient {
 }
 
 fn setup_issuance_test() -> (Wallet<MockIssuanceHttpClient>, Arc<MockIssuanceServer>, Certificate) {
-    let ca = PrivateKey::generate_issuer_mock_ca().unwrap();
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
     // Setup issuer
@@ -125,7 +125,7 @@ fn setup_issuance_test() -> (Wallet<MockIssuanceHttpClient>, Arc<MockIssuanceSer
     let client = MockIssuanceHttpClient::new(Arc::clone(&issuance_server));
     let wallet = Wallet::new(client);
 
-    (wallet, issuance_server, ca.into_certificate())
+    (wallet, issuance_server, ca.into())
 }
 
 fn setup_verifier_test(
@@ -139,7 +139,7 @@ fn setup_verifier_test(
         ),
         ..ReaderRegistration::new_mock()
     };
-    let ca = PrivateKey::generate_reader_mock_ca().unwrap();
+    let ca = KeyPair::generate_reader_mock_ca().unwrap();
     let disclosure_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
 
     let verifier = MockVerifier::new(
@@ -151,7 +151,7 @@ fn setup_verifier_test(
     .into();
     let client = MockDisclosureHttpClient::new(Arc::clone(&verifier));
 
-    (client, verifier, ca.into_certificate())
+    (client, verifier, ca.into())
 }
 
 struct MockMdocDataSource(HashMap<DocType, MdocCopies>);

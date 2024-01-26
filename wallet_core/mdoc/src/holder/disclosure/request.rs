@@ -275,7 +275,7 @@ mod tests {
         errors::Error,
         examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
         iso::device_retrieval::DeviceRequestVersion,
-        server_keys::PrivateKey,
+        server_keys::KeyPair,
     };
 
     use super::{super::test::*, *};
@@ -283,8 +283,8 @@ mod tests {
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
-        let ca = PrivateKey::generate_reader_mock_ca().unwrap();
-        let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.cert_bts.as_bytes().to_vec()).unwrap()];
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
         let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
         let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
@@ -315,7 +315,7 @@ mod tests {
 
         assert_eq!(
             verified_reader_registration,
-            Some((private_key1.cert_bts.clone(), reader_registration))
+            Some((private_key1.certificate().clone(), reader_registration))
         );
 
         // Verifying a `DeviceRequest` that has no reader auth at all should succeed and return `None`.
@@ -488,10 +488,10 @@ mod tests {
     #[tokio::test]
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
-        let ca = PrivateKey::generate_reader_mock_ca().unwrap();
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
-        let der_trust_anchor = DerTrustAnchor::from_der(ca.cert_bts.as_bytes().to_vec()).unwrap();
+        let der_trust_anchor = DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap();
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = create_basic_session_transcript();
@@ -507,10 +507,10 @@ mod tests {
             )
             .expect("Could not verify DeviceRequest");
 
-        assert_matches!(certificate, Some(cert) if cert == private_key.cert_bts);
+        assert_matches!(certificate, Some(cert) if cert == private_key.into());
 
-        let other_ca = PrivateKey::generate_reader_mock_ca().unwrap();
-        let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.cert_bts.as_bytes().to_vec()).unwrap();
+        let other_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.certificate().as_bytes().to_vec()).unwrap();
         let error = doc_request
             .verify(
                 session_transcript.clone(),

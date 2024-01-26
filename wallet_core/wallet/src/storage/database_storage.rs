@@ -455,7 +455,7 @@ pub(crate) mod tests {
 
     use nl_wallet_mdoc::{
         holder::Mdoc,
-        server_keys::PrivateKey,
+        server_keys::KeyPair,
         utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration},
     };
     use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
@@ -469,6 +469,20 @@ pub(crate) mod tests {
 
     const PID_DOCTYPE: &str = "com.example.pid";
     const ADDRESS_DOCTYPE: &str = "com.example.address";
+
+    static ISSUER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+        let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        issuer_ca
+            .generate_issuer_mock(IssuerRegistration::new_mock().into())
+            .unwrap()
+    });
+
+    static READER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        reader_ca
+            .generate_reader_mock(ReaderRegistration::new_mock().into())
+            .unwrap()
+    });
 
     #[test]
     fn test_key_file_alias_for_name() {
@@ -804,19 +818,6 @@ pub(crate) mod tests {
             .await
             .unwrap());
     }
-
-    static ISSUER_KEY: Lazy<PrivateKey> = Lazy::new(|| {
-        let issuer_ca = PrivateKey::generate_issuer_mock_ca().unwrap();
-        issuer_ca
-            .generate_issuer_mock(IssuerRegistration::new_mock().into())
-            .unwrap()
-    });
-    static READER_KEY: Lazy<PrivateKey> = Lazy::new(|| {
-        let reader_ca = PrivateKey::generate_reader_mock_ca().unwrap();
-        reader_ca
-            .generate_reader_mock(ReaderRegistration::new_mock().into())
-            .unwrap()
-    });
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();

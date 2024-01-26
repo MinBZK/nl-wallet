@@ -24,7 +24,7 @@ use crate::{
     },
     iso::*,
     issuer_shared::IssuanceError,
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{ClonePayload, CoseKey, MdocCose, COSE_X5CHAIN_HEADER_LABEL},
@@ -379,7 +379,7 @@ impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
         device_public_key: CoseKey,
-        key: &PrivateKey,
+        key: &KeyPair,
     ) -> Result<(Self, MobileSecurityObject)> {
         let now = Utc::now();
         let validity = ValidityInfo {
@@ -408,7 +408,7 @@ impl IssuerSigned {
         let headers = HeaderBuilder::new()
             .value(
                 COSE_X5CHAIN_HEADER_LABEL,
-                Value::Bytes(key.cert_bts.as_bytes().to_vec()),
+                Value::Bytes(key.certificate().as_bytes().to_vec()),
             )
             .build();
         let mso_tagged = mso.into();
@@ -433,7 +433,7 @@ mod tests {
 
     use crate::{
         basic_sa_ext::RequestKeyGenerationMessage,
-        server_keys::PrivateKey,
+        server_keys::KeyPair,
         server_state::{MemorySessionStore, SessionStore},
     };
 
@@ -441,7 +441,7 @@ mod tests {
 
     struct EmptyKeyRing;
     impl KeyRing for EmptyKeyRing {
-        fn private_key(&self, _: &str) -> Option<&PrivateKey> {
+        fn private_key(&self, _: &str) -> Option<&KeyPair> {
             None
         }
     }

@@ -406,7 +406,7 @@ mod generate {
     #[cfg(feature = "mock")]
     mod mock {
         use crate::{
-            server_keys::PrivateKey,
+            server_keys::KeyPair,
             utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration},
         };
 
@@ -418,7 +418,7 @@ mod generate {
         const RP_CA_CN: &str = "ca.rp.example.com";
         const RP_CERT_CN: &str = "cert.rp.example.com";
 
-        impl PrivateKey {
+        impl KeyPair {
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
                 let (crt, key) = Certificate::new_ca(ISSUANCE_CA_CN)?;
                 let pk = Self::new(key, crt);
@@ -436,12 +436,12 @@ mod generate {
                 issuer_registration: Option<IssuerRegistration>,
             ) -> Result<Self, CertificateError> {
                 let (issuer_cert, issuer_privkey) = Certificate::new(
-                    &self.cert_bts,
-                    &self.private_key,
+                    self.certificate(),
+                    self.private_key(),
                     ISSUANCE_CERT_CN,
                     CertificateType::Mdl(issuer_registration.map(Box::new)),
                 )?;
-                let issuance_key = PrivateKey::new(issuer_privkey, issuer_cert);
+                let issuance_key = KeyPair::new(issuer_privkey, issuer_cert);
                 Ok(issuance_key)
             }
 
@@ -450,12 +450,12 @@ mod generate {
                 reader_registration: Option<ReaderRegistration>,
             ) -> Result<Self, CertificateError> {
                 let (reader_cert, reader_privkey) = Certificate::new(
-                    &self.cert_bts,
-                    &self.private_key,
+                    self.certificate(),
+                    self.private_key(),
                     RP_CERT_CN,
                     CertificateType::ReaderAuth(reader_registration.map(Box::new)),
                 )?;
-                let reader_key = PrivateKey::new(reader_privkey, reader_cert);
+                let reader_key = KeyPair::new(reader_privkey, reader_cert);
                 Ok(reader_key)
             }
         }

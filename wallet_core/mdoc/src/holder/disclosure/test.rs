@@ -23,7 +23,7 @@ use crate::{
         disclosure::{SessionData, SessionStatus},
         engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     },
-    server_keys::PrivateKey,
+    server_keys::KeyPair,
     utils::{
         cose::{self, MdocCose},
         crypto::{SessionKey, SessionKeyUser},
@@ -93,11 +93,11 @@ pub fn create_basic_session_transcript() -> SessionTranscript {
 }
 
 /// Create a `DocRequest` including reader authentication,
-/// based on a `SessionTranscript` and `PrivateKey`.
+/// based on a `SessionTranscript` and `KeyPair`.
 pub async fn create_doc_request(
     items_request: ItemsRequest,
     session_transcript: SessionTranscript,
-    private_key: &PrivateKey,
+    private_key: &KeyPair,
 ) -> DocRequest {
     // Generate the reader authentication signature, without payload.
     let reader_auth = ReaderAuthenticationKeyed {
@@ -108,7 +108,7 @@ pub async fn create_doc_request(
 
     let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
         &TaggedBytes(CborSeq(reader_auth)),
-        cose::new_certificate_header(&private_key.cert_bts),
+        cose::new_certificate_header(private_key.certificate()),
         private_key,
         false,
     )
@@ -270,7 +270,7 @@ pub struct MockVerifierSession<F> {
     pub return_url: Option<Url>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<DerTrustAnchor>,
-    private_key: PrivateKey,
+    private_key: KeyPair,
     pub reader_engagement: ReaderEngagement,
     reader_ephemeral_key: SecretKey,
     pub reader_engagement_bytes_override: Option<Vec<u8>>,
@@ -307,8 +307,8 @@ where
         transform_device_request: F,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
-        let ca = PrivateKey::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![DerTrustAnchor::from_der(ca.cert_bts.as_bytes().to_vec()).unwrap()];
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
         let private_key = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate the `ReaderEngagement` that would be be sent in the UL.

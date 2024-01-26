@@ -171,7 +171,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use chrono::{Duration, TimeZone, Utc};
-    use nl_wallet_mdoc::{server_keys::PrivateKey, utils::reader_auth::ReaderRegistration};
+    use nl_wallet_mdoc::{server_keys::KeyPair, utils::reader_auth::ReaderRegistration};
 
     use crate::{
         storage::WalletEvent,
@@ -223,7 +223,7 @@ mod tests {
     async fn test_history() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let reader_ca = PrivateKey::generate_reader_mock_ca().unwrap();
+        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
         let reader_key = reader_ca
             .generate_reader_mock(ReaderRegistration::new_mock().into())
             .unwrap();

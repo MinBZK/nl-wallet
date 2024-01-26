@@ -318,7 +318,7 @@ pub mod tests {
     use once_cell::sync::Lazy;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::{server_keys::PrivateKey, Tdate};
+    use nl_wallet_mdoc::{server_keys::KeyPair, Tdate};
 
     use crate::rvig_registration;
 
@@ -327,8 +327,8 @@ pub mod tests {
         *,
     };
 
-    static ISSUER_KEY: Lazy<PrivateKey> = Lazy::new(|| {
-        let ca = PrivateKey::generate_issuer_mock_ca().unwrap();
+    static ISSUER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
     });
 

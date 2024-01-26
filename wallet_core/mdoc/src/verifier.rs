@@ -23,7 +23,7 @@ use crate::{
     basic_sa_ext::Entry,
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{self, ClonePayload, MdocCose},
@@ -587,7 +587,7 @@ impl Session<Created> {
     async fn new_device_request(
         &self,
         session_transcript: &SessionTranscript,
-        private_key: &PrivateKey,
+        private_key: &KeyPair,
     ) -> Result<DeviceRequest> {
         let doc_requests = try_join_all(self.state().items_requests.0.iter().map(|items_request| async {
             let reader_auth = ReaderAuthenticationKeyed {
@@ -597,7 +597,7 @@ impl Session<Created> {
             };
             let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
                 &TaggedBytes(CborSeq(reader_auth)),
-                cose::new_certificate_header(&private_key.cert_bts),
+                cose::new_certificate_header(private_key.certificate()),
                 private_key,
                 false,
             )
@@ -958,7 +958,7 @@ mod tests {
             EXAMPLE_NAMESPACE,
         },
         identifiers::AttributeIdentifierHolder,
-        server_keys::{PrivateKey, SingleKeyRing},
+        server_keys::{KeyPair, SingleKeyRing},
         server_state::MemorySessionStore,
         test::{self, DebugCollapseBts},
         utils::{
@@ -1076,9 +1076,9 @@ mod tests {
     #[tokio::test]
     async fn disclosure() {
         // Initialize server state
-        let ca = PrivateKey::generate_reader_mock_ca().unwrap();
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![
-            DerTrustAnchor::from_der(ca.cert_bts.as_bytes().to_vec())
+            DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec())
                 .unwrap()
                 .owned_trust_anchor,
         ];
