@@ -20,7 +20,7 @@ void main() {
           ..addScenario(
             widget: const DashboardScreen().withState<DashboardBloc, DashboardState>(
               MockDashboardBloc(),
-              DashboardLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
+              DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -34,7 +34,7 @@ void main() {
           ..addScenario(
             widget: const DashboardScreen().withState<DashboardBloc, DashboardState>(
               MockDashboardBloc(),
-              DashboardLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
+              DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
             ),
           ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
@@ -68,7 +68,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DashboardScreen().withState<DashboardBloc, DashboardState>(
           MockDashboardBloc(),
-          DashboardLoadSuccess([WalletMockData.card, WalletMockData.altCard]),
+          DashboardLoadSuccess(cards: [WalletMockData.card, WalletMockData.altCard], history: const []),
         ),
       );
 

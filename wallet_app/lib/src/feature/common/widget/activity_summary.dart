@@ -9,46 +9,52 @@ import '../../../util/extension/date_time_extension.dart';
 
 class ActivitySummary extends StatelessWidget {
   final List<TimelineAttribute> attributes;
+  final VoidCallback? onTap;
 
   const ActivitySummary({
     required this.attributes,
+    this.onTap,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        border: Border.all(color: (context.colorScheme.outlineVariant)),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _resolveTitle(context),
-                  style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurface),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _resolveSubtitle(context),
-                  style: context.textTheme.bodyLarge,
-                ),
-              ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(color: (context.colorScheme.outlineVariant)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _resolveTitle(context),
+                    style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurface),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _resolveSubtitle(context),
+                    style: context.textTheme.bodyLarge,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.arrow_forward,
-            color: context.colorScheme.primary,
-          ),
-        ],
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_forward,
+              color: context.colorScheme.primary,
+            ),
+          ],
+        ),
       ),
     );
   }
