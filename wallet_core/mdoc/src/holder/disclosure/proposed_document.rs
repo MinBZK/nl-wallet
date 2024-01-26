@@ -1,16 +1,28 @@
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
+use serde::{Deserialize, Serialize};
 
 use crate::{
+    basic_sa_ext::Entry,
     errors::Result,
     identifiers::AttributeIdentifier,
     iso::{
         disclosure::{DeviceSigned, Document, IssuerSigned},
         mdocs::DocType,
     },
-    utils::keys::{KeyFactory, MdocEcdsaKey},
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        x509::Certificate,
+    },
+    NameSpace,
 };
 
-use super::{session::ProposedCard, StoredMdoc};
+use super::StoredMdoc;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProposedDocumentAttributes {
+    pub issuer: Certificate,
+    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+}
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
 /// for disclosure. Note that this is for internal use of [`DisclosureSession`] only.
@@ -129,7 +141,7 @@ impl<I> ProposedDocument<I> {
     }
 
     /// Return the issuer and attributes contained within this [`ProposedDocument`].
-    pub fn proposed_card(&self) -> Result<ProposedCard> {
+    pub fn proposed_card(&self) -> Result<ProposedDocumentAttributes> {
         let issuer = self.issuer_signed.issuer_auth.signing_cert()?;
         let attributes = self
             .issuer_signed
@@ -142,7 +154,7 @@ impl<I> ProposedDocument<I> {
                     .collect()
             })
             .unwrap_or_default();
-        let proposed_card = ProposedCard { issuer, attributes };
+        let proposed_card = ProposedDocumentAttributes { issuer, attributes };
         Ok(proposed_card)
     }
 

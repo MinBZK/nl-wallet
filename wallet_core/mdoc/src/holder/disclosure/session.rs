@@ -1,21 +1,19 @@
 use base64::prelude::*;
 use futures::future::TryFutureExt;
 use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
 
 use wallet_common::{generator::TimeGenerator, utils};
 
 use crate::{
-    basic_sa_ext::Entry,
     device_retrieval::DeviceRequest,
     disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
     holder::{DisclosureError, DisclosureResult, HolderError, HttpClient, HttpClientError, HttpClientResult},
     identifiers::AttributeIdentifier,
-    mdocs::{DocType, NameSpace},
+    mdocs::DocType,
     utils::{
         crypto::SessionKey,
         keys::{KeyFactory, MdocEcdsaKey},
@@ -26,18 +24,16 @@ use crate::{
     verifier::SessionType,
 };
 
-use super::{proposed_document::ProposedDocument, request::DeviceRequestMatch, MdocDataSource};
+use super::{
+    proposed_document::{ProposedDocument, ProposedDocumentAttributes},
+    request::DeviceRequestMatch,
+    MdocDataSource,
+};
 
 const REFERRER_URL: &str = "https://referrer.url/";
 const TRANSCRIPT_HASH_PARAM: &str = "transcript_hash";
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct ProposedCard {
-    pub issuer: Certificate,
-    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
-}
-
-pub type ProposedAttributes = IndexMap<DocType, ProposedCard>;
+pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 
 /// This represents a started disclosure session, which can be in one of two states.
 /// Regardless of which state it is in, it provides the `ReaderRegistration` through

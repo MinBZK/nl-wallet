@@ -385,7 +385,7 @@ mod tests {
 
     use nl_wallet_mdoc::{
         basic_sa_ext::Entry,
-        holder::{HolderError, Mdoc, ProposedCard},
+        holder::{HolderError, Mdoc, ProposedDocumentAttributes},
         iso::disclosure::SessionStatus,
         verifier::SessionType,
         DataElementValue,
@@ -413,7 +413,7 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes: IndexMap::from([(
                     "com.example.pid".to_string(),
                     vec![Entry {
@@ -631,7 +631,7 @@ mod tests {
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes: IndexMap::from([(
                     "com.example.pid".to_string(),
                     vec![Entry {
@@ -679,7 +679,7 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes: IndexMap::from([(
                     "com.example.pid".to_string(),
                     vec![Entry {
@@ -855,7 +855,7 @@ mod tests {
 
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes: IndexMap::from([(
                     "com.example.pid".to_string(),
                     vec![Entry {

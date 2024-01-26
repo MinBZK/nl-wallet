@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
-    holder::ProposedCard,
+    holder::ProposedDocumentAttributes,
     identifiers::AttributeIdentifier,
     utils::{
         issuer_auth::IssuerRegistration,
@@ -289,7 +289,10 @@ impl MissingDisclosureAttributes {
 }
 
 impl DisclosureDocument {
-    pub(crate) fn from_mdoc_attributes(doc_type: &str, attributes: ProposedCard) -> Result<Self, DocumentMdocError> {
+    pub(crate) fn from_mdoc_attributes(
+        doc_type: &str,
+        attributes: ProposedDocumentAttributes,
+    ) -> Result<Self, DocumentMdocError> {
         let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
             .map_err(|error| DocumentMdocError::Certificate {
                 doc_type: doc_type.to_owned(),
@@ -673,7 +676,7 @@ pub mod tests {
 
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             &unsigned_mdoc.doc_type,
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
             },
@@ -736,7 +739,7 @@ pub mod tests {
         // This should not result in a `DocumentMdocError::MissingAttribute` error.
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
             },
@@ -769,7 +772,7 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             "com.example.foobar",
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
             },
@@ -793,7 +796,7 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
             },
@@ -824,7 +827,7 @@ pub mod tests {
 
         let result = DisclosureDocument::from_mdoc_attributes(
             PID_DOCTYPE,
-            ProposedCard {
+            ProposedDocumentAttributes {
                 attributes,
                 issuer: ISSUER_KEY.certificate().clone(),
             },

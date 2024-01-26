@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 pub use entity::history_event;
 use nl_wallet_mdoc::{
-    holder::{Mdoc, ProposedCard},
+    holder::{Mdoc, ProposedDocumentAttributes},
     utils::{
         cose::CoseError,
         serialization::{cbor_deserialize, cbor_serialize, CborError},
@@ -53,7 +53,7 @@ impl From<&history_event::Model> for EventStatus {
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
-pub struct DocTypeMap(pub IndexMap<String, ProposedCard>);
+pub struct DocTypeMap(pub IndexMap<String, ProposedDocumentAttributes>);
 
 impl TryFrom<Vec<Mdoc>> for DocTypeMap {
     type Error = CoseError;
@@ -63,7 +63,7 @@ impl TryFrom<Vec<Mdoc>> for DocTypeMap {
             .map(|mdoc| {
                 let issuer = mdoc.issuer_certificate()?;
                 let attributes = mdoc.attributes(); // extracted to prevent borrow after move compilation error
-                Ok((mdoc.doc_type, ProposedCard { issuer, attributes }))
+                Ok((mdoc.doc_type, ProposedDocumentAttributes { issuer, attributes }))
             })
             .collect::<Result<IndexMap<_, _>, CoseError>>()?;
         Ok(Self(doc_type_map))
@@ -216,7 +216,7 @@ mod test {
                 .map(|doc| {
                     (
                         doc.doc_type,
-                        ProposedCard {
+                        ProposedDocumentAttributes {
                             issuer: issuer_certificate.clone(),
                             attributes: doc.attributes,
                         },
