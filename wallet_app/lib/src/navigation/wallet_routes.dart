@@ -238,11 +238,15 @@ WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
         BlocProvider<DashboardBloc>(
           create: (BuildContext context) => DashboardBloc(
             context.read(),
+            context.read(),
             argument?.cards,
           ),
         ),
         BlocProvider<MenuBloc>(
-          create: (BuildContext context) => MenuBloc(context.read(), context.read()),
+          create: (BuildContext context) => MenuBloc(
+            context.read(),
+            context.read(),
+          ),
         ),
       ],
       child: DoOnInit(

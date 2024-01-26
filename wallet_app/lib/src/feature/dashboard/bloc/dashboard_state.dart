@@ -20,11 +20,15 @@ class DashboardLoadInProgress extends DashboardState {
 
 class DashboardLoadSuccess extends DashboardState {
   final List<WalletCard> cards;
+  final List<TimelineAttribute>? history;
 
-  const DashboardLoadSuccess(this.cards);
+  const DashboardLoadSuccess({
+    required this.cards,
+    this.history,
+  });
 
   @override
-  List<Object> get props => [cards];
+  List<Object?> get props => [cards, history];
 }
 
 class DashboardLoadFailure extends DashboardState {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
@@ -13,6 +14,7 @@ import '../../wallet_assets.dart';
 import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/activity_summary.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
@@ -30,10 +32,16 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: const Key('dashboardScreen'),
-      appBar: _buildAppBar(context),
-      body: _buildBody(context),
+    return VisibilityDetector(
+      key: const Key('dashboardVisibilityDetector'),
+      onVisibilityChanged: (VisibilityInfo info) {
+        if (info.visibleFraction > 0.0) context.read<DashboardBloc>().add(const DashboardLoadTriggered());
+      },
+      child: Scaffold(
+        key: const Key('dashboardScreen'),
+        appBar: _buildAppBar(context),
+        body: _buildBody(context),
+      ),
     );
   }
 
@@ -101,7 +109,16 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          sliver: SliverToBoxAdapter(
+            child: ActivitySummary(
+              attributes: state.history ?? [],
+              onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           sliver: _buildCardsSliver(context, state.cards),
         ),
         SliverToBoxAdapter(
