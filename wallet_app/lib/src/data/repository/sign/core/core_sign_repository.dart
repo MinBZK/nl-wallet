@@ -1,6 +1,6 @@
 import 'package:wallet_core/core.dart' as core;
-import 'package:wallet_mock/mock.dart' hide Document;
 import 'package:wallet_mock/mock.dart' as core show Document;
+import 'package:wallet_mock/mock.dart' hide Document;
 
 import '../../../../domain/model/document.dart';
 import '../../../../domain/model/organization.dart';
@@ -13,14 +13,14 @@ import '../sign_repository.dart';
 class CoreSignRepository implements SignRepository {
   final WalletCoreForSigning _coreForSigning;
 
-  final Mapper<core.DisclosureCard, WalletCard> _requestedCardMapper;
+  final Mapper<core.DisclosureCard, WalletCard> _disclosureCardMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<core.Document, Document> _documentMapper;
 
   CoreSignRepository(
     this._coreForSigning,
-    this._requestedCardMapper,
+    this._disclosureCardMapper,
     this._organizationMapper,
     this._requestPolicyMapper,
     this._documentMapper,
@@ -31,7 +31,7 @@ class CoreSignRepository implements SignRepository {
     final result = (await _coreForSigning.startSigning(signUri));
     switch (result) {
       case StartSignResultReadyToDisclose():
-        final cards = _requestedCardMapper.mapList(result.requestedAttributes);
+        final cards = _disclosureCardMapper.mapList(result.disclosureCards);
         final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
         return StartSignReadyToSign(
           relyingParty: _organizationMapper.map(result.organization),

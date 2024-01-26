@@ -25,7 +25,7 @@ import '../util/mapper/card/card_config_mapper.dart';
 import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
-import '../util/mapper/card/requested_card_mapper.dart';
+import '../util/mapper/card/disclosure_card_mapper.dart';
 import '../util/mapper/document/document_mapper.dart';
 import '../util/mapper/history/wallet_event_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';

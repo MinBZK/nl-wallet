@@ -15,7 +15,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
   final WalletCoreForIssuance _core;
 
   final Mapper<core.Card, WalletCard> _cardMapper;
-  final Mapper<core.DisclosureCard, WalletCard> _requestedCardMapper;
+  final Mapper<core.DisclosureCard, WalletCard> _disclosureCardMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
@@ -23,7 +23,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
   CoreIssuanceRepository(
     this._core,
     this._cardMapper,
-    this._requestedCardMapper,
+    this._disclosureCardMapper,
     this._organizationMapper,
     this._missingAttributeMapper,
     this._requestPolicyMapper,
@@ -34,7 +34,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
     final result = await _core.startIssuance(disclosureUri);
     switch (result) {
       case StartIssuanceResultReadyToDisclose():
-        final cards = _requestedCardMapper.mapList(result.requestedAttributes);
+        final cards = _disclosureCardMapper.mapList(result.disclosureCards);
         final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
         return StartIssuanceReadyToDisclose(
           relyingParty: _organizationMapper.map(result.organization),

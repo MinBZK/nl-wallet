@@ -53,10 +53,11 @@ void main() {
 
     test('card with `com.example.address` docType should return dark localized card front', () {
       const coreCard = Card(
-          persistence: CardPersistence.inMemory(),
-          docType: 'com.example.address',
-          attributes: [],
-          issuer: _kSampleIssuer);
+        persistence: CardPersistence.inMemory(),
+        docType: 'com.example.address',
+        attributes: [],
+        issuer: _kSampleIssuer,
+      );
 
       when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 

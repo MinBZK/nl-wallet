@@ -15,12 +15,12 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<RequestPolicy, Policy> _policyMapper;
   final Mapper<Card, WalletCard> _cardMapper;
-  final Mapper<DisclosureCard, WalletCard> _requestedCardMapper;
+  final Mapper<DisclosureCard, WalletCard> _disclosureCardMapper;
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
 
   WalletEventMapper(
     this._cardMapper,
-    this._requestedCardMapper,
+    this._disclosureCardMapper,
     this._relyingPartyMapper,
     this._policyMapper,
     this._localizedStringMapper,
@@ -29,7 +29,7 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
   @override
   TimelineAttribute map(WalletEvent input) {
     return input.map(disclosure: (disclosure) {
-      final cards = _requestedCardMapper.mapList(disclosure.requestedCards ?? []);
+      final cards = _disclosureCardMapper.mapList(disclosure.requestedCards ?? []);
       return InteractionTimelineAttribute(
         dateTime: DateTime.parse(disclosure.dateTime),
         organization: _relyingPartyMapper.map(disclosure.relyingParty),

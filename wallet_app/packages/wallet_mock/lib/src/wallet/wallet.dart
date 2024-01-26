@@ -28,7 +28,7 @@ class Wallet {
 
   CardAttribute? findAttribute(String key) => _allAttributes.firstWhereOrNull((attribute) => attribute.key == key);
 
-  List<DisclosureCard> getRequestedCards(Iterable<String> keys) {
+  List<DisclosureCard> getDisclosureCards(Iterable<String> keys) {
     final allRequestedAttributes = keys.map((key) => findAttribute(key)).nonNulls;
     final cardToAttributes = allRequestedAttributes
         .groupListsBy((attribute) => _cards.firstWhere((card) => card.attributes.contains(attribute)));
