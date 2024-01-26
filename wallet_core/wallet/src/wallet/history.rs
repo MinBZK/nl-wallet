@@ -112,28 +112,26 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 id: _,
                 timestamp,
                 mdocs,
-            } => {
-                Self::Issuance {
-                    timestamp,
-                    mdocs: mdocs
-                        .0
-                        .into_iter()
-                        .map(|(doc_type, proposed_card)| {
-                            let issuer_registration = IssuerRegistration::from_certificate(&proposed_card.issuer)?
-                                .ok_or(HistoryError::NoIssuerRegistrationFound)?;
+            } => Self::Issuance {
+                timestamp,
+                mdocs: mdocs
+                    .0
+                    .into_iter()
+                    .map(|(doc_type, proposed_card)| {
+                        let issuer_registration = IssuerRegistration::from_certificate(&proposed_card.issuer)?
+                            .ok_or(HistoryError::NoIssuerRegistrationFound)?;
 
-                            // TODO: Refer to persisted mdoc from the mdoc table, or not?
-                            let document = Document::from_mdoc_attributes(
-                                DocumentPersistence::InMemory,
-                                &doc_type,
-                                proposed_card.into(),
-                                issuer_registration,
-                            )?;
-                            Ok(document)
-                        })
-                        .collect::<Result<_, HistoryError>>()?,
-                }
-            }
+                        // TODO: Refer to persisted mdoc from the mdoc table, or not?
+                        let document = Document::from_mdoc_attributes(
+                            DocumentPersistence::InMemory,
+                            &doc_type,
+                            proposed_card.into(),
+                            issuer_registration,
+                        )?;
+                        Ok(document)
+                    })
+                    .collect::<Result<_, HistoryError>>()?,
+            },
             WalletEvent::Disclosure {
                 id: _,
                 reader_certificate,

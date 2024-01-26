@@ -1,6 +1,5 @@
 import 'package:wallet_core/core.dart';
 
-import '../data/mock/mock_organizations.dart';
 import '../util/extension/string_extension.dart';
 
 class WalletEventLog {
