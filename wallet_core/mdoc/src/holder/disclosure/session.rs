@@ -116,9 +116,6 @@ where
             ephemeral_privkey,
         )?;
 
-        // Serialize the `SessionTranscript` for if we need to add it to the `return_url` later.
-        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(&transcript))?;
-
         // Send the `DeviceEngagement` to the verifier and deserialize the expected `SessionData`.
         // If decoding fails, send a `SessionData` to the verifier to report this.
         let session_data: SessionData = client
@@ -138,13 +135,14 @@ where
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
         let return_url_ref = return_url.as_ref();
+        let transcript_ref = &transcript;
         let (check_result, certificate, reader_registration) =
             async { session_data.decrypt_and_deserialize(&reader_key) }
                 .and_then(|device_request| async move {
                     Self::verify_device_request(
                         &device_request,
                         return_url_ref,
-                        &transcript,
+                        transcript_ref,
                         mdoc_data_source,
                         trust_anchors,
                     )
@@ -172,7 +170,9 @@ where
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
                     // If we have a return URL, add the hash of the `SessionTranscript` to it.
-                    return_url: return_url.map(|url| Self::add_transcript_hash_to_url(url, &session_transcript_bytes)),
+                    return_url: return_url
+                        .map(|url| Self::add_transcript_hash_to_url(url, &transcript))
+                        .transpose()?,
                     data,
                     device_key,
                     proposed_documents,
@@ -266,13 +266,17 @@ where
         Ok((result, certificate, reader_registration))
     }
 
-    fn add_transcript_hash_to_url(mut url: Url, session_transcript_bytes: &[u8]) -> Url {
-        let transcript_hash = utils::sha256(session_transcript_bytes);
+    fn add_transcript_hash_to_url(
+        mut url: Url,
+        session_transcript: &SessionTranscript,
+    ) -> std::result::Result<Url, CborError> {
+        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
+        let transcript_hash = utils::sha256(&session_transcript_bytes);
 
         url.query_pairs_mut()
             .append_pair(TRANSCRIPT_HASH_PARAM, &BASE64_URL_SAFE_NO_PAD.encode(transcript_hash));
 
-        url
+        Ok(url)
     }
 
     fn data(&self) -> &CommonDisclosureData<H> {
