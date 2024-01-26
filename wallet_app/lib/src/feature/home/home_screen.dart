@@ -10,7 +10,6 @@ import '../../wallet_constants.dart';
 import '../dashboard/bloc/dashboard_bloc.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../menu/menu_screen.dart';
-import '../qr/qr_screen.dart';
 import 'argument/home_screen_argument.dart';
 import 'bloc/home_bloc.dart';
 
@@ -44,9 +43,6 @@ class HomeScreen extends StatelessWidget {
           case HomeTab.cards:
             tab = const DashboardScreen();
             break;
-          case HomeTab.qr:
-            tab = const QrScreen();
-            break;
           case HomeTab.menu:
             tab = const MenuScreen();
             break;
@@ -62,11 +58,6 @@ class HomeScreen extends StatelessWidget {
         icon: const Icon(Icons.credit_card),
         label: context.l10n.homeScreenBottomNavBarCardsCta,
         tooltip: context.l10n.homeScreenBottomNavBarCardsCta,
-      ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.qr_code),
-        label: context.l10n.homeScreenBottomNavBarQrCta,
-        tooltip: context.l10n.homeScreenBottomNavBarQrCta,
       ),
       BottomNavigationBarItem(
         icon: const Icon(Icons.menu),

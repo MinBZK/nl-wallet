@@ -45,6 +45,8 @@ import '../feature/pin/pin_screen.dart';
 import '../feature/pin_blocked/pin_blocked_screen.dart';
 import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
+import '../feature/qr/bloc/qr_bloc.dart';
+import '../feature/qr/qr_screen.dart';
 import '../feature/settings/settings_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
@@ -106,6 +108,7 @@ class WalletRoutes {
   static const changeLanguageRoute = '/language';
   static const organizationDetailRoute = '/organization';
   static const settingsRoute = '/settings';
+  static const qrRoute = '/qr';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -132,6 +135,8 @@ class WalletRoutes {
     switch (settings.name) {
       case WalletRoutes.splashRoute:
         return _createSplashScreenBuilder;
+      case WalletRoutes.qrRoute:
+        return _createQrScreenBuilder;
       case WalletRoutes.introductionRoute:
         return _createIntroductionScreenBuilder;
       case WalletRoutes.introductionExpectationsRoute:
@@ -193,6 +198,11 @@ class WalletRoutes {
 Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBloc>(
       create: (BuildContext context) => SplashBloc(context.read(), context.read()),
       child: const SplashScreen(),
+    );
+
+Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
+      create: (BuildContext context) => QrBloc(context.read()),
+      child: const QrScreen(),
     );
 
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();

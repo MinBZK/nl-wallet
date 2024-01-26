@@ -8,7 +8,7 @@ import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/home/bloc/home_bloc.dart';
 import 'package:wallet/src/feature/home/home_screen.dart';
 import 'package:wallet/src/feature/menu/bloc/menu_bloc.dart';
-import 'package:wallet/src/feature/qr/tab/qr_scan/bloc/qr_scan_bloc.dart';
+import 'package:wallet/src/feature/qr/bloc/qr_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
@@ -20,7 +20,7 @@ class MockDashboardBloc extends MockBloc<DashboardEvent, DashboardState> impleme
 
 class MockMenuBloc extends MockBloc<MenuEvent, MenuState> implements MenuBloc {}
 
-class MockQrScanBloc extends MockBloc<QrScanEvent, QrScanState> implements QrScanBloc {}
+class MockQrScanBloc extends MockBloc<QrEvent, QrState> implements QrBloc {}
 
 void main() {
   final List<BlocProvider> providers = [
@@ -33,7 +33,7 @@ void main() {
       );
       return bloc;
     }),
-    BlocProvider<QrScanBloc>(create: (context) {
+    BlocProvider<QrBloc>(create: (context) {
       var bloc = MockQrScanBloc();
       whenListen(
         bloc,
@@ -69,21 +69,6 @@ void main() {
       await screenMatchesGolden(tester, 'card_tab.light');
     });
 
-    testGoldens('Qr Tab', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const HomeScreen().withState<HomeBloc, HomeState>(
-              MockHomeBloc(),
-              const HomeScreenSelect(HomeTab.qr),
-            ),
-            name: 'qr',
-          ),
-        wrapper: walletAppWrapper(providers: providers),
-      );
-      await screenMatchesGolden(tester, 'qr_tab.light');
-    });
-
     testGoldens('Menu Tab', (tester) async {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
@@ -97,24 +82,6 @@ void main() {
         wrapper: walletAppWrapper(providers: providers),
       );
       await screenMatchesGolden(tester, 'menu_tab.light');
-    });
-
-    testGoldens('Qr Tab Dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const HomeScreen().withState<HomeBloc, HomeState>(
-              MockHomeBloc(),
-              const HomeScreenSelect(HomeTab.qr),
-            ),
-            name: 'qr',
-          ),
-        wrapper: walletAppWrapper(
-          brightness: Brightness.dark,
-          providers: providers,
-        ),
-      );
-      await screenMatchesGolden(tester, 'qr_tab.dark');
     });
   });
 
@@ -137,15 +104,16 @@ void main() {
       // Expect it to start at on the cards tab with `My cards` as title
       expect(titleWidget.data, l10n.dashboardScreenTitle);
 
+      ///FIXME: Commenting this section out as this test will be obsolete as soon as the dashboard refresh is merged.
       // Tab the QR tab and verify that the page updated
-      await tester.tap(find.text(l10n.homeBottomNavBarQrButton));
-      await tester.pumpAndSettle();
+      // await tester.tap(find.text(l10n.homeBottomNavBarQrButton));
+      // await tester.pumpAndSettle();
       // We use `first` here because the appbar contains the QR tabs too.
-      titleWidget = (titleFinder.evaluate().first.widget as Text);
-      expect(titleWidget.data, l10n.qrScreenTitle);
+      // titleWidget = (titleFinder.evaluate().first.widget as Text);
+      // expect(titleWidget.data, l10n.qrScreenTitle);
 
       // Tab the Menu tab and verify that the page updated
-      await tester.tap(find.text(l10n.homeScreenBottomNavBarMenuCta));
+      await tester.tap(find.widgetWithText(BottomNavigationBar, l10n.homeScreenBottomNavBarMenuCta));
       await tester.pumpAndSettle();
       // Menu page already uses the [SliverWalletAppBar], lookup accordingly
       final sliverWalletAppbarFinder = find.byType(SliverWalletAppBar);

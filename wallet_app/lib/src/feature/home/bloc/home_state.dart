@@ -16,4 +16,4 @@ class HomeScreenSelect extends HomeState {
   List<Object?> get props => [tab, uid];
 }
 
-enum HomeTab { cards, qr, menu }
+enum HomeTab { cards, menu }
