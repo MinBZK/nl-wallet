@@ -323,16 +323,13 @@ where
             .collect()
     }
 
-    pub fn proposed_attributes(&self) -> Result<ProposedAttributes> {
+    pub fn proposed_attributes(&self) -> ProposedAttributes {
         // Get all of the attributes to be disclosed from the
         // prepared `IssuerSigned` on the `ProposedDocument`s.
         self.proposed_documents
             .iter()
-            .map(|document| {
-                let proposed_card = document.proposed_card()?;
-                Ok((document.doc_type.clone(), proposed_card))
-            })
-            .collect::<Result<ProposedAttributes>>()
+            .map(|document| (document.doc_type.clone(), document.proposed_card()))
+            .collect()
     }
 
     pub async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
@@ -593,7 +590,6 @@ mod tests {
         // Test that the proposal for disclosure contains the example attributes, in order.
         let entry_keys = proposal_session
             .proposed_attributes()
-            .unwrap()
             .remove(EXAMPLE_DOC_TYPE)
             .and_then(|mut name_space| name_space.attributes.remove(EXAMPLE_NAMESPACE))
             .map(|entries| entries.into_iter().map(|entry| entry.name).collect::<Vec<_>>())

@@ -126,12 +126,15 @@ pub async fn create_doc_request(
 pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
     let mdoc = Mdoc::new_example_mock();
 
+    let issuer_certificate = mdoc.issuer_certificate().unwrap();
+
     ProposedDocument {
         source_identifier: "id_1234".to_string(),
         private_key_id: mdoc.private_key_id,
         doc_type: mdoc.doc_type,
         issuer_signed: mdoc.issuer_signed,
         device_signed_challenge: b"signing_challenge".to_vec(),
+        issuer_certificate,
     }
 }
 

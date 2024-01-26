@@ -56,7 +56,7 @@ pub trait MdocDisclosureMissingAttributes {
 pub trait MdocDisclosureProposal {
     fn return_url(&self) -> Option<&Url>;
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
-    fn proposed_attributes(&self) -> nl_wallet_mdoc::Result<ProposedAttributes>;
+    fn proposed_attributes(&self) -> ProposedAttributes;
 
     async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
     where
@@ -131,7 +131,7 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_source_identifiers().into_iter().copied().collect()
     }
 
-    fn proposed_attributes(&self) -> nl_wallet_mdoc::Result<ProposedAttributes> {
+    fn proposed_attributes(&self) -> ProposedAttributes {
         self.proposed_attributes()
     }
 
@@ -199,8 +199,8 @@ mod mock {
             self.proposed_source_identifiers.clone()
         }
 
-        fn proposed_attributes(&self) -> nl_wallet_mdoc::Result<ProposedAttributes> {
-            Ok(self.proposed_attributes.clone())
+        fn proposed_attributes(&self) -> ProposedAttributes {
+            self.proposed_attributes.clone()
         }
 
         async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<()>

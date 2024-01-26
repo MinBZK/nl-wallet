@@ -60,8 +60,6 @@ pub enum DisclosureError {
     IncrementUsageCount(#[source] StorageError),
     #[error("could not store history in database: {0}")]
     HistoryStorage(#[source] StorageError),
-    #[error("mdoc error")]
-    Mdoc(#[from] nl_wallet_mdoc::Error),
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
@@ -148,7 +146,7 @@ where
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
         let documents = proposal_session
-            .proposed_attributes()?
+            .proposed_attributes()
             .into_iter()
             .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
             .collect::<Result<_, _>>()
@@ -288,12 +286,8 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         if let Err(error) = session_proposal.disclose(&&remote_key_factory).await {
-            let shared_data = error
-                .data_shared
-                .then(|| session_proposal.proposed_attributes())
-                .transpose()?;
             self.log_disclosure_error(
-                shared_data,
+                error.data_shared.then(|| session_proposal.proposed_attributes()),
                 session.rp_certificate().clone(),
                 "Error occurred while disclosing attributes".to_owned(),
             )
@@ -318,7 +312,7 @@ where
 
         // Save data for disclosure in event log.
         let event = WalletEvent::new_disclosure(
-            Some(DocTypeMap(session_proposal.proposed_attributes()?)),
+            Some(DocTypeMap(session_proposal.proposed_attributes())),
             session.rp_certificate().clone(),
             EventStatus::Success,
         );

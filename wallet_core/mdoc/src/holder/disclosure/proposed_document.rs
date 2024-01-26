@@ -33,6 +33,7 @@ pub struct ProposedDocument<I> {
     pub doc_type: DocType,
     pub issuer_signed: IssuerSigned,
     pub device_signed_challenge: Vec<u8>,
+    pub issuer_certificate: Certificate,
 }
 
 impl<I> ProposedDocument<I> {
@@ -48,7 +49,7 @@ impl<I> ProposedDocument<I> {
         stored_mdocs: Vec<StoredMdoc<I>>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
-    ) -> (Vec<Self>, Vec<Vec<AttributeIdentifier>>) {
+    ) -> Result<(Vec<Self>, Vec<Vec<AttributeIdentifier>>)> {
         let mut all_missing_attributes = Vec::new();
 
         // Collect all `ProposedDocument`s for this `doc_type`,
@@ -79,20 +80,20 @@ impl<I> ProposedDocument<I> {
             .into_iter()
             .zip(itertools::repeat_n(device_signed_challenge, document_count))
             .map(|(stored_mdoc, device_signed_challenge)| {
-                ProposedDocument::from_stored_mdoc(stored_mdoc, requested_attributes, device_signed_challenge)
+                ProposedDocument::try_from_stored_mdoc(stored_mdoc, requested_attributes, device_signed_challenge)
             })
-            .collect();
+            .collect::<Result<Vec<_>>>()?;
 
-        (proposed_documents, all_missing_attributes)
+        Ok((proposed_documents, all_missing_attributes))
     }
 
     /// Create a [`ProposedDocument`] from a [`StoredMdoc`], containing only those
     /// attributes that are requested and a [`DeviceSigned`] challenge.
-    fn from_stored_mdoc(
+    fn try_from_stored_mdoc(
         stored_mdoc: StoredMdoc<I>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
-    ) -> Self {
+    ) -> Result<Self> {
         let StoredMdoc {
             id: source_identifier,
             mdoc,
@@ -131,18 +132,22 @@ impl<I> ProposedDocument<I> {
             issuer_auth: mdoc.issuer_signed.issuer_auth,
         };
 
-        ProposedDocument {
+        let issuer_certificate = issuer_signed.issuer_auth.signing_cert()?;
+
+        let proposed_document = ProposedDocument {
             source_identifier,
             private_key_id: mdoc.private_key_id,
             doc_type: mdoc.doc_type,
             issuer_signed,
             device_signed_challenge,
-        }
+            issuer_certificate,
+        };
+        Ok(proposed_document)
     }
 
     /// Return the issuer and attributes contained within this [`ProposedDocument`].
-    pub fn proposed_card(&self) -> Result<ProposedDocumentAttributes> {
-        let issuer = self.issuer_signed.issuer_auth.signing_cert()?;
+    pub fn proposed_card(&self) -> ProposedDocumentAttributes {
+        let issuer = self.issuer_certificate.clone();
         let attributes = self
             .issuer_signed
             .name_spaces
@@ -154,8 +159,7 @@ impl<I> ProposedDocument<I> {
                     .collect()
             })
             .unwrap_or_default();
-        let proposed_card = ProposedDocumentAttributes { issuer, attributes };
-        Ok(proposed_card)
+        ProposedDocumentAttributes { issuer, attributes }
     }
 
     /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.
@@ -230,7 +234,7 @@ mod tests {
             example_identifiers_from_attributes(["driving_privileges", "family_name", "document_number"]);
 
         let proposed_document =
-            ProposedDocument::from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec());
+            ProposedDocument::try_from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec()).unwrap();
 
         assert_eq!(proposed_document.source_identifier, id);
         assert_eq!(proposed_document.doc_type, doc_type);
@@ -315,7 +319,8 @@ mod tests {
                 stored_mdocs,
                 &requested_attributes,
                 b"challenge".to_vec(),
-            );
+            )
+            .unwrap();
 
         assert_eq!(proposed_documents.len(), 2);
 

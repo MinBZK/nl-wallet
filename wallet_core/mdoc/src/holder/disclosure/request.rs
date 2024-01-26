@@ -199,7 +199,7 @@ impl DeviceRequest {
                         doc_type_stored_mdocs,
                         &requested_attributes,
                         device_signed_challenge,
-                    );
+                    )?;
 
                 // If we have multiple `Mdoc`s with missing attributes, just record the first one.
                 // TODO: Report on missing attributes for multiple `Mdoc` candidates.
