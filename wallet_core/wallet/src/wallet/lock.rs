@@ -104,7 +104,8 @@ mod tests {
     use http::StatusCode;
     use mockall::predicate::*;
 
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use wallet_common::{
         account::{
             messages::{

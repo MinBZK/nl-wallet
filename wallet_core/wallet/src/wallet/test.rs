@@ -1,10 +1,8 @@
 use std::{sync::Mutex, time::Duration};
 
 use once_cell::sync::Lazy;
-use p256::{
-    ecdsa::{Signature, SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-};
+use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use rand_core::OsRng;
 
 use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::PrivateKey, IssuerSigned};
 use platform_support::hw_keystore::PlatformEcdsaKey;

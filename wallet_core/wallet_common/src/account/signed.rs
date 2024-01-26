@@ -176,7 +176,8 @@ impl<T, S: Into<String>> From<S> for SignedInner<T> {
 
 #[cfg(test)]
 mod tests {
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
     use super::*;
 
