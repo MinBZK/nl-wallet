@@ -323,7 +323,7 @@ pub mod tests {
 
     use nl_wallet_mdoc::{server_keys::KeyPair, Tdate};
 
-    use crate::rvig_registration;
+    use crate::wallet::rvig_registration;
 
     use super::{
         super::{ADDRESS_DOCTYPE, PID_DOCTYPE},

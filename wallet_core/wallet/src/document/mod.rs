@@ -94,7 +94,7 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
-    use crate::rvig_registration;
+    use crate::wallet::rvig_registration;
 
     use super::*;
 

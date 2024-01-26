@@ -52,6 +52,7 @@ pub enum PidIssuanceError {
     MissingIssuerRegistration,
 }
 
+// TODO: Remove this once issuer certificate can be known early in the issuance protocol
 pub fn rvig_registration() -> IssuerRegistration {
     serde_json::from_str(r#"
         {

@@ -30,11 +30,14 @@ pub use self::{
     disclosure::{DisclosureError, DisclosureProposal},
     history::{EventStatus, HistoryError, HistoryEvent},
     init::WalletInitError,
-    issuance::{rvig_registration, PidIssuanceError},
+    issuance::PidIssuanceError,
     lock::WalletUnlockError,
     registration::WalletRegistrationError,
     uri::{UriIdentificationError, UriType},
 };
+
+#[cfg(test)]
+pub(crate) use self::issuance::rvig_registration;
 
 use self::documents::DocumentsCallback;
 
