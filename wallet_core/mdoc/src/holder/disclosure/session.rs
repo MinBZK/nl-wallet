@@ -217,7 +217,7 @@ where
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
         // Reader authentication is required to be present at this time.
         let (certificate, reader_registration) = device_request
-            .verify(session_transcript.clone(), &TimeGenerator, trust_anchors)?
+            .verify(&session_transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
         // Verify the return URL against the prefix in the `ReaderRegistration`,

@@ -45,7 +45,7 @@ impl DeviceRequest {
     /// by the same reader.
     pub fn verify(
         &self,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Option<(Certificate, ReaderRegistration)>> {
@@ -63,9 +63,8 @@ impl DeviceRequest {
         let certificate = self
             .doc_requests
             .iter()
-            .zip(itertools::repeat_n(session_transcript, self.doc_requests.len()))
             .try_fold(None, {
-                |result_cert, (doc_request, session_transcript)| -> Result<_> {
+                |result_cert, doc_request| -> Result<_> {
                     // This `.unwrap()` is safe, because `.verify()` will only return `None`
                     // if `reader_auth` is absent, the presence of which we checked above.
                     let doc_request_cert = doc_request.verify(session_transcript, time, trust_anchors)?.unwrap();
@@ -237,7 +236,7 @@ impl DeviceRequest {
 impl DocRequest {
     pub fn verify(
         &self,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Option<Certificate>> {
@@ -247,11 +246,7 @@ impl DocRequest {
             .map(|reader_auth| {
                 // Reconstruct the reader authentication bytes for this `DocRequest`,
                 // based on the item requests and session transcript.
-                let reader_auth_payload = ReaderAuthenticationKeyed {
-                    reader_auth_string: Default::default(),
-                    session_transcript,
-                    items_request_bytes: self.items_request.clone(),
-                };
+                let reader_auth_payload = ReaderAuthenticationKeyed::new(session_transcript, &self.items_request);
                 let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
 
                 // Perform verification and return the `Certificate`.
@@ -297,8 +292,8 @@ mod tests {
         let device_request = DeviceRequest {
             version: DeviceRequestVersion::V1_0,
             doc_requests: vec![
-                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
-                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
+                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
+                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
             ],
         };
 
@@ -309,7 +304,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         let verified_reader_registration = device_request
-            .verify(session_transcript.clone(), &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert_eq!(
@@ -333,7 +328,7 @@ mod tests {
         };
 
         let no_reader_registration = device_request
-            .verify(session_transcript.clone(), &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert!(no_reader_registration.is_none());
@@ -343,14 +338,14 @@ mod tests {
         let device_request = DeviceRequest {
             version: DeviceRequestVersion::V1_0,
             doc_requests: vec![
-                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
-                create_doc_request(items_request, session_transcript.clone(), &private_key2).await,
+                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
+                create_doc_request(items_request, &session_transcript, &private_key2).await,
             ],
         };
 
         // Verifying this `DeviceRequest` should result in a `HolderError::ReaderAuthsInconsistent` error.
         let error = device_request
-            .verify(session_transcript, &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
@@ -495,12 +490,12 @@ mod tests {
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = create_basic_session_transcript();
         let items_request = emtpy_items_request();
-        let doc_request = create_doc_request(items_request.clone(), session_transcript.clone(), &private_key).await;
+        let doc_request = create_doc_request(items_request.clone(), &session_transcript, &private_key).await;
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.
         let certificate = doc_request
             .verify(
-                session_transcript.clone(),
+                &session_transcript,
                 &TimeGenerator,
                 &[(&der_trust_anchor.owned_trust_anchor).into()],
             )
@@ -512,7 +507,7 @@ mod tests {
         let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.as_bytes().to_vec()).unwrap();
         let error = doc_request
             .verify(
-                session_transcript.clone(),
+                &session_transcript,
                 &TimeGenerator,
                 &[(&other_der_trust_anchor.owned_trust_anchor).into()],
             )
@@ -528,7 +523,7 @@ mod tests {
 
         let no_certificate = doc_request
             .verify(
-                session_transcript,
+                &session_transcript,
                 &TimeGenerator,
                 &[(&der_trust_anchor.owned_trust_anchor).into()],
             )
