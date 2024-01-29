@@ -215,7 +215,7 @@ where
         };
 
         Self {
-            sessions: sessions.clone(),
+            sessions: Arc::clone(&sessions),
             attr_service,
             issuer_data,
             cleanup_task: sessions.start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
