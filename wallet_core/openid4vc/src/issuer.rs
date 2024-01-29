@@ -195,7 +195,13 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    pub fn new(sessions: S, attr_service: A, private_keys: K, server_url: Url, wallet_client_ids: Vec<String>) -> Self {
+    pub fn new(
+        sessions: S,
+        attr_service: A,
+        private_keys: K,
+        server_url: &Url,
+        wallet_client_ids: Vec<String>,
+    ) -> Self {
         let sessions = Arc::new(sessions);
 
         let issuer_data = IssuerData {
@@ -345,13 +351,14 @@ where
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            self.issuer_data
+            &self
+                .issuer_data
                 .credential_issuer_identifier
                 .join(endpoint_name)
                 .unwrap(),
-            Method::DELETE,
-            Some(access_token.to_string()),
-            Some(session_data.dpop_nonce.clone()),
+            &Method::DELETE,
+            &Some(access_token.to_string()),
+            &Some(session_data.dpop_nonce.clone()),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
@@ -537,10 +544,10 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            issuer_data.server_url.join("credential").unwrap(),
-            Method::POST,
-            Some(access_token),
-            Some(session_data.dpop_nonce.clone()),
+            &issuer_data.server_url.join("credential").unwrap(),
+            &Method::POST,
+            &Some(access_token),
+            &Some(session_data.dpop_nonce.clone()),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
@@ -570,8 +577,7 @@ impl Session<WaitingForResponse> {
         };
 
         let credential_response =
-            verify_pop_and_sign_attestation(session_data.c_nonce.clone(), &credential_request, unsigned, issuer_data)
-                .await?;
+            verify_pop_and_sign_attestation(&session_data.c_nonce, &credential_request, unsigned, issuer_data).await?;
 
         Ok(credential_response)
     }
@@ -616,10 +622,10 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            issuer_data.server_url.join("batch_credential").unwrap(),
-            Method::POST,
-            Some(access_token),
-            Some(session_data.dpop_nonce.clone()),
+            &issuer_data.server_url.join("batch_credential").unwrap(),
+            &Method::POST,
+            &Some(access_token),
+            &Some(session_data.dpop_nonce.clone()),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
@@ -635,8 +641,7 @@ impl Session<WaitingForResponse> {
                         .flat_map(|unsigned| std::iter::repeat(unsigned).take(unsigned.copy_count as usize)),
                 )
                 .map(|(cred_req, unsigned_mdoc)| async {
-                    verify_pop_and_sign_attestation(session_data.c_nonce.clone(), cred_req, unsigned_mdoc, issuer_data)
-                        .await
+                    verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc, issuer_data).await
                 }),
         )
         .await?;
@@ -682,7 +687,7 @@ impl<T: IssuanceState> Session<T> {
 }
 
 pub(crate) async fn verify_pop_and_sign_attestation(
-    c_nonce: String,
+    c_nonce: &str,
     cred_req: &CredentialRequest,
     unsigned_mdoc: &UnsignedMdoc,
     issuer_data: &IssuerData<impl KeyRing>,
@@ -734,7 +739,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
 impl CredentialRequestProof {
     pub fn verify(
         &self,
-        nonce: String,
+        nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &Url,
     ) -> Result<VerifyingKey, CredentialRequestError> {

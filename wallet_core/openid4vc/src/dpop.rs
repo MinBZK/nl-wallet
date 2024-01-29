@@ -111,10 +111,10 @@ impl Dpop {
     pub fn verify_data(
         &self,
         token_data: &TokenData<DpopPayload>,
-        url: Url,
-        method: Method,
-        access_token: Option<String>,
-        nonce: Option<String>,
+        url: &Url,
+        method: &Method,
+        access_token: &Option<String>,
+        nonce: &Option<String>,
     ) -> Result<()> {
         if token_data.header.typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
             return Err(Error::UnsupportedJwtAlgorithm {
@@ -125,11 +125,13 @@ impl Dpop {
         if token_data.claims.http_method != method.to_string() {
             return Err(Error::IncorrectDpopMethod);
         }
-        if token_data.claims.http_url != url {
+        if token_data.claims.http_url != *url {
             return Err(Error::IncorrectDpopUrl);
         }
         if token_data.claims.access_token_hash
-            != access_token.map(|token| URL_SAFE_NO_PAD.encode(sha256(token.as_bytes())))
+            != access_token
+                .as_ref()
+                .map(|token| URL_SAFE_NO_PAD.encode(sha256(token.as_bytes())))
         {
             return Err(Error::IncorrectDpopAccessTokenHash);
         }
@@ -138,7 +140,7 @@ impl Dpop {
         // Verifying `jti` is not required by its spec (https://datatracker.ietf.org/doc/html/rfc9449).
         // We also do not check the `iat` field, to avoid having to deal with clockdrift.
         // Instead of both of these, the server can specify a `nonce` and later enforce its presence in the DPoP.
-        if token_data.claims.nonce != nonce {
+        if token_data.claims.nonce != *nonce {
             return Err(Error::IncorrectDpopNonce);
         }
 
@@ -154,7 +156,7 @@ impl Dpop {
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(Error::MissingJwk)?)?;
 
         let token_data = self.verify_signature(&verifying_key)?;
-        self.verify_data(&token_data, url, method, access_token, None)?;
+        self.verify_data(&token_data, &url, &method, &access_token, &None)?;
 
         Ok(verifying_key)
     }
@@ -163,10 +165,10 @@ impl Dpop {
     pub async fn verify_expecting_key(
         &self,
         expected_verifying_key: &VerifyingKey,
-        url: Url,
-        method: Method,
-        access_token: Option<String>,
-        nonce: Option<String>,
+        url: &Url,
+        method: &Method,
+        access_token: &Option<String>,
+        nonce: &Option<String>,
     ) -> Result<()> {
         let token_data = self.verify_signature(expected_verifying_key)?;
         self.verify_data(&token_data, url, method, access_token, nonce)?;
@@ -247,7 +249,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(pubkey, *private_key.verifying_key());
-        dpop.verify_expecting_key(&pubkey, url, method, access_token, None)
+        dpop.verify_expecting_key(&pubkey, &url, &method, &access_token, &None)
             .await
             .unwrap();
     }
