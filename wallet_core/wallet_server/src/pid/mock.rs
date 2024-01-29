@@ -48,7 +48,7 @@ enum Gender {
 
 impl From<Gender> for Value {
     fn from(value: Gender) -> Value {
-        use Gender::*;
+        use Gender::{Female, Male, NotApplicable, Unknown};
         let value = match value {
             Unknown => 0,
             Male => 1,
