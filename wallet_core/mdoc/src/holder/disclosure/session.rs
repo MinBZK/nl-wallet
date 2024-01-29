@@ -328,7 +328,7 @@ where
         // prepared `IssuerSigned` on the `ProposedDocument`s.
         self.proposed_documents
             .iter()
-            .map(|document| (document.doc_type.clone(), document.proposed_card()))
+            .map(|document| (document.doc_type.clone(), document.proposed_attributes()))
             .collect()
     }
 

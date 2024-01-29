@@ -145,7 +145,7 @@ impl<I> ProposedDocument<I> {
     }
 
     /// Return the issuer and attributes contained within this [`ProposedDocument`].
-    pub fn proposed_card(&self) -> ProposedDocumentAttributes {
+    pub fn proposed_attributes(&self) -> ProposedDocumentAttributes {
         let issuer = self.issuer_certificate.clone();
         let attributes = self
             .issuer_signed
