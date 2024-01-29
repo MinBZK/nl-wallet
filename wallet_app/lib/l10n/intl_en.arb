@@ -425,13 +425,9 @@
     "forgotPinScreenTitle": "Forgot pin",
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
-    "generalConfigVersionText": "Config version: {versionCode} ({date})",
+    "generalConfigVersionText": "Config version: {versionCode}",
     "@generalConfigVersionText": {
         "placeholders": {
-            "date": {
-                "example": "December 1. 2023",
-                "type": "String"
-            },
             "versionCode": {
                 "example": "1337",
                 "type": "int"

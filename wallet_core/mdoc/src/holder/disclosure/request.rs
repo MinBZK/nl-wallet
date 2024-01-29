@@ -8,7 +8,7 @@ use webpki::TrustAnchor;
 
 use crate::{
     device_retrieval::{DeviceRequest, DocRequest, ReaderAuthenticationKeyed},
-    engagement::{DeviceAuthentication, SessionTranscript},
+    engagement::{DeviceAuthenticationKeyed, SessionTranscript},
     errors::Result,
     holder::HolderError,
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
@@ -45,7 +45,7 @@ impl DeviceRequest {
     /// by the same reader.
     pub fn verify(
         &self,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Option<(Certificate, ReaderRegistration)>> {
@@ -63,9 +63,8 @@ impl DeviceRequest {
         let certificate = self
             .doc_requests
             .iter()
-            .zip(itertools::repeat_n(session_transcript, self.doc_requests.len()))
             .try_fold(None, {
-                |result_cert, (doc_request, session_transcript)| -> Result<_> {
+                |result_cert, doc_request| -> Result<_> {
                     // This `.unwrap()` is safe, because `.verify()` will only return `None`
                     // if `reader_auth` is absent, the presence of which we checked above.
                     let doc_request_cert = doc_request.verify(session_transcript, time, trust_anchors)?.unwrap();
@@ -98,7 +97,7 @@ impl DeviceRequest {
     pub(super) async fn match_stored_documents<S, I>(
         &self,
         mdoc_data_source: &S,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
     ) -> Result<DeviceRequestMatch<I>>
     where
         S: MdocDataSource<MdocIdentifier = I>,
@@ -166,11 +165,9 @@ impl DeviceRequest {
             .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
             .collect::<Vec<_>>();
 
-        let mdocs_count = stored_mdocs.len();
         let candidates_by_doc_type = stored_mdocs
             .into_iter()
-            .zip(itertools::repeat_n(session_transcript, mdocs_count))
-            .map(|(doc_type_stored_mdocs, session_transcript)| {
+            .map(|doc_type_stored_mdocs| {
                 // First, remove the `IndexSet` of attributes that are required for this
                 // `doc_type` from the global `HashSet`. If this cannot be found, then
                 // `MdocDataSource` did not obey the contract as noted in the comment above.
@@ -189,9 +186,9 @@ impl DeviceRequest {
 
                 // Calculate the `DeviceAuthentication` for this `doc_type` and turn it into bytes,
                 // so that it can be used as a challenge when constructing `DeviceSigned` later on.
-                let device_authentication =
-                    DeviceAuthentication::from_session_transcript(session_transcript, doc_type.to_string());
-                let device_signed_challenge = serialization::cbor_serialize(&TaggedBytes(device_authentication))?;
+                let device_authentication = DeviceAuthenticationKeyed::new(doc_type, session_transcript);
+                let device_signed_challenge =
+                    serialization::cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
 
                 // Get all the candidates and missing attributes from the provided `Mdoc`s.
                 let (candidates, missing_attributes) =
@@ -237,7 +234,7 @@ impl DeviceRequest {
 impl DocRequest {
     pub fn verify(
         &self,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<Option<Certificate>> {
@@ -247,11 +244,7 @@ impl DocRequest {
             .map(|reader_auth| {
                 // Reconstruct the reader authentication bytes for this `DocRequest`,
                 // based on the item requests and session transcript.
-                let reader_auth_payload = ReaderAuthenticationKeyed {
-                    reader_auth_string: Default::default(),
-                    session_transcript,
-                    items_request_bytes: self.items_request.clone(),
-                };
+                let reader_auth_payload = ReaderAuthenticationKeyed::new(session_transcript, &self.items_request);
                 let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
 
                 // Perform verification and return the `Certificate`.
@@ -298,8 +291,8 @@ mod tests {
         let device_request = DeviceRequest {
             version: DeviceRequestVersion::V1_0,
             doc_requests: vec![
-                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
-                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
+                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
+                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
             ],
         };
 
@@ -310,7 +303,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         let verified_reader_registration = device_request
-            .verify(session_transcript.clone(), &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert_eq!(
@@ -334,7 +327,7 @@ mod tests {
         };
 
         let no_reader_registration = device_request
-            .verify(session_transcript.clone(), &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert!(no_reader_registration.is_none());
@@ -344,14 +337,14 @@ mod tests {
         let device_request = DeviceRequest {
             version: DeviceRequestVersion::V1_0,
             doc_requests: vec![
-                create_doc_request(items_request.clone(), session_transcript.clone(), &private_key1).await,
-                create_doc_request(items_request, session_transcript.clone(), &private_key2).await,
+                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
+                create_doc_request(items_request, &session_transcript, &private_key2).await,
             ],
         };
 
         // Verifying this `DeviceRequest` should result in a `HolderError::ReaderAuthsInconsistent` error.
         let error = device_request
-            .verify(session_transcript, &TimeGenerator, &trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
@@ -371,7 +364,7 @@ mod tests {
 
         // An empty `DeviceRequest` should result in an empty set of candidates.
         let match_result = empty_device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
@@ -446,7 +439,7 @@ mod tests {
         // Only two of the `Mdoc` should match and be returned as a `DocumentProposal`,
         // which should contain only the requested attributes.
         let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript.clone())
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
@@ -473,7 +466,7 @@ mod tests {
 
         // Now there should not be a match, one of the attributes should be reported as missing.
         let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, session_transcript)
+            .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
@@ -496,12 +489,12 @@ mod tests {
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = create_basic_session_transcript();
         let items_request = emtpy_items_request();
-        let doc_request = create_doc_request(items_request.clone(), session_transcript.clone(), &private_key).await;
+        let doc_request = create_doc_request(items_request.clone(), &session_transcript, &private_key).await;
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.
         let certificate = doc_request
             .verify(
-                session_transcript.clone(),
+                &session_transcript,
                 &TimeGenerator,
                 &[(&der_trust_anchor.owned_trust_anchor).into()],
             )
@@ -513,7 +506,7 @@ mod tests {
         let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.certificate().as_bytes().to_vec()).unwrap();
         let error = doc_request
             .verify(
-                session_transcript.clone(),
+                &session_transcript,
                 &TimeGenerator,
                 &[(&other_der_trust_anchor.owned_trust_anchor).into()],
             )
@@ -529,7 +522,7 @@ mod tests {
 
         let no_certificate = doc_request
             .verify(
-                session_transcript,
+                &session_transcript,
                 &TimeGenerator,
                 &[(&der_trust_anchor.owned_trust_anchor).into()],
             )

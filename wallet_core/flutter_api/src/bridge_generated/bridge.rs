@@ -481,6 +481,7 @@ impl support::IntoDart for FlutterConfiguration {
         vec![
             self.inactive_lock_timeout.into_into_dart().into_dart(),
             self.background_lock_timeout.into_into_dart().into_dart(),
+            self.version.into_into_dart().into_dart(),
         ]
         .into_dart()
     }

@@ -183,6 +183,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       FlutterConfiguration(
         backgroundLockTimeout: Duration(minutes: 5).inSeconds,
         inactiveLockTimeout: Duration(minutes: 20).inSeconds,
+        version: 1,
       ),
     );
   }

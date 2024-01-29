@@ -591,11 +591,8 @@ impl Session<Created> {
         private_key: &KeyPair,
     ) -> Result<DeviceRequest> {
         let doc_requests = try_join_all(self.state().items_requests.0.iter().map(|items_request| async {
-            let reader_auth = ReaderAuthenticationKeyed {
-                reader_auth_string: Default::default(),
-                session_transcript: session_transcript.clone(),
-                items_request_bytes: items_request.clone().into(),
-            };
+            let items_request = items_request.clone().into();
+            let reader_auth = ReaderAuthenticationKeyed::new(session_transcript, &items_request);
             let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
                 &TaggedBytes(CborSeq(reader_auth)),
                 cose::new_certificate_header(private_key.certificate()),
@@ -605,7 +602,7 @@ impl Session<Created> {
             .await?;
             let cose = MdocCose::from(cose.0);
             let doc_request = DocRequest {
-                items_request: items_request.clone().into(),
+                items_request,
                 reader_auth: Some(cose),
             };
             Result::<DocRequest>::Ok(doc_request)
@@ -905,9 +902,8 @@ impl Document {
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
-        let device_authentication =
-            DeviceAuthentication::from_session_transcript(session_transcript.clone(), self.doc_type.clone());
-        let device_authentication_bts = cbor_serialize(&TaggedBytes(device_authentication))?;
+        let device_authentication = DeviceAuthenticationKeyed::new(&self.doc_type, session_transcript);
+        let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {

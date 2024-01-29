@@ -554,12 +554,13 @@ mod tests {
 
     #[tokio::test]
     async fn cose_with_certificate() {
-        let (ca, ca_privkey) = Certificate::new_ca("ca.example.com").unwrap();
+        let (ca, ca_privkey) = Certificate::new_ca("ca.example.com", Default::default()).unwrap();
         let (cert, cert_privkey) = Certificate::new(
             &ca,
             &ca_privkey,
             "cert.example.com",
             CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
+            Default::default(),
         )
         .unwrap();
 

@@ -96,29 +96,27 @@ pub fn create_basic_session_transcript() -> SessionTranscript {
 /// based on a `SessionTranscript` and `KeyPair`.
 pub async fn create_doc_request(
     items_request: ItemsRequest,
-    session_transcript: SessionTranscript,
+    session_transcript: &SessionTranscript,
     private_key: &KeyPair,
 ) -> DocRequest {
     // Generate the reader authentication signature, without payload.
-    let reader_auth = ReaderAuthenticationKeyed {
-        reader_auth_string: Default::default(),
-        session_transcript,
-        items_request_bytes: items_request.clone().into(),
-    };
+    let items_request = items_request.into();
+    let reader_auth_keyed = ReaderAuthenticationKeyed::new(session_transcript, &items_request);
 
     let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
-        &TaggedBytes(CborSeq(reader_auth)),
+        &TaggedBytes(CborSeq(reader_auth_keyed)),
         cose::new_certificate_header(private_key.certificate()),
         private_key,
         false,
     )
     .await
     .unwrap();
+    let reader_auth = Some(cose.0.into());
 
     // Create and encrypt the `DeviceRequest`.
     DocRequest {
-        items_request: items_request.into(),
-        reader_auth: Some(cose.0.into()),
+        items_request,
+        reader_auth,
     }
 }
 
@@ -367,7 +365,7 @@ where
 
         // Create a `DocRequest` for every `ItemRequest`.
         let doc_requests = future::join_all(self.items_requests.iter().cloned().map(|items_request| async {
-            create_doc_request(items_request, session_transcript.clone(), &self.private_key).await
+            create_doc_request(items_request, &session_transcript, &self.private_key).await
         }))
         .await;
 
