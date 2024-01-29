@@ -247,7 +247,7 @@ where
                 code.clone().into(),
                 IssuanceData::Created(Created { unsigned_mdocs: None }),
             ));
-        let session = Session::<Created>::from_enum(session).map_err(TokenRequestError::IssuanceError)?;
+        let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
 
         let result = session
             .process_token_request(
@@ -259,8 +259,8 @@ where
             .await;
 
         let (response, next) = match result {
-            Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into_enum()),
-            Err((err, next)) => (Err(err), next.into_enum()),
+            Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
+            Err((err, next)) => (Err(err), next.into()),
         };
 
         self.sessions
@@ -284,15 +284,14 @@ where
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(Error::UnknownSession(code)))?;
-        let session =
-            Session::<WaitingForResponse>::from_enum(session).map_err(CredentialRequestError::IssuanceError)?;
+        let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
             .process_credential(credential_request, access_token.to_string(), dpop, &self.issuer_data)
             .await;
 
         self.sessions
-            .write(&next.into_enum())
+            .write(&next.into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
 
@@ -312,15 +311,14 @@ where
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(Error::UnknownSession(code)))?;
-        let session =
-            Session::<WaitingForResponse>::from_enum(session).map_err(CredentialRequestError::IssuanceError)?;
+        let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
             .process_batch_credential(credential_requests, access_token.to_string(), dpop, &self.issuer_data)
             .await;
 
         self.sessions
-            .write(&next.into_enum())
+            .write(&next.into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
 
@@ -340,8 +338,7 @@ where
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(Error::UnknownSession(code)))?;
-        let session =
-            Session::<WaitingForResponse>::from_enum(session).map_err(CredentialRequestError::IssuanceError)?;
+        let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         // Check authorization of the request
         let session_data = session.session_data();
@@ -368,7 +365,7 @@ where
         });
 
         self.sessions
-            .write(&next.into_enum())
+            .write(&next.into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
 
@@ -388,21 +385,25 @@ fn code_from_access_token(access_token: &str) -> Result<String, CredentialReques
     Ok(code)
 }
 
-impl Session<Created> {
-    pub fn from_enum(session: SessionState<IssuanceData>) -> Result<Self, Error> {
-        let session_data = match session.session_data {
+impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
+    type Error = Error;
+
+    fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
+        let session_data = match value.session_data {
             IssuanceData::Created(state) => state,
             _ => return Err(Error::UnexpectedState),
         };
         Ok(Session::<Created> {
             state: SessionState {
                 session_data,
-                token: session.token,
-                last_active: session.last_active,
+                token: value.token,
+                last_active: value.last_active,
             },
         })
     }
+}
 
+impl Session<Created> {
     pub async fn process_token_request(
         self,
         token_request: TokenRequest,
@@ -481,29 +482,35 @@ impl Session<Created> {
     }
 }
 
-impl Session<WaitingForResponse> {
-    pub fn into_enum(self) -> SessionState<IssuanceData> {
+impl From<Session<WaitingForResponse>> for SessionState<IssuanceData> {
+    fn from(value: Session<WaitingForResponse>) -> Self {
         SessionState {
-            session_data: IssuanceData::WaitingForResponse(self.state.session_data),
-            token: self.state.token,
-            last_active: self.state.last_active,
+            session_data: IssuanceData::WaitingForResponse(value.state.session_data),
+            token: value.state.token,
+            last_active: value.state.last_active,
         }
     }
+}
 
-    pub fn from_enum(session: SessionState<IssuanceData>) -> Result<Self, Error> {
-        let session_data = match session.session_data {
+impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
+    type Error = Error;
+
+    fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
+        let session_data = match value.session_data {
             IssuanceData::WaitingForResponse(state) => state,
             _ => return Err(Error::UnexpectedState),
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
                 session_data,
-                token: session.token,
-                last_active: session.last_active,
+                token: value.token,
+                last_active: value.last_active,
             },
         })
     }
+}
 
+impl Session<WaitingForResponse> {
     pub async fn process_credential(
         self,
         credential_request: CredentialRequest,
@@ -650,12 +657,12 @@ impl Session<WaitingForResponse> {
     }
 }
 
-impl Session<Done> {
-    pub fn into_enum(self) -> SessionState<IssuanceData> {
+impl From<Session<Done>> for SessionState<IssuanceData> {
+    fn from(value: Session<Done>) -> Self {
         SessionState {
-            session_data: IssuanceData::Done(self.state.session_data),
-            token: self.state.token,
-            last_active: self.state.last_active,
+            session_data: IssuanceData::Done(value.state.session_data),
+            token: value.state.token,
+            last_active: value.state.last_active,
         }
     }
 }
