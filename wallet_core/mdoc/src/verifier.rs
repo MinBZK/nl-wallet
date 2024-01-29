@@ -1075,7 +1075,7 @@ mod tests {
     #[tokio::test]
     async fn disclosure() {
         // Initialize server state
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
         let trust_anchors = vec![
             DerTrustAnchor::from_der(ca.as_bytes().to_vec())
                 .unwrap()
@@ -1086,6 +1086,7 @@ mod tests {
             &ca_privkey,
             RP_CERT_CN,
             CertificateType::ReaderAuth(Default::default()),
+            Default::default(),
         )
         .unwrap();
         let keys = SingleKeyRing(PrivateKey::new(rp_privkey, rp_cert));

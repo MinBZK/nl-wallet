@@ -97,6 +97,7 @@ pub fn create_private_key(
         ca_signing_key,
         RP_CERT_CN,
         CertificateType::ReaderAuth(reader_registration.map(Box::new)),
+        Default::default(),
     )
     .unwrap();
 
@@ -326,7 +327,7 @@ where
         transform_device_request: F,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
         let trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
         let private_key = create_private_key(&ca, &ca_privkey, reader_registration.as_ref().cloned());
 

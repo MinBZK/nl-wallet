@@ -701,7 +701,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, certificate.clone());
 
@@ -729,7 +729,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_error =
             WalletEvent::disclosure_error(timestamp, certificate.clone(), "Something went wrong".to_string());
@@ -758,7 +758,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_error = WalletEvent::disclosure_error_from_str(
             vec![PID_DOCTYPE],
@@ -782,7 +782,7 @@ pub(crate) mod tests {
     }
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {
-        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
@@ -846,7 +846,7 @@ pub(crate) mod tests {
 
     pub(crate) async fn test_history_by_doc_type(storage: &mut impl Storage) {
         // Prepare test data
-        let (certificate, _) = Certificate::new_ca("test-ca").unwrap();
+        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();

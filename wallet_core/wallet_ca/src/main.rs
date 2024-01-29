@@ -1,11 +1,12 @@
 use anyhow::Result;
+use chrono::{Duration, Utc};
 use clap::{Parser, Subcommand};
 use clio::CachedInput;
 
 use nl_wallet_mdoc::utils::{
     issuer_auth::IssuerRegistration,
     reader_auth::ReaderRegistration,
-    x509::{Certificate, CertificateType},
+    x509::{Certificate, CertificateConfiguration, CertificateType},
 };
 use wallet_ca::{read_certificate, read_signing_key, write_key_pair};
 
@@ -30,6 +31,9 @@ enum Command {
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
+        /// Duration for which the certificate will be valid
+        #[arg(short, long, default_value = "365")]
+        days: u32,
         /// Overwrite existing files
         #[arg(long, default_value = "false")]
         force: bool,
@@ -51,6 +55,9 @@ enum Command {
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
+        /// Duration for which the certificate will be valid
+        #[arg(short, long, default_value = "365")]
+        days: u32,
         /// Overwrite existing files
         #[arg(long, default_value = "false")]
         force: bool,
@@ -72,6 +79,9 @@ enum Command {
         /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
+        /// Duration for which the certificate will be valid
+        #[arg(short, long, default_value = "365")]
+        days: u32,
         /// Overwrite existing files
         #[arg(long, default_value = "false")]
         force: bool,
@@ -79,15 +89,32 @@ enum Command {
 }
 
 impl Command {
+    fn get_certificate_configuration(days: u32) -> Result<CertificateConfiguration> {
+        let not_before = Utc::now();
+        let not_after = not_before
+            .checked_add_signed(Duration::days(days as i64))
+            .expect("`valid_for` does not result in a valid time stamp, try decreasing the value");
+        if not_after <= not_before {
+            panic!("`valid_for` must be a positive duration");
+        }
+        let configuration = CertificateConfiguration {
+            not_before: Some(not_before),
+            not_after: Some(not_after),
+        };
+        Ok(configuration)
+    }
+
     fn execute(self) -> Result<()> {
         use Command::*;
         match self {
             Ca {
                 common_name,
                 file_prefix,
+                days,
                 force,
             } => {
-                let (certificate, key) = Certificate::new_ca(&common_name)?;
+                let configuration = Self::get_certificate_configuration(days)?;
+                let (certificate, key) = Certificate::new_ca(&common_name, configuration)?;
                 write_key_pair(key, certificate, &file_prefix, force)?;
                 Ok(())
             }
@@ -97,6 +124,7 @@ impl Command {
                 common_name,
                 issuer_auth_file,
                 file_prefix,
+                days,
                 force,
             } => {
                 let ca_crt = read_certificate(ca_crt_file)?;
@@ -107,6 +135,7 @@ impl Command {
                     &ca_key,
                     &common_name,
                     CertificateType::Mdl(Box::new(issuer_registration).into()),
+                    Self::get_certificate_configuration(days)?,
                 )?;
                 write_key_pair(key, certificate, &file_prefix, force)?;
                 Ok(())
@@ -117,6 +146,7 @@ impl Command {
                 common_name,
                 reader_auth_file,
                 file_prefix,
+                days,
                 force,
             } => {
                 let ca_crt = read_certificate(ca_crt_file)?;
@@ -127,6 +157,7 @@ impl Command {
                     &ca_key,
                     &common_name,
                     CertificateType::ReaderAuth(Box::new(reader_registration).into()),
+                    Self::get_certificate_configuration(days)?,
                 )?;
                 write_key_pair(key, certificate, &file_prefix, force)?;
                 Ok(())

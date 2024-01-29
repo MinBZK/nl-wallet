@@ -1263,12 +1263,13 @@ mod tests {
             payload_sender,
         };
 
-        let (ca_cert, ca_key) = Certificate::new_ca("test-ca").unwrap();
+        let (ca_cert, ca_key) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let (certificate, _) = Certificate::new(
             &ca_cert,
             &ca_key,
             "test-certificate",
             CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
+            Default::default(),
         )
         .unwrap();
 
