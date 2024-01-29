@@ -39,7 +39,7 @@
 //! ```
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use jsonwebtoken::{Algorithm, Header, TokenData, Validation};
+use jsonwebtoken::{Algorithm, TokenData, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,7 @@ use wallet_common::{
 };
 
 use crate::{
-    jwk::{jwk_from_p256, jwk_to_p256},
+    jwk::{jwk_jwt_header, jwk_to_p256},
     Error, Result,
 };
 
@@ -82,17 +82,7 @@ impl Dpop {
         access_token: Option<String>,
         nonce: Option<String>,
     ) -> Result<Self> {
-        let header = Header {
-            typ: Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()),
-            alg: Algorithm::ES256,
-            jwk: Some(jwk_from_p256(
-                &private_key
-                    .verifying_key()
-                    .await
-                    .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?,
-            )?),
-            ..Default::default()
-        };
+        let header = jwk_jwt_header(OPENID4VCI_DPOP_JWT_TYPE, private_key).await?;
 
         let payload = DpopPayload {
             jti: random_string(32),

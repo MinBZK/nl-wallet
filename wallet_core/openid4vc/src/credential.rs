@@ -1,5 +1,4 @@
 use futures::future::try_join_all;
-use jsonwebtoken::{Algorithm, Header};
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey};
 
 use reqwest::StatusCode;
@@ -7,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use wallet_common::{jwt::Jwt, keys::SecureEcdsaKey};
 
-use crate::{jwk::jwk_from_p256, Error, ErrorStatusCode, Format, Result};
+use crate::{jwk::jwk_jwt_header, Error, ErrorStatusCode, Format, Result};
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
 /// Sent JSON-encoded to `POST /batch_credential`.
@@ -121,17 +120,7 @@ impl CredentialRequestProof {
         wallet_client_id: String,
         credential_issuer_identifier: &Url,
     ) -> Result<Self> {
-        let header = Header {
-            typ: Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()),
-            alg: Algorithm::ES256,
-            jwk: Some(jwk_from_p256(
-                &private_key
-                    .verifying_key()
-                    .await
-                    .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?,
-            )?),
-            ..Default::default()
-        };
+        let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, private_key).await?;
 
         let payload = CredentialRequestProofJwtPayload {
             nonce,

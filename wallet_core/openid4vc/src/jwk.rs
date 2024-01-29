@@ -2,11 +2,17 @@
 //! such as an ECDSA public key.
 
 use base64::prelude::*;
-use jsonwebtoken::jwk::{self, EllipticCurve, Jwk};
+use jsonwebtoken::{
+    jwk::{self, EllipticCurve, Jwk},
+    Algorithm, Header,
+};
 use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
 };
+use wallet_common::keys::EcdsaKey;
+
+use crate::Error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum JwkConversionError {
@@ -62,6 +68,20 @@ pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
         false,
     ))?;
     Ok(key)
+}
+
+pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, Error> {
+    let header = Header {
+        typ: Some(typ.to_string()),
+        alg: Algorithm::ES256,
+        jwk: Some(jwk_from_p256(
+            &key.verifying_key()
+                .await
+                .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?,
+        )?),
+        ..Default::default()
+    };
+    Ok(header)
 }
 
 #[cfg(test)]
