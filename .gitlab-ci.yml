@@ -216,6 +216,16 @@ dependency-check:
     paths:
       - $CI_PROJECT_DIR/dependency_check_data
 
+osv-scanner:
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  image:
+    name: "$HARBOR_REGISTRY/ghcr-io-proxy/google/osv-scanner:latest"
+  script:
+    - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif || true
+  artifacts:
+    paths:
+      - osv.sarif
+
 dependency-check-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
@@ -694,3 +704,42 @@ deploy-live-certs:
     - envsubst < kubernetes/certificates/live/static-cert.yaml | kubectl apply -f -
     - envsubst < kubernetes/certificates/live/wp-cert.yaml | kubectl apply -f -
     - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/static-cert.yaml -f kubernetes/certificates/live/wp-cert.yaml
+
+build-sbom:
+  extends: .env
+  rules: !reference [ .default-or-release, rules ]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:fde8c80553826d9bb81d6ef165fccf896391258c7e6d5e4c10e184f9dff829bd"
+  script:
+    ## Rust
+    - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json
+    - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json
+    - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json
+    ## Flutter
+    - cd wallet_app; cdxgen --type dart --output bom.json; cd -
+    ## iOS
+    # does not support json, so converting to it (we need it to be able to merge)
+    - bundle install
+    - cd wallet_app
+    - flutter pub get
+    - flutter precache --ios
+    - cd ios
+    - bundle exec pod install --allow-root
+    - cyclonedx-cocoapods
+    - cyclonedx convert --input-file bom.xml --output-file bom.json
+    - cd ../..
+    ## Android
+    - cd wallet_app/android/app; cdxgen -t gradle -o bom.json; cd -
+    - cd wallet_core/platform_support/android/platform_support; cdxgen -t gradle -o bom.json; cd -
+    # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
+    - cyclonedx merge --input-files `find . -name bom.json` --output-file bom.json
+    # converting it to xml does work
+    - cyclonedx convert --input-file bom.json --output-file bom.xml
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+  artifacts:
+    when: always
+    paths:
+      - ./bom.xml
+      - ./bom.json

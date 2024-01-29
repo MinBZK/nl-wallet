@@ -3,10 +3,9 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use base64::prelude::*;
 use serde::{Deserialize, Serialize};
 use webpki::{Error, TrustAnchor};
-
-use crate::account::serialization::Base64Bytes;
 
 /// A version of [`TrustAnchor`] that can more easily be used as a field
 /// in another struct, as it does not require a liftetime annotation.
@@ -24,7 +23,7 @@ pub struct OwnedTrustAnchor {
 #[derive(Clone, Eq, PartialEq)]
 pub struct DerTrustAnchor {
     pub owned_trust_anchor: OwnedTrustAnchor,
-    der_bytes: Base64Bytes,
+    der_bytes: Vec<u8>,
 }
 
 impl Debug for DerTrustAnchor {
@@ -35,7 +34,7 @@ impl Debug for DerTrustAnchor {
 
 impl Hash for DerTrustAnchor {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.der_bytes.0.hash(state)
+        self.der_bytes.hash(state)
     }
 }
 
@@ -43,7 +42,7 @@ impl DerTrustAnchor {
     pub fn from_der(der_bytes: Vec<u8>) -> Result<Self, Error> {
         let der = Self {
             owned_trust_anchor: TrustAnchor::try_from_cert_der(&der_bytes).map(|anchor| (&anchor).into())?,
-            der_bytes: der_bytes.into(),
+            der_bytes,
         };
         Ok(der)
     }
@@ -71,14 +70,16 @@ impl<'a> From<&'a OwnedTrustAnchor> for TrustAnchor<'a> {
 
 impl Serialize for DerTrustAnchor {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.der_bytes.serialize(serializer)
+        BASE64_STANDARD.encode(&self.der_bytes).serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for DerTrustAnchor {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let der_bytes = Base64Bytes::deserialize(deserializer)?;
-        DerTrustAnchor::from_der(der_bytes.0).map_err(serde::de::Error::custom)
+        let der_bytes = BASE64_STANDARD
+            .decode(String::deserialize(deserializer)?)
+            .map_err(serde::de::Error::custom)?;
+        DerTrustAnchor::from_der(der_bytes).map_err(serde::de::Error::custom)
     }
 }
 

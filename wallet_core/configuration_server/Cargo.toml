@@ -26,6 +26,7 @@ etag.workspace = true
 http.workspace = true
 mime.workspace = true
 serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["base64"] }
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "parking_lot",

@@ -1,10 +1,8 @@
 use std::{sync::Mutex, time::Duration};
 
 use once_cell::sync::Lazy;
-use p256::{
-    ecdsa::{Signature, SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-};
+use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use rand_core::OsRng;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
@@ -214,7 +212,7 @@ impl WalletWithMocks {
 
         // Generate registration data.
         let registration = RegistrationData {
-            pin_salt: pin_key::new_pin_salt().into(),
+            pin_salt: pin_key::new_pin_salt(),
             wallet_certificate: wallet.valid_certificate().await,
         };
 
@@ -246,7 +244,7 @@ impl WalletWithMocks {
         WalletCertificateClaims {
             wallet_id: utils::random_string(32),
             hw_pubkey: self.hw_privkey.verifying_key().await.unwrap().into(),
-            pin_pubkey_hash: utils::random_bytes(32).into(),
+            pin_pubkey_hash: utils::random_bytes(32),
             version: 0,
             iss: "wallet_unit_test".to_string(),
             iat: jsonwebtoken::get_current_timestamp(),

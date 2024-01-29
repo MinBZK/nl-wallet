@@ -104,7 +104,8 @@ mod tests {
     use http::StatusCode;
     use mockall::predicate::*;
 
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use wallet_common::{
         account::{
             messages::{
@@ -179,7 +180,7 @@ mod tests {
         let wallet_cert = wallet.registration.as_ref().unwrap().wallet_certificate.clone();
         let hw_pubkey = wallet.hw_privkey.verifying_key().await.unwrap();
 
-        let pin_key = PinKey::new(PIN, &wallet.registration.as_ref().unwrap().pin_salt.0);
+        let pin_key = PinKey::new(PIN, &wallet.registration.as_ref().unwrap().pin_salt);
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
         let result_claims = InstructionResultClaims {

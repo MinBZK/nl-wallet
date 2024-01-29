@@ -456,7 +456,8 @@ impl coset::AsCborValue for CoseKey {
 #[cfg(test)]
 mod tests {
     use coset::{Header, HeaderBuilder, Label};
-    use p256::ecdsa::{signature::rand_core::OsRng, SigningKey};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use serde::{Deserialize, Serialize};
 
     use wallet_common::generator::TimeGenerator;

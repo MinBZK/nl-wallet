@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     account::{
-        serialization::{Base64Bytes, DerSignature, DerVerifyingKey},
+        serialization::{DerSignature, DerVerifyingKey},
         signed::SignedDouble,
     },
     errors::Result,
@@ -34,7 +34,7 @@ pub struct GenerateKeyResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Sign {
-    pub messages_with_identifiers: Vec<(Base64Bytes, Vec<String>)>,
+    pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

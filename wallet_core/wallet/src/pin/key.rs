@@ -149,11 +149,9 @@ mod tests {
 
     use p256::{
         ecdsa::signature::Verifier,
-        elliptic_curve::{
-            bigint::{ArrayEncoding, Random, RandomMod, Wrapping},
-            rand_core::OsRng,
-        },
+        elliptic_curve::bigint::{ArrayEncoding, Random, RandomMod, Wrapping},
     };
+    use rand_core::OsRng;
 
     #[test]
     fn test_conversion() {

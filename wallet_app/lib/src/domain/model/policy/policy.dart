@@ -9,10 +9,14 @@ class Policy extends Equatable {
   /// Optional custom description, shown on the [PolicyScreen].
   final String? dataPurposeDescription;
   final bool dataIsShared;
-  final bool dataIsSignature;
-  final bool dataContainsSingleViewProfilePhoto;
   final bool deletionCanBeRequested;
   final String? privacyPolicyUrl;
+
+  /// FIXME: Remove [dataIsSignature] at some point, only relevant for mock build.
+  final bool dataIsSignature;
+
+  /// FIXME: Remove [dataContainsSingleViewProfilePhoto] at some point, only relevant for mock build.
+  final bool dataContainsSingleViewProfilePhoto;
 
   const Policy({
     this.storageDuration,

@@ -5,14 +5,14 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/feature/qr/bloc/qr_bloc.dart';
 import 'package:wallet/src/feature/qr/qr_screen.dart';
-import 'package:wallet/src/feature/qr/tab/qr_scan/bloc/qr_scan_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
 import '../../util/device_utils.dart';
 
-class MockQrScanBloc extends MockBloc<QrScanEvent, QrScanState> implements QrScanBloc {}
+class MockQrScanBloc extends MockBloc<QrEvent, QrState> implements QrBloc {}
 
 void main() {
   setUp(() {
@@ -34,7 +34,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               QrScanInitial(),
             ),
@@ -48,7 +48,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               QrScanFailure(),
             ),
@@ -62,7 +62,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               const QrScanNoPermission(true),
             ),
@@ -76,7 +76,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               QrScanScanning(),
             ),
@@ -90,7 +90,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               const QrScanSuccess(GenericNavigationRequest('/')),
             ),
@@ -104,7 +104,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               const QrScanSuccess(GenericNavigationRequest('/')),
             ),
@@ -118,7 +118,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               const QrScanLoading(),
             ),
@@ -132,7 +132,7 @@ void main() {
       await tester.pumpDeviceBuilder(
         deviceBuilder(tester)
           ..addScenario(
-            widget: const QrScreen().withState<QrScanBloc, QrScanState>(
+            widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
               QrScanInitial(),
             ),
@@ -151,7 +151,7 @@ void main() {
 
     testGoldens('Scan Explanation sheet', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrScanBloc, QrScanState>(
+        const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
           QrScanFailure(),
         ),
@@ -164,7 +164,7 @@ void main() {
 
     testGoldens('Qr Explanation sheet', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrScanBloc, QrScanState>(
+        const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
           QrScanFailure(),
         ),
@@ -180,22 +180,22 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('screen title is visible', (tester) async {
+    testWidgets('back button is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const QrScreen().withState<QrScanBloc, QrScanState>(
+        const QrScreen().withState<QrBloc, QrState>(
           MockQrScanBloc(),
           const QrScanLoading(),
         ),
       );
 
-      expect(find.text('QR-code'), findsOneWidget);
+      expect(find.text('Back'), findsOneWidget);
     });
 
     testWidgets('navigation is delegated to navigation service', (tester) async {
       final NavigationService mockNavigationService = MockNavigationService();
       await tester.pumpWidgetWithAppWrapper(
         const QrScreen()
-            .withState<QrScanBloc, QrScanState>(
+            .withState<QrBloc, QrState>(
               MockQrScanBloc(),
               const QrScanSuccess(GenericNavigationRequest('/issuance')),
             )

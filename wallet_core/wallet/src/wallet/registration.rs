@@ -95,7 +95,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
             .map_err(WalletRegistrationError::Signing)?;
 
         // Send the registration message to the account server and receive the wallet certificate in response.
-        let cert = self
+        let wallet_certificate = self
             .account_provider_client
             .register(&base_url, registration_message)
             .await
@@ -105,7 +105,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
 
         // Double check that the public key returned in the wallet certificate
         // matches that of our hardware key.
-        let cert_claims = cert
+        let cert_claims = wallet_certificate
             .parse_and_verify_with_sub(&certificate_public_key.into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
         if cert_claims.hw_pubkey.0 != hw_pubkey {
@@ -123,8 +123,8 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
 
         // Save the registration data in storage.
         let registration_data = RegistrationData {
-            pin_salt: pin_salt.into(),
-            wallet_certificate: cert,
+            pin_salt,
+            wallet_certificate,
         };
         storage.insert_data(&registration_data).await?;
 
@@ -142,7 +142,8 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
 mod tests {
     use assert_matches::assert_matches;
     use http::StatusCode;
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use wallet_common::{account::signed::SequenceNumberComparison, jwt::Jwt, utils};
 
     use crate::{account_provider::AccountProviderResponseError, wallet::test::ACCOUNT_SERVER_KEYS};
@@ -185,11 +186,11 @@ mod tests {
                     .dangerous_parse_unverified()
                     .expect("Could not parse registration message");
 
-                assert_eq!(registration.challenge.0, challenge_expected);
+                assert_eq!(registration.challenge, challenge_expected);
 
                 registration_signed
                     .parse_and_verify(
-                        &registration.challenge.0,
+                        &registration.challenge,
                         SequenceNumberComparison::EqualTo(0),
                         &registration.payload.hw_pubkey.0,
                         &registration.payload.pin_pubkey.0,

@@ -1,9 +1,7 @@
 use chrono::{DateTime, Local};
 use ctor::ctor;
-use p256::{
-    ecdsa::{SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-};
+use p256::ecdsa::{SigningKey, VerifyingKey};
+use rand_core::OsRng;
 use sea_orm::{
     sea_query::{Expr, Query},
     ColumnTrait, ConnectionTrait, EntityTrait, FromQueryResult, QueryFilter,

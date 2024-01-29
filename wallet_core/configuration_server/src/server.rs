@@ -17,7 +17,7 @@ use tracing::{debug, info};
 use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
-    let config = RustlsConfig::from_der(vec![settings.config_server_cert.0], settings.config_server_key.0).await?;
+    let config = RustlsConfig::from_der(vec![settings.config_server_cert], settings.config_server_key).await?;
 
     let socket = SocketAddr::new(settings.ip, settings.port);
     let listener = TcpListener::bind(socket)?;

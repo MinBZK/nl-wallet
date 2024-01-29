@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-22T11:17:34+01:00",
+    "@@last_modified": "2024-01-25T11:48:20+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -132,8 +132,6 @@
     "cardHistoryTimelineOperationRenewed": "Card updated",
     "cardHistoryTimelineSigningRejected": "Signing stopped",
     "cardHistoryTimelineSigningSuccess": "Signed",
-    "cardOverviewScreenAddCardCta": "Add data",
-    "cardOverviewScreenTitle": "My cards",
     "cardTitleSemanticsLabel": "Card: {cardTitle}",
     "@cardTitleSemanticsLabel": {
         "placeholders": {
@@ -217,24 +215,6 @@
     "digidHelpScreenTitle": "Need help with DigiD?",
     "disclosureConfirmDataAttributesCheckAttributesCta": "View your data",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Read the conditions",
-    "disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
-    "@disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
-    "@disclosureConfirmDataAttributesCheckConditionsSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
     "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible.",
     "disclosureConfirmDataAttributesPageAllTermsCta": "All terms",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
@@ -253,7 +233,25 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
     "disclosureConfirmDataAttributesPageDenyCta": "No, decline",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Is something not right?",
-    "disclosureConfirmDataAttributesPageNotStoredNotSharedSubtitle": "Data is not stored and not shared with third parties.",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
+    "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "Data is not stored and not shared with third parties.",
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
+    "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
     "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Data is not stored but is shared with third parties.",
     "disclosureConfirmDataAttributesShareWithTitle": "Share information with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
@@ -427,6 +425,19 @@
     "forgotPinScreenTitle": "Forgot pin",
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
+    "generalConfigVersionText": "Config version: {versionCode} ({date})",
+    "@generalConfigVersionText": {
+        "placeholders": {
+            "date": {
+                "example": "December 1. 2023",
+                "type": "String"
+            },
+            "versionCode": {
+                "example": "1337",
+                "type": "int"
+            }
+        }
+    },
     "generalDays": "{days, plural, one {{days} day} other {{days} days}}",
     "@generalDays": {
         "placeholders": {
@@ -654,6 +665,9 @@
         }
     },
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
+    "invalidQrDialogCta": "OK",
+    "invalidQrDialogDescription": "This QR-code is not valid.",
+    "invalidQrDialogTitle": "Invalid QR-code",
     "issuanceCardAddedCloseCta": "Close",
     "issuanceCardAddedSubtitle": "Your card has been added",
     "issuanceCardAddedTitle": "Success!",
@@ -995,11 +1009,15 @@
     "qrScanTabHowToScanSheetCloseCta": "Close",
     "qrScanTabHowToScanSheetDescription": "Data can be shared by showing a QR code or scanning a QR code. The party requesting data will indicate what is required.\n\nAfter scanning you will receive a data request. Data will only be shared if you agree to the request.",
     "qrScanTabHowToScanSheetTitle": "How does scanning work?",
+    "qrScreenDisableTorchCta": "Turn flashlight off",
+    "qrScreenEnableTorchCta": "Turn flashlight on",
     "qrScreenHowToScanButton": "How does scanning work?",
     "qrScreenHowToScanSheetCloseButton": "Close",
     "qrScreenHowToScanSheetDescription": "Data can be shared by showing a QR code or scanning a QR code. The party requesting data will indicate what is required.\n\nAfter scanning you will receive a data request. Data will only be shared if you agree to the request.",
     "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
     "qrScreenMyCodeTabTitle": "My code",
+    "qrScreenPermissionHint": "The NL Wallet needs permission to your camera to scan QR codes",
+    "qrScreenScanHint": "Aim your camera at a QR-code",
     "qrScreenScanTabContinueButton": "Scan another QR-code",
     "qrScreenScanTabErrorButton": "Retry",
     "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",

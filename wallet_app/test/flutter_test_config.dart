@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
 import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -18,10 +19,17 @@ import 'src/util/golden_diff_comparator.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   await loadAppFonts();
+  _configurePackagesForTests();
   _provideDefaultCheckHasInternetMock();
   _setupMockitoDummies();
   _setupGoldenFileComparator();
   return testMain();
+}
+
+/// Some packages need custom configuration to make sure they don't conflict with (widget) tests,
+/// this is done here.
+void _configurePackagesForTests() {
+  VisibilityDetectorController.instance.updateInterval = Duration.zero;
 }
 
 /// Some BLoCs rely on the static [BlocExtensions.checkHasInternetUseCase], provide a default

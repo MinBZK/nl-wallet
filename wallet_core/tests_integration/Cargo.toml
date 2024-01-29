@@ -47,6 +47,7 @@ ctor.workspace = true
 indexmap.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
+rand_core.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true

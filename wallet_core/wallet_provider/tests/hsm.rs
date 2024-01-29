@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use p256::ecdsa::{
-    signature::{rand_core::OsRng, Verifier},
-    SigningKey,
-};
+use p256::ecdsa::{signature::Verifier, SigningKey};
+use rand_core::OsRng;
 use serial_test::serial;
 
 use wallet_common::utils::{random_bytes, random_string};
@@ -21,6 +19,8 @@ fn setup_hsm() -> (Pkcs11Hsm, Settings) {
     let hsm = Pkcs11Hsm::new(
         settings.hsm.library_path,
         settings.hsm.user_pin,
+        settings.hsm.max_sessions,
+        settings.hsm.max_session_lifetime,
         settings.attestation_wrapping_key_identifier,
     )
     .unwrap();

@@ -122,8 +122,13 @@ impl From<wallet::mdoc::Organization> for Organization {
 
 impl From<&ReaderRegistration> for RequestPolicy {
     fn from(value: &ReaderRegistration) -> Self {
+        let data_storage_duration_in_minutes = value
+            .retention_policy
+            .intent_to_retain
+            .then_some(value.retention_policy.max_duration_in_minutes)
+            .flatten();
         RequestPolicy {
-            data_storage_duration_in_minutes: value.retention_policy.max_duration_in_minutes,
+            data_storage_duration_in_minutes,
             data_shared_with_third_parties: value.sharing_policy.intent_to_share,
             data_deletion_possible: value.deletion_policy.deleteable,
             policy_url: value

@@ -7,9 +7,9 @@ import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
-import '../card/overview/card_overview_screen.dart';
+import '../dashboard/bloc/dashboard_bloc.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../menu/menu_screen.dart';
-import '../qr/qr_screen.dart';
 import 'argument/home_screen_argument.dart';
 import 'bloc/home_bloc.dart';
 
@@ -41,10 +41,7 @@ class HomeScreen extends StatelessWidget {
         final Widget tab;
         switch (state.tab) {
           case HomeTab.cards:
-            tab = const CardOverviewScreen();
-            break;
-          case HomeTab.qr:
-            tab = const QrScreen();
+            tab = const DashboardScreen();
             break;
           case HomeTab.menu:
             tab = const MenuScreen();
@@ -57,9 +54,16 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     final items = [
-      BottomNavigationBarItem(icon: const Icon(Icons.credit_card), label: context.l10n.homeScreenBottomNavBarCardsCta),
-      BottomNavigationBarItem(icon: const Icon(Icons.qr_code), label: context.l10n.homeScreenBottomNavBarQrCta),
-      BottomNavigationBarItem(icon: const Icon(Icons.menu), label: context.l10n.homeScreenBottomNavBarMenuCta),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.credit_card),
+        label: context.l10n.homeScreenBottomNavBarCardsCta,
+        tooltip: context.l10n.homeScreenBottomNavBarCardsCta,
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.menu),
+        label: context.l10n.homeScreenBottomNavBarMenuCta,
+        tooltip: context.l10n.homeScreenBottomNavBarMenuCta,
+      ),
     ];
 
     final indicatorWidth = context.mediaQuery.size.width / items.length;
@@ -71,6 +75,7 @@ class HomeScreen extends StatelessWidget {
         return Stack(
           children: [
             BottomNavigationBar(
+              key: const Key('homeScreenBottomNavigationBar'),
               currentIndex: state.tab.index,
               onTap: (value) {
                 final homeTab = HomeTab.values[value];
@@ -98,7 +103,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   /// Show the [HomeScreen], placing it at the root of the navigation stack. When [cards] are provided the
-  /// nested [CardOverviewScreen]'s [CardOverviewBloc] is initialized with these cards, so that they are instantly
+  /// nested [DashboardScreen]'s [DashboardBloc] is initialized with these cards, so that they are instantly
   /// available, e.g. useful when triggering Hero animations.
   static void show(BuildContext context, {List<WalletCard>? cards}) {
     if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 800));

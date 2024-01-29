@@ -54,6 +54,8 @@ open class TestBase {
     }
 
     companion object {
+        const val MAX_RETRY_COUNT = 3
+
         var sessionName: String = ""
 
         @JvmStatic

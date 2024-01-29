@@ -126,7 +126,7 @@ impl HandleInstruction for Sign {
             .messages_with_identifiers
             .into_iter()
             .flat_map(|(data, identifiers)| {
-                let data = Arc::new(data.0);
+                let data = Arc::new(data);
                 identifiers
                     .into_iter()
                     .map(|identifier| {
@@ -163,10 +163,7 @@ mod tests {
     use rand::rngs::OsRng;
 
     use wallet_common::{
-        account::{
-            messages::instructions::{CheckPin, GenerateKey, Sign},
-            serialization::Base64Bytes,
-        },
+        account::messages::instructions::{CheckPin, GenerateKey, Sign},
         utils::random_bytes,
     };
     use wallet_provider_domain::{
@@ -230,7 +227,7 @@ mod tests {
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
 
-        let random_msg: Base64Bytes = random_bytes(32).into();
+        let random_msg = random_bytes(32);
         let instruction = Sign {
             messages_with_identifiers: vec![(random_msg.clone(), vec!["key1".to_string()])],
         };
@@ -264,7 +261,7 @@ mod tests {
             .signatures_by_identifier
             .iter()
             .for_each(|(_identifier, signature)| {
-                signing_key.verifying_key().verify(&random_msg.0, &signature.0).unwrap();
+                signing_key.verifying_key().verify(&random_msg, &signature.0).unwrap();
             })
     }
 }

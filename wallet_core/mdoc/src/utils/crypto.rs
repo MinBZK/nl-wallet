@@ -237,7 +237,8 @@ impl SessionData {
 
 #[cfg(test)]
 mod test {
-    use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
+    use p256::SecretKey;
+    use rand_core::OsRng;
 
     use serde::{Deserialize, Serialize};
 

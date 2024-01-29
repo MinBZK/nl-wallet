@@ -27,6 +27,8 @@ class PolicyEntriesBuilder {
     results.add(_buildDataSharingPolicy(interactionPolicy));
     if (storageDuration != null) {
       results.add(_buildStorageDurationPolicy(storageDuration));
+    } else {
+      results.add(_buildDataNotStoredPolicy());
     }
     if (interactionPolicy.dataIsSignature) {
       results.add(_buildSignaturePolicy());
@@ -55,6 +57,16 @@ class PolicyEntriesBuilder {
         text: context.l10n.policyScreenDataRetentionDuration(storageDuration.inMonths),
       ),
       description: TextSpan(text: context.l10n.policyScreenDataRetentionDurationDescription(storageDuration.inMonths)),
+      icon: Icons.access_time_outlined,
+    );
+  }
+
+  PolicyEntry _buildDataNotStoredPolicy() {
+    return PolicyEntry(
+      title: TextSpan(
+        text: context.l10n.policyScreenDataNotBeStored,
+      ),
+      description: TextSpan(text: context.l10n.policyScreenDataNotBeStoredDescription),
       icon: Icons.access_time_outlined,
     );
   }

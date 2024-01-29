@@ -1,10 +1,9 @@
+use serde_with::{base64::Base64, serde_as};
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use url::Url;
-
-use wallet_common::account::serialization::Base64Bytes;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -28,10 +27,13 @@ pub struct Server {
     pub port: u16,
 }
 
+#[serde_as]
 #[derive(Deserialize, Clone)]
 pub struct KeyPair {
-    pub certificate: Base64Bytes,
-    pub private_key: Base64Bytes,
+    #[serde_as(as = "Base64")]
+    pub certificate: Vec<u8>,
+    #[serde_as(as = "Base64")]
+    pub private_key: Vec<u8>,
 }
 
 impl Settings {

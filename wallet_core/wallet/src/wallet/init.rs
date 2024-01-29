@@ -170,7 +170,7 @@ mod tests {
         let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
             StorageState::Unopened,
             Some(RegistrationData {
-                pin_salt: pin_salt.clone().into(),
+                pin_salt: pin_salt.clone(),
                 wallet_certificate: "thisisjwt".to_string().into(),
             }),
         ))
@@ -186,6 +186,6 @@ mod tests {
         ));
 
         // The registration data should now be available.
-        assert_eq!(wallet.registration.unwrap().pin_salt.0, pin_salt);
+        assert_eq!(wallet.registration.unwrap().pin_salt, pin_salt);
     }
 }

@@ -4,19 +4,19 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:vibration/vibration.dart';
 
-import '../../../../../domain/model/navigation/navigation_request.dart';
-import '../../../../../domain/usecase/qr/decode_qr_usecase.dart';
+import '../../../domain/model/navigation/navigation_request.dart';
+import '../../../domain/usecase/qr/decode_qr_usecase.dart';
 
-part 'qr_scan_event.dart';
-part 'qr_scan_state.dart';
+part 'qr_event.dart';
+part 'qr_state.dart';
 
 /// We deliberately delay the QR processing so the user has a moment to realize the QR has been scanned successfully.
 const kProcessingDelay = Duration(milliseconds: 500);
 
-class QrScanBloc extends Bloc<QrScanEvent, QrScanState> {
+class QrBloc extends Bloc<QrEvent, QrState> {
   final DecodeQrUseCase _decodeQrUseCase;
 
-  QrScanBloc(this._decodeQrUseCase) : super(QrScanInitial()) {
+  QrBloc(this._decodeQrUseCase) : super(QrScanInitial()) {
     on<QrScanCheckPermission>(_onCheckPermission);
     on<QrScanCodeDetected>(onCodeDetected);
     on<QrScanReset>(_onReset);
@@ -33,7 +33,9 @@ class QrScanBloc extends Bloc<QrScanEvent, QrScanState> {
   }
 
   void onCodeDetected(QrScanCodeDetected event, emit) async {
-    if (state is QrScanLoading || state is QrScanSuccess) return; //Already processing a QR code
+    if (state is QrScanLoading || state is QrScanSuccess || state is QrScanFailure) {
+      return; //Already processing a QR code
+    }
     emit(const QrScanLoading());
     Vibration.vibrate();
     final request = await _decodeQrUseCase.invoke(event.code);

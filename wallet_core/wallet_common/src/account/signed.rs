@@ -3,13 +3,14 @@ use std::marker::PhantomData;
 use p256::ecdsa::{signature::Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
+use serde_with::{base64::Base64, serde_as};
 
 use crate::{
     errors::{Error, Result},
     keys::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey},
 };
 
-use super::serialization::{Base64Bytes, DerSignature};
+use super::serialization::DerSignature;
 
 // Signed data by the wallet, with both the hardware and PIN keys.
 // It is generic over the data type that it contains, so that the signed data type is encoded in the type structure
@@ -31,10 +32,12 @@ pub struct SignedMessage<T> {
     pub typ: SignedType,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChallengeResponsePayload<T> {
     pub payload: T,
-    pub challenge: Base64Bytes,
+    #[serde_as(as = "Base64")]
+    pub challenge: Vec<u8>,
     pub sequence_number: u64,
 }
 
@@ -113,7 +116,7 @@ where
 
         let signed: ChallengeResponsePayload<&RawValue> = serde_json::from_str(inner.signed.get())?;
 
-        if challenge != signed.challenge.0 {
+        if challenge != signed.challenge {
             return Err(Error::ChallengeMismatch);
         }
 
@@ -151,7 +154,7 @@ where
     ) -> Result<SignedDouble<T>> {
         let message = serde_json::to_string(&ChallengeResponsePayload {
             payload: &payload,
-            challenge: challenge.to_vec().into(),
+            challenge: challenge.to_vec(),
             sequence_number: serial_number,
         })?;
         let signed_inner = sign_message(message, SignedType::Pin, pin_privkey).await?;
@@ -173,7 +176,8 @@ impl<T, S: Into<String>> From<S> for SignedInner<T> {
 
 #[cfg(test)]
 mod tests {
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
     use super::*;
 
