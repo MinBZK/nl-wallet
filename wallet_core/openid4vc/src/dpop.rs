@@ -56,6 +56,9 @@ use crate::{
     Error, Result,
 };
 
+pub const DPOP_HEADER_NAME: &str = "DPoP";
+pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
+
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DpopPayload {

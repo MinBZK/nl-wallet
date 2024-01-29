@@ -23,7 +23,7 @@ use crate::{
         CredentialErrorType, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
         CredentialResponses,
     },
-    dpop::Dpop,
+    dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
@@ -68,7 +68,7 @@ impl IssuanceClient {
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
-            .header("DPoP", dpop_header.0 .0)
+            .header(DPOP_HEADER_NAME, dpop_header.0 .0)
             .body(serde_urlencoded::to_string(token_request)?)
             .send()
             .map_err(Error::from)
@@ -81,7 +81,7 @@ impl IssuanceClient {
                 } else {
                     let dpop_nonce = response
                         .headers()
-                        .get("DPoP-Nonce")
+                        .get(DPOP_NONCE_HEADER_NAME)
                         .and_then(|val| val.to_str().map(str::to_string).ok());
                     let deserialized = response.json::<TokenResponseWithPreviews<UnsignedMdoc>>().await?;
                     Ok((deserialized, dpop_nonce))
@@ -161,7 +161,7 @@ impl IssuanceClient {
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
-            .header("DPoP", dpop_header.0 .0)
+            .header(DPOP_HEADER_NAME, dpop_header.0 .0)
             .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
             .body(serde_json::to_string(&credential_requests)?)
             .send()
@@ -229,7 +229,7 @@ impl IssuanceClient {
 
         self.http_client
             .delete(url) // TODO discover token endpoint instead
-            .header("DPoP", dpop_header.0 .0)
+            .header(DPOP_HEADER_NAME, dpop_header.0 .0)
             .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
             .send()
             .await?

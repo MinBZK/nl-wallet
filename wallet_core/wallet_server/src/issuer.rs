@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     credential::{CredentialErrorType, CredentialRequest, CredentialRequests},
-    dpop::Dpop,
+    dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     token::{TokenErrorType, TokenRequest},
     ErrorStatusCode,
 };
@@ -97,7 +97,7 @@ where
 {
     let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
     let headers = HeaderMap::from_iter([(
-        HeaderName::from_str("DPoP-Nonce").unwrap(),
+        HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
     )]);
     Ok((headers, Json(response)))
@@ -253,13 +253,13 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorType> {
     }
 }
 
-static DPOP_HEADER_NAME: HeaderName = HeaderName::from_static("dpop");
+static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");
 
 pub struct DpopHeader(Dpop);
 
 impl Header for DpopHeader {
     fn name() -> &'static HeaderName {
-        &DPOP_HEADER_NAME
+        &DPOP_HEADER_NAME_LOWERCASE
     }
 
     fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>
@@ -287,12 +287,12 @@ pub struct DpopBearer(String);
 
 impl DpopBearer {
     pub fn token(&self) -> &str {
-        &self.0.as_str()["DPoP ".len()..]
+        &self.0.as_str()[(DPOP_HEADER_NAME.len() + 1)..] // +1 to account for space after "DPoP"
     }
 }
 
 impl Credentials for DpopBearer {
-    const SCHEME: &'static str = "DPoP";
+    const SCHEME: &'static str = DPOP_HEADER_NAME;
 
     fn decode(value: &HeaderValue) -> Option<Self> {
         value.to_str().ok().map(|value| Self(value.to_string()))
