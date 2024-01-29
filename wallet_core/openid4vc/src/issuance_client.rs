@@ -101,10 +101,10 @@ impl IssuanceClient {
         Ok(token_response.attestation_previews)
     }
 
-    pub async fn finish_issuance<'a, K: MdocEcdsaKey + Send + Sync>(
+    pub async fn finish_issuance<'a, K: MdocEcdsaKey>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K> + Sync,
+        key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, Error> {
         let issuance_state = self.session_state.as_ref().ok_or(Error::MissingIssuanceSessionState)?;

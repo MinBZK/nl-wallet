@@ -36,17 +36,17 @@ pub enum PidIssuerError {
 pub trait OpenidPidIssuerClient {
     fn has_session(&self) -> bool;
 
-    async fn start_retrieve_pid<DGS: DigidSession + Send + Sync>(
+    async fn start_retrieve_pid<DGS: DigidSession>(
         &mut self,
         digid_session: DGS,
         base_url: &Url,
         pre_authorized_code: String,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError>;
 
-    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K> + Sync,
+        key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError>;
 

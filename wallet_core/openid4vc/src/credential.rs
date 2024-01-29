@@ -90,7 +90,7 @@ impl ErrorStatusCode for CredentialErrorType {
 }
 
 impl CredentialRequestProof {
-    pub async fn new_multiple<'a, K: MdocEcdsaKey + Sync>(
+    pub async fn new_multiple<'a, K: MdocEcdsaKey>(
         nonce: String,
         wallet_client_id: String,
         credential_issuer_identifier: &Url,

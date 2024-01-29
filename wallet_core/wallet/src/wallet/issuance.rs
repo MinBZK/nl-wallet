@@ -50,7 +50,7 @@ pub enum PidIssuanceError {
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     CR: ConfigurationRepository,
-    DGS: DigidSession + Sync + Send,
+    DGS: DigidSession,
     PIC: OpenidPidIssuerClient,
     S: Storage,
 {
@@ -183,9 +183,9 @@ where
     #[instrument(skip_all)]
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
-        S: Storage + Send + Sync,
-        PEK: PlatformEcdsaKey + Send + Sync,
-        APC: AccountProviderClient + Send + Sync,
+        S: Storage,
+        PEK: PlatformEcdsaKey,
+        APC: AccountProviderClient,
     {
         info!("Accepting PID issuance");
 

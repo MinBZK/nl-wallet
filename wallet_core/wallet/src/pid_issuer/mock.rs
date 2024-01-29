@@ -22,7 +22,7 @@ impl OpenidPidIssuerClient for MockPidIssuerClient {
         self.has_session
     }
 
-    async fn start_retrieve_pid<DGS: DigidSession + Send + Sync>(
+    async fn start_retrieve_pid<DGS: DigidSession>(
         &mut self,
         _digid_session: DGS,
         _base_url: &Url,
@@ -34,10 +34,10 @@ impl OpenidPidIssuerClient for MockPidIssuerClient {
         }
     }
 
-    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
-        _key_factory: impl KeyFactory<Key = K> + Sync,
+        _key_factory: impl KeyFactory<Key = K>,
         _credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         match self.next_error.take() {

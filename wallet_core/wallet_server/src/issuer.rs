@@ -93,7 +93,7 @@ async fn token<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
     let headers = HeaderMap::from_iter([(
@@ -112,7 +112,7 @@ async fn credential<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     let access_token = authorization_header.0.token();
     let response = state
@@ -131,7 +131,7 @@ async fn batch_credential<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     let access_token = authorization_header.0.token();
     let response = state
@@ -149,7 +149,7 @@ async fn reject_issuance<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     let access_token = authorization_header.0.token();
     state
@@ -167,7 +167,7 @@ async fn reject_batch_issuance<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     let access_token = authorization_header.0.token();
     state

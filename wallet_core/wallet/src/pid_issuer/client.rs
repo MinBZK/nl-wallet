@@ -75,7 +75,7 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         self.issuance_client.has_issuance_session()
     }
 
-    async fn start_retrieve_pid<DGS: DigidSession + Send + Sync>(
+    async fn start_retrieve_pid<DGS: DigidSession>(
         &mut self,
         digid_session: DGS,
         base_url: &Url,
@@ -86,10 +86,10 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         Ok(attestation_previews)
     }
 
-    async fn accept_pid<K: MdocEcdsaKey + Send + Sync>(
+    async fn accept_pid<K: MdocEcdsaKey>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K> + Sync,
+        key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: &Url,
     ) -> Result<Vec<MdocCopies>, PidIssuerError> {
         let mdocs = self

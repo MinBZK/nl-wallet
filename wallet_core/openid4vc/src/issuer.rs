@@ -215,7 +215,14 @@ where
             cleanup_task: sessions.start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
         }
     }
+}
 
+impl<A, K, S> Issuer<A, K, S>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
