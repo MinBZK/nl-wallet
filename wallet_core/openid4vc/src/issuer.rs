@@ -234,17 +234,17 @@ where
         token_request: TokenRequest,
         dpop: Dpop,
     ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
-        let code = token_request.code();
+        let session_token = token_request.code().into();
 
         // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
         // attribute service.
         let session = self
             .sessions
-            .get(&code.clone().into())
+            .get(&session_token)
             .await
             .map_err(|e| TokenRequestError::IssuanceError(e.into()))?
             .unwrap_or(SessionState::<IssuanceData>::new(
-                code.clone().into(),
+                session_token,
                 IssuanceData::Created(Created { unsigned_mdocs: None }),
             ));
         let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
