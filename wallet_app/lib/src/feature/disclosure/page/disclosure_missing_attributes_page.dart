@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';

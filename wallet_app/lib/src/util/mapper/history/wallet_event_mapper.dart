@@ -2,8 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:wallet_core/core.dart' as core show Organization;
 import 'package:wallet_core/core.dart' hide Organization;
 
-import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';

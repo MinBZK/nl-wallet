@@ -5,11 +5,11 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
-import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 

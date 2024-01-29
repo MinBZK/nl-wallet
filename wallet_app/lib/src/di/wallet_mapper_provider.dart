@@ -5,7 +5,6 @@ import 'package:wallet_core/core.dart'
 import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' as core show Document;
 
-import '../data/repository/organization/organization_repository.dart';
 import '../domain/model/app_image_data.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/attribute/data_attribute.dart';
@@ -13,6 +12,7 @@ import '../domain/model/attribute/missing_attribute.dart';
 import '../domain/model/card_config.dart';
 import '../domain/model/card_front.dart';
 import '../domain/model/document.dart';
+import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/model/timeline/timeline_attribute.dart';

@@ -1,4 +1,4 @@
-import '../../../../data/repository/organization/organization_repository.dart';
+import '../../../../domain/model/organization.dart';
 
 class OrganizationDetailScreenArgument {
   static const _kOrganizationKey = 'organization';

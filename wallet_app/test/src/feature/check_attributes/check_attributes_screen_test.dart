@@ -24,7 +24,6 @@ void main() {
             CheckAttributesSuccess(
               card: WalletMockData.card,
               attributes: WalletMockData.card.attributes,
-              cardIssuer: WalletMockData.organization,
             ),
           ),
         );
@@ -58,7 +57,6 @@ void main() {
           CheckAttributesSuccess(
             card: WalletMockData.card,
             attributes: WalletMockData.card.attributes,
-            cardIssuer: WalletMockData.organization,
           ),
         ),
       );

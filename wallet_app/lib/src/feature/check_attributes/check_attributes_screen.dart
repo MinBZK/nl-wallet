@@ -152,9 +152,8 @@ class CheckAttributesScreen extends StatelessWidget {
         builder: (c) {
           return BlocProvider<CheckAttributesBloc>(
             create: (context) => CheckAttributesBloc(
-              context.read(),
-              card: card,
               attributes: attributes,
+              card: card,
             )..add(CheckAttributesLoadTriggered()),
             child: CheckAttributesScreen(
               onDataIncorrectPressed: onDataIncorrectPressed,

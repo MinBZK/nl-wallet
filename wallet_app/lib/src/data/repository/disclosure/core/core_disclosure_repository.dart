@@ -2,11 +2,11 @@ import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/missing_attribute.dart';
+import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
-import '../../organization/organization_repository.dart';
 import '../disclosure_repository.dart';
 
 class CoreDisclosureRepository implements DisclosureRepository {
