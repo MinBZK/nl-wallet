@@ -182,10 +182,12 @@ enum DisclosureStatus {
 class FlutterConfiguration {
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
+  final int version;
 
   const FlutterConfiguration({
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
+    required this.version,
   });
 }
 
@@ -884,10 +886,11 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
     final arr = raw as List<dynamic>;
-    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return FlutterConfiguration(
       inactiveLockTimeout: _wire2api_u16(arr[0]),
       backgroundLockTimeout: _wire2api_u16(arr[1]),
+      version: _wire2api_u64(arr[2]),
     );
   }
 

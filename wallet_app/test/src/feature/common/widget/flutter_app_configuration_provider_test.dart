@@ -7,6 +7,7 @@ void main() {
   const defaultMockConfig = FlutterAppConfiguration(
     idleLockTimeout: Duration(seconds: 10),
     backgroundLockTimeout: Duration(seconds: 20),
+    version: 0,
   );
 
   testWidgets(
@@ -32,6 +33,7 @@ void main() {
     const expectedConfig = FlutterAppConfiguration(
       idleLockTimeout: Duration(seconds: 8),
       backgroundLockTimeout: Duration(seconds: 5),
+      version: 0,
     );
     late FlutterAppConfiguration receivedConfig;
     await tester.pumpWidget(

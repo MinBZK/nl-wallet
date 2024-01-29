@@ -98,7 +98,11 @@ void main() {
   group('observeConfig', () {
     test('configuration is fetched through core by setting the configuration stream', () async {
       when(core.setConfigurationStream()).thenAnswer(
-        (_) => Stream.value(const FlutterConfiguration(inactiveLockTimeout: 0, backgroundLockTimeout: 0)),
+        (_) => Stream.value(const FlutterConfiguration(
+          inactiveLockTimeout: 0,
+          backgroundLockTimeout: 0,
+          version: 0,
+        )),
       );
       // Verify we don't observe the stream pre-emptively
       verifyNever(core.setConfigurationStream());

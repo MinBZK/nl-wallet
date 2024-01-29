@@ -6,6 +6,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/version_text.dart';
+import '../common/widget/config_version_text.dart';
 import '../menu/widget/menu_row.dart';
 
 const _kAboutUrl = 'https://edi.pleio.nl/';
@@ -47,7 +48,13 @@ class AboutScreen extends StatelessWidget {
         const Divider(height: 1),
         const Padding(
           padding: EdgeInsets.all(16),
-          child: VersionText(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              VersionText(),
+              ConfigVersionText(),
+            ],
+          ),
         ),
       ],
     );
