@@ -1,6 +1,6 @@
 //! Data structures with which a verifier requests attributes from a holder.
 
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use ciborium::value::Value;
 use coset::CoseSign1;
@@ -58,15 +58,25 @@ pub struct DocRequest {
 }
 
 pub type ReaderAuth = MdocCose<CoseSign1, Value>;
-pub type ReaderAuthenticationBytes = TaggedBytes<ReaderAuthentication>;
-pub type ReaderAuthentication = CborSeq<ReaderAuthenticationKeyed>;
+pub type ReaderAuthenticationBytes<'a> = TaggedBytes<ReaderAuthentication<'a>>;
+pub type ReaderAuthentication<'a> = CborSeq<ReaderAuthenticationKeyed<'a>>;
 
 #[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
 #[derive(Serialize, Debug, Clone)]
-pub struct ReaderAuthenticationKeyed {
+pub struct ReaderAuthenticationKeyed<'a> {
     pub reader_auth_string: RequiredValue<ReaderAuthenticationString>,
-    pub session_transcript: SessionTranscript,
-    pub items_request_bytes: ItemsRequestBytes,
+    pub session_transcript: Cow<'a, SessionTranscript>,
+    pub items_request_bytes: Cow<'a, ItemsRequestBytes>,
+}
+
+impl<'a> ReaderAuthenticationKeyed<'a> {
+    pub fn new(session_transcript: &'a SessionTranscript, items_request_bytes: &'a ItemsRequestBytes) -> Self {
+        ReaderAuthenticationKeyed {
+            reader_auth_string: Default::default(),
+            session_transcript: Cow::Borrowed(session_transcript),
+            items_request_bytes: Cow::Borrowed(items_request_bytes),
+        }
+    }
 }
 
 /// See [`ItemsRequest`].

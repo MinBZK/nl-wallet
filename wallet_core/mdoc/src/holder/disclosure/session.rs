@@ -116,9 +116,6 @@ where
             ephemeral_privkey,
         )?;
 
-        // Serialize the `SessionTranscript` for if we need to add it to the `return_url` later.
-        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(&transcript))?;
-
         // Send the `DeviceEngagement` to the verifier and deserialize the expected `SessionData`.
         // If decoding fails, send a `SessionData` to the verifier to report this.
         let session_data: SessionData = client
@@ -138,13 +135,14 @@ where
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
         let return_url_ref = return_url.as_ref();
+        let transcript_ref = &transcript;
         let (check_result, certificate, reader_registration) =
             async { session_data.decrypt_and_deserialize(&reader_key) }
                 .and_then(|device_request| async move {
                     Self::verify_device_request(
                         &device_request,
                         return_url_ref,
-                        transcript,
+                        transcript_ref,
                         mdoc_data_source,
                         trust_anchors,
                     )
@@ -172,7 +170,9 @@ where
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
                     // If we have a return URL, add the hash of the `SessionTranscript` to it.
-                    return_url: return_url.map(|url| Self::add_transcript_hash_to_url(url, &session_transcript_bytes)),
+                    return_url: return_url
+                        .map(|url| Self::add_transcript_hash_to_url(url, &transcript))
+                        .transpose()?,
                     data,
                     device_key,
                     proposed_documents,
@@ -202,7 +202,7 @@ where
     async fn verify_device_request<'a, S>(
         device_request: &DeviceRequest,
         return_url: Option<&Url>,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<(VerifierSessionDataCheckResult<I>, Certificate, ReaderRegistration)>
@@ -217,7 +217,7 @@ where
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
         // Reader authentication is required to be present at this time.
         let (certificate, reader_registration) = device_request
-            .verify(session_transcript.clone(), &TimeGenerator, trust_anchors)?
+            .verify(session_transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
         // Verify the return URL against the prefix in the `ReaderRegistration`,
@@ -266,13 +266,17 @@ where
         Ok((result, certificate, reader_registration))
     }
 
-    fn add_transcript_hash_to_url(mut url: Url, session_transcript_bytes: &[u8]) -> Url {
-        let transcript_hash = utils::sha256(session_transcript_bytes);
+    fn add_transcript_hash_to_url(
+        mut url: Url,
+        session_transcript: &SessionTranscript,
+    ) -> std::result::Result<Url, CborError> {
+        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
+        let transcript_hash = utils::sha256(&session_transcript_bytes);
 
         url.query_pairs_mut()
             .append_pair(TRANSCRIPT_HASH_PARAM, &BASE64_URL_SAFE_NO_PAD.encode(transcript_hash));
 
-        url
+        Ok(url)
     }
 
     fn data(&self) -> &CommonDisclosureData<H> {
@@ -386,13 +390,13 @@ mod tests {
         identifiers::AttributeIdentifierHolder,
         iso::{
             disclosure::{DeviceAuth, SessionStatus},
-            engagement::DeviceAuthentication,
+            engagement::DeviceAuthenticationKeyed,
         },
         software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
-            serialization::TaggedBytes,
+            serialization::{CborSeq, TaggedBytes},
             x509::CertificateType,
         },
         Error,
@@ -525,10 +529,9 @@ mod tests {
             .into_iter()
             .zip(public_keys)
             .for_each(|(document, public_key)| {
-                let device_authentication =
-                    DeviceAuthentication::from_session_transcript(session_transcript.clone(), document.doc_type);
+                let device_authentication = DeviceAuthenticationKeyed::new(&document.doc_type, &session_transcript);
                 let device_authentication_bytes =
-                    serialization::cbor_serialize(&TaggedBytes(device_authentication)).unwrap();
+                    serialization::cbor_serialize(&TaggedBytes(CborSeq(device_authentication))).unwrap();
 
                 match document.device_signed.device_auth {
                     DeviceAuth::DeviceSignature(signature) => signature
