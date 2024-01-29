@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
+import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart';
 import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
@@ -41,6 +42,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<WalletCardRepository>()])
 @GenerateNiceMocks([MockSpec<OrganizationRepository>()])
 @GenerateNiceMocks([MockSpec<TimelineAttributeRepository>()])
+@GenerateNiceMocks([MockSpec<ConfigurationRepository>()])
 
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])

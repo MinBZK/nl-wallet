@@ -425,13 +425,9 @@
     "forgotPinScreenTitle": "Toegangscode vergeten",
     "generalBottomBackCta": "Terug",
     "generalCancelCta": "Annuleren",
-    "generalConfigVersionText": "Config versie: {versionCode} ({date})",
+    "generalConfigVersionText": "Config versie: {versionCode}",
     "@generalConfigVersionText": {
         "placeholders": {
-            "date": {
-                "example": "December 1. 2023",
-                "type": "String"
-            },
             "versionCode": {
                 "example": "1337",
                 "type": "int"
