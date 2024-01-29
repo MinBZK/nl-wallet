@@ -26,10 +26,10 @@ impl SessionDataType for openid4vc::issuer::IssuanceData {
 }
 
 pub struct SessionStores {
-    pub disclosure: SessionStoreEnum<DisclosureData>,
+    pub disclosure: SessionStoreVariant<DisclosureData>,
 
     #[cfg(feature = "issuance")]
-    pub issuance: SessionStoreEnum<IssuanceData>,
+    pub issuance: SessionStoreVariant<IssuanceData>,
 }
 
 impl SessionStores {
@@ -39,15 +39,15 @@ impl SessionStores {
             "postgres" => {
                 let db = std::sync::Arc::new(postgres::connect(url).await?);
                 Ok(SessionStores {
-                    disclosure: SessionStoreEnum::Postgres(PostgresSessionStore::new(db.clone())),
+                    disclosure: SessionStoreVariant::Postgres(PostgresSessionStore::new(db.clone())),
                     #[cfg(feature = "issuance")]
-                    issuance: SessionStoreEnum::Postgres(PostgresSessionStore::new(db)),
+                    issuance: SessionStoreVariant::Postgres(PostgresSessionStore::new(db)),
                 })
             }
             "memory" => Ok(SessionStores {
-                disclosure: SessionStoreEnum::Memory(MemorySessionStore::new()),
+                disclosure: SessionStoreVariant::Memory(MemorySessionStore::new()),
                 #[cfg(feature = "issuance")]
-                issuance: SessionStoreEnum::Memory(MemorySessionStore::new()),
+                issuance: SessionStoreVariant::Memory(MemorySessionStore::new()),
             }),
             e => unimplemented!("{}", e),
         }
@@ -56,13 +56,13 @@ impl SessionStores {
 
 /// This enum effectively switches between the different types that implement `DisclosureSessionStore`,
 /// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
-pub enum SessionStoreEnum<T> {
+pub enum SessionStoreVariant<T> {
     #[cfg(feature = "postgres")]
     Postgres(PostgresSessionStore<T>),
     Memory(MemorySessionStore<T>),
 }
 
-impl<T> SessionStore for SessionStoreEnum<T>
+impl<T> SessionStore for SessionStoreVariant<T>
 where
     T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
 {
@@ -71,24 +71,24 @@ where
     async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            SessionStoreEnum::Postgres(postgres) => postgres.get(id).await,
-            SessionStoreEnum::Memory(memory) => memory.get(id).await,
+            SessionStoreVariant::Postgres(postgres) => postgres.get(id).await,
+            SessionStoreVariant::Memory(memory) => memory.get(id).await,
         }
     }
 
     async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            SessionStoreEnum::Postgres(postgres) => postgres.write(session).await,
-            SessionStoreEnum::Memory(memory) => memory.write(session).await,
+            SessionStoreVariant::Postgres(postgres) => postgres.write(session).await,
+            SessionStoreVariant::Memory(memory) => memory.write(session).await,
         }
     }
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            SessionStoreEnum::Postgres(postgres) => postgres.cleanup().await,
-            SessionStoreEnum::Memory(memory) => memory.cleanup().await,
+            SessionStoreVariant::Postgres(postgres) => postgres.cleanup().await,
+            SessionStoreVariant::Memory(memory) => memory.cleanup().await,
         }
     }
 }

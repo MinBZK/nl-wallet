@@ -40,7 +40,7 @@ use wallet_server::{
         attributes::AttributesLookup as _, mock::MockAttributesLookup as WSMockAttributesLookup,
         mock::MockBsnLookup as WSMockBsnLookup,
     },
-    store::{SessionStoreEnum, SessionStores},
+    store::{SessionStoreVariant, SessionStores},
 };
 
 #[ctor]
@@ -114,8 +114,8 @@ pub async fn setup_wallet_and_env(
     start_wallet_server(
         ws_settings,
         SessionStores {
-            disclosure: SessionStoreEnum::Memory(MemorySessionStore::new()),
-            issuance: SessionStoreEnum::Memory(MemorySessionStore::new()),
+            disclosure: SessionStoreVariant::Memory(MemorySessionStore::new()),
+            issuance: SessionStoreVariant::Memory(MemorySessionStore::new()),
         },
         MockAttributeService,
     )
