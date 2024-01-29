@@ -3,7 +3,6 @@ import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart';
-import 'package:wallet/src/data/repository/organization/organization_repository.dart';
 import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
@@ -16,7 +15,6 @@ import '../../../../mocks/wallet_mocks.dart';
 void main() {
   late BehaviorSubject<List<WalletCard>> mockWalletCardsStream;
   late WalletCardRepository mockWalletCardRepository;
-  late OrganizationRepository mockOrganizationRepository;
   late TimelineAttributeRepository mockTimelineAttributeRepository;
 
   late ObserveWalletCardDetailUseCase usecase;
@@ -24,12 +22,10 @@ void main() {
   setUp(() {
     mockWalletCardsStream = BehaviorSubject<List<WalletCard>>();
     mockWalletCardRepository = MockWalletCardRepository();
-    mockOrganizationRepository = MockOrganizationRepository();
     mockTimelineAttributeRepository = MockTimelineAttributeRepository();
 
     usecase = ObserveWalletCardDetailUseCaseImpl(
       mockWalletCardRepository,
-      mockOrganizationRepository,
       mockTimelineAttributeRepository,
     );
   });

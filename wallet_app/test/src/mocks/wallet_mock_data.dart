@@ -48,7 +48,6 @@ abstract class WalletMockData {
 
   static final WalletCardDetail cardDetail = WalletCardDetail(
     card: card,
-    issuer: organization,
     latestIssuedOperation: null,
     latestSuccessInteraction: null,
   );
