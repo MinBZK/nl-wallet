@@ -145,12 +145,13 @@ fn setup_verifier_test(
         ),
         ..ReaderRegistration::new_mock()
     };
-    let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+    let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
     let (disclosure_cert, disclosure_privkey) = Certificate::new(
         &ca,
         &ca_privkey,
         RP_CERT_CN,
         CertificateType::ReaderAuth(Box::new(reader_registration).into()),
+        Default::default(),
     )
     .unwrap();
     let disclosure_key = PrivateKey::new(disclosure_privkey, disclosure_cert);

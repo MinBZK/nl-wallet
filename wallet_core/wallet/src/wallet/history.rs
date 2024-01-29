@@ -225,12 +225,13 @@ mod tests {
     async fn test_history() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let (ca_cert, ca_key) = Certificate::new_ca("test-ca").unwrap();
+        let (ca_cert, ca_key) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let (certificate, _) = Certificate::new(
             &ca_cert,
             &ca_key,
             "test-certificate",
             CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
+            Default::default(),
         )
         .unwrap();
         let (mdl_certificate, _) = Certificate::new(
@@ -238,6 +239,7 @@ mod tests {
             &ca_key,
             "test-certificate",
             CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
+            Default::default(),
         )
         .unwrap();
 

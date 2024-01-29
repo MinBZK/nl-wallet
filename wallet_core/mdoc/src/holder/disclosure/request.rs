@@ -275,7 +275,7 @@ mod tests {
     #[tokio::test]
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
         let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
         let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
@@ -480,7 +480,7 @@ mod tests {
     #[tokio::test]
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let private_key = create_private_key(&ca, &ca_privkey, reader_registration.clone().into());
         let der_trust_anchor = DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap();
@@ -501,7 +501,7 @@ mod tests {
 
         assert_matches!(certificate, Some(cert) if cert == private_key.cert_bts);
 
-        let (other_ca, _) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let (other_ca, _) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
         let other_der_trust_anchor = DerTrustAnchor::from_der(other_ca.as_bytes().to_vec()).unwrap();
         let error = doc_request
             .verify(
