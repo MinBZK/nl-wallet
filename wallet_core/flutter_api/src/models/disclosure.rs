@@ -44,7 +44,8 @@ pub struct MissingAttribute {
     pub labels: Vec<LocalizedString>,
 }
 
-pub struct RequestedCard {
+pub struct DisclosureCard {
+    pub issuer: Organization,
     pub doc_type: String,
     pub attributes: Vec<CardAttribute>,
 }
@@ -53,7 +54,7 @@ pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
         policy: RequestPolicy,
-        requested_cards: Vec<RequestedCard>,
+        requested_cards: Vec<DisclosureCard>,
         shared_data_with_relying_party_before: bool,
         request_purpose: Vec<LocalizedString>,
         request_origin_base_url: String,
@@ -140,15 +141,16 @@ impl From<&ReaderRegistration> for RequestPolicy {
     }
 }
 
-impl RequestedCard {
+impl DisclosureCard {
     fn from_disclosure_documents(documents: Vec<DisclosureDocument>) -> Vec<Self> {
-        documents.into_iter().map(RequestedCard::from).collect()
+        documents.into_iter().map(DisclosureCard::from).collect()
     }
 }
 
-impl From<DisclosureDocument> for RequestedCard {
+impl From<DisclosureDocument> for DisclosureCard {
     fn from(value: DisclosureDocument) -> Self {
-        RequestedCard {
+        DisclosureCard {
+            issuer: value.issuer_registration.organization.into(),
             doc_type: value.doc_type.to_string(),
             attributes: into_card_attributes(value.attributes),
         }
@@ -187,7 +189,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_cards: RequestedCard::from_disclosure_documents(proposal.documents),
+                    requested_cards: DisclosureCard::from_disclosure_documents(proposal.documents),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     request_purpose,
                     request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),

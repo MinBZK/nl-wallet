@@ -5,7 +5,7 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart
 import 'package:wallet/src/domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 
-import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
 
 void main() {

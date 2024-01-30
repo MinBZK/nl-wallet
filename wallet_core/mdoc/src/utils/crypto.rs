@@ -21,7 +21,7 @@ use crate::{
         cose::CoseKey,
         serialization::{cbor_serialize, CborError, TaggedBytes},
     },
-    CipherSuiteIdentifier, Error, Result, Security, SecurityKeyed, SessionData, SessionTranscript,
+    CipherSuiteIdentifier, Result, Security, SecurityKeyed, SessionData, SessionTranscript,
 };
 
 use super::serialization::cbor_deserialize;
@@ -69,7 +69,7 @@ pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) 
 }
 
 impl TryFrom<&VerifyingKey> for CoseKey {
-    type Error = Error;
+    type Error = CryptoError;
     fn try_from(key: &VerifyingKey) -> std::result::Result<Self, Self::Error> {
         let encoded_point = key.to_encoded_point(false);
         let x = encoded_point.x().ok_or(CryptoError::KeyMissingCoordinate)?.to_vec();
@@ -81,24 +81,24 @@ impl TryFrom<&VerifyingKey> for CoseKey {
 }
 
 impl TryFrom<&CoseKey> for VerifyingKey {
-    type Error = Error;
-    fn try_from(key: &CoseKey) -> Result<Self> {
+    type Error = CryptoError;
+    fn try_from(key: &CoseKey) -> std::result::Result<Self, Self::Error> {
         if key.0.kty != coset::RegisteredLabel::Assigned(iana::KeyType::EC2) {
-            return Err(CryptoError::KeyWrongType.into());
+            return Err(CryptoError::KeyWrongType);
         }
 
         let keyid = key.0.params.first().ok_or(CryptoError::KeyMissingKeyID)?;
         if *keyid != (Label::Int(-1), Value::Integer(1.into())) {
-            return Err(CryptoError::KeyWrongType.into());
+            return Err(CryptoError::KeyWrongType);
         }
 
         let x = key.0.params.get(1).ok_or(CryptoError::KeyMissingCoordinate)?;
         if x.0 != Label::Int(-2) {
-            return Err(CryptoError::KeyUnepectedCoseLabel.into());
+            return Err(CryptoError::KeyUnepectedCoseLabel);
         }
         let y = key.0.params.get(2).ok_or(CryptoError::KeyMissingCoordinate)?;
         if y.0 != Label::Int(-3) {
-            return Err(CryptoError::KeyUnepectedCoseLabel.into());
+            return Err(CryptoError::KeyUnepectedCoseLabel);
         }
 
         let key = VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
@@ -118,9 +118,9 @@ impl TryFrom<&CoseKey> for VerifyingKey {
 }
 
 impl TryFrom<&PublicKey> for Security {
-    type Error = Error;
+    type Error = CryptoError;
 
-    fn try_from(value: &PublicKey) -> Result<Self> {
+    fn try_from(value: &PublicKey) -> std::result::Result<Self, Self::Error> {
         let cose_key: CoseKey = (&VerifyingKey::from(value)).try_into()?;
         let security = SecurityKeyed {
             cipher_suite_identifier: CipherSuiteIdentifier::P256,
@@ -132,9 +132,9 @@ impl TryFrom<&PublicKey> for Security {
 }
 
 impl TryFrom<&Security> for PublicKey {
-    type Error = Error;
+    type Error = CryptoError;
 
-    fn try_from(value: &Security) -> Result<Self> {
+    fn try_from(value: &Security) -> std::result::Result<Self, Self::Error> {
         let key: VerifyingKey = (&value.0.e_sender_key_bytes.0).try_into()?;
         Ok(key.into())
     }

@@ -1,7 +1,7 @@
-import '../../../data/repository/organization/organization_repository.dart';
 import '../attribute/attribute.dart';
 import '../attribute/data_attribute.dart';
 import '../attribute/missing_attribute.dart';
+import '../organization.dart';
 import '../policy/policy.dart';
 import '../wallet_card.dart';
 

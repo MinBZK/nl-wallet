@@ -21,7 +21,7 @@ use nl_wallet_mdoc::{
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
-    event_log::{DocTypeMap, EventStatus, WalletEvent},
+    event_log::{EventDocuments, EventStatus, WalletEvent},
     key_file::KeyFileError,
 };
 

@@ -8,7 +8,7 @@ import 'package:wallet/src/feature/card/data/card_data_screen.dart';
 import 'package:wallet/src/util/formatter/attribute_value_formatter.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
 
 class MockCardDataBloc extends MockBloc<CardDataEvent, CardDataState> implements CardDataBloc {}

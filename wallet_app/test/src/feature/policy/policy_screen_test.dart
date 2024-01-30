@@ -4,7 +4,7 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/policy/policy_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../mocks/mock_data.dart';
+import '../../mocks/wallet_mock_data.dart';
 import '../../util/device_utils.dart';
 
 void main() {

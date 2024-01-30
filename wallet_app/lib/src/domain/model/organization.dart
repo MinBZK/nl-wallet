@@ -1,8 +1,14 @@
 import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 import 'app_image_data.dart';
+import 'attribute/converter/app_image_data_converter.dart';
+import 'attribute/converter/localized_string_converter.dart';
 import 'localized_text.dart';
 
+part 'organization.g.dart';
+
+@JsonSerializable(converters: [LocalizedStringConverter(), AppImageDataConverter()], explicitToJson: true)
 class Organization extends Equatable {
   final String id;
   final LocalizedText legalName;
@@ -31,6 +37,10 @@ class Organization extends Equatable {
     this.department,
     this.kvk,
   });
+
+  factory Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$OrganizationToJson(this);
 
   @override
   List<Object?> get props => [

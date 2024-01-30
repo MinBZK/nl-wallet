@@ -6,12 +6,14 @@ import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
 
 const _kSampleCardAttributeName = CardAttribute(key: 'name', labels: [], value: CardValue_String(value: 'Willeke'));
 const _kSampleCardAttributeCity = CardAttribute(key: 'city', labels: [], value: CardValue_String(value: 'Den Haag'));
 const _kSampleNameSubtitle = {'en': 'Willeke', 'nl': 'Willeke'};
 const _kSampleCitySubtitle = {'en': 'Den Haag', 'nl': 'Den Haag'};
+const _kSampleIssuer = CoreMockData.organization;
 
 void main() {
   late Mapper<CardValue, AttributeValue> mockAttributeValueMapper;
@@ -24,7 +26,12 @@ void main() {
   });
 
   Card createSampleCard(String docType, List<CardAttribute> attributes) {
-    return Card(persistence: const CardPersistence_InMemory(), docType: docType, attributes: attributes);
+    return Card(
+      persistence: const CardPersistence_InMemory(),
+      docType: docType,
+      attributes: attributes,
+      issuer: _kSampleIssuer,
+    );
   }
 
   group('map', () {

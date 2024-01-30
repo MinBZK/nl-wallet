@@ -1,17 +1,20 @@
 use chrono::{DateTime, Utc};
 use tracing::info;
 
-use nl_wallet_mdoc::utils::{
-    issuer_auth::IssuerRegistration,
-    reader_auth::ReaderRegistration,
-    x509::{CertificateError, CertificateType},
+use nl_wallet_mdoc::{
+    holder::ProposedDocumentAttributes,
+    utils::{
+        issuer_auth::IssuerRegistration,
+        reader_auth::ReaderRegistration,
+        x509::{CertificateError, MdocCertificateExtension},
+    },
 };
 
 pub use crate::storage::EventStatus;
 use crate::{
     document::DocumentMdocError,
     errors::StorageError,
-    storage::{DocTypeMap, Storage, WalletEvent},
+    storage::{EventDocuments, Storage, WalletEvent},
     DisclosureDocument, Document, DocumentPersistence,
 };
 
@@ -90,7 +93,6 @@ where
 pub enum HistoryEvent {
     Issuance {
         timestamp: DateTime<Utc>,
-        issuer_registration: Box<IssuerRegistration>,
         mdocs: Vec<Document>,
     },
     Disclosure {
@@ -108,7 +110,6 @@ impl TryFrom<WalletEvent> for HistoryEvent {
         let result = match source {
             WalletEvent::Issuance {
                 id: _,
-                remote_party_certificate,
                 timestamp,
                 mdocs,
             } => Self::Issuance {
@@ -116,25 +117,24 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 mdocs: mdocs
                     .0
                     .into_iter()
-                    .map(|(doc_type, namespaces)| {
+                    .map(|(doc_type, proposed_card)| {
+                        let issuer_registration = IssuerRegistration::from_certificate(&proposed_card.issuer)?
+                            .ok_or(HistoryError::NoIssuerRegistrationFound)?;
+
                         // TODO: Refer to persisted mdoc from the mdoc table, or not?
-                        Document::from_mdoc_attributes(DocumentPersistence::InMemory, &doc_type, namespaces)
+                        let document = Document::from_mdoc_attributes(
+                            DocumentPersistence::InMemory,
+                            &doc_type,
+                            proposed_card.into(),
+                            issuer_registration,
+                        )?;
+                        Ok(document)
                     })
-                    .collect::<Result<_, _>>()?,
-                issuer_registration: {
-                    let certificate_type = CertificateType::from_certificate(&remote_party_certificate)?;
-                    let issuer_registration = if let CertificateType::Mdl(Some(issuer_registration)) = certificate_type
-                    {
-                        *issuer_registration
-                    } else {
-                        return Err(HistoryError::NoIssuerRegistrationFound);
-                    };
-                    Box::new(issuer_registration)
-                },
+                    .collect::<Result<_, HistoryError>>()?,
             },
             WalletEvent::Disclosure {
                 id: _,
-                remote_party_certificate,
+                reader_certificate,
                 timestamp,
                 documents,
                 status,
@@ -142,23 +142,24 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 status,
                 timestamp,
                 attributes: documents
-                    .map(|DocTypeMap(mdocs)| {
+                    .map(|EventDocuments(mdocs)| {
                         mdocs
                             .into_iter()
                             .map(|(doc_type, namespaces)| {
-                                DisclosureDocument::from_mdoc_attributes(&doc_type, namespaces)
+                                DisclosureDocument::from_mdoc_attributes(
+                                    &doc_type,
+                                    ProposedDocumentAttributes {
+                                        issuer: namespaces.issuer.clone(),
+                                        attributes: namespaces.into(),
+                                    },
+                                )
                             })
                             .collect::<Result<Vec<_>, _>>()
                     })
                     .transpose()?,
                 reader_registration: {
-                    let certificate_type = CertificateType::from_certificate(&remote_party_certificate)?;
-                    let reader_registration =
-                        if let CertificateType::ReaderAuth(Some(reader_registration)) = certificate_type {
-                            *reader_registration
-                        } else {
-                            return Err(HistoryError::NoReaderRegistrationFound);
-                        };
+                    let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)?
+                        .ok_or(HistoryError::NoReaderRegistrationFound)?;
                     Box::new(reader_registration)
                 },
             },
@@ -172,13 +173,12 @@ mod tests {
     use assert_matches::assert_matches;
 
     use chrono::{Duration, TimeZone, Utc};
-    use nl_wallet_mdoc::utils::{
-        issuer_auth::IssuerRegistration,
-        reader_auth::ReaderRegistration,
-        x509::{Certificate, CertificateType},
-    };
+    use nl_wallet_mdoc::{server_keys::KeyPair, utils::reader_auth::ReaderRegistration};
 
-    use crate::{storage::WalletEvent, wallet::test::WalletWithMocks};
+    use crate::{
+        storage::WalletEvent,
+        wallet::test::{WalletWithMocks, ISSUER_KEY},
+    };
 
     use super::HistoryError;
 
@@ -225,23 +225,10 @@ mod tests {
     async fn test_history() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let (ca_cert, ca_key) = Certificate::new_ca("test-ca", Default::default()).unwrap();
-        let (certificate, _) = Certificate::new(
-            &ca_cert,
-            &ca_key,
-            "test-certificate",
-            CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
-            Default::default(),
-        )
-        .unwrap();
-        let (mdl_certificate, _) = Certificate::new(
-            &ca_cert,
-            &ca_key,
-            "test-certificate",
-            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
-            Default::default(),
-        )
-        .unwrap();
+        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let reader_key = reader_ca
+            .generate_reader_mock(ReaderRegistration::new_mock().into())
+            .unwrap();
 
         // history should be empty
         let history = wallet.get_history().await.unwrap();
@@ -250,12 +237,15 @@ mod tests {
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
 
-        let pid_doc_type_event =
-            WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_older, mdl_certificate.clone());
+        let pid_doc_type_event = WalletEvent::issuance_from_str(
+            vec![PID_DOCTYPE],
+            timestamp_older,
+            ISSUER_KEY.issuance_key.certificate().clone(),
+        );
         wallet.store_history_event(pid_doc_type_event.clone()).await.unwrap();
 
         let disclosure_cancelled_event =
-            WalletEvent::disclosure_cancel(timestamp_older + Duration::days(1), certificate.clone());
+            WalletEvent::disclosure_cancel(timestamp_older + Duration::days(1), reader_key.certificate().clone());
         wallet
             .store_history_event(disclosure_cancelled_event.clone())
             .await
@@ -263,7 +253,7 @@ mod tests {
 
         let disclosure_error_event = WalletEvent::disclosure_error(
             timestamp_older + Duration::days(2),
-            certificate.clone(),
+            reader_key.certificate().clone(),
             "Some Error".to_owned(),
         );
         wallet
@@ -271,8 +261,12 @@ mod tests {
             .await
             .unwrap();
 
-        let address_doc_type_event =
-            WalletEvent::disclosure_from_str(vec![ADDRESS_DOCTYPE], timestamp_newer, certificate);
+        let address_doc_type_event = WalletEvent::disclosure_from_str(
+            vec![ADDRESS_DOCTYPE],
+            timestamp_newer,
+            reader_key.certificate().clone(),
+            ISSUER_KEY.issuance_key.certificate(),
+        );
         wallet
             .store_history_event(address_doc_type_event.clone())
             .await

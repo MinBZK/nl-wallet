@@ -9,9 +9,11 @@ import 'package:wallet/src/wallet_core/error/flutter_api_error.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../mocks/core_mock_data.dart';
 import '../../mocks/wallet_mocks.dart';
 
-const samplePin = '112233';
+const _kSamplePin = '112233';
+const _kSampleIssuer = CoreMockData.organization;
 
 void main() {
   late WalletCore core;
@@ -28,17 +30,17 @@ void main() {
 
   group('isValidPin', () {
     test('pin validation is passed on to core', () async {
-      when(core.isValidPin(pin: samplePin)).thenAnswer((realInvocation) async => PinValidationResult.Ok);
-      final result = await typedWalletCore.isValidPin(samplePin);
+      when(core.isValidPin(pin: _kSamplePin)).thenAnswer((realInvocation) async => PinValidationResult.Ok);
+      final result = await typedWalletCore.isValidPin(_kSamplePin);
       expect(result, PinValidationResult.Ok);
-      verify(core.isValidPin(pin: samplePin)).called(1);
+      verify(core.isValidPin(pin: _kSamplePin)).called(1);
     });
   });
 
   group('register', () {
     test('register is passed on to core', () async {
-      await typedWalletCore.register(samplePin);
-      verify(core.register(pin: samplePin)).called(1);
+      await typedWalletCore.register(_kSamplePin);
+      verify(core.register(pin: _kSamplePin)).called(1);
     });
   });
 
@@ -58,8 +60,8 @@ void main() {
 
   group('unlockWallet', () {
     test('unlock wallet is passed on to core', () async {
-      await typedWalletCore.unlockWallet(samplePin);
-      verify(core.unlockWallet(pin: samplePin)).called(1);
+      await typedWalletCore.unlockWallet(_kSamplePin);
+      verify(core.unlockWallet(pin: _kSamplePin)).called(1);
     });
   });
 
@@ -114,8 +116,8 @@ void main() {
 
   group('acceptOfferedPid', () {
     test('accept offered pid is passed on to core', () async {
-      await typedWalletCore.acceptOfferedPid(samplePin);
-      verify(core.acceptPidIssuance(pin: samplePin)).called(1);
+      await typedWalletCore.acceptOfferedPid(_kSamplePin);
+      verify(core.acceptPidIssuance(pin: _kSamplePin)).called(1);
     });
   });
 
@@ -136,8 +138,18 @@ void main() {
   group('observeCards', () {
     test('observeCards should fetch cards through WalletCore', () {
       List<Card> mockCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_id',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        ),
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_address',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        ),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.value(mockCards));
       expect(
@@ -148,11 +160,26 @@ void main() {
 
     test('observeCards should emit a new value when WalletCore exposes new cards', () {
       List<Card> initialCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [])
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_id',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        )
       ];
       List<Card> updatedCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_id',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        ),
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_address',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        ),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([[], initialCards, updatedCards]));
 
@@ -164,11 +191,26 @@ void main() {
 
     test('observeCards should emit only the last value on a new subscription', () async {
       List<Card> initialCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: [])
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_id',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        )
       ];
       List<Card> updatedCards = [
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_id', attributes: []),
-        const Card(persistence: CardPersistence.stored(id: '0'), docType: 'pid_address', attributes: []),
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_id',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        ),
+        const Card(
+          persistence: CardPersistence.stored(id: '0'),
+          docType: 'pid_address',
+          attributes: [],
+          issuer: _kSampleIssuer,
+        ),
       ];
       when(core.setCardsStream()).thenAnswer((realInvocation) => Stream.fromIterable([initialCards, updatedCards]));
 
@@ -187,13 +229,13 @@ void main() {
     final ffiException = FfiException('RESULT_ERROR', jsonEncode(flutterApiError));
 
     test('isValidPin', () async {
-      when(core.isValidPin(pin: samplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.isValidPin(samplePin), throwsA(isA<CoreError>()));
+      when(core.isValidPin(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      expect(() async => await typedWalletCore.isValidPin(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('register', () async {
-      when(core.register(pin: samplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.register(samplePin), throwsA(isA<CoreError>()));
+      when(core.register(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      expect(() async => await typedWalletCore.register(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('isRegistered', () async {
@@ -207,8 +249,8 @@ void main() {
     });
 
     test('unlockWallet', () async {
-      when(core.unlockWallet(pin: samplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.unlockWallet(samplePin), throwsA(isA<CoreError>()));
+      when(core.unlockWallet(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      expect(() async => await typedWalletCore.unlockWallet(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('createPidIssuanceRedirectUri', () async {
@@ -227,8 +269,8 @@ void main() {
     });
 
     test('acceptOfferedPid', () async {
-      when(core.acceptPidIssuance(pin: samplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.acceptOfferedPid(samplePin), throwsA(isA<CoreError>()));
+      when(core.acceptPidIssuance(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      expect(() async => await typedWalletCore.acceptOfferedPid(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('rejectOfferedPid', () async {

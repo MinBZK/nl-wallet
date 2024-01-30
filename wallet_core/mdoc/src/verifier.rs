@@ -24,7 +24,7 @@ use crate::{
     basic_sa_ext::Entry,
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{self, ClonePayload, MdocCose},
@@ -588,14 +588,14 @@ impl Session<Created> {
     async fn new_device_request(
         &self,
         session_transcript: &SessionTranscript,
-        private_key: &PrivateKey,
+        private_key: &KeyPair,
     ) -> Result<DeviceRequest> {
         let doc_requests = try_join_all(self.state().items_requests.0.iter().map(|items_request| async {
             let items_request = items_request.clone().into();
             let reader_auth = ReaderAuthenticationKeyed::new(session_transcript, &items_request);
             let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
                 &TaggedBytes(CborSeq(reader_auth)),
-                cose::new_certificate_header(&private_key.cert_bts),
+                cose::new_certificate_header(private_key.certificate()),
                 private_key,
                 false,
             )
@@ -955,13 +955,13 @@ mod tests {
             EXAMPLE_NAMESPACE,
         },
         identifiers::AttributeIdentifierHolder,
-        server_keys::{PrivateKey, SingleKeyRing},
+        server_keys::{KeyPair, SingleKeyRing},
         server_state::MemorySessionStore,
         test::{self, DebugCollapseBts},
         utils::{
             crypto::{SessionKey, SessionKeyUser},
+            reader_auth::ReaderRegistration,
             serialization::cbor_serialize,
-            x509::{Certificate, CertificateType},
         },
         verifier::{
             SessionType, ValidityError,
@@ -1049,8 +1049,6 @@ mod tests {
         );
     }
 
-    const RP_CA_CN: &str = "ca.rp.example.com";
-    const RP_CERT_CN: &str = "cert.rp.example.com";
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
     const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
     const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
@@ -1075,21 +1073,14 @@ mod tests {
     #[tokio::test]
     async fn disclosure() {
         // Initialize server state
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![
-            DerTrustAnchor::from_der(ca.as_bytes().to_vec())
+            DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec())
                 .unwrap()
                 .owned_trust_anchor,
         ];
-        let (rp_cert, rp_privkey) = Certificate::new(
-            &ca,
-            &ca_privkey,
-            RP_CERT_CN,
-            CertificateType::ReaderAuth(Default::default()),
-            Default::default(),
-        )
-        .unwrap();
-        let keys = SingleKeyRing(PrivateKey::new(rp_privkey, rp_cert));
+        let rp_privkey = ca.generate_reader_mock(ReaderRegistration::new_mock().into()).unwrap();
+        let keys = SingleKeyRing(rp_privkey);
         let session_store = MemorySessionStore::new();
 
         let verifier = Verifier::new(

@@ -9,6 +9,8 @@ import 'package:wallet/src/util/mapper/card/card_config_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_front_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
+import 'package:wallet/src/util/mapper/image/image_mapper.dart';
+import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
@@ -26,6 +28,7 @@ void main() {
         CardFrontMapper(CardSubtitleMapper(CardAttributeValueMapper())),
         CardConfigMapper(),
         CardAttributeMapper(CardAttributeValueMapper(), LocalizedLabelsMapper()),
+        OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
       ),
     );
   });

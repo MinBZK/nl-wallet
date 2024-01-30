@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt, iter, sync::Arc};
 
 use futures::future;
 use indexmap::{IndexMap, IndexSet};
-use p256::{ecdsa::SigningKey, SecretKey};
+use p256::SecretKey;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc;
 use url::Url;
@@ -23,13 +23,12 @@ use crate::{
         disclosure::{SessionData, SessionStatus},
         engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     },
-    server_keys::PrivateKey,
+    server_keys::KeyPair,
     utils::{
         cose::{self, MdocCose},
         crypto::{SessionKey, SessionKeyUser},
         reader_auth::ReaderRegistration,
         serialization::{self, CborSeq, TaggedBytes},
-        x509::{Certificate, CertificateType},
     },
     verifier::SessionType,
 };
@@ -37,8 +36,6 @@ use crate::{
 use super::{proposed_document::ProposedDocument, DisclosureSession, MdocDataSource, StoredMdoc};
 
 // Constants for testing.
-pub const RP_CA_CN: &str = "ca.rp.example.com";
-pub const RP_CERT_CN: &str = "cert.rp.example.com";
 pub const SESSION_URL: &str = "http://example.com/disclosure";
 pub const RETURN_URL: &str = "http://example.com/return";
 
@@ -85,25 +82,6 @@ pub fn emtpy_items_request() -> ItemsRequest {
     )
 }
 
-/// Convenience function for creating a [`PrivateKey`],
-/// based on a CA certificate and signing key.
-pub fn create_private_key(
-    ca: &Certificate,
-    ca_signing_key: &SigningKey,
-    reader_registration: Option<ReaderRegistration>,
-) -> PrivateKey {
-    let (certificate, signing_key) = Certificate::new(
-        ca,
-        ca_signing_key,
-        RP_CERT_CN,
-        CertificateType::ReaderAuth(reader_registration.map(Box::new)),
-        Default::default(),
-    )
-    .unwrap();
-
-    PrivateKey::new(signing_key, certificate)
-}
-
 /// Create a basic `SessionTranscript` we can use for testing.
 pub fn create_basic_session_transcript() -> SessionTranscript {
     let (reader_engagement, _reader_private_key) =
@@ -115,11 +93,11 @@ pub fn create_basic_session_transcript() -> SessionTranscript {
 }
 
 /// Create a `DocRequest` including reader authentication,
-/// based on a `SessionTranscript` and `PrivateKey`.
+/// based on a `SessionTranscript` and `KeyPair`.
 pub async fn create_doc_request(
     items_request: ItemsRequest,
     session_transcript: &SessionTranscript,
-    private_key: &PrivateKey,
+    private_key: &KeyPair,
 ) -> DocRequest {
     // Generate the reader authentication signature, without payload.
     let items_request = items_request.into();
@@ -127,7 +105,7 @@ pub async fn create_doc_request(
 
     let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
         &TaggedBytes(CborSeq(reader_auth_keyed)),
-        cose::new_certificate_header(&private_key.cert_bts),
+        cose::new_certificate_header(private_key.certificate()),
         private_key,
         false,
     )
@@ -146,12 +124,15 @@ pub async fn create_doc_request(
 pub fn create_example_proposed_document() -> ProposedDocument<MdocIdentifier> {
     let mdoc = Mdoc::new_example_mock();
 
+    let issuer_certificate = mdoc.issuer_certificate().unwrap();
+
     ProposedDocument {
         source_identifier: "id_1234".to_string(),
         private_key_id: mdoc.private_key_id,
         doc_type: mdoc.doc_type,
         issuer_signed: mdoc.issuer_signed,
         device_signed_challenge: b"signing_challenge".to_vec(),
+        issuer_certificate,
     }
 }
 
@@ -290,7 +271,7 @@ pub struct MockVerifierSession<F> {
     pub return_url: Option<Url>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<DerTrustAnchor>,
-    private_key: PrivateKey,
+    private_key: KeyPair,
     pub reader_engagement: ReaderEngagement,
     reader_ephemeral_key: SecretKey,
     pub reader_engagement_bytes_override: Option<Vec<u8>>,
@@ -327,9 +308,9 @@ where
         transform_device_request: F,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN, Default::default()).unwrap();
-        let trust_anchors = vec![DerTrustAnchor::from_der(ca.as_bytes().to_vec()).unwrap()];
-        let private_key = create_private_key(&ca, &ca_privkey, reader_registration.as_ref().cloned());
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
+        let private_key = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate the `ReaderEngagement` that would be be sent in the UL.
         let (reader_engagement, reader_ephemeral_key) = ReaderEngagement::new_reader_engagement(session_url).unwrap();

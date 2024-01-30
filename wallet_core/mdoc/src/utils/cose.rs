@@ -1,6 +1,6 @@
 //! Cose objects, keys, parsing, and verification.
 
-use std::marker::PhantomData;
+use std::{marker::PhantomData, result::Result};
 
 use chrono::{DateTime, Utc};
 use ciborium::value::Value;
@@ -21,7 +21,6 @@ use crate::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::{cbor_deserialize, cbor_serialize, CborError},
     },
-    Result,
 };
 
 use super::x509::{Certificate, CertificateError, CertificateUsage};
@@ -31,7 +30,7 @@ pub trait Cose {
     type Key;
     fn payload(&self) -> &Option<Vec<u8>>;
     fn unprotected(&self) -> &Header;
-    fn verify(&self, key: &Self::Key) -> Result<()>;
+    fn verify(&self, key: &Self::Key) -> Result<(), CoseError>;
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -64,10 +63,10 @@ impl Cose for CoseSign1 {
     fn unprotected(&self) -> &Header {
         &self.unprotected
     }
-    fn verify(&self, key: &VerifyingKey) -> Result<()> {
+    fn verify(&self, key: &VerifyingKey) -> Result<(), CoseError> {
         self.verify_signature(b"", |sig, data| {
             if self.payload.is_none() {
-                return Err(CoseError::MissingPayload.into());
+                return Err(CoseError::MissingPayload);
             }
 
             let sig = &Signature::try_from(sig).map_err(CoseError::EcdsaSignatureParsingFailed)?;
@@ -86,9 +85,9 @@ impl Cose for CoseMac0 {
     fn unprotected(&self) -> &Header {
         &self.unprotected
     }
-    fn verify(&self, key: &hmac::Key) -> Result<()> {
+    fn verify(&self, key: &hmac::Key) -> Result<(), CoseError> {
         if self.payload.is_none() {
-            return Err(CoseError::MissingPayload.into());
+            return Err(CoseError::MissingPayload);
         }
 
         self.verify_tag(b"", |tag, data| {
@@ -110,7 +109,7 @@ where
     /// Parse and return the payload without verifying the Cose signature.
     /// DANGEROUS: this ignores the Cose signature/mac entirely, so the authenticity of the Cose and
     /// its payload is in no way guaranteed. Use [`MdocCose::verify_and_parse()`] instead if possible.
-    pub(crate) fn dangerous_parse_unverified(&self) -> Result<T> {
+    pub(crate) fn dangerous_parse_unverified(&self) -> Result<T, CoseError> {
         let payload = cbor_deserialize(
             self.0
                 .payload()
@@ -123,18 +122,18 @@ where
     }
 
     /// Verify the Cose using the specified key.
-    pub fn verify(&self, key: &C::Key) -> Result<()> {
+    pub fn verify(&self, key: &C::Key) -> Result<(), CoseError> {
         self.0.verify(key)
     }
 
     /// Verify the Cose using the specified key, and if the Cose is valid,
     /// CBOR-deserialize and return its payload.
-    pub fn verify_and_parse(&self, key: &C::Key) -> Result<T> {
+    pub fn verify_and_parse(&self, key: &C::Key) -> Result<T, CoseError> {
         self.verify(key)?;
         self.dangerous_parse_unverified()
     }
 
-    pub fn unprotected_header_item(&self, label: &Label) -> Result<&Value> {
+    pub fn unprotected_header_item(&self, label: &Label) -> Result<&Value, CoseError> {
         let header_item = &self
             .0
             .unprotected()
@@ -168,7 +167,7 @@ impl<T> MdocCose<CoseSign1, T> {
         unprotected_header: Header,
         private_key: &impl SecureEcdsaKey,
         include_payload: bool,
-    ) -> Result<MdocCose<CoseSign1, T>>
+    ) -> Result<MdocCose<CoseSign1, T>, CoseError>
     where
         T: Clone + Serialize,
     {
@@ -184,7 +183,7 @@ impl<T> MdocCose<CoseSign1, T> {
         number_of_keys: u64,
         key_factory: &impl KeyFactory<Key = K>,
         include_payload: bool,
-    ) -> Result<Vec<(K, MdocCose<CoseSign1, T>)>>
+    ) -> crate::Result<Vec<(K, MdocCose<CoseSign1, T>)>>
     where
         T: Clone + Serialize,
     {
@@ -203,7 +202,7 @@ impl<T> MdocCose<CoseSign1, T> {
 
     // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
     /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
-    pub fn signing_cert(&self) -> Result<Certificate>
+    pub fn signing_cert(&self) -> Result<Certificate, CoseError>
     where
         T: DeserializeOwned,
     {
@@ -223,7 +222,7 @@ impl<T> MdocCose<CoseSign1, T> {
         usage: CertificateUsage,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<T>
+    ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
     {
@@ -283,7 +282,7 @@ pub async fn sign_cose(
     unprotected_header: Header,
     private_key: &impl SecureEcdsaKey,
     include_payload: bool,
-) -> Result<CoseSign1> {
+) -> Result<CoseSign1, CoseError> {
     let (sig_data, protected_header) = signature_data_and_header(payload);
 
     let signature = private_key
@@ -307,7 +306,7 @@ pub async fn sign_coses<K: MdocEcdsaKey>(
     key_factory: &impl KeyFactory<Key = K>,
     unprotected_header: Header,
     include_payload: bool,
-) -> Result<Vec<(K, CoseSign1)>> {
+) -> Result<Vec<(K, CoseSign1)>, CoseError> {
     let payloads = keys_and_challenges
         .iter()
         .map(|(_key, challenge)| *challenge)
@@ -351,7 +350,7 @@ pub async fn generate_keys_and_sign_cose<K: MdocEcdsaKey>(
     number_of_keys: u64,
     key_factory: &impl KeyFactory<Key = K>,
     include_payload: bool,
-) -> Result<Vec<(K, CoseSign1)>> {
+) -> crate::Result<Vec<(K, CoseSign1)>> {
     let (sig_data, protected_header) = signature_data_and_header(payload);
 
     let signatures = key_factory
@@ -463,13 +462,10 @@ mod tests {
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::{
-        utils::{
-            cose::{self, CoseError},
-            issuer_auth::IssuerRegistration,
-            x509::{Certificate, CertificateType, CertificateUsage},
-        },
-        Error,
+    use crate::utils::{
+        cose::{self, CoseError},
+        issuer_auth::IssuerRegistration,
+        x509::{Certificate, CertificateType, CertificateUsage},
     };
 
     use super::{ClonePayload, MdocCose};
@@ -513,7 +509,7 @@ mod tests {
         cose.0.signature[0] = !cose.0.signature[0]; // invert bits
         assert!(matches!(
             cose.verify(key.verifying_key()),
-            Err(Error::Cose(CoseError::EcdsaSignatureVerificationFailed(_)))
+            Err(CoseError::EcdsaSignatureVerificationFailed(_))
         ));
 
         // Verification should fail if the signature length is not right
@@ -521,7 +517,7 @@ mod tests {
         cose.0.signature.remove(len - 1);
         assert!(matches!(
             cose.verify(key.verifying_key()),
-            Err(Error::Cose(CoseError::EcdsaSignatureParsingFailed(_)))
+            Err(CoseError::EcdsaSignatureParsingFailed(_))
         ));
     }
 
@@ -552,7 +548,7 @@ mod tests {
 
         assert!(matches!(
             cose.unprotected_header_item(&Label::Text("not_present".to_string())),
-            Err(Error::Cose(CoseError::MissingLabel(_)))
+            Err(CoseError::MissingLabel(_))
         ))
     }
 

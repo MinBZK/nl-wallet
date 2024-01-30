@@ -21,7 +21,7 @@ use crate::{
     },
     document::{DisclosureDocument, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{DocTypeMap, Storage, StorageError, StoredMdocCopy, WalletEvent},
+    storage::{Storage, StorageError, StoredMdocCopy, WalletEvent},
     EventStatus,
 };
 
@@ -208,7 +208,7 @@ where
         message: String,
     ) {
         let event = WalletEvent::new_disclosure(
-            session_proposal.map(DocTypeMap),
+            session_proposal.map(Into::into),
             remote_party_certificate,
             EventStatus::Error(message),
         );
@@ -286,9 +286,8 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         if let Err(error) = session_proposal.disclose(&&remote_key_factory).await {
-            let shared_data = error.data_shared.then(|| session_proposal.proposed_attributes());
             self.log_disclosure_error(
-                shared_data,
+                error.data_shared.then(|| session_proposal.proposed_attributes()),
                 session.rp_certificate().clone(),
                 "Error occurred while disclosing attributes".to_owned(),
             )
@@ -313,7 +312,7 @@ where
 
         // Save data for disclosure in event log.
         let event = WalletEvent::new_disclosure(
-            Some(DocTypeMap(session_proposal.proposed_attributes())),
+            Some(session_proposal.proposed_attributes().into()),
             session.rp_certificate().clone(),
             EventStatus::Success,
         );
@@ -380,7 +379,7 @@ mod tests {
 
     use nl_wallet_mdoc::{
         basic_sa_ext::Entry,
-        holder::{HolderError, Mdoc},
+        holder::{HolderError, Mdoc, ProposedDocumentAttributes},
         iso::disclosure::SessionStatus,
         verifier::SessionType,
         DataElementValue,
@@ -389,6 +388,7 @@ mod tests {
 
     use crate::{
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
+        wallet::test::ISSUER_KEY,
         Attribute, AttributeValue, EventStatus,
     };
 
@@ -407,13 +407,16 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "age_over_18".to_string(),
-                    value: DataElementValue::Bool(true),
-                }],
-            )]),
+            ProposedDocumentAttributes {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "age_over_18".to_string(),
+                        value: DataElementValue::Bool(true),
+                    }],
+                )]),
+                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+            },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
@@ -622,13 +625,16 @@ mod tests {
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "foo".to_string(),
-                    value: DataElementValue::Text("bar".to_string()),
-                }],
-            )]),
+            ProposedDocumentAttributes {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "foo".to_string(),
+                        value: DataElementValue::Text("bar".to_string()),
+                    }],
+                )]),
+                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+            },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_attributes,
@@ -667,13 +673,16 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "age_over_18".to_string(),
-                    value: DataElementValue::Bool(true),
-                }],
-            )]),
+            ProposedDocumentAttributes {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "age_over_18".to_string(),
+                        value: DataElementValue::Bool(true),
+                    }],
+                )]),
+                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+            },
         )]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
@@ -840,13 +849,16 @@ mod tests {
 
         let proposed_attributes = IndexMap::from([(
             "com.example.pid".to_string(),
-            IndexMap::from([(
-                "com.example.pid".to_string(),
-                vec![Entry {
-                    name: "age_over_18".to_string(),
-                    value: DataElementValue::Bool(true),
-                }],
-            )]),
+            ProposedDocumentAttributes {
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    vec![Entry {
+                        name: "age_over_18".to_string(),
+                        value: DataElementValue::Bool(true),
+                    }],
+                )]),
+                issuer: ISSUER_KEY.issuance_key.certificate().clone(),
+            },
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
             return_url: return_url.clone().into(),
@@ -891,9 +903,9 @@ mod tests {
             WalletEvent::Disclosure {
                 status: EventStatus::Success,
                 documents: Some(_),
-                remote_party_certificate,
+                reader_certificate,
                 ..
-            } if wallet.storage.read().await.did_share_data_with_relying_party(remote_party_certificate).await.unwrap()
+            } if wallet.storage.read().await.did_share_data_with_relying_party(reader_certificate).await.unwrap()
         );
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
@@ -1223,10 +1235,10 @@ mod tests {
             WalletEvent::Disclosure {
                 status: EventStatus::Error(error),
                 documents: Some(_),
-                remote_party_certificate,
+                reader_certificate,
                 ..
             } if error == "Error occurred while disclosing attributes" &&
-                wallet.storage.read().await.did_share_data_with_relying_party(remote_party_certificate).await.unwrap()
+                wallet.storage.read().await.did_share_data_with_relying_party(reader_certificate).await.unwrap()
         );
     }
 

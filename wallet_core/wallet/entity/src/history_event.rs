@@ -31,7 +31,7 @@ pub struct Model {
     #[sea_orm(column_name = "type")]
     pub event_type: EventType,
     pub timestamp: DateTime<Utc>,
-    pub remote_party_certificate: Vec<u8>,
+    pub relying_party_certificate: Option<Vec<u8>>,
     pub status: EventStatus,
     // TODO: How to translate a generic description? Shouldn't this be part of the audit log?
     pub status_description: Option<String>,

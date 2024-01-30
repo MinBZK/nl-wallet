@@ -7,14 +7,13 @@ use webpki::TrustAnchor;
 use wallet_common::{generator::TimeGenerator, utils};
 
 use crate::{
-    basic_sa_ext::Entry,
     device_retrieval::DeviceRequest,
     disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
     holder::{DisclosureError, DisclosureResult, HolderError, HttpClient, HttpClientError, HttpClientResult},
     identifiers::AttributeIdentifier,
-    mdocs::{DocType, NameSpace},
+    mdocs::DocType,
     utils::{
         crypto::SessionKey,
         keys::{KeyFactory, MdocEcdsaKey},
@@ -25,12 +24,16 @@ use crate::{
     verifier::SessionType,
 };
 
-use super::{proposed_document::ProposedDocument, request::DeviceRequestMatch, MdocDataSource};
+use super::{
+    proposed_document::{ProposedDocument, ProposedDocumentAttributes},
+    request::DeviceRequestMatch,
+    MdocDataSource,
+};
 
 const REFERRER_URL: &str = "https://referrer.url/";
 const TRANSCRIPT_HASH_PARAM: &str = "transcript_hash";
 
-pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
+pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 
 /// This represents a started disclosure session, which can be in one of two states.
 /// Regardless of which state it is in, it provides the `ReaderRegistration` through
@@ -329,7 +332,7 @@ where
         // prepared `IssuerSigned` on the `ProposedDocument`s.
         self.proposed_documents
             .iter()
-            .map(|document| (document.doc_type.clone(), document.name_spaces()))
+            .map(|document| (document.doc_type.clone(), document.proposed_attributes()))
             .collect()
     }
 
@@ -592,7 +595,7 @@ mod tests {
         let entry_keys = proposal_session
             .proposed_attributes()
             .remove(EXAMPLE_DOC_TYPE)
-            .and_then(|mut name_space| name_space.remove(EXAMPLE_NAMESPACE))
+            .and_then(|mut name_space| name_space.attributes.remove(EXAMPLE_NAMESPACE))
             .map(|entries| entries.into_iter().map(|entry| entry.name).collect::<Vec<_>>())
             .unwrap_or_default();
 

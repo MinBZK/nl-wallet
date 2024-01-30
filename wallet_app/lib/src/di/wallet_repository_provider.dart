@@ -18,8 +18,6 @@ import '../data/repository/issuance/core/core_issuance_repository.dart';
 import '../data/repository/issuance/issuance_repository.dart';
 import '../data/repository/language/impl/language_repository_impl.dart';
 import '../data/repository/language/language_repository.dart';
-import '../data/repository/organization/impl/organization_repository_impl.dart';
-import '../data/repository/organization/organization_repository.dart';
 import '../data/repository/pid/core/core_pid_repository.dart';
 import '../data/repository/pid/pid_repository.dart';
 import '../data/repository/qr/core/core_qr_repository.dart';
@@ -44,9 +42,6 @@ class WalletRepositoryProvider extends StatelessWidget {
       providers: [
         RepositoryProvider<WalletRepository>(
           create: (context) => CoreWalletRepository(context.read(), context.read()),
-        ),
-        RepositoryProvider<OrganizationRepository>(
-          create: (context) => OrganizationRepositoryImpl(issuanceApi, context.read()),
         ),
         RepositoryProvider<WalletCardRepository>(create: (context) => WalletCardRepositoryImpl(context.read())),
         RepositoryProvider<DataAttributeRepository>(

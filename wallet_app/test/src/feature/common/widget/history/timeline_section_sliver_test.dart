@@ -10,7 +10,7 @@ import 'package:wallet/src/feature/common/widget/history/timeline_section_sliver
 import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
-import '../../../../mocks/mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 
 void main() {
   const kGoldenSize = Size(350, 356);

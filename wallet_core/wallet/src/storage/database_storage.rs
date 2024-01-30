@@ -424,9 +424,9 @@ where
         certificate: &nl_wallet_mdoc::utils::x509::Certificate,
     ) -> StorageResult<bool> {
         let select_statement = Query::select()
-            .column(history_event::Column::RemotePartyCertificate)
+            .column(history_event::Column::RelyingPartyCertificate)
             .from(history_event::Entity)
-            .and_where(Expr::col(history_event::Column::RemotePartyCertificate).eq(certificate.as_bytes()))
+            .and_where(Expr::col(history_event::Column::RelyingPartyCertificate).eq(certificate.as_bytes()))
             .and_where(Expr::col(history_event::Column::EventType).eq(EventType::Disclosure))
             .and_where(Expr::col(history_event::Column::Status).eq(EventStatus::Success))
             .and_where(Expr::col(history_event::Column::Attributes).is_not_null())
@@ -450,9 +450,14 @@ where
 #[cfg(test)]
 pub(crate) mod tests {
     use chrono::{TimeZone, Utc};
+    use once_cell::sync::Lazy;
     use tokio::fs;
 
-    use nl_wallet_mdoc::{holder::Mdoc, utils::x509::Certificate};
+    use nl_wallet_mdoc::{
+        holder::Mdoc,
+        server_keys::KeyPair,
+        utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration},
+    };
     use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
     use wallet_common::{
         account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
@@ -464,6 +469,20 @@ pub(crate) mod tests {
 
     const PID_DOCTYPE: &str = "com.example.pid";
     const ADDRESS_DOCTYPE: &str = "com.example.address";
+
+    static ISSUER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+        let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        issuer_ca
+            .generate_issuer_mock(IssuerRegistration::new_mock().into())
+            .unwrap()
+    });
+
+    static READER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        reader_ca
+            .generate_reader_mock(ReaderRegistration::new_mock().into())
+            .unwrap()
+    });
 
     #[test]
     fn test_key_file_alias_for_name() {
@@ -701,12 +720,14 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, certificate.clone());
+        let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, READER_KEY.certificate().clone());
 
         // No data shared with RP
-        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(!storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
 
         // Log cancel event
         storage.log_wallet_event(disclosure_cancel.clone()).await.unwrap();
@@ -718,7 +739,10 @@ pub(crate) mod tests {
         );
 
         // Still no data shared with RP
-        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(!storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
     }
 
     #[tokio::test]
@@ -729,13 +753,18 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error =
-            WalletEvent::disclosure_error(timestamp, certificate.clone(), "Something went wrong".to_string());
+        let disclosure_error = WalletEvent::disclosure_error(
+            timestamp,
+            READER_KEY.certificate().clone(),
+            "Something went wrong".to_string(),
+        );
 
         // No data shared with RP
-        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(!storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
 
         // Log error event
         storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
@@ -747,7 +776,10 @@ pub(crate) mod tests {
         );
 
         // Still no data shared with RP
-        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(!storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
     }
 
     #[tokio::test]
@@ -758,17 +790,20 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let disclosure_error = WalletEvent::disclosure_error_from_str(
             vec![PID_DOCTYPE],
             timestamp,
-            certificate.clone(),
+            READER_KEY.certificate().clone(),
+            ISSUER_KEY.certificate(),
             "Something went wrong".to_string(),
         );
 
         // No data shared with RP
-        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(!storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
 
         storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
 
@@ -778,25 +813,36 @@ pub(crate) mod tests {
         );
 
         // Still no data has been shared with RP, because we only consider Successful events
-        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(!storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
     }
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {
-        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
-
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let disclosure_at_timestamp =
-            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE], timestamp, certificate.clone());
+        let disclosure_at_timestamp = WalletEvent::disclosure_from_str(
+            vec![PID_DOCTYPE],
+            timestamp,
+            READER_KEY.certificate().clone(),
+            ISSUER_KEY.certificate(),
+        );
         let issuance_at_older_timestamp =
-            WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, certificate.clone());
-        let issuance_at_even_older_timestamp =
-            WalletEvent::issuance_from_str(vec![PID_DOCTYPE], timestamp_even_older, certificate.clone());
+            WalletEvent::issuance_from_str(vec![ADDRESS_DOCTYPE], timestamp_older, ISSUER_KEY.certificate().clone());
+        let issuance_at_even_older_timestamp = WalletEvent::issuance_from_str(
+            vec![PID_DOCTYPE],
+            timestamp_even_older,
+            ISSUER_KEY.certificate().clone(),
+        );
 
         // No data shared with RP
-        assert!(!storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(!storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
 
         // Insert events, in non-standard order, from new to old
         storage.log_wallet_event(disclosure_at_timestamp.clone()).await.unwrap();
@@ -810,7 +856,10 @@ pub(crate) mod tests {
             .unwrap();
 
         // Data has been shared with RP
-        assert!(storage.did_share_data_with_relying_party(&certificate).await.unwrap());
+        assert!(storage
+            .did_share_data_with_relying_party(READER_KEY.certificate())
+            .await
+            .unwrap());
 
         // Fetch and verify events are sorted descending by timestamp
         assert_eq!(
@@ -845,29 +894,37 @@ pub(crate) mod tests {
     }
 
     pub(crate) async fn test_history_by_doc_type(storage: &mut impl Storage) {
-        // Prepare test data
-        let (certificate, _) = Certificate::new_ca("test-ca", Default::default()).unwrap();
-
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
         let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_newest = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
 
         // Log Issuance of pid and address cards
-        let issuance =
-            WalletEvent::issuance_from_str(vec![PID_DOCTYPE, ADDRESS_DOCTYPE], timestamp, certificate.clone());
+        let issuance = WalletEvent::issuance_from_str(
+            vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
+            timestamp,
+            ISSUER_KEY.certificate().clone(),
+        );
         storage.log_wallet_event(issuance.clone()).await.unwrap();
 
         // Log Disclosure of pid and address cards
-        let disclosure_pid_and_address =
-            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE, ADDRESS_DOCTYPE], timestamp_newer, certificate.clone());
+        let disclosure_pid_and_address = WalletEvent::disclosure_from_str(
+            vec![PID_DOCTYPE, ADDRESS_DOCTYPE],
+            timestamp_newer,
+            READER_KEY.certificate().clone(),
+            ISSUER_KEY.certificate(),
+        );
         storage
             .log_wallet_event(disclosure_pid_and_address.clone())
             .await
             .unwrap();
 
         // Log Disclosure of pid card only
-        let disclosure_pid_only =
-            WalletEvent::disclosure_from_str(vec![PID_DOCTYPE], timestamp_newest, certificate.clone());
+        let disclosure_pid_only = WalletEvent::disclosure_from_str(
+            vec![PID_DOCTYPE],
+            timestamp_newest,
+            READER_KEY.certificate().clone(),
+            ISSUER_KEY.certificate(),
+        );
         storage.log_wallet_event(disclosure_pid_only.clone()).await.unwrap();
 
         // Fetch event by pid and verify events contain issuance of pid, and both full disclosure transactions with pid

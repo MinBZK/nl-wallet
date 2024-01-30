@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/history/detail/argument/history_detail_screen_argument.dart';
 
-import '../../../../mocks/mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 
 void main() {
   test(

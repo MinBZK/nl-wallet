@@ -75,6 +75,16 @@ final _kSampleCard = WalletCard(
   docType: 'docType',
   front: _kSampleCardFront,
   attributes: _kSampleAttributes,
+  issuer: _kSampleOrganization,
+);
+
+final _kSampleOrganization = Organization(
+  id: 'id',
+  legalName: 'Organization Name'.untranslated,
+  category: 'Category'.untranslated,
+  displayName: 'This is a TimelineAttributeRow'.untranslated,
+  description: 'Organization description'.untranslated,
+  logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
 );
 
 final _kSampleOperationAttribute = OperationTimelineAttribute(
@@ -303,7 +313,22 @@ class OtherStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         const ThemeSectionSubHeader(title: 'TimelineAttributeRow'),
         TimelineAttributeRow(
-          attribute: _kSampleInteractionAttribute,
+          attribute: InteractionTimelineAttribute(
+            dateTime: DateTime.now(),
+            organization: _kSampleOrganization,
+            dataAttributes: const [],
+            status: InteractionStatus.success,
+            policy: const Policy(
+              storageDuration: Duration(days: 90),
+              dataPurpose: 'Kaart uitgifte',
+              dataIsShared: false,
+              dataIsSignature: false,
+              dataContainsSingleViewProfilePhoto: false,
+              deletionCanBeRequested: true,
+              privacyPolicyUrl: 'https://www.example.org',
+            ),
+            requestPurpose: 'Kaart uitgifte'.untranslated,
+          ),
           onPressed: () {},
         ),
         const ThemeSectionSubHeader(title: 'TimelineSectionHeader'),
@@ -355,7 +380,13 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
           onCardSelectionToggled: (_) {},
-          card: WalletCard(id: 'id', docType: 'docType', front: _kSampleCardFront, attributes: const []),
+          card: WalletCard(
+            id: 'id',
+            docType: 'docType',
+            front: _kSampleCardFront,
+            attributes: const [],
+            issuer: _kSampleOrganization,
+          ),
           isSelected: true,
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),

@@ -142,7 +142,6 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => ObserveWalletCardDetailUseCaseImpl(
             context.read(),
             context.read(),
-            context.read(),
           ),
         ),
         RepositoryProvider<GetWalletCardTimelineAttributesUseCase>(

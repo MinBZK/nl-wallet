@@ -2,7 +2,10 @@ use wallet::{
     self, Attribute, AttributeValue, Document, DocumentAttributes, DocumentPersistence, GenderAttributeValue,
 };
 
+use super::disclosure::Organization;
+
 pub struct Card {
+    pub issuer: Organization,
     pub persistence: CardPersistence,
     pub doc_type: String,
     pub attributes: Vec<CardAttribute>,
@@ -65,6 +68,7 @@ impl From<Document> for Card {
             persistence: value.persistence.into(),
             doc_type: value.doc_type.to_string(),
             attributes: into_card_attributes(value.attributes),
+            issuer: value.issuer_registration.organization.into(),
         }
     }
 }

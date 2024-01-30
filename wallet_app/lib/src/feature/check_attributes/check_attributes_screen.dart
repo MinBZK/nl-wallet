@@ -89,7 +89,7 @@ class CheckAttributesScreen extends StatelessWidget {
                       case CheckAttributesSuccess():
                         return Text(
                           context.l10n.checkAttributesScreenSubtitle(
-                            state.cardIssuer.legalName.l10nValue(context),
+                            state.card.issuer.legalName.l10nValue(context),
                           ),
                           style: context.textTheme.bodySmall,
                           textAlign: TextAlign.start,
@@ -152,9 +152,8 @@ class CheckAttributesScreen extends StatelessWidget {
         builder: (c) {
           return BlocProvider<CheckAttributesBloc>(
             create: (context) => CheckAttributesBloc(
-              context.read(),
-              card: card,
               attributes: attributes,
+              card: card,
             )..add(CheckAttributesLoadTriggered()),
             child: CheckAttributesScreen(
               onDataIncorrectPressed: onDataIncorrectPressed,
