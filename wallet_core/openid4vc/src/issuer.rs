@@ -234,7 +234,7 @@ where
         token_request: TokenRequest,
         dpop: Dpop,
     ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
-        let session_token = token_request.code().into();
+        let session_token = token_request.code().to_string().into();
 
         // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
         // attribute service.
@@ -453,7 +453,7 @@ impl Session<Created> {
             .await
             .map_err(|err| TokenRequestError::IssuanceError(Error::DpopInvalid(err)))?;
 
-        let code = token_request.code();
+        let code = token_request.code().to_string();
         let unsigned_mdocs = attr_service
             .attributes(&self.state, token_request)
             .await

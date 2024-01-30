@@ -24,10 +24,10 @@ pub struct TokenRequest {
 
 impl TokenRequest {
     /// Retrieve either the authorization code or the pre-authorized code, depending on the authorization grant type.
-    pub fn code(&self) -> String {
+    pub fn code(&self) -> &str {
         match &self.grant_type {
-            TokenRequestGrantType::AuthorizationCode { code } => code.clone(),
-            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } => pre_authorized_code.clone(),
+            TokenRequestGrantType::AuthorizationCode { code } => code,
+            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } => pre_authorized_code,
         }
     }
 }
