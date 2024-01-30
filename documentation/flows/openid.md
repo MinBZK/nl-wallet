@@ -29,8 +29,8 @@ sequenceDiagram
     OS->>+AuthServer: GET /authorize?redirect_uri=...
     note over User, AuthServer: authenticate user with DigiD app
     AuthServer->>AuthServer: generate & store code
-    AuthServer->>-OS: navigate /credential_offer(pre-authorized_code)
-    OS->>Wallet: openWallet(code)
+    AuthServer->>-OS: openWallet(pre-authorized_code)
+    OS->>Wallet: openWallet(pre-authorized_code)
     activate Wallet
         Wallet->>+WalletServer: POST /token(pre-authorized_code)
         WalletServer->>+PidAttributeService: getAttributes(pre-authorized_code)
@@ -79,8 +79,8 @@ sequenceDiagram
     GenericAttributeService->>GenericAttributeService: generate pre-authorized_code<br/>store attributes
     GenericAttributeService->>-WalletServer: pre-authorized_code
     WalletServer->>-Issuer: pre-authorized_code
-    Issuer->>-OS: navigate /credential_offer(pre-authorized_code)
-    OS->>Wallet: openWallet(code)
+    Issuer->>-OS: navigate /openWallet(pre-authorized_code)
+    OS->>Wallet: openWallet(pre-authorized_code)
     activate Wallet
         Wallet->>+WalletServer: POST /token(pre-authorized_code)
         WalletServer->>+GenericAttributeService: getAttributes(pre-authorized_code)

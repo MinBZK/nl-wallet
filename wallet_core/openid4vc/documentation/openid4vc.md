@@ -35,7 +35,7 @@ sequenceDiagram
     participant Issuer
 
     note over User, Issuer: authenticate user (out of scope of OpenID4VCI pre-authorized code flow)
-    Issuer->>OS: navigate /credential_offer(pre-authorized_code)
+    Issuer->>OS: openWallet(pre-authorized_code)
     OS->>Wallet: openWallet(pre-authorized_code)
     activate Wallet
         Wallet->>+Issuer: POST /token(pre-authorized_code)
