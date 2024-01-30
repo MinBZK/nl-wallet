@@ -14,9 +14,22 @@ pub struct AuthorizationRequest {
     pub redirect_uri: Option<Url>,
     pub state: Option<String>,
     pub authorization_details: Vec<AuthorizationDetails>,
-    pub code_challenge: String,
-    pub code_challenge_method: String,
     pub request_uri: Option<String>, // https://datatracker.ietf.org/doc/html/rfc9126; MUST NOT be sent in a PAR
+
+    #[serde(flatten)]
+    pub code_challenge: PkceCodeChallenge,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(tag = "code_challenge_method")]
+pub enum PkceCodeChallenge {
+    S256 {
+        code_challenge: String,
+    },
+    #[serde(rename = "plain")]
+    Plain {
+        code_challenge: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
