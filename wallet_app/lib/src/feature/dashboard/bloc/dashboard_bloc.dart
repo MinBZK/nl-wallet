@@ -25,18 +25,20 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
   void _onCardOverviewLoadTriggered(DashboardLoadTriggered event, Emitter<DashboardState> emit) async {
     if (state is! DashboardLoadSuccess || event.forceRefresh) emit(const DashboardLoadInProgress());
-    final history = await getWalletTimelineAttributesUseCase.invoke();
-    await emit.forEach(
-      observeWalletCardsUseCase.invoke(),
-      onData: (cards) => DashboardLoadSuccess(
-        cards: cards,
-        history: history,
-      ),
-      onError: (ex, stack) {
-        //Note: when providing onError like this the subscription is not cancelled on errors
-        Fimber.e('Failed to observe cards', ex: ex, stacktrace: stack);
-        return const DashboardLoadFailure();
-      },
-    );
+    try {
+      final history = await getWalletTimelineAttributesUseCase.invoke();
+      await emit.forEach(
+        observeWalletCardsUseCase.invoke(),
+        onData: (cards) => DashboardLoadSuccess(cards: cards, history: history),
+        onError: (ex, stack) {
+          //Note: when providing onError like this the subscription is not cancelled on errors
+          Fimber.e('Failed to observe cards', ex: ex, stacktrace: stack);
+          return const DashboardLoadFailure();
+        },
+      );
+    } catch (ex) {
+      Fimber.e('Failed to fetch dashboard info', ex: ex);
+      emit(const DashboardLoadFailure());
+    }
   }
 }
