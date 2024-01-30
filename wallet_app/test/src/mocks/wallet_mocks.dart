@@ -9,9 +9,11 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
+import 'package:wallet/src/domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
@@ -62,6 +64,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<AcceptIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<StartDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelDisclosureUseCase>()])
+@GenerateNiceMocks([MockSpec<GetWalletTimelineAttributesUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveWalletCardsUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])

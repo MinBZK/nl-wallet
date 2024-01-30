@@ -21,9 +21,11 @@ import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.da
 import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i13;
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i3;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i22;
+import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart' as _i36;
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i30;
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart' as _i34;
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i32;
+import 'package:wallet/src/domain/usecase/history/get_wallet_timeline_attributes_usecase.dart' as _i35;
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i31;
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i27;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i20;
@@ -1076,6 +1078,36 @@ class MockCancelDisclosureUseCase extends _i1.Mock implements _i34.CancelDisclos
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
+}
+
+/// A class which mocks [GetWalletTimelineAttributesUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetWalletTimelineAttributesUseCase extends _i1.Mock implements _i35.GetWalletTimelineAttributesUseCase {
+  @override
+  _i4.Future<List<_i13.TimelineAttribute>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+        returnValueForMissingStub: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+      ) as _i4.Future<List<_i13.TimelineAttribute>>);
+}
+
+/// A class which mocks [ObserveWalletCardsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockObserveWalletCardsUseCase extends _i1.Mock implements _i36.ObserveWalletCardsUseCase {
+  @override
+  _i4.Stream<List<_i3.WalletCard>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i4.Stream<List<_i3.WalletCard>>.empty(),
+        returnValueForMissingStub: _i4.Stream<List<_i3.WalletCard>>.empty(),
+      ) as _i4.Stream<List<_i3.WalletCard>>);
 }
 
 /// A class which mocks [WalletCore].
