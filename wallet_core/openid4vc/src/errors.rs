@@ -30,9 +30,9 @@ pub enum Error {
     MissingJwk,
     #[error("incorrect JWK public key")]
     IncorrectJwkPublicKey,
-    #[error(transparent)]
+    #[error("failed to convert key from/to JWK format: {0}")]
     JwkConversion(#[from] JwkConversionError),
-    #[error(transparent)]
+    #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
     #[error("URL encoding failed: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
