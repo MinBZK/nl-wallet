@@ -18,7 +18,7 @@ use crate::{
     storage::{Storage, StorageError, WalletEvent},
 };
 
-use super::Wallet;
+use super::{documents::DocumentsError, Wallet};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
@@ -39,7 +39,7 @@ pub enum PidIssuanceError {
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
     #[error("could not interpret mdoc attributes: {0}")]
-    Document(#[from] DocumentMdocError),
+    MdocDocument(#[from] DocumentMdocError),
     #[error("could not access mdocs database: {0}")]
     MdocStorage(#[source] StorageError),
     #[error("could not store history in database: {0}")]
@@ -50,6 +50,8 @@ pub enum PidIssuanceError {
     InvalidIssuerCertificate(#[source] CoseError),
     #[error("issuer not authenticated")]
     MissingIssuerRegistration,
+    #[error("could not read documents from storage: {0}")]
+    Document(#[from] DocumentsError),
 }
 
 // TODO: Remove this once issuer certificate can be known early in the issuance protocol
@@ -314,7 +316,7 @@ where
             .await
             .map_err(PidIssuanceError::HistoryStorage)?;
 
-        self.emit_documents().await.map_err(PidIssuanceError::MdocStorage)?;
+        self.emit_documents().await?;
 
         Ok(())
     }
@@ -678,7 +680,7 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, PidIssuanceError::Document(_));
+        assert_matches!(error, PidIssuanceError::MdocDocument(_));
     }
 
     #[tokio::test]

@@ -1,6 +1,10 @@
 use tracing::info;
 
-use nl_wallet_mdoc::utils::{issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
+use nl_wallet_mdoc::utils::{
+    cose::CoseError,
+    issuer_auth::IssuerRegistration,
+    x509::{CertificateError, MdocCertificateExtension},
+};
 
 use crate::{
     document::{Document, DocumentPersistence},
@@ -10,9 +14,15 @@ use crate::{
 use super::Wallet;
 
 #[derive(Debug, thiserror::Error)]
-pub enum SetDocumentsCallbackError {
-    #[error("Could not fetch mdocs from database storage: {0}")]
+pub enum DocumentsError {
+    #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
+    #[error("could not extract Mdl extension from X.509 certificate: {0}")]
+    Certificate(#[from] CertificateError),
+    #[error("could not interpret X.509 certificate: {0}")]
+    Cose(#[from] CoseError),
+    #[error("X.509 certificate does not contain IssuerRegistration")]
+    MissingIssuerRegistration,
 }
 
 pub type DocumentsCallback = Box<dyn FnMut(Vec<Document>) + Send + Sync>;
@@ -21,7 +31,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     S: Storage,
 {
-    pub(super) async fn emit_documents(&mut self) -> Result<(), StorageError> {
+    pub(super) async fn emit_documents(&mut self) -> Result<(), DocumentsError> {
         info!("Emit mdocs from storage");
 
         let storage = self.storage.read().await;
@@ -35,22 +45,19 @@ where
             .await?
             .into_iter()
             .map(|StoredMdocCopy { mdoc_id, mdoc, .. }| {
-                // These `expect`s are 'safe' because reading [IssuerRegistration] from stored mdocs should never fail.
-                let issuer_certificate = mdoc
-                    .issuer_certificate()
-                    .expect("Could not get issuer certificate from stored mdoc");
-                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
-                    .expect("Could not extract issuer registration from stored mdoc certificate")
-                    .expect("No issuer registration found in stored mdoc certificate");
-                Document::from_mdoc_attributes(
+                let issuer_certificate = mdoc.issuer_certificate()?;
+                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
+                    .ok_or(DocumentsError::MissingIssuerRegistration)?;
+                let document = Document::from_mdoc_attributes(
                     DocumentPersistence::Stored(mdoc_id.to_string()),
                     &mdoc.doc_type,
                     mdoc.attributes(),
                     issuer_registration,
                 )
-                .expect("Could not interpret stored mdoc attributes")
+                .expect("Could not interpret stored mdoc attributes");
+                Ok(document)
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, DocumentsError>>()?;
 
         documents.sort_by_key(Document::priority);
 
@@ -61,7 +68,7 @@ where
         Ok(())
     }
 
-    pub async fn set_documents_callback<F>(&mut self, callback: F) -> Result<(), SetDocumentsCallbackError>
+    pub async fn set_documents_callback<F>(&mut self, callback: F) -> Result<(), DocumentsError>
     where
         F: FnMut(Vec<Document>) + Send + Sync + 'static,
     {
@@ -175,6 +182,34 @@ mod tests {
         assert_eq!(Arc::strong_count(&documents), 1);
     }
 
+    // Tests that setting the documents callback on a registered `Wallet`, with invalid issuer certificate raises
+    // a `MissingIssuerRegistration` error.
+    #[tokio::test]
+    async fn test_wallet_set_clear_documents_callback_registered_no_issuer_registration() {
+        let mut wallet = Wallet::new_registered_and_unlocked().await;
+
+        // The database contains a single `Mdoc`, without Issuer registration.
+        let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
+        wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
+
+        // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
+        // so we can write to it from the closure.
+        let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(1)));
+        let callback_documents = Arc::clone(&documents);
+
+        // Set the documents callback on the `Wallet`, which should
+        // immediately be called with a `Vec` containing a single `Document`
+        let error = wallet
+            .set_documents_callback(move |documents| callback_documents.lock().unwrap().push(documents.clone()))
+            .await
+            .expect_err("Expected error");
+
+        assert_matches!(error, DocumentsError::MissingIssuerRegistration);
+
+        // Infer that the closure is still alive by counting the `Arc` references.
+        assert_eq!(Arc::strong_count(&documents), 2);
+    }
+
     #[tokio::test]
     async fn test_wallet_set_documents_callback_error() {
         let mut wallet = Wallet::new_registered_and_unlocked().await;
@@ -188,6 +223,6 @@ mod tests {
             .await
             .expect_err("Setting documents callback should have resulted in an error");
 
-        assert_matches!(error, SetDocumentsCallbackError::Storage(_));
+        assert_matches!(error, DocumentsError::Storage(_));
     }
 }
