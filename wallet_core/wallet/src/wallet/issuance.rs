@@ -40,7 +40,7 @@ pub enum PidIssuanceError {
     Signature(#[from] signature::Error),
     #[error("could not interpret mdoc attributes: {0}")]
     MdocDocument(#[from] DocumentMdocError),
-    #[error("could not access mdocs database: {0}")]
+    #[error("could not insert mdocs in database: {0}")]
     MdocStorage(#[source] StorageError),
     #[error("could not store history in database: {0}")]
     HistoryStorage(#[source] StorageError),
@@ -51,7 +51,7 @@ pub enum PidIssuanceError {
     #[error("issuer not authenticated")]
     MissingIssuerRegistration,
     #[error("could not read documents from storage: {0}")]
-    Document(#[from] DocumentsError),
+    Document(#[source] DocumentsError),
 }
 
 // TODO: Remove this once issuer certificate can be known early in the issuance protocol
@@ -316,7 +316,7 @@ where
             .await
             .map_err(PidIssuanceError::HistoryStorage)?;
 
-        self.emit_documents().await?;
+        self.emit_documents().await.map_err(PidIssuanceError::Document)?;
 
         Ok(())
     }
