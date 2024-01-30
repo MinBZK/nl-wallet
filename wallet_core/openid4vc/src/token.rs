@@ -74,8 +74,9 @@ pub struct TokenResponseWithPreviews<T> {
     pub attestation_previews: Vec<T>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub enum TokenType {
+    #[default]
     Bearer,
 }
 

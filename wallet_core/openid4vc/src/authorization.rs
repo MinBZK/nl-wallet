@@ -36,9 +36,10 @@ pub enum PkceCodeChallenge {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ResponseType {
+    #[default]
     Code,
 }
 
@@ -59,9 +60,10 @@ pub struct AuthorizationDetails {
     format_data: AuthorizationDetailsFormatData,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthorizationDetailsType {
+    #[default]
     OpenidCredential,
 }
 
