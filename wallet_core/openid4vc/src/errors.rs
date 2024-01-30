@@ -60,7 +60,7 @@ pub enum Error {
     MissingIssuanceSessionState,
     #[error("public key contained in mdoc not equal to expected value")]
     PublicKeyMismatch,
-    #[error("failed to get mdoc public key")]
+    #[error("failed to get mdoc public key: {0}")]
     PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
 }
 
