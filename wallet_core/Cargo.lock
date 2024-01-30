@@ -2785,13 +2785,11 @@ dependencies = [
 name = "openid4vc"
 version = "0.1.0"
 dependencies = [
- "assert_matches",
  "base64 0.21.4",
  "chrono",
  "futures",
  "jsonwebtoken",
  "mime",
- "mockall",
  "nl_wallet_mdoc",
  "p256",
  "reqwest",
