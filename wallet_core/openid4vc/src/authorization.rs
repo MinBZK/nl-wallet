@@ -14,7 +14,11 @@ pub struct AuthorizationRequest {
     pub redirect_uri: Option<Url>,
     pub state: Option<String>,
     pub authorization_details: Vec<AuthorizationDetails>,
-    pub request_uri: Option<String>, // https://datatracker.ietf.org/doc/html/rfc9126; MUST NOT be sent in a PAR
+
+    /// https://datatracker.ietf.org/doc/html/rfc9126. MUST NOT be sent in a PAR.
+    /// This is a `String` and not a `Url`, because despite its name it need not be an actual URL;
+    /// its contents is completely up to the server and to be considered opaque.
+    pub request_uri: Option<String>,
 
     #[serde(flatten)]
     pub code_challenge: PkceCodeChallenge,
