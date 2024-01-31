@@ -1,3 +1,4 @@
+use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
 use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey};
 
@@ -49,8 +50,9 @@ pub struct CredentialResponse<T> {
 pub struct CredentialRequestProofJwtPayload {
     pub iss: String,
     pub aud: String,
-    pub iat: u64,
     pub nonce: String,
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
 }
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
@@ -126,7 +128,7 @@ impl CredentialRequestProof {
             nonce,
             iss: wallet_client_id,
             aud: credential_issuer_identifier.to_string(),
-            iat: jsonwebtoken::get_current_timestamp(),
+            iat: Utc::now(),
         };
 
         let jwt = Jwt::sign(&payload, &header, private_key).await?;
