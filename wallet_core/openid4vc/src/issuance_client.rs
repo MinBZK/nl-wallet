@@ -140,7 +140,7 @@ impl IssuanceClient {
                     CredentialRequest {
                         format: Format::MsoMdoc,
                         doctype: Some(doctype),
-                        proof: response,
+                        proof: Some(response),
                     },
                 )
             })

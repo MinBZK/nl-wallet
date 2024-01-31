@@ -222,6 +222,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
                 CredentialRequestError::CborSerialization(_) => CredentialErrorType::ServerError,
                 CredentialRequestError::JsonSerialization(_) => CredentialErrorType::ServerError,
                 CredentialRequestError::DoctypeMismatch => CredentialErrorType::InvalidCredentialRequest,
+                CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorType::InvalidProof,
             },
             error_description: Some(description),
             error_uri: None,

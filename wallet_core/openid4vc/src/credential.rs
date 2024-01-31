@@ -22,7 +22,7 @@ pub struct CredentialRequests {
 pub struct CredentialRequest {
     pub format: Format,
     pub doctype: Option<String>,
-    pub proof: CredentialRequestProof, // this is OPTIONAL per the spec, but we require it
+    pub proof: Option<CredentialRequestProof>,
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-endpoint

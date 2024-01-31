@@ -97,6 +97,8 @@ pub enum CredentialRequestError {
     JsonSerialization(#[from] serde_json::Error),
     #[error("mismatch between rquested and offered doctypes")]
     DoctypeMismatch,
+    #[error("missing credential request proof of possession")]
+    MissingCredentialRequestPoP,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -727,11 +729,15 @@ pub(crate) async fn verify_pop_and_sign_attestation(
         return Err(CredentialRequestError::DoctypeMismatch);
     }
 
-    let pubkey = cred_req.proof.verify(
-        c_nonce,
-        &issuer_data.accepted_wallet_client_ids,
-        &issuer_data.credential_issuer_identifier,
-    )?;
+    let pubkey = cred_req
+        .proof
+        .as_ref()
+        .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
+        .verify(
+            c_nonce,
+            &issuer_data.accepted_wallet_client_ids,
+            &issuer_data.credential_issuer_identifier,
+        )?;
     let mdoc_public_key = (&pubkey)
         .try_into()
         .map_err(CredentialRequestError::CoseKeyConversion)?;
