@@ -50,7 +50,7 @@ pub struct CredentialResponse<T> {
 pub struct CredentialRequestProofJwtPayload {
     pub iss: String,
     pub aud: String,
-    pub nonce: String,
+    pub nonce: Option<String>,
     #[serde(with = "ts_seconds")]
     pub iat: DateTime<Utc>,
 }
@@ -125,7 +125,7 @@ impl CredentialRequestProof {
         let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, private_key).await?;
 
         let payload = CredentialRequestProofJwtPayload {
-            nonce,
+            nonce: Some(nonce),
             iss: wallet_client_id,
             aud: credential_issuer_identifier.to_string(),
             iat: Utc::now(),

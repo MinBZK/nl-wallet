@@ -793,7 +793,13 @@ impl CredentialRequestProof {
                 found: token_data.header.typ.unwrap_or_default(),
             });
         }
-        if token_data.claims.nonce != nonce {
+        if token_data
+            .claims
+            .nonce
+            .as_ref()
+            .ok_or(CredentialRequestError::IncorrectNonce)?
+            != nonce
+        {
             return Err(CredentialRequestError::IncorrectNonce);
         }
 
