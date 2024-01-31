@@ -25,7 +25,9 @@ use crate::{
     },
     dpop::Dpop,
     jwk::{jwk_to_p256, JwkConversionError},
-    token::{TokenRequest, TokenRequestGrantType, TokenResponse, TokenType},
+    token::{
+        AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType,
+    },
     Format,
 };
 
@@ -99,14 +101,14 @@ pub enum CredentialRequestError {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    pub unsigned_mdocs: Option<Vec<UnsignedMdoc>>,
+    pub attestation_previews: Option<Vec<AttestationPreview>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     pub access_token: String,
     pub c_nonce: String,
-    pub unsigned_mdocs: Vec<UnsignedMdoc>,
+    pub attestation_previews: Vec<AttestationPreview>,
     pub dpop_public_key: VerifyingKey,
     pub dpop_nonce: String,
 }
@@ -158,7 +160,6 @@ pub trait AttributeService: Send + Sync + 'static {
 
 type CredentialResponse = crate::credential::CredentialResponse<CborBase64<IssuerSigned>>;
 type CredentialResponses = crate::credential::CredentialResponses<CborBase64<IssuerSigned>>;
-type TokenResponseWithPreviews = crate::token::TokenResponseWithPreviews<UnsignedMdoc>;
 
 pub struct Issuer<A, K, S> {
     sessions: Arc<S>,
@@ -245,7 +246,9 @@ where
             .map_err(|e| TokenRequestError::IssuanceError(e.into()))?
             .unwrap_or(SessionState::<IssuanceData>::new(
                 session_token,
-                IssuanceData::Created(Created { unsigned_mdocs: None }),
+                IssuanceData::Created(Created {
+                    attestation_previews: None,
+                }),
             ));
         let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
 
@@ -421,7 +424,7 @@ impl Session<Created> {
                 let next = self.transition(WaitingForResponse {
                     access_token: response.token_response.access_token.clone(),
                     c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
-                    unsigned_mdocs: response.attestation_previews.clone(),
+                    attestation_previews: response.attestation_previews.clone(),
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
                 });
@@ -475,7 +478,12 @@ impl Session<Created> {
                 c_nonce_expires_in: None,
                 authorization_details: None,
             },
-            attestation_previews: unsigned_mdocs.clone(),
+            attestation_previews: unsigned_mdocs
+                .iter()
+                .map(|unsigned| AttestationPreview::MsoMdoc {
+                    unsigned_mdoc: unsigned.clone(),
+                })
+                .collect(),
         };
 
         Ok((response, dpop_public_key, dpop_nonce))
@@ -563,8 +571,11 @@ impl Session<WaitingForResponse> {
         let unsigned = match credential_request.doctype {
             Some(ref requested_doctype) => {
                 let offered_mdocs: Vec<_> = session_data
-                    .unsigned_mdocs
+                    .attestation_previews
                     .iter()
+                    .map(|preview| match preview {
+                        AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+                    })
                     .filter(|unsigned| unsigned.doc_type == *requested_doctype)
                     .collect();
                 if offered_mdocs.len() != 1 {
@@ -576,10 +587,12 @@ impl Session<WaitingForResponse> {
             }
             None => {
                 // If the wallet specified no doctype, proceed only if we want to issue a single attestation
-                if session_data.unsigned_mdocs.len() != 1 {
+                if session_data.attestation_previews.len() != 1 {
                     return Err(CredentialRequestError::UseBatchIssuance);
                 }
-                session_data.unsigned_mdocs.first().unwrap()
+                match session_data.attestation_previews.first().unwrap() {
+                    AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+                }
             }
         };
 
@@ -641,12 +654,12 @@ impl Session<WaitingForResponse> {
             credential_requests
                 .credential_requests
                 .iter()
-                .zip(
-                    session_data
-                        .unsigned_mdocs
-                        .iter()
-                        .flat_map(|unsigned| std::iter::repeat(unsigned).take(unsigned.copy_count as usize)),
-                )
+                .zip(session_data.attestation_previews.iter().flat_map(|preview| {
+                    std::iter::repeat(match preview {
+                        AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+                    })
+                    .take(preview.copy_count() as usize)
+                }))
                 .map(|(cred_req, unsigned_mdoc)| async {
                     verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc, issuer_data).await
                 }),

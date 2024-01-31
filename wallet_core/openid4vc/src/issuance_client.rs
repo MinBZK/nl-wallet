@@ -24,7 +24,7 @@ use crate::{
         CredentialResponses,
     },
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
+    token::{AttestationPreview, TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
 
@@ -36,7 +36,7 @@ pub struct IssuanceClient {
 struct IssuanceState {
     access_token: String,
     c_nonce: String,
-    unsigned_mdocs: Vec<UnsignedMdoc>,
+    attestation_previews: Vec<AttestationPreview>,
     issuer_url: Url,
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
@@ -58,7 +58,7 @@ impl IssuanceClient {
         &mut self,
         base_url: &Url,
         token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Error> {
+    ) -> Result<Vec<AttestationPreview>, Error> {
         let url = base_url.join("token").unwrap();
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
@@ -83,7 +83,7 @@ impl IssuanceClient {
                         .headers()
                         .get(DPOP_NONCE_HEADER_NAME)
                         .and_then(|val| val.to_str().map(str::to_string).ok());
-                    let deserialized = response.json::<TokenResponseWithPreviews<UnsignedMdoc>>().await?;
+                    let deserialized = response.json::<TokenResponseWithPreviews>().await?;
                     Ok((deserialized, dpop_nonce))
                 }
             })
@@ -92,7 +92,7 @@ impl IssuanceClient {
         self.session_state = Some(IssuanceState {
             access_token: token_response.token_response.access_token,
             c_nonce: token_response.token_response.c_nonce.ok_or(Error::MissingNonce)?,
-            unsigned_mdocs: token_response.attestation_previews.clone(),
+            attestation_previews: token_response.attestation_previews.clone(),
             issuer_url: base_url.clone(),
             dpop_private_key,
             dpop_nonce,
@@ -110,9 +110,9 @@ impl IssuanceClient {
         let issuance_state = self.session_state.as_ref().ok_or(Error::MissingIssuanceSessionState)?;
 
         let keys_count: u64 = issuance_state
-            .unsigned_mdocs
+            .attestation_previews
             .iter()
-            .map(|unsigned| unsigned.copy_count)
+            .map(|preview| preview.copy_count())
             .sum();
 
         let keys_and_responses = CredentialRequestProof::new_multiple(
@@ -124,10 +124,12 @@ impl IssuanceClient {
         )
         .await?;
 
-        let doctypes = issuance_state
-            .unsigned_mdocs
-            .iter()
-            .flat_map(|unsigned| std::iter::repeat(unsigned.doc_type.clone()).take(unsigned.copy_count as usize));
+        let doctypes = issuance_state.attestation_previews.iter().flat_map(|preview| {
+            std::iter::repeat(match preview {
+                AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.doc_type.clone(),
+            })
+            .take(preview.copy_count() as usize)
+        });
 
         let (keys, responses): (Vec<K>, Vec<CredentialRequest>) = keys_and_responses
             .into_iter()
@@ -183,26 +185,28 @@ impl IssuanceClient {
 
         let mdocs = try_join_all(
             issuance_state
-                .unsigned_mdocs
+                .attestation_previews
                 .iter()
                 // We map in two steps to prevent `keys_and_responses` from appearing in an async closure
-                .map(|unsigned| {
+                .map(|preview| {
                     (
-                        unsigned,
+                        preview,
                         keys_and_responses
-                            .drain(..unsigned.copy_count as usize)
+                            .drain(..preview.copy_count() as usize)
                             .collect::<Vec<_>>(),
                     )
                 })
-                .map(|(unsigned, keys_and_responses)| async {
-                    let copies = MdocCopies {
-                        cred_copies: try_join_all(
-                            keys_and_responses
-                                .into_iter()
-                                .map(|(cred_response, key)| cred_response.into_mdoc(key, unsigned, trust_anchors)),
-                        )
-                        .await?,
+                .map(|(preview, keys_and_responses)| async move {
+                    let unsigned_mdoc = match preview {
+                        AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
                     };
+                    let copies =
+                        MdocCopies {
+                            cred_copies: try_join_all(keys_and_responses.into_iter().map(|(cred_response, key)| {
+                                cred_response.into_mdoc(key, unsigned_mdoc, trust_anchors)
+                            }))
+                            .await?,
+                        };
                     Result::<_, Error>::Ok(copies)
                 }),
         )

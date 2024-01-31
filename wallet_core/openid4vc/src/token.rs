@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use indexmap::IndexSet;
+use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::formats::SpaceSeparator;
@@ -80,10 +81,24 @@ pub struct TokenResponse {
 /// This is an custom field so other implementations might not send it. For now however we assume that it is always
 /// present so it is not an [`Option`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TokenResponseWithPreviews<T> {
+pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
-    pub attestation_previews: Vec<T>,
+    pub attestation_previews: Vec<AttestationPreview>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(tag = "format", rename_all = "snake_case")]
+pub enum AttestationPreview {
+    MsoMdoc { unsigned_mdoc: UnsignedMdoc },
+}
+
+impl AttestationPreview {
+    pub fn copy_count(&self) -> u64 {
+        match self {
+            AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.copy_count,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
