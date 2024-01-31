@@ -3,12 +3,11 @@ use chrono::{Duration, Utc};
 use clap::{Parser, Subcommand};
 use clio::CachedInput;
 
-use nl_wallet_mdoc::utils::{
-    issuer_auth::IssuerRegistration,
-    reader_auth::ReaderRegistration,
-    x509::{Certificate, CertificateConfiguration, CertificateType},
+use nl_wallet_mdoc::{
+    server_keys::KeyPair,
+    utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateConfiguration},
 };
-use wallet_ca::{read_certificate, read_signing_key, write_key_pair};
+use wallet_ca::{read_key_pair, write_key_pair};
 
 /// Generate private keys and certificates
 ///
@@ -114,8 +113,8 @@ impl Command {
                 force,
             } => {
                 let configuration = Self::get_certificate_configuration(days)?;
-                let (certificate, key) = Certificate::new_ca(&common_name, configuration)?;
-                write_key_pair(key, certificate, &file_prefix, force)?;
+                let ca = KeyPair::generate_ca(&common_name, configuration)?;
+                write_key_pair(ca, &file_prefix, force)?;
                 Ok(())
             }
             Issuer {
@@ -127,17 +126,14 @@ impl Command {
                 days,
                 force,
             } => {
-                let ca_crt = read_certificate(ca_crt_file)?;
-                let ca_key = read_signing_key(ca_key_file)?;
+                let ca = read_key_pair(ca_key_file, ca_crt_file)?;
                 let issuer_registration: IssuerRegistration = serde_json::from_reader(issuer_auth_file)?;
-                let (certificate, key) = Certificate::new(
-                    &ca_crt,
-                    &ca_key,
+                let key_pair = ca.generate(
                     &common_name,
-                    CertificateType::Mdl(Box::new(issuer_registration).into()),
+                    issuer_registration.into(),
                     Self::get_certificate_configuration(days)?,
                 )?;
-                write_key_pair(key, certificate, &file_prefix, force)?;
+                write_key_pair(key_pair, &file_prefix, force)?;
                 Ok(())
             }
             Reader {
@@ -149,17 +145,14 @@ impl Command {
                 days,
                 force,
             } => {
-                let ca_crt = read_certificate(ca_crt_file)?;
-                let ca_key = read_signing_key(ca_key_file)?;
+                let ca = read_key_pair(ca_key_file, ca_crt_file)?;
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
-                let (certificate, key) = Certificate::new(
-                    &ca_crt,
-                    &ca_key,
+                let key_pair = ca.generate(
                     &common_name,
-                    CertificateType::ReaderAuth(Box::new(reader_registration).into()),
+                    reader_registration.into(),
                     Self::get_certificate_configuration(days)?,
                 )?;
-                write_key_pair(key, certificate, &file_prefix, force)?;
+                write_key_pair(key_pair, &file_prefix, force)?;
                 Ok(())
             }
         }

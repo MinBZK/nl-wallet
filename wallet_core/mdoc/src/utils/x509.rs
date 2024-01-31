@@ -241,7 +241,7 @@ impl CertificateUsage {
         Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
     }
 
-    fn to_eku(&self) -> &'static [u8] {
+    pub(crate) fn to_eku(&self) -> &'static [u8] {
         match self {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
@@ -314,195 +314,23 @@ pub struct CertificateConfiguration {
     pub not_after: Option<DateTime<Utc>>,
 }
 
-#[cfg(any(test, feature = "generate"))]
-mod generate {
-    use p256::{
-        ecdsa::SigningKey,
-        pkcs8::{
-            der::{asn1::SequenceOf, Encode},
-            DecodePrivateKey, EncodePrivateKey, ObjectIdentifier,
-        },
-    };
-    use rcgen::{BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa};
-    use time::OffsetDateTime;
-
-    use crate::utils::x509::{Certificate, CertificateError, CertificateType, CertificateUsage, OID_EXT_KEY_USAGE};
-
-    use super::{CertificateConfiguration, MdocCertificateExtension};
-
-    impl From<CertificateConfiguration> for CertificateParams {
-        fn from(source: CertificateConfiguration) -> Self {
-            let mut result = CertificateParams::default();
-            if let Some(not_before) = source.not_before.and_then(|ts| ts.timestamp_nanos_opt()) {
-                result.not_before = OffsetDateTime::from_unix_timestamp_nanos(not_before as i128).unwrap();
-            }
-            if let Some(not_after) = source.not_after.and_then(|ts| ts.timestamp_nanos_opt()) {
-                result.not_after = OffsetDateTime::from_unix_timestamp_nanos(not_after as i128).unwrap();
-            }
-            result
-        }
-    }
-
-    impl Certificate {
-        /// Generate a new self-signed CA certificate.
-        pub fn new_ca(
-            common_name: &str,
-            configuration: CertificateConfiguration,
-        ) -> Result<(Certificate, SigningKey), CertificateError> {
-            let mut ca_params = CertificateParams::from(configuration);
-            ca_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-            ca_params.distinguished_name.push(DnType::CommonName, common_name);
-            let cert = RcgenCertificate::from_params(ca_params)?;
-
-            let privkey = Self::rcgen_cert_privkey(&cert)?;
-
-            Ok((cert.serialize_der()?.into(), privkey))
-        }
-
-        /// Generate a new certificate signed with the specified CA certificate.
-        pub fn new(
-            ca: &Certificate,
-            ca_privkey: &SigningKey,
-            common_name: &str,
-            certificate_type: CertificateType,
-            configuration: CertificateConfiguration,
-        ) -> Result<(Certificate, SigningKey), CertificateError> {
-            let mut cert_params = CertificateParams::from(configuration);
-            cert_params.is_ca = IsCa::NoCa;
-            cert_params.distinguished_name.push(DnType::CommonName, common_name);
-            cert_params.custom_extensions.extend(certificate_type.to_custom_exts()?);
-            let cert_unsigned =
-                RcgenCertificate::from_params(cert_params).map_err(CertificateError::GeneratingFailed)?;
-
-            let ca_keypair = rcgen::KeyPair::from_der(
-                &ca_privkey
-                    .to_pkcs8_der()
-                    .map_err(CertificateError::GeneratingPrivateKey)?
-                    .to_bytes(),
-            )?;
-            let ca = RcgenCertificate::from_params(rcgen::CertificateParams::from_ca_cert_der(&ca.0, ca_keypair)?)?;
-
-            let cert_bts = cert_unsigned.serialize_der_with_signer(&ca)?;
-            let cert_privkey = Self::rcgen_cert_privkey(&cert_unsigned)?;
-
-            Ok((cert_bts.into(), cert_privkey))
-        }
-
-        fn rcgen_cert_privkey(cert: &RcgenCertificate) -> Result<SigningKey, CertificateError> {
-            SigningKey::from_pkcs8_der(cert.get_key_pair().serialized_der())
-                .map_err(CertificateError::GeneratingPrivateKey)
-        }
-    }
-
-    impl CertificateUsage {
-        fn to_custom_ext(&self) -> CustomExtension {
-            // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but [`CertificateParams`]
-            // only supports a whitelist of key usages that it is aware of. So we DER-serialize it manually and add it to
-            // the custom extensions.
-            // We unwrap in these functions because they have fixed input for which they always succeed.
-            let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
-            seq.add(ObjectIdentifier::from_bytes(self.to_eku()).unwrap()).unwrap();
-            let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_der().unwrap());
-            ext.set_criticality(true);
-            ext
-        }
-    }
-
-    impl CertificateType {
-        fn to_custom_exts(&self) -> Result<Vec<CustomExtension>, CertificateError> {
-            let usage: CertificateUsage = self.into();
-            let mut extensions = vec![usage.to_custom_ext()];
-
-            match self {
-                Self::ReaderAuth(Some(reader_registration)) => {
-                    let ext_reader_auth = reader_registration.to_custom_ext()?;
-                    extensions.push(ext_reader_auth);
-                }
-                Self::Mdl(Some(issuer_registration)) => {
-                    let ext_issuer_auth = issuer_registration.to_custom_ext()?;
-                    extensions.push(ext_issuer_auth);
-                }
-                _ => {}
-            };
-            Ok(extensions)
-        }
-    }
-
-    #[cfg(feature = "mock")]
-    mod mock {
-        use crate::{
-            server_keys::KeyPair,
-            utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration},
-        };
-
-        use super::*;
-
-        const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
-        const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
-
-        const RP_CA_CN: &str = "ca.rp.example.com";
-        const RP_CERT_CN: &str = "cert.rp.example.com";
-
-        impl KeyPair {
-            pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
-                let (crt, key) = Certificate::new_ca(ISSUANCE_CA_CN, Default::default())?;
-                let pk = Self::new(key, crt);
-                Ok(pk)
-            }
-
-            pub fn generate_reader_mock_ca() -> Result<Self, CertificateError> {
-                let (crt, key) = Certificate::new_ca(RP_CA_CN, Default::default())?;
-                let pk = Self::new(key, crt);
-                Ok(pk)
-            }
-
-            pub fn generate_issuer_mock(
-                &self,
-                issuer_registration: Option<IssuerRegistration>,
-            ) -> Result<Self, CertificateError> {
-                let (issuer_cert, issuer_privkey) = Certificate::new(
-                    self.certificate(),
-                    self.private_key(),
-                    ISSUANCE_CERT_CN,
-                    CertificateType::Mdl(issuer_registration.map(Box::new)),
-                    Default::default(),
-                )?;
-                let issuance_key = KeyPair::new(issuer_privkey, issuer_cert);
-                Ok(issuance_key)
-            }
-
-            pub fn generate_reader_mock(
-                &self,
-                reader_registration: Option<ReaderRegistration>,
-            ) -> Result<Self, CertificateError> {
-                let (reader_cert, reader_privkey) = Certificate::new(
-                    self.certificate(),
-                    self.private_key(),
-                    RP_CERT_CN,
-                    CertificateType::ReaderAuth(reader_registration.map(Box::new)),
-                    Default::default(),
-                )?;
-                let reader_key = KeyPair::new(reader_privkey, reader_cert);
-                Ok(reader_key)
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
     use chrono::{DateTime, Duration, Utc};
-    use p256::{ecdsa::SigningKey, pkcs8::ObjectIdentifier};
+    use p256::pkcs8::ObjectIdentifier;
     use time::{macros::datetime, OffsetDateTime};
     use webpki::TrustAnchor;
 
     use wallet_common::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
 
-    use crate::utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateType};
+    use crate::{
+        server_keys::KeyPair,
+        utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, x509::CertificateType},
+    };
 
-    use super::{Certificate, CertificateConfiguration, CertificateError, CertificateUsage};
+    use super::{CertificateConfiguration, CertificateError, CertificateUsage};
 
     #[test]
     fn mdoc_eku_encoding_works() {
@@ -519,9 +347,9 @@ mod test {
 
     #[test]
     fn generate_ca() {
-        let (ca, _ca_privkey) = Certificate::new_ca("myca", Default::default()).unwrap();
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
 
-        let x509_cert = ca.to_x509().unwrap();
+        let x509_cert = ca.certificate().to_x509().unwrap();
         assert_certificate_common_name(&x509_cert, vec!["myca"]);
         assert_certificate_default_validity(&x509_cert);
     }
@@ -535,16 +363,16 @@ mod test {
             not_before: Some(now),
             not_after: Some(later),
         };
-        let (ca, _ca_privkey) = Certificate::new_ca("myca", config).unwrap();
+        let ca = KeyPair::generate_ca("myca", config).unwrap();
 
-        let x509_cert = ca.to_x509().unwrap();
+        let x509_cert = ca.certificate().to_x509().unwrap();
         assert_certificate_common_name(&x509_cert, vec!["myca"]);
         assert_certificate_validity(&x509_cert, now, later);
     }
 
     #[test]
     fn generate_and_verify_not_yet_valid_issuer_cert() {
-        let (ca, ca_privkey) = generate_ca_for_validity_test();
+        let ca = generate_ca_for_validity_test();
 
         let now = Utc::now();
         let start = now + Duration::days(1);
@@ -555,12 +383,13 @@ mod test {
             not_after: Some(end),
         };
 
-        let mdl = CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into());
+        let mdl = IssuerRegistration::new_mock().into();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", mdl.clone(), config).unwrap();
+        let issuer_key_pair = ca.generate("mycert", mdl, config).unwrap();
 
-        let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
-        let error = cert
+        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
+        let error = issuer_key_pair
+            .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
             .expect_err("Expected verify to fail");
         assert_matches!(error, CertificateError::Verification(webpki::Error::CertNotValidYet));
@@ -568,7 +397,7 @@ mod test {
 
     #[test]
     fn generate_and_verify_expired_issuer_cert() {
-        let (ca, ca_privkey) = generate_ca_for_validity_test();
+        let ca = generate_ca_for_validity_test();
 
         let now = Utc::now();
         let start = now - Duration::days(2);
@@ -579,12 +408,13 @@ mod test {
             not_after: Some(end),
         };
 
-        let mdl = CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into());
+        let mdl = IssuerRegistration::new_mock().into();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", mdl.clone(), config).unwrap();
+        let issuer_key_pair = ca.generate("mycert", mdl, config).unwrap();
 
-        let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
-        let error = cert
+        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
+        let error = issuer_key_pair
+            .certificate()
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
             .expect_err("Expected verify to fail");
         assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired));
@@ -592,20 +422,22 @@ mod test {
 
     #[test]
     fn generate_and_verify_issuer_cert() {
-        let (ca, ca_privkey) = Certificate::new_ca("myca", Default::default()).unwrap();
-        let mdl = CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into());
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let mdl: CertificateType = IssuerRegistration::new_mock().into();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", mdl.clone(), Default::default()).unwrap();
+        let issuer_key_pair = ca.generate("mycert", mdl.clone(), Default::default()).unwrap();
 
-        let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
-        cert.verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
+        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
+        issuer_key_pair
+            .certificate()
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
-        let cert_usage = CertificateType::from_certificate(&cert).unwrap();
+        let cert_usage = CertificateType::from_certificate(issuer_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, mdl);
 
-        let x509_cert = cert.to_x509().unwrap();
+        let x509_cert = issuer_key_pair.certificate().to_x509().unwrap();
         assert_certificate_common_name(&x509_cert, vec!["mycert"]);
         assert_certificate_default_validity(&x509_cert);
     }
@@ -620,40 +452,44 @@ mod test {
             not_after: Some(later),
         };
 
-        let (ca, ca_privkey) = Certificate::new_ca("myca", Default::default()).unwrap();
-        let mdl = CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into());
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let mdl: CertificateType = IssuerRegistration::new_mock().into();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", mdl.clone(), config).unwrap();
+        let issuer_key_pair = ca.generate("mycert", mdl.clone(), config).unwrap();
 
-        let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
-        cert.verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
+        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
+        issuer_key_pair
+            .certificate()
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca_trustanchor])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
-        let cert_usage = CertificateType::from_certificate(&cert).unwrap();
+        let cert_usage = CertificateType::from_certificate(issuer_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, mdl);
 
-        let x509_cert = cert.to_x509().unwrap();
+        let x509_cert = issuer_key_pair.certificate().to_x509().unwrap();
         assert_certificate_common_name(&x509_cert, vec!["mycert"]);
         assert_certificate_validity(&x509_cert, now, later);
     }
 
     #[test]
     fn generate_and_verify_reader_cert() {
-        let (ca, ca_privkey) = Certificate::new_ca("myca", Default::default()).unwrap();
-        let reader_auth = CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into());
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone(), Default::default()).unwrap();
+        let reader_key_pair = ca.generate("mycert", reader_auth.clone(), Default::default()).unwrap();
 
-        let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
-        cert.verify(CertificateUsage::ReaderAuth, &[], &TimeGenerator, &[ca_trustanchor])
+        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
+        reader_key_pair
+            .certificate()
+            .verify(CertificateUsage::ReaderAuth, &[], &TimeGenerator, &[ca_trustanchor])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original ReaderAuth usage
-        let cert_usage = CertificateType::from_certificate(&cert).unwrap();
+        let cert_usage = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, reader_auth);
 
-        let x509_cert = cert.to_x509().unwrap();
+        let x509_cert = reader_key_pair.certificate().to_x509().unwrap();
         assert_certificate_common_name(&x509_cert, vec!["mycert"]);
         assert_certificate_default_validity(&x509_cert);
     }
@@ -668,20 +504,22 @@ mod test {
             not_after: Some(later),
         };
 
-        let (ca, ca_privkey) = Certificate::new_ca("myca", Default::default()).unwrap();
-        let reader_auth = CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into());
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let reader_auth: CertificateType = ReaderRegistration::new_mock().into();
 
-        let (cert, _) = Certificate::new(&ca, &ca_privkey, "mycert", reader_auth.clone(), config).unwrap();
+        let reader_key_pair = ca.generate("mycert", reader_auth.clone(), config).unwrap();
 
-        let ca_trustanchor: TrustAnchor = (&ca).try_into().unwrap();
-        cert.verify(CertificateUsage::ReaderAuth, &[], &TimeGenerator, &[ca_trustanchor])
+        let ca_trustanchor: TrustAnchor = ca.certificate().try_into().unwrap();
+        reader_key_pair
+            .certificate()
+            .verify(CertificateUsage::ReaderAuth, &[], &TimeGenerator, &[ca_trustanchor])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original ReaderAuth usage
-        let cert_usage = CertificateType::from_certificate(&cert).unwrap();
+        let cert_usage = CertificateType::from_certificate(reader_key_pair.certificate()).unwrap();
         assert_eq!(cert_usage, reader_auth);
 
-        let x509_cert = cert.to_x509().unwrap();
+        let x509_cert = reader_key_pair.certificate().to_x509().unwrap();
         assert_certificate_common_name(&x509_cert, vec!["mycert"]);
         assert_certificate_validity(&x509_cert, now, later);
     }
@@ -718,7 +556,7 @@ mod test {
         assert_eq!(actual_common_name, expected_common_name);
     }
 
-    fn generate_ca_for_validity_test() -> (Certificate, SigningKey) {
+    fn generate_ca_for_validity_test() -> KeyPair {
         let now = Utc::now();
         let start = now - Duration::weeks(52);
         let end = now + Duration::weeks(52);
@@ -727,6 +565,6 @@ mod test {
             not_before: Some(start),
             not_after: Some(end),
         };
-        Certificate::new_ca("myca", config).unwrap()
+        KeyPair::generate_ca("myca", config).unwrap()
     }
 }

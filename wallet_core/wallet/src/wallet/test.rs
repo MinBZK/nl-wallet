@@ -76,7 +76,7 @@ pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
 
     IssuerKey {
         issuance_key,
-        trust_anchor: (ca.certificate()).try_into().unwrap(),
+        trust_anchor: ca.certificate().try_into().unwrap(),
     }
 });
 
@@ -87,7 +87,7 @@ pub static ISSUER_KEY_UNAUTHENTICATED: Lazy<IssuerKey> = Lazy::new(|| {
 
     IssuerKey {
         issuance_key,
-        trust_anchor: (ca.certificate()).try_into().unwrap(),
+        trust_anchor: ca.certificate().try_into().unwrap(),
     }
 });
 
