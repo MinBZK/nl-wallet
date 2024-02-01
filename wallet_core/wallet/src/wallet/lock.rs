@@ -40,6 +40,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
         self.lock.clear_lock_callback()
     }
 
+    #[instrument(skip_all)]
     pub fn lock(&mut self) {
         self.lock.lock()
     }

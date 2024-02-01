@@ -132,6 +132,7 @@ where
         Ok(auth_url)
     }
 
+    #[instrument(skip_all)]
     pub fn cancel_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
         info!("PID issuance cancelled");
 

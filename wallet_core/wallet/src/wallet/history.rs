@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use tracing::info;
+use tracing::{info, instrument};
 
 use nl_wallet_mdoc::{
     holder::ProposedDocumentAttributes,
@@ -48,6 +48,7 @@ where
         self.storage.get_mut().log_wallet_event(event).await
     }
 
+    #[instrument(skip_all)]
     pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving history");
 
@@ -68,6 +69,7 @@ where
         Ok(result)
     }
 
+    #[instrument(skip_all)]
     pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving Card history");
 

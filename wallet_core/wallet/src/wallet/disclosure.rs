@@ -165,6 +165,7 @@ where
         Ok(proposal)
     }
 
+    #[instrument(skip_all)]
     pub async fn cancel_disclosure(&mut self) -> Result<(), DisclosureError> {
         info!("Cancelling disclosure");
 
@@ -218,6 +219,7 @@ where
         });
     }
 
+    #[instrument(skip_all)]
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
