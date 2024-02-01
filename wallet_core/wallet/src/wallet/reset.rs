@@ -17,16 +17,8 @@ where
     S: Storage,
     PIC: PidIssuerClient,
 {
-    #[instrument(skip_all)]
-    pub async fn reset(&mut self) -> ResetResult<()> {
-        info!("Resetting wallet and wiping local data");
-
-        // Note that this method can be called even if the Wallet is locked!
-
-        info!("Checking if registered");
-        if self.registration.is_none() {
-            return Err(ResetError::NotRegistered);
-        }
+    pub(super) async fn reset_to_initial_state(&mut self) {
+        info!("Resetting wallet to inital state and wiping all local data");
 
         // Clear the database and its encryption key.
         self.storage.get_mut().clear().await;
@@ -47,6 +39,20 @@ where
 
         // The wallet should be locked in its initial state.
         self.lock.lock();
+    }
+
+    #[instrument(skip_all)]
+    pub async fn reset(&mut self) -> ResetResult<()> {
+        info!("Resetting of wallet requested");
+
+        // Note that this method can be called even if the Wallet is locked!
+
+        info!("Checking if registered");
+        if self.registration.is_none() {
+            return Err(ResetError::NotRegistered);
+        }
+
+        self.reset_to_initial_state().await;
 
         Ok(())
     }
