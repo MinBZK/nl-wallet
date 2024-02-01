@@ -29,23 +29,14 @@ pub enum JwkConversionError {
 }
 
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
+    let point = value.to_encoded_point(false);
     let jwk = Jwk {
         common: Default::default(),
         algorithm: jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
             key_type: jwk::EllipticCurveKeyType::EC,
             curve: jwk::EllipticCurve::P256,
-            x: BASE64_URL_SAFE_NO_PAD.encode(
-                value
-                    .to_encoded_point(false)
-                    .x()
-                    .ok_or(JwkConversionError::MissingCoordinate)?,
-            ),
-            y: BASE64_URL_SAFE_NO_PAD.encode(
-                value
-                    .to_encoded_point(false)
-                    .y()
-                    .ok_or(JwkConversionError::MissingCoordinate)?,
-            ),
+            x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
+            y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
         }),
     };
     Ok(jwk)
