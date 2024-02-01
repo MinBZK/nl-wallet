@@ -17,9 +17,9 @@ port = 3002
 
 [usecases]
 [usecases.driving_license]
-certificate = "${MOCK_RELYING_PARTY_CRT}"
-private_key = "${MOCK_RELYING_PARTY_KEY}"
+certificate = "${MOCK_RELYING_PARTY_CRT_DL}"
+private_key = "${MOCK_RELYING_PARTY_KEY_DL}"
 
 [usecases.parking_permit]
-certificate = "${MOCK_RELYING_PARTY_CRT}"
-private_key = "${MOCK_RELYING_PARTY_KEY}"
+certificate = "${MOCK_RELYING_PARTY_CRT_PP}"
+private_key = "${MOCK_RELYING_PARTY_KEY_PP}"

@@ -241,6 +241,31 @@ You should now be able to launch an Android Emulator or iOS Simulator and run th
 - `flutter pub get`
 - `flutter run`! 🎉
 
+## Running GitLab CI locally
+
+In order to run and validate jobs from the GitLab CI locally on a development machine, the `gitlab-ci-local` tool may be used.
+Follow the installation instructions for it [here](https://github.com/firecow/gitlab-ci-local#installation).
+
+The environment variables that are necessary to run the CI jobs need to be specified by copying and populating the example YAML file:
+
+```bash
+cp .gitlab-ci-local-variables.example.yml .gitlab-ci-local-variables.yml
+```
+
+Make sure that Docker is running and configure it so that containers have a maximum memory size of at least 16GB.
+Log into Harbor, where the docker images are hosted:
+
+```bash
+docker login -u <HARBOR USER> -p <HARBOR CLI SECRET> <HARBOR HOSTNAME>
+```
+
+Now, any job from GitLab CI can be run localy, e.g.:
+
+```bash
+gitlab-ci-local test-rust
+```
+
+
 # File structure
 
 ## Code

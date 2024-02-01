@@ -191,10 +191,7 @@ impl Storage for MockStorage {
     async fn did_share_data_with_relying_party(&self, certificate: &Certificate) -> StorageResult<bool> {
         let exists = self.event_log.iter().any(|event| match event {
             WalletEvent::Issuance { .. } => false,
-            WalletEvent::Disclosure {
-                remote_party_certificate,
-                ..
-            } => remote_party_certificate == certificate,
+            WalletEvent::Disclosure { reader_certificate, .. } => reader_certificate == certificate,
         });
         Ok(exists)
     }

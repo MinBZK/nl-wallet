@@ -90,8 +90,6 @@ test-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
-  before_script:
-    - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${WALLET_PROVIDER_HSM__USER_PIN}"
   script:
     - set -euxo pipefail
     # Check Rust formatting
@@ -151,7 +149,12 @@ test-rust-compilation-android-linux:
     RUSTFLAGS: "-D warnings"
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider_migrations --bin wallet_provider_migrations
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package configuration_server --bin configuration_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package pid_issuer --bin pid_issuer
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
     - (cd wallet_core; cargo ndk --target arm64-v8a check --locked --release)
 
 test-rust-compilation-ios:

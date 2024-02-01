@@ -1,6 +1,6 @@
-import '../../../data/repository/organization/organization_repository.dart';
 import '../attribute/data_attribute.dart';
 import '../document.dart';
+import '../organization.dart';
 import '../policy/policy.dart';
 import '../wallet_card.dart';
 

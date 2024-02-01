@@ -4,7 +4,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_keys::KeysError,
-    utils::{issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
+    utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
@@ -18,7 +18,7 @@ use crate::{
     storage::{Storage, StorageError, WalletEvent},
 };
 
-use super::Wallet;
+use super::{documents::DocumentsError, Wallet};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
@@ -39,15 +39,51 @@ pub enum PidIssuanceError {
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
     #[error("could not interpret mdoc attributes: {0}")]
-    Document(#[from] DocumentMdocError),
-    #[error("could not access mdocs database: {0}")]
+    MdocDocument(#[from] DocumentMdocError),
+    #[error("could not insert mdocs in database: {0}")]
     MdocStorage(#[source] StorageError),
     #[error("could not store history in database: {0}")]
     HistoryStorage(#[source] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
+    #[error("invalid issuer certificate: {0}")]
+    InvalidIssuerCertificate(#[source] CoseError),
     #[error("issuer not authenticated")]
     MissingIssuerRegistration,
+    #[error("could not read documents from storage: {0}")]
+    Document(#[source] DocumentsError),
+}
+
+// TODO: Remove this once issuer certificate can be known early in the issuance protocol
+pub fn rvig_registration() -> IssuerRegistration {
+    serde_json::from_str(r#"
+        {
+          "organization": {
+            "displayName": {
+              "nl": "Rijksdienst voor Identiteitsgegevens"
+            },
+            "legalName": {
+              "nl": "RvIG"
+            },
+            "description": {
+                "nl": "Opvragen van PID (Person Identification Data)"
+            },
+            "webUrl": "https://www.rvig.nl",
+            "city": {
+              "nl": "'s-Gravenhage"
+            },
+            "category": {
+              "nl": "Overheid"
+            },
+            "logo": {
+              "mimeType": "image/png",
+              "imageData": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAR6SURBVHgB7ZtNbFRVHMXPffUDByNtnCIktlMXMqELWtNCIoYiAaUmIAQ0uiGRhcHIRraYiBBjTFyIGyPBBBMw0UQabUlEAlGmESPSMGWB0g2dYiKlQ2ZMYCofncv/3M59vGlo6DwYCL3vlzTzvnJnzrn//7kvnXkKExjJXXtRe94arbEW0E2YFqi0Ujo9VqzZPrdODZadsRtnc7p2plfcprV+D9MYT6mdl4re9mfqVJ77xgCKj6niLzLjrXAClS5obxlN8LjLmXdHPNGtjxvNYsW/Od3kqbGzcBBP62VejTe2DY4yBqwVE5RDpV+OUmqNGs5f13AYD44TGQDHiQyA40QGwHEiA+A4kQFwnMgAOE5kABzHeQMeQgj2d6fQ1dNrtr/Z/T4eZKIWwD1g5GLe/E3lukLhyl0bbyqEaoGpsl/a5OfDx3G58L/Zr39yFta92oGOxQv8ayh473eH0Jce8K+Lx2v981vefQ1NDU+Z7YNHjqOru9e/bmZsBlauWIT1q5cgLFUz4Ms9B9B7rN9sx+OzMCpCRy7+h117enB59ApeWb7QnNv1dTdOnBxAQkSulGNZuSZ17BRiIq699Vn/uzua2SXZQyic0Agey2bz2LRxNcJQFQMowIp/Z+MqLFncYsTvk5mmWH7opc8vELF5s0+2bH7dVAgpiLATUhHzk03GGJpixXO2WUWEx2gM349VNT+ZQKVUJQP6Tp4xr23PJY14QnGdyxeZbQq8IOIvBVrDiifx0vZIdrzPj/7WX7qu1hdPOqX8bTUMnhtGGKpiQLYUUImnZ5cdT5R6mYyKePY2BbA6fjrypwm202cy6Osfr4r6UhbwPInHnygbj20Siz1qtgslMyulqiE4MdGzJSEWCtj01irJgQPY9+0h82dhtQTDcny8q5O+R6xUCZVSFQMaGuZISV5A6vdTWC8la2cpFShl26+nB4ZMmAVDrDnZKG1wcyVgpfC2K3PuvDHRtghXBbsitEu7heGODWCqB9nwxstYKjPXK8HEsty6YzfaWpPI/DOMv6S8SeeKhf71fenxvOA5K+yo9D7Lv1lM4jFWAu88KfajT/f65jH8zHhSLcEMqYRQ3w0Gb4UnsvOTzWaGbUIHYb+vkxRneN0cS5a3ntQtx6Kojz9421RQRkLusy++94PRQvEb3nwJYQllAD9MZpLUbZfZtiXP8BoaOm8SmjMaPGfH2brjKynfef4KQVg5zAXTGpIRHS+0+Oe4wnA8mslQDbP0BQnVAnzjYKJPhl3e2ibpT5sJscdmlAlhsNEoGlAfuCskHKstZL/fiqquArcj0TjHvLKXWS02yf+WPKD4sDc3lXBfDbDL3MHDf/gBydJubJiN5nmJspueahH9QAKOExkAx4kMgONEBsBxIgPgOJEBcJzIADhOZAAcJzJA/icyCEdRUGlP6+KPcBWlxQDgBzgKH6X15tY9/KvW+nM4BjXzOWLz+4NcTtdedfnR2TrZeEQOuFAJ1GjFc19NvMA8SotrH0LVtEyfilCDDHvmHVs+eOYGfAbtBPsp8XkAAAAASUVORK5CYII="
+            },
+            "countryCode": "nl",
+            "kvk": "27373207",
+            "privacyPolicyUrl": "https://www.rvig.nl/privacy"
+          }
+        }"#).unwrap()
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
@@ -156,7 +192,7 @@ where
 
         let mut documents = unsigned_mdocs
             .into_iter()
-            .map(Document::try_from)
+            .map(|mdoc| Document::from_unsigned_mdoc(mdoc, rvig_registration())) // TODO: obtain IssuerRegistration via some Issuer Authentication mechanism
             .collect::<Result<Vec<_>, _>>()?;
 
         documents.sort_by_key(Document::priority);
@@ -250,21 +286,25 @@ where
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
+            // Extract first copy from cred_copies
             let mdocs = mdocs
                 .iter()
                 .flat_map(|mdoc| mdoc.cred_copies.first())
                 .cloned()
                 .collect::<Vec<_>>();
 
-            // This should never fail after successful issuance
-            let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
+            // Validate all issuer_certificates
+            for mdoc in mdocs.iter() {
+                let certificate = mdoc
+                    .issuer_certificate()
+                    .map_err(PidIssuanceError::InvalidIssuerCertificate)?;
 
-            // Verify that the certificate contains IssuerRegistration
-            if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
-                return Err(PidIssuanceError::MissingIssuerRegistration);
+                // Verify that the certificate contains IssuerRegistration
+                if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
+                    return Err(PidIssuanceError::MissingIssuerRegistration);
+                }
             }
-
-            WalletEvent::new_issuance(mdocs.into(), certificate)
+            WalletEvent::new_issuance(mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?)
         };
 
         info!("PID accepted, storing mdoc in database");
@@ -278,7 +318,7 @@ where
             .await
             .map_err(PidIssuanceError::HistoryStorage)?;
 
-        self.emit_documents().await.map_err(PidIssuanceError::MdocStorage)?;
+        self.emit_documents().await.map_err(PidIssuanceError::Document)?;
 
         Ok(())
     }
@@ -642,7 +682,7 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, PidIssuanceError::Document(_));
+        assert_matches!(error, PidIssuanceError::MdocDocument(_));
     }
 
     #[tokio::test]

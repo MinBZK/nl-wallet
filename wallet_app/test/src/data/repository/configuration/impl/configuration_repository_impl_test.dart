@@ -18,7 +18,11 @@ void main() {
   test('verify that CoreConfigurationRepository fetches configuration through wallet_core', () async {
     when(mockCore.observeConfig()).thenAnswer(
       (_) => Stream.value(
-        const FlutterConfiguration(inactiveLockTimeout: 5, backgroundLockTimeout: 10),
+        const FlutterConfiguration(
+          inactiveLockTimeout: 5,
+          backgroundLockTimeout: 10,
+          version: 0,
+        ),
       ),
     );
 
@@ -28,6 +32,7 @@ void main() {
       const FlutterAppConfiguration(
         idleLockTimeout: Duration(seconds: 5),
         backgroundLockTimeout: Duration(seconds: 10),
+        version: 0,
       ),
     );
   });

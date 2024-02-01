@@ -34,7 +34,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       return _ongoingDisclosure = StartDisclosureResult.request(
         relyingParty: request.relyingParty,
         policy: request.policy,
-        requestedCards: _wallet.getRequestedCards(request.requestedAttributes.map((attribute) => attribute.key)),
+        requestedCards: _wallet.getDisclosureCards(request.requestedAttributes.map((attribute) => attribute.key)),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         requestOriginBaseUrl: 'http://origin.org',
         requestPurpose: request.purpose.untranslated,
@@ -183,6 +183,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       FlutterConfiguration(
         backgroundLockTimeout: Duration(minutes: 5).inSeconds,
         inactiveLockTimeout: Duration(minutes: 20).inSeconds,
+        version: 1,
       ),
     );
   }

@@ -5,16 +5,17 @@
 //! NB. "Device authentication" is not to be confused with the [`DeviceAuth`] data structure in the
 //! [`disclosure`](super::disclosure) module (which contains the holder's signature over [`DeviceAuthentication`]
 //! defined here).
+use std::{borrow::Cow, fmt::Debug};
 
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
-use std::fmt::Debug;
+
 use url::Url;
 
 use crate::{
-    iso::{disclosure::*, mdocs::*},
+    iso::disclosure::*,
     utils::{
         cose::CoseKey,
         serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
@@ -29,33 +30,31 @@ use crate::{
 ///
 /// This data structure is computed by the holder and the RP during a session, and then signed and verified
 /// respectively. It is not otherwise included in other data structures.
-pub type DeviceAuthentication = CborSeq<DeviceAuthenticationKeyed>;
-
-impl DeviceAuthentication {
-    /// Re-construct a [`DeviceAuthentication`] from a [`SessionTranscript`] and [`DocType`].
-    pub fn from_session_transcript(session_transcript: SessionTranscript, doc_type: DocType) -> Self {
-        DeviceAuthenticationKeyed {
-            device_authentication: Default::default(),
-            session_transcript,
-            doc_type,
-            device_name_spaces_bytes: Default::default(),
-        }
-        .into()
-    }
-}
+pub type DeviceAuthentication<'a> = CborSeq<DeviceAuthenticationKeyed<'a>>;
 
 /// See [`DeviceAuthentication`].
-pub type DeviceAuthenticationBytes = TaggedBytes<DeviceAuthentication>;
+pub type DeviceAuthenticationBytes<'a> = TaggedBytes<DeviceAuthentication<'a>>;
 
 /// See [`DeviceAuthentication`].
 // In production code, this struct is never deserialized.
 #[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
 #[derive(Serialize, Debug, Clone)]
-pub struct DeviceAuthenticationKeyed {
+pub struct DeviceAuthenticationKeyed<'a> {
     pub device_authentication: RequiredValue<DeviceAuthenticationString>,
-    pub session_transcript: SessionTranscript,
-    pub doc_type: DocType,
+    pub session_transcript: Cow<'a, SessionTranscript>,
+    pub doc_type: Cow<'a, str>,
     pub device_name_spaces_bytes: DeviceNameSpacesBytes,
+}
+
+impl<'a> DeviceAuthenticationKeyed<'a> {
+    pub fn new(doc_type: &'a str, session_transcript: &'a SessionTranscript) -> Self {
+        DeviceAuthenticationKeyed {
+            device_authentication: Default::default(),
+            session_transcript: Cow::Borrowed(session_transcript),
+            doc_type: Cow::Borrowed(doc_type),
+            device_name_spaces_bytes: Default::default(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -218,13 +217,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_device_authentication_bytes_from_session_transcript() {
-        let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
-        let device_authentication =
-            DeviceAuthentication::from_session_transcript(session_transcript, EXAMPLE_DOC_TYPE.to_string());
+    fn test_device_authentication_keyed_new() {
+        let TaggedBytes(CborSeq(example_device_auth)) = DeviceAuthenticationBytes::example();
+        let session_transcript = example_device_auth.session_transcript.into_owned();
+        let device_auth = DeviceAuthenticationKeyed::new(EXAMPLE_DOC_TYPE, &session_transcript);
 
         assert_eq!(
-            serialization::cbor_serialize(&TaggedBytes(device_authentication)).unwrap(),
+            serialization::cbor_serialize(&TaggedBytes(CborSeq(device_auth))).unwrap(),
             DeviceAuthenticationBytes::example_bts()
         );
     }

@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use p256::ecdsa::{
-    signature::{rand_core::OsRng, Verifier},
-    SigningKey,
-};
+use p256::ecdsa::{signature::Verifier, SigningKey};
+use rand_core::OsRng;
 use serial_test::serial;
 
 use wallet_common::utils::{random_bytes, random_string};

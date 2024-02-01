@@ -4,11 +4,13 @@ use crate::{errors::Result, iso::disclosure::IssuerSigned};
 
 impl IssuerSigned {
     pub fn public_key(&self) -> Result<VerifyingKey> {
-        self.issuer_auth
+        let public_key = self
+            .issuer_auth
             .dangerous_parse_unverified()?
             .0
             .device_key_info
-            .try_into()
+            .try_into()?;
+        Ok(public_key)
     }
 }
 

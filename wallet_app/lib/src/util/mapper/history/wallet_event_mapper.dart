@@ -2,8 +2,8 @@ import 'package:collection/collection.dart';
 import 'package:wallet_core/core.dart' as core show Organization;
 import 'package:wallet_core/core.dart' hide Organization;
 
-import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
@@ -15,12 +15,12 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<RequestPolicy, Policy> _policyMapper;
   final Mapper<Card, WalletCard> _cardMapper;
-  final Mapper<RequestedCard, WalletCard> _requestedCardMapper;
+  final Mapper<DisclosureCard, WalletCard> _disclosureCardMapper;
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
 
   WalletEventMapper(
     this._cardMapper,
-    this._requestedCardMapper,
+    this._disclosureCardMapper,
     this._relyingPartyMapper,
     this._policyMapper,
     this._localizedStringMapper,
@@ -29,7 +29,7 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
   @override
   TimelineAttribute map(WalletEvent input) {
     return input.map(disclosure: (disclosure) {
-      final cards = _requestedCardMapper.mapList(disclosure.requestedCards ?? []);
+      final cards = _disclosureCardMapper.mapList(disclosure.requestedCards ?? []);
       return InteractionTimelineAttribute(
         dateTime: DateTime.parse(disclosure.dateTime),
         organization: _relyingPartyMapper.map(disclosure.relyingParty),
@@ -42,7 +42,7 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
       final card = _cardMapper.map(issuance.card);
       return OperationTimelineAttribute(
         dateTime: DateTime.parse(issuance.dateTime),
-        organization: _relyingPartyMapper.map(issuance.issuer),
+        organization: _relyingPartyMapper.map(issuance.card.issuer),
         status: OperationStatus.issued,
         cardTitle: card.front.title,
         dataAttributes: card.attributes,

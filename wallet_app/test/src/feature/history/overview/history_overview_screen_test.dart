@@ -7,7 +7,7 @@ import 'package:wallet/src/feature/history/overview/bloc/history_overview_bloc.d
 import 'package:wallet/src/feature/history/overview/history_overview_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
 
 class MockHistoryOverviewBloc extends MockBloc<HistoryOverviewEvent, HistoryOverviewState>

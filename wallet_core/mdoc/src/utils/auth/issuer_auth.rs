@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-use crate::utils::x509::MdocCertificateExtension;
+use crate::utils::x509::{CertificateType, MdocCertificateExtension};
 
 use super::Organization;
 
@@ -19,6 +19,12 @@ pub struct IssuerRegistration {
 
 impl MdocCertificateExtension for IssuerRegistration {
     const OID: &'static [u64] = OID_EXT_ISSUER_AUTH;
+}
+
+impl From<IssuerRegistration> for CertificateType {
+    fn from(source: IssuerRegistration) -> Self {
+        CertificateType::Mdl(Box::new(source).into())
+    }
 }
 
 #[cfg(any(test, feature = "mock"))]

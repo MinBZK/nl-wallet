@@ -1,12 +1,13 @@
 use std::{sync::Mutex, time::Duration};
 
 use once_cell::sync::Lazy;
-use p256::{
-    ecdsa::{Signature, SigningKey, VerifyingKey},
-    elliptic_curve::rand_core::OsRng,
-};
+use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use rand_core::OsRng;
 
-use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::PrivateKey, IssuerSigned};
+use nl_wallet_mdoc::{
+    basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
+    IssuerSigned,
+};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
@@ -38,7 +39,7 @@ pub struct AccountServerKeys {
 
 /// This contains key material that is used to issue mdocs.
 pub struct IssuerKey {
-    pub issuance_key: PrivateKey,
+    pub issuance_key: KeyPair,
     pub trust_anchor: DerTrustAnchor,
 }
 
@@ -70,21 +71,23 @@ pub static ACCOUNT_SERVER_KEYS: Lazy<AccountServerKeys> = Lazy::new(|| AccountSe
 
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: Lazy<IssuerKey> = Lazy::new(|| {
-    let (issuance_key, ca) = PrivateKey::generate_mock_with_ca().unwrap();
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: (&ca).try_into().unwrap(),
+        trust_anchor: ca.certificate().try_into().unwrap(),
     }
 });
 
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: Lazy<IssuerKey> = Lazy::new(|| {
-    let (issuance_key, ca) = PrivateKey::generate_unauthenticated_mock_with_ca().unwrap();
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let issuance_key = ca.generate_issuer_mock(None).unwrap();
 
     IssuerKey {
         issuance_key,
-        trust_anchor: (&ca).try_into().unwrap(),
+        trust_anchor: ca.certificate().try_into().unwrap(),
     }
 });
 

@@ -1,6 +1,5 @@
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../../data/repository/history/timeline_attribute_repository.dart';
-import '../../../../data/repository/organization/organization_repository.dart';
 import '../../../model/timeline/interaction_timeline_attribute.dart';
 import '../../../model/timeline/operation_timeline_attribute.dart';
 import '../../../model/wallet_card.dart';
@@ -9,12 +8,10 @@ import '../observe_wallet_card_detail_usecase.dart';
 
 class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCase {
   final WalletCardRepository _walletCardRepository;
-  final OrganizationRepository _organizationRepository;
   final TimelineAttributeRepository _timelineAttributeRepository;
 
   ObserveWalletCardDetailUseCaseImpl(
     this._walletCardRepository,
-    this._organizationRepository,
     this._timelineAttributeRepository,
   );
 
@@ -27,7 +24,6 @@ class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCa
   }
 
   Future<WalletCardDetail> _getWalletCardDetail(WalletCard card) async {
-    Organization? organization = await _organizationRepository.findIssuer(card.docType);
     InteractionTimelineAttribute? interaction = await _timelineAttributeRepository.readMostRecentInteraction(
       card.docType,
       InteractionStatus.success,
@@ -38,7 +34,6 @@ class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCa
     );
     return WalletCardDetail(
       card: card,
-      issuer: organization!, // Exception handled upstream
       latestSuccessInteraction: interaction,
       latestIssuedOperation: operation,
     );

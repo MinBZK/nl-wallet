@@ -30,7 +30,7 @@ use url::Url;
 use crate::{cbor::Cbor, settings::Settings};
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken},
     utils::{reader_auth::ReturnUrlPrefix, serialization::cbor_serialize, x509::Certificate},
     verifier::{
@@ -81,10 +81,10 @@ impl IntoResponse for Error {
     }
 }
 
-struct RelyingPartyKeyRing(HashMap<String, PrivateKey>);
+struct RelyingPartyKeyRing(HashMap<String, KeyPair>);
 
 impl KeyRing for RelyingPartyKeyRing {
-    fn private_key(&self, usecase: &str) -> Option<&PrivateKey> {
+    fn private_key(&self, usecase: &str) -> Option<&KeyPair> {
         self.0.get(usecase)
     }
 }
@@ -109,7 +109,7 @@ where
                     .map(|(usecase, keypair)| {
                         Ok((
                             usecase,
-                            PrivateKey::new(
+                            KeyPair::new(
                                 SigningKey::from_pkcs8_der(&keypair.private_key)?,
                                 Certificate::from(&keypair.certificate),
                             ),

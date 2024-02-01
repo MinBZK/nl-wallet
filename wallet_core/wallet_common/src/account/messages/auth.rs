@@ -77,7 +77,8 @@ pub struct Certificate {
 #[cfg(test)]
 mod tests {
     use crate::account::signed::SequenceNumberComparison;
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
     use super::*;
 

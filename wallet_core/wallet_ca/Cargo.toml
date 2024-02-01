@@ -16,6 +16,7 @@ allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 clap = { workspace = true, features = ["derive"] }
 clio = { workspace = true, features = ["clap-parse"] }
 itertools.workspace = true
@@ -31,5 +32,6 @@ nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
 assert_cmd.workspace = true
 assert_fs.workspace = true
 predicates.workspace = true
+time.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock"] }

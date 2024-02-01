@@ -7,14 +7,13 @@ use webpki::TrustAnchor;
 use wallet_common::{generator::TimeGenerator, utils};
 
 use crate::{
-    basic_sa_ext::Entry,
     device_retrieval::DeviceRequest,
     disclosure::{DeviceResponse, SessionData, SessionStatus},
     engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
     errors::{Error, Result},
     holder::{DisclosureError, DisclosureResult, HolderError, HttpClient, HttpClientError, HttpClientResult},
     identifiers::AttributeIdentifier,
-    mdocs::{DocType, NameSpace},
+    mdocs::DocType,
     utils::{
         crypto::SessionKey,
         keys::{KeyFactory, MdocEcdsaKey},
@@ -25,12 +24,16 @@ use crate::{
     verifier::SessionType,
 };
 
-use super::{proposed_document::ProposedDocument, request::DeviceRequestMatch, MdocDataSource};
+use super::{
+    proposed_document::{ProposedDocument, ProposedDocumentAttributes},
+    request::DeviceRequestMatch,
+    MdocDataSource,
+};
 
 const REFERRER_URL: &str = "https://referrer.url/";
 const TRANSCRIPT_HASH_PARAM: &str = "transcript_hash";
 
-pub type ProposedAttributes = IndexMap<DocType, IndexMap<NameSpace, Vec<Entry>>>;
+pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 
 /// This represents a started disclosure session, which can be in one of two states.
 /// Regardless of which state it is in, it provides the `ReaderRegistration` through
@@ -116,9 +119,6 @@ where
             ephemeral_privkey,
         )?;
 
-        // Serialize the `SessionTranscript` for if we need to add it to the `return_url` later.
-        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(&transcript))?;
-
         // Send the `DeviceEngagement` to the verifier and deserialize the expected `SessionData`.
         // If decoding fails, send a `SessionData` to the verifier to report this.
         let session_data: SessionData = client
@@ -138,13 +138,14 @@ where
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
         let return_url_ref = return_url.as_ref();
+        let transcript_ref = &transcript;
         let (check_result, certificate, reader_registration) =
             async { session_data.decrypt_and_deserialize(&reader_key) }
                 .and_then(|device_request| async move {
                     Self::verify_device_request(
                         &device_request,
                         return_url_ref,
-                        transcript,
+                        transcript_ref,
                         mdoc_data_source,
                         trust_anchors,
                     )
@@ -172,7 +173,9 @@ where
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
                     // If we have a return URL, add the hash of the `SessionTranscript` to it.
-                    return_url: return_url.map(|url| Self::add_transcript_hash_to_url(url, &session_transcript_bytes)),
+                    return_url: return_url
+                        .map(|url| Self::add_transcript_hash_to_url(url, &transcript))
+                        .transpose()?,
                     data,
                     device_key,
                     proposed_documents,
@@ -202,7 +205,7 @@ where
     async fn verify_device_request<'a, S>(
         device_request: &DeviceRequest,
         return_url: Option<&Url>,
-        session_transcript: SessionTranscript,
+        session_transcript: &SessionTranscript,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<(VerifierSessionDataCheckResult<I>, Certificate, ReaderRegistration)>
@@ -217,7 +220,7 @@ where
         // Verify reader authentication and decode `ReaderRegistration` from it at the same time.
         // Reader authentication is required to be present at this time.
         let (certificate, reader_registration) = device_request
-            .verify(session_transcript.clone(), &TimeGenerator, trust_anchors)?
+            .verify(session_transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
         // Verify the return URL against the prefix in the `ReaderRegistration`,
@@ -266,13 +269,17 @@ where
         Ok((result, certificate, reader_registration))
     }
 
-    fn add_transcript_hash_to_url(mut url: Url, session_transcript_bytes: &[u8]) -> Url {
-        let transcript_hash = utils::sha256(session_transcript_bytes);
+    fn add_transcript_hash_to_url(
+        mut url: Url,
+        session_transcript: &SessionTranscript,
+    ) -> std::result::Result<Url, CborError> {
+        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
+        let transcript_hash = utils::sha256(&session_transcript_bytes);
 
         url.query_pairs_mut()
             .append_pair(TRANSCRIPT_HASH_PARAM, &BASE64_URL_SAFE_NO_PAD.encode(transcript_hash));
 
-        url
+        Ok(url)
     }
 
     fn data(&self) -> &CommonDisclosureData<H> {
@@ -325,7 +332,7 @@ where
         // prepared `IssuerSigned` on the `ProposedDocument`s.
         self.proposed_documents
             .iter()
-            .map(|document| (document.doc_type.clone(), document.name_spaces()))
+            .map(|document| (document.doc_type.clone(), document.proposed_attributes()))
             .collect()
     }
 
@@ -377,7 +384,8 @@ mod tests {
     use assert_matches::assert_matches;
     use http::StatusCode;
     use indexmap::IndexSet;
-    use p256::{ecdsa::VerifyingKey, elliptic_curve::rand_core::OsRng, SecretKey};
+    use p256::{ecdsa::VerifyingKey, SecretKey};
+    use rand_core::OsRng;
     use tokio::sync::mpsc;
 
     use crate::{
@@ -385,14 +393,14 @@ mod tests {
         identifiers::AttributeIdentifierHolder,
         iso::{
             disclosure::{DeviceAuth, SessionStatus},
-            engagement::DeviceAuthentication,
+            engagement::DeviceAuthenticationKeyed,
         },
+        server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
-            serialization::TaggedBytes,
-            x509::CertificateType,
+            serialization::{CborSeq, TaggedBytes},
         },
         Error,
     };
@@ -524,10 +532,9 @@ mod tests {
             .into_iter()
             .zip(public_keys)
             .for_each(|(document, public_key)| {
-                let device_authentication =
-                    DeviceAuthentication::from_session_transcript(session_transcript.clone(), document.doc_type);
+                let device_authentication = DeviceAuthenticationKeyed::new(&document.doc_type, &session_transcript);
                 let device_authentication_bytes =
-                    serialization::cbor_serialize(&TaggedBytes(device_authentication)).unwrap();
+                    serialization::cbor_serialize(&TaggedBytes(CborSeq(device_authentication))).unwrap();
 
                 match document.device_signed.device_auth {
                     DeviceAuth::DeviceSignature(signature) => signature
@@ -588,7 +595,7 @@ mod tests {
         let entry_keys = proposal_session
             .proposed_attributes()
             .remove(EXAMPLE_DOC_TYPE)
-            .and_then(|mut name_space| name_space.remove(EXAMPLE_NAMESPACE))
+            .and_then(|mut name_space| name_space.attributes.remove(EXAMPLE_NAMESPACE))
             .map(|entries| entries.into_iter().map(|entry| entry.name).collect::<Vec<_>>())
             .unwrap_or_default();
 
@@ -1259,21 +1266,21 @@ mod tests {
             payload_sender,
         };
 
-        let (ca_cert, ca_key) = Certificate::new_ca("test-ca").unwrap();
-        let (certificate, _) = Certificate::new(
-            &ca_cert,
-            &ca_key,
-            "test-certificate",
-            CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
-        )
-        .unwrap();
+        let ca = KeyPair::generate_ca("test-ca", Default::default()).unwrap();
+        let reader_key_pair = ca
+            .generate(
+                "test-certificate",
+                ReaderRegistration::new_mock().into(),
+                Default::default(),
+            )
+            .unwrap();
 
         // Terminating a `DisclosureSession` with missing attributes should succeed.
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
-                certificate: certificate.clone(),
+                certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),
@@ -1295,7 +1302,7 @@ mod tests {
             data: CommonDisclosureData {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
-                certificate,
+                certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),

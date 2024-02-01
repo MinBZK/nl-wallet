@@ -15,14 +15,11 @@ class CheckAttributesInitial extends CheckAttributesState {
 }
 
 class CheckAttributesSuccess extends CheckAttributesState {
-  final Organization cardIssuer;
-
   const CheckAttributesSuccess({
     required super.card,
     required super.attributes,
-    required this.cardIssuer,
   });
 
   @override
-  List<Object> get props => [card, attributes, cardIssuer];
+  List<Object> get props => [card, attributes];
 }
