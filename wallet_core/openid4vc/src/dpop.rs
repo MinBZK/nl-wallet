@@ -141,7 +141,7 @@ impl Dpop {
         if token_data.header.typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
             return Err(Error::UnsupportedJwtAlgorithm {
                 expected: OPENID4VCI_DPOP_JWT_TYPE.to_string(),
-                found: token_data.header.typ.clone().unwrap_or_default(),
+                found: token_data.header.typ.clone(),
             });
         }
         if token_data.claims.http_method != method.to_string() {

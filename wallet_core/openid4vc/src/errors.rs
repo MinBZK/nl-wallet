@@ -10,8 +10,8 @@ use crate::{credential::CredentialErrorType, jwk::JwkConversionError, token::Tok
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("unsupported JWT algorithm: expected {expected}, found {found}")]
-    UnsupportedJwtAlgorithm { expected: String, found: String },
+    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("JWT signing failed: {0}")]
