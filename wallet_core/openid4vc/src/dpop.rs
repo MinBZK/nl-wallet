@@ -119,7 +119,7 @@ impl Dpop {
         Ok(Self(jwt))
     }
 
-    pub fn verify_signature(&self, verifying_key: &VerifyingKey) -> Result<TokenData<DpopPayload>> {
+    fn verify_signature(&self, verifying_key: &VerifyingKey) -> Result<TokenData<DpopPayload>> {
         let mut validation_options = Validation::new(Algorithm::ES256);
         validation_options.required_spec_claims = Default::default();
         let token_data = jsonwebtoken::decode::<DpopPayload>(
@@ -130,7 +130,7 @@ impl Dpop {
         Ok(token_data)
     }
 
-    pub fn verify_data(
+    fn verify_data(
         &self,
         token_data: &TokenData<DpopPayload>,
         url: &Url,
