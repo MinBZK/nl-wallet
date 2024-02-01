@@ -38,12 +38,16 @@
 //! }
 //! ```
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use chrono::{serde::ts_seconds, DateTime, Utc};
 use jsonwebtoken::{Algorithm, TokenData, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
+use serde_with::{
+    base64::{Base64, UrlSafe},
+    formats::Unpadded,
+    serde_as, skip_serializing_none,
+};
 use url::Url;
 use wallet_common::{
     jwt::{EcdsaDecodingKey, Jwt},
@@ -59,6 +63,7 @@ use crate::{
 pub const DPOP_HEADER_NAME: &str = "DPoP";
 pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
 
+#[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DpopPayload {
@@ -67,10 +72,12 @@ pub struct DpopPayload {
     #[serde(rename = "htm")]
     http_method: String,
     #[serde(rename = "ath")]
-    access_token_hash: Option<String>,
+    #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
+    access_token_hash: Option<Vec<u8>>,
     nonce: Option<String>,
     jti: String,
-    iat: u64,
+    #[serde(with = "ts_seconds")]
+    iat: DateTime<Utc>,
 }
 
 pub struct Dpop(pub Jwt<DpopPayload>);
@@ -89,11 +96,11 @@ impl Dpop {
 
         let payload = DpopPayload {
             jti: random_string(32),
-            iat: jsonwebtoken::get_current_timestamp(),
+            iat: Utc::now(),
             http_method: method.to_string(),
             http_url: url,
             nonce,
-            access_token_hash: access_token.map(|access_token| URL_SAFE_NO_PAD.encode(sha256(access_token.as_bytes()))),
+            access_token_hash: access_token.map(|access_token| sha256(access_token.as_bytes())),
         };
 
         let jwt = Jwt::sign(&payload, &header, private_key).await?;
@@ -131,11 +138,7 @@ impl Dpop {
         if token_data.claims.http_url != *url {
             return Err(Error::IncorrectDpopUrl);
         }
-        if token_data.claims.access_token_hash
-            != access_token
-                .as_ref()
-                .map(|token| URL_SAFE_NO_PAD.encode(sha256(token.as_bytes())))
-        {
+        if token_data.claims.access_token_hash != access_token.as_ref().map(|token| sha256(token.as_bytes())) {
             return Err(Error::IncorrectDpopAccessTokenHash);
         }
 
@@ -226,7 +229,7 @@ mod tests {
             claims.access_token_hash,
             access_token
                 .as_ref()
-                .map(|access_token| BASE64_URL_SAFE_NO_PAD.encode(sha256(access_token.as_bytes())))
+                .map(|access_token| sha256(access_token.as_bytes()))
         );
         assert_eq!(claims.http_url, url);
         assert_eq!(claims.http_method, method.to_string());
