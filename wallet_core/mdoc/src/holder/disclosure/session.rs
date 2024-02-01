@@ -395,12 +395,12 @@ mod tests {
             disclosure::{DeviceAuth, SessionStatus},
             engagement::DeviceAuthenticationKeyed,
         },
+        server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{ClonePayload, CoseError},
             crypto::SessionKeyUser,
             serialization::{CborSeq, TaggedBytes},
-            x509::CertificateType,
         },
         Error,
     };
@@ -1266,22 +1266,21 @@ mod tests {
             payload_sender,
         };
 
-        let (ca_cert, ca_key) = Certificate::new_ca("test-ca", Default::default()).unwrap();
-        let (certificate, _) = Certificate::new(
-            &ca_cert,
-            &ca_key,
-            "test-certificate",
-            CertificateType::ReaderAuth(Box::new(ReaderRegistration::new_mock()).into()),
-            Default::default(),
-        )
-        .unwrap();
+        let ca = KeyPair::generate_ca("test-ca", Default::default()).unwrap();
+        let reader_key_pair = ca
+            .generate(
+                "test-certificate",
+                ReaderRegistration::new_mock().into(),
+                Default::default(),
+            )
+            .unwrap();
 
         // Terminating a `DisclosureSession` with missing attributes should succeed.
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
-                certificate: certificate.clone(),
+                certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),
@@ -1303,7 +1302,7 @@ mod tests {
             data: CommonDisclosureData {
                 client,
                 verifier_url: SESSION_URL.parse().unwrap(),
-                certificate,
+                certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
             },
             missing_attributes: Default::default(),
