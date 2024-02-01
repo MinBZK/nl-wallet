@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use entity::history_event;
+use entity::{disclosure_history_event, issuance_history_event};
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -164,8 +164,16 @@ impl Storage for MockStorage {
 
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
         // Convert to database entity and back to check whether the `TryFrom` implementations are complete.
-        let entity = history_event::Model::try_from(event.clone())?;
-        let converted_event = WalletEvent::try_from(entity)?;
+        let converted_event = match event {
+            WalletEvent::Disclosure { .. } => {
+                let entity = disclosure_history_event::Model::try_from(event.clone())?;
+                WalletEvent::try_from(entity)?
+            }
+            WalletEvent::Issuance { .. } => {
+                let entity = issuance_history_event::Model::try_from(event.clone())?;
+                WalletEvent::try_from(entity)?
+            }
+        };
         assert_eq!(event, converted_event);
         self.event_log.push(converted_event);
         Ok(())

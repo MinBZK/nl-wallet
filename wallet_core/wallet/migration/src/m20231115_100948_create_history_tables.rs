@@ -10,15 +10,35 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(HistoryEvent::Table)
+                    .table(IssuanceHistoryEvent::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HistoryEvent::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(HistoryEvent::Type).text().not_null())
-                    .col(ColumnDef::new(HistoryEvent::Timestamp).timestamp().not_null())
-                    .col(ColumnDef::new(HistoryEvent::RelyingPartyCertificate).binary().null())
-                    .col(ColumnDef::new(HistoryEvent::Status).text().not_null())
-                    .col(ColumnDef::new(HistoryEvent::StatusDescription).text().null())
-                    .col(ColumnDef::new(HistoryEvent::Attributes).binary().null())
+                    .col(ColumnDef::new(IssuanceHistoryEvent::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(IssuanceHistoryEvent::Timestamp).timestamp().not_null())
+                    .col(ColumnDef::new(IssuanceHistoryEvent::Attributes).binary().not_null())
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(DisclosureHistoryEvent::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(DisclosureHistoryEvent::Id)
+                            .uuid()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(ColumnDef::new(DisclosureHistoryEvent::Timestamp).timestamp().not_null())
+                    .col(
+                        ColumnDef::new(DisclosureHistoryEvent::RelyingPartyCertificate)
+                            .binary()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(DisclosureHistoryEvent::Status).text().not_null())
+                    .col(ColumnDef::new(DisclosureHistoryEvent::StatusDescription).text().null())
+                    .col(ColumnDef::new(DisclosureHistoryEvent::Attributes).binary().null())
                     .to_owned(),
             )
             .await?;
@@ -37,14 +57,46 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(HistoryEventDocType::Table)
+                    .table(IssuanceHistoryEventDocType::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(HistoryEventDocType::HistoryEventId).uuid().not_null())
-                    .col(ColumnDef::new(HistoryEventDocType::HistoryDocTypeId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(IssuanceHistoryEventDocType::IssuanceHistoryEventId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(IssuanceHistoryEventDocType::HistoryDocTypeId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .primary_key(
                         Index::create()
-                            .col(HistoryEventDocType::HistoryEventId)
-                            .col(HistoryEventDocType::HistoryDocTypeId),
+                            .col(IssuanceHistoryEventDocType::IssuanceHistoryEventId)
+                            .col(IssuanceHistoryEventDocType::HistoryDocTypeId),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(DisclosureHistoryEventDocType::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(DisclosureHistoryEventDocType::DisclosureHistoryEventId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(DisclosureHistoryEventDocType::HistoryDocTypeId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .primary_key(
+                        Index::create()
+                            .col(DisclosureHistoryEventDocType::DisclosureHistoryEventId)
+                            .col(DisclosureHistoryEventDocType::HistoryDocTypeId),
                     )
                     .to_owned(),
             )
@@ -53,7 +105,11 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(HistoryEventDocType::Table).to_owned())
+            .drop_table(Table::drop().table(DisclosureHistoryEventDocType::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(IssuanceHistoryEventDocType::Table).to_owned())
             .await?;
 
         manager
@@ -61,16 +117,27 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .drop_table(Table::drop().table(HistoryEvent::Table).to_owned())
+            .drop_table(Table::drop().table(DisclosureHistoryEvent::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(IssuanceHistoryEvent::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum HistoryEvent {
+enum IssuanceHistoryEvent {
     Table,
     Id,
-    Type,
+    Timestamp,
+    Attributes,
+}
+
+#[derive(DeriveIden)]
+enum DisclosureHistoryEvent {
+    Table,
+    Id,
     Timestamp,
     RelyingPartyCertificate,
     Status,
@@ -86,8 +153,15 @@ enum HistoryDocType {
 }
 
 #[derive(DeriveIden)]
-enum HistoryEventDocType {
+enum IssuanceHistoryEventDocType {
     Table,
-    HistoryEventId,
+    IssuanceHistoryEventId,
+    HistoryDocTypeId,
+}
+
+#[derive(DeriveIden)]
+enum DisclosureHistoryEventDocType {
+    Table,
+    DisclosureHistoryEventId,
     HistoryDocTypeId,
 }

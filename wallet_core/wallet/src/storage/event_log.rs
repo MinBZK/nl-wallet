@@ -3,7 +3,7 @@ use indexmap::{IndexMap, IndexSet};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-pub use entity::history_event;
+pub use entity::{disclosure_history_event, issuance_history_event};
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
     holder::{Mdoc, ProposedAttributes, ProposedDocumentAttributes},
@@ -32,7 +32,7 @@ impl EventStatus {
     }
 }
 
-impl From<EventStatus> for history_event::EventStatus {
+impl From<EventStatus> for disclosure_history_event::EventStatus {
     fn from(source: EventStatus) -> Self {
         match source {
             EventStatus::Success => Self::Success,
@@ -42,15 +42,15 @@ impl From<EventStatus> for history_event::EventStatus {
     }
 }
 
-impl From<&history_event::Model> for EventStatus {
-    fn from(source: &history_event::Model) -> Self {
+impl From<&disclosure_history_event::Model> for EventStatus {
+    fn from(source: &disclosure_history_event::Model) -> Self {
         match source.status {
-            history_event::EventStatus::Success => Self::Success,
-            history_event::EventStatus::Error => {
+            disclosure_history_event::EventStatus::Success => Self::Success,
+            disclosure_history_event::EventStatus::Error => {
                 // unwrap is safe here, assuming the data has been inserted using [EventStatus]
                 Self::Error(source.status_description.as_ref().unwrap().to_owned())
             }
-            history_event::EventStatus::Cancelled => Self::Cancelled,
+            disclosure_history_event::EventStatus::Cancelled => Self::Cancelled,
         }
     }
 }
@@ -193,49 +193,41 @@ impl WalletEvent {
     }
 }
 
-impl TryFrom<history_event::Model> for WalletEvent {
+impl TryFrom<disclosure_history_event::Model> for WalletEvent {
     type Error = CborError;
-    fn try_from(event: history_event::Model) -> Result<Self, Self::Error> {
-        let result = match event.event_type {
-            history_event::EventType::Issuance => Self::Issuance {
-                id: event.id,
-                mdocs: EventDocuments(cbor_deserialize(event.attributes.unwrap().as_slice())?), // Unwrap is safe here
-                timestamp: event.timestamp,
-            },
-            history_event::EventType::Disclosure => Self::Disclosure {
-                id: event.id,
-                status: EventStatus::from(&event),
-                documents: event
-                    .attributes
-                    .map(|attributes| {
-                        Ok::<EventDocuments, CborError>(EventDocuments(cbor_deserialize(attributes.as_slice())?))
-                    })
-                    .transpose()?,
-                timestamp: event.timestamp,
-                reader_certificate: event.relying_party_certificate.map(Into::into).unwrap(),
-            },
+    fn try_from(event: disclosure_history_event::Model) -> Result<Self, Self::Error> {
+        let result = Self::Disclosure {
+            id: event.id,
+            status: EventStatus::from(&event),
+            documents: event
+                .attributes
+                .map(|attributes| {
+                    Ok::<EventDocuments, CborError>(EventDocuments(cbor_deserialize(attributes.as_slice())?))
+                })
+                .transpose()?,
+            timestamp: event.timestamp,
+            reader_certificate: event.relying_party_certificate.into(),
         };
         Ok(result)
     }
 }
 
-impl TryFrom<WalletEvent> for history_event::Model {
+impl TryFrom<issuance_history_event::Model> for WalletEvent {
+    type Error = CborError;
+    fn try_from(event: issuance_history_event::Model) -> Result<Self, Self::Error> {
+        let result = Self::Issuance {
+            id: event.id,
+            mdocs: EventDocuments(cbor_deserialize(event.attributes.unwrap().as_slice())?), // Unwrap is safe here
+            timestamp: event.timestamp,
+        };
+        Ok(result)
+    }
+}
+
+impl TryFrom<WalletEvent> for disclosure_history_event::Model {
     type Error = CborError;
     fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
         let result = match source {
-            WalletEvent::Issuance {
-                id,
-                mdocs: EventDocuments(mdocs),
-                timestamp,
-            } => Self {
-                attributes: Some(cbor_serialize(&mdocs)?),
-                id,
-                event_type: history_event::EventType::Issuance,
-                timestamp,
-                relying_party_certificate: None,
-                status_description: None,
-                status: history_event::EventStatus::Success,
-            },
             WalletEvent::Disclosure {
                 id,
                 status,
@@ -247,12 +239,31 @@ impl TryFrom<WalletEvent> for history_event::Model {
                     .map(|EventDocuments(mdocs)| cbor_serialize(&mdocs))
                     .transpose()?,
                 id,
-                event_type: history_event::EventType::Disclosure,
                 timestamp,
-                relying_party_certificate: Some(reader_certificate.into()),
+                relying_party_certificate: reader_certificate.into(),
                 status_description: status.description().map(ToString::to_string),
                 status: status.into(),
             },
+            _ => panic!("not a disclosure event"),
+        };
+        Ok(result)
+    }
+}
+
+impl TryFrom<WalletEvent> for issuance_history_event::Model {
+    type Error = CborError;
+    fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
+        let result = match source {
+            WalletEvent::Issuance {
+                id,
+                mdocs: EventDocuments(mdocs),
+                timestamp,
+            } => Self {
+                attributes: Some(cbor_serialize(&mdocs)?),
+                id,
+                timestamp,
+            },
+            _ => panic!("not an issuance event"),
         };
         Ok(result)
     }
