@@ -24,7 +24,7 @@ use super::{
     data::KeyedData,
     database::{Database, SqliteUrl},
     event_log::WalletEvent,
-    key_file::{delete_key_file, get_or_create_key_file},
+    key_file,
     sql_cipher_key::SqlCipherKey,
     Storage, StorageError, StorageResult, StorageState, StoredMdocCopy,
 };
@@ -96,7 +96,8 @@ where
 
         // Get database key of the correct length including a salt, stored in encrypted file.
         let key_bytes =
-            get_or_create_key_file::<K>(&self.storage_path, &key_file_alias, SqlCipherKey::size_with_salt()).await?;
+            key_file::get_or_create_key_file::<K>(&self.storage_path, &key_file_alias, SqlCipherKey::size_with_salt())
+                .await?;
         let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
 
         // Open database at the path, encrypted using the key
@@ -187,7 +188,7 @@ where
 
         // Close and delete the database, only if this succeeds also delete the key file.
         database.close_and_delete().await?;
-        delete_key_file(&self.storage_path, &key_file_alias).await;
+        key_file::delete_key_file(&self.storage_path, &key_file_alias).await;
 
         Ok(())
     }
@@ -498,7 +499,7 @@ pub(crate) mod tests {
         let database_path = storage.database_path_for_name(name);
 
         // Make sure we start with a clean slate.
-        delete_key_file(&storage.storage_path, &key_file_alias).await;
+        key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
         _ = fs::remove_file(database_path).await;
 
         let database = storage
