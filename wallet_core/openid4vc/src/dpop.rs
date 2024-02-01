@@ -80,7 +80,19 @@ pub struct DpopPayload {
     iat: DateTime<Utc>,
 }
 
-pub struct Dpop(pub Jwt<DpopPayload>);
+pub struct Dpop(Jwt<DpopPayload>);
+
+impl AsRef<str> for Dpop {
+    fn as_ref(&self) -> &str {
+        &self.0 .0
+    }
+}
+
+impl From<String> for Dpop {
+    fn from(value: String) -> Self {
+        Self(value.into())
+    }
+}
 
 pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
 

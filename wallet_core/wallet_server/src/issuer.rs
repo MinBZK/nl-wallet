@@ -267,12 +267,12 @@ impl Header for DpopHeader {
             return Err(axum::headers::Error::invalid());
         }
 
-        let str = value.to_str().map_err(|_| axum::headers::Error::invalid())?;
-        Ok(DpopHeader(Dpop(str.into())))
+        let str = value.to_str().map_err(|_| axum::headers::Error::invalid())?.to_string();
+        Ok(DpopHeader(str.into()))
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-        values.extend(HeaderValue::from_bytes(self.0 .0 .0.as_bytes()));
+        values.extend(HeaderValue::from_bytes(self.0.as_ref().as_bytes()));
     }
 }
 

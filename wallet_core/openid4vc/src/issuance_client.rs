@@ -64,7 +64,7 @@ impl IssuanceClient {
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header.0 .0)
+            .header(DPOP_HEADER_NAME, dpop_header.as_ref())
             .body(serde_urlencoded::to_string(token_request)?)
             .send()
             .map_err(Error::from)
@@ -159,7 +159,7 @@ impl IssuanceClient {
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header.0 .0)
+            .header(DPOP_HEADER_NAME, dpop_header.as_ref())
             .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
             .body(serde_json::to_string(&credential_requests)?)
             .send()
@@ -229,7 +229,7 @@ impl IssuanceClient {
 
         self.http_client
             .delete(url) // TODO discover token endpoint instead
-            .header(DPOP_HEADER_NAME, dpop_header.0 .0)
+            .header(DPOP_HEADER_NAME, dpop_header.as_ref())
             .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
             .send()
             .await?
