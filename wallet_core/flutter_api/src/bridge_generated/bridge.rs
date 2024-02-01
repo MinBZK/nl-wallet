@@ -323,7 +323,7 @@ fn wire_reset_wallet_impl(port_: MessagePort) {
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| Result::<_, ()>::Ok(reset_wallet()),
+        move || move |task_callback| reset_wallet(),
     )
 }
 // Section: wrapper structs

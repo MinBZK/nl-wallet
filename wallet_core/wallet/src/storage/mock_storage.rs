@@ -73,6 +73,8 @@ impl Storage for MockStorage {
     }
 
     async fn clear(&mut self) -> StorageResult<()> {
+        self.check_query_error()?;
+
         self.data.clear();
         self.state = StorageState::Uninitialized;
 

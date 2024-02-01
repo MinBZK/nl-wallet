@@ -280,8 +280,11 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
 }
 
 #[async_runtime]
-pub async fn reset_wallet() {
-    panic!("Unimplemented: UC 9.4")
+#[flutter_api_error]
+pub async fn reset_wallet() -> Result<()> {
+    wallet().write().await.reset().await?;
+
+    Ok(())
 }
 
 #[cfg(test)]

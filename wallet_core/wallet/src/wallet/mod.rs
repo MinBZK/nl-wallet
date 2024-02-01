@@ -6,6 +6,7 @@ mod init;
 mod issuance;
 mod lock;
 mod registration;
+mod reset;
 mod uri;
 
 #[cfg(test)]
@@ -33,6 +34,7 @@ pub use self::{
     issuance::PidIssuanceError,
     lock::WalletUnlockError,
     registration::WalletRegistrationError,
+    reset::ResetError,
     uri::{UriIdentificationError, UriType},
 };
 
