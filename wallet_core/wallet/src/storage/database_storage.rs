@@ -7,6 +7,7 @@ use sea_orm::{
     QuerySelect, RelationTrait, Select, Set, StatementBuilder, TransactionTrait,
 };
 use tokio::fs;
+use tracing::warn;
 use uuid::Uuid;
 
 use entity::{
@@ -181,16 +182,18 @@ where
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
-    async fn clear(&mut self) -> StorageResult<()> {
+    async fn clear(&mut self) {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
-        let database = self.database.take().ok_or(StorageError::NotOpened)?;
-        let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
+        if let Some(database) = self.database.take() {
+            if let Err(error) = database.close_and_delete().await {
+                warn!("Could not close and delete database: {}", error);
+            }
 
-        // Close and delete the database, only if this succeeds also delete the key file.
-        database.close_and_delete().await?;
-        key_file::delete_key_file(&self.storage_path, &key_file_alias).await;
-
-        Ok(())
+            let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
+            if let Err(error) = key_file::delete_key_file(&self.storage_path, &key_file_alias).await {
+                warn!("Could not delete database key file: {}", error);
+            }
+        }
     }
 
     /// Get data entry from the key-value table, if present.
@@ -499,7 +502,7 @@ pub(crate) mod tests {
         let database_path = storage.database_path_for_name(name);
 
         // Make sure we start with a clean slate.
-        key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
+        _ = key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
         _ = fs::remove_file(database_path).await;
 
         let database = storage
@@ -601,7 +604,7 @@ pub(crate) mod tests {
         );
 
         // Clear database, state should be uninitialized.
-        storage.clear().await.expect("Could not clear storage");
+        storage.clear().await;
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Uninitialized));

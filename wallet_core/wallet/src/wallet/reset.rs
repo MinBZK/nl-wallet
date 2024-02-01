@@ -1,9 +1,6 @@
 use tracing::{info, instrument, warn};
 
-use crate::{
-    pid_issuer::PidIssuerClient,
-    storage::{Storage, StorageError},
-};
+use crate::{pid_issuer::PidIssuerClient, storage::Storage};
 
 use super::Wallet;
 
@@ -11,8 +8,6 @@ use super::Wallet;
 pub enum ResetError {
     #[error("wallet is not registered")]
     NotRegistered,
-    #[error("could not close and delete database: {0}")]
-    ClearDatabase(#[source] StorageError),
 }
 
 type ResetResult<T> = std::result::Result<T, ResetError>;
@@ -34,11 +29,7 @@ where
         }
 
         // Clear the database and its encryption key.
-        self.storage
-            .get_mut()
-            .clear()
-            .await
-            .map_err(ResetError::ClearDatabase)?;
+        self.storage.get_mut().clear().await;
 
         // TODO: Reset the hardware private key and database key, as well as all credential keys.
 
@@ -130,22 +121,5 @@ mod tests {
             .expect_err("resetting the Wallet should have resulted in an error");
 
         assert_matches!(error, ResetError::NotRegistered);
-    }
-
-    #[tokio::test]
-    async fn test_wallet_reset_error_clear_database() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-        wallet.storage.get_mut().has_query_error = true;
-
-        // Resetting a Wallet where the database returns a storage error should
-        // result in an error and a Wallet that is still registered and locked.
-        let error = wallet
-            .reset()
-            .await
-            .expect_err("resetting the Wallet should have resulted in an error");
-
-        assert_matches!(error, ResetError::ClearDatabase(_));
-        assert!(wallet.has_registration());
-        assert!(!wallet.is_locked());
     }
 }

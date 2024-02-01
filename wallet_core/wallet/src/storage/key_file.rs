@@ -31,11 +31,11 @@ pub async fn get_or_create_key_file<K: SecureEncryptionKey>(
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await
 }
 
-pub async fn delete_key_file(storage_path: &Path, alias: &str) {
+pub async fn delete_key_file(storage_path: &Path, alias: &str) -> Result<(), KeyFileError> {
     let path = path_for_key_file(storage_path, alias);
-    // Ignore any errors when removing the file,
-    // as we do not want this to propagate.
-    let _ = fs::remove_file(&path).await;
+    fs::remove_file(&path).await?;
+
+    Ok(())
 }
 
 fn path_for_key_file(storage_path: &Path, alias: &str) -> PathBuf {
@@ -168,8 +168,8 @@ mod tests {
         let storage_path = env::temp_dir();
 
         // Make sure we start with a clean slate.
-        delete_key_file(&storage_path, &alias1).await;
-        delete_key_file(&storage_path, &alias2).await;
+        _ = delete_key_file(&storage_path, &alias1).await;
+        _ = delete_key_file(&storage_path, &alias2).await;
 
         // Create three keys, two of them with the same alias.
         let key1 = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1, byte_length)
@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(key1, key1_again);
 
         // Cleanup after ourselves.
-        delete_key_file(&storage_path, &alias1).await;
-        delete_key_file(&storage_path, &alias2).await;
+        delete_key_file(&storage_path, &alias1).await.unwrap();
+        delete_key_file(&storage_path, &alias2).await.unwrap();
     }
 }
