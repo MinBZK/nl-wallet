@@ -10,11 +10,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     holder::{Mdoc, MdocCopies, TrustAnchor},
-    utils::{
-        keys::{KeyFactory, MdocEcdsaKey},
-        serialization::CborBase64,
-    },
-    IssuerSigned,
+    utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 use wallet_common::generator::TimeGenerator;
 
@@ -159,7 +155,7 @@ impl IssuanceClient {
         let credential_requests = CredentialRequests {
             credential_requests: responses,
         };
-        let responses: CredentialResponses<CborBase64<IssuerSigned>> = self
+        let responses: CredentialResponses = self
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
@@ -243,7 +239,7 @@ impl IssuanceClient {
     }
 }
 
-impl CredentialResponse<CborBase64<IssuerSigned>> {
+impl CredentialResponse {
     /// Create an [`Mdoc`] out of the credential response. Also verifies the mdoc.
     async fn into_mdoc<K: MdocEcdsaKey>(
         self,
@@ -251,7 +247,9 @@ impl CredentialResponse<CborBase64<IssuerSigned>> {
         unsigned: &UnsignedMdoc,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Mdoc, Error> {
-        let issuer_signed = self.credential.0;
+        let issuer_signed = match self {
+            CredentialResponse::MsoMdoc { credential } => credential.0,
+        };
 
         if issuer_signed.public_key().map_err(Error::PublicKeyFromMdoc)?
             != key

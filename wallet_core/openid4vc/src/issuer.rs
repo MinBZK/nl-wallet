@@ -13,7 +13,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_keys::KeyRing,
     server_state::{SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS},
-    utils::serialization::{CborBase64, CborError},
+    utils::serialization::CborError,
     IssuerSigned,
 };
 use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
@@ -21,7 +21,7 @@ use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
 use crate::{
     credential::{
         CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload, CredentialRequests,
-        OPENID4VCI_VC_POP_JWT_TYPE,
+        CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::Dpop,
     jwk::{jwk_to_p256, JwkConversionError},
@@ -159,9 +159,6 @@ pub trait AttributeService: Send + Sync + 'static {
         token_request: TokenRequest,
     ) -> impl Future<Output = Result<Vec<UnsignedMdoc>, Self::Error>> + Send;
 }
-
-type CredentialResponse = crate::credential::CredentialResponse<CborBase64<IssuerSigned>>;
-type CredentialResponses = crate::credential::CredentialResponses<CborBase64<IssuerSigned>>;
 
 pub struct Issuer<A, K, S> {
     sessions: Arc<S>,
@@ -756,8 +753,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     .await
     .map_err(CredentialRequestError::AttestationSigning)?;
 
-    Ok(CredentialResponse {
-        format: Format::MsoMdoc,
+    Ok(CredentialResponse::MsoMdoc {
         credential: issuer_signed.into(),
     })
 }

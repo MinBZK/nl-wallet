@@ -14,11 +14,9 @@ use tower_http::trace::TraceLayer;
 use nl_wallet_mdoc::{
     server_keys::{KeyRing, PrivateKey},
     server_state::{SessionState, SessionStore},
-    utils::serialization::CborBase64,
-    IssuerSigned,
 };
 use openid4vc::{
-    credential::{CredentialErrorType, CredentialRequest, CredentialRequests},
+    credential::{CredentialErrorType, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
@@ -40,9 +38,6 @@ impl KeyRing for IssuerKeyRing {
         self.0.get(usecase)
     }
 }
-
-type CredentialResponse = openid4vc::credential::CredentialResponse<CborBase64<IssuerSigned>>;
-type CredentialResponses = openid4vc::credential::CredentialResponses<CborBase64<IssuerSigned>>;
 
 pub async fn create_issuance_router<A, S>(settings: Settings, sessions: S, attr_service: A) -> anyhow::Result<Router>
 where

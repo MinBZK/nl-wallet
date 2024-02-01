@@ -1,6 +1,12 @@
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
-use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey};
+use nl_wallet_mdoc::{
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        serialization::CborBase64,
+    },
+    IssuerSigned,
+};
 
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -34,15 +40,15 @@ pub enum CredentialRequestProof {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct CredentialResponses<T> {
-    pub credential_responses: Vec<CredentialResponse<T>>,
+pub struct CredentialResponses {
+    pub credential_responses: Vec<CredentialResponse>,
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-response.
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct CredentialResponse<T> {
-    pub format: Format,
-    pub credential: T,
+#[serde(tag = "format", rename_all = "snake_case")]
+pub enum CredentialResponse {
+    MsoMdoc { credential: CborBase64<IssuerSigned> },
 }
 
 // https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.1.1

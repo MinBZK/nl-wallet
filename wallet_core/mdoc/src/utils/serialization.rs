@@ -446,6 +446,7 @@ impl<'de> Deserialize<'de> for Tdate {
 }
 
 /// Wrapper type that (de)serializes to/from URL-safe-no-pad Base64 containing the CBOR-serialized value.
+#[derive(Clone, Debug)]
 pub struct CborBase64<T>(pub T);
 
 impl<T> From<T> for CborBase64<T> {
