@@ -143,14 +143,7 @@ impl IssuanceClient {
             .unzip();
 
         let url = issuance_state.issuer_url.join("batch_credential").unwrap();
-        let dpop_header = Dpop::new(
-            &issuance_state.dpop_private_key,
-            url.clone(),
-            Method::POST,
-            Some(issuance_state.access_token.clone()),
-            issuance_state.dpop_nonce.clone(),
-        )
-        .await?;
+        let (dpop_header, access_token_header) = issuance_state.auth_headers(url.clone(), Method::POST).await?;
 
         let credential_requests = CredentialRequests {
             credential_requests: responses,
@@ -159,8 +152,8 @@ impl IssuanceClient {
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header.as_ref())
-            .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
+            .header(DPOP_HEADER_NAME, dpop_header)
+            .header(AUTHORIZATION, access_token_header)
             .body(serde_json::to_string(&credential_requests)?)
             .send()
             .map_err(Error::from)
@@ -217,20 +210,12 @@ impl IssuanceClient {
     pub async fn stop_issuance(&mut self) -> Result<(), Error> {
         let issuance_state = self.session_state.take().ok_or(Error::MissingIssuanceSessionState)?;
         let url = issuance_state.issuer_url.join("batch_credential").unwrap();
-
-        let dpop_header = Dpop::new(
-            &issuance_state.dpop_private_key,
-            url.clone(),
-            Method::DELETE,
-            Some(issuance_state.access_token.clone()),
-            issuance_state.dpop_nonce.clone(),
-        )
-        .await?;
+        let (dpop_header, access_token_header) = issuance_state.auth_headers(url.clone(), Method::DELETE).await?;
 
         self.http_client
             .delete(url) // TODO discover token endpoint instead
-            .header(DPOP_HEADER_NAME, dpop_header.as_ref())
-            .header(AUTHORIZATION, "DPoP ".to_string() + &issuance_state.access_token)
+            .header(DPOP_HEADER_NAME, dpop_header)
+            .header(AUTHORIZATION, access_token_header)
             .send()
             .await?
             .error_for_status()?;
@@ -274,5 +259,22 @@ impl CredentialResponse {
             .map_err(Error::IssuedAttributesMismatch)?;
 
         Ok(mdoc)
+    }
+}
+
+impl IssuanceState {
+    async fn auth_headers(&self, url: Url, method: reqwest::Method) -> Result<(String, String), Error> {
+        let dpop_header = Dpop::new(
+            &self.dpop_private_key,
+            url,
+            method,
+            Some(self.access_token.clone()),
+            self.dpop_nonce.clone(),
+        )
+        .await?;
+
+        let access_token_header = "DPoP ".to_string() + &self.access_token;
+
+        Ok((dpop_header.as_ref().to_string(), access_token_header))
     }
 }
