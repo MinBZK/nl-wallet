@@ -34,14 +34,10 @@ pub enum Error {
     JwkConversion(#[from] JwkConversionError),
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
-    #[error("URL encoding failed: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
     #[error("http request failed: {0}")]
     Network(#[from] reqwest::Error),
     #[error("missing c_nonce")]
     MissingNonce,
-    #[error("JSON (de)serialization failed: {0}")]
-    Json(#[from] serde_json::Error),
     #[error("CBOR (de)serialization error: {0}")]
     Cbor(#[from] CborError),
     #[error("base64 decoding failed: {0}")]

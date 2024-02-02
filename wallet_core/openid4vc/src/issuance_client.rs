@@ -1,11 +1,7 @@
 use futures::{future::try_join_all, TryFutureExt};
 use itertools::Itertools;
-use mime::APPLICATION_JSON;
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
-use reqwest::{
-    header::{AUTHORIZATION, CONTENT_TYPE},
-    Method,
-};
+use reqwest::{header::AUTHORIZATION, Method};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -151,10 +147,9 @@ impl IssuanceClient {
         let responses: CredentialResponses = self
             .http_client
             .post(url) // TODO discover token endpoint instead
-            .header(CONTENT_TYPE, APPLICATION_JSON.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header)
             .header(AUTHORIZATION, access_token_header)
-            .body(serde_json::to_string(&credential_requests)?)
+            .json(&credential_requests)
             .send()
             .map_err(Error::from)
             .and_then(|response| async {
