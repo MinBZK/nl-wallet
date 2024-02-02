@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
+use itertools::{EitherOrBoth, Itertools};
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
@@ -7,16 +8,17 @@ use wallet_common::generator::Generator;
 
 use crate::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    identifiers::AttributeIdentifier,
     iso::*,
     utils::{
         keys::{MdocEcdsaKey, MdocKeyType},
         x509::Certificate,
     },
     verifier::ValidityRequirement,
-    Error, Result,
+    Result,
 };
 
-use super::{CborHttpClient, HolderError, HttpClient, IssuanceSessionState};
+use super::{CborHttpClient, HttpClient, IssuanceSessionState};
 
 pub struct Wallet<H = CborHttpClient> {
     pub(crate) session_state: Option<IssuanceSessionState>,
@@ -103,21 +105,51 @@ impl Mdoc {
 
     /// Check that the namespaces, attribute names and attribute values of this instance are equal to to the
     /// provided unsigned value.
-    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<()> {
-        let our_attrs = &self.attributes();
+    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), Vec<AttributeIdentifier>> {
+        let our_attrs = self.attributes();
+        let our_attrs = flatten_attrs(&self.doc_type, &our_attrs);
+        let expected_attrs = flatten_attrs(&unsigned.doc_type, &unsigned.attributes);
 
-        if our_attrs.len() != unsigned.attributes.len() {
-            return Err(HolderError::ExpectedAttributesMissing.into());
+        let difference = expected_attrs
+            .zip_longest(our_attrs)
+            .filter_map(|pair| match pair {
+                EitherOrBoth::Left(expected) => Some(expected.identifier),
+                EitherOrBoth::Right(received) => Some(received.identifier),
+                EitherOrBoth::Both(expected, received) => {
+                    if expected != received {
+                        Some(expected.identifier)
+                    } else {
+                        None
+                    }
+                }
+            })
+            .collect_vec();
+
+        if !difference.is_empty() {
+            return Err(difference);
         }
-
-        unsigned.attributes.iter().try_for_each(|(namespace, expected_attrs)| {
-            let our_attrs = our_attrs
-                .get(namespace)
-                .ok_or(Error::Holder(HolderError::ExpectedAttributesMissing))?;
-            if *our_attrs != *expected_attrs {
-                return Err(HolderError::ExpectedAttributesMissing.into());
-            }
-            Ok(())
-        })
+        Ok(())
     }
+}
+
+#[derive(PartialEq)]
+struct Attribute<'a> {
+    identifier: AttributeIdentifier,
+    value: &'a ciborium::Value,
+}
+
+fn flatten_attrs<'a>(
+    doctype: &'a DocType,
+    attrs: &'a IndexMap<NameSpace, Vec<Entry>>,
+) -> impl Iterator<Item = Attribute<'a>> {
+    attrs.iter().flat_map(|(namespace, entries)| {
+        entries.iter().map(|entry| Attribute {
+            identifier: AttributeIdentifier {
+                doc_type: doctype.clone(),
+                namespace: namespace.clone(),
+                attribute: entry.name.clone(),
+            },
+            value: &entry.value,
+        })
+    })
 }

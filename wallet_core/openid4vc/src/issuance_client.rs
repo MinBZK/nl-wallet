@@ -271,7 +271,7 @@ impl CredentialResponse {
 
         // Check that our mdoc contains exactly the attributes the issuer said it would have
         mdoc.compare_unsigned(unsigned)
-            .map_err(|_| Error::ExpectedAttributesMissing)?;
+            .map_err(Error::IssuedAttributesMismatch)?;
 
         Ok(mdoc)
     }

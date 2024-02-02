@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use nl_wallet_mdoc::utils::serialization::CborError;
+use nl_wallet_mdoc::{identifiers::AttributeIdentifier, utils::serialization::CborError};
 use wallet_common::jwt::JwtError;
 
 use crate::{credential::CredentialErrorType, jwk::JwkConversionError, token::TokenErrorType};
@@ -46,8 +46,8 @@ pub enum Error {
     Cbor(#[from] CborError),
     #[error("base64 decoding failed: {0}")]
     Base64Error(#[from] base64::DecodeError),
-    #[error("not all expected attributes were issued")]
-    ExpectedAttributesMissing,
+    #[error("mismatch between issued and expected attributes")]
+    IssuedAttributesMismatch(Vec<AttributeIdentifier>),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
