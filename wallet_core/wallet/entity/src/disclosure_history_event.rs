@@ -24,7 +24,7 @@ pub struct Model {
     pub status: EventStatus,
     // TODO: How to translate a generic description? Shouldn't this be part of the audit log?
     pub status_description: Option<String>,
-    pub attributes: Option<Vec<u8>>,
+    pub attributes: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -7,11 +7,7 @@ pub use entity::{disclosure_history_event, issuance_history_event};
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
     holder::{Mdoc, ProposedAttributes, ProposedDocumentAttributes},
-    utils::{
-        cose::CoseError,
-        serialization::{cbor_deserialize, cbor_serialize, CborError},
-        x509::Certificate,
-    },
+    utils::{cose::CoseError, x509::Certificate},
     DataElementIdentifier, DataElementValue, DocType, NameSpace,
 };
 
@@ -194,16 +190,14 @@ impl WalletEvent {
 }
 
 impl TryFrom<disclosure_history_event::Model> for WalletEvent {
-    type Error = CborError;
+    type Error = serde_json::Error;
     fn try_from(event: disclosure_history_event::Model) -> Result<Self, Self::Error> {
         let result = Self::Disclosure {
             id: event.id,
             status: EventStatus::from(&event),
             documents: event
                 .attributes
-                .map(|attributes| {
-                    Ok::<EventDocuments, CborError>(EventDocuments(cbor_deserialize(attributes.as_slice())?))
-                })
+                .map(|attributes| Ok::<EventDocuments, _>(EventDocuments(serde_json::from_str(&attributes)?)))
                 .transpose()?,
             timestamp: event.timestamp,
             reader_certificate: event.relying_party_certificate.into(),
@@ -213,57 +207,52 @@ impl TryFrom<disclosure_history_event::Model> for WalletEvent {
 }
 
 impl TryFrom<issuance_history_event::Model> for WalletEvent {
-    type Error = CborError;
+    type Error = serde_json::Error;
     fn try_from(event: issuance_history_event::Model) -> Result<Self, Self::Error> {
         let result = Self::Issuance {
             id: event.id,
-            mdocs: EventDocuments(cbor_deserialize(event.attributes.unwrap().as_slice())?), // Unwrap is safe here
+            mdocs: EventDocuments(serde_json::from_str(&event.attributes)?),
             timestamp: event.timestamp,
         };
         Ok(result)
     }
 }
 
-impl TryFrom<WalletEvent> for disclosure_history_event::Model {
-    type Error = CborError;
-    fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
-        let result = match source {
-            WalletEvent::Disclosure {
-                id,
-                status,
-                documents,
-                timestamp,
-                reader_certificate,
-            } => Self {
-                attributes: documents
-                    .map(|EventDocuments(mdocs)| cbor_serialize(&mdocs))
-                    .transpose()?,
-                id,
-                timestamp,
-                relying_party_certificate: reader_certificate.into(),
-                status_description: status.description().map(ToString::to_string),
-                status: status.into(),
-            },
-            _ => panic!("not a disclosure event"),
-        };
-        Ok(result)
-    }
+/// Enumerates the different database models for a [`WalletEvent`].
+pub(crate) enum WalletEventModel {
+    Issuance(issuance_history_event::Model),
+    Disclosure(disclosure_history_event::Model),
 }
 
-impl TryFrom<WalletEvent> for issuance_history_event::Model {
-    type Error = CborError;
+impl TryFrom<WalletEvent> for WalletEventModel {
+    type Error = serde_json::Error;
     fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
         let result = match source {
             WalletEvent::Issuance {
                 id,
                 mdocs: EventDocuments(mdocs),
                 timestamp,
-            } => Self {
-                attributes: Some(cbor_serialize(&mdocs)?),
+            } => Self::Issuance(issuance_history_event::Model {
+                attributes: serde_json::to_string(&mdocs)?,
                 id,
                 timestamp,
-            },
-            _ => panic!("not an issuance event"),
+            }),
+            WalletEvent::Disclosure {
+                id,
+                status,
+                documents,
+                timestamp,
+                reader_certificate,
+            } => Self::Disclosure(disclosure_history_event::Model {
+                attributes: documents
+                    .map(|EventDocuments(mdocs)| serde_json::to_string(&mdocs))
+                    .transpose()?,
+                id,
+                timestamp,
+                relying_party_certificate: reader_certificate.into(),
+                status_description: status.description().map(ToString::to_string),
+                status: status.into(),
+            }),
         };
         Ok(result)
     }

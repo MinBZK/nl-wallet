@@ -9,7 +9,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
-    pub attributes: Option<Vec<u8>>,
+    pub attributes: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

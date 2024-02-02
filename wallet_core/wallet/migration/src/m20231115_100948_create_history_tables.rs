@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(IssuanceHistoryEvent::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(IssuanceHistoryEvent::Timestamp).timestamp().not_null())
-                    .col(ColumnDef::new(IssuanceHistoryEvent::Attributes).binary().not_null())
+                    .col(ColumnDef::new(IssuanceHistoryEvent::Attributes).json().not_null())
                     .to_owned(),
             )
             .await?;
@@ -38,7 +38,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(DisclosureHistoryEvent::Status).text().not_null())
                     .col(ColumnDef::new(DisclosureHistoryEvent::StatusDescription).text().null())
-                    .col(ColumnDef::new(DisclosureHistoryEvent::Attributes).binary().null())
+                    .col(ColumnDef::new(DisclosureHistoryEvent::Attributes).json().null())
                     .to_owned(),
             )
             .await?;

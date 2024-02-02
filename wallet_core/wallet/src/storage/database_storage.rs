@@ -3,7 +3,7 @@ use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 use futures::try_join;
 use sea_orm::{
     sea_query::{Alias, Expr, Query},
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QueryResult,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder, QueryResult,
     QuerySelect, RelationTrait, Select, Set, StatementBuilder, TransactionTrait,
 };
 use tokio::fs;
@@ -23,7 +23,7 @@ use wallet_common::keys::SecureEncryptionKey;
 use super::{
     data::KeyedData,
     database::{Database, SqliteUrl},
-    event_log::WalletEvent,
+    event_log::{WalletEvent, WalletEventModel},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
     Storage, StorageError, StorageResult, StorageState, StoredMdocCopy,
@@ -144,6 +144,57 @@ where
             .collect::<Result<_, CborError>>()?;
 
         Ok(mdocs)
+    }
+
+    async fn insert_doc_types(
+        transaction: &(impl TransactionTrait + ConnectionTrait),
+        new_doc_type_entities: Vec<history_doc_type::Model>,
+    ) -> Result<(), DbErr> {
+        if !new_doc_type_entities.is_empty() {
+            let new_doc_type_entities = new_doc_type_entities
+                .into_iter()
+                .map(history_doc_type::ActiveModel::from)
+                .collect::<Vec<_>>();
+
+            history_doc_type::Entity::insert_many(new_doc_type_entities)
+                .exec(transaction)
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn insert_history_event_and_doc_type_mappings<
+        EventEntity: EntityTrait,
+        EventActiveModel: ActiveModelTrait<Entity = EventEntity>,
+        EventDocTypeEntity: EntityTrait,
+        EventDocTypeActiveModel: ActiveModelTrait<Entity = EventDocTypeEntity>,
+    >(
+        transaction: &(impl TransactionTrait + ConnectionTrait),
+        event_entity: EventActiveModel,
+        new_doc_type_entities: Vec<history_doc_type::Model>,
+        existing_doc_type_entities: Vec<history_doc_type::Model>,
+        doc_type_mapper: fn((&EventActiveModel, Uuid)) -> EventDocTypeActiveModel,
+    ) -> StorageResult<()> {
+        // Prepare the event <-> doc_type mapping entities.
+        // This is done before inserting the `event_entity`, in order to avoid cloning.
+        let event_doc_type_entities = new_doc_type_entities
+            .iter()
+            .chain(existing_doc_type_entities.iter())
+            .map(|doc_type| doc_type_mapper((&event_entity, doc_type.id)))
+            .collect::<Vec<_>>();
+
+        // Insert the event and the new doc_types simultaneously, as they are independent
+        let insert_event = EventEntity::insert(event_entity).exec(transaction);
+        let insert_new_doc_types = Self::insert_doc_types(transaction, new_doc_type_entities);
+        try_join!(insert_event, insert_new_doc_types)?;
+
+        // Insert the event <-> doc_type mappings
+        if !event_doc_type_entities.is_empty() {
+            EventDocTypeEntity::insert_many(event_doc_type_entities)
+                .exec(transaction)
+                .await?;
+        }
+        Ok(())
     }
 }
 
@@ -337,86 +388,33 @@ where
             })
             .collect::<Vec<_>>();
 
-        match &event {
-            WalletEvent::Disclosure { .. } => {
-                // Create the main history event
-                let event_entity: disclosure_history_event::ActiveModel =
-                    disclosure_history_event::Model::try_from(event)?.into();
-
-                // Prepare the event <-> doc_type mapping entities.
-                // This is done before inserting the `event_entity`, in order to avoid cloning.
-                let event_doc_type_entities = new_doc_type_entities
-                    .iter()
-                    .chain(existing_doc_type_entities.iter())
-                    .map(|doc_type| disclosure_history_event_doc_type::ActiveModel {
-                        disclosure_history_event_id: event_entity.id.clone(),
-                        history_doc_type_id: Set(doc_type.id),
-                    })
-                    .collect::<Vec<_>>();
-
-                // Insert the event and the new doc_types simultaneously
-                let insert_event = disclosure_history_event::Entity::insert(event_entity).exec(&transaction);
-                let insert_new_doc_types = async {
-                    if !new_doc_type_entities.is_empty() {
-                        let doc_type_entities = new_doc_type_entities
-                            .into_iter()
-                            .map(history_doc_type::ActiveModel::from)
-                            .collect::<Vec<_>>();
-
-                        history_doc_type::Entity::insert_many(doc_type_entities)
-                            .exec(&transaction)
-                            .await?;
-                    }
-                    Ok(())
-                };
-                try_join!(insert_event, insert_new_doc_types)?;
-
-                // Insert the event <-> doc_type mappings
-                if !event_doc_type_entities.is_empty() {
-                    disclosure_history_event_doc_type::Entity::insert_many(event_doc_type_entities)
-                        .exec(&transaction)
-                        .await?;
-                }
+        // Insert the history event
+        match WalletEventModel::try_from(event)? {
+            WalletEventModel::Issuance(event_entity) => {
+                Self::insert_history_event_and_doc_type_mappings::<issuance_history_event::Entity, _, _, _>(
+                    &transaction,
+                    issuance_history_event::ActiveModel::from(event_entity),
+                    new_doc_type_entities,
+                    existing_doc_type_entities,
+                    |(event, doc_type_id)| issuance_history_event_doc_type::ActiveModel {
+                        issuance_history_event_id: event.id.clone(),
+                        history_doc_type_id: Set(doc_type_id),
+                    },
+                )
+                .await?;
             }
-            WalletEvent::Issuance { .. } => {
-                // Create the main history event
-                let event_entity: issuance_history_event::ActiveModel =
-                    issuance_history_event::Model::try_from(event)?.into();
-
-                // Prepare the event <-> doc_type mapping entities.
-                // This is done before inserting the `event_entity`, in order to avoid cloning.
-                let event_doc_type_entities = new_doc_type_entities
-                    .iter()
-                    .chain(existing_doc_type_entities.iter())
-                    .map(|doc_type| issuance_history_event_doc_type::ActiveModel {
-                        issuance_history_event_id: event_entity.id.clone(),
-                        history_doc_type_id: Set(doc_type.id),
-                    })
-                    .collect::<Vec<_>>();
-
-                // Insert the event and the new doc_types simultaneously
-                let insert_event = issuance_history_event::Entity::insert(event_entity).exec(&transaction);
-                let insert_new_doc_types = async {
-                    if !new_doc_type_entities.is_empty() {
-                        let doc_type_entities = new_doc_type_entities
-                            .into_iter()
-                            .map(history_doc_type::ActiveModel::from)
-                            .collect::<Vec<_>>();
-
-                        history_doc_type::Entity::insert_many(doc_type_entities)
-                            .exec(&transaction)
-                            .await?;
-                    }
-                    Ok(())
-                };
-                try_join!(insert_event, insert_new_doc_types)?;
-
-                // Insert the event <-> doc_type mappings
-                if !event_doc_type_entities.is_empty() {
-                    issuance_history_event_doc_type::Entity::insert_many(event_doc_type_entities)
-                        .exec(&transaction)
-                        .await?;
-                }
+            WalletEventModel::Disclosure(event_entity) => {
+                Self::insert_history_event_and_doc_type_mappings::<disclosure_history_event::Entity, _, _, _>(
+                    &transaction,
+                    disclosure_history_event::ActiveModel::from(event_entity),
+                    new_doc_type_entities,
+                    existing_doc_type_entities,
+                    |(event, doc_type_id)| disclosure_history_event_doc_type::ActiveModel {
+                        disclosure_history_event_id: event.id.clone(),
+                        history_doc_type_id: Set(doc_type_id),
+                    },
+                )
+                .await?;
             }
         }
 
