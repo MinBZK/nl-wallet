@@ -196,6 +196,25 @@ where
         }
         Ok(())
     }
+
+    fn combine_history_events(
+        issuance_events: Vec<issuance_history_event::Model>,
+        disclosure_events: Vec<disclosure_history_event::Model>,
+    ) -> StorageResult<Vec<WalletEvent>> {
+        let mut issuance_events: Vec<WalletEvent> = issuance_events
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<_, _>>()?;
+
+        let mut disclosure_events: Vec<WalletEvent> = disclosure_events
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<_, _>>()?;
+
+        issuance_events.append(&mut disclosure_events);
+        issuance_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
+        Ok(issuance_events)
+    }
 }
 
 impl<K> Storage for DatabaseStorage<K>
@@ -426,31 +445,23 @@ where
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let mut disclosure_events: Vec<WalletEvent> = disclosure_history_event::Entity::find()
-            .order_by_desc(disclosure_history_event::Column::Timestamp)
-            .all(connection)
-            .await?
-            .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<_, _>>()?;
-
-        let mut issuance_events: Vec<WalletEvent> = issuance_history_event::Entity::find()
+        let fetch_issuance_events = issuance_history_event::Entity::find()
             .order_by_desc(issuance_history_event::Column::Timestamp)
-            .all(connection)
-            .await?
-            .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<_, _>>()?;
+            .all(connection);
 
-        issuance_events.append(&mut disclosure_events);
-        issuance_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
-        Ok(issuance_events)
+        let fetch_disclosure_events = disclosure_history_event::Entity::find()
+            .order_by_desc(disclosure_history_event::Column::Timestamp)
+            .all(connection);
+
+        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+
+        Self::combine_history_events(issuance_events, disclosure_events)
     }
 
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let mut disclosure_events: Vec<WalletEvent> = disclosure_history_event::Entity::find()
+        let fetch_disclosure_events = disclosure_history_event::Entity::find()
             .join_rev(
                 JoinType::InnerJoin,
                 disclosure_history_event_doc_type::Relation::HistoryEvent.def(),
@@ -461,13 +472,9 @@ where
             )
             .filter(history_doc_type::Column::DocType.eq(doc_type))
             .order_by_desc(disclosure_history_event::Column::Timestamp)
-            .all(connection)
-            .await?
-            .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<_, _>>()?;
+            .all(connection);
 
-        let mut issuance_events: Vec<WalletEvent> = issuance_history_event::Entity::find()
+        let fetch_issuance_events = issuance_history_event::Entity::find()
             .join_rev(
                 JoinType::InnerJoin,
                 issuance_history_event_doc_type::Relation::HistoryEvent.def(),
@@ -478,15 +485,11 @@ where
             )
             .filter(history_doc_type::Column::DocType.eq(doc_type))
             .order_by_desc(issuance_history_event::Column::Timestamp)
-            .all(connection)
-            .await?
-            .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<_, _>>()?;
+            .all(connection);
 
-        issuance_events.append(&mut disclosure_events);
-        issuance_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
-        Ok(issuance_events)
+        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+
+        Self::combine_history_events(issuance_events, disclosure_events)
     }
 
     async fn did_share_data_with_relying_party(
