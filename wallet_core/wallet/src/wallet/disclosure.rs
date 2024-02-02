@@ -318,8 +318,6 @@ where
                 // and lock the wallet, as the user is probably not the owner of the wallet.
                 // The UI should catch this specific error and close the disclosure screens.
 
-                // TODO: Wipe the wallet when it is blocked by the WP.
-
                 let session = self.disclosure_session.take().unwrap();
                 if let Err(terminate_error) = self.terminate_disclosure_session(session).await {
                     // Log the error, but do not return it from this method.
