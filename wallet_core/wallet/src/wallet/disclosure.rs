@@ -327,7 +327,7 @@ where
                     );
                 }
 
-                self.lock();
+                self.lock.lock();
             }
 
             return Err(error);
