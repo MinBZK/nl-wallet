@@ -1,6 +1,9 @@
 use futures::{future::try_join_all, TryFutureExt};
 use itertools::Itertools;
-use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+use p256::{
+    ecdsa::{SigningKey, VerifyingKey},
+    elliptic_curve::rand_core::OsRng,
+};
 use reqwest::{header::AUTHORIZATION, Method};
 use url::Url;
 
@@ -165,36 +168,36 @@ impl IssuanceClient {
             })
             .await?;
 
-        let mut keys_and_responses: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
-
-        let mdocs = try_join_all(
-            issuance_state
-                .attestation_previews
-                .iter()
-                // We map in two steps to prevent `keys_and_responses` from appearing in an async closure
-                .map(|preview| {
-                    (
-                        preview,
-                        keys_and_responses
-                            .drain(..preview.copy_count() as usize)
-                            .collect::<Vec<_>>(),
-                    )
-                })
-                .map(|(preview, keys_and_responses)| async move {
-                    let unsigned_mdoc = match preview {
-                        AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
-                    };
-                    let copies =
-                        MdocCopies {
-                            cred_copies: try_join_all(keys_and_responses.into_iter().map(|(cred_response, key)| {
-                                cred_response.into_mdoc(key, unsigned_mdoc, trust_anchors)
-                            }))
-                            .await?,
-                        };
-                    Result::<_, Error>::Ok(copies)
-                }),
-        )
+        let keys: Vec<_> = try_join_all(keys.iter().map(|key| async {
+            Ok::<_, Error>((
+                key.verifying_key()
+                    .await
+                    .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?,
+                key.identifier().to_string(),
+            ))
+        }))
         .await?;
+
+        let mut responses_and_keys: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
+
+        let mdocs = issuance_state
+            .attestation_previews
+            .iter()
+            .map(|preview| {
+                let unsigned_mdoc = match preview {
+                    AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+                };
+
+                let cred_copies = responses_and_keys
+                    .drain(..preview.copy_count() as usize)
+                    .map(|(cred_response, (pubkey, key_id))| {
+                        cred_response.into_mdoc::<K>(key_id, pubkey, unsigned_mdoc, trust_anchors)
+                    })
+                    .collect::<Result<_, Error>>()?;
+
+                Ok(MdocCopies { cred_copies })
+            })
+            .collect::<Result<_, Error>>()?;
 
         // Clear session state now that all fallible operations have not failed
         self.session_state.take();
@@ -221,9 +224,10 @@ impl IssuanceClient {
 
 impl CredentialResponse {
     /// Create an [`Mdoc`] out of the credential response. Also verifies the mdoc.
-    async fn into_mdoc<K: MdocEcdsaKey>(
+    fn into_mdoc<K: MdocEcdsaKey>(
         self,
-        key: K,
+        key_id: String,
+        verifying_key: VerifyingKey,
         unsigned: &UnsignedMdoc,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Mdoc, Error> {
@@ -231,23 +235,13 @@ impl CredentialResponse {
             CredentialResponse::MsoMdoc { credential } => credential.0,
         };
 
-        if issuer_signed.public_key().map_err(Error::PublicKeyFromMdoc)?
-            != key
-                .verifying_key()
-                .await
-                .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?
-        {
+        if issuer_signed.public_key().map_err(Error::PublicKeyFromMdoc)? != verifying_key {
             return Err(Error::PublicKeyMismatch);
         }
 
         // Construct the new mdoc; this also verifies it against the trust anchors.
-        let mdoc = Mdoc::new::<K>(
-            key.identifier().to_string(),
-            issuer_signed,
-            &TimeGenerator,
-            trust_anchors,
-        )
-        .map_err(Error::MdocVerification)?;
+        let mdoc =
+            Mdoc::new::<K>(key_id, issuer_signed, &TimeGenerator, trust_anchors).map_err(Error::MdocVerification)?;
 
         // Check that our mdoc contains exactly the attributes the issuer said it would have
         mdoc.compare_unsigned(unsigned)
