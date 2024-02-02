@@ -96,7 +96,7 @@ impl IssuanceClient {
         Ok(token_response.attestation_previews)
     }
 
-    pub async fn finish_issuance<'a, K: MdocEcdsaKey>(
+    pub async fn finish_issuance<K: MdocEcdsaKey>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
