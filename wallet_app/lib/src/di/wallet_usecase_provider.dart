@@ -24,7 +24,7 @@ import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
-import '../domain/usecase/disclosure/impl/reject_disclosure_usecase_impl.dart';
+import '../domain/usecase/disclosure/impl/cancel_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
