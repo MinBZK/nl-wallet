@@ -1,4 +1,5 @@
 use futures::{future::try_join_all, TryFutureExt};
+use itertools::Itertools;
 use mime::APPLICATION_JSON;
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 use reqwest::{
@@ -104,29 +105,27 @@ impl IssuanceClient {
     ) -> Result<Vec<MdocCopies>, Error> {
         let issuance_state = self.session_state.as_ref().ok_or(Error::MissingIssuanceSessionState)?;
 
-        let keys_count: u64 = issuance_state
+        let doctypes = issuance_state
             .attestation_previews
             .iter()
-            .map(|preview| preview.copy_count())
-            .sum();
+            .flat_map(|preview| {
+                itertools::repeat_n(
+                    match preview {
+                        AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.doc_type.clone(),
+                    },
+                    preview.copy_count() as usize,
+                )
+            })
+            .collect_vec();
 
         let keys_and_responses = CredentialRequestProof::new_multiple(
             issuance_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier,
-            keys_count,
+            doctypes.len() as u64,
             key_factory,
         )
         .await?;
-
-        let doctypes = issuance_state.attestation_previews.iter().flat_map(|preview| {
-            itertools::repeat_n(
-                match preview {
-                    AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.doc_type.clone(),
-                },
-                preview.copy_count() as usize,
-            )
-        });
 
         let (keys, responses): (Vec<K>, Vec<CredentialRequest>) = keys_and_responses
             .into_iter()
