@@ -2789,6 +2789,7 @@ dependencies = [
  "chrono",
  "futures",
  "indexmap 2.0.2",
+ "itertools 0.11.0",
  "jsonwebtoken",
  "mime",
  "nl_wallet_mdoc",

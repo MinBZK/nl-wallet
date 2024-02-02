@@ -120,10 +120,12 @@ impl IssuanceClient {
         .await?;
 
         let doctypes = issuance_state.attestation_previews.iter().flat_map(|preview| {
-            std::iter::repeat(match preview {
-                AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.doc_type.clone(),
-            })
-            .take(preview.copy_count() as usize)
+            itertools::repeat_n(
+                match preview {
+                    AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.doc_type.clone(),
+                },
+                preview.copy_count() as usize,
+            )
         });
 
         let (keys, responses): (Vec<K>, Vec<CredentialRequest>) = keys_and_responses
