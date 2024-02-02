@@ -1,5 +1,5 @@
 use futures::{future::try_join_all, TryFutureExt};
-use mime::{APPLICATION_JSON, APPLICATION_WWW_FORM_URLENCODED};
+use mime::APPLICATION_JSON;
 use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
 use reqwest::{
     header::{AUTHORIZATION, CONTENT_TYPE},
@@ -63,9 +63,8 @@ impl IssuanceClient {
         let (token_response, dpop_nonce) = self
             .http_client
             .post(url) // TODO discover token endpoint instead
-            .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header.as_ref())
-            .body(serde_urlencoded::to_string(token_request)?)
+            .form(&token_request)
             .send()
             .map_err(Error::from)
             .and_then(|response| async {

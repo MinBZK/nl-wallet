@@ -1,8 +1,7 @@
 use futures::TryFutureExt;
-use mime::APPLICATION_WWW_FORM_URLENCODED;
 use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
 use openid4vc::ErrorResponse;
-use reqwest::{header::CONTENT_TYPE, Client};
+use reqwest::Client;
 
 use openid4vc::token::{TokenErrorType, TokenRequest, TokenRequestGrantType, TokenResponse};
 
@@ -57,18 +56,17 @@ impl AttributeService for MockPidAttributeService {
         _session: &SessionState<Created>,
         token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Error> {
-        let openid_token_request = serde_urlencoded::to_string(TokenRequest {
+        let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().to_string(),
             },
             ..token_request
-        })?;
+        };
 
         let openid_token_response: TokenResponse = self
             .http_client
             .post(self.openid_client.openid_client.config().token_endpoint.clone())
-            .header(CONTENT_TYPE, APPLICATION_WWW_FORM_URLENCODED.as_ref())
-            .body(dbg!(openid_token_request))
+            .form(&openid_token_request)
             .send()
             .map_err(Error::from)
             .and_then(|response| async {
