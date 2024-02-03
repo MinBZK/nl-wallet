@@ -174,19 +174,23 @@ impl IssuanceClient {
             Ok::<_, Error>((pubkey, id))
         }))
         .await?;
-        let mut responses_and_keys: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
+        let responses_and_keys: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
 
         let mdocs = issuance_state
             .attestation_previews
             .iter()
-            .map(|preview| {
+            .enumerate()
+            .flat_map(|(idx, preview)| itertools::repeat_n(idx, preview.copy_count() as usize))
+            .zip(responses_and_keys)
+            .group_by(|(idx, _)| *idx)
+            .into_iter()
+            .zip(&issuance_state.attestation_previews)
+            .map(|((_, responses_and_keys), preview)| {
                 let cred_copies = responses_and_keys
-                    .drain(..preview.copy_count() as usize)
-                    .map(|(cred_response, (pubkey, key_id))| {
+                    .map(move |(_, (cred_response, (pubkey, key_id)))| {
                         cred_response.into_mdoc::<K>(key_id, pubkey, preview.into(), trust_anchors)
                     })
-                    .collect::<Result<_, Error>>()?;
-
+                    .collect::<Result<_, _>>()?;
                 Ok(MdocCopies { cred_copies })
             })
             .collect::<Result<_, Error>>()?;
