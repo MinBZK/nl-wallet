@@ -1,7 +1,7 @@
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use chrono::Utc;
-use futures::{future::try_join_all, Future};
+use futures::future::try_join_all;
 use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
@@ -145,19 +145,15 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
-pub trait AttributeService: Send + Sync + 'static {
+#[trait_variant::make(AttributeService: Send)]
+pub trait LocalAttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
-    type Settings;
 
-    fn new(settings: &Self::Settings) -> impl Future<Output = Result<Self, Self::Error>> + Send
-    where
-        Self: Sized;
-
-    fn attributes(
+    async fn attributes(
         &self,
         session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> impl Future<Output = Result<Vec<UnsignedMdoc>, Self::Error>> + Send;
+    ) -> Result<Vec<UnsignedMdoc>, Self::Error>;
 }
 
 pub struct Issuer<A, K, S> {

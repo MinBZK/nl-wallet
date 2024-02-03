@@ -238,7 +238,7 @@ pub fn wallet_server_settings() -> WsSettings {
 
 pub async fn start_wallet_server<A>(settings: WsSettings, sessions: SessionStores, attr_service: A)
 where
-    A: AttributeService,
+    A: AttributeService + Send + Sync + 'static,
 {
     let public_url = settings.public_url.clone();
     tokio::spawn(async move {
@@ -313,11 +313,6 @@ pub struct MockAttributeService;
 
 impl AttributeService for MockAttributeService {
     type Error = wallet_server::verifier::Error; // arbitrary type that implements the required trait bounds
-    type Settings = ();
-
-    async fn new(_settings: &Self::Settings) -> Result<Self, Self::Error> {
-        Ok(MockAttributeService)
-    }
 
     async fn attributes(
         &self,

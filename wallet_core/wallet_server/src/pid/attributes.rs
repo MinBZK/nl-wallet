@@ -39,17 +39,18 @@ pub struct MockPidAttributeService {
     attrs_lookup: MockAttributesLookup,
 }
 
-impl AttributeService for MockPidAttributeService {
-    type Error = Error;
-    type Settings = Issuer;
-
-    async fn new(settings: &Self::Settings) -> Result<Self, Error> {
+impl MockPidAttributeService {
+    pub async fn new(settings: &Issuer) -> Result<Self, Error> {
         Ok(MockPidAttributeService {
             openid_client: OpenIdClient::new(&settings.digid).await?,
             http_client: reqwest_client(),
             attrs_lookup: MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default()),
         })
     }
+}
+
+impl AttributeService for MockPidAttributeService {
+    type Error = Error;
 
     async fn attributes(
         &self,

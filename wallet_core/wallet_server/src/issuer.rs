@@ -41,7 +41,7 @@ impl KeyRing for IssuerKeyRing {
 
 pub async fn create_issuance_router<A, S>(settings: Settings, sessions: S, attr_service: A) -> anyhow::Result<Router>
 where
-    A: AttributeService,
+    A: AttributeService + Send + Sync + 'static,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
     let application_state = Arc::new(ApplicationState {

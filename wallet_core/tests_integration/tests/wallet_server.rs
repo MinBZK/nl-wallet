@@ -1,6 +1,6 @@
 use base64::prelude::*;
 use indexmap::IndexMap;
-use openid4vc::{issuer::AttributeService, token::TokenRequest};
+use openid4vc::token::TokenRequest;
 use reqwest::{Client, StatusCode};
 use url::Url;
 
@@ -284,7 +284,7 @@ async fn issuance_settings_and_sessions() -> (Settings, SessionStores) {
 
 async fn issuance_settings_and_digid_session() -> (Settings, impl DigidSession) {
     let (settings, sessions) = issuance_settings_and_sessions().await;
-    let attr_service = MockAttributeService::new(&()).await.unwrap();
+    let attr_service = MockAttributeService;
 
     start_wallet_server(settings.clone(), sessions, attr_service).await;
 

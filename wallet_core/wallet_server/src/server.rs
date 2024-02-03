@@ -46,7 +46,7 @@ pub async fn serve_disclosure(settings: &Settings, sessions: SessionStores) -> R
 #[cfg(feature = "issuance")]
 pub async fn serve_full<A>(settings: &Settings, sessions: SessionStores, attr_service: A) -> Result<()>
 where
-    A: AttributeService,
+    A: AttributeService + Send + Sync + 'static,
 {
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let requester_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);

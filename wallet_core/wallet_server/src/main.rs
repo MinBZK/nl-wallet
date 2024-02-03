@@ -1,8 +1,5 @@
 use anyhow::Result;
 
-#[cfg(feature = "issuance")]
-use openid4vc::issuer::AttributeService;
-
 use wallet_server::{server, settings::Settings, store::SessionStores};
 
 #[tokio::main]

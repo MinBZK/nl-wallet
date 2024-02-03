@@ -2802,6 +2802,7 @@ dependencies = [
  "serde_with",
  "thiserror",
  "tokio",
+ "trait-variant",
  "url",
  "wallet_common",
 ]
