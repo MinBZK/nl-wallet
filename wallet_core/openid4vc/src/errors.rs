@@ -6,30 +6,14 @@ use url::Url;
 use nl_wallet_mdoc::{identifiers::AttributeIdentifier, utils::serialization::CborError};
 use wallet_common::jwt::JwtError;
 
-use crate::{credential::CredentialErrorType, jwk::JwkConversionError, token::TokenErrorType};
+use crate::{credential::CredentialErrorType, dpop::DpopError, jwk::JwkConversionError, token::TokenErrorType};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
-    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
-    #[error("JWT signing failed: {0}")]
-    JwtSigningFailed(#[from] wallet_common::errors::Error),
-    #[error("JWT decoding failed: {0}")]
-    JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
-    #[error("incorrect DPoP JWT HTTP method")]
-    IncorrectDpopMethod,
-    #[error("incorrect DPoP JWT url")]
-    IncorrectDpopUrl,
-    #[error("incorrect DPoP JWT nonce")]
-    IncorrectDpopNonce,
-    #[error("incorrect DPoP JWT access token hash")]
-    IncorrectDpopAccessTokenHash,
-    #[error("missing JWK")]
-    MissingJwk,
-    #[error("incorrect JWK public key")]
-    IncorrectJwkPublicKey,
+    #[error("DPoP error: {0}")]
+    Dpop(#[from] DpopError),
     #[error("failed to convert key from/to JWK format: {0}")]
     JwkConversion(#[from] JwkConversionError),
     #[error("JWT error: {0}")]

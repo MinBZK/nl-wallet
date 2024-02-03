@@ -23,7 +23,7 @@ use crate::{
         CredentialRequest, CredentialRequestProof, CredentialRequestProofJwtPayload, CredentialRequests,
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
-    dpop::Dpop,
+    dpop::{Dpop, DpopError},
     jwk::{jwk_to_p256, JwkConversionError},
     token::{
         AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType,
@@ -48,7 +48,7 @@ pub enum Error {
     #[error("failed to retrieve session: {0}")]
     SessionStore(#[from] SessionStoreError),
     #[error("invalid DPoP header: {0}")]
-    DpopInvalid(#[source] crate::Error),
+    DpopInvalid(#[source] DpopError),
 }
 
 /// Errors that can occur during processing of the token request.

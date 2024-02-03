@@ -50,18 +50,41 @@ use serde_with::{
 };
 use url::Url;
 use wallet_common::{
-    jwt::{EcdsaDecodingKey, Jwt},
+    jwt::{EcdsaDecodingKey, Jwt, JwtError},
     keys::EcdsaKey,
     utils::{random_string, sha256},
 };
 
-use crate::{
-    jwk::{jwk_jwt_header, jwk_to_p256},
-    Error, Result,
-};
+use crate::jwk::{jwk_jwt_header, jwk_to_p256, JwkConversionError};
 
 pub const DPOP_HEADER_NAME: &str = "DPoP";
 pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";
+
+#[derive(Debug, thiserror::Error)]
+pub enum DpopError {
+    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
+    #[error("incorrect DPoP JWT HTTP method")]
+    IncorrectMethod,
+    #[error("incorrect DPoP JWT url")]
+    IncorrectUrl,
+    #[error("incorrect DPoP JWT nonce")]
+    IncorrectNonce,
+    #[error("incorrect DPoP JWT access token hash")]
+    IncorrectAccessTokenHash,
+    #[error("missing JWK")]
+    MissingJwk,
+    #[error("incorrect JWK public key")]
+    IncorrectJwkPublicKey,
+    #[error("failed to convert key from/to JWK format: {0}")]
+    JwkConversion(#[from] JwkConversionError),
+    #[error("JWT decoding failed: {0}")]
+    JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
+    #[error("JWT error: {0}")]
+    Jwt(#[from] JwtError),
+}
+
+pub type Result<T, E = DpopError> = std::result::Result<T, E>;
 
 #[serde_as]
 #[skip_serializing_none]
@@ -139,19 +162,19 @@ impl Dpop {
         nonce: &Option<String>,
     ) -> Result<()> {
         if token_data.header.typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
-            return Err(Error::UnsupportedJwtAlgorithm {
+            return Err(DpopError::UnsupportedJwtAlgorithm {
                 expected: OPENID4VCI_DPOP_JWT_TYPE.to_string(),
                 found: token_data.header.typ.clone(),
             });
         }
         if token_data.claims.http_method != method.to_string() {
-            return Err(Error::IncorrectDpopMethod);
+            return Err(DpopError::IncorrectMethod);
         }
         if token_data.claims.http_url != *url {
-            return Err(Error::IncorrectDpopUrl);
+            return Err(DpopError::IncorrectUrl);
         }
         if token_data.claims.access_token_hash != access_token.as_ref().map(|token| sha256(token.as_bytes())) {
-            return Err(Error::IncorrectDpopAccessTokenHash);
+            return Err(DpopError::IncorrectAccessTokenHash);
         }
 
         // We do not check the `jti` field to avoid having to keep track of this in the server state.
@@ -159,7 +182,7 @@ impl Dpop {
         // We also do not check the `iat` field, to avoid having to deal with clockdrift.
         // Instead of both of these, the server can specify a `nonce` and later enforce its presence in the DPoP.
         if token_data.claims.nonce != *nonce {
-            return Err(Error::IncorrectDpopNonce);
+            return Err(DpopError::IncorrectNonce);
         }
 
         Ok(())
@@ -171,7 +194,7 @@ impl Dpop {
     pub async fn verify(&self, url: Url, method: Method, access_token: Option<String>) -> Result<VerifyingKey> {
         // Grab the public key from the JWT header
         let header = jsonwebtoken::decode_header(&self.0 .0)?;
-        let verifying_key = jwk_to_p256(&header.jwk.ok_or(Error::MissingJwk)?)?;
+        let verifying_key = jwk_to_p256(&header.jwk.ok_or(DpopError::MissingJwk)?)?;
 
         let token_data = self.verify_signature(&verifying_key)?;
         self.verify_data(&token_data, &url, &method, &access_token, &None)?;
@@ -192,9 +215,9 @@ impl Dpop {
         self.verify_data(&token_data, url, method, access_token, nonce)?;
 
         // Compare the specified key against the one in the JWT header
-        let contained_key = jwk_to_p256(&token_data.header.jwk.ok_or(Error::MissingJwk)?)?;
+        let contained_key = jwk_to_p256(&token_data.header.jwk.ok_or(DpopError::MissingJwk)?)?;
         if contained_key != *expected_verifying_key {
-            return Err(Error::IncorrectJwkPublicKey);
+            return Err(DpopError::IncorrectJwkPublicKey);
         }
 
         Ok(())

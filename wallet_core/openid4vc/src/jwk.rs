@@ -12,8 +12,6 @@ use p256::{
 };
 use wallet_common::keys::EcdsaKey;
 
-use crate::Error;
-
 #[derive(Debug, thiserror::Error)]
 pub enum JwkConversionError {
     #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
@@ -26,6 +24,8 @@ pub enum JwkConversionError {
     VerifyingKeyConstruction(#[from] signature::Error),
     #[error("missing coordinate in conversion to P256 public key")]
     MissingCoordinate,
+    #[error("failed to get public key: {0}")]
+    VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
@@ -61,14 +61,14 @@ pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
     Ok(key)
 }
 
-pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, Error> {
+pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, JwkConversionError> {
     let header = Header {
         typ: Some(typ.to_string()),
         alg: Algorithm::ES256,
         jwk: Some(jwk_from_p256(
             &key.verifying_key()
                 .await
-                .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?,
+                .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
         )?),
         ..Default::default()
     };
