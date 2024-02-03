@@ -117,7 +117,7 @@ impl IssuanceClient {
             })
             .collect_vec();
 
-        let keys_and_responses = CredentialRequestProof::new_multiple(
+        let keys_and_proofs = CredentialRequestProof::new_multiple(
             issuance_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier,
@@ -126,7 +126,7 @@ impl IssuanceClient {
         )
         .await?;
 
-        let (keys, responses): (Vec<K>, Vec<CredentialRequest>) = keys_and_responses
+        let (keys, credential_requests): (Vec<K>, Vec<CredentialRequest>) = keys_and_proofs
             .into_iter()
             .zip(doctypes)
             .map(|((key, response), doctype)| {
@@ -144,15 +144,12 @@ impl IssuanceClient {
         let url = issuance_state.issuer_url.join("batch_credential").unwrap();
         let (dpop_header, access_token_header) = issuance_state.auth_headers(url.clone(), Method::POST).await?;
 
-        let credential_requests = CredentialRequests {
-            credential_requests: responses,
-        };
         let responses: CredentialResponses = self
             .http_client
             .post(url) // TODO discover token endpoint instead
             .header(DPOP_HEADER_NAME, dpop_header)
             .header(AUTHORIZATION, access_token_header)
-            .json(&credential_requests)
+            .json(&CredentialRequests { credential_requests })
             .send()
             .map_err(Error::from)
             .and_then(|response| async {
@@ -169,29 +166,24 @@ impl IssuanceClient {
             .await?;
 
         let keys: Vec<_> = try_join_all(keys.iter().map(|key| async {
-            Ok::<_, Error>((
-                key.verifying_key()
-                    .await
-                    .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?,
-                key.identifier().to_string(),
-            ))
+            let pubkey = key
+                .verifying_key()
+                .await
+                .map_err(|e| Error::VerifyingKeyFromPrivateKey(e.into()))?;
+            let id = key.identifier().to_string();
+            Ok::<_, Error>((pubkey, id))
         }))
         .await?;
-
         let mut responses_and_keys: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
 
         let mdocs = issuance_state
             .attestation_previews
             .iter()
             .map(|preview| {
-                let unsigned_mdoc = match preview {
-                    AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
-                };
-
                 let cred_copies = responses_and_keys
                     .drain(..preview.copy_count() as usize)
                     .map(|(cred_response, (pubkey, key_id))| {
-                        cred_response.into_mdoc::<K>(key_id, pubkey, unsigned_mdoc, trust_anchors)
+                        cred_response.into_mdoc::<K>(key_id, pubkey, preview.into(), trust_anchors)
                     })
                     .collect::<Result<_, Error>>()?;
 
