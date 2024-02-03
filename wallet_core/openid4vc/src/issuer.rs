@@ -464,8 +464,8 @@ impl Session<Created> {
 
         let response = TokenResponseWithPreviews {
             token_response: TokenResponse {
-                access_token: access_token.clone(),
-                c_nonce: Some(c_nonce.clone()),
+                access_token,
+                c_nonce: Some(c_nonce),
                 token_type: TokenType::Bearer,
                 expires_in: None,
                 refresh_token: None,
