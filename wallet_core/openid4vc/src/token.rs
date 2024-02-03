@@ -101,6 +101,22 @@ impl AttestationPreview {
     }
 }
 
+// Shorthands to convert the preview to the currently only supported format
+impl<'a> From<&'a AttestationPreview> for &'a UnsignedMdoc {
+    fn from(value: &'a AttestationPreview) -> Self {
+        match value {
+            AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+        }
+    }
+}
+impl From<AttestationPreview> for UnsignedMdoc {
+    fn from(value: AttestationPreview) -> Self {
+        match value {
+            AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub enum TokenType {
     #[default]

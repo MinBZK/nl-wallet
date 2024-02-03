@@ -12,7 +12,7 @@ use nl_wallet_mdoc::{
     utils::keys::{KeyFactory, MdocEcdsaKey},
     ServiceEngagement,
 };
-use openid4vc::{issuance_client::IssuanceClient, token::AttestationPreview};
+use openid4vc::issuance_client::IssuanceClient;
 
 use crate::{digid::DigidSession, utils::reqwest::default_reqwest_client_builder};
 
@@ -87,9 +87,7 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
             .start_issuance(base_url, token_request)
             .await?
             .into_iter()
-            .map(|preview| match preview {
-                AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
-            })
+            .map(|preview| preview.into())
             .collect();
         Ok(attestation_previews)
     }

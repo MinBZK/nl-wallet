@@ -572,10 +572,8 @@ impl Session<WaitingForResponse> {
                 let offered_mdocs: Vec<_> = session_data
                     .attestation_previews
                     .iter()
-                    .map(|preview| match preview {
-                        AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
-                    })
-                    .filter(|unsigned| unsigned.doc_type == *requested_doctype)
+                    .map(|preview| preview.into())
+                    .filter(|unsigned: &&UnsignedMdoc| unsigned.doc_type == *requested_doctype)
                     .collect();
                 if offered_mdocs.len() != 1 {
                     // If we have more than one mdoc on offer of the specified doctype then it is not clear which one
@@ -589,9 +587,7 @@ impl Session<WaitingForResponse> {
                 if session_data.attestation_previews.len() != 1 {
                     return Err(CredentialRequestError::UseBatchIssuance);
                 }
-                match session_data.attestation_previews.first().unwrap() {
-                    AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
-                }
+                session_data.attestation_previews.first().unwrap().into()
             }
         };
 
@@ -653,15 +649,13 @@ impl Session<WaitingForResponse> {
             credential_requests
                 .credential_requests
                 .iter()
-                .zip(session_data.attestation_previews.iter().flat_map(|preview| {
-                    itertools::repeat_n(
-                        match preview {
-                            AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
-                        },
-                        preview.copy_count() as usize,
-                    )
-                }))
-                .map(|(cred_req, unsigned_mdoc)| async {
+                .zip(
+                    session_data
+                        .attestation_previews
+                        .iter()
+                        .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count() as usize)),
+                )
+                .map(|(cred_req, unsigned_mdoc)| async move {
                     verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc, issuer_data).await
                 }),
         )
