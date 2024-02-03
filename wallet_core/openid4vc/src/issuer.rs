@@ -79,8 +79,8 @@ pub enum CredentialRequestError {
     MissingJwk,
     #[error("incorrect nonce")]
     IncorrectNonce,
-    #[error("unsupported JWT algorithm: expected {expected}, found {found}")]
-    UnsupportedJwtAlgorithm { expected: String, found: String },
+    #[error("unsupported JWT algorithm: expected {}, found {}", expected, found.as_ref().unwrap_or(&"<None>".to_string()))]
+    UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("JWT decoding failed: {0}")]
     JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
     #[error(transparent)]
@@ -778,7 +778,7 @@ impl CredentialRequestProof {
         if token_data.header.typ != Some(OPENID4VCI_VC_POP_JWT_TYPE.to_string()) {
             return Err(CredentialRequestError::UnsupportedJwtAlgorithm {
                 expected: OPENID4VCI_VC_POP_JWT_TYPE.to_string(),
-                found: token_data.header.typ.unwrap_or_default(),
+                found: token_data.header.typ,
             });
         }
         if token_data
