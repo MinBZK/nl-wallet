@@ -16,8 +16,6 @@ use serde_json::Value;
 use tracing::debug;
 use url::Url;
 
-use crate::settings;
-
 const APPLICATION_JWT: &str = "application/jwt";
 const BSN_KEY: &str = "uzi_id";
 
@@ -56,10 +54,10 @@ pub struct OpenIdClient {
 }
 
 impl OpenIdClient {
-    pub async fn new(digid_settings: &settings::Digid) -> Result<Self> {
-        let client = Self::discover_client(digid_settings.client_id.clone(), digid_settings.issuer_url.clone()).await?;
+    pub async fn new(issuer_url: Url, bsn_privkey: String, client_id: String) -> Result<Self> {
+        let client = Self::discover_client(client_id, issuer_url).await?;
         let userinfo_client = OpenIdClient {
-            decrypter_private_key: OpenIdClient::decrypter(&digid_settings.bsn_privkey)?,
+            decrypter_private_key: OpenIdClient::decrypter(&bsn_privkey)?,
             openid_client: client,
         };
         Ok(userinfo_client)

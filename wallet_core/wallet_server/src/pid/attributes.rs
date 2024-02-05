@@ -1,11 +1,12 @@
 use futures::TryFutureExt;
-use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
-use openid4vc::ErrorResponse;
 use reqwest::Client;
 
-use openid4vc::token::{TokenErrorType, TokenRequest, TokenRequestGrantType, TokenResponse};
-
-use openid4vc::issuer::{AttributeService, Created};
+use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
+use openid4vc::{
+    issuer::{AttributeService, Created},
+    token::{TokenErrorType, TokenRequest, TokenRequestGrantType, TokenResponse},
+    ErrorResponse,
+};
 
 use crate::settings::Issuer;
 
@@ -42,7 +43,12 @@ pub struct MockPidAttributeService {
 impl MockPidAttributeService {
     pub async fn new(settings: &Issuer) -> Result<Self, Error> {
         Ok(MockPidAttributeService {
-            openid_client: OpenIdClient::new(&settings.digid).await?,
+            openid_client: OpenIdClient::new(
+                settings.digid.issuer_url.clone(),
+                settings.digid.bsn_privkey.clone(),
+                settings.digid.client_id.clone(),
+            )
+            .await?,
             http_client: reqwest_client(),
             attrs_lookup: MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default()),
         })
