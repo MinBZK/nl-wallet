@@ -1,23 +1,21 @@
 package feature.digid
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junitpioneer.jupiter.RetryingTest
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
-import setup.OnboardingNavigator
-import setup.Screen
 
 class MockDigidWebTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.DigidLoginStartWebPage)
+        OnboardingNavigator().toScreen(OnboardingScreen.DigidLoginStartWebPage)
 
         digidLoginStartWebPage = DigidLoginStartWebPage()
     }

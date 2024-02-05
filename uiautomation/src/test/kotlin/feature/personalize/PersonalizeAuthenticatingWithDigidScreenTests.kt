@@ -1,25 +1,23 @@
 package feature.personalize
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeAuthenticatingWithDigidScreen
 import screen.personalize.PersonalizeInformScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 3.1 - App performs issuance with PID provider [PVW-1036]")
 class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var personalizeAuthenticatingWithDigidScreen: PersonalizeAuthenticatingWithDigidScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.PersonalizeInform)
+        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizeInform)
 
         PersonalizeInformScreen().clickLoginWithDigidButton(false)
 

@@ -1,6 +1,8 @@
 package feature.personalize
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -8,19 +10,15 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
 import screen.personalize.PersonalizePidDataIncorrectScreen
 import screen.personalize.PersonalizePidPreviewScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 3.1 - User reports that PID/address is incorrect [PVW-1040]")
 class PersonalizePidDataIncorrectScreenTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var personalizePidDataIncorrectScreen: PersonalizePidDataIncorrectScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.PersonalizePidPreview)
+        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizePidPreview)
 
         PersonalizePidPreviewScreen().clickRejectButton()
 

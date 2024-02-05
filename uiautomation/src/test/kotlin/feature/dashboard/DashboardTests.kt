@@ -1,6 +1,8 @@
 package feature.dashboard
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -9,19 +11,15 @@ import org.junit.jupiter.api.Tags
 import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 7.1 - App shows all cards available in the app [PVW-1227]")
 class DashboardTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var dashboardScreen: DashboardScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.Dashboard)
+        OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
 
         dashboardScreen = DashboardScreen()
     }

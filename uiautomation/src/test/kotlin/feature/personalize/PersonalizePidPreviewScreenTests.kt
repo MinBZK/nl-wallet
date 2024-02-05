@@ -1,6 +1,8 @@
 package feature.personalize
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -8,19 +10,15 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeConfirmPinScreen
 import screen.personalize.PersonalizePidDataIncorrectScreen
 import screen.personalize.PersonalizePidPreviewScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 3.1 - User confirms/rejects offered PID [PVW-1037]")
 class PersonalizePidPreviewScreenTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.PersonalizePidPreview)
+        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizePidPreview)
 
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
     }
