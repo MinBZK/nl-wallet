@@ -5,22 +5,8 @@ sealed class MenuState extends Equatable {
 }
 
 class MenuInitial extends MenuState {
-  @override
-  List<Object> get props => [];
-}
-
-class MenuLoadInProgress extends MenuState {
-  const MenuLoadInProgress();
+  const MenuInitial();
 
   @override
   List<Object> get props => [];
-}
-
-class MenuLoadSuccess extends MenuState {
-  final String name;
-
-  const MenuLoadSuccess({required this.name});
-
-  @override
-  List<Object> get props => [name];
 }

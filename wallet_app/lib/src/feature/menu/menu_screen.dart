@@ -5,8 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
-import '../common/widget/centered_loading_indicator.dart';
+import '../common/widget/button/wallet_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../home/bloc/home_bloc.dart';
 import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';
 
@@ -17,39 +18,29 @@ class MenuScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      key: const Key('menuScreen'),
-      child: CustomScrollView(
-        slivers: [
-          SliverWalletAppBar(
-            leading: const SizedBox.shrink(),
-            title: context.l10n.menuScreenTitle,
-          ),
-          _buildContentSliver(),
-        ],
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.cards));
+      },
+      child: Scrollbar(
+        key: const Key('menuScreen'),
+        child: CustomScrollView(
+          slivers: [
+            SliverWalletAppBar(
+              title: context.l10n.menuScreenTitle,
+              leading: WalletBackButton(
+                onPressed: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.cards)),
+              ),
+            ),
+            _buildContentSliver(context),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildContentSliver() {
-    return BlocBuilder<MenuBloc, MenuState>(
-      builder: (context, MenuState state) {
-        return switch (state) {
-          MenuInitial() => _buildLoadingSliver(),
-          MenuLoadInProgress() => _buildLoadingSliver(),
-          MenuLoadSuccess() => _buildSuccessSliver(context, state),
-        };
-      },
-    );
-  }
-
-  Widget _buildLoadingSliver() {
-    return const SliverFillRemaining(
-      child: CenteredLoadingIndicator(),
-    );
-  }
-
-  Widget _buildSuccessSliver(BuildContext context, MenuLoadSuccess state) {
+  Widget _buildContentSliver(BuildContext context) {
     return SliverList.list(
       children: [
         const SizedBox(height: 16),

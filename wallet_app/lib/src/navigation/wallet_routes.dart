@@ -245,7 +245,6 @@ WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
         BlocProvider<MenuBloc>(
           create: (BuildContext context) => MenuBloc(
             context.read(),
-            context.read(),
           ),
         ),
       ],

@@ -7,6 +7,4 @@ abstract class MenuEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class MenuLoadTriggered extends MenuEvent {}
-
 class MenuLockWalletPressed extends MenuEvent {}
