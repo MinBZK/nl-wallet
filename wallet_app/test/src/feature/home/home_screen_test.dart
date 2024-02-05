@@ -46,8 +46,8 @@ void main() {
       var bloc = MockMenuBloc();
       whenListen(
         bloc,
-        Stream.value(const MenuLoadSuccess(name: 'John Doe')),
-        initialState: const MenuLoadSuccess(name: 'John Doe'),
+        Stream.value(const MenuInitial()),
+        initialState: const MenuInitial(),
       );
       return bloc;
     }),
@@ -86,7 +86,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('clicking tabs updates the content', (tester) async {
+    testWidgets('clicking menu updates the content', (tester) async {
       final homeBloc = HomeBloc();
       final homeBlocProvider = BlocProvider<HomeBloc>(create: (c) => homeBloc);
       await tester.pumpWidgetBuilder(
@@ -103,23 +103,16 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       // Expect it to start at on the cards tab with `My cards` as title
       expect(titleWidget.data, l10n.dashboardScreenTitle);
-
-      ///FIXME: Commenting this section out as this test will be obsolete as soon as the dashboard refresh is merged.
-      // Tab the QR tab and verify that the page updated
-      // await tester.tap(find.text(l10n.homeBottomNavBarQrButton));
-      // await tester.pumpAndSettle();
-      // We use `first` here because the appbar contains the QR tabs too.
-      // titleWidget = (titleFinder.evaluate().first.widget as Text);
-      // expect(titleWidget.data, l10n.qrScreenTitle);
-
-      // Tab the Menu tab and verify that the page updated
-      await tester.tap(find.widgetWithText(BottomNavigationBar, l10n.homeScreenBottomNavBarMenuCta));
+      // Tab the Menu button and verify that the page updated
+      await tester.tap(titleFinder);
       await tester.pumpAndSettle();
-      // Menu page already uses the [SliverWalletAppBar], lookup accordingly
+
+      // Menu screen already uses the [SliverWalletAppBar], lookup accordingly
       final sliverWalletAppbarFinder = find.byType(SliverWalletAppBar);
       final titlesFinder = find.descendant(of: sliverWalletAppbarFinder, matching: find.byType(Text));
       final titleCandidates = titlesFinder.evaluate();
       expect(titleCandidates.length, 2, reason: 'SliverWalletAppBar should contain collapsed and expanded titles');
+
       for (final candidate in titleCandidates) {
         expect((candidate.widget as Text).data, l10n.menuScreenTitle);
       }

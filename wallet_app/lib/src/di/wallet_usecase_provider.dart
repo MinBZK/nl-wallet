@@ -72,11 +72,9 @@ import '../domain/usecase/sign/start_sign_usecase.dart';
 import '../domain/usecase/uri/decode_uri_usecase.dart';
 import '../domain/usecase/uri/impl/decode_uri_usecase_impl.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
-import '../domain/usecase/wallet/get_first_names_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
 import '../domain/usecase/wallet/impl/create_wallet_usecase_impl.dart';
-import '../domain/usecase/wallet/impl/get_first_names_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
@@ -122,9 +120,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<LockWalletUseCase>(
           create: (context) => LockWalletUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<GetFirstNamesUseCase>(
-          create: (context) => GetFirstNamesUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetWalletCardsUseCase>(
           create: (context) => GetWalletCardsUseCaseImpl(context.read()),
