@@ -22,7 +22,6 @@ class SecurityConfirmPinTests : TestBase() {
         OnboardingNavigator().toScreen(OnboardingScreen.SecurityConfirmPin)
 
         pinScreen = PinScreen()
-        pinScreen.enterPin(chosenPin)
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

@@ -1,5 +1,6 @@
 package navigator
 
+import navigator.screen.OnboardingScreen
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
 import screen.introduction.IntroductionConditionsScreen

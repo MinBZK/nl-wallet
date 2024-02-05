@@ -43,7 +43,7 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. Tapping the card opens the card's details [UC 7.2]")
+    @DisplayName("4. Tapping the card opens the card's details.")
     fun verifyCardDetailScreen() {
         dashboardScreen.clickPidCard()
 
