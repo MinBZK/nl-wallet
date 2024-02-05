@@ -91,14 +91,14 @@ impl OpenIdClient {
         OpenIdClient::bsn_from_claims(&userinfo_claims)?.ok_or(Error::NoBSN)
     }
 
-    pub fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {
+    fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {
         let jwk = serde_json::from_str(jwk_json)?;
         let decrypter = jwe::RSA_OAEP.decrypter_from_jwk(&jwk)?;
 
         Ok(decrypter)
     }
 
-    pub fn bsn_from_claims(userinfo_token: &UserInfoJWT) -> Result<Option<String>> {
+    fn bsn_from_claims(userinfo_token: &UserInfoJWT) -> Result<Option<String>> {
         debug!("Processing userinfo claims");
 
         let userinfo_payload = userinfo_token.payload()?;
@@ -115,7 +115,7 @@ impl OpenIdClient {
         Ok(bsn)
     }
 
-    pub async fn request_userinfo_decrypted_claims<C, H>(
+    async fn request_userinfo_decrypted_claims<C, H>(
         &self,
         access_token: impl AsRef<str>,
         decrypter: &RsaesJweDecrypter,
