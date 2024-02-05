@@ -78,18 +78,12 @@ impl From<DecodingKey> for EcdsaDecodingKey {
 
 impl From<DerVerifyingKey> for EcdsaDecodingKey {
     fn from(value: DerVerifyingKey) -> Self {
-        value.0.into()
+        (&value.0).into()
     }
 }
 
 impl From<&VerifyingKey> for EcdsaDecodingKey {
     fn from(value: &VerifyingKey) -> Self {
-        EcdsaDecodingKey::from_sec1(value.to_encoded_point(false).as_bytes())
-    }
-}
-
-impl From<VerifyingKey> for EcdsaDecodingKey {
-    fn from(value: VerifyingKey) -> Self {
         EcdsaDecodingKey::from_sec1(value.to_encoded_point(false).as_bytes())
     }
 }
@@ -237,7 +231,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let parsed = jwt
-            .parse_and_verify_with_sub(&(*private_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&private_key.verifying_key().into())
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -253,7 +247,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let parsed = jwt
-            .parse_and_verify(&(*private_key.verifying_key()).into(), &validations())
+            .parse_and_verify(&private_key.verifying_key().into(), &validations())
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -271,12 +265,12 @@ mod tests {
         assert!(jwt_message.get("sub").is_none());
 
         // verification fails because `sub` is required
-        jwt.parse_and_verify_with_sub(&(*private_key.verifying_key()).into())
+        jwt.parse_and_verify_with_sub(&private_key.verifying_key().into())
             .unwrap_err();
 
         // we can parse and verify the JWT if we don't require the `sub` field to be present
         let parsed = jwt
-            .parse_and_verify(&(*private_key.verifying_key()).into(), &validations())
+            .parse_and_verify(&private_key.verifying_key().into(), &validations())
             .unwrap();
 
         assert_eq!(t, parsed);

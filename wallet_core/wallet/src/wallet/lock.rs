@@ -166,7 +166,7 @@ mod tests {
 
                 let claims = challenge_request
                     .message
-                    .parse_and_verify_with_sub(&hw_pubkey.into())
+                    .parse_and_verify_with_sub(&(&hw_pubkey).into())
                     .expect("Could not verify check pin challenge request");
 
                 assert_eq!(claims.sequence_number, 1);
