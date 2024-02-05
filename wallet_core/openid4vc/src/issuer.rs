@@ -593,8 +593,13 @@ impl Session<WaitingForResponse> {
             },
         }?;
 
-        let credential_response =
-            verify_pop_and_sign_attestation(&session_data.c_nonce, &credential_request, unsigned, issuer_data).await?;
+        let credential_response = verify_pop_and_sign_attestation(
+            &session_data.c_nonce,
+            &credential_request,
+            unsigned.clone(),
+            issuer_data,
+        )
+        .await?;
 
         Ok(credential_response)
     }
@@ -651,14 +656,12 @@ impl Session<WaitingForResponse> {
             credential_requests
                 .credential_requests
                 .iter()
-                .zip(
-                    session_data
-                        .attestation_previews
-                        .iter()
-                        .flat_map(|preview| itertools::repeat_n(preview.into(), preview.copy_count() as usize)),
-                )
+                .zip(session_data.attestation_previews.iter().flat_map(|preview| {
+                    itertools::repeat_n::<&UnsignedMdoc>(preview.into(), preview.copy_count() as usize)
+                }))
                 .map(|(cred_req, unsigned_mdoc)| async move {
-                    verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc, issuer_data).await
+                    verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc.clone(), issuer_data)
+                        .await
                 }),
         )
         .await?;
@@ -706,7 +709,7 @@ impl<T: IssuanceState> Session<T> {
 pub(crate) async fn verify_pop_and_sign_attestation(
     c_nonce: &str,
     cred_req: &CredentialRequest,
-    unsigned_mdoc: &UnsignedMdoc,
+    unsigned_mdoc: UnsignedMdoc,
     issuer_data: &IssuerData<impl KeyRing>,
 ) -> Result<CredentialResponse, CredentialRequestError> {
     if !matches!(cred_req.format, Format::MsoMdoc) {
@@ -737,19 +740,12 @@ pub(crate) async fn verify_pop_and_sign_attestation(
         .try_into()
         .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-    let (issuer_signed, _) = IssuerSigned::sign(
-        unsigned_mdoc.clone(),
-        mdoc_public_key,
-        issuer_data
-            .private_keys
-            .private_key(&unsigned_mdoc.doc_type)
-            .as_ref()
-            .ok_or(CredentialRequestError::MissingPrivateKey(
-                unsigned_mdoc.doc_type.clone(),
-            ))?,
-    )
-    .await
-    .map_err(CredentialRequestError::AttestationSigning)?;
+    let private_key = issuer_data.private_keys.private_key(&unsigned_mdoc.doc_type).ok_or(
+        CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
+    )?;
+    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
+        .await
+        .map_err(CredentialRequestError::AttestationSigning)?;
 
     Ok(CredentialResponse::MsoMdoc {
         credential: issuer_signed.into(),
