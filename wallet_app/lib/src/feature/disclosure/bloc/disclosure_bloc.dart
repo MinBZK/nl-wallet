@@ -157,17 +157,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   @override
   Future<void> close() async {
     _startDisclosureStreamSubscription?.cancel();
-    if (state is DisclosureConfirmPin) {
-      /// The bloc being closed while in the [DisclosureConfirmPin] indicates the user has provided
-      /// an incorrect pin too many times, causing the [DisclosureScreen] and thus this bloc to be
-      /// closed. To avoid any issues with future disclosure we make sure to cancel the onGoing flow
-      /// here.
-      try {
-        await _cancelDisclosureUseCase.invoke();
-      } catch (ex) {
-        Fimber.e('Failed to explicitly cancel disclosure', ex: ex);
-      }
-    }
     return super.close();
   }
 }

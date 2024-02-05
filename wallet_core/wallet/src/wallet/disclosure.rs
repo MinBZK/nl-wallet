@@ -165,6 +165,19 @@ where
         Ok(proposal)
     }
 
+    async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<(), DisclosureError> {
+        // Prepare history events from session before terminating session
+        let event = WalletEvent::new_disclosure(None, session.rp_certificate().clone(), EventStatus::Cancelled);
+
+        session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
+
+        self.store_history_event(event)
+            .await
+            .map_err(DisclosureError::HistoryStorage)?;
+
+        Ok(())
+    }
+
     pub async fn cancel_disclosure(&mut self) -> Result<(), DisclosureError> {
         info!("Cancelling disclosure");
 
@@ -181,16 +194,7 @@ where
         info!("Checking if a disclosure session is present");
         let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
 
-        // Prepare history events from session before terminating session
-        let event = WalletEvent::new_disclosure(None, session.rp_certificate().clone(), EventStatus::Cancelled);
-
-        session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
-
-        self.store_history_event(event)
-            .await
-            .map_err(DisclosureError::HistoryStorage)?;
-
-        Ok(())
+        self.terminate_disclosure_session(session).await
     }
 
     async fn log_empty_disclosure_error(&mut self, remote_party_certificate: Certificate, message: String) {
@@ -292,6 +296,7 @@ where
                 "Error occurred while disclosing attributes".to_owned(),
             )
             .await;
+
             let error = match error.error {
                 nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
                     // This `unwrap()` is safe because of the `is()` check above.
@@ -304,6 +309,27 @@ where
                 }
                 _ => DisclosureError::DisclosureSession(error.error),
             };
+
+            if matches!(
+                error,
+                DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
+            ) {
+                // On a PIN timeout we should proactively terminate the disclosure session,
+                // and lock the wallet, as the user is probably not the owner of the wallet.
+                // The UI should catch this specific error and close the disclosure screens.
+
+                let session = self.disclosure_session.take().unwrap();
+                if let Err(terminate_error) = self.terminate_disclosure_session(session).await {
+                    // Log the error, but do not return it from this method.
+                    error!(
+                        "Error while terminating disclosure session on PIN timeout: {}",
+                        terminate_error
+                    );
+                }
+
+                self.lock.lock();
+            }
+
             return Err(error);
         }
 
@@ -375,6 +401,7 @@ mod tests {
     use assert_matches::assert_matches;
     use itertools::Itertools;
     use mockall::predicate::*;
+    use rstest::rstest;
     use serial_test::serial;
 
     use nl_wallet_mdoc::{
@@ -892,6 +919,7 @@ mod tests {
         // Check that the disclosure session is no longer
         // present and that the disclosure count is 1.
         assert!(wallet.disclosure_session.is_none());
+        assert!(!wallet.is_locked());
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
 
         // Verify a single Disclosure Success event is logged, and documents are shared
@@ -939,6 +967,7 @@ mod tests {
 
         assert_matches!(error, DisclosureError::Locked);
         assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
                 assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
@@ -966,6 +995,7 @@ mod tests {
 
         assert_matches!(error, DisclosureError::NotRegistered);
         assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.is_locked());
 
         // Verify no Disclosure events are logged
         assert!(wallet.storage.get_mut().fetch_wallet_events().await.unwrap().is_empty());
@@ -985,6 +1015,7 @@ mod tests {
 
         assert_matches!(error, DisclosureError::SessionState);
         assert!(wallet.disclosure_session.is_none());
+        assert!(!wallet.is_locked());
 
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -1004,6 +1035,7 @@ mod tests {
 
         assert_matches!(error, DisclosureError::SessionState);
         assert!(wallet.disclosure_session.is_some());
+        assert!(!wallet.is_locked());
 
         // The mdoc copy usage counts should not be incremented.
         assert!(wallet.storage.get_mut().mdoc_copies_usage_counts.is_empty());
@@ -1038,6 +1070,7 @@ mod tests {
 
         assert_matches!(error, DisclosureError::DisclosureSession(_));
         assert!(wallet.disclosure_session.is_some());
+        assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
                 assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
@@ -1090,6 +1123,7 @@ mod tests {
 
         assert_matches!(error, DisclosureError::DisclosureSession(_));
         assert!(wallet.disclosure_session.is_some());
+        assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
                 assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
@@ -1120,8 +1154,16 @@ mod tests {
         );
     }
 
+    #[rstest]
+    #[case(InstructionError::IncorrectPin { leftover_attempts: 1, is_final_attempt: false }, false)]
+    #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true)]
+    #[case(InstructionError::Blocked, true)]
+    #[case(InstructionError::InstructionValidation, false)]
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_error_instruction() {
+    async fn test_wallet_accept_disclosure_error_instruction(
+        #[case] instruction_error: InstructionError,
+        #[case] expect_termination: bool,
+    ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -1130,7 +1172,7 @@ mod tests {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 next_error: Mutex::new(
                     nl_wallet_mdoc::Error::Cose(CoseError::Signing(
-                        RemoteEcdsaKeyError::Instruction(InstructionError::Blocked).into(),
+                        RemoteEcdsaKeyError::Instruction(instruction_error).into(),
                     ))
                     .into(),
                 ),
@@ -1140,6 +1182,9 @@ mod tests {
         };
         wallet.disclosure_session = disclosure_session.into();
 
+        let was_terminated = Arc::clone(&wallet.disclosure_session.as_ref().unwrap().was_terminated);
+        assert!(!was_terminated.load(Ordering::Relaxed));
+
         // Accepting disclosure when the Wallet Provider responds with an `InstructionError` indicating
         // that the account is blocked should result in a `DisclosureError::Instruction` error.
         let error = wallet
@@ -1147,14 +1192,22 @@ mod tests {
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::Instruction(InstructionError::Blocked));
-        assert!(wallet.disclosure_session.is_some());
-        match wallet.disclosure_session.as_ref().unwrap().session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
-            }
-            _ => unreachable!(),
-        };
+        assert_matches!(error, DisclosureError::Instruction(_));
+
+        if expect_termination {
+            // If the disclosure session should be terminated, there
+            // should be no session, the wallet should be locked and
+            // the session should be terminated at the remote end.
+            assert!(wallet.disclosure_session.is_none());
+            assert!(wallet.is_locked());
+            assert!(was_terminated.load(Ordering::Relaxed));
+        } else {
+            // Otherwise, the session should still be present, the wallet
+            // unlocked and the session should not be terminated.
+            assert!(wallet.disclosure_session.is_some());
+            assert!(!wallet.is_locked());
+            assert!(!was_terminated.load(Ordering::Relaxed));
+        }
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
         assert_eq!(wallet.storage.get_mut().mdoc_copies_usage_counts.len(), 1);
@@ -1169,14 +1222,32 @@ mod tests {
             1
         );
 
-        // Verify a Disclosure error event is logged, and no documents are shared
         let events = wallet.storage.get_mut().fetch_wallet_events().await.unwrap();
-        assert_eq!(events.len(), 1);
-        assert_matches!(
-            &events[0],
-            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: None, .. }
-            if error == "Error occurred while disclosing attributes"
-        );
+
+        if expect_termination {
+            // Verify both a disclosure cancellation and error event are logged
+            assert_eq!(events.len(), 2);
+            assert_matches!(
+                &events[0],
+                WalletEvent::Disclosure {
+                    status: EventStatus::Cancelled,
+                    ..
+                }
+            );
+            assert_matches!(
+                &events[1],
+                WalletEvent::Disclosure { status: EventStatus::Error(error), documents: None, .. }
+                if error == "Error occurred while disclosing attributes"
+            );
+        } else {
+            // Verify a disclosure error event is logged
+            assert_eq!(events.len(), 1);
+            assert_matches!(
+                &events[0],
+                WalletEvent::Disclosure { status: EventStatus::Error(error), documents: None, .. }
+                if error == "Error occurred while disclosing attributes"
+            );
+        }
     }
 
     #[tokio::test]
@@ -1207,6 +1278,7 @@ mod tests {
             DisclosureError::DisclosureSession(nl_wallet_mdoc::Error::Holder(HolderError::ReaderAuthMissing))
         );
         assert!(wallet.disclosure_session.is_some());
+        assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
                 assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0)
