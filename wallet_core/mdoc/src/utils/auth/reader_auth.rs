@@ -7,7 +7,7 @@ use url::Url;
 
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    utils::x509::MdocCertificateExtension,
+    utils::x509::{CertificateType, MdocCertificateExtension},
     DeviceRequest,
 };
 
@@ -115,6 +115,12 @@ impl AttributeIdentifierHolder for ReaderRegistration {
                     })
             })
             .collect()
+    }
+}
+
+impl From<ReaderRegistration> for CertificateType {
+    fn from(source: ReaderRegistration) -> Self {
+        CertificateType::ReaderAuth(Box::new(source).into())
     }
 }
 

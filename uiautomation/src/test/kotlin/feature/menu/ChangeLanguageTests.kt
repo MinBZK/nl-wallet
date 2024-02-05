@@ -1,6 +1,8 @@
 package feature.menu
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -12,19 +14,15 @@ import screen.change_language.ChangeLanguageScreen
 import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
 import screen.settings.SettingsScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 9.3 - User changes language [PVW-1224]")
 class ChangeLanguageTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var changeLanguageScreen: ChangeLanguageScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.Dashboard)
+        OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
 
         DashboardScreen().clickMenuButton()
         MenuScreen().clickSettingsButton()

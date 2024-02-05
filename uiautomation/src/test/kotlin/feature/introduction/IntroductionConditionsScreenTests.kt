@@ -1,6 +1,8 @@
 package feature.introduction
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -8,19 +10,15 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.common.PlaceholderScreen
 import screen.introduction.IntroductionConditionsScreen
 import screen.security.PinScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 1.1 - User accepts terms & conditions [PVW-1221]")
 class IntroductionConditionsScreenTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var conditionsScreen: IntroductionConditionsScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.IntroductionConditions)
+        OnboardingNavigator().toScreen(OnboardingScreen.IntroductionConditions)
 
         conditionsScreen = IntroductionConditionsScreen()
     }

@@ -1,6 +1,6 @@
-package setup
+package navigator
 
-enum class Screen {
+enum class OnboardingScreen {
     Introduction,
     IntroductionExpectations,
     IntroductionPrivacy,

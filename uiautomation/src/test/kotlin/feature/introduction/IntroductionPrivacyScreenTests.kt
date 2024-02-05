@@ -1,6 +1,8 @@
 package feature.introduction
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -8,19 +10,15 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.common.PlaceholderScreen
 import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionPrivacyScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 1.1 - App displays privacy statement [PVW-1220]")
 class IntroductionPrivacyScreenTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var privacyScreen: IntroductionPrivacyScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.IntroductionPrivacy)
+        OnboardingNavigator().toScreen(OnboardingScreen.IntroductionPrivacy)
 
         privacyScreen = IntroductionPrivacyScreen()
     }

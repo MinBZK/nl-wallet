@@ -1,6 +1,8 @@
 package feature.personalize
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -9,19 +11,15 @@ import screen.digid.DigidApplyWebPage
 import screen.digid.DigidLoginStartWebPage
 import screen.personalize.PersonalizeInformScreen
 import screen.personalize.PersonalizeNoDigidScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 3.1 - App informs User before personalization [PVW-1034]")
 class PersonalizeInformScreenTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.PersonalizeInform)
+        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizeInform)
 
         personalizeInformScreen = PersonalizeInformScreen()
     }

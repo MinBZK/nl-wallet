@@ -462,10 +462,13 @@ mod tests {
 
     use wallet_common::generator::TimeGenerator;
 
-    use crate::utils::{
-        cose::{self, CoseError},
-        issuer_auth::IssuerRegistration,
-        x509::{Certificate, CertificateType, CertificateUsage},
+    use crate::{
+        server_keys::KeyPair,
+        utils::{
+            cose::{self, CoseError},
+            issuer_auth::IssuerRegistration,
+            x509::CertificateUsage,
+        },
     };
 
     use super::{ClonePayload, MdocCose};
@@ -554,25 +557,26 @@ mod tests {
 
     #[tokio::test]
     async fn cose_with_certificate() {
-        let (ca, ca_privkey) = Certificate::new_ca("ca.example.com", Default::default()).unwrap();
-        let (cert, cert_privkey) = Certificate::new(
-            &ca,
-            &ca_privkey,
-            "cert.example.com",
-            CertificateType::Mdl(Box::new(IssuerRegistration::new_mock()).into()),
-            Default::default(),
-        )
-        .unwrap();
+        let ca = KeyPair::generate_ca("ca.example.com", Default::default()).unwrap();
+        let issuer_key_pair = ca
+            .generate(
+                "cert.example.com",
+                IssuerRegistration::new_mock().into(),
+                Default::default(),
+            )
+            .unwrap();
 
         let payload = ToyMessage::default();
-        let header = cose::new_certificate_header(&cert);
-        let cose = MdocCose::sign(&payload, header, &cert_privkey, true).await.unwrap();
+        let header = cose::new_certificate_header(issuer_key_pair.certificate());
+        let cose = MdocCose::sign(&payload, header, issuer_key_pair.private_key(), true)
+            .await
+            .unwrap();
 
         // Certificate should be present in the unprotected headers
         let header_cert = cose.signing_cert().unwrap();
-        assert_eq!(cert.as_bytes(), header_cert.as_bytes());
+        assert_eq!(issuer_key_pair.certificate().as_bytes(), header_cert.as_bytes());
 
-        let trust_anchor = (&ca).try_into().unwrap();
+        let trust_anchor = ca.certificate().try_into().unwrap();
         cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[trust_anchor])
             .unwrap();
     }
