@@ -14,6 +14,7 @@ class ForgotPinScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('forgotPinScreen'),
       appBar: WalletAppBar(
         title: Text(context.l10n.forgotPinScreenTitle),
       ),

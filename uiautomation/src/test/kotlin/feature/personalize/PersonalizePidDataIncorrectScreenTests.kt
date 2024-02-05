@@ -2,7 +2,7 @@ package feature.personalize
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.OnboardingScreen
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -25,13 +25,13 @@ class PersonalizePidDataIncorrectScreenTests : TestBase() {
         personalizePidDataIncorrectScreen = PersonalizePidDataIncorrectScreen()
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("1. When the User rejects, the App shows the 'Incorrect data support screen' that informs the User about what to do in case the data are not correct.")
     fun verifyPersonalizePidDataIncorrectScreen() {
         assertTrue(personalizePidDataIncorrectScreen.visible(), "personalize pid data incorrect screen is not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("2. The App offers a button for the user to go back to the process.")
     fun verifyBackButton() {
         personalizePidDataIncorrectScreen.clickBottomBackButton()
@@ -40,7 +40,7 @@ class PersonalizePidDataIncorrectScreenTests : TestBase() {
         assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("3. The App offers a button to not add the data, which returns to the 'login with DigiD screen'.")
     fun verifyRejectPidPreviewButton() {
         personalizePidDataIncorrectScreen.clickBottomPrimaryButton()

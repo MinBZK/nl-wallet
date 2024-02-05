@@ -1,12 +1,13 @@
-package navigator
+package navigator.screen
 
 enum class OnboardingScreen {
     Introduction,
     IntroductionExpectations,
     IntroductionPrivacy,
     IntroductionConditions,
-    Pin,
-    SetupSecurityCompleted,
+    SecurityChoosePin,
+    SecurityConfirmPin,
+    SecuritySetupCompleted,
     PersonalizeInform,
     DigidLoginStartWebPage,
     DigidLoginMockWebPage,
