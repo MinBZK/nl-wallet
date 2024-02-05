@@ -1,4 +1,4 @@
-package navigator
+package navigator.screen
 
 enum class CardScreen {
     Dashboard,

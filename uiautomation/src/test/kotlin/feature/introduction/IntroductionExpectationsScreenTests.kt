@@ -2,7 +2,7 @@ package feature.introduction
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.OnboardingScreen
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -22,13 +22,13 @@ class IntroductionExpectationsScreenTests : TestBase() {
         expectationsScreen = IntroductionExpectationsScreen()
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("1. The App displays the steps of the onboarding process.")
     fun verifyExpectationsScreen() {
         assertTrue(expectationsScreen.visible(), "expectations screen is not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("2. The screen has a button to start the onboarding process, leading to privacy statement.")
     fun verifyNextButton() {
         expectationsScreen.clickNextButton()

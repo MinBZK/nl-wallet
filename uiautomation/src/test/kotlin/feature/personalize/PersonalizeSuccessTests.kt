@@ -2,7 +2,7 @@ package feature.personalize
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.OnboardingScreen
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -22,25 +22,25 @@ class PersonalizeSuccessTests : TestBase() {
         personalizeSuccessScreen = PersonalizeSuccessScreen()
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("1. When PID was issued successfully, the App displays a confirmation to the User.")
     fun verifyPersonalizeSuccessScreen() {
         assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("2. The confirmation includes a success message.")
     fun verifySuccessMessage() {
         assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("3. The confirmation includes the issued cards (PID + Address): card, title.")
     fun verifyIssuedCards() {
         assertTrue(personalizeSuccessScreen.cardsVisible(), "cards not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("4. The App offers an entrance to enter the wallet which brings the User to the Dashboard.")
     fun verifyNavigateToDashboardButton() {
         personalizeSuccessScreen.clickNextButton()
