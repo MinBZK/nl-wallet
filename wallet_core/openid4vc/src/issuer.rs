@@ -60,6 +60,8 @@ pub enum TokenRequestError {
     UnsupportedTokenRequestType,
     #[error("failed to get attributes to be issued: {0}")]
     AttributeService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("no attributes found to be issued")]
+    NoAttributes,
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -452,10 +454,14 @@ impl Session<Created> {
             .map_err(|err| TokenRequestError::IssuanceError(Error::DpopInvalid(err)))?;
 
         let code = token_request.code().to_string();
+
         let unsigned_mdocs = attr_service
             .attributes(&self.state, token_request)
             .await
             .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
+        if unsigned_mdocs.is_empty() {
+            return Err(TokenRequestError::NoAttributes);
+        }
 
         // Append the authorization code, so that when the wallet comes back we can use it to retrieve the session
         let access_token = random_string(32) + &code;
