@@ -1,14 +1,14 @@
 package feature.security
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junitpioneer.jupiter.RetryingTest
 import screen.security.PinScreen
 import screen.security.SetupSecurityCompletedScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 2.1 - User confirms PIN [PVW-1216]")
 class ConfirmPinTests : TestBase() {
@@ -21,7 +21,7 @@ class ConfirmPinTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.Pin)
+        onboardingNavigator.toScreen(OnboardingScreen.Pin)
 
         pinScreen = PinScreen()
         pinScreen.enterPin(chosenPin)

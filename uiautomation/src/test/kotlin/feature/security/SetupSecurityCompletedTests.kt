@@ -1,14 +1,14 @@
 package feature.security
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
 import screen.security.SetupSecurityCompletedScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 2.1 - Wallet creates account, initializes and confirms to user [PVW-1217]")
 class SetupSecurityCompletedTests : TestBase() {
@@ -19,7 +19,7 @@ class SetupSecurityCompletedTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.SetupSecurityCompleted)
+        onboardingNavigator.toScreen(OnboardingScreen.SetupSecurityCompleted)
 
         setupSecurityCompletedScreen = SetupSecurityCompletedScreen()
     }

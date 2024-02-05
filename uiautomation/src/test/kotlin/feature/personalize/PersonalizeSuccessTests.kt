@@ -1,25 +1,23 @@
 package feature.personalize
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.personalize.PersonalizeSuccessScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 3.1 - App confirms PID issuance to user [PVW-1039]")
 class PersonalizeSuccessTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var personalizeSuccessScreen: PersonalizeSuccessScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.PersonalizeSuccess)
+        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizeSuccess)
 
         personalizeSuccessScreen = PersonalizeSuccessScreen()
     }

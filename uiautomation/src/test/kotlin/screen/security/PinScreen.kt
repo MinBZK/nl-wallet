@@ -44,6 +44,14 @@ class PinScreen : MobileActions() {
 
     fun clickAboutAppButton() = clickElement(aboutAppButton)
 
+    fun choosePin(pin: String) {
+        enterPin(pin)
+    }
+
+    fun confirmPin(pin: String) {
+        enterPin(pin)
+    }
+
     fun enterPin(pin: String) {
         for (digit in pin) {
             val elementKey = "keyboardDigitKey#$digit"
