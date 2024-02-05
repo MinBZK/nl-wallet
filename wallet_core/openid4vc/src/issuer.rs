@@ -73,6 +73,8 @@ pub enum CredentialRequestError {
     Unauthorized,
     #[error("malformed access token")]
     MalformedToken,
+    #[error("doctype not offered")]
+    DoctypeNotOffered(String),
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
     #[error("unsupported credential format: {0:?}")]
@@ -577,21 +579,19 @@ impl Session<WaitingForResponse> {
                     .map(|preview| preview.into())
                     .filter(|unsigned: &&UnsignedMdoc| unsigned.doc_type == *requested_doctype)
                     .collect();
-                if offered_mdocs.len() != 1 {
+                match offered_mdocs.len() {
+                    1 => Ok(*offered_mdocs.first().unwrap()),
+                    0 => Err(CredentialRequestError::DoctypeNotOffered(requested_doctype.clone())),
                     // If we have more than one mdoc on offer of the specified doctype then it is not clear which one
                     // we should issue; abort
-                    return Err(CredentialRequestError::UseBatchIssuance);
+                    _ => Err(CredentialRequestError::UseBatchIssuance),
                 }
-                *offered_mdocs.first().unwrap()
             }
-            None => {
-                // If the wallet specified no doctype, proceed only if we want to issue a single attestation
-                if session_data.attestation_previews.len() != 1 {
-                    return Err(CredentialRequestError::UseBatchIssuance);
-                }
-                session_data.attestation_previews.first().unwrap().into()
-            }
-        };
+            None => match session_data.attestation_previews.len() {
+                1 => Ok(session_data.attestation_previews.first().unwrap().into()),
+                _ => Err(CredentialRequestError::UseBatchIssuance),
+            },
+        }?;
 
         let credential_response =
             verify_pop_and_sign_attestation(&session_data.c_nonce, &credential_request, unsigned, issuer_data).await?;
