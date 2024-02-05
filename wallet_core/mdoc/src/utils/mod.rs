@@ -9,5 +9,4 @@ pub(crate) mod crypto;
 #[cfg(feature = "mdocs_map")]
 pub mod mdocs_map;
 
-pub use auth::issuer_auth;
-pub use auth::reader_auth;
+pub use auth::{issuer_auth, reader_auth};
