@@ -410,7 +410,7 @@ where
         // Insert the history event
         match WalletEventModel::try_from(event)? {
             WalletEventModel::Issuance(event_entity) => {
-                Self::insert_history_event_and_doc_type_mappings::<issuance_history_event::Entity, _, _, _>(
+                Self::insert_history_event_and_doc_type_mappings(
                     &transaction,
                     issuance_history_event::ActiveModel::from(event_entity),
                     new_doc_type_entities,
@@ -423,7 +423,7 @@ where
                 .await?;
             }
             WalletEventModel::Disclosure(event_entity) => {
-                Self::insert_history_event_and_doc_type_mappings::<disclosure_history_event::Entity, _, _, _>(
+                Self::insert_history_event_and_doc_type_mappings(
                     &transaction,
                     disclosure_history_event::ActiveModel::from(event_entity),
                     new_doc_type_entities,
