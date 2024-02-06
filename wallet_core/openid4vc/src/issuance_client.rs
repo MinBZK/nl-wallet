@@ -24,9 +24,8 @@ use crate::{
     Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
 
-#[allow(async_fn_in_trait)] // TODO ???
-pub trait IssuanceClientTrait {
-    fn has_issuance_session(&self) -> bool;
+pub trait IssuanceClient {
+    fn has_session(&self) -> bool;
 
     async fn start_issuance(
         &mut self,
@@ -44,8 +43,7 @@ pub trait IssuanceClientTrait {
     async fn reject_issuance(&mut self) -> Result<(), Error>;
 }
 
-pub struct IssuanceClient {
-    // TODO rename to HttpIssuanceClient
+pub struct HttpIssuanceClient {
     http_client: reqwest::Client,
     session_state: Option<IssuanceState>,
 }
@@ -59,7 +57,7 @@ struct IssuanceState {
     dpop_nonce: Option<String>,
 }
 
-impl IssuanceClient {
+impl HttpIssuanceClient {
     pub fn new(http_client: reqwest::Client) -> Self {
         Self {
             http_client,
@@ -68,8 +66,8 @@ impl IssuanceClient {
     }
 }
 
-impl IssuanceClientTrait for IssuanceClient {
-    fn has_issuance_session(&self) -> bool {
+impl IssuanceClient for HttpIssuanceClient {
+    fn has_session(&self) -> bool {
         self.session_state.is_some()
     }
 

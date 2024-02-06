@@ -57,7 +57,7 @@ impl Wallet {
             config_repository,
             storage,
             HttpAccountProviderClient::default(),
-            openid4vc::issuance_client::IssuanceClient::new(http_client),
+            openid4vc::issuance_client::HttpIssuanceClient::new(http_client),
         )
         .await
     }

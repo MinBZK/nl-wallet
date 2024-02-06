@@ -10,7 +10,7 @@ use std::{
 use ctor::ctor;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use openid4vc::{
-    issuance_client::IssuanceClient,
+    issuance_client::HttpIssuanceClient,
     issuer::{AttributeService, Created},
     token::TokenRequest,
 };
@@ -78,7 +78,7 @@ pub type WalletWithMocks = Wallet<
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
     MockDigidSession,
-    IssuanceClient,
+    HttpIssuanceClient,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
@@ -122,7 +122,7 @@ pub async fn setup_wallet_and_env(
     )
     .await;
 
-    let pid_issuer_client = IssuanceClient::new(reqwest_client());
+    let pid_issuer_client = HttpIssuanceClient::new(reqwest_client());
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.base_url,

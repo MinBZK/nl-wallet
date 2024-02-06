@@ -1,4 +1,4 @@
-use openid4vc::issuance_client::IssuanceClientTrait;
+use openid4vc::issuance_client::IssuanceClient;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
@@ -51,7 +51,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     CR: ConfigurationRepository,
     DGS: DigidSession,
-    PIC: IssuanceClientTrait,
+    PIC: IssuanceClient,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -69,7 +69,7 @@ where
         }
 
         info!("Checking if there is a DigidSession or PidIssuerClient has session");
-        if self.digid_session.is_some() || self.pid_issuer.has_issuance_session() {
+        if self.digid_session.is_some() || self.pid_issuer.has_session() {
             return Err(PidIssuanceError::SessionState);
         }
 
@@ -173,7 +173,7 @@ where
         }
 
         info!("Checking if PidIssuerClient has session");
-        if !self.pid_issuer.has_issuance_session() {
+        if !self.pid_issuer.has_session() {
             return Err(PidIssuanceError::SessionState);
         }
 
@@ -204,7 +204,7 @@ where
         }
 
         info!("Checking if PidIssuerClient has session");
-        if !self.pid_issuer.has_issuance_session() {
+        if !self.pid_issuer.has_session() {
             return Err(PidIssuanceError::SessionState);
         }
 
@@ -486,7 +486,7 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return one `UnsignedMdoc`.
-        wallet.pid_issuer.unsigned_mdocs = vec![AttestationPreview::MsoMdoc {
+        wallet.pid_issuer.attestation_previews = vec![AttestationPreview::MsoMdoc {
             unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
         }];
 
@@ -601,7 +601,7 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return an `UnsignedMdoc` with an unknown doctype.
-        wallet.pid_issuer.unsigned_mdocs = vec![AttestationPreview::MsoMdoc {
+        wallet.pid_issuer.attestation_previews = vec![AttestationPreview::MsoMdoc {
             unsigned_mdoc: UnsignedMdoc {
                 doc_type: "foobar".to_string(),
                 valid_from: Tdate::now(),

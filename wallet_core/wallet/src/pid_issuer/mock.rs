@@ -4,7 +4,7 @@ use nl_wallet_mdoc::{
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 use openid4vc::{
-    issuance_client::IssuanceClientTrait,
+    issuance_client::IssuanceClient,
     token::{AttestationPreview, TokenRequest},
 };
 use url::Url;
@@ -14,13 +14,13 @@ use super::{PidIssuerClient, PidIssuerError};
 #[derive(Default)]
 pub struct MockPidIssuerClient {
     pub has_session: bool,
-    pub unsigned_mdocs: Vec<AttestationPreview>,
+    pub attestation_previews: Vec<AttestationPreview>,
     pub mdoc_copies: Vec<MdocCopies>,
     pub next_error: Option<openid4vc::Error>,
 }
 
-impl IssuanceClientTrait for MockPidIssuerClient {
-    fn has_issuance_session(&self) -> bool {
+impl IssuanceClient for MockPidIssuerClient {
+    fn has_session(&self) -> bool {
         self.has_session
     }
 
@@ -30,7 +30,7 @@ impl IssuanceClientTrait for MockPidIssuerClient {
         _token_request: TokenRequest,
     ) -> Result<Vec<AttestationPreview>, openid4vc::Error> {
         match self.next_error.take() {
-            None => Ok(self.unsigned_mdocs.clone()),
+            None => Ok(self.attestation_previews.clone()),
             Some(error) => Err(error),
         }
     }
@@ -67,7 +67,7 @@ impl PidIssuerClient for MockPidIssuerClient {
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
         match self.next_error.take() {
             None => Ok(self
-                .unsigned_mdocs
+                .attestation_previews
                 .iter()
                 .map(|preview| preview.into())
                 .cloned()

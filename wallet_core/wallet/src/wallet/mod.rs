@@ -11,7 +11,7 @@ mod uri;
 #[cfg(test)]
 mod tests;
 
-use openid4vc::issuance_client::IssuanceClient;
+use openid4vc::issuance_client::HttpIssuanceClient;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
@@ -44,7 +44,7 @@ pub struct Wallet<
     PEK = HardwareEcdsaKey,                        // PlatformEcdsaKey
     APC = HttpAccountProviderClient,               // AccountProviderClient
     DGS = HttpDigidSession,                        // DigidSession
-    PIC = IssuanceClient,                          // TODO
+    PIC = HttpIssuanceClient,                      // TODO
     MDS = DisclosureSession<CborHttpClient, Uuid>, // MdocDisclosureSession
 > {
     config_repository: CR,

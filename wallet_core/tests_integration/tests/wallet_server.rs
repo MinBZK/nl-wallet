@@ -1,7 +1,7 @@
 use base64::prelude::*;
 use indexmap::IndexMap;
 use openid4vc::{
-    issuance_client::{IssuanceClient, IssuanceClientTrait},
+    issuance_client::{HttpIssuanceClient, IssuanceClient},
     token::TokenRequest,
 };
 use reqwest::{Client, StatusCode};
@@ -160,7 +160,7 @@ async fn test_session_not_found() {
 async fn test_mock_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = IssuanceClient::new(reqwest_client());
+    let mut pid_issuer_client = HttpIssuanceClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -191,7 +191,7 @@ async fn test_mock_issuance() {
 async fn test_reject_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = IssuanceClient::new(reqwest_client());
+    let mut pid_issuer_client = HttpIssuanceClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -252,7 +252,7 @@ async fn test_pid_issuance_digid_bridge() {
     let authorization_code = digid_session.get_authorization_code(&redirect_url).unwrap();
 
     // Exchange the authorization code for an access token and the attestation previews
-    let mut pid_issuer_client = IssuanceClient::new(reqwest_client());
+    let mut pid_issuer_client = HttpIssuanceClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
