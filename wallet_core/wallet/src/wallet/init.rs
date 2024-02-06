@@ -1,3 +1,4 @@
+use http::{header, HeaderMap, HeaderValue};
 use tokio::sync::RwLock;
 
 use platform_support::{
@@ -12,8 +13,8 @@ use crate::{
         UpdatingConfigurationRepository,
     },
     lock::WalletLock,
-    pid_issuer::HttpOpenidPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
+    utils::reqwest::default_reqwest_client_builder,
 };
 
 use super::Wallet;
@@ -44,11 +45,19 @@ impl Wallet {
         )
         .await?;
 
+        let http_client = default_reqwest_client_builder()
+            .default_headers(HeaderMap::from_iter([(
+                header::ACCEPT,
+                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
+            )]))
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
         Self::init_registration(
             config_repository,
             storage,
             HttpAccountProviderClient::default(),
-            HttpOpenidPidIssuerClient::default(),
+            openid4vc::issuance_client::IssuanceClient::new(http_client),
         )
         .await
     }

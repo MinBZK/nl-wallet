@@ -10,6 +10,7 @@ use std::{
 use ctor::ctor;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use openid4vc::{
+    issuance_client::IssuanceClient,
     issuer::{AttributeService, Created},
     token::TokenRequest,
 };
@@ -26,7 +27,7 @@ use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
-        ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository, HttpOpenidPidIssuerClient,
+        ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository,
         UpdateableConfigurationRepository,
     },
     Wallet,
@@ -34,7 +35,10 @@ use wallet::{
 use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey};
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_server::settings::{Server, Settings as WsSettings};
+use wallet_server::{
+    pid::attributes::reqwest_client,
+    settings::{Server, Settings as WsSettings},
+};
 use wallet_server::{
     pid::{mock::MockAttributesLookup as WSMockAttributesLookup, mock::MockBsnLookup as WSMockBsnLookup},
     store::{SessionStoreVariant, SessionStores},
@@ -74,7 +78,7 @@ pub type WalletWithMocks = Wallet<
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
     MockDigidSession,
-    HttpOpenidPidIssuerClient,
+    IssuanceClient,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
@@ -118,7 +122,7 @@ pub async fn setup_wallet_and_env(
     )
     .await;
 
-    let pid_issuer_client = HttpOpenidPidIssuerClient::default();
+    let pid_issuer_client = IssuanceClient::new(reqwest_client());
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.base_url,

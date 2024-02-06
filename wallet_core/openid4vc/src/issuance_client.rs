@@ -24,7 +24,28 @@ use crate::{
     Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
 
+#[allow(async_fn_in_trait)] // TODO ???
+pub trait IssuanceClientTrait {
+    fn has_issuance_session(&self) -> bool;
+
+    async fn start_issuance(
+        &mut self,
+        base_url: &Url,
+        token_request: TokenRequest,
+    ) -> Result<Vec<AttestationPreview>, Error>;
+
+    async fn finish_issuance<K: MdocEcdsaKey>(
+        &mut self,
+        mdoc_trust_anchors: &[TrustAnchor<'_>],
+        key_factory: impl KeyFactory<Key = K>,
+        credential_issuer_identifier: &Url,
+    ) -> Result<Vec<MdocCopies>, Error>;
+
+    async fn reject_issuance(&mut self) -> Result<(), Error>;
+}
+
 pub struct IssuanceClient {
+    // TODO rename to HttpIssuanceClient
     http_client: reqwest::Client,
     session_state: Option<IssuanceState>,
 }
@@ -45,12 +66,14 @@ impl IssuanceClient {
             session_state: None,
         }
     }
+}
 
-    pub fn has_issuance_session(&self) -> bool {
+impl IssuanceClientTrait for IssuanceClient {
+    fn has_issuance_session(&self) -> bool {
         self.session_state.is_some()
     }
 
-    pub async fn start_issuance(
+    async fn start_issuance(
         &mut self,
         base_url: &Url,
         token_request: TokenRequest,
@@ -96,7 +119,7 @@ impl IssuanceClient {
         Ok(token_response.attestation_previews)
     }
 
-    pub async fn finish_issuance<K: MdocEcdsaKey>(
+    async fn finish_issuance<K: MdocEcdsaKey>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
@@ -225,7 +248,7 @@ impl IssuanceClient {
         Ok(mdocs)
     }
 
-    pub async fn stop_issuance(&mut self) -> Result<(), Error> {
+    async fn reject_issuance(&mut self) -> Result<(), Error> {
         let issuance_state = self.session_state.take().ok_or(Error::MissingIssuanceSessionState)?;
         let url = issuance_state.issuer_url.join("batch_credential").unwrap();
         let (dpop_header, access_token_header) = issuance_state.auth_headers(url.clone(), Method::DELETE).await?;

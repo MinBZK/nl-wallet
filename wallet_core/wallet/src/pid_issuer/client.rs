@@ -12,35 +12,14 @@ use nl_wallet_mdoc::{
     utils::keys::{KeyFactory, MdocEcdsaKey},
     ServiceEngagement,
 };
-use openid4vc::{issuance_client::IssuanceClient, token::TokenRequest};
 
 use crate::utils::reqwest::default_reqwest_client_builder;
 
-use super::{OpenidPidIssuerClient, PidIssuerClient, PidIssuerError};
+use super::{PidIssuerClient, PidIssuerError};
 
 pub struct HttpPidIssuerClient {
     http_client: reqwest::Client,
     mdoc_wallet: MdocWallet,
-}
-
-pub struct HttpOpenidPidIssuerClient {
-    issuance_client: IssuanceClient,
-}
-
-impl Default for HttpOpenidPidIssuerClient {
-    fn default() -> Self {
-        let http_client = default_reqwest_client_builder()
-            .default_headers(HeaderMap::from_iter([(
-                header::ACCEPT,
-                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
-            )]))
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
-        HttpOpenidPidIssuerClient {
-            issuance_client: IssuanceClient::new(http_client),
-        }
-    }
 }
 
 impl HttpPidIssuerClient {
@@ -67,47 +46,6 @@ impl Default for HttpPidIssuerClient {
             .expect("Could not build reqwest HTTP client");
 
         Self::new(MdocWallet::new(CborHttpClient(http_client)))
-    }
-}
-
-impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
-    fn has_session(&self) -> bool {
-        self.issuance_client.has_issuance_session()
-    }
-
-    async fn start_retrieve_pid(
-        &mut self,
-        base_url: &Url,
-        token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
-        let attestation_previews = self
-            .issuance_client
-            .start_issuance(base_url, token_request)
-            .await?
-            .into_iter()
-            .map(|preview| preview.into())
-            .collect();
-        Ok(attestation_previews)
-    }
-
-    async fn accept_pid<K: MdocEcdsaKey>(
-        &mut self,
-        trust_anchors: &[TrustAnchor<'_>],
-        key_factory: impl KeyFactory<Key = K>,
-        credential_issuer_identifier: &Url,
-    ) -> Result<Vec<MdocCopies>, PidIssuerError> {
-        let mdocs = self
-            .issuance_client
-            .finish_issuance(trust_anchors, key_factory, credential_issuer_identifier)
-            .await?;
-
-        Ok(mdocs)
-    }
-
-    async fn reject_pid(&mut self) -> Result<(), PidIssuerError> {
-        self.issuance_client.stop_issuance().await?;
-
-        Ok(())
     }
 }
 

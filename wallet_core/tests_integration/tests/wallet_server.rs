@@ -1,6 +1,9 @@
 use base64::prelude::*;
 use indexmap::IndexMap;
-use openid4vc::token::TokenRequest;
+use openid4vc::{
+    issuance_client::{IssuanceClient, IssuanceClientTrait},
+    token::TokenRequest,
+};
 use reqwest::{Client, StatusCode};
 use url::Url;
 
@@ -9,17 +12,13 @@ use nl_wallet_mdoc::{
     verifier::SessionType, ItemsRequest, ReaderEngagement,
 };
 use wallet::{
-    errors::PidIssuerError,
     mock::{default_configuration, MockDigidSession},
-    wallet_deps::{
-        DigidSession, HttpDigidSession, HttpOpenIdClient, HttpOpenidPidIssuerClient, OpenidPidIssuerClient,
-        S256PkcePair,
-    },
+    wallet_deps::{DigidSession, HttpDigidSession, HttpOpenIdClient, S256PkcePair},
     WalletConfiguration,
 };
 use wallet_common::{config::wallet_config::PidIssuanceConfiguration, utils::random_string};
 use wallet_server::{
-    pid::attributes::MockPidAttributeService,
+    pid::attributes::{reqwest_client, MockPidAttributeService},
     settings::Settings,
     store::SessionStores,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
@@ -161,7 +160,7 @@ async fn test_session_not_found() {
 async fn test_mock_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
+    let mut pid_issuer_client = IssuanceClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -170,13 +169,13 @@ async fn test_mock_issuance() {
 
     // Exchange the authorization code for an access token and the attestation previews
     pid_issuer_client
-        .start_retrieve_pid(&server_url, token_request)
+        .start_issuance(&server_url, token_request)
         .await
         .unwrap();
 
     // Accept the attestations and finish issuance
     let mdocs = pid_issuer_client
-        .accept_pid(
+        .finish_issuance(
             &trust_anchors(&default_configuration()),
             SoftwareKeyFactory::default(),
             &server_url,
@@ -192,7 +191,7 @@ async fn test_mock_issuance() {
 async fn test_reject_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
+    let mut pid_issuer_client = IssuanceClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -201,23 +200,23 @@ async fn test_reject_issuance() {
 
     // Exchange the authorization code for an access token and the attestation previews
     pid_issuer_client
-        .start_retrieve_pid(&server_url, token_request)
+        .start_issuance(&server_url, token_request)
         .await
         .unwrap();
 
     // Reject issuance
-    pid_issuer_client.reject_pid().await.unwrap();
+    pid_issuer_client.reject_issuance().await.unwrap();
 
     // Trying to accept the attestations after rejecting doesn't work
     assert!(matches!(
         pid_issuer_client
-            .accept_pid(
+            .finish_issuance(
                 &trust_anchors(&default_configuration()),
                 SoftwareKeyFactory::default(),
                 &server_url
             )
             .await,
-        Err(PidIssuerError::Openid(openid4vc::Error::MissingIssuanceSessionState))
+        Err(openid4vc::Error::MissingIssuanceSessionState)
     ))
 }
 
@@ -253,7 +252,7 @@ async fn test_pid_issuance_digid_bridge() {
     let authorization_code = digid_session.get_authorization_code(&redirect_url).unwrap();
 
     // Exchange the authorization code for an access token and the attestation previews
-    let mut pid_issuer_client = HttpOpenidPidIssuerClient::default();
+    let mut pid_issuer_client = IssuanceClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -261,12 +260,12 @@ async fn test_pid_issuance_digid_bridge() {
     let token_request = digid_session.into_pre_authorized_code_request(authorization_code);
 
     pid_issuer_client
-        .start_retrieve_pid(&server_url, token_request)
+        .start_issuance(&server_url, token_request)
         .await
         .unwrap();
 
     let mdocs = pid_issuer_client
-        .accept_pid(
+        .finish_issuance(
             &trust_anchors(&default_configuration()),
             SoftwareKeyFactory::default(),
             &server_url,

@@ -1,8 +1,9 @@
+use openid4vc::issuance_client::IssuanceClientTrait;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::{server_keys::KeysError, utils::issuer_auth::IssuerRegistration};
+use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, utils::issuer_auth::IssuerRegistration};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 
 use crate::{
@@ -10,8 +11,7 @@ use crate::{
     config::ConfigurationRepository,
     digid::{DigidError, DigidSession},
     document::{Document, DocumentMdocError},
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    pid_issuer::{OpenidPidIssuerClient, PidIssuerError},
+    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyFactory},
     storage::{Storage, StorageError, WalletEvent},
 };
 
@@ -30,7 +30,7 @@ pub enum PidIssuanceError {
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[source] Box<PidIssuerError>),
+    PidIssuer(#[from] openid4vc::Error),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -51,7 +51,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     CR: ConfigurationRepository,
     DGS: DigidSession,
-    PIC: OpenidPidIssuerClient,
+    PIC: IssuanceClientTrait,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -69,7 +69,7 @@ where
         }
 
         info!("Checking if there is a DigidSession or PidIssuerClient has session");
-        if self.digid_session.is_some() || self.pid_issuer.has_session() {
+        if self.digid_session.is_some() || self.pid_issuer.has_issuance_session() {
             return Err(PidIssuanceError::SessionState);
         }
 
@@ -140,11 +140,13 @@ where
 
         let token_request = session.into_pre_authorized_code_request(code);
 
-        let unsigned_mdocs = self
+        let unsigned_mdocs: Vec<UnsignedMdoc> = self
             .pid_issuer
-            .start_retrieve_pid(&config.pid_issuance.pid_issuer_url, token_request)
-            .await
-            .map_err(|err| PidIssuanceError::PidIssuer(Box::new(err)))?;
+            .start_issuance(&config.pid_issuance.pid_issuer_url, token_request)
+            .await?
+            .into_iter()
+            .map(|preview| preview.into())
+            .collect();
 
         info!("PID received successfully from issuer, returning preview documents");
 
@@ -171,15 +173,14 @@ where
         }
 
         info!("Checking if PidIssuerClient has session");
-        if !self.pid_issuer.has_session() {
+        if !self.pid_issuer.has_issuance_session() {
             return Err(PidIssuanceError::SessionState);
         }
 
         info!("Rejecting any PID held in memory");
-        self.pid_issuer
-            .reject_pid()
-            .await
-            .map_err(|err| PidIssuanceError::PidIssuer(Box::new(err)))
+        self.pid_issuer.reject_issuance().await?;
+
+        Ok(())
     }
 
     #[instrument(skip_all)]
@@ -203,7 +204,7 @@ where
         }
 
         info!("Checking if PidIssuerClient has session");
-        if !self.pid_issuer.has_session() {
+        if !self.pid_issuer.has_issuance_session() {
             return Err(PidIssuanceError::SessionState);
         }
 
@@ -226,26 +227,12 @@ where
 
         let mdocs = self
             .pid_issuer
-            .accept_pid(
+            .finish_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
                 &config.pid_issuance.pid_issuer_url,
             )
-            .await
-            .map_err(|error| {
-                match error {
-                    // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
-                    // that it is the error type of the `RemoteEcdsaKeyFactory` we provide above.
-                    PidIssuerError::MdocError(nl_wallet_mdoc::Error::KeysError(KeysError::KeyGeneration(error))) => {
-                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                            RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
-                            RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
-                            RemoteEcdsaKeyError::KeyNotFound(identifier) => PidIssuanceError::KeyNotFound(identifier),
-                        }
-                    }
-                    _ => PidIssuanceError::PidIssuer(Box::new(error)),
-                }
-            })?;
+            .await?;
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
@@ -290,10 +277,11 @@ mod tests {
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
+    use openid4vc::token::AttestationPreview;
     use serial_test::serial;
     use url::Url;
 
-    use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, holder::HolderError, issuer_shared::IssuanceError, Tdate};
+    use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, Tdate};
 
     use crate::{
         digid::{MockDigidSession, OpenIdError},
@@ -498,7 +486,9 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return one `UnsignedMdoc`.
-        wallet.pid_issuer.unsigned_mdocs = vec![document::create_full_unsigned_pid_mdoc()];
+        wallet.pid_issuer.unsigned_mdocs = vec![AttestationPreview::MsoMdoc {
+            unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
+        }];
 
         // Continuing PID issuance should result in one preview `Document`.
         let documents = wallet
@@ -577,8 +567,7 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return an error.
-        wallet.pid_issuer.next_error =
-            PidIssuerError::from(nl_wallet_mdoc::Error::from(IssuanceError::MissingSessionId)).into();
+        wallet.pid_issuer.next_error = Some(openid4vc::Error::MissingNonce);
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -612,12 +601,14 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return an `UnsignedMdoc` with an unknown doctype.
-        wallet.pid_issuer.unsigned_mdocs = vec![UnsignedMdoc {
-            doc_type: "foobar".to_string(),
-            valid_from: Tdate::now(),
-            valid_until: (Utc::now() + Days::new(365)).into(),
-            attributes: Default::default(),
-            copy_count: 1,
+        wallet.pid_issuer.unsigned_mdocs = vec![AttestationPreview::MsoMdoc {
+            unsigned_mdoc: UnsignedMdoc {
+                doc_type: "foobar".to_string(),
+                valid_from: Tdate::now(),
+                valid_until: (Utc::now() + Days::new(365)).into(),
+                attributes: Default::default(),
+                copy_count: 1,
+            },
         }];
 
         // Continuing PID issuance when receiving an unknown mdoc should result in an error.
@@ -696,8 +687,7 @@ mod tests {
 
         // Set up the `PidIssuerClient` to report having a session, then return an error.
         wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error =
-            PidIssuerError::from(nl_wallet_mdoc::Error::from(IssuanceError::MissingSessionId)).into();
+        wallet.pid_issuer.next_error = Some(openid4vc::Error::MissingNonce);
 
         // Rejecting PID issuance on a wallet should forward this error.
         let error = wallet
@@ -825,51 +815,6 @@ mod tests {
         assert_matches!(error, PidIssuanceError::SessionState);
     }
 
-    async fn test_accept_pid_issuance_error_remote_key(key_error: RemoteEcdsaKeyError) -> PidIssuanceError {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Have the `PidIssuerClient` return a particular `RemoteEcdsaKeyError`.
-        wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error = PidIssuerError::MdocError(nl_wallet_mdoc::Error::KeysError(
-            KeysError::KeyGeneration(Box::new(key_error)),
-        ))
-        .into();
-
-        // Accepting PID issuance should result in an error.
-        wallet
-            .accept_pid_issuance(PIN.to_string())
-            .await
-            .expect_err("Accepting PID issuance should have resulted in an error")
-    }
-
-    #[tokio::test]
-    async fn test_accept_pid_issuance_error_instruction() {
-        let error =
-            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(InstructionError::Blocked)).await;
-
-        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
-        assert_matches!(error, PidIssuanceError::Instruction(_));
-    }
-
-    #[tokio::test]
-    async fn test_accept_pid_issuance_error_signature() {
-        let error =
-            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(signature::Error::default())).await;
-
-        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
-        assert_matches!(error, PidIssuanceError::Signature(_));
-    }
-
-    #[tokio::test]
-    async fn test_accept_pid_issuance_error_key_not_found() {
-        let error =
-            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::KeyNotFound("not found".to_string())).await;
-
-        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
-        assert_matches!(error, PidIssuanceError::KeyNotFound(_));
-    }
-
     #[tokio::test]
     async fn test_accept_pid_issuance_error_pid_issuer() {
         // Prepare a registered and unlocked wallet.
@@ -877,8 +822,7 @@ mod tests {
 
         // Have the `PidIssuerClient` return an error.
         wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error =
-            PidIssuerError::MdocError(nl_wallet_mdoc::Error::from(HolderError::ReaderAuthMissing)).into();
+        wallet.pid_issuer.next_error = Some(openid4vc::Error::MissingNonce);
 
         // Accepting PID issuance should result in an error.
         let error = wallet
