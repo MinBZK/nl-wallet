@@ -46,7 +46,6 @@ pub mod wallet_deps {
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },
-        pid_issuer::{HttpPidIssuerClient, PidIssuerClient},
         storage::Storage,
     };
 }
