@@ -275,31 +275,29 @@ impl From<Vec<MockAttributes>> for MockAttributesLookup {
 }
 
 impl AttributesLookup for MockAttributesLookup {
-    fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc> {
-        match self.0.get(bsn) {
-            Some((person, residence)) => {
-                vec![
-                    UnsignedMdoc {
-                        doc_type: MOCK_PID_DOCTYPE.to_string(),
-                        copy_count: 2,
-                        valid_from: Tdate::now(),
-                        valid_until: Utc::now().add(Days::new(365)).into(),
-                        attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())]),
-                    },
-                    UnsignedMdoc {
-                        doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                        copy_count: 2,
-                        valid_from: Tdate::now(),
-                        valid_until: Utc::now().add(Days::new(365)).into(),
-                        attributes: IndexMap::from([(
-                            MOCK_ADDRESS_DOCTYPE.to_string(),
-                            residence.clone().unwrap_or_default().into(),
-                        )]),
-                    },
-                ]
-            }
-            // no attributes in lookup table
-            None => vec![],
-        }
+    fn attributes(&self, bsn: &str) -> Option<Vec<UnsignedMdoc>> {
+        let (person, residence) = self.0.get(bsn)?;
+
+        let attrs = vec![
+            UnsignedMdoc {
+                doc_type: MOCK_PID_DOCTYPE.to_string(),
+                copy_count: 2,
+                valid_from: Tdate::now(),
+                valid_until: Utc::now().add(Days::new(365)).into(),
+                attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())]),
+            },
+            UnsignedMdoc {
+                doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                copy_count: 2,
+                valid_from: Tdate::now(),
+                valid_until: Utc::now().add(Days::new(365)).into(),
+                attributes: IndexMap::from([(
+                    MOCK_ADDRESS_DOCTYPE.to_string(),
+                    residence.clone().unwrap_or_default().into(),
+                )]),
+            },
+        ];
+
+        Some(attrs)
     }
 }

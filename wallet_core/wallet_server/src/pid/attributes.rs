@@ -27,11 +27,13 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
     #[error("URL encoding error: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
+    #[error("could not find attributes for BSN")]
+    NoAttributesFound,
 }
 
 /// Given a BSN, determine the attributes to be issued. Contract for the BRP query.
 pub trait AttributesLookup {
-    fn attributes(&self, bsn: &str) -> Vec<UnsignedMdoc>;
+    fn attributes(&self, bsn: &str) -> Option<Vec<UnsignedMdoc>>;
 }
 
 pub struct MockPidAttributeService {
@@ -90,7 +92,7 @@ impl AttributeService for MockPidAttributeService {
             .await?;
 
         let bsn = self.openid_client.bsn(&openid_token_response.access_token).await?;
-        let unsigned_mdocs = self.attrs_lookup.attributes(&bsn);
+        let unsigned_mdocs = self.attrs_lookup.attributes(&bsn).ok_or(Error::NoAttributesFound)?;
 
         Ok(unsigned_mdocs)
     }

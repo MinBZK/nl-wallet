@@ -320,6 +320,6 @@ impl AttributeService for MockAttributeService {
         _token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
         let mock_bsn = WSMockBsnLookup::default().bsn("access_token").await.unwrap();
-        Ok(WSMockAttributesLookup::default().attributes(&mock_bsn))
+        Ok(WSMockAttributesLookup::default().attributes(&mock_bsn).unwrap())
     }
 }
