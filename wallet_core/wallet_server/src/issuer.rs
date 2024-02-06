@@ -7,7 +7,7 @@ use axum::{
     routing::{delete, post},
     Form, Json, Router, TypedHeader,
 };
-use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
+use http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri};
 use serde::Serialize;
 use tower_http::trace::TraceLayer;
 
@@ -77,7 +77,7 @@ where
         .route("/credential", post(credential))
         .route("/credential", delete(reject_issuance))
         .route("/batch_credential", post(batch_credential))
-        .route("/batch_credential", delete(reject_batch_issuance))
+        .route("/batch_credential", delete(reject_issuance))
         .layer(TraceLayer::new_for_http())
         .with_state(application_state);
 
@@ -144,34 +144,19 @@ async fn reject_issuance<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
     TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
+    uri: Uri,
 ) -> Result<StatusCode, ErrorResponse<CredentialErrorType>>
 where
     A: AttributeService,
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>>,
 {
-    let access_token = authorization_header.0.token();
-    state
-        .issuer
-        .process_reject_issuance(access_token, dpop, "credential")
-        .await?;
-    Ok(StatusCode::NO_CONTENT)
-}
+    let uri_path = &uri.path()[1..]; // strip off leading slash
 
-async fn reject_batch_issuance<A, K, S>(
-    State(state): State<Arc<ApplicationState<A, K, S>>>,
-    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-) -> Result<StatusCode, ErrorResponse<CredentialErrorType>>
-where
-    A: AttributeService,
-    K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
-{
     let access_token = authorization_header.0.token();
     state
         .issuer
-        .process_reject_issuance(access_token, dpop, "batch_credential")
+        .process_reject_issuance(access_token, dpop, uri_path)
         .await?;
     Ok(StatusCode::NO_CONTENT)
 }
