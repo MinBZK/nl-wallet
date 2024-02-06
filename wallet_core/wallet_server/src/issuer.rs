@@ -62,7 +62,7 @@ where
                     .collect::<anyhow::Result<HashMap<_, _>>>()?,
             ),
             &settings.public_url,
-            settings.issuer.wallet_client_ids.clone().into_iter().collect(),
+            settings.issuer.wallet_client_ids,
         ),
     });
 

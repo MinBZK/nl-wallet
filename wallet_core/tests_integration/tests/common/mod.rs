@@ -239,7 +239,7 @@ where
 {
     let public_url = settings.public_url.clone();
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve_full(&settings, sessions, attr_service).await {
+        if let Err(error) = wallet_server::server::serve_full(attr_service, settings, sessions).await {
             println!("Could not start wallet_server: {:?}", error);
 
             process::exit(1);

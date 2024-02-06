@@ -2,6 +2,10 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{routing::get, Router};
+use nl_wallet_mdoc::{
+    server_state::{SessionState, SessionStore},
+    verifier::DisclosureData,
+};
 use tracing::debug;
 
 #[cfg(feature = "issuance")]
@@ -27,10 +31,25 @@ fn decorate_router(prefix: &str, router: Router) -> Router {
     router
 }
 
-pub async fn serve_disclosure(settings: &Settings, sessions: SessionStores) -> Result<()> {
+fn setup_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<(SocketAddr, SocketAddr, Router, Router)>
+where
+    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+{
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let requester_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
-    let (wallet_disclosure_router, requester_router) = verifier::create_routers(settings.clone(), sessions.disclosure)?;
+    let (wallet_disclosure_router, requester_router) = verifier::create_routers(settings, disclosure_sessions)?;
+
+    Ok((
+        wallet_socket,
+        requester_socket,
+        wallet_disclosure_router,
+        requester_router,
+    ))
+}
+
+pub async fn serve_disclosure(settings: Settings, sessions: SessionStores) -> Result<()> {
+    let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
+        setup_disclosure(settings, sessions.disclosure)?;
 
     listen(
         wallet_socket,
@@ -44,16 +63,15 @@ pub async fn serve_disclosure(settings: &Settings, sessions: SessionStores) -> R
 }
 
 #[cfg(feature = "issuance")]
-pub async fn serve_full<A>(settings: &Settings, sessions: SessionStores, attr_service: A) -> Result<()>
+pub async fn serve_full<A>(attr_service: A, settings: Settings, sessions: SessionStores) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
 {
-    let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
-    let requester_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
-    let (wallet_disclosure_router, requester_router) = verifier::create_routers(settings.clone(), sessions.disclosure)?;
+    let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
+        setup_disclosure(settings.clone(), sessions.disclosure)?;
 
     let wallet_issuance_router =
-        crate::issuer::create_issuance_router(settings.clone(), sessions.issuance, attr_service).await?;
+        crate::issuer::create_issuance_router(settings, sessions.issuance, attr_service).await?;
 
     listen(
         wallet_socket,

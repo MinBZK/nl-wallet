@@ -14,10 +14,10 @@ async fn main() -> Result<()> {
     // This will block until the server shuts down.
     #[cfg(feature = "issuance")]
     server::serve_full(
-        &settings,
-        sessions,
         // TODO: `MockPidAttributeService` issues a configured set of mock attributes. Replace with BRP query.
         wallet_server::pid::attributes::MockPidAttributeService::new(&settings.issuer).await?,
+        settings,
+        sessions,
     )
     .await?;
     #[cfg(not(feature = "issuance"))]
