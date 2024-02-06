@@ -39,15 +39,15 @@ impl SessionStores {
             "postgres" => {
                 let db = std::sync::Arc::new(postgres::connect(url).await?);
                 Ok(SessionStores {
-                    disclosure: SessionStoreVariant::Postgres(PostgresSessionStore::new(db.clone())),
                     #[cfg(feature = "issuance")]
-                    issuance: SessionStoreVariant::Postgres(PostgresSessionStore::new(db)),
+                    issuance: SessionStoreVariant::Postgres(PostgresSessionStore::new(std::sync::Arc::clone(&db))),
+                    disclosure: SessionStoreVariant::Postgres(PostgresSessionStore::new(db)),
                 })
             }
             "memory" => Ok(SessionStores {
-                disclosure: SessionStoreVariant::Memory(MemorySessionStore::new()),
                 #[cfg(feature = "issuance")]
                 issuance: SessionStoreVariant::Memory(MemorySessionStore::new()),
+                disclosure: SessionStoreVariant::Memory(MemorySessionStore::new()),
             }),
             e => unimplemented!("{}", e),
         }
