@@ -3,9 +3,8 @@ use nl_wallet_mdoc::{
     holder::{MdocCopies, TrustAnchor},
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
+use openid4vc::token::TokenRequest;
 use url::Url;
-
-use crate::digid::DigidSession;
 
 use super::{OpenidPidIssuerClient, PidIssuerClient, PidIssuerError};
 
@@ -22,11 +21,10 @@ impl OpenidPidIssuerClient for MockPidIssuerClient {
         self.has_session
     }
 
-    async fn start_retrieve_pid<DGS: DigidSession>(
+    async fn start_retrieve_pid(
         &mut self,
-        _digid_session: DGS,
         _base_url: &Url,
-        _pre_authorized_code: String,
+        _token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
         match self.next_error.take() {
             None => Ok(self.unsigned_mdocs.clone()),

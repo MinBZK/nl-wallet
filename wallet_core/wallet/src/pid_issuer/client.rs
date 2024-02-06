@@ -12,9 +12,9 @@ use nl_wallet_mdoc::{
     utils::keys::{KeyFactory, MdocEcdsaKey},
     ServiceEngagement,
 };
-use openid4vc::issuance_client::IssuanceClient;
+use openid4vc::{issuance_client::IssuanceClient, token::TokenRequest};
 
-use crate::{digid::DigidSession, utils::reqwest::default_reqwest_client_builder};
+use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::{OpenidPidIssuerClient, PidIssuerClient, PidIssuerError};
 
@@ -75,13 +75,11 @@ impl OpenidPidIssuerClient for HttpOpenidPidIssuerClient {
         self.issuance_client.has_issuance_session()
     }
 
-    async fn start_retrieve_pid<DGS: DigidSession>(
+    async fn start_retrieve_pid(
         &mut self,
-        digid_session: DGS,
         base_url: &Url,
-        pre_authorized_code: String,
+        token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError> {
-        let token_request = digid_session.into_pre_authorized_code_request(pre_authorized_code);
         let attestation_previews = self
             .issuance_client
             .start_issuance(base_url, token_request)

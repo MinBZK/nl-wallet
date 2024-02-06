@@ -3,6 +3,7 @@ mod client;
 #[cfg(any(test, feature = "mock"))]
 mod mock;
 
+use openid4vc::token::TokenRequest;
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -15,8 +16,6 @@ use nl_wallet_mdoc::{
 pub use client::HttpPidIssuerClient;
 
 pub use client::HttpOpenidPidIssuerClient;
-
-use crate::digid::DigidSession;
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::MockPidIssuerClient;
@@ -36,11 +35,10 @@ pub enum PidIssuerError {
 pub trait OpenidPidIssuerClient {
     fn has_session(&self) -> bool;
 
-    async fn start_retrieve_pid<DGS: DigidSession>(
+    async fn start_retrieve_pid(
         &mut self,
-        digid_session: DGS,
         base_url: &Url,
-        pre_authorized_code: String,
+        token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, PidIssuerError>;
 
     async fn accept_pid<K: MdocEcdsaKey>(

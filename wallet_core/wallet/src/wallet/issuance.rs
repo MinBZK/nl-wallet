@@ -138,9 +138,11 @@ where
             .map_err(PidIssuanceError::DigidSessionFinish)?;
         let config = self.config_repository.config();
 
+        let token_request = session.into_pre_authorized_code_request(code);
+
         let unsigned_mdocs = self
             .pid_issuer
-            .start_retrieve_pid(session, &config.pid_issuance.pid_issuer_url, code)
+            .start_retrieve_pid(&config.pid_issuance.pid_issuer_url, token_request)
             .await
             .map_err(|err| PidIssuanceError::PidIssuer(Box::new(err)))?;
 

@@ -166,9 +166,11 @@ async fn test_mock_issuance() {
         .join("issuance/")
         .unwrap();
 
+    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string());
+
     // Exchange the authorization code for an access token and the attestation previews
     pid_issuer_client
-        .start_retrieve_pid(digid_session, &server_url, random_string(32).to_string())
+        .start_retrieve_pid(&server_url, token_request)
         .await
         .unwrap();
 
@@ -195,9 +197,11 @@ async fn test_reject_issuance() {
         .join("issuance/")
         .unwrap();
 
+    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string());
+
     // Exchange the authorization code for an access token and the attestation previews
     pid_issuer_client
-        .start_retrieve_pid(digid_session, &server_url, random_string(32).to_string())
+        .start_retrieve_pid(&server_url, token_request)
         .await
         .unwrap();
 
@@ -254,8 +258,10 @@ async fn test_pid_issuance_digid_bridge() {
         .join("issuance/")
         .unwrap();
 
+    let token_request = digid_session.into_pre_authorized_code_request(authorization_code);
+
     pid_issuer_client
-        .start_retrieve_pid(digid_session, &server_url, authorization_code)
+        .start_retrieve_pid(&server_url, token_request)
         .await
         .unwrap();
 
