@@ -104,6 +104,10 @@ impl IssuanceClient {
     ) -> Result<Vec<MdocCopies>, Error> {
         let issuance_state = self.session_state.as_ref().ok_or(Error::MissingIssuanceSessionState)?;
 
+        // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
+        // has no support (yet) for issuance of multiple copies of multiple attestations.
+        // We implement this below by simply flattening the relevant nested iterators when communicating with the issuer.
+
         let doctypes = issuance_state
             .attestation_previews
             .iter()
@@ -117,6 +121,9 @@ impl IssuanceClient {
             })
             .collect_vec();
 
+        // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
+        // (i.e., the private key of the future mdoc).
+        // If N is the total amount of copies of attestations to be issued, then this returns N key/proof pairs.
         let keys_and_proofs = CredentialRequestProof::new_multiple(
             issuance_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
@@ -126,6 +133,8 @@ impl IssuanceClient {
         )
         .await?;
 
+        // Split into N keys and N credential requests, so we can send the credential request proofs separately
+        // to the issuer.
         let (keys, credential_requests): (Vec<K>, Vec<CredentialRequest>) = keys_and_proofs
             .into_iter()
             .zip(doctypes)
@@ -185,13 +194,19 @@ impl IssuanceClient {
         .await?;
         let responses_and_keys: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
 
-        let mdocs = issuance_state
+        // Group all the responses and keys (a flat `Vec`) back into a nested structure,
+        // i.e., with the responses/keys grouped per the attestation for which they are intended.
+        let grouped_responses_and_keys = issuance_state
             .attestation_previews
             .iter()
             .enumerate()
             .flat_map(|(idx, preview)| itertools::repeat_n(idx, preview.copy_count() as usize))
             .zip(responses_and_keys)
-            .group_by(|(idx, _)| *idx)
+            .group_by(|(idx, _)| *idx);
+
+        // Finally we can iterate over the attestation previews, and using all responses/keys received for each of them
+        // turn them into mdoc copies.
+        let mdocs = grouped_responses_and_keys
             .into_iter()
             .zip(&issuance_state.attestation_previews)
             .map(|((_, responses_and_keys), preview)| {
