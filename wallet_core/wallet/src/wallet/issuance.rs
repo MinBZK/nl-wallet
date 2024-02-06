@@ -277,7 +277,7 @@ mod tests {
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
-    use openid4vc::token::AttestationPreview;
+    use openid4vc::token::{AttestationPreview, TokenRequest};
     use serial_test::serial;
     use url::Url;
 
@@ -461,7 +461,6 @@ mod tests {
     }
 
     const REDIRECT_URI: &str = "redirect://here";
-    const ACCESS_TOKEN: &str = "the_access_code";
 
     #[tokio::test]
     async fn test_continue_pid_issuance() {
@@ -477,9 +476,13 @@ mod tests {
                 .return_once(|_received_redirect_uri| Ok("123".to_string()));
 
             session
-                .expect_get_access_token()
-                .with(eq(Url::parse(REDIRECT_URI).unwrap()))
-                .return_once(|_| Ok(ACCESS_TOKEN.to_string()));
+                .expect_into_pre_authorized_code_request()
+                .return_once(|pre_authorized_code| TokenRequest {
+                    grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                });
 
             session
         }
@@ -558,9 +561,13 @@ mod tests {
                 .return_once(|_received_redirect_uri| Ok("123".to_string()));
 
             session
-                .expect_get_access_token()
-                .with(eq(Url::parse(REDIRECT_URI).unwrap()))
-                .return_once(|_| Ok(ACCESS_TOKEN.to_string()));
+                .expect_into_pre_authorized_code_request()
+                .return_once(|pre_authorized_code| TokenRequest {
+                    grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                });
 
             session
         }
@@ -592,9 +599,13 @@ mod tests {
                 .return_once(|_received_redirect_uri| Ok("123".to_string()));
 
             session
-                .expect_get_access_token()
-                .with(eq(Url::parse(REDIRECT_URI).unwrap()))
-                .return_once(|_| Ok(ACCESS_TOKEN.to_string()));
+                .expect_into_pre_authorized_code_request()
+                .return_once(|pre_authorized_code| TokenRequest {
+                    grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+                    code_verifier: None,
+                    client_id: None,
+                    redirect_uri: None,
+                });
 
             session
         }
