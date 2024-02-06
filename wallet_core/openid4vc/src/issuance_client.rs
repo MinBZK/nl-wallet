@@ -165,6 +165,15 @@ impl IssuanceClient {
             })
             .await?;
 
+        // The server must have responded with enough credential responses so that we have exactly enough responses
+        // for all copies of all mdocs constructed below.
+        if responses.credential_responses.len() != keys.len() {
+            return Err(Error::UnexpectedCredentialResponseCount {
+                found: responses.credential_responses.len(),
+                expected: keys.len(),
+            });
+        }
+
         let keys: Vec<_> = try_join_all(keys.iter().map(|key| async {
             let pubkey = key
                 .verifying_key()

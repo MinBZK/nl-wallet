@@ -48,6 +48,8 @@ pub enum Error {
     PublicKeyMismatch,
     #[error("failed to get mdoc public key: {0}")]
     PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
+    #[error("received {found} responses, expected {expected}")]
+    UnexpectedCredentialResponseCount { found: usize, expected: usize },
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
