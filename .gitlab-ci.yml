@@ -1,5 +1,9 @@
 variables:
+  CACHE_COMPRESSION_LEVEL: "fastest"
+  FF_USE_FASTZIP: "true"
   FLUTTER_APP_PROJECT_DIR: "wallet_app"
+  CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+  CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   RENEW_ON_LETSENCRYPT_STAGING:
     value: "false"
@@ -44,16 +48,34 @@ variables:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        CACHE_POLICY: pull-push
 
 .default-or-release:
   rules:
     - !reference [ .default-branch, rules ]
     - if: $CI_COMMIT_BRANCH =~ /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+      variables:
+        CACHE_POLICY: pull
 
 .default-or-release-or-merge-request:
   rules:
     - !reference [ .default-or-release, rules ]
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      variables:
+        CACHE_POLICY: pull
+
+.rust-cache:
+  cache:
+    key: rust-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
+    paths:
+      - ".cargo/git"
+      - ".cargo/registry/index"
+      - ".cargo/registry/cache"
+      - "wallet_core/target/"
+      - "wallet_core/flutter_rust_bridge_codegen/target"
+      - "wallet_core/uniffi-bindgen/target"
+    policy: ${CACHE_POLICY}
 
 # Working directory is 'wallet_app' directory
 test-flutter:
@@ -86,10 +108,11 @@ test-flutter-ui:
     - flutter --version
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
 
-test-rust:
+lint-rust:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+  cache: !reference [ .rust-cache, cache ]
   script:
     - set -euxo pipefail
     # Check Rust formatting
@@ -97,6 +120,13 @@ test-rust:
     # Check clippy
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+
+test-rust:
+  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+  cache: !reference [ .rust-cache, cache ]
+  script:
     # Run tests, generate code coverage reports
     - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
     - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path unit-coverage.xml)
@@ -112,6 +142,7 @@ test-rust-integration:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+  cache: !reference [ .rust-cache, cache ]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
@@ -129,8 +160,8 @@ test-rust-integration:
     - ./scripts/setup-devenv.sh
     - cd wallet_core
   script:
-    - cargo run --bin wallet_provider_migrations -- up
-    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration -- up
+    - cargo run --bin wallet_provider_migrations --locked -- up
+    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
     - cargo llvm-cov test --features db_test --test '*' --locked --lcov --output-path lcov_integration.info
     - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
   artifacts:
@@ -155,7 +186,7 @@ test-rust-compilation-android-linux:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
-    - (cd wallet_core; cargo ndk --target arm64-v8a check --locked --release)
+    - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
 test-rust-compilation-ios:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
@@ -186,6 +217,7 @@ test-codegen:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:5bf9c226415cf1e010732a7a21a234549a5adec1e808e2cf18e35478ec6bd914"
+  cache: !reference [ .rust-cache, cache ]
   script:
     - set -euxo pipefail
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
@@ -215,9 +247,10 @@ dependency-check:
       - dependency-check-report.html
       - dependency-check-report.xml
   cache:
-    key: "$CI_PROJECT_NAME"
+    key: dependency-check-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
     paths:
       - $CI_PROJECT_DIR/dependency_check_data
+    policy: ${CACHE_POLICY}
 
 osv-scanner:
   rules: !reference [ .default-or-release-or-merge-request, rules ]
@@ -434,6 +467,7 @@ build-android-app:
       artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:4741f165006262ce25cb8306ca50060e7e6d49786ae34c1ae24827e245b22298"
+  cache: !reference [ .rust-cache, cache ]
   artifacts:
     name: "wallet-android"
     paths:
