@@ -13,7 +13,6 @@ db_test = ["allow_http_return_url"]
 live_test = []
 digid_test = ["disable_tls_validation"]
 disable_tls_validation = [
-    "allow_http_return_url",
     "wallet_server/disable_tls_validation",
     "wallet/disable_tls_validation",
 ]
