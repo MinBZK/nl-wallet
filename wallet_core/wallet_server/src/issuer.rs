@@ -208,7 +208,7 @@ impl Header for DpopHeader {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Debug)]
 pub struct DpopBearer(String);
 
 impl DpopBearer {
