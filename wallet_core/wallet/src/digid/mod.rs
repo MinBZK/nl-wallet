@@ -47,14 +47,4 @@ pub trait DigidSession {
     fn get_authorization_code(&self, received_redirect_uri: &Url) -> Result<String, DigidError>;
 
     fn into_pre_authorized_code_request(self, pre_authorized_code: String) -> TokenRequest;
-
-    /// Retrieve the access token from DigiD, based on the contents
-    /// of the redirect URI received.
-    ///
-    /// Note that this consumes the [`DigidSession`], either on success or failure.
-    /// Retrying this operation is entirely possible, but most likely not something
-    /// that the UI will present to the user, instead they will have to start a new session.
-    /// For the purpose of simplification, that means that this operation is transactional
-    /// here as well.
-    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError>;
 }

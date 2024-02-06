@@ -120,19 +120,6 @@ where
             redirect_uri: Some(self.redirect_uri_base.clone()),
         }
     }
-
-    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError> {
-        let authorization_code = self.get_authorization_code(received_redirect_uri)?;
-
-        // Use the authorization code and the PKCE verifier to request the
-        // access token and verify the result.
-        let access_token = self
-            .openid_client
-            .authenticate(&authorization_code, &self.nonce, &self.pkce_pair)
-            .await?;
-
-        Ok(access_token)
-    }
 }
 
 #[cfg(test)]
@@ -152,8 +139,6 @@ mod tests {
     const CSRF_TOKEN: &str = "csrf_token";
     const NONCE: &str = "random_characters_nonce";
     const AUTH_URL: &str = "http://example.com/auth";
-    const AUTH_CODE: &str = "the_authentication_code";
-    const ACCESS_CODE: &str = "the_access_code";
 
     // Helper function for creating a `HttpDigidSession` with hardcoded state.
     fn create_digid_session() -> HttpDigidSession<MockOpenIdClient, MockPkcePair> {
@@ -269,12 +254,11 @@ mod tests {
 
     // Helper function for testing `HttpDigidSession.get_access_token()`
     // calls that should result in an error.
-    async fn create_session_and_get_access_token_error(uri: &Url) -> DigidError {
+    fn create_session_and_get_access_token_error(uri: &Url) -> DigidError {
         let session = create_digid_session();
 
         session
-            .get_access_token(uri)
-            .await
+            .get_authorization_code(uri)
             .expect_err("Getting access token should have failed")
     }
 
@@ -282,7 +266,7 @@ mod tests {
     async fn test_http_digid_session_get_access_token_redirect_uri_mismatch() {
         // This URI does not match the `redirect_uri_base`.
         let uri = Url::parse("http://not-the-redirect-uri.com").unwrap();
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::RedirectUriMismatch);
     }
@@ -298,7 +282,7 @@ mod tests {
             ],
         );
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::RedirectUriError {
             ref error,
@@ -311,7 +295,7 @@ mod tests {
         // This URI contains an `error` query parameter, without an `error_description`.
         let uri = url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_ERROR, "foobar")]);
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::RedirectUriError {
             ref error,
@@ -324,7 +308,7 @@ mod tests {
         // This URI contains an incorrect `state` query parameter.
         let uri = url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_STATE, "foobar")]);
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::StateTokenMismatch);
     }
@@ -334,69 +318,8 @@ mod tests {
         // This URI is missing the `code` query parameter.
         let uri = url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_STATE, CSRF_TOKEN)]);
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::NoAuthCode);
-    }
-
-    #[tokio::test]
-    async fn test_http_digid_session_get_access_openid_error() {
-        // Create session and set up expectation to have `OpenIdClient.authenticate()`
-        // return an error.
-        let session = {
-            let mut session = create_digid_session();
-
-            session
-                .openid_client
-                .expect_authenticate()
-                .return_once(|_, _, _: &MockPkcePair| Err(openid::error::Error::MissingOpenidScope.into()));
-
-            session
-        };
-
-        // Create a valid redirect URI.
-        let uri = url_with_query_pairs(
-            Url::parse(REDIRECT_URI).unwrap(),
-            &[(PARAM_STATE, CSRF_TOKEN), (PARAM_CODE, AUTH_CODE)],
-        );
-
-        // Get the access token and test the resulting error.
-        let error = session
-            .get_access_token(&uri)
-            .await
-            .expect_err("Getting access token should have failed");
-
-        assert_matches!(error, DigidError::OpenId(_));
-    }
-
-    #[tokio::test]
-    async fn test_http_digid_session_get_access() {
-        // Create session and set up expectation to have `OpenIdClient.authenticate()`
-        // return an access token.
-        let session = {
-            let mut session = create_digid_session();
-
-            session
-                .openid_client
-                .expect_authenticate()
-                .with(eq(AUTH_CODE), eq(NONCE), always())
-                .return_once(|_, _, _: &MockPkcePair| Ok(ACCESS_CODE.to_string()));
-
-            session
-        };
-
-        // Create a valid redirect URI.
-        let uri = url_with_query_pairs(
-            Url::parse(REDIRECT_URI).unwrap(),
-            &[(PARAM_STATE, CSRF_TOKEN), (PARAM_CODE, AUTH_CODE)],
-        );
-
-        // Get the access token and test the result.
-        let access_token = session
-            .get_access_token(&uri)
-            .await
-            .expect("Could not get access token");
-
-        assert_eq!(access_token, ACCESS_CODE);
     }
 }

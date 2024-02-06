@@ -193,11 +193,6 @@ async fn test_disclosure_without_pid() {
             .expect_auth_url()
             .return_const(Url::parse("http://localhost/").unwrap());
 
-        // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
-        session
-            .expect_get_access_token()
-            .returning(|_| Ok("mock_token".to_string()));
-
         Ok(session)
     });
 
