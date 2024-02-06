@@ -94,7 +94,11 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>>,
 {
-    let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
+    let (response, dpop_nonce) = state
+        .issuer
+        .process_token_request(token_request, dpop)
+        .await
+        .map_err(|err| ErrorResponse(err.into()))?;
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
@@ -117,7 +121,8 @@ where
     let response = state
         .issuer
         .process_credential(access_token, dpop, credential_request)
-        .await?;
+        .await
+        .map_err(|err| ErrorResponse(err.into()))?;
     Ok(Json(response))
 }
 
@@ -136,7 +141,8 @@ where
     let response = state
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
-        .await?;
+        .await
+        .map_err(|err| ErrorResponse(err.into()))?;
     Ok(Json(response))
 }
 
@@ -157,7 +163,8 @@ where
     state
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
-        .await?;
+        .await
+        .map_err(|err| ErrorResponse(err.into()))?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -165,78 +172,10 @@ where
 #[derive(Serialize, Debug)]
 struct ErrorResponse<T>(openid4vc::ErrorResponse<T>);
 
-impl<T> From<openid4vc::ErrorResponse<T>> for ErrorResponse<T> {
-    fn from(value: openid4vc::ErrorResponse<T>) -> Self {
-        Self(value)
-    }
-}
-
 impl<T: ErrorStatusCode + Serialize + std::fmt::Debug> IntoResponse for ErrorResponse<T> {
     fn into_response(self) -> Response {
         warn!("{:?}", &self);
         (self.0.error.status_code(), Json(self)).into_response()
-    }
-}
-
-impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
-    fn from(err: CredentialRequestError) -> ErrorResponse<CredentialErrorType> {
-        let description = err.to_string();
-        openid4vc::ErrorResponse {
-            error: match err {
-                CredentialRequestError::IssuanceError(err) => match err {
-                    openid4vc::issuer::Error::UnexpectedState => CredentialErrorType::InvalidRequest,
-                    openid4vc::issuer::Error::UnknownSession(_) => CredentialErrorType::InvalidRequest,
-                    openid4vc::issuer::Error::SessionStore(_) => CredentialErrorType::ServerError,
-                    Error::DpopInvalid(_) => CredentialErrorType::InvalidRequest,
-                },
-                CredentialRequestError::Unauthorized => CredentialErrorType::InvalidToken,
-                CredentialRequestError::MalformedToken => CredentialErrorType::InvalidToken,
-                CredentialRequestError::UseBatchIssuance => CredentialErrorType::InvalidRequest,
-                CredentialRequestError::UnsupportedCredentialFormat(_) => {
-                    CredentialErrorType::UnsupportedCredentialFormat
-                }
-                CredentialRequestError::MissingJwk => CredentialErrorType::InvalidProof,
-                CredentialRequestError::IncorrectNonce => CredentialErrorType::InvalidProof,
-                CredentialRequestError::UnsupportedJwtAlgorithm { expected: _, found: _ } => {
-                    CredentialErrorType::InvalidProof
-                }
-                CredentialRequestError::JwtDecodingFailed(_) => CredentialErrorType::InvalidProof,
-                CredentialRequestError::JwkConversion(_) => CredentialErrorType::InvalidProof,
-                CredentialRequestError::CoseKeyConversion(_) => CredentialErrorType::ServerError,
-                CredentialRequestError::MissingPrivateKey(_) => CredentialErrorType::ServerError,
-                CredentialRequestError::AttestationSigning(_) => CredentialErrorType::ServerError,
-                CredentialRequestError::CborSerialization(_) => CredentialErrorType::ServerError,
-                CredentialRequestError::JsonSerialization(_) => CredentialErrorType::ServerError,
-                CredentialRequestError::DoctypeMismatch => CredentialErrorType::InvalidCredentialRequest,
-                CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorType::InvalidProof,
-                CredentialRequestError::DoctypeNotOffered(_) => CredentialErrorType::InvalidCredentialRequest,
-            },
-            error_description: Some(description),
-            error_uri: None,
-        }
-        .into()
-    }
-}
-
-impl From<TokenRequestError> for ErrorResponse<TokenErrorType> {
-    fn from(err: TokenRequestError) -> Self {
-        let description = err.to_string();
-        openid4vc::ErrorResponse {
-            error: match err {
-                TokenRequestError::IssuanceError(err) => match err {
-                    openid4vc::issuer::Error::UnexpectedState => TokenErrorType::InvalidRequest,
-                    openid4vc::issuer::Error::UnknownSession(_) => TokenErrorType::InvalidRequest,
-                    openid4vc::issuer::Error::SessionStore(_) => TokenErrorType::ServerError,
-                    Error::DpopInvalid(_) => TokenErrorType::InvalidRequest,
-                },
-                TokenRequestError::UnsupportedTokenRequestType => TokenErrorType::UnsupportedGrantType,
-                TokenRequestError::AttributeService(_) => TokenErrorType::ServerError,
-                TokenRequestError::NoAttributes => TokenErrorType::ServerError,
-            },
-            error_description: Some(description),
-            error_uri: None,
-        }
-        .into()
     }
 }
 

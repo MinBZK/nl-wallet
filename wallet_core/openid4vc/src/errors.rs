@@ -6,7 +6,13 @@ use url::Url;
 use nl_wallet_mdoc::{identifiers::AttributeIdentifier, utils::serialization::CborError};
 use wallet_common::jwt::JwtError;
 
-use crate::{credential::CredentialErrorType, dpop::DpopError, jwk::JwkConversionError, token::TokenErrorType};
+use crate::{
+    credential::CredentialErrorType,
+    dpop::DpopError,
+    issuer::{self, CredentialRequestError, TokenRequestError},
+    jwk::JwkConversionError,
+    token::TokenErrorType,
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -56,4 +62,64 @@ pub struct ErrorResponse<T> {
 
 pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
+}
+
+impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
+    fn from(err: CredentialRequestError) -> ErrorResponse<CredentialErrorType> {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                CredentialRequestError::IssuanceError(err) => match err {
+                    issuer::Error::UnexpectedState => CredentialErrorType::InvalidRequest,
+                    issuer::Error::UnknownSession(_) => CredentialErrorType::InvalidRequest,
+                    issuer::Error::SessionStore(_) => CredentialErrorType::ServerError,
+                    issuer::Error::DpopInvalid(_) => CredentialErrorType::InvalidRequest,
+                },
+                CredentialRequestError::Unauthorized => CredentialErrorType::InvalidToken,
+                CredentialRequestError::MalformedToken => CredentialErrorType::InvalidToken,
+                CredentialRequestError::UseBatchIssuance => CredentialErrorType::InvalidRequest,
+                CredentialRequestError::UnsupportedCredentialFormat(_) => {
+                    CredentialErrorType::UnsupportedCredentialFormat
+                }
+                CredentialRequestError::MissingJwk => CredentialErrorType::InvalidProof,
+                CredentialRequestError::IncorrectNonce => CredentialErrorType::InvalidProof,
+                CredentialRequestError::UnsupportedJwtAlgorithm { expected: _, found: _ } => {
+                    CredentialErrorType::InvalidProof
+                }
+                CredentialRequestError::JwtDecodingFailed(_) => CredentialErrorType::InvalidProof,
+                CredentialRequestError::JwkConversion(_) => CredentialErrorType::InvalidProof,
+                CredentialRequestError::CoseKeyConversion(_) => CredentialErrorType::ServerError,
+                CredentialRequestError::MissingPrivateKey(_) => CredentialErrorType::ServerError,
+                CredentialRequestError::AttestationSigning(_) => CredentialErrorType::ServerError,
+                CredentialRequestError::CborSerialization(_) => CredentialErrorType::ServerError,
+                CredentialRequestError::JsonSerialization(_) => CredentialErrorType::ServerError,
+                CredentialRequestError::DoctypeMismatch => CredentialErrorType::InvalidCredentialRequest,
+                CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorType::InvalidProof,
+                CredentialRequestError::DoctypeNotOffered(_) => CredentialErrorType::InvalidCredentialRequest,
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl From<TokenRequestError> for ErrorResponse<TokenErrorType> {
+    fn from(err: TokenRequestError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                TokenRequestError::IssuanceError(err) => match err {
+                    issuer::Error::UnexpectedState => TokenErrorType::InvalidRequest,
+                    issuer::Error::UnknownSession(_) => TokenErrorType::InvalidRequest,
+                    issuer::Error::SessionStore(_) => TokenErrorType::ServerError,
+                    issuer::Error::DpopInvalid(_) => TokenErrorType::InvalidRequest,
+                },
+                TokenRequestError::UnsupportedTokenRequestType => TokenErrorType::UnsupportedGrantType,
+                TokenRequestError::AttributeService(_) => TokenErrorType::ServerError,
+                TokenRequestError::NoAttributes => TokenErrorType::ServerError,
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
 }
