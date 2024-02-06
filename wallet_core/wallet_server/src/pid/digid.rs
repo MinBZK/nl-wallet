@@ -12,6 +12,7 @@ use openid::{
     },
     error as openid_errors, Empty, OAuth2Error,
 };
+use openid4vc::token::{TokenRequest, TokenResponse};
 use serde_json::Value;
 use tracing::debug;
 use url::Url;
@@ -113,6 +114,30 @@ impl OpenIdClient {
             .map(|s| s.to_string());
 
         Ok(bsn)
+    }
+
+    pub async fn request_token(&self, token_request: TokenRequest) -> Result<String> {
+        let response: TokenResponse = self
+            .openid_client
+            .http_client
+            .post(self.openid_client.config().token_endpoint.clone())
+            .form(&token_request)
+            .send()
+            .map_err(openid_errors::ClientError::from)
+            .and_then(|response| async {
+                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+                let status = response.status();
+                if status.is_client_error() || status.is_server_error() {
+                    let error = response.json::<OAuth2Error>().await?;
+                    Err(openid_errors::ClientError::from(error))
+                } else {
+                    let text = response.json().await?;
+                    Ok(text)
+                }
+            })
+            .await?;
+
+        Ok(response.access_token)
     }
 
     async fn request_userinfo_decrypted_claims<C, H>(
