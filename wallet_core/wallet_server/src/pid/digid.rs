@@ -29,21 +29,21 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("OpenID error: {0}")]
     OpenId(#[from] openid_errors::Error),
-    #[error(transparent)]
+    #[error("OpenID client error: {0}")]
     OpenIdClient(#[from] openid_errors::ClientError),
-    #[error(transparent)]
+    #[error("OpenID userinfo fetching failed: {0}")]
     OpenIdUserinfo(#[from] openid_errors::Userinfo),
-    #[error(transparent)]
+    #[error("JOSE error: {0}")]
     JoseKit(#[from] JoseError),
     #[error("no BSN found in response from OIDC server")]
     NoBSN,
-    #[error(transparent)]
+    #[error("JWE error: {0}")]
     Jwe(#[from] biscuit_errors::Error),
-    #[error(transparent)]
+    #[error("JWE validation error: {0}")]
     JweValidation(#[from] biscuit_errors::ValidationError),
-    #[error(transparent)]
+    #[error("JSON error: {0}")]
     Serde(#[from] serde_json::Error),
 }
 

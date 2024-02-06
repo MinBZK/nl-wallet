@@ -54,7 +54,7 @@ pub enum Error {
 /// Errors that can occur during processing of the token request.
 #[derive(Debug, thiserror::Error)]
 pub enum TokenRequestError {
-    #[error(transparent)]
+    #[error("issuance error: {0}")]
     IssuanceError(#[from] Error),
     #[error("unsupported token request type: must be of type pre-authorized_code")]
     UnsupportedTokenRequestType,
@@ -67,7 +67,7 @@ pub enum TokenRequestError {
 /// Errors that can occur during handling of the (batch) credential request.
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialRequestError {
-    #[error(transparent)]
+    #[error("issuance error: {0}")]
     IssuanceError(#[from] Error),
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
@@ -87,7 +87,7 @@ pub enum CredentialRequestError {
     UnsupportedJwtAlgorithm { expected: String, found: Option<String> },
     #[error("JWT decoding failed: {0}")]
     JwtDecodingFailed(#[from] jsonwebtoken::errors::Error),
-    #[error(transparent)]
+    #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
     #[error("failed to convert P256 public key to COSE key: {0}")]
     CoseKeyConversion(nl_wallet_mdoc::Error),
@@ -95,7 +95,7 @@ pub enum CredentialRequestError {
     MissingPrivateKey(String),
     #[error("failed to sign attestation: {0}")]
     AttestationSigning(nl_wallet_mdoc::Error),
-    #[error(transparent)]
+    #[error("CBOR error: {0}")]
     CborSerialization(#[from] CborError),
     #[error("JSON serialization failed: {0}")]
     JsonSerialization(#[from] serde_json::Error),

@@ -17,15 +17,15 @@ use super::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
+    #[error("networking error: {0}")]
     TransportError(#[from] reqwest::Error),
     #[error("error requesting token: {0:?}")]
     TokenRequest(ErrorResponse<TokenErrorType>),
-    #[error(transparent)]
+    #[error("DigiD error: {0}")]
     Digid(#[from] digid::Error),
-    #[error(transparent)]
+    #[error("JSON error: {0}")]
     Serde(#[from] serde_json::Error),
-    #[error(transparent)]
+    #[error("URL encoding error: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
