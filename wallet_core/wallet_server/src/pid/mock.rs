@@ -14,7 +14,7 @@ use serde::Deserialize;
 
 use crate::settings::MockAttributes;
 
-use super::{attributes::AttributesLookup, digid};
+use super::digid;
 
 pub struct MockBsnLookup(Vec<String>);
 
@@ -274,8 +274,8 @@ impl From<Vec<MockAttributes>> for MockAttributesLookup {
     }
 }
 
-impl AttributesLookup for MockAttributesLookup {
-    fn attributes(&self, bsn: &str) -> Option<Vec<UnsignedMdoc>> {
+impl MockAttributesLookup {
+    pub fn attributes(&self, bsn: &str) -> Option<Vec<UnsignedMdoc>> {
         let (person, residence) = self.0.get(bsn)?;
 
         let attrs = vec![

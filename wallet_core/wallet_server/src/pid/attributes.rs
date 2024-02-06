@@ -31,11 +31,6 @@ pub enum Error {
     NoAttributesFound,
 }
 
-/// Given a BSN, determine the attributes to be issued. Contract for the BRP query.
-pub trait AttributesLookup {
-    fn attributes(&self, bsn: &str) -> Option<Vec<UnsignedMdoc>>;
-}
-
 pub struct MockPidAttributeService {
     openid_client: OpenIdClient,
     http_client: reqwest::Client,

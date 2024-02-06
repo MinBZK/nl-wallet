@@ -36,10 +36,7 @@ use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::settings::{Server, Settings as WsSettings};
 use wallet_server::{
-    pid::{
-        attributes::AttributesLookup as _, mock::MockAttributesLookup as WSMockAttributesLookup,
-        mock::MockBsnLookup as WSMockBsnLookup,
-    },
+    pid::{mock::MockAttributesLookup as WSMockAttributesLookup, mock::MockBsnLookup as WSMockBsnLookup},
     store::{SessionStoreVariant, SessionStores},
 };
 
