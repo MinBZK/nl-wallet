@@ -23,7 +23,7 @@ use openid4vc::{
 };
 use tracing::warn;
 
-use crate::settings::Settings;
+use crate::settings::{KeyPair, Settings};
 
 use openid4vc::issuer::*;
 
@@ -39,6 +39,24 @@ impl KeyRing for IssuerKeyRing {
     }
 }
 
+impl TryFrom<HashMap<String, KeyPair>> for IssuerKeyRing {
+    type Error = anyhow::Error;
+
+    fn try_from(private_keys: HashMap<String, KeyPair>) -> Result<Self, Self::Error> {
+        Ok(Self(
+            private_keys
+                .into_iter()
+                .map(|(doctype, keypair)| {
+                    Ok((
+                        doctype,
+                        PrivateKey::from_der(&keypair.private_key.0, &keypair.certificate.0)?,
+                    ))
+                })
+                .collect::<Result<_, Self::Error>>()?,
+        ))
+    }
+}
+
 pub async fn create_issuance_router<A, S>(settings: Settings, sessions: S, attr_service: A) -> anyhow::Result<Router>
 where
     A: AttributeService + Send + Sync + 'static,
@@ -48,19 +66,7 @@ where
         issuer: Issuer::new(
             sessions,
             attr_service,
-            IssuerKeyRing(
-                settings
-                    .issuer
-                    .private_keys
-                    .into_iter()
-                    .map(|(doctype, keypair)| {
-                        Ok((
-                            doctype,
-                            PrivateKey::from_der(&keypair.private_key.0, &keypair.certificate.0)?,
-                        ))
-                    })
-                    .collect::<anyhow::Result<HashMap<_, _>>>()?,
-            ),
+            IssuerKeyRing::try_from(settings.issuer.private_keys)?,
             &settings.public_url,
             settings.issuer.wallet_client_ids,
         ),
