@@ -57,13 +57,13 @@ impl Wallet {
             config_repository,
             storage,
             HttpAccountProviderClient::default(),
-            openid4vc::issuance_client::HttpIssuanceClient::new(http_client),
+            openid4vc::issuance_client::HttpIssuerClient::new(http_client),
         )
         .await
     }
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IC, MDS> Wallet<CR, S, PEK, APC, DGS, IC, MDS>
 where
     CR: ConfigurationRepository,
     S: Storage,
@@ -73,7 +73,7 @@ where
         config_repository: CR,
         storage: S,
         account_provider_client: APC,
-        pid_issuer: PIC,
+        pid_issuer: IC,
         registration: Option<RegistrationData>,
     ) -> Self {
         Wallet {
@@ -95,7 +95,7 @@ where
         config_repository: CR,
         mut storage: S,
         account_provider_client: APC,
-        pid_issuer: PIC,
+        pid_issuer: IC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
 

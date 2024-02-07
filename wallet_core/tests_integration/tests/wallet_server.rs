@@ -1,7 +1,7 @@
 use base64::prelude::*;
 use indexmap::IndexMap;
 use openid4vc::{
-    issuance_client::{HttpIssuanceClient, IssuanceClient},
+    issuance_client::{HttpIssuerClient, IssuerClient},
     token::TokenRequest,
 };
 use reqwest::{Client, StatusCode};
@@ -160,7 +160,7 @@ async fn test_session_not_found() {
 async fn test_mock_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = HttpIssuanceClient::new(reqwest_client());
+    let mut pid_issuer_client = HttpIssuerClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -175,7 +175,7 @@ async fn test_mock_issuance() {
 
     // Accept the attestations and finish issuance
     let mdocs = pid_issuer_client
-        .finish_issuance(
+        .accept_issuance(
             &trust_anchors(&default_configuration()),
             SoftwareKeyFactory::default(),
             &server_url,
@@ -191,7 +191,7 @@ async fn test_mock_issuance() {
 async fn test_reject_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = HttpIssuanceClient::new(reqwest_client());
+    let mut pid_issuer_client = HttpIssuerClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -210,7 +210,7 @@ async fn test_reject_issuance() {
     // Trying to accept the attestations after rejecting doesn't work
     assert!(matches!(
         pid_issuer_client
-            .finish_issuance(
+            .accept_issuance(
                 &trust_anchors(&default_configuration()),
                 SoftwareKeyFactory::default(),
                 &server_url
@@ -252,7 +252,7 @@ async fn test_pid_issuance_digid_bridge() {
     let authorization_code = digid_session.get_authorization_code(&redirect_url).unwrap();
 
     // Exchange the authorization code for an access token and the attestation previews
-    let mut pid_issuer_client = HttpIssuanceClient::new(reqwest_client());
+    let mut pid_issuer_client = HttpIssuerClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -265,7 +265,7 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let mdocs = pid_issuer_client
-        .finish_issuance(
+        .accept_issuance(
             &trust_anchors(&default_configuration()),
             SoftwareKeyFactory::default(),
             &server_url,

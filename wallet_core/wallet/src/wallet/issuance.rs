@@ -1,4 +1,4 @@
-use openid4vc::issuance_client::IssuanceClient;
+use openid4vc::issuance_client::IssuerClient;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
@@ -47,11 +47,11 @@ pub enum PidIssuanceError {
     MissingIssuerRegistration,
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IC, MDS> Wallet<CR, S, PEK, APC, DGS, IC, MDS>
 where
     CR: ConfigurationRepository,
     DGS: DigidSession,
-    PIC: IssuanceClient,
+    IC: IssuerClient,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -227,7 +227,7 @@ where
 
         let mdocs = self
             .pid_issuer
-            .finish_issuance(
+            .accept_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
                 &config.pid_issuance.pid_issuer_url,

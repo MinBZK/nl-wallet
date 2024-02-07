@@ -24,7 +24,7 @@ use crate::{
     Error, ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
 
-pub trait IssuanceClient {
+pub trait IssuerClient {
     fn has_session(&self) -> bool;
 
     async fn start_issuance(
@@ -33,7 +33,7 @@ pub trait IssuanceClient {
         token_request: TokenRequest,
     ) -> Result<Vec<AttestationPreview>, Error>;
 
-    async fn finish_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: MdocEcdsaKey>(
         &mut self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
@@ -43,7 +43,7 @@ pub trait IssuanceClient {
     async fn reject_issuance(&mut self) -> Result<(), Error>;
 }
 
-pub struct HttpIssuanceClient {
+pub struct HttpIssuerClient {
     http_client: reqwest::Client,
     session_state: Option<IssuanceState>,
 }
@@ -57,7 +57,7 @@ struct IssuanceState {
     dpop_nonce: Option<String>,
 }
 
-impl HttpIssuanceClient {
+impl HttpIssuerClient {
     pub fn new(http_client: reqwest::Client) -> Self {
         Self {
             http_client,
@@ -66,7 +66,7 @@ impl HttpIssuanceClient {
     }
 }
 
-impl IssuanceClient for HttpIssuanceClient {
+impl IssuerClient for HttpIssuerClient {
     fn has_session(&self) -> bool {
         self.session_state.is_some()
     }
@@ -117,7 +117,7 @@ impl IssuanceClient for HttpIssuanceClient {
         Ok(token_response.attestation_previews)
     }
 
-    async fn finish_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: MdocEcdsaKey>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,

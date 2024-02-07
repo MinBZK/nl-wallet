@@ -37,7 +37,7 @@ pub enum HistoryError {
 
 type HistoryResult<T> = Result<T, HistoryError>;
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IC, MDS> Wallet<CR, S, PEK, APC, DGS, IC, MDS>
 where
     S: Storage,
 {

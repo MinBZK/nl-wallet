@@ -5,7 +5,7 @@ use nl_wallet_mdoc::{
 use url::Url;
 
 use crate::{
-    issuance_client::IssuanceClient,
+    issuance_client::IssuerClient,
     token::{AttestationPreview, TokenRequest},
     Error,
 };
@@ -18,7 +18,7 @@ pub struct MockIssuerClient {
     pub next_error: Option<Error>,
 }
 
-impl IssuanceClient for MockIssuerClient {
+impl IssuerClient for MockIssuerClient {
     fn has_session(&self) -> bool {
         self.has_session
     }
@@ -34,7 +34,7 @@ impl IssuanceClient for MockIssuerClient {
         }
     }
 
-    async fn finish_issuance<K: MdocEcdsaKey>(
+    async fn accept_issuance<K: MdocEcdsaKey>(
         &mut self,
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
         _key_factory: impl KeyFactory<Key = K>,
