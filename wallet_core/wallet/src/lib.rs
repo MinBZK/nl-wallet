@@ -5,7 +5,6 @@ mod disclosure;
 mod document;
 mod instruction;
 mod lock;
-mod pid_issuer;
 mod pin;
 mod pkce;
 mod storage;
@@ -57,7 +56,6 @@ pub mod mock {
         config::{default_configuration, LocalConfigurationRepository},
         digid::MockDigidSession,
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
-        pid_issuer::MockPidIssuerClient,
         storage::MockStorage,
     };
 }

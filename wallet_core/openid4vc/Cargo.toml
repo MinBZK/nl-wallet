@@ -7,6 +7,9 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+mock = []
+
 [dependencies]
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }

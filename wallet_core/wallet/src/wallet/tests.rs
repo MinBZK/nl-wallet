@@ -1,6 +1,7 @@
 use std::{sync::Mutex, time::Duration};
 
 use once_cell::sync::Lazy;
+use openid4vc::mock::MockIssuerClient;
 use p256::{
     ecdsa::{Signature, SigningKey, VerifyingKey},
     elliptic_curve::rand_core::OsRng,
@@ -25,7 +26,6 @@ use crate::{
     digid::MockDigidSession,
     disclosure::MockMdocDisclosureSession,
     document,
-    pid_issuer::MockPidIssuerClient,
     pin::key as pin_key,
     storage::{KeyedData, MockStorage, RegistrationData, StorageState},
 };
@@ -60,7 +60,7 @@ pub type WalletWithMocks = Wallet<
     FallibleSoftwareEcdsaKey,
     MockAccountProviderClient,
     MockDigidSession,
-    MockPidIssuerClient,
+    MockIssuerClient,
     MockMdocDisclosureSession,
 >;
 
@@ -200,7 +200,7 @@ impl WalletWithMocks {
             config_repository,
             MockStorage::default(),
             MockAccountProviderClient::default(),
-            MockPidIssuerClient::default(),
+            MockIssuerClient::default(),
             None,
         )
     }
@@ -265,7 +265,7 @@ impl WalletWithMocks {
             config_repository,
             storage,
             MockAccountProviderClient::default(),
-            MockPidIssuerClient::default(),
+            MockIssuerClient::default(),
         )
         .await
     }

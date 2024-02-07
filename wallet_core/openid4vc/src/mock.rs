@@ -2,21 +2,23 @@ use nl_wallet_mdoc::{
     holder::{MdocCopies, TrustAnchor},
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
-use openid4vc::{
-    issuance_client::IssuanceClient,
-    token::{AttestationPreview, TokenRequest},
-};
 use url::Url;
 
+use crate::{
+    issuance_client::IssuanceClient,
+    token::{AttestationPreview, TokenRequest},
+    Error,
+};
+
 #[derive(Default)]
-pub struct MockPidIssuerClient {
+pub struct MockIssuerClient {
     pub has_session: bool,
     pub attestation_previews: Vec<AttestationPreview>,
     pub mdoc_copies: Vec<MdocCopies>,
-    pub next_error: Option<openid4vc::Error>,
+    pub next_error: Option<Error>,
 }
 
-impl IssuanceClient for MockPidIssuerClient {
+impl IssuanceClient for MockIssuerClient {
     fn has_session(&self) -> bool {
         self.has_session
     }
@@ -25,7 +27,7 @@ impl IssuanceClient for MockPidIssuerClient {
         &mut self,
         _base_url: &Url,
         _token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, openid4vc::Error> {
+    ) -> Result<Vec<AttestationPreview>, Error> {
         match self.next_error.take() {
             None => Ok(self.attestation_previews.clone()),
             Some(error) => Err(error),
@@ -37,14 +39,14 @@ impl IssuanceClient for MockPidIssuerClient {
         _mdoc_trust_anchors: &[TrustAnchor<'_>],
         _key_factory: impl KeyFactory<Key = K>,
         _credential_issuer_identifier: &Url,
-    ) -> Result<Vec<MdocCopies>, openid4vc::Error> {
+    ) -> Result<Vec<MdocCopies>, Error> {
         match self.next_error.take() {
             None => Ok(self.mdoc_copies.clone()),
             Some(error) => Err(error),
         }
     }
 
-    async fn reject_issuance(&mut self) -> Result<(), openid4vc::Error> {
+    async fn reject_issuance(&mut self) -> Result<(), Error> {
         match self.next_error.take() {
             None => Ok(()),
             Some(error) => Err(error),
