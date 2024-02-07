@@ -30,7 +30,7 @@ pub enum PidIssuanceError {
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[from] openid4vc::Error),
+    PidIssuer(#[from] openid4vc::IssuerClientError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -574,7 +574,7 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return an error.
-        wallet.pid_issuer.next_error = Some(openid4vc::Error::MissingNonce);
+        wallet.pid_issuer.next_error = Some(openid4vc::IssuerClientError::MissingNonce);
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -698,7 +698,7 @@ mod tests {
 
         // Set up the `PidIssuerClient` to report having a session, then return an error.
         wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error = Some(openid4vc::Error::MissingNonce);
+        wallet.pid_issuer.next_error = Some(openid4vc::IssuerClientError::MissingNonce);
 
         // Rejecting PID issuance on a wallet should forward this error.
         let error = wallet
@@ -833,7 +833,7 @@ mod tests {
 
         // Have the `PidIssuerClient` return an error.
         wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error = Some(openid4vc::Error::MissingNonce);
+        wallet.pid_issuer.next_error = Some(openid4vc::IssuerClientError::MissingNonce);
 
         // Accepting PID issuance should result in an error.
         let error = wallet

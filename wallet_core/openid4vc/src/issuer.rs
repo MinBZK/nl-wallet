@@ -40,7 +40,7 @@ separate in the type system here. */
 
 /// Errors that can occur during processing of any of the endpoints.
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum IssuanceError {
     #[error("session not in expected state")]
     UnexpectedState,
     #[error("unknown session: {0}")]
@@ -55,7 +55,7 @@ pub enum Error {
 #[derive(Debug, thiserror::Error)]
 pub enum TokenRequestError {
     #[error("issuance error: {0}")]
-    IssuanceError(#[from] Error),
+    IssuanceError(#[from] IssuanceError),
     #[error("unsupported token request type: must be of type pre-authorized_code")]
     UnsupportedTokenRequestType,
     #[error("failed to get attributes to be issued: {0}")]
@@ -68,7 +68,7 @@ pub enum TokenRequestError {
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialRequestError {
     #[error("issuance error: {0}")]
-    IssuanceError(#[from] Error),
+    IssuanceError(#[from] IssuanceError),
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
     #[error("malformed access token")]
@@ -285,7 +285,9 @@ where
             .get(&code.clone().into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(Error::UnknownSession(code)))?;
+            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
+                code,
+            )))?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
@@ -312,7 +314,9 @@ where
             .get(&code.clone().into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(Error::UnknownSession(code)))?;
+            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
+                code,
+            )))?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
@@ -339,7 +343,9 @@ where
             .get(&code.clone().into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(Error::UnknownSession(code)))?;
+            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
+                code,
+            )))?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         // Check authorization of the request
@@ -360,7 +366,7 @@ where
             &Some(session_data.dpop_nonce.clone()),
         )
         .await
-        .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
+        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let next = session.transition(Done {
             session_result: SessionResult::Cancelled,
@@ -388,12 +394,12 @@ fn code_from_access_token(access_token: &str) -> Result<String, CredentialReques
 }
 
 impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
-    type Error = Error;
+    type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
         let session_data = match value.session_data {
             IssuanceData::Created(state) => state,
-            _ => return Err(Error::UnexpectedState),
+            _ => return Err(IssuanceError::UnexpectedState),
         };
         Ok(Session::<Created> {
             state: SessionState {
@@ -453,7 +459,7 @@ impl Session<Created> {
         let dpop_public_key = dpop
             .verify(server_url.join("token").unwrap(), Method::POST, None)
             .await
-            .map_err(|err| TokenRequestError::IssuanceError(Error::DpopInvalid(err)))?;
+            .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let code = token_request.code().to_string();
 
@@ -504,12 +510,12 @@ impl From<Session<WaitingForResponse>> for SessionState<IssuanceData> {
 }
 
 impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
-    type Error = Error;
+    type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
         let session_data = match value.session_data {
             IssuanceData::WaitingForResponse(state) => state,
-            _ => return Err(Error::UnexpectedState),
+            _ => return Err(IssuanceError::UnexpectedState),
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
@@ -568,7 +574,7 @@ impl Session<WaitingForResponse> {
             &Some(session_data.dpop_nonce.clone()),
         )
         .await
-        .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
+        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         // Try to determine which attestation the wallet is requesting
         let unsigned = match credential_request.doctype {
@@ -650,7 +656,7 @@ impl Session<WaitingForResponse> {
             &Some(session_data.dpop_nonce.clone()),
         )
         .await
-        .map_err(|err| CredentialRequestError::IssuanceError(Error::DpopInvalid(err)))?;
+        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let credential_responses = try_join_all(
             credential_requests

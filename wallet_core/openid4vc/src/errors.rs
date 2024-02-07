@@ -9,13 +9,13 @@ use wallet_common::jwt::JwtError;
 use crate::{
     credential::CredentialErrorType,
     dpop::DpopError,
-    issuer::{self, CredentialRequestError, TokenRequestError},
+    issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
     jwk::JwkConversionError,
     token::TokenErrorType,
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum IssuerClientError {
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("DPoP error: {0}")]
@@ -52,8 +52,6 @@ pub enum Error {
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
 }
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
-
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ErrorResponse<T> {
@@ -72,10 +70,10 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
         ErrorResponse {
             error: match err {
                 CredentialRequestError::IssuanceError(err) => match err {
-                    issuer::Error::UnexpectedState => CredentialErrorType::InvalidRequest,
-                    issuer::Error::UnknownSession(_) => CredentialErrorType::InvalidRequest,
-                    issuer::Error::SessionStore(_) => CredentialErrorType::ServerError,
-                    issuer::Error::DpopInvalid(_) => CredentialErrorType::InvalidRequest,
+                    IssuanceError::UnexpectedState => CredentialErrorType::InvalidRequest,
+                    IssuanceError::UnknownSession(_) => CredentialErrorType::InvalidRequest,
+                    IssuanceError::SessionStore(_) => CredentialErrorType::ServerError,
+                    IssuanceError::DpopInvalid(_) => CredentialErrorType::InvalidRequest,
                 },
                 CredentialRequestError::Unauthorized => CredentialErrorType::InvalidToken,
                 CredentialRequestError::MalformedToken => CredentialErrorType::InvalidToken,
@@ -111,10 +109,10 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorType> {
         ErrorResponse {
             error: match err {
                 TokenRequestError::IssuanceError(err) => match err {
-                    issuer::Error::UnexpectedState => TokenErrorType::InvalidRequest,
-                    issuer::Error::UnknownSession(_) => TokenErrorType::InvalidRequest,
-                    issuer::Error::SessionStore(_) => TokenErrorType::ServerError,
-                    issuer::Error::DpopInvalid(_) => TokenErrorType::InvalidRequest,
+                    IssuanceError::UnexpectedState => TokenErrorType::InvalidRequest,
+                    IssuanceError::UnknownSession(_) => TokenErrorType::InvalidRequest,
+                    IssuanceError::SessionStore(_) => TokenErrorType::ServerError,
+                    IssuanceError::DpopInvalid(_) => TokenErrorType::InvalidRequest,
                 },
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorType::UnsupportedGrantType,
                 TokenRequestError::AttributeService(_) => TokenErrorType::ServerError,

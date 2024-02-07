@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use wallet_common::{jwt::Jwt, keys::SecureEcdsaKey};
 
-use crate::{jwk::jwk_jwt_header, Error, ErrorStatusCode, Format, Result};
+use crate::{jwk::jwk_jwt_header, ErrorStatusCode, Format, IssuerClientError};
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
 /// Sent JSON-encoded to `POST /batch_credential`.
@@ -103,12 +103,12 @@ impl CredentialRequestProof {
         credential_issuer_identifier: &Url,
         number_of_keys: u64,
         key_factory: impl KeyFactory<Key = K>,
-    ) -> Result<Vec<(K, CredentialRequestProof)>> {
+    ) -> Result<Vec<(K, CredentialRequestProof)>, IssuerClientError> {
         // TODO: extend key factory so that it can do this in a single instruction
         let keys = key_factory
             .generate_new_multiple(number_of_keys)
             .await
-            .map_err(|e| Error::PrivateKeyGeneration(Box::new(e)))?;
+            .map_err(|e| IssuerClientError::PrivateKeyGeneration(Box::new(e)))?;
         try_join_all(keys.into_iter().map(|privkey| async {
             CredentialRequestProof::new(
                 &privkey,
@@ -127,7 +127,7 @@ impl CredentialRequestProof {
         nonce: String,
         wallet_client_id: String,
         credential_issuer_identifier: &Url,
-    ) -> Result<Self> {
+    ) -> Result<Self, IssuerClientError> {
         let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, private_key).await?;
 
         let payload = CredentialRequestProofJwtPayload {

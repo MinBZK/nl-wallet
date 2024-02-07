@@ -216,7 +216,7 @@ async fn test_reject_issuance() {
                 &server_url
             )
             .await,
-        Err(openid4vc::Error::MissingIssuanceSessionState)
+        Err(openid4vc::IssuerClientError::MissingIssuanceSessionState)
     ))
 }
 
