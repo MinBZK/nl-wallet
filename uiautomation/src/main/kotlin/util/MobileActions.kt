@@ -65,9 +65,11 @@ open class MobileActions {
 
     protected fun findElement(locator: By): WebElement = driver.findElement(locator)
 
-    protected fun clickElement(element: WebElement, frameSync: Boolean = true) {
-        performAction(frameSync) {
-            element.click()
+    protected fun clickElement(element: FlutterElement, frameSync: Boolean = true) {
+        // First wait and check if the element is visible, then perform the click action;
+        // this prevents clicking on an element that is not visible, which results in a (BrowserStack) timeout.
+        if (isElementVisible(element, frameSync)) {
+            performAction(frameSync) { element.click() }
         }
     }
 
