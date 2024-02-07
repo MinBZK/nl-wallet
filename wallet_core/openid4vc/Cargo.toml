@@ -8,7 +8,7 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-mock = []
+mock = ["dep:mockall"]
 
 [dependencies]
 base64.workspace = true
@@ -18,6 +18,7 @@ indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
 mime.workspace = true
+mockall = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["serde_derive"] }
@@ -33,5 +34,6 @@ wallet_common.path = "../wallet_common"
 nl_wallet_mdoc.path = "../mdoc"
 
 [dev-dependencies]
+mockall.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true

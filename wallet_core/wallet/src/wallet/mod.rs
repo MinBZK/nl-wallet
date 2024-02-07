@@ -52,7 +52,7 @@ pub struct Wallet<
     hw_privkey: PEK,
     account_provider_client: APC,
     digid_session: Option<DGS>,
-    pid_issuer: IC,
+    pid_issuer: Option<IC>,
     disclosure_session: Option<MDS>,
     lock: WalletLock,
     registration: Option<RegistrationData>,

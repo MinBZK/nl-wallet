@@ -35,10 +35,7 @@ use wallet::{
 use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey};
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_server::{
-    pid::attributes::reqwest_client,
-    settings::{Server, Settings as WsSettings},
-};
+use wallet_server::settings::{Server, Settings as WsSettings};
 use wallet_server::{
     pid::{mock::MockAttributesLookup as WSMockAttributesLookup, mock::MockBsnLookup as WSMockBsnLookup},
     store::{SessionStoreVariant, SessionStores},
@@ -122,8 +119,6 @@ pub async fn setup_wallet_and_env(
     )
     .await;
 
-    let pid_issuer_client = HttpIssuerClient::new(reqwest_client());
-
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.base_url,
         config_server_config.signing_public_key.into(),
@@ -138,7 +133,6 @@ pub async fn setup_wallet_and_env(
         config_repository,
         MockStorage::default(),
         HttpAccountProviderClient::default(),
-        pid_issuer_client,
     )
     .await
     .expect("Could not create test wallet")

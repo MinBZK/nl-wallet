@@ -2792,6 +2792,7 @@ dependencies = [
  "itertools 0.11.0",
  "jsonwebtoken",
  "mime",
+ "mockall",
  "nl_wallet_mdoc",
  "p256",
  "reqwest",

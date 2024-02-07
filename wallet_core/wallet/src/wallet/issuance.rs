@@ -1,3 +1,4 @@
+use http::{header, HeaderMap, HeaderValue};
 use openid4vc::issuance_client::IssuerClient;
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
@@ -13,6 +14,7 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyFactory},
     storage::{Storage, StorageError, WalletEvent},
+    utils::reqwest::default_reqwest_client_builder,
 };
 
 use super::Wallet;
@@ -69,7 +71,7 @@ where
         }
 
         info!("Checking if there is a DigidSession or PidIssuerClient has session");
-        if self.digid_session.is_some() || self.pid_issuer.has_session() {
+        if self.digid_session.is_some() || self.pid_issuer.is_some() {
             return Err(PidIssuanceError::SessionState);
         }
 
@@ -140,19 +142,23 @@ where
 
         let token_request = session.into_pre_authorized_code_request(code);
 
-        let unsigned_mdocs: Vec<UnsignedMdoc> = self
-            .pid_issuer
-            .start_issuance(&config.pid_issuance.pid_issuer_url, token_request)
-            .await?
-            .into_iter()
-            .map(|preview| preview.into())
-            .collect();
+        let http_client = default_reqwest_client_builder()
+            .default_headers(HeaderMap::from_iter([(
+                header::ACCEPT,
+                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
+            )]))
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        let (pid_issuer, attestation_previews) =
+            IC::start_issuance(http_client, &config.pid_issuance.pid_issuer_url, token_request).await?;
+
+        self.pid_issuer.replace(pid_issuer);
 
         info!("PID received successfully from issuer, returning preview documents");
-
-        let mut documents = unsigned_mdocs
+        let mut documents = attestation_previews
             .into_iter()
-            .map(Document::try_from)
+            .map(|preview| Document::try_from(UnsignedMdoc::from(preview)))
             .collect::<Result<Vec<_>, _>>()?;
 
         documents.sort_by_key(Document::priority);
@@ -173,12 +179,10 @@ where
         }
 
         info!("Checking if PidIssuerClient has session");
-        if !self.pid_issuer.has_session() {
-            return Err(PidIssuanceError::SessionState);
-        }
+        let pid_issuer = self.pid_issuer.take().ok_or(PidIssuanceError::SessionState)?;
 
         info!("Rejecting any PID held in memory");
-        self.pid_issuer.reject_issuance().await?;
+        pid_issuer.reject_issuance().await?;
 
         Ok(())
     }
@@ -204,9 +208,7 @@ where
         }
 
         info!("Checking if PidIssuerClient has session");
-        if !self.pid_issuer.has_session() {
-            return Err(PidIssuanceError::SessionState);
-        }
+        let pid_issuer = self.pid_issuer.take().ok_or(PidIssuanceError::SessionState)?;
 
         let config = self.config_repository.config();
 
@@ -225,8 +227,7 @@ where
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
-        let mdocs = self
-            .pid_issuer
+        let mdocs = pid_issuer
             .accept_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
@@ -277,7 +278,10 @@ mod tests {
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
-    use openid4vc::token::{AttestationPreview, TokenRequest};
+    use openid4vc::{
+        mock::MockIssuerClient,
+        token::{AttestationPreview, TokenRequest},
+    };
     use serial_test::serial;
     use url::Url;
 
@@ -371,7 +375,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` report that it has an active session.
-        wallet.pid_issuer.has_session = true;
+        wallet.pid_issuer = Some(MockIssuerClient::new());
 
         // Creating a DigiD authentication URL on a `Wallet` that has
         // an active `PidIssuerClient` session should return an error.
@@ -489,9 +493,15 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return one `UnsignedMdoc`.
-        wallet.pid_issuer.attestation_previews = vec![AttestationPreview::MsoMdoc {
-            unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
-        }];
+        let start_context = MockIssuerClient::start_context();
+        start_context.expect().return_once(|| {
+            Ok((
+                MockIssuerClient::new(),
+                vec![AttestationPreview::MsoMdoc {
+                    unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
+                }],
+            ))
+        });
 
         // Continuing PID issuance should result in one preview `Document`.
         let documents = wallet
@@ -574,7 +584,10 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return an error.
-        wallet.pid_issuer.next_error = Some(openid4vc::IssuerClientError::MissingNonce);
+        let start_context = MockIssuerClient::start_context();
+        start_context
+            .expect()
+            .return_once(|| Err(openid4vc::IssuerClientError::MissingNonce));
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -612,15 +625,21 @@ mod tests {
         .into();
 
         // Set up the `PidIssuerClient` to return an `UnsignedMdoc` with an unknown doctype.
-        wallet.pid_issuer.attestation_previews = vec![AttestationPreview::MsoMdoc {
-            unsigned_mdoc: UnsignedMdoc {
-                doc_type: "foobar".to_string(),
-                valid_from: Tdate::now(),
-                valid_until: (Utc::now() + Days::new(365)).into(),
-                attributes: Default::default(),
-                copy_count: 1,
-            },
-        }];
+        let start_context = MockIssuerClient::start_context();
+        start_context.expect().return_once(|| {
+            Ok((
+                MockIssuerClient::new(),
+                vec![AttestationPreview::MsoMdoc {
+                    unsigned_mdoc: UnsignedMdoc {
+                        doc_type: "foobar".to_string(),
+                        valid_from: Tdate::now(),
+                        valid_until: (Utc::now() + Days::new(365)).into(),
+                        attributes: Default::default(),
+                        copy_count: 1,
+                    },
+                }],
+            ))
+        });
 
         // Continuing PID issuance when receiving an unknown mdoc should result in an error.
         let error = wallet
@@ -636,8 +655,12 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        // Set up the `PidIssuerClient` to report having a session
-        wallet.pid_issuer.has_session = true;
+        // Set up the `PidIssuerClient`
+        wallet.pid_issuer = Some({
+            let mut client = MockIssuerClient::new();
+            client.expect_reject().return_once(|| Ok(()));
+            client
+        });
 
         // Cancelling PID issuance should not fail.
         wallet
@@ -696,9 +719,14 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        // Set up the `PidIssuerClient` to report having a session, then return an error.
-        wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error = Some(openid4vc::IssuerClientError::MissingNonce);
+        // Set up the `PidIssuerClient` to return an error
+        wallet.pid_issuer = Some({
+            let mut client = MockIssuerClient::new();
+            client
+                .expect_reject()
+                .return_once(|| Err(openid4vc::IssuerClientError::MissingNonce));
+            client
+        });
 
         // Rejecting PID issuance on a wallet should forward this error.
         let error = wallet
@@ -730,8 +758,12 @@ mod tests {
 
         // Have the `PidIssuerClient` accept the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc().await].into()];
+        let mdoc = tests::create_full_pid_mdoc().await;
+        wallet.pid_issuer = Some({
+            let mut client = MockIssuerClient::new();
+            client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
+            client
+        });
 
         // Accept the PID issuance with the PIN.
         wallet
@@ -765,8 +797,12 @@ mod tests {
 
         // Have the `PidIssuerClient` accept the PID with a single instance of `MdocCopies`, which contains a single
         // valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
-        wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc_unauthenticated().await].into()];
+        let mdoc = tests::create_full_pid_mdoc_unauthenticated().await;
+        wallet.pid_issuer = Some({
+            let mut client = MockIssuerClient::new();
+            client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
+            client
+        });
 
         // Accept the PID issuance with the PIN.
         let error = wallet
@@ -832,8 +868,13 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` return an error.
-        wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error = Some(openid4vc::IssuerClientError::MissingNonce);
+        wallet.pid_issuer = Some({
+            let mut client = MockIssuerClient::new();
+            client
+                .expect_accept()
+                .return_once(|| Err(openid4vc::IssuerClientError::MissingNonce));
+            client
+        });
 
         // Accepting PID issuance should result in an error.
         let error = wallet
@@ -851,8 +892,12 @@ mod tests {
 
         // Have the `PidIssuerClient` report a a session
         // and have the database return an error on query.
-        wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.mdoc_copies = vec![vec![tests::create_full_pid_mdoc().await].into()];
+        let mdoc = tests::create_full_pid_mdoc().await;
+        wallet.pid_issuer = Some({
+            let mut client = MockIssuerClient::new();
+            client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
+            client
+        });
         wallet.storage.get_mut().has_query_error = true;
 
         // Accepting PID issuance should result in an error.

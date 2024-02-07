@@ -42,8 +42,6 @@ pub enum IssuerClientError {
     CredentialRequest(Box<ErrorResponse<CredentialErrorType>>),
     #[error("generating attestation private keys failed: {0}")]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("missing issuance session state")]
-    MissingIssuanceSessionState,
     #[error("public key contained in mdoc not equal to expected value")]
     PublicKeyMismatch,
     #[error("failed to get mdoc public key: {0}")]

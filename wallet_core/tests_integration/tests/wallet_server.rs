@@ -160,7 +160,6 @@ async fn test_session_not_found() {
 async fn test_mock_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = HttpIssuerClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -168,8 +167,7 @@ async fn test_mock_issuance() {
     let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string());
 
     // Exchange the authorization code for an access token and the attestation previews
-    pid_issuer_client
-        .start_issuance(&server_url, token_request)
+    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)
         .await
         .unwrap();
 
@@ -191,7 +189,6 @@ async fn test_mock_issuance() {
 async fn test_reject_issuance() {
     let (settings, digid_session) = issuance_settings_and_digid_session().await;
 
-    let mut pid_issuer_client = HttpIssuerClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
@@ -199,25 +196,12 @@ async fn test_reject_issuance() {
     let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string());
 
     // Exchange the authorization code for an access token and the attestation previews
-    pid_issuer_client
-        .start_issuance(&server_url, token_request)
+    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)
         .await
         .unwrap();
 
     // Reject issuance
     pid_issuer_client.reject_issuance().await.unwrap();
-
-    // Trying to accept the attestations after rejecting doesn't work
-    assert!(matches!(
-        pid_issuer_client
-            .accept_issuance(
-                &trust_anchors(&default_configuration()),
-                SoftwareKeyFactory::default(),
-                &server_url
-            )
-            .await,
-        Err(openid4vc::IssuerClientError::MissingIssuanceSessionState)
-    ))
 }
 
 #[tokio::test]
@@ -252,15 +236,13 @@ async fn test_pid_issuance_digid_bridge() {
     let authorization_code = digid_session.get_authorization_code(&redirect_url).unwrap();
 
     // Exchange the authorization code for an access token and the attestation previews
-    let mut pid_issuer_client = HttpIssuerClient::new(reqwest_client());
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
 
     let token_request = digid_session.into_pre_authorized_code_request(authorization_code);
 
-    pid_issuer_client
-        .start_issuance(&server_url, token_request)
+    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)
         .await
         .unwrap();
 

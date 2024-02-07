@@ -10,46 +10,45 @@ use crate::{
     IssuerClientError,
 };
 
-#[derive(Default)]
-pub struct MockIssuerClient {
-    pub has_session: bool,
-    pub attestation_previews: Vec<AttestationPreview>,
-    pub mdoc_copies: Vec<MdocCopies>,
-    pub next_error: Option<IssuerClientError>,
+// We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
+// traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
+
+mockall::mock! {
+    pub IssuerClient {
+        pub fn start() -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
+        where
+            Self: Sized;
+
+        pub fn accept(
+            self,
+        ) -> Result<Vec<MdocCopies>, IssuerClientError>;
+
+        pub fn reject(self) -> Result<(), IssuerClientError>;
+    }
 }
 
 impl IssuerClient for MockIssuerClient {
-    fn has_session(&self) -> bool {
-        self.has_session
-    }
-
     async fn start_issuance(
-        &mut self,
-        _base_url: &Url,
-        _token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, IssuerClientError> {
-        match self.next_error.take() {
-            None => Ok(self.attestation_previews.clone()),
-            Some(error) => Err(error),
-        }
+        _: reqwest::Client,
+        _: &Url,
+        _: TokenRequest,
+    ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
+    where
+        Self: Sized,
+    {
+        Self::start()
     }
 
     async fn accept_issuance<K: MdocEcdsaKey>(
-        &mut self,
-        _mdoc_trust_anchors: &[TrustAnchor<'_>],
-        _key_factory: impl KeyFactory<Key = K>,
-        _credential_issuer_identifier: &Url,
+        self,
+        _: &[TrustAnchor<'_>],
+        _: impl KeyFactory<Key = K>,
+        _: &Url,
     ) -> Result<Vec<MdocCopies>, IssuerClientError> {
-        match self.next_error.take() {
-            None => Ok(self.mdoc_copies.clone()),
-            Some(error) => Err(error),
-        }
+        self.accept()
     }
 
-    async fn reject_issuance(&mut self) -> Result<(), IssuerClientError> {
-        match self.next_error.take() {
-            None => Ok(()),
-            Some(error) => Err(error),
-        }
+    async fn reject_issuance(self) -> Result<(), IssuerClientError> {
+        self.reject()
     }
 }

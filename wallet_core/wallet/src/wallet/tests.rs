@@ -200,7 +200,6 @@ impl WalletWithMocks {
             config_repository,
             MockStorage::default(),
             MockAccountProviderClient::default(),
-            MockIssuerClient::default(),
             None,
         )
     }
@@ -261,12 +260,6 @@ impl WalletWithMocks {
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), Duration::from_secs(300))
                 .await;
 
-        Wallet::init_registration(
-            config_repository,
-            storage,
-            MockAccountProviderClient::default(),
-            MockIssuerClient::default(),
-        )
-        .await
+        Wallet::init_registration(config_repository, storage, MockAccountProviderClient::default()).await
     }
 }

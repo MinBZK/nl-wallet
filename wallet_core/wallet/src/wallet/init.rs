@@ -1,4 +1,3 @@
-use http::{header, HeaderMap, HeaderValue};
 use tokio::sync::RwLock;
 
 use platform_support::{
@@ -14,7 +13,6 @@ use crate::{
     },
     lock::WalletLock,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
-    utils::reqwest::default_reqwest_client_builder,
 };
 
 use super::Wallet;
@@ -45,21 +43,7 @@ impl Wallet {
         )
         .await?;
 
-        let http_client = default_reqwest_client_builder()
-            .default_headers(HeaderMap::from_iter([(
-                header::ACCEPT,
-                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
-            )]))
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
-        Self::init_registration(
-            config_repository,
-            storage,
-            HttpAccountProviderClient::default(),
-            openid4vc::issuance_client::HttpIssuerClient::new(http_client),
-        )
-        .await
+        Self::init_registration(config_repository, storage, HttpAccountProviderClient::default()).await
     }
 }
 
@@ -73,7 +57,6 @@ where
         config_repository: CR,
         storage: S,
         account_provider_client: APC,
-        pid_issuer: IC,
         registration: Option<RegistrationData>,
     ) -> Self {
         Wallet {
@@ -82,7 +65,7 @@ where
             hw_privkey: PEK::new(WALLET_KEY_ID),
             account_provider_client,
             digid_session: None,
-            pid_issuer,
+            pid_issuer: None,
             disclosure_session: None,
             lock: WalletLock::new(true),
             registration,
@@ -95,17 +78,10 @@ where
         config_repository: CR,
         mut storage: S,
         account_provider_client: APC,
-        pid_issuer: IC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
 
-        let wallet = Self::new(
-            config_repository,
-            storage,
-            account_provider_client,
-            pid_issuer,
-            registration,
-        );
+        let wallet = Self::new(config_repository, storage, account_provider_client, registration);
 
         Ok(wallet)
     }
