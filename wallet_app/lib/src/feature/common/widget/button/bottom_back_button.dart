@@ -38,7 +38,7 @@ class BottomBackButton extends StatelessWidget {
                 ),
               ),
               child: TextIconButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.maybePop(context),
                 iconPosition: IconPosition.start,
                 icon: Icons.arrow_back,
                 child: Text(context.l10n.generalBottomBackCta),
