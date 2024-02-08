@@ -2,7 +2,7 @@ package feature.digid
 
 import helper.TestBase
 import navigator.OnboardingNavigator
-import navigator.OnboardingScreen
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junitpioneer.jupiter.RetryingTest
@@ -20,7 +20,7 @@ class MockDigidWebTests : TestBase() {
         digidLoginStartWebPage = DigidLoginStartWebPage()
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     fun verifyMockDigidLogin() {
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
 

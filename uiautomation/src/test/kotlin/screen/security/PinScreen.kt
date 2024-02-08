@@ -4,12 +4,14 @@ import util.MobileActions
 
 class PinScreen : MobileActions() {
 
+    private val pinScreen = find.byValueKey("pinScreen")
     private val choosePinScreen = find.byValueKey("selectPinScreen")
     private val confirmPinScreen = find.byValueKey("confirmPinScreen")
 
     private val pinKeyboard = find.byValueKey("pinKeyboard")
 
     private val aboutAppButton = find.byToolTip(l10n.getString("setupSecurityScreenAboutAppTooltip"))
+    private val forgotPinButton = find.byText(l10n.getString("pinScreenForgotPinCta"))
     private val confirmPinErrorFatalCta = find.byValueKey("setupSecurityConfirmationErrorPageFatalCta")
 
     private val selectPinErrorTooFewUniqueDigits =
@@ -23,6 +25,8 @@ class PinScreen : MobileActions() {
         find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalTitle"))
     private val confirmPinErrorMismatchFatalDescription =
         find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalDescription"))
+
+    fun pinScreenVisible() = isElementVisible(pinScreen)
 
     fun choosePinScreenVisible() = isElementVisible(choosePinScreen)
 
@@ -44,13 +48,11 @@ class PinScreen : MobileActions() {
 
     fun clickAboutAppButton() = clickElement(aboutAppButton)
 
-    fun choosePin(pin: String) {
-        enterPin(pin)
-    }
+    fun clickForgotPinButton() = clickElement(forgotPinButton)
 
-    fun confirmPin(pin: String) {
-        enterPin(pin)
-    }
+    fun choosePin(pin: String) = enterPin(pin)
+
+    fun confirmPin(pin: String) = enterPin(pin)
 
     fun enterPin(pin: String) {
         for (digit in pin) {

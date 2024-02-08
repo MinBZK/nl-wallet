@@ -19,7 +19,7 @@ class IntroductionScreenTests : TestBase() {
         introductionScreen = IntroductionScreen()
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("1. The App shows a welcome screen so the user knows they are using the NL wallet.")
     fun verifyWelcomeScreen() {
         assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
@@ -29,14 +29,14 @@ class IntroductionScreenTests : TestBase() {
     @DisplayName("2. The App shows a series of introductory screens explaining the following:")
     inner class IntroductoryScreens {
 
-        @RetryingTest(MAX_RETRY_COUNT)
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @DisplayName("2.1. The purpose of the app (online identification and data sharing)")
         fun verifyPurposeScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
             assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
         }
 
-        @RetryingTest(MAX_RETRY_COUNT)
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @DisplayName("2.2. The privacy benefits of the app (selective disclosure)")
         fun verifyPrivacyScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
@@ -44,7 +44,7 @@ class IntroductionScreenTests : TestBase() {
             assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
         }
 
-        @RetryingTest(MAX_RETRY_COUNT)
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @DisplayName("2.3. The autonomy benefits of the app (user in control, transparency, history)")
         fun verifyAutonomyScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
@@ -57,7 +57,7 @@ class IntroductionScreenTests : TestBase() {
         }
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("3. The App offers a button to skip the intro, leading to the onboarding process summary.")
     fun verifySkipIntroButtons() {
         val expectationsScreen = IntroductionExpectationsScreen()
@@ -90,7 +90,7 @@ class IntroductionScreenTests : TestBase() {
         assertTrue(expectationsScreen.visible(), "expectations screen is not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("4. These explanation screens all display a back-button.")
     fun verifyPageBackButtons() {
         introductionScreen.clickNextButton() // page 1 -> 2
