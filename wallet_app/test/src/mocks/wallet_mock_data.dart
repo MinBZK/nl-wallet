@@ -103,10 +103,10 @@ abstract class WalletMockData {
       );
 
   static OperationTimelineAttribute get operationTimelineAttribute => OperationTimelineAttribute(
-        dataAttributes: [WalletMockData.textDataAttribute],
+        dataAttributes: WalletMockData.card.attributes,
         dateTime: DateTime(2023, 1, 1),
         organization: WalletMockData.organization,
         status: OperationStatus.issued,
-        cardTitle: cardFront.title,
+        card: WalletMockData.card,
       );
 }

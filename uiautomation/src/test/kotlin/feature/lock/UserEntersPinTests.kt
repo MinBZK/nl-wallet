@@ -85,7 +85,7 @@ class UserEntersPinTests : TestBase() {
     fun verifyLastActiveScreen() {
         pinScreen.enterPin(OnboardingNavigator.PIN)
 
-        val dashboardScreen = DashboardScreen();
+        val dashboardScreen = DashboardScreen()
         assertTrue(dashboardScreen.visible(), "dashboard screen is not visible")
     }
 

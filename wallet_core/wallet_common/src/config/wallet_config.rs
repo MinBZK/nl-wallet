@@ -7,14 +7,29 @@ use std::{
 use etag::EntityTag;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use url::{ParseError, Url};
+use url::Url;
 use webpki::TrustAnchor;
 
 use crate::{account::serialization::DerVerifyingKey, trust_anchor::DerTrustAnchor};
 
 // This should always equal the deep/universal link configured for the app.
-static UNIVERSAL_LINK_BASE: Lazy<Url> =
-    Lazy::new(|| Url::parse("walletdebuginteraction://wallet.edi.rijksoverheid.nl/").unwrap());
+static UNIVERSAL_LINK_BASE: Lazy<Url> = Lazy::new(|| {
+    Url::parse("https://example.com/deeplink/")
+        .expect("hardcoded values should always result in a valid URL")
+});
+const DIGID_REDIRECT_PATH: &str = "authentication/";
+const DISCLOSURE_BASE_PATH: &str = "disclosure/";
+
+pub static ISSUANCE_REDIRECT_URI: Lazy<Url> = Lazy::new(|| {
+    UNIVERSAL_LINK_BASE
+        .join(DIGID_REDIRECT_PATH)
+        .expect("hardcoded values should always result in a valid URL")
+});
+pub static DISCLOSURE_BASE_URI: Lazy<Url> = Lazy::new(|| {
+    UNIVERSAL_LINK_BASE
+        .join(DISCLOSURE_BASE_PATH)
+        .expect("hardcoded values should always result in a valid URL")
+});
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct WalletConfiguration {
@@ -78,12 +93,10 @@ pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: Url,
     pub digid_url: Url,
     pub digid_client_id: String,
-    pub digid_redirect_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct DisclosureConfiguration {
-    pub uri_base_path: String,
     pub rp_trust_anchors: Vec<DerTrustAnchor>,
 }
 
@@ -95,17 +108,7 @@ impl Debug for AccountServerConfiguration {
     }
 }
 
-impl PidIssuanceConfiguration {
-    pub fn digid_redirect_uri(&self) -> Result<Url, ParseError> {
-        UNIVERSAL_LINK_BASE.join(&self.digid_redirect_path)
-    }
-}
-
 impl DisclosureConfiguration {
-    pub fn uri_base(&self) -> Result<Url, ParseError> {
-        UNIVERSAL_LINK_BASE.join(&self.uri_base_path)
-    }
-
     pub fn rp_trust_anchors(&self) -> Vec<TrustAnchor> {
         self.rp_trust_anchors
             .iter()

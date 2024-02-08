@@ -1,5 +1,6 @@
 use tracing::info;
 use url::Url;
+use wallet_common::config::wallet_config::DISCLOSURE_BASE_URI;
 
 use crate::{config::ConfigurationRepository, digid::DigidSession};
 
@@ -38,10 +39,7 @@ where
             return Ok(UriType::PidIssuance(uri));
         }
 
-        // Assume that redirect URI creation is checked when updating the `Configuration`.
-        let disclosure_redirect_uri_base = self.config_repository.config().disclosure.uri_base().unwrap();
-
-        if uri.as_str().starts_with(disclosure_redirect_uri_base.as_str()) {
+        if uri.as_str().starts_with(DISCLOSURE_BASE_URI.as_str()) {
             return Ok(UriType::Disclosure(uri));
         }
 
@@ -66,7 +64,7 @@ mod tests {
         let example_uri = "https://example.com";
         let digid_uri = "redirect://here";
 
-        let mut disclosure_uri_base = wallet.config_repository.config().disclosure.uri_base().unwrap();
+        let mut disclosure_uri_base = DISCLOSURE_BASE_URI.to_owned();
 
         // Add a trailing slash to the base path, if needed.
         if !disclosure_uri_base.path().ends_with('/') {

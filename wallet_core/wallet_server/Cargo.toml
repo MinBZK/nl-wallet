@@ -39,7 +39,6 @@ base64.workspace = true
 chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
-lazy_static.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa"] }

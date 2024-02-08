@@ -1,8 +1,8 @@
 {
     "device": "Google Pixel 8",
     "remoteOrLocal": "Remote",
-    "appPackage": "nl.rijksoverheid.edi.wallet",
     "appActivity": "nl.rijksoverheid.edi.wallet.MainActivity",
+    "appPackage": "nl.ictu.edi.wallet.latest",
     "bundleId": "nl.ictu.edi.wallet.latest",
     "server": "http://hub.browserstack.com/wd/hub",
     "sessionUrl": "https://api.browserstack.com/app-automate/sessions/%s.json",
@@ -203,7 +203,7 @@
         {
             "deviceName": "emulator-5554",
             "platformName": "android",
-            "platformVersion": "13"
+            "platformVersion": "14"
         }
     ]
 }

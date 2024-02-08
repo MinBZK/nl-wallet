@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/wallet_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../home/bloc/home_bloc.dart';
@@ -23,19 +24,26 @@ class MenuScreen extends StatelessWidget {
       onPopInvoked: (didPop) {
         if (!didPop) context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.cards));
       },
-      child: Scrollbar(
-        key: const Key('menuScreen'),
-        child: CustomScrollView(
-          slivers: [
-            SliverWalletAppBar(
-              title: context.l10n.menuScreenTitle,
-              leading: WalletBackButton(
-                onPressed: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.cards)),
+      child: Column(
+        children: [
+          Expanded(
+            child: Scrollbar(
+              key: const Key('menuScreen'),
+              child: CustomScrollView(
+                slivers: [
+                  SliverWalletAppBar(
+                    title: context.l10n.menuScreenTitle,
+                    leading: WalletBackButton(
+                      onPressed: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.cards)),
+                    ),
+                  ),
+                  _buildContentSliver(context),
+                ],
               ),
             ),
-            _buildContentSliver(context),
-          ],
-        ),
+          ),
+          const BottomBackButton(showDivider: true),
+        ],
       ),
     );
   }
@@ -97,7 +105,7 @@ class MenuScreen extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 40),
       ],
     );
   }
