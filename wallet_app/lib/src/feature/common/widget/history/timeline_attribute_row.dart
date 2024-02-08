@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/timeline/interaction_timeline_attribute.dart';
+import '../../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/formatter/time_ago_formatter.dart';
@@ -11,9 +12,10 @@ import '../../../../util/mapper/timeline/interaction_status_color_mapper.dart';
 import '../../../../util/mapper/timeline/signing_error_status_icon_mapper.dart';
 import '../../../../util/mapper/timeline/timeline_attribute_error_status_icon_mapper.dart';
 import '../../../../util/mapper/timeline/timeline_attribute_status_color_mapper.dart';
+import '../card/wallet_card_item.dart';
 import '../organization/organization_logo.dart';
 
-const _kOrganizationLogoSize = 40.0;
+const _kThumbnailSize = 40.0;
 
 class TimelineAttributeRow extends StatelessWidget {
   final TimelineAttribute attribute;
@@ -44,10 +46,7 @@ class TimelineAttributeRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 ExcludeSemantics(
-                  child: OrganizationLogo(
-                    image: attribute.organization.logo,
-                    size: _kOrganizationLogoSize,
-                  ),
+                  child: _buildThumbnail(context),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -79,6 +78,24 @@ class TimelineAttributeRow extends StatelessWidget {
           const Divider(height: 1),
         ],
       ),
+    );
+  }
+
+  /// For card related operations (issued/renewed/expired) show the card as a thumbnail,
+  /// otherwise show the organization logo as the thumbnail.
+  Widget _buildThumbnail(BuildContext context) {
+    if (attribute is OperationTimelineAttribute) {
+      return SizedBox(
+        width: _kThumbnailSize,
+        child: WalletCardItem.fromCardFront(
+          context: context,
+          front: (attribute as OperationTimelineAttribute).card.front,
+        ),
+      );
+    }
+    return OrganizationLogo(
+      image: attribute.organization.logo,
+      size: _kThumbnailSize,
     );
   }
 

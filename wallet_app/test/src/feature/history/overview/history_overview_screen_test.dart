@@ -71,18 +71,46 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('entries are visible', (tester) async {
+    testWidgets('OperationAttribute renders the card title', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          historyOverviewLoadSuccessMock,
+          HistoryOverviewLoadSuccess([
+            WalletMockData.operationTimelineAttribute,
+          ]),
         ),
       );
 
-      // Operation renders the title of the card
-      expect(find.text(WalletMockData.operationTimelineAttribute.cardTitle.testValue), findsOneWidget);
-      // Sign and Interaction render the title of the organization
-      expect(find.text(WalletMockData.organization.displayName.testValue), findsNWidgets(2));
+      // Operation renders the title of the card twice, once as the row title, and once inside the card thumbnail
+      expect(find.text(WalletMockData.operationTimelineAttribute.card.front.title.testValue), findsNWidgets(2));
+    });
+
+    testWidgets('SignAttribute renders the organization title', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
+          MockHistoryOverviewBloc(),
+          HistoryOverviewLoadSuccess([
+            WalletMockData.signingTimelineAttribute,
+          ]),
+        ),
+      );
+
+      // Sign attribute renders the title of the organization
+      expect(find.text(WalletMockData.organization.displayName.testValue), findsOneWidget);
+    });
+
+    testWidgets('InteractionAttribute renders the organization title', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
+          MockHistoryOverviewBloc(),
+          HistoryOverviewLoadSuccess([
+            WalletMockData.interactionTimelineAttribute,
+          ]),
+        ),
+      );
+
+      // Interaction attribute renders the title of the organization
+      expect(find.text(WalletMockData.organization.displayName.testValue), findsOneWidget);
     });
   });
 }

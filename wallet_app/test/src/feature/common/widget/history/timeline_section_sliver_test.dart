@@ -24,11 +24,12 @@ void main() {
       requestPurpose: 'Request Purpose'.untranslated,
     ),
     OperationTimelineAttribute(
-        dateTime: DateTime(2023, 1, 2),
-        dataAttributes: [WalletMockData.textDataAttribute],
-        organization: WalletMockData.organization,
-        status: OperationStatus.expired,
-        cardTitle: 'Card Title'.untranslated),
+      dateTime: DateTime(2023, 1, 2),
+      dataAttributes: [WalletMockData.textDataAttribute],
+      organization: WalletMockData.organization,
+      status: OperationStatus.expired,
+      card: WalletMockData.card,
+    ),
     SigningTimelineAttribute(
       dateTime: DateTime(2023, 1, 3),
       dataAttributes: [WalletMockData.textDataAttribute],
