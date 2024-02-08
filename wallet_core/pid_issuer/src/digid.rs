@@ -19,7 +19,7 @@ use url::Url;
 use crate::{app::BsnLookup, settings};
 
 const APPLICATION_JWT: &str = "application/jwt";
-const BSN_KEY: &str = "uzi_id";
+const BSN_KEY: &str = "bsn";
 
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
