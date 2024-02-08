@@ -11,6 +11,7 @@ use nl_wallet_mdoc::{
     server_keys::KeysError,
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
 };
+use wallet_common::config::wallet_config::DISCLOSURE_BASE_URI;
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -89,10 +90,8 @@ where
 
         let config = &self.config_repository.config().disclosure;
 
-        // Assume that redirect URI creation is checked when updating the `Configuration`.
-        let disclosure_redirect_uri_base = config.uri_base().unwrap();
-        let disclosure_uri = DisclosureUriData::parse_from_uri(uri, &disclosure_redirect_uri_base)
-            .map_err(DisclosureError::DisclosureUri)?;
+        let disclosure_uri =
+            DisclosureUriData::parse_from_uri(uri, &DISCLOSURE_BASE_URI).map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors())
@@ -401,6 +400,7 @@ mod tests {
     use assert_matches::assert_matches;
     use itertools::Itertools;
     use mockall::predicate::*;
+    use once_cell::sync::Lazy;
     use rstest::rstest;
     use serial_test::serial;
 
@@ -421,8 +421,13 @@ mod tests {
 
     use super::{super::test::WalletWithMocks, *};
 
-    const DISCLOSURE_URI: &str =
-        "walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device";
+    static DISCLOSURE_URI: Lazy<Url> = Lazy::<Url>::new(|| {
+        let mut base_uri = DISCLOSURE_BASE_URI
+            .join("Zm9vYmFy")
+            .expect("hardcoded values should always result in a valid URL");
+        base_uri.set_query(Some("return_url=https%3A%2F%2Fexample.com&session_type=same_device"));
+        base_uri
+    });
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
     #[tokio::test]
@@ -458,7 +463,7 @@ mod tests {
 
         // Starting disclosure should not fail.
         let proposal = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect("Could not start disclosure");
 
@@ -500,7 +505,7 @@ mod tests {
 
         // Starting disclosure on a locked wallet should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -515,7 +520,7 @@ mod tests {
 
         // Starting disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -532,7 +537,7 @@ mod tests {
 
         // Starting disclosure on a wallet with an active disclosure should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -564,7 +569,7 @@ mod tests {
 
         // Starting disclosure with a malformed disclosure URI should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -592,7 +597,7 @@ mod tests {
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
         let error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -628,7 +633,7 @@ mod tests {
         // Starting disclosure where an attribute that is both unavailable
         // and unknown is requested should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -675,7 +680,7 @@ mod tests {
 
         // Starting disclosure where unknown attributes are requested should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -724,7 +729,7 @@ mod tests {
 
         // Start a disclosure session, to ensure a proper session exists that can be cancelled.
         let _ = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect("Could not start disclosure");
 
@@ -782,7 +787,7 @@ mod tests {
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
         let _error = wallet
-            .start_disclosure(&Url::parse(DISCLOSURE_URI).unwrap())
+            .start_disclosure(&DISCLOSURE_URI)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
         assert!(wallet.disclosure_session.is_some());

@@ -5132,7 +5132,6 @@ dependencies = [
  "chrono",
  "config",
  "dashmap",
- "lazy_static",
  "mime",
  "nl_wallet_mdoc",
  "nutype",
