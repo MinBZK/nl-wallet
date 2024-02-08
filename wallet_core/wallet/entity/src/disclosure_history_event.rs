@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
-use crate::{disclosure_history_event_doc_type, history_doc_type};
+use crate::{disclosure_history_event_doc_type, history_doc_type, history_event_documents::HistoryEventDocuments};
 
 #[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
@@ -14,7 +14,7 @@ pub enum EventStatus {
     Cancelled,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "disclosure_history_event")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
@@ -24,7 +24,7 @@ pub struct Model {
     pub status: EventStatus,
     // TODO: How to translate a generic description? Shouldn't this be part of the audit log?
     pub status_description: Option<String>,
-    pub attributes: Option<String>,
+    pub attributes: Option<HistoryEventDocuments>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

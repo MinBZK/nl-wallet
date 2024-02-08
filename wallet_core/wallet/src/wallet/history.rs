@@ -14,7 +14,7 @@ pub use crate::storage::EventStatus;
 use crate::{
     document::DocumentMdocError,
     errors::StorageError,
-    storage::{EventDocuments, Storage, WalletEvent},
+    storage::{HistoryEventDocuments, Storage, WalletEvent},
     DisclosureDocument, Document, DocumentPersistence,
 };
 
@@ -142,7 +142,7 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 status,
                 timestamp,
                 attributes: documents
-                    .map(|EventDocuments(mdocs)| {
+                    .map(|HistoryEventDocuments(mdocs)| {
                         mdocs
                             .into_iter()
                             .map(|(doc_type, namespaces)| {

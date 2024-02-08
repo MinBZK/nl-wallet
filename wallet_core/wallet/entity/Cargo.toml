@@ -12,10 +12,15 @@ doctest = false
 
 [dependencies]
 chrono.workspace = true
+indexmap.workspace = true
 sea-orm = { workspace = true, features = [
     "macros",
     "with-json",
     "with-uuid",
     "with-chrono",
 ] }
+serde.workspace = true
+serde_json.workspace = true
 uuid.workspace = true
+
+nl_wallet_mdoc = { path = "../../mdoc" }

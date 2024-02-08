@@ -166,8 +166,8 @@ impl Storage for MockStorage {
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
         // Convert to database entity and back to check whether the `TryFrom` implementations are complete.
         let converted_event = match WalletEventModel::try_from(event.clone())? {
-            WalletEventModel::Issuance(entity) => WalletEvent::try_from(entity)?,
-            WalletEventModel::Disclosure(entity) => WalletEvent::try_from(entity)?,
+            WalletEventModel::Issuance(entity) => entity.into(),
+            WalletEventModel::Disclosure(entity) => entity.into(),
         };
         assert_eq!(event, converted_event);
         self.event_log.push(converted_event);
