@@ -19,7 +19,7 @@ class TimelineAttributeTitleFormatter {
       case InteractionTimelineAttribute():
         return attribute.organization.displayName.l10nValue(context);
       case OperationTimelineAttribute():
-        return showOperationTitle ? attribute.cardTitle.l10nValue(context) : '';
+        return showOperationTitle ? attribute.card.front.title.l10nValue(context) : '';
       case SigningTimelineAttribute():
         return attribute.organization.displayName.l10nValue(context);
     }
