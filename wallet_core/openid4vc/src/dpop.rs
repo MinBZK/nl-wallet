@@ -106,6 +106,7 @@ pub struct DpopPayload {
     iat: DateTime<Utc>,
 }
 
+#[derive(Clone)]
 pub struct Dpop(Jwt<DpopPayload>);
 
 impl AsRef<str> for Dpop {

@@ -34,6 +34,7 @@ wallet_common.path = "../wallet_common"
 nl_wallet_mdoc.path = "../mdoc"
 
 [dev-dependencies]
+ciborium.workspace = true
 mockall.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true

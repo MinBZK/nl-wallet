@@ -2787,6 +2787,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.21.4",
  "chrono",
+ "ciborium",
  "futures",
  "indexmap 2.0.2",
  "itertools 0.11.0",
