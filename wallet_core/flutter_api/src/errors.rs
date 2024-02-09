@@ -219,7 +219,6 @@ impl FlutterApiErrorFields for ResetError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             ResetError::NotRegistered => FlutterApiErrorType::WalletState,
-            _ => FlutterApiErrorType::Generic,
         }
     }
 }
