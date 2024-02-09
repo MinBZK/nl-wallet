@@ -196,29 +196,20 @@ where
         self.terminate_disclosure_session(session).await
     }
 
-    async fn log_empty_disclosure_error(&mut self, remote_party_certificate: Certificate, message: String) {
-        let event = WalletEvent::new_disclosure(None, remote_party_certificate, EventStatus::Error(message));
-        let _ = self.store_history_event(event).await.map_err(|e| {
-            error!("Could not store error in history: {e}");
-            e
-        });
-    }
-
     async fn log_disclosure_error(
         &mut self,
         session_proposal: Option<ProposedAttributes>,
         remote_party_certificate: Certificate,
         message: String,
-    ) {
+    ) -> Result<(), DisclosureError> {
         let event = WalletEvent::new_disclosure(
             session_proposal.map(Into::into),
             remote_party_certificate,
             EventStatus::Error(message),
         );
-        let _ = self.store_history_event(event).await.map_err(|e| {
-            error!("Could not store error in history: {e}");
-            e
-        });
+        self.store_history_event(event)
+            .await
+            .map_err(DisclosureError::HistoryStorage)
     }
 
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
@@ -263,11 +254,16 @@ where
             .increment_mdoc_copies_usage_count(session_proposal.proposed_source_identifiers())
             .await
         {
-            self.log_empty_disclosure_error(
-                session.rp_certificate().clone(),
-                "Failed to register shared mdoc copy".to_string(),
-            )
-            .await;
+            if let Err(e) = self
+                .log_disclosure_error(
+                    None, // No data was shared yet
+                    session.rp_certificate().clone(),
+                    "Failed to register shared mdoc copy".to_string(),
+                )
+                .await
+            {
+                error!("Could not store error in history: {e}");
+            }
             return Err(DisclosureError::IncrementUsageCount(error));
         }
 
@@ -289,12 +285,16 @@ where
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         if let Err(error) = session_proposal.disclose(&&remote_key_factory).await {
-            self.log_disclosure_error(
-                error.data_shared.then(|| session_proposal.proposed_attributes()),
-                session.rp_certificate().clone(),
-                "Error occurred while disclosing attributes".to_owned(),
-            )
-            .await;
+            if let Err(e) = self
+                .log_disclosure_error(
+                    error.data_shared.then(|| session_proposal.proposed_attributes()),
+                    session.rp_certificate().clone(),
+                    "Error occurred while disclosing attributes".to_owned(),
+                )
+                .await
+            {
+                error!("Could not store error in history: {e}");
+            }
 
             let error = match error.error {
                 nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {

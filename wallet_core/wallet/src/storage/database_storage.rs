@@ -3,16 +3,17 @@ use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
 use futures::try_join;
 use sea_orm::{
     sea_query::{Alias, Expr, Query},
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, JoinType, QueryFilter, QueryOrder, QueryResult,
-    QuerySelect, RelationTrait, Select, Set, StatementBuilder, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoSimpleExpr, JoinType, ModelTrait,
+    QueryFilter, QueryOrder, QueryResult, QuerySelect, RelationDef, RelationTrait, Select, Set, StatementBuilder,
+    TransactionTrait,
 };
 use tokio::fs;
 use uuid::Uuid;
 
 use entity::{
-    history_doc_type,
-    history_event::{self, EventStatus, EventType},
-    history_event_doc_type, keyed_data, mdoc, mdoc_copy,
+    disclosure_history_event::{self, EventStatus},
+    disclosure_history_event_doc_type, history_doc_type, issuance_history_event, issuance_history_event_doc_type,
+    keyed_data, mdoc, mdoc_copy,
 };
 use nl_wallet_mdoc::{
     holder::MdocCopies,
@@ -23,7 +24,7 @@ use wallet_common::keys::SecureEncryptionKey;
 use super::{
     data::KeyedData,
     database::{Database, SqliteUrl},
-    event_log::WalletEvent,
+    event_log::{WalletEvent, WalletEventModel},
     key_file::{delete_key_file, get_or_create_key_file},
     sql_cipher_key::SqlCipherKey,
     Storage, StorageError, StorageResult, StorageState, StoredMdocCopy,
@@ -144,6 +145,99 @@ where
             .collect::<Result<_, CborError>>()?;
 
         Ok(mdocs)
+    }
+
+    async fn insert_doc_types(
+        connection: &impl ConnectionTrait,
+        new_doc_type_entities: Vec<history_doc_type::Model>,
+    ) -> Result<(), DbErr> {
+        if !new_doc_type_entities.is_empty() {
+            let new_doc_type_entities = new_doc_type_entities
+                .into_iter()
+                .map(history_doc_type::ActiveModel::from)
+                .collect::<Vec<_>>();
+
+            history_doc_type::Entity::insert_many(new_doc_type_entities)
+                .exec(connection)
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn query_history_events_by_doc_type<
+        Entity: EntityTrait<Model = Model>,
+        Model: ModelTrait<Entity = Entity>,
+        TimestampColumn: IntoSimpleExpr,
+    >(
+        doc_type: &str,
+        connection: &impl ConnectionTrait,
+        event_relation: RelationDef,
+        doc_type_relation: RelationDef,
+        timestamp_column: TimestampColumn,
+    ) -> Result<Vec<Model>, DbErr> {
+        Entity::find()
+            .join_rev(JoinType::InnerJoin, event_relation)
+            .join(JoinType::InnerJoin, doc_type_relation)
+            .filter(history_doc_type::Column::DocType.eq(doc_type))
+            .order_by_desc(timestamp_column)
+            .all(connection)
+            .await
+    }
+
+    async fn insert_history_event_and_doc_type_mappings<
+        EventEntity: EntityTrait,
+        EventActiveModel: ActiveModelTrait<Entity = EventEntity>,
+        EventDocTypeEntity: EntityTrait,
+        EventDocTypeActiveModel: ActiveModelTrait<Entity = EventDocTypeEntity>,
+        DocTypeMapper,
+    >(
+        connection: &impl ConnectionTrait,
+        event_entity: EventActiveModel,
+        new_doc_type_entities: Vec<history_doc_type::Model>,
+        existing_doc_type_entities: Vec<history_doc_type::Model>,
+        doc_type_mapper: DocTypeMapper,
+    ) -> StorageResult<()>
+    where
+        DocTypeMapper: Fn((&EventActiveModel, Uuid)) -> EventDocTypeActiveModel,
+    {
+        // Prepare the event <-> doc_type mapping entities.
+        // This is done before inserting the `event_entity`, in order to avoid cloning.
+        let event_doc_type_entities = new_doc_type_entities
+            .iter()
+            .chain(existing_doc_type_entities.iter())
+            .map(|doc_type| doc_type_mapper((&event_entity, doc_type.id)))
+            .collect::<Vec<_>>();
+
+        // Insert the event and the new doc_types simultaneously, as they are independent
+        let insert_event = EventEntity::insert(event_entity).exec(connection);
+        let insert_new_doc_types = Self::insert_doc_types(connection, new_doc_type_entities);
+        try_join!(insert_event, insert_new_doc_types)?;
+
+        // Insert the event <-> doc_type mappings
+        if !event_doc_type_entities.is_empty() {
+            EventDocTypeEntity::insert_many(event_doc_type_entities)
+                .exec(connection)
+                .await?;
+        }
+        Ok(())
+    }
+
+    fn combine_history_events(
+        issuance_events: Vec<issuance_history_event::Model>,
+        disclosure_events: Vec<disclosure_history_event::Model>,
+    ) -> StorageResult<Vec<WalletEvent>> {
+        let mut issuance_events: Vec<WalletEvent> = issuance_events
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut disclosure_events: Vec<WalletEvent> = disclosure_events
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        issuance_events.append(&mut disclosure_events);
+        issuance_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
+        Ok(issuance_events)
     }
 }
 
@@ -337,42 +431,34 @@ where
             })
             .collect::<Vec<_>>();
 
-        // Create the main history event
-        let event_entity: history_event::ActiveModel = history_event::Model::try_from(event)?.into();
-
-        // Prepare the event <-> doc_type mapping entities.
-        // This is done before inserting the `event_entity`, in order to avoid cloning.
-        let event_doc_type_entities = new_doc_type_entities
-            .iter()
-            .chain(existing_doc_type_entities.iter())
-            .map(|doc_type| history_event_doc_type::ActiveModel {
-                history_event_id: event_entity.id.clone(),
-                history_doc_type_id: Set(doc_type.id),
-            })
-            .collect::<Vec<_>>();
-
-        // Insert the event and the new doc_types simultaneously
-        let insert_events = history_event::Entity::insert(event_entity).exec(&transaction);
-        let insert_new_doc_types = async {
-            if !new_doc_type_entities.is_empty() {
-                let doc_type_entities = new_doc_type_entities
-                    .into_iter()
-                    .map(history_doc_type::ActiveModel::from)
-                    .collect::<Vec<_>>();
-
-                history_doc_type::Entity::insert_many(doc_type_entities)
-                    .exec(&transaction)
-                    .await?;
-            }
-            Ok(())
-        };
-        try_join!(insert_events, insert_new_doc_types)?;
-
-        // Insert the event <-> doc_type mappings
-        if !event_doc_type_entities.is_empty() {
-            history_event_doc_type::Entity::insert_many(event_doc_type_entities)
-                .exec(&transaction)
+        // Insert the history event
+        match WalletEventModel::try_from(event)? {
+            WalletEventModel::Issuance(event_entity) => {
+                Self::insert_history_event_and_doc_type_mappings(
+                    &transaction,
+                    issuance_history_event::ActiveModel::from(event_entity),
+                    new_doc_type_entities,
+                    existing_doc_type_entities,
+                    |(event, doc_type_id)| issuance_history_event_doc_type::ActiveModel {
+                        issuance_history_event_id: event.id.clone(),
+                        history_doc_type_id: Set(doc_type_id),
+                    },
+                )
                 .await?;
+            }
+            WalletEventModel::Disclosure(event_entity) => {
+                Self::insert_history_event_and_doc_type_mappings(
+                    &transaction,
+                    disclosure_history_event::ActiveModel::from(event_entity),
+                    new_doc_type_entities,
+                    existing_doc_type_entities,
+                    |(event, doc_type_id)| disclosure_history_event_doc_type::ActiveModel {
+                        disclosure_history_event_id: event.id.clone(),
+                        history_doc_type_id: Set(doc_type_id),
+                    },
+                )
+                .await?;
+            }
         }
 
         transaction.commit().await?;
@@ -383,40 +469,40 @@ where
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let entities = history_event::Entity::find()
-            .order_by_desc(history_event::Column::Timestamp)
-            .all(connection)
-            .await?;
+        let fetch_issuance_events = issuance_history_event::Entity::find()
+            .order_by_desc(issuance_history_event::Column::Timestamp)
+            .all(connection);
 
-        let events = entities
-            .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<_, _>>()?;
-        Ok(events)
+        let fetch_disclosure_events = disclosure_history_event::Entity::find()
+            .order_by_desc(disclosure_history_event::Column::Timestamp)
+            .all(connection);
+
+        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+
+        Self::combine_history_events(issuance_events, disclosure_events)
     }
 
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let entities = history_event::Entity::find()
-            .join_rev(
-                JoinType::InnerJoin,
-                history_event_doc_type::Relation::HistoryEvent.def(),
-            )
-            .join(
-                JoinType::InnerJoin,
-                history_event_doc_type::Relation::HistoryDocType.def(),
-            )
-            .filter(history_doc_type::Column::DocType.eq(doc_type))
-            .order_by_desc(history_event::Column::Timestamp)
-            .all(connection)
-            .await?;
+        let fetch_issuance_events = Self::query_history_events_by_doc_type(
+            doc_type,
+            connection,
+            issuance_history_event_doc_type::Relation::HistoryEvent.def(),
+            issuance_history_event_doc_type::Relation::HistoryDocType.def(),
+            issuance_history_event::Column::Timestamp,
+        );
+        let fetch_disclosure_events = Self::query_history_events_by_doc_type(
+            doc_type,
+            connection,
+            disclosure_history_event_doc_type::Relation::HistoryEvent.def(),
+            disclosure_history_event_doc_type::Relation::HistoryDocType.def(),
+            disclosure_history_event::Column::Timestamp,
+        );
 
-        let events = entities
-            .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<_, _>>()?;
-        Ok(events)
+        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+
+        Self::combine_history_events(issuance_events, disclosure_events)
     }
 
     async fn did_share_data_with_relying_party(
@@ -424,12 +510,11 @@ where
         certificate: &nl_wallet_mdoc::utils::x509::Certificate,
     ) -> StorageResult<bool> {
         let select_statement = Query::select()
-            .column(history_event::Column::RelyingPartyCertificate)
-            .from(history_event::Entity)
-            .and_where(Expr::col(history_event::Column::RelyingPartyCertificate).eq(certificate.as_bytes()))
-            .and_where(Expr::col(history_event::Column::EventType).eq(EventType::Disclosure))
-            .and_where(Expr::col(history_event::Column::Status).eq(EventStatus::Success))
-            .and_where(Expr::col(history_event::Column::Attributes).is_not_null())
+            .column(disclosure_history_event::Column::RelyingPartyCertificate)
+            .from(disclosure_history_event::Entity)
+            .and_where(Expr::col(disclosure_history_event::Column::RelyingPartyCertificate).eq(certificate.as_bytes()))
+            .and_where(Expr::col(disclosure_history_event::Column::Status).eq(EventStatus::Success))
+            .and_where(Expr::col(disclosure_history_event::Column::Attributes).is_not_null())
             .limit(1)
             .take();
 
