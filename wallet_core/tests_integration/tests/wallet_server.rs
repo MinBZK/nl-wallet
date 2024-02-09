@@ -1,7 +1,7 @@
 use base64::prelude::*;
 use indexmap::IndexMap;
 use openid4vc::{
-    issuance_client::{HttpIssuerClient, IssuerClient},
+    issuance_client::{HttpIssuerClient, HttpOpenidMessageClient, IssuerClient},
     token::TokenRequest,
 };
 use reqwest::{Client, StatusCode};
@@ -167,9 +167,13 @@ async fn test_mock_issuance() {
     let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string().into());
 
     // Exchange the authorization code for an access token and the attestation previews
-    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)
-        .await
-        .unwrap();
+    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
+        HttpOpenidMessageClient::new(reqwest_client()),
+        &server_url,
+        token_request,
+    )
+    .await
+    .unwrap();
 
     // Accept the attestations and finish issuance
     let mdocs = pid_issuer_client
@@ -196,9 +200,13 @@ async fn test_reject_issuance() {
     let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string().into());
 
     // Exchange the authorization code for an access token and the attestation previews
-    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)
-        .await
-        .unwrap();
+    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
+        HttpOpenidMessageClient::new(reqwest_client()),
+        &server_url,
+        token_request,
+    )
+    .await
+    .unwrap();
 
     // Reject issuance
     pid_issuer_client.reject_issuance().await.unwrap();
@@ -242,9 +250,13 @@ async fn test_pid_issuance_digid_bridge() {
 
     let token_request = digid_session.into_pre_authorized_code_request(authorization_code);
 
-    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)
-        .await
-        .unwrap();
+    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
+        HttpOpenidMessageClient::new(reqwest_client()),
+        &server_url,
+        token_request,
+    )
+    .await
+    .unwrap();
 
     let mdocs = pid_issuer_client
         .accept_issuance(

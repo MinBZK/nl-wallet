@@ -5,7 +5,7 @@ use nl_wallet_mdoc::{
 use url::Url;
 
 use crate::{
-    issuance_client::IssuerClient,
+    issuance_client::{HttpOpenidMessageClient, IssuerClient},
     token::{AttestationPreview, TokenRequest},
     IssuerClientError,
 };
@@ -29,7 +29,7 @@ mockall::mock! {
 
 impl IssuerClient for MockIssuerClient {
     async fn start_issuance(
-        _: reqwest::Client,
+        _: HttpOpenidMessageClient,
         _: &Url,
         _: TokenRequest,
     ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>

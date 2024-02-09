@@ -1,5 +1,5 @@
 use http::{header, HeaderMap, HeaderValue};
-use openid4vc::issuance_client::IssuerClient;
+use openid4vc::issuance_client::{HttpOpenidMessageClient, IssuerClient};
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
@@ -150,8 +150,12 @@ where
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        let (pid_issuer, attestation_previews) =
-            IC::start_issuance(http_client, &config.pid_issuance.pid_issuer_url, token_request).await?;
+        let (pid_issuer, attestation_previews) = IC::start_issuance(
+            HttpOpenidMessageClient::new(http_client),
+            &config.pid_issuance.pid_issuer_url,
+            token_request,
+        )
+        .await?;
 
         self.pid_issuer.replace(pid_issuer);
 

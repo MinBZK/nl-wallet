@@ -24,9 +24,9 @@ use crate::{
     ErrorResponse, Format, IssuerClientError, NL_WALLET_CLIENT_ID,
 };
 
-pub trait IssuerClient {
+pub trait IssuerClient<H = HttpOpenidMessageClient> {
     async fn start_issuance(
-        http_client: reqwest::Client,
+        message_client: H,
         base_url: &Url,
         token_request: TokenRequest,
     ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
@@ -43,8 +43,8 @@ pub trait IssuerClient {
     async fn reject_issuance(self) -> Result<(), IssuerClientError>;
 }
 
-pub struct HttpIssuerClient {
-    message_client: OpenidHttpMessageClient,
+pub struct HttpIssuerClient<H = HttpOpenidMessageClient> {
+    message_client: H,
     session_state: IssuanceState,
 }
 
@@ -67,11 +67,17 @@ pub trait OpenidMessageClient {
     async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), IssuerClientError>;
 }
 
-pub struct OpenidHttpMessageClient {
+pub struct HttpOpenidMessageClient {
     http_client: reqwest::Client,
 }
 
-impl OpenidMessageClient for OpenidHttpMessageClient {
+impl HttpOpenidMessageClient {
+    pub fn new(http_client: reqwest::Client) -> Self {
+        Self { http_client }
+    }
+}
+
+impl OpenidMessageClient for HttpOpenidMessageClient {
     async fn request_token(
         &self,
         url: &Url,
@@ -151,9 +157,9 @@ struct IssuanceState {
     dpop_nonce: Option<String>,
 }
 
-impl IssuerClient for HttpIssuerClient {
+impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
     async fn start_issuance(
-        http_client: reqwest::Client,
+        message_client: H,
         base_url: &Url,
         token_request: TokenRequest,
     ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError> {
@@ -162,9 +168,7 @@ impl IssuerClient for HttpIssuerClient {
         let dpop_private_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
 
-        let http_client = OpenidHttpMessageClient { http_client };
-
-        let (token_response, dpop_nonce) = http_client.request_token(&url, &token_request, &dpop_header).await?;
+        let (token_response, dpop_nonce) = message_client.request_token(&url, &token_request, &dpop_header).await?;
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -179,7 +183,7 @@ impl IssuerClient for HttpIssuerClient {
         };
 
         let issuance_client = Self {
-            message_client: http_client,
+            message_client,
             session_state,
         };
         Ok((issuance_client, token_response.attestation_previews))
