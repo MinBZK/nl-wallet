@@ -12,7 +12,7 @@ use openid::{
     },
     error as openid_errors, Empty, OAuth2Error,
 };
-use openid4vc::token::{TokenRequest, TokenResponse};
+use openid4vc::token::{AccessToken, TokenRequest, TokenResponse};
 use serde_json::Value;
 use tracing::debug;
 use url::Url;
@@ -84,7 +84,7 @@ impl OpenIdClient {
         Ok(client)
     }
 
-    pub async fn bsn(&self, access_token: &str) -> Result<String> {
+    pub async fn bsn(&self, access_token: &AccessToken) -> Result<String> {
         let userinfo_claims: UserInfoJWT = self
             .request_userinfo_decrypted_claims(access_token, &self.decrypter_private_key)
             .await?;
@@ -116,7 +116,7 @@ impl OpenIdClient {
         Ok(bsn)
     }
 
-    pub async fn request_token(&self, token_request: TokenRequest) -> Result<String> {
+    pub async fn request_token(&self, token_request: TokenRequest) -> Result<AccessToken> {
         let response: TokenResponse = self
             .openid_client
             .http_client

@@ -20,7 +20,7 @@ use crate::{
         CredentialResponses,
     },
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    token::{AttestationPreview, TokenErrorType, TokenRequest, TokenResponseWithPreviews},
+    token::{AccessToken, AttestationPreview, TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     ErrorResponse, Format, IssuerClientError, NL_WALLET_CLIENT_ID,
 };
 
@@ -49,7 +49,7 @@ pub struct HttpIssuerClient {
 }
 
 struct IssuanceState {
-    access_token: String,
+    access_token: AccessToken,
     c_nonce: String,
     attestation_previews: Vec<AttestationPreview>,
     issuer_url: Url,
@@ -291,12 +291,12 @@ impl IssuanceState {
             &self.dpop_private_key,
             url,
             method,
-            Some(self.access_token.clone()),
+            Some(&self.access_token),
             self.dpop_nonce.clone(),
         )
         .await?;
 
-        let access_token_header = "DPoP ".to_string() + &self.access_token;
+        let access_token_header = "DPoP ".to_string() + self.access_token.as_ref();
 
         Ok((dpop_header.as_ref().to_string(), access_token_header))
     }

@@ -59,7 +59,7 @@ impl AttributeService for MockPidAttributeService {
     ) -> Result<Vec<UnsignedMdoc>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
-                code: token_request.code().to_string(),
+                code: token_request.code().clone(),
             },
             ..token_request
         };

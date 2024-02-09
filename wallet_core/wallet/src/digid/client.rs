@@ -1,5 +1,5 @@
 use base64::prelude::*;
-use openid4vc::token::{TokenRequest, TokenRequestGrantType};
+use openid4vc::token::{AuthorizationCode, TokenRequest, TokenRequestGrantType};
 use url::Url;
 
 use wallet_common::utils;
@@ -78,7 +78,7 @@ where
             .starts_with(self.redirect_uri_base.as_str())
     }
 
-    fn get_authorization_code(&self, received_redirect_uri: &Url) -> Result<String, DigidError> {
+    fn get_authorization_code(&self, received_redirect_uri: &Url) -> Result<AuthorizationCode, DigidError> {
         // Check if the redirect URL received actually belongs to us.
         if !self.matches_received_redirect_uri(received_redirect_uri) {
             return Err(DigidError::RedirectUriMismatch);
@@ -109,10 +109,10 @@ where
         let authorization_code =
             url_find_first_query_value(received_redirect_uri, PARAM_CODE).ok_or(DigidError::NoAuthCode)?;
 
-        Ok(authorization_code.into_owned())
+        Ok(authorization_code.into_owned().into())
     }
 
-    fn into_pre_authorized_code_request(self, pre_authorized_code: String) -> TokenRequest {
+    fn into_pre_authorized_code_request(self, pre_authorized_code: AuthorizationCode) -> TokenRequest {
         TokenRequest {
             grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
             code_verifier: Some(self.pkce_pair.code_verifier().to_string()),

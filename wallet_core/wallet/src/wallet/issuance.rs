@@ -477,7 +477,7 @@ mod tests {
 
             session
                 .expect_get_authorization_code()
-                .return_once(|_received_redirect_uri| Ok("123".to_string()));
+                .return_once(|_received_redirect_uri| Ok("123".to_string().into()));
 
             session
                 .expect_into_pre_authorized_code_request()
@@ -568,7 +568,7 @@ mod tests {
 
             session
                 .expect_get_authorization_code()
-                .return_once(|_received_redirect_uri| Ok("123".to_string()));
+                .return_once(|_received_redirect_uri| Ok("123".to_string().into()));
 
             session
                 .expect_into_pre_authorized_code_request()
@@ -609,7 +609,7 @@ mod tests {
 
             session
                 .expect_get_authorization_code()
-                .return_once(|_received_redirect_uri| Ok("123".to_string()));
+                .return_once(|_received_redirect_uri| Ok("123".to_string().into()));
 
             session
                 .expect_into_pre_authorized_code_request()

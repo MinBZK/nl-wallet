@@ -2,14 +2,68 @@ use std::time::Duration;
 
 use indexmap::IndexSet;
 use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
+use nl_wallet_mdoc::server_state::SessionToken;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::formats::SpaceSeparator;
 use serde_with::{serde_as, skip_serializing_none};
 use serde_with::{DurationSeconds, StringWithSeparator};
 use url::Url;
+use wallet_common::utils::{random_string, sha256};
 
 use crate::{authorization::AuthorizationDetails, ErrorStatusCode};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AuthorizationCode(String);
+
+impl From<String> for AuthorizationCode {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl AsRef<str> for AuthorizationCode {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct AccessToken(String);
+
+impl From<String> for AccessToken {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl AsRef<str> for AccessToken {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<&AuthorizationCode> for SessionToken {
+    fn from(value: &AuthorizationCode) -> Self {
+        Self::from(value.as_ref().to_string())
+    }
+}
+
+impl AccessToken {
+    /// Construct a new random access token, with the specified authorization code appended to it.
+    pub(crate) fn new(code: &AuthorizationCode) -> Self {
+        Self(random_string(32) + code.as_ref())
+    }
+
+    /// Returns the authorization code appended to this access token.
+    pub(crate) fn code(&self) -> Option<AuthorizationCode> {
+        self.as_ref().get(32..).map(|code| AuthorizationCode(code.to_string()))
+    }
+
+    pub(crate) fn sha256(&self) -> Vec<u8> {
+        sha256(self.as_ref().as_bytes())
+    }
+}
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-token-request
 /// and https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.3.
@@ -30,7 +84,7 @@ pub struct TokenRequest {
 
 impl TokenRequest {
     /// Retrieve either the authorization code or the pre-authorized code, depending on the authorization grant type.
-    pub fn code(&self) -> &str {
+    pub fn code(&self) -> &AuthorizationCode {
         match &self.grant_type {
             TokenRequestGrantType::AuthorizationCode { code } => code,
             TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } => pre_authorized_code,
@@ -44,11 +98,11 @@ impl TokenRequest {
 #[serde(tag = "grant_type")]
 pub enum TokenRequestGrantType {
     #[serde(rename = "authorization_code")]
-    AuthorizationCode { code: String },
+    AuthorizationCode { code: AuthorizationCode },
     #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
     PreAuthorizedCode {
         #[serde(rename = "pre-authorized_code")]
-        pre_authorized_code: String,
+        pre_authorized_code: AuthorizationCode,
     },
 }
 
@@ -58,7 +112,7 @@ pub enum TokenRequestGrantType {
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TokenResponse {
-    pub access_token: String,
+    pub access_token: AccessToken,
     pub token_type: TokenType,
     pub refresh_token: Option<String>,
     pub c_nonce: Option<String>,
@@ -168,7 +222,7 @@ mod tests {
         assert_eq!(
             serde_urlencoded::to_string(TokenRequest {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string()
+                    pre_authorized_code: "123".to_string().into()
                 },
                 code_verifier: Some("myverifier".to_string()),
                 client_id: Some("myclient".to_string()),
@@ -183,7 +237,7 @@ mod tests {
     fn token_response_serialization() {
         assert_eq!(
             serde_json::to_string(&TokenResponse {
-                access_token: "access_token".to_string(),
+                access_token: "access_token".to_string().into(),
                 token_type: crate::token::TokenType::Bearer,
                 c_nonce: Some("c_nonce".to_string()),
                 scope: Some(IndexSet::from_iter(["scope1".to_string(), "scope2".to_string()])),

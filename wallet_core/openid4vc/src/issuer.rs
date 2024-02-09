@@ -26,7 +26,8 @@ use crate::{
     dpop::{Dpop, DpopError},
     jwt::{jwk_to_p256, JwkConversionError},
     token::{
-        AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType,
+        AccessToken, AttestationPreview, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse,
+        TokenResponseWithPreviews, TokenType,
     },
     Format,
 };
@@ -43,8 +44,8 @@ separate in the type system here. */
 pub enum IssuanceError {
     #[error("session not in expected state")]
     UnexpectedState,
-    #[error("unknown session: {0}")]
-    UnknownSession(String),
+    #[error("unknown session: {0:?}")]
+    UnknownSession(AuthorizationCode),
     #[error("failed to retrieve session: {0}")]
     SessionStore(#[from] SessionStoreError),
     #[error("invalid DPoP header: {0}")]
@@ -112,7 +113,7 @@ pub struct Created {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
-    pub access_token: String,
+    pub access_token: AccessToken,
     pub c_nonce: String,
     pub attestation_previews: Vec<AttestationPreview>,
     pub dpop_public_key: VerifyingKey,
@@ -234,7 +235,7 @@ where
         token_request: TokenRequest,
         dpop: Dpop,
     ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
-        let session_token = token_request.code().to_string().into();
+        let session_token = token_request.code().into();
 
         // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
         // attribute service.
@@ -275,14 +276,14 @@ where
 
     pub async fn process_credential(
         &self,
-        access_token: &str,
+        access_token: &AccessToken,
         dpop: Dpop,
         credential_request: CredentialRequest,
     ) -> Result<CredentialResponse, CredentialRequestError> {
-        let code = code_from_access_token(access_token)?;
+        let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self
             .sessions
-            .get(&code.clone().into())
+            .get(&(&code).into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
@@ -291,7 +292,7 @@ where
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
-            .process_credential(credential_request, access_token.to_string(), dpop, &self.issuer_data)
+            .process_credential(credential_request, access_token.clone(), dpop, &self.issuer_data)
             .await;
 
         self.sessions
@@ -304,14 +305,14 @@ where
 
     pub async fn process_batch_credential(
         &self,
-        access_token: &str,
+        access_token: &AccessToken,
         dpop: Dpop,
         credential_requests: CredentialRequests,
     ) -> Result<CredentialResponses, CredentialRequestError> {
-        let code = code_from_access_token(access_token)?;
+        let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self
             .sessions
-            .get(&code.clone().into())
+            .get(&(&code).into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
@@ -320,7 +321,7 @@ where
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
-            .process_batch_credential(credential_requests, access_token.to_string(), dpop, &self.issuer_data)
+            .process_batch_credential(credential_requests, access_token.clone(), dpop, &self.issuer_data)
             .await;
 
         self.sessions
@@ -333,14 +334,14 @@ where
 
     pub async fn process_reject_issuance(
         &self,
-        access_token: &str,
+        access_token: &AccessToken,
         dpop: Dpop,
         endpoint_name: &str,
     ) -> Result<(), CredentialRequestError> {
-        let code = code_from_access_token(access_token)?;
+        let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self
             .sessions
-            .get(&code.clone().into())
+            .get(&(&code).into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
@@ -350,7 +351,7 @@ where
 
         // Check authorization of the request
         let session_data = session.session_data();
-        if session_data.access_token != access_token {
+        if session_data.access_token != *access_token {
             return Err(CredentialRequestError::Unauthorized);
         }
 
@@ -362,8 +363,8 @@ where
                 .join(endpoint_name)
                 .unwrap(),
             &Method::DELETE,
-            &Some(access_token.to_string()),
-            &Some(session_data.dpop_nonce.clone()),
+            Some(access_token),
+            Some(session_data.dpop_nonce.clone()),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -379,18 +380,6 @@ where
 
         Ok(())
     }
-}
-
-/// Returns the authorization code from an access token.
-///
-/// The access token should be a random string with the authorization code appended to it, so that we can
-/// use the code suffix to retrieve the session from the session store.
-fn code_from_access_token(access_token: &str) -> Result<String, CredentialRequestError> {
-    let code = access_token
-        .get(32..)
-        .ok_or(CredentialRequestError::MalformedToken)?
-        .to_string();
-    Ok(code)
 }
 
 impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
@@ -461,7 +450,7 @@ impl Session<Created> {
             .await
             .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        let code = token_request.code().to_string();
+        let code = token_request.code().clone();
 
         let unsigned_mdocs = attr_service
             .attributes(&self.state, token_request)
@@ -472,13 +461,12 @@ impl Session<Created> {
         }
 
         // Append the authorization code, so that when the wallet comes back we can use it to retrieve the session
-        let access_token = random_string(32) + &code;
         let c_nonce = random_string(32);
         let dpop_nonce = random_string(32);
 
         let response = TokenResponseWithPreviews {
             token_response: TokenResponse {
-                access_token,
+                access_token: AccessToken::new(&code),
                 c_nonce: Some(c_nonce),
                 token_type: TokenType::Bearer,
                 expires_in: None,
@@ -531,7 +519,7 @@ impl Session<WaitingForResponse> {
     pub async fn process_credential(
         self,
         credential_request: CredentialRequest,
-        access_token: String,
+        access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl KeyRing>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
@@ -555,7 +543,7 @@ impl Session<WaitingForResponse> {
     pub async fn process_credential_inner(
         &self,
         credential_request: CredentialRequest,
-        access_token: String,
+        access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl KeyRing>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
@@ -570,8 +558,8 @@ impl Session<WaitingForResponse> {
             &session_data.dpop_public_key,
             &issuer_data.server_url.join("credential").unwrap(),
             &Method::POST,
-            &Some(access_token),
-            &Some(session_data.dpop_nonce.clone()),
+            Some(&access_token),
+            Some(session_data.dpop_nonce.clone()),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -613,7 +601,7 @@ impl Session<WaitingForResponse> {
     pub async fn process_batch_credential(
         self,
         credential_requests: CredentialRequests,
-        access_token: String,
+        access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl KeyRing>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
@@ -637,7 +625,7 @@ impl Session<WaitingForResponse> {
     async fn process_batch_credential_inner(
         &self,
         credential_requests: CredentialRequests,
-        access_token: String,
+        access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl KeyRing>,
     ) -> Result<CredentialResponses, CredentialRequestError> {
@@ -652,8 +640,8 @@ impl Session<WaitingForResponse> {
             &session_data.dpop_public_key,
             &issuer_data.server_url.join("batch_credential").unwrap(),
             &Method::POST,
-            &Some(access_token),
-            &Some(session_data.dpop_nonce.clone()),
+            Some(&access_token),
+            Some(session_data.dpop_nonce.clone()),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;

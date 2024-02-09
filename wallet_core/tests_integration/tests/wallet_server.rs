@@ -164,7 +164,7 @@ async fn test_mock_issuance() {
         .join("issuance/")
         .unwrap();
 
-    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string());
+    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string().into());
 
     // Exchange the authorization code for an access token and the attestation previews
     let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)
@@ -193,7 +193,7 @@ async fn test_reject_issuance() {
         .join("issuance/")
         .unwrap();
 
-    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string());
+    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string().into());
 
     // Exchange the authorization code for an access token and the attestation previews
     let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(reqwest_client(), &server_url, token_request)

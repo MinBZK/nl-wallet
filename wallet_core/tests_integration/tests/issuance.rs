@@ -33,7 +33,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
         session
             .expect_get_authorization_code()
-            .return_once(|_received_redirect_uri| Ok("123".to_string()));
+            .return_once(|_received_redirect_uri| Ok("123".to_string().into()));
 
         Ok(session)
     });
