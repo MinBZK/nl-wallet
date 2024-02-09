@@ -22,6 +22,7 @@ final class SecureEnclaveKey {
         0x42, 0x00
     ])
 
+    private static let signingAlgorithm: SecKeyAlgorithm = .ecdsaSignatureMessageX962SHA256
     private static let encryptionAlgorithm: SecKeyAlgorithm = .eciesEncryptionCofactorVariableIVX963SHA256AESGCM
 
     private static let queue = DispatchQueue(label: String(describing: SecureEnclaveKey.self), qos: .userInitiated)
@@ -154,7 +155,7 @@ final class SecureEnclaveKey {
     func sign(payload: Data) throws -> Data {
         var error: Unmanaged<CFError>?
         guard let signature = SecKeyCreateSignature(self.privateKey,
-                                                    .ecdsaSignatureMessageX962SHA256,
+                                                    Self.signingAlgorithm,
                                                     payload as CFData,
                                                     &error) else {
             throw SecureEnclaveKeyError.sign(keyChainError: Self.error(for: error))
