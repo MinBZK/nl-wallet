@@ -13,7 +13,6 @@ use std::{array::TryFromSliceError, collections::HashSet, io};
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-pub use entity::history_event_documents::HistoryEventDocuments;
 use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
     utils::{serialization::CborError, x509::Certificate},
@@ -22,7 +21,7 @@ use nl_wallet_mdoc::{
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
     database_storage::DatabaseStorage,
-    event_log::{EventStatus, WalletEvent},
+    event_log::{EventDocuments, EventStatus, WalletEvent},
     key_file::KeyFileError,
 };
 

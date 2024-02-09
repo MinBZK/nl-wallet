@@ -225,13 +225,19 @@ where
     fn combine_history_events(
         issuance_events: Vec<issuance_history_event::Model>,
         disclosure_events: Vec<disclosure_history_event::Model>,
-    ) -> Vec<WalletEvent> {
-        let mut issuance_events: Vec<WalletEvent> = issuance_events.into_iter().map(WalletEvent::from).collect();
-        let mut disclosure_events: Vec<WalletEvent> = disclosure_events.into_iter().map(WalletEvent::from).collect();
+    ) -> StorageResult<Vec<WalletEvent>> {
+        let mut issuance_events: Vec<WalletEvent> = issuance_events
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut disclosure_events: Vec<WalletEvent> = disclosure_events
+            .into_iter()
+            .map(WalletEvent::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
 
         issuance_events.append(&mut disclosure_events);
         issuance_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
-        issuance_events
+        Ok(issuance_events)
     }
 }
 
@@ -473,8 +479,7 @@ where
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
 
-        let result = Self::combine_history_events(issuance_events, disclosure_events);
-        Ok(result)
+        Self::combine_history_events(issuance_events, disclosure_events)
     }
 
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
@@ -497,8 +502,7 @@ where
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
 
-        let result = Self::combine_history_events(issuance_events, disclosure_events);
-        Ok(result)
+        Self::combine_history_events(issuance_events, disclosure_events)
     }
 
     async fn did_share_data_with_relying_party(

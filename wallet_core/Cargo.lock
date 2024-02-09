@@ -1259,11 +1259,7 @@ name = "entity"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "indexmap 2.0.2",
- "nl_wallet_mdoc",
  "sea-orm",
- "serde",
- "serde_json",
  "uuid",
 ]
 

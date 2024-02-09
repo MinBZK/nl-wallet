@@ -1,10 +1,15 @@
 use chrono::{DateTime, Utc};
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use entity::history_event_documents::HistoryEventDocuments;
 pub use entity::{disclosure_history_event, issuance_history_event};
-use nl_wallet_mdoc::utils::x509::Certificate;
+use nl_wallet_mdoc::{
+    basic_sa_ext::Entry,
+    holder::{Mdoc, ProposedAttributes, ProposedDocumentAttributes},
+    utils::{cose::CoseError, x509::Certificate},
+    DataElementIdentifier, DataElementValue, DocType, NameSpace,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EventStatus {
@@ -50,12 +55,12 @@ impl From<&disclosure_history_event::Model> for EventStatus {
 pub enum WalletEvent {
     Issuance {
         id: Uuid,
-        mdocs: HistoryEventDocuments,
+        mdocs: EventDocuments,
         timestamp: DateTime<Utc>,
     },
     Disclosure {
         id: Uuid,
-        documents: Option<HistoryEventDocuments>,
+        documents: Option<EventDocuments>,
         timestamp: DateTime<Utc>,
         reader_certificate: Certificate,
         status: EventStatus,
@@ -63,7 +68,7 @@ pub enum WalletEvent {
 }
 
 impl WalletEvent {
-    pub fn new_issuance(mdocs: HistoryEventDocuments) -> Self {
+    pub fn new_issuance(mdocs: EventDocuments) -> Self {
         Self::Issuance {
             id: Uuid::new_v4(),
             mdocs,
@@ -72,7 +77,7 @@ impl WalletEvent {
     }
 
     pub fn new_disclosure(
-        documents: Option<HistoryEventDocuments>,
+        documents: Option<EventDocuments>,
         reader_certificate: Certificate,
         status: EventStatus,
     ) -> Self {
@@ -89,11 +94,11 @@ impl WalletEvent {
     pub fn associated_doc_types(&self) -> IndexSet<&str> {
         match self {
             Self::Issuance {
-                mdocs: HistoryEventDocuments(mdocs),
+                mdocs: EventDocuments(mdocs),
                 ..
             }
             | Self::Disclosure {
-                documents: Some(HistoryEventDocuments(mdocs)),
+                documents: Some(EventDocuments(mdocs)),
                 ..
             } => mdocs.keys().map(String::as_str).collect(),
             Self::Disclosure { documents: None, .. } => Default::default(),
@@ -108,25 +113,29 @@ impl WalletEvent {
     }
 }
 
-impl From<disclosure_history_event::Model> for WalletEvent {
-    fn from(event: disclosure_history_event::Model) -> Self {
-        Self::Disclosure {
+impl TryFrom<disclosure_history_event::Model> for WalletEvent {
+    type Error = serde_json::Error;
+    fn try_from(event: disclosure_history_event::Model) -> Result<Self, Self::Error> {
+        let result = Self::Disclosure {
             id: event.id,
             status: EventStatus::from(&event),
-            documents: event.attributes,
+            documents: event.attributes.map(serde_json::from_value).transpose()?,
             timestamp: event.timestamp,
             reader_certificate: event.relying_party_certificate.into(),
-        }
+        };
+        Ok(result)
     }
 }
 
-impl From<issuance_history_event::Model> for WalletEvent {
-    fn from(event: issuance_history_event::Model) -> Self {
-        Self::Issuance {
+impl TryFrom<issuance_history_event::Model> for WalletEvent {
+    type Error = serde_json::Error;
+    fn try_from(event: issuance_history_event::Model) -> Result<Self, Self::Error> {
+        let result = Self::Issuance {
             id: event.id,
-            mdocs: event.attributes,
+            mdocs: serde_json::from_value(event.attributes)?,
             timestamp: event.timestamp,
-        }
+        };
+        Ok(result)
     }
 }
 
@@ -141,7 +150,7 @@ impl TryFrom<WalletEvent> for WalletEventModel {
     fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
         let result = match source {
             WalletEvent::Issuance { id, mdocs, timestamp } => Self::Issuance(issuance_history_event::Model {
-                attributes: mdocs,
+                attributes: serde_json::to_value(mdocs)?,
                 id,
                 timestamp,
             }),
@@ -152,7 +161,7 @@ impl TryFrom<WalletEvent> for WalletEventModel {
                 timestamp,
                 reader_certificate,
             } => Self::Disclosure(disclosure_history_event::Model {
-                attributes: documents,
+                attributes: documents.map(serde_json::to_value).transpose()?,
                 id,
                 timestamp,
                 relying_party_certificate: reader_certificate.into(),
@@ -161,6 +170,82 @@ impl TryFrom<WalletEvent> for WalletEventModel {
             }),
         };
         Ok(result)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EventAttributes {
+    pub issuer: Certificate,
+    pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
+}
+
+impl From<(Certificate, IndexMap<NameSpace, Vec<Entry>>)> for EventAttributes {
+    fn from((issuer, attributes): (Certificate, IndexMap<NameSpace, Vec<Entry>>)) -> Self {
+        Self {
+            issuer,
+            attributes: attributes
+                .into_iter()
+                .map(|(namespace, attributes)| {
+                    (
+                        namespace,
+                        attributes.into_iter().map(|entry| (entry.name, entry.value)).collect(),
+                    )
+                })
+                .collect(),
+        }
+    }
+}
+
+impl From<EventAttributes> for IndexMap<NameSpace, Vec<Entry>> {
+    fn from(source: EventAttributes) -> IndexMap<NameSpace, Vec<Entry>> {
+        source
+            .attributes
+            .into_iter()
+            .map(|(namespace, attributes)| {
+                (
+                    namespace,
+                    attributes
+                        .into_iter()
+                        .map(|(name, value)| Entry { name, value })
+                        .collect(),
+                )
+            })
+            .collect()
+    }
+}
+
+impl From<ProposedDocumentAttributes> for EventAttributes {
+    fn from(source: ProposedDocumentAttributes) -> Self {
+        (source.issuer, source.attributes).into()
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct EventDocuments(pub IndexMap<DocType, EventAttributes>);
+
+impl TryFrom<Vec<Mdoc>> for EventDocuments {
+    type Error = CoseError;
+    fn try_from(source: Vec<Mdoc>) -> Result<Self, Self::Error> {
+        let doc_type_map = source
+            .into_iter()
+            .map(|mdoc| {
+                let doc_type = mdoc.doc_type.clone();
+                let issuer = mdoc.issuer_certificate()?;
+                let attributes = mdoc.attributes();
+                Ok((doc_type, (issuer, attributes).into()))
+            })
+            .collect::<Result<IndexMap<_, _>, CoseError>>()?;
+        Ok(Self(doc_type_map))
+    }
+}
+
+impl From<ProposedAttributes> for EventDocuments {
+    fn from(source: ProposedAttributes) -> Self {
+        let documents = source
+            .into_iter()
+            .map(|(doc_type, document)| (doc_type, document.into()))
+            .collect();
+        Self(documents)
     }
 }
 
@@ -179,13 +264,13 @@ mod test {
         docs: Vec<UnsignedMdoc>,
         doc_types: &[&str],
         issuer_certificate: &Certificate,
-    ) -> HistoryEventDocuments {
+    ) -> EventDocuments {
         let map = docs
             .into_iter()
             .filter(|doc| doc_types.contains(&doc.doc_type.as_str()))
             .map(|doc| (doc.doc_type, (issuer_certificate.clone(), doc.attributes).into()))
             .collect();
-        HistoryEventDocuments(map)
+        EventDocuments(map)
     }
 
     impl WalletEvent {
