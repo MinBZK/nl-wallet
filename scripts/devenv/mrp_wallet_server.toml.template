@@ -1,8 +1,5 @@
 # Example config
 
-trust_anchors = [
-    "${PID_CA_CRT}",
-]
 public_url = 'http://${SERVICES_HOST}:3001/'
 internal_url = 'http://${SERVICES_HOST}:3002/'
 store_url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server'
@@ -15,12 +12,16 @@ port = 3001
 ip = '0.0.0.0'
 port = 3002
 
-[usecases]
-[usecases.driving_license]
+[verifier]
+trust_anchors = [
+    "${PID_CA_CRT}",
+]
+
+[verifier.usecases.driving_license]
 certificate = "${MOCK_RELYING_PARTY_CRT}"
 private_key = "${MOCK_RELYING_PARTY_KEY}"
 
-[usecases.parking_permit]
+[verifier.usecases.parking_permit]
 certificate = "${MOCK_RELYING_PARTY_CRT}"
 private_key = "${MOCK_RELYING_PARTY_KEY}"
 

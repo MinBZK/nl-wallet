@@ -16,8 +16,7 @@ pub struct Settings {
     // used by the application, SHOULD be reachable only by the application.
     // if it conflicts with wallet_server, the application will crash on startup
     pub requester_server: Server,
-    pub usecases: HashMap<String, KeyPair>,
-    pub trust_anchors: Vec<String>,
+    // used by the wallet
     pub public_url: Url,
     // used by the application
     pub internal_url: Url,
@@ -26,6 +25,14 @@ pub struct Settings {
 
     #[cfg(feature = "issuance")]
     pub issuer: Issuer,
+
+    pub verifier: Verifier,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Verifier {
+    pub usecases: HashMap<String, KeyPair>,
+    pub trust_anchors: Vec<String>,
 }
 
 #[derive(Deserialize, Clone)]

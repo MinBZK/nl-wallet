@@ -104,6 +104,7 @@ where
             settings.public_url.clone(),
             RelyingPartyKeyRing(
                 settings
+                    .verifier
                     .usecases
                     .into_iter()
                     .map(|(usecase, keypair)| {
@@ -119,6 +120,7 @@ where
             ),
             sessions,
             settings
+                .verifier
                 .trust_anchors
                 .into_iter()
                 .map(|certificate| {
