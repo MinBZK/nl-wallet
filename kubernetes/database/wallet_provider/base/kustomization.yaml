@@ -1,0 +1,3 @@
+resources:
+  - db-cluster-wp.yaml
+  - db-init.yaml
