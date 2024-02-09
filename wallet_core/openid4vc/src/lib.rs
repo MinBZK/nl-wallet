@@ -5,7 +5,7 @@ pub mod token;
 
 // Cryptographic tools.
 pub mod dpop;
-pub mod jwk;
+pub mod jwt;
 
 // Issuance code for the server and client.
 pub mod issuance_client;

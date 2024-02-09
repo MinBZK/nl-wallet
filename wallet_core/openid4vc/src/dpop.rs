@@ -55,7 +55,7 @@ use wallet_common::{
     utils::{random_string, sha256},
 };
 
-use crate::jwk::{jwk_jwt_header, jwk_to_p256, JwkConversionError};
+use crate::jwt::{jwk_jwt_header, jwk_to_p256, JwkConversionError};
 
 pub const DPOP_HEADER_NAME: &str = "DPoP";
 pub const DPOP_NONCE_HEADER_NAME: &str = "DPoP-Nonce";

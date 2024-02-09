@@ -10,7 +10,7 @@ use crate::{
     credential::CredentialErrorType,
     dpop::DpopError,
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
-    jwk::JwkConversionError,
+    jwt::JwkConversionError,
     token::TokenErrorType,
 };
 

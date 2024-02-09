@@ -24,7 +24,7 @@ use crate::{
         CredentialResponse, CredentialResponses, OPENID4VCI_VC_POP_JWT_TYPE,
     },
     dpop::{Dpop, DpopError},
-    jwk::{jwk_to_p256, JwkConversionError},
+    jwt::{jwk_to_p256, JwkConversionError},
     token::{
         AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews, TokenType,
     },
