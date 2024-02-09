@@ -16,10 +16,18 @@ ip = '0.0.0.0'
 port = 3002
 
 [usecases]
-[usecases.driving_license]
-certificate = "${MOCK_RELYING_PARTY_CRT_DL}"
-private_key = "${MOCK_RELYING_PARTY_KEY_DL}"
+[usecases.mijn_amsterdam]
+certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
+private_key = "${MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 
-[usecases.parking_permit]
-certificate = "${MOCK_RELYING_PARTY_CRT_PP}"
-private_key = "${MOCK_RELYING_PARTY_KEY_PP}"
+[usecases.xyz_bank]
+certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
+
+[usecases.online_marketplace]
+certificate = "${MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
+private_key = "${MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
+
+[usecases.monkey_bike]
+certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
+private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"

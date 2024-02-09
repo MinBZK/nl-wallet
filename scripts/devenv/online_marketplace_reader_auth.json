@@ -1,0 +1,61 @@
+{
+  "purposeStatement": {
+    "nl": "Account aanmaken",
+    "en": "Create account"
+  },
+  "retentionPolicy": {
+    "intentToRetain": true,
+    "maxDurationInMinutes": 525600
+  },
+  "sharingPolicy": {
+    "intentToShare": true
+  },
+  "deletionPolicy": {
+    "deleteable": true
+  },
+  "organization": {
+    "displayName": {
+      "nl": "Marktplek"
+    },
+    "legalName": {
+      "nl": "Marktplek B.V."
+    },
+    "description": {
+      "nl": "Verkoop eenvoudig jouw tweedehands spullen online op Marktplek.",
+      "en": "Easily sell your second-hand items online at Marktplek."
+    },
+    "webUrl": "https://www.marktplek.nl",
+    "city": {
+      "nl": "Zwolle"
+    },
+    "category": {
+      "nl": "Handelsplatform",
+      "en": "Trading"
+    },
+    "logo": {
+      "mimeType": "image/svg+xml",
+      "imageData": "<svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"white\"/><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#00C8C8\"/><circle cx=\"32\" cy=\"32\" r=\"16\" fill=\"white\"/></svg>"
+    },
+    "countryCode": "nl",
+    "kvk": "98765432",
+    "privacyPolicyUrl": "https://www.marktplek.nl/privacy"
+  },
+  "returnUrlPrefix": "http://${SERVICES_HOST}:3004/",
+  "requestOriginBaseUrl": "https://www.marktplek.nl",
+  "attributes": {
+    "com.example.pid": {
+      "com.example.pid": {
+        "given_name": {},
+        "family_name": {},
+        "birth_date": {}
+      }
+    },
+    "com.example.address": {
+      "com.example.address": {
+        "resident_street": {},
+        "resident_house_number": {},
+        "resident_postal_code": {}
+      }
+    }
+  }
+}
