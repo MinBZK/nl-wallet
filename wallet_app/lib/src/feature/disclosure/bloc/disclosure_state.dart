@@ -152,13 +152,18 @@ class DisclosureSuccess extends DisclosureState {
 }
 
 class DisclosureStopped extends DisclosureState {
+  final Organization organization;
+
   @override
   double get stepperProgress => 1;
 
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureStopped();
+  const DisclosureStopped({required this.organization});
+
+  @override
+  List<Object?> get props => [organization, ...super.props];
 }
 
 class DisclosureLeftFeedback extends DisclosureState {

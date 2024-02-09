@@ -66,7 +66,12 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
     } finally {
-      emit(const DisclosureStopped());
+      final relyingParty = _startDisclosureResult?.relyingParty;
+      if (relyingParty == null) {
+        emit(DisclosureGenericError());
+      } else {
+        emit(DisclosureStopped(organization: _startDisclosureResult!.relyingParty));
+      }
     }
   }
 

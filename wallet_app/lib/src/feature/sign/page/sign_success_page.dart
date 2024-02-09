@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/flow_terminal_page.dart';
+import '../../common/page/legacy_terminal_page.dart';
 
 class SignSuccessPage extends StatelessWidget {
   final LocalizedText organizationName;
@@ -18,7 +18,7 @@ class SignSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FlowTerminalPage(
+    return LegacyTerminalPage(
       icon: Icons.check,
       title: context.l10n.signSuccessPageTitle,
       description: context.l10n.signSuccessPageDescription(organizationName.l10nValue(context)),

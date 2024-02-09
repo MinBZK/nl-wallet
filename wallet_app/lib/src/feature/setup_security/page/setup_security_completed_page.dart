@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/flow_terminal_page.dart';
+import '../../common/page/legacy_terminal_page.dart';
 
 class SetupSecurityCompletedPage extends StatelessWidget {
   final VoidCallback onSetupWalletPressed;
@@ -10,7 +10,7 @@ class SetupSecurityCompletedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FlowTerminalPage(
+    return LegacyTerminalPage(
       icon: Icons.check,
       title: context.l10n.setupSecurityCompletedPageTitle,
       primaryButtonCta: context.l10n.setupSecurityCompletedPageCreateWalletCta,

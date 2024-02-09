@@ -175,7 +175,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              const DisclosureStopped(),
+              DisclosureStopped(organization: WalletMockData.organization),
             ),
             name: 'stopped',
           ),
@@ -229,7 +229,7 @@ void main() {
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.disclosureScreenShowHistoryCta), findsOneWidget);
+      expect(find.text(l10n.disclosureSuccessPageShowHistoryCta), findsOneWidget);
     });
   });
 }

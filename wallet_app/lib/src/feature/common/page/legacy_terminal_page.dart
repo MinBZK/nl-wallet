@@ -6,7 +6,7 @@ import '../widget/button/text_icon_button.dart';
 import '../widget/status_icon.dart';
 
 /// Base widget for the terminal (ending) page of the issuance/disclosure flow.
-class FlowTerminalPage extends StatelessWidget {
+class LegacyTerminalPage extends StatelessWidget {
   final IconData icon;
   final Color? iconColor;
   final String title;
@@ -19,7 +19,7 @@ class FlowTerminalPage extends StatelessWidget {
   final VoidCallback onPrimaryPressed;
   final Widget? content;
 
-  const FlowTerminalPage({
+  const LegacyTerminalPage({
     required this.icon,
     this.iconColor,
     required this.title,
