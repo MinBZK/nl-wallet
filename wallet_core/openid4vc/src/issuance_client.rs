@@ -48,6 +48,7 @@ pub struct HttpIssuerClient<H = HttpOpenidMessageClient> {
     session_state: IssuanceState,
 }
 
+/// Contract for sending OpenID4VCI protocol messages.
 pub trait OpenidMessageClient {
     async fn request_token(
         &self,
@@ -245,7 +246,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
         let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
-        let responses: CredentialResponses = self
+        let responses = self
             .message_client
             .request_credentials(
                 &url,
@@ -255,7 +256,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
             )
             .await?;
 
-        // The server must have responded with enough credential responses so that we have exactly enough responses
+        // The server must have responded with enough credential responses, N, so that we have exactly enough responses
         // for all copies of all mdocs constructed below.
         if responses.credential_responses.len() != keys.len() {
             return Err(IssuerClientError::UnexpectedCredentialResponseCount {

@@ -321,7 +321,7 @@ where
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
-            .process_batch_credential(credential_requests, access_token.clone(), dpop, &self.issuer_data)
+            .process_batch_credential(credential_requests, access_token, dpop, &self.issuer_data)
             .await;
 
         self.sessions

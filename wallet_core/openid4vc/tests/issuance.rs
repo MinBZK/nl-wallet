@@ -3,11 +3,14 @@ use std::ops::Add;
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
+use url::Url;
+
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
     mock::{generate_issuance_key_and_ca, SoftwareKeyFactory},
-    server_keys::{KeyRing, SingleKeyRing},
-    server_state::{MemorySessionStore, SessionState, SessionStore},
+    server_keys::SingleKeyRing,
+    server_state::{MemorySessionStore, SessionState},
+    utils::x509::Certificate,
     Tdate,
 };
 use openid4vc::{
@@ -18,16 +21,15 @@ use openid4vc::{
     token::{AccessToken, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
     IssuerClientError,
 };
-use url::Url;
 
-#[tokio::test]
-async fn accept_issuance() {
-    let sessions = MemorySessionStore::new();
+type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
+
+fn setup() -> (MockOpenidMessageClient, Certificate, Url) {
     let (privkey, ca) = generate_issuance_key_and_ca().unwrap();
     let server_url = "https://example.com/".parse().unwrap();
 
-    let issuer = Issuer::new(
-        sessions,
+    let issuer = MockIssuer::new(
+        MemorySessionStore::new(),
         MockAttributeService,
         SingleKeyRing(privkey),
         &server_url,
@@ -36,27 +38,19 @@ async fn accept_issuance() {
 
     let message_client = MockOpenidMessageClient { issuer };
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(
-        message_client,
-        &server_url.join("issuance/").unwrap(),
-        TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                pre_authorized_code: "123".to_string().into(),
-            },
-            code_verifier: None,
-            client_id: None,
-            redirect_uri: None,
-        },
-    )
-    .await
-    .unwrap();
+    (message_client, ca, server_url.join("issuance/").unwrap())
+}
+
+#[tokio::test]
+async fn accept_issuance() {
+    let (message_client, ca, server_url) = setup();
+
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+        .await
+        .unwrap();
 
     let mdoc_copies = session
-        .accept_issuance(
-            &[(&ca).try_into().unwrap()],
-            SoftwareKeyFactory::default(),
-            &server_url.join("issuance/").unwrap(),
-        )
+        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), &server_url)
         .await
         .unwrap();
 
@@ -64,16 +58,35 @@ async fn accept_issuance() {
     assert_eq!(mdoc_copies[0].cred_copies.len(), 2)
 }
 
-struct MockOpenidMessageClient<A, K, S> {
-    issuer: Issuer<A, K, S>,
+#[tokio::test]
+async fn reject_issuance() {
+    let (message_client, _, server_url) = setup();
+
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+        .await
+        .unwrap();
+
+    session.reject_issuance().await.unwrap();
 }
 
-impl<A, K, S> OpenidMessageClient for MockOpenidMessageClient<A, K, S>
-where
-    A: AttributeService,
-    K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
-{
+fn token_request() -> TokenRequest {
+    TokenRequest {
+        grant_type: TokenRequestGrantType::PreAuthorizedCode {
+            pre_authorized_code: "123".to_string().into(),
+        },
+        code_verifier: None,
+        client_id: None,
+        redirect_uri: None,
+    }
+}
+
+/// An implementation of [`OpenidMessageClient`] that sends its messages to the contained issuer
+/// directly by function invocation.
+struct MockOpenidMessageClient {
+    issuer: MockIssuer,
+}
+
+impl OpenidMessageClient for MockOpenidMessageClient {
     async fn request_token(
         &self,
         _url: &Url,
@@ -90,7 +103,7 @@ where
 
     async fn request_credentials(
         &self,
-        _url: &url::Url,
+        _url: &Url,
         credential_requests: &CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
@@ -98,7 +111,7 @@ where
         let responses = self
             .issuer
             .process_batch_credential(
-                AccessToken::from(access_token_header[5..].to_string()),
+                AccessToken::from(access_token_header[5..].to_string()), // Strip "DPoP " from header
                 Dpop::from(dpop_header.to_string()),
                 credential_requests.clone(),
             )
@@ -107,15 +120,10 @@ where
         Ok(responses)
     }
 
-    async fn reject(
-        &self,
-        _url: &url::Url,
-        dpop_header: &str,
-        access_token_header: &str,
-    ) -> Result<(), IssuerClientError> {
+    async fn reject(&self, _url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), IssuerClientError> {
         self.issuer
             .process_reject_issuance(
-                AccessToken::from(access_token_header[5..].to_string()),
+                AccessToken::from(access_token_header[5..].to_string()), // Strip "DPoP " from header
                 Dpop::from(dpop_header.to_string()),
                 "batch_credential",
             )
