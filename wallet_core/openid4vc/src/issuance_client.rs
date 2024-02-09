@@ -44,32 +44,42 @@ pub trait IssuerClient {
 }
 
 pub struct HttpIssuerClient {
-    http_client: reqwest::Client,
+    message_client: OpenidHttpMessageClient,
     session_state: IssuanceState,
 }
 
-struct IssuanceState {
-    access_token: AccessToken,
-    c_nonce: String,
-    attestation_previews: Vec<AttestationPreview>,
-    issuer_url: Url,
-    dpop_private_key: SigningKey,
-    dpop_nonce: Option<String>,
+pub trait OpenidMessageClient {
+    async fn request_token(
+        &self,
+        url: &Url,
+        token_request: &TokenRequest,
+        dpop_header: &Dpop,
+    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuerClientError>;
+
+    async fn request_credentials(
+        &self,
+        url: &Url,
+        credential_requests: &CredentialRequests,
+        dpop_header: &str,
+        access_token_header: &str,
+    ) -> Result<CredentialResponses, IssuerClientError>;
+
+    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), IssuerClientError>;
 }
 
-impl IssuerClient for HttpIssuerClient {
-    async fn start_issuance(
-        http_client: reqwest::Client,
-        base_url: &Url,
-        token_request: TokenRequest,
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError> {
-        let url = base_url.join("token").unwrap();
+pub struct OpenidHttpMessageClient {
+    http_client: reqwest::Client,
+}
 
-        let dpop_private_key = SigningKey::random(&mut OsRng);
-        let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
-
-        let (token_response, dpop_nonce) = http_client
-            .post(url) // TODO discover token endpoint instead
+impl OpenidMessageClient for OpenidHttpMessageClient {
+    async fn request_token(
+        &self,
+        url: &Url,
+        token_request: &TokenRequest,
+        dpop_header: &Dpop,
+    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuerClientError> {
+        self.http_client
+            .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header.as_ref())
             .form(&token_request)
             .send()
@@ -89,7 +99,72 @@ impl IssuerClient for HttpIssuerClient {
                     Ok((deserialized, dpop_nonce))
                 }
             })
-            .await?;
+            .await
+    }
+
+    async fn request_credentials(
+        &self,
+        url: &Url,
+        credential_requests: &CredentialRequests,
+        dpop_header: &str,
+        access_token_header: &str,
+    ) -> Result<CredentialResponses, IssuerClientError> {
+        self.http_client
+            .post(url.as_ref())
+            .header(DPOP_HEADER_NAME, dpop_header)
+            .header(AUTHORIZATION, access_token_header)
+            .json(credential_requests)
+            .send()
+            .map_err(IssuerClientError::from)
+            .and_then(|response| async {
+                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+                let status = response.status();
+                if status.is_client_error() || status.is_server_error() {
+                    let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
+                    Err(IssuerClientError::CredentialRequest(error.into()))
+                } else {
+                    let text = response.json().await?;
+                    Ok(text)
+                }
+            })
+            .await
+    }
+
+    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), IssuerClientError> {
+        self.http_client
+            .delete(url.as_ref())
+            .header(DPOP_HEADER_NAME, dpop_header)
+            .header(AUTHORIZATION, access_token_header)
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(())
+    }
+}
+
+struct IssuanceState {
+    access_token: AccessToken,
+    c_nonce: String,
+    attestation_previews: Vec<AttestationPreview>,
+    issuer_url: Url,
+    dpop_private_key: SigningKey,
+    dpop_nonce: Option<String>,
+}
+
+impl IssuerClient for HttpIssuerClient {
+    async fn start_issuance(
+        http_client: reqwest::Client,
+        base_url: &Url,
+        token_request: TokenRequest,
+    ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError> {
+        let url = base_url.join("token").unwrap(); // TODO discover token endpoint instead
+
+        let dpop_private_key = SigningKey::random(&mut OsRng);
+        let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
+
+        let http_client = OpenidHttpMessageClient { http_client };
+
+        let (token_response, dpop_nonce) = http_client.request_token(&url, &token_request, &dpop_header).await?;
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -104,7 +179,7 @@ impl IssuerClient for HttpIssuerClient {
         };
 
         let issuance_client = Self {
-            http_client,
+            message_client: http_client,
             session_state,
         };
         Ok((issuance_client, token_response.attestation_previews))
@@ -163,28 +238,17 @@ impl IssuerClient for HttpIssuerClient {
             })
             .unzip();
 
-        let url = self.session_state.issuer_url.join("batch_credential").unwrap();
+        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let responses: CredentialResponses = self
-            .http_client
-            .post(url) // TODO discover token endpoint instead
-            .header(DPOP_HEADER_NAME, dpop_header)
-            .header(AUTHORIZATION, access_token_header)
-            .json(&CredentialRequests { credential_requests })
-            .send()
-            .map_err(IssuerClientError::from)
-            .and_then(|response| async {
-                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
-                let status = response.status();
-                if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
-                    Err(IssuerClientError::CredentialRequest(error.into()))
-                } else {
-                    let text = response.json().await?;
-                    Ok(text)
-                }
-            })
+            .message_client
+            .request_credentials(
+                &url,
+                &CredentialRequests { credential_requests },
+                &dpop_header,
+                &access_token_header,
+            )
             .await?;
 
         // The server must have responded with enough credential responses so that we have exactly enough responses
@@ -237,16 +301,12 @@ impl IssuerClient for HttpIssuerClient {
     }
 
     async fn reject_issuance(self) -> Result<(), IssuerClientError> {
-        let url = self.session_state.issuer_url.join("batch_credential").unwrap();
+        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
-        self.http_client
-            .delete(url) // TODO discover token endpoint instead
-            .header(DPOP_HEADER_NAME, dpop_header)
-            .header(AUTHORIZATION, access_token_header)
-            .send()
-            .await?
-            .error_for_status()?;
+        self.message_client
+            .reject(&url, &dpop_header, &access_token_header)
+            .await?;
 
         Ok(())
     }
