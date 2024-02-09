@@ -10,7 +10,7 @@ spec:
               db-in-zeer-vertrouwd: allow
   podSelector:
     matchLabels:
-      app: database
+      app: wallet-provider-database
   policyTypes:
     - Ingress
 ---

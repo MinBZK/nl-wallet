@@ -1,12 +1,13 @@
-package setup
+package navigator.screen
 
-enum class Screen {
+enum class OnboardingScreen {
     Introduction,
     IntroductionExpectations,
     IntroductionPrivacy,
     IntroductionConditions,
-    Pin,
-    SetupSecurityCompleted,
+    SecurityChoosePin,
+    SecurityConfirmPin,
+    SecuritySetupCompleted,
     PersonalizeInform,
     DigidLoginStartWebPage,
     DigidLoginMockWebPage,

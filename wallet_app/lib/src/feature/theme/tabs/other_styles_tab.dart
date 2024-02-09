@@ -99,7 +99,7 @@ final _kSampleOperationAttribute = OperationTimelineAttribute(
   ),
   dataAttributes: const [],
   status: OperationStatus.issued,
-  cardTitle: 'Card Title'.untranslated,
+  card: _kSampleCard,
 );
 
 final _kSampleInteractionAttribute = InteractionTimelineAttribute(

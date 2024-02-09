@@ -2,7 +2,7 @@ package screen.security
 
 import util.MobileActions
 
-class SetupSecurityCompletedScreen : MobileActions() {
+class SecuritySetupCompletedScreen : MobileActions() {
 
     private val screen = find.byValueKey("setupSecurityCompletedPage")
 

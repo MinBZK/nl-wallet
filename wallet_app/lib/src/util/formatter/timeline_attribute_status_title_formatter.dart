@@ -11,7 +11,7 @@ import 'signing_status_text_formatter.dart';
 class TimelineAttributeStatusTitleFormatter {
   static String map(BuildContext context, TimelineAttribute input) {
     if (input is InteractionTimelineAttribute) return InteractionStatusTextFormatter.map(context, input.status);
-    if (input is OperationTimelineAttribute) return input.cardTitle.l10nValue(context);
+    if (input is OperationTimelineAttribute) return input.card.front.title.l10nValue(context);
     if (input is SigningTimelineAttribute) return SigningStatusTextFormatter.map(context, input.status);
     throw ('Unsupported attribute: $input');
   }

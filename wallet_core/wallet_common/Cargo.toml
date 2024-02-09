@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-# Implement EcdsaKey and related traits for p256::ecdsa::SigningKey 
+# Implement EcdsaKey and related traits for p256::ecdsa::SigningKey
 mock_p256_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = ["dep:aes-gcm", "dep:rand_core"]

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-25T11:48:20+01:00",
+    "@@last_modified": "2024-02-07T17:06:19+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
@@ -390,11 +390,11 @@
     "disclosureStopSheetReportIssueCta": "Report a problem",
     "disclosureStopSheetTitle": "Are you sure you want to stop?",
     "disclosureStoppedPageCloseCta": "Close",
-    "disclosureStoppedPageDescription": "Because you have stopped, no data has been shared.",
+    "disclosureStoppedPageDescription": "Because you have stopped, no data has been shared with {organization}.",
     "disclosureStoppedPageFeedbackCta": "Give Feedback",
     "disclosureStoppedPageTitle": "Stopped",
     "disclosureSuccessPageCloseCta": "Close",
-    "disclosureSuccessPageDescription": " Your information is shared with {organization}.",
+    "disclosureSuccessPageDescription": " Your information is shared with {organization}. Close this screen and continue on the website of {organization}.",
     "@disclosureSuccessPageDescription": {
         "placeholders": {
             "organization": {
@@ -404,7 +404,7 @@
         }
     },
     "disclosureSuccessPageHistoryDescription": "You can find the details in your history",
-    "disclosureSuccessPageShowHistoryCta": "History",
+    "disclosureSuccessPageShowHistoryCta": "View activities",
     "disclosureSuccessPageTitle": "Success!",
     "errorScreenGeneralHelpCta": "Need help?",
     "errorScreenGenericCloseCta": "Close",
@@ -612,13 +612,6 @@
     "historyDetailScreenTermsTitle": "Terms and Conditions",
     "historyDetailScreenTitle": "Details",
     "historyOverviewScreenTitle": "Interactions",
-    "homeBottomNavBarCardsButton": "Cards",
-    "homeBottomNavBarQrButton": "QR",
-    "homeBottomNavBarSettingsButton": "Settings",
-    "homeScreenBottomNavBarCardsCta": "Cards",
-    "homeScreenBottomNavBarMenuCta": "Menu",
-    "homeScreenBottomNavBarQrCta": "QR",
-    "homeScreenBottomNavBarSettingsCta": "Settings",
     "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
     "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can always stop.\nYou don't share your entry code.\nYou decide when sharing is responsible.",
     "introductionConditionsScreenConditionsCta": "Read the conditions",

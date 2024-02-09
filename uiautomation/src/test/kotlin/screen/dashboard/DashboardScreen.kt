@@ -1,10 +1,12 @@
 package screen.dashboard
 
-import screen.home.HomeScreen
+import util.MobileActions
 
-class DashboardScreen : HomeScreen() {
+class DashboardScreen : MobileActions() {
 
     private val screen = find.byValueKey("dashboardScreen")
+
+    private val menuButton = find.byToolTip(l10n.getString("dashboardScreenTitle"))
 
     private val pidIdCard = find.byValueKey("com.example.pid")
     private val pidAddressCard = find.byValueKey("com.example.address")
@@ -24,6 +26,8 @@ class DashboardScreen : HomeScreen() {
         val (_, addressY) = getTopLeft(pidAddressCard, false)!!
         return pidY < addressY
     }
+
+    fun clickMenuButton() = clickElement(menuButton, false)
 
     fun clickPidCard() = clickElement(pidIdCard, false)
 }

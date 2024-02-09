@@ -6,7 +6,6 @@ import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.
 import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
 import 'package:wallet/src/feature/common/widget/history/timeline_attribute_row.dart';
-import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
@@ -25,7 +24,7 @@ void main() {
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.issued,
-              cardTitle: 'Card Title'.untranslated,
+              card: WalletMockData.card,
             ),
             onPressed: () {},
           ),
@@ -44,7 +43,7 @@ void main() {
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.issued,
-              cardTitle: 'Card Title'.untranslated,
+              card: WalletMockData.card,
             ),
             onPressed: () {},
           ),
@@ -65,7 +64,7 @@ void main() {
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.expired,
-              cardTitle: 'Card Title'.untranslated,
+              card: WalletMockData.card,
             ),
             onPressed: () {},
           ),
@@ -84,7 +83,7 @@ void main() {
               dateTime: DateTime(2023, 1, 1),
               organization: WalletMockData.organization,
               status: OperationStatus.renewed,
-              cardTitle: 'Card Title'.untranslated,
+              card: WalletMockData.card,
             ),
             onPressed: () {},
           ),
@@ -175,10 +174,12 @@ void main() {
       );
 
       // Validate that the widget exists
-      final titleFinder = find.text(WalletMockData.operationTimelineAttribute.cardTitle.testValue);
-      expect(titleFinder, findsOneWidget);
+      final titleFinder = find.text(WalletMockData.operationTimelineAttribute.card.front.title.testValue);
+      // Finds both the row title and the title in the card thumbnail
+      expect(titleFinder, findsNWidgets(2));
 
-      await tester.tap(titleFinder);
+      // Tap any title, as the whole row should be clickable
+      await tester.tap(titleFinder.first);
       expect(tapped, true, reason: 'onPressed was not called');
     });
   });

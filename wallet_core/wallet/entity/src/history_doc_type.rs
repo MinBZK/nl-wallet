@@ -1,6 +1,9 @@
 use sea_orm::entity::prelude::*;
 
-use crate::{history_event, history_event_doc_type};
+use crate::{
+    disclosure_history_event, disclosure_history_event_doc_type, issuance_history_event,
+    issuance_history_event_doc_type,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "history_doc_type")]
@@ -15,12 +18,22 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl Related<history_event::Entity> for Entity {
+impl Related<disclosure_history_event::Entity> for Entity {
     fn to() -> RelationDef {
-        history_event_doc_type::Relation::HistoryEvent.def()
+        disclosure_history_event_doc_type::Relation::HistoryEvent.def()
     }
 
     fn via() -> Option<RelationDef> {
-        Some(history_event_doc_type::Relation::HistoryDocType.def().rev())
+        Some(disclosure_history_event_doc_type::Relation::HistoryDocType.def().rev())
+    }
+}
+
+impl Related<issuance_history_event::Entity> for Entity {
+    fn to() -> RelationDef {
+        issuance_history_event_doc_type::Relation::HistoryEvent.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(issuance_history_event_doc_type::Relation::HistoryDocType.def().rev())
     }
 }

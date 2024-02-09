@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-25T11:48:20+01:00",
+    "@@last_modified": "2024-02-07T17:06:19+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -390,11 +390,11 @@
     "disclosureStopSheetReportIssueCta": "Een probleem melden",
     "disclosureStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
     "disclosureStoppedPageCloseCta": "Sluiten",
-    "disclosureStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
+    "disclosureStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld met {organization}.",
     "disclosureStoppedPageFeedbackCta": "Geef feedback",
     "disclosureStoppedPageTitle": "Gestopt",
     "disclosureSuccessPageCloseCta": "Sluiten",
-    "disclosureSuccessPageDescription": " Je gegevens zijn gedeeld met {organization}.",
+    "disclosureSuccessPageDescription": "Je gegevens zijn gedeeld met {organization}. Sluit dit scherm en ga verder op de website van {organization}.",
     "@disclosureSuccessPageDescription": {
         "placeholders": {
             "organization": {
@@ -404,7 +404,7 @@
         }
     },
     "disclosureSuccessPageHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
-    "disclosureSuccessPageShowHistoryCta": "Geschiedenis",
+    "disclosureSuccessPageShowHistoryCta": "Bekijk activiteiten",
     "disclosureSuccessPageTitle": "Gelukt!",
     "errorScreenGeneralHelpCta": "Hulp nodig?",
     "errorScreenGenericCloseCta": "Sluiten",
@@ -612,13 +612,6 @@
     "historyDetailScreenTermsTitle": "Voorwaarden",
     "historyDetailScreenTitle": "Details",
     "historyOverviewScreenTitle": "Activiteiten",
-    "homeBottomNavBarCardsButton": "Kaarten",
-    "homeBottomNavBarQrButton": "QR",
-    "homeBottomNavBarSettingsButton": "Instellingen",
-    "homeScreenBottomNavBarCardsCta": "Kaarten",
-    "homeScreenBottomNavBarMenuCta": "Menu",
-    "homeScreenBottomNavBarQrCta": "QR",
-    "homeScreenBottomNavBarSettingsCta": "Instellingen",
     "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
     "introductionConditionsScreenBulletPoints": "Je kunt je gegevens online gebruiken.\nJe kunt op elk moment stoppen.\nJij houdt je toegangscode voor jezelf.\nJij bedenkt altijd of delen verstandig is.",
     "introductionConditionsScreenConditionsCta": "Lees de voorwaarden",

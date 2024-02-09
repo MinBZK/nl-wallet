@@ -1,28 +1,26 @@
 package feature.digid
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junitpioneer.jupiter.RetryingTest
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
-import setup.OnboardingNavigator
-import setup.Screen
 
 class MockDigidWebTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.DigidLoginStartWebPage)
+        OnboardingNavigator().toScreen(OnboardingScreen.DigidLoginStartWebPage)
 
         digidLoginStartWebPage = DigidLoginStartWebPage()
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     fun verifyMockDigidLogin() {
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
 

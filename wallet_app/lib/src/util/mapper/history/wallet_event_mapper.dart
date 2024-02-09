@@ -44,7 +44,7 @@ class WalletEventMapper extends Mapper<WalletEvent, TimelineAttribute> {
         dateTime: DateTime.parse(issuance.dateTime),
         organization: _relyingPartyMapper.map(issuance.card.issuer),
         status: OperationStatus.issued,
-        cardTitle: card.front.title,
+        card: card,
         dataAttributes: card.attributes,
       );
     });

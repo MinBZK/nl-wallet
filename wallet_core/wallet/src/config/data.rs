@@ -127,10 +127,8 @@ pub fn default_configuration() -> WalletConfiguration {
             pid_issuer_url: Url::parse(config_default!(PID_ISSUER_URL)).unwrap(),
             digid_url: Url::parse(config_default!(DIGID_URL)).unwrap(),
             digid_client_id: String::from(config_default!(DIGID_CLIENT_ID)),
-            digid_redirect_path: "authentication".to_string(),
         },
         disclosure: DisclosureConfiguration {
-            uri_base_path: "disclosure".to_string(),
             rp_trust_anchors: parse_trust_anchors(config_default!(RP_TRUST_ANCHORS)),
         },
         mdoc_trust_anchors: parse_trust_anchors(config_default!(MDOC_TRUST_ANCHORS)),

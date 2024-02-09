@@ -179,7 +179,10 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildStoppedPage(BuildContext context, DisclosureStopped state) {
-    return DisclosureStoppedPage(onClosePressed: () => Navigator.pop(context));
+    return DisclosureStoppedPage(
+      organization: state.organization,
+      onClosePressed: () => Navigator.pop(context),
+    );
   }
 
   Widget _buildLeftFeedbackPage(BuildContext context, DisclosureLeftFeedback state) {
@@ -291,15 +294,29 @@ class DisclosureScreen extends StatelessWidget {
               ),
             ),
           DisclosureConfirmPin() => null,
-          DisclosureStopped() => null,
+          DisclosureStopped() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.disclosureStoppedPageTitle),
+            ),
           DisclosureLeftFeedback() => null,
           DisclosureSuccess() => FadeInAtOffset(
-              appearOffset: 150,
-              visibleOffset: 180,
+              appearOffset: 48,
+              visibleOffset: 70,
               child: Text(context.l10n.disclosureSuccessPageTitle),
             ),
-          DisclosureNetworkError() => null,
-          DisclosureGenericError() => null,
+          DisclosureNetworkError() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(state.hasInternet
+                  ? context.l10n.errorScreenServerHeadline
+                  : context.l10n.errorScreenNoInternetHeadline),
+            ),
+          DisclosureGenericError() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.disclosureGenericErrorPageTitle),
+            ),
         };
 
         return result ?? const SizedBox.shrink();

@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-mock-relying-party-ont-public
+  name: nl-mock-relying-party-public
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:

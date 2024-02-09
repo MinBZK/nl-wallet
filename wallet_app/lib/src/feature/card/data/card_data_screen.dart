@@ -38,6 +38,7 @@ class CardDataScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('cardDataScreen'),
       appBar: _buildAppBar(context),
       body: SafeArea(
         child: _buildBody(context),

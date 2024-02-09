@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use entity::history_event;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -8,6 +7,8 @@ use nl_wallet_mdoc::{
     holder::MdocCopies,
     utils::{mdocs_map::MdocsMap, x509::Certificate},
 };
+
+use crate::storage::event_log::WalletEventModel;
 
 use super::{
     data::{KeyedData, RegistrationData},
@@ -162,8 +163,10 @@ impl Storage for MockStorage {
 
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
         // Convert to database entity and back to check whether the `TryFrom` implementations are complete.
-        let entity = history_event::Model::try_from(event.clone())?;
-        let converted_event = WalletEvent::try_from(entity)?;
+        let converted_event = match WalletEventModel::try_from(event.clone())? {
+            WalletEventModel::Issuance(entity) => entity.try_into()?,
+            WalletEventModel::Disclosure(entity) => entity.try_into()?,
+        };
         assert_eq!(event, converted_event);
         self.event_log.push(converted_event);
         Ok(())

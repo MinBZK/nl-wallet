@@ -125,10 +125,11 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   echo -e "${SECTION}Configure and start digid-connector${NC}"
 
   cd "${DIGID_CONNECTOR_PATH}"
-  make setup
+  make setup-secrets setup-config
 
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
   render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
+  render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
 
   generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
 

@@ -1,6 +1,8 @@
 package feature.menu
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -12,19 +14,15 @@ import screen.change_language.ChangeLanguageScreen
 import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
 import screen.settings.SettingsScreen
-import setup.OnboardingNavigator
-import setup.Screen
 
 @DisplayName("UC 9.3 - User changes language [PVW-1224]")
 class ChangeLanguageTests : TestBase() {
-
-    private val onboardingNavigator = OnboardingNavigator()
 
     private lateinit var changeLanguageScreen: ChangeLanguageScreen
 
     @BeforeEach
     fun setUp() {
-        onboardingNavigator.toScreen(Screen.Dashboard)
+        OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
 
         DashboardScreen().clickMenuButton()
         MenuScreen().clickSettingsButton()
@@ -33,13 +31,13 @@ class ChangeLanguageTests : TestBase() {
         changeLanguageScreen = ChangeLanguageScreen()
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("1. App settings menu displays option to change language.")
     fun verifyChangeLanguageScreen() {
         assertTrue(changeLanguageScreen.visible(), "change language screen is not visible")
     }
 
-    @RetryingTest(MAX_RETRY_COUNT)
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("2. Language screen offers two options: English & Dutch.")
     fun verifyLanguageButtonsVisible() {
         assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible")
@@ -49,7 +47,7 @@ class ChangeLanguageTests : TestBase() {
     @DisplayName("3. When the User selects a language, the app immediately uses the newly selected language.")
     inner class LanguageChange {
 
-        @RetryingTest(MAX_RETRY_COUNT)
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
         @DisplayName("3.1. When the User selects Dutch, the app immediately uses Dutch.")
         fun verifyDutchLanguageSelect() {
@@ -59,7 +57,7 @@ class ChangeLanguageTests : TestBase() {
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
         }
 
-        @RetryingTest(MAX_RETRY_COUNT)
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("dutch"))
         @DisplayName("3.2. When the User selects English, the app immediately uses English.")
         fun verifyEnglishLanguageSelect() {
