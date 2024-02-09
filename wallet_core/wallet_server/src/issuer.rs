@@ -120,7 +120,7 @@ where
     let access_token = authorization_header.0.token().to_string().into();
     let response = state
         .issuer
-        .process_credential(&access_token, dpop, credential_request)
+        .process_credential(access_token, dpop, credential_request)
         .await
         .map_err(|err| ErrorResponse(err.into()))?;
     Ok(Json(response))
@@ -140,7 +140,7 @@ where
     let access_token = authorization_header.0.token().to_string().into();
     let response = state
         .issuer
-        .process_batch_credential(&access_token, dpop, credential_requests)
+        .process_batch_credential(access_token, dpop, credential_requests)
         .await
         .map_err(|err| ErrorResponse(err.into()))?;
     Ok(Json(response))
@@ -162,7 +162,7 @@ where
     let access_token = authorization_header.0.token().to_string().into();
     state
         .issuer
-        .process_reject_issuance(&access_token, dpop, uri_path)
+        .process_reject_issuance(access_token, dpop, uri_path)
         .await
         .map_err(|err| ErrorResponse(err.into()))?;
     Ok(StatusCode::NO_CONTENT)

@@ -276,7 +276,7 @@ where
 
     pub async fn process_credential(
         &self,
-        access_token: &AccessToken,
+        access_token: AccessToken,
         dpop: Dpop,
         credential_request: CredentialRequest,
     ) -> Result<CredentialResponse, CredentialRequestError> {
@@ -292,7 +292,7 @@ where
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
-            .process_credential(credential_request, access_token.clone(), dpop, &self.issuer_data)
+            .process_credential(credential_request, access_token, dpop, &self.issuer_data)
             .await;
 
         self.sessions
@@ -305,7 +305,7 @@ where
 
     pub async fn process_batch_credential(
         &self,
-        access_token: &AccessToken,
+        access_token: AccessToken,
         dpop: Dpop,
         credential_requests: CredentialRequests,
     ) -> Result<CredentialResponses, CredentialRequestError> {
@@ -334,7 +334,7 @@ where
 
     pub async fn process_reject_issuance(
         &self,
-        access_token: &AccessToken,
+        access_token: AccessToken,
         dpop: Dpop,
         endpoint_name: &str,
     ) -> Result<(), CredentialRequestError> {
@@ -351,7 +351,7 @@ where
 
         // Check authorization of the request
         let session_data = session.session_data();
-        if session_data.access_token != *access_token {
+        if session_data.access_token != access_token {
             return Err(CredentialRequestError::Unauthorized);
         }
 
@@ -363,8 +363,8 @@ where
                 .join(endpoint_name)
                 .unwrap(),
             &Method::DELETE,
-            Some(access_token),
-            Some(session_data.dpop_nonce.clone()),
+            Some(&access_token),
+            Some(&session_data.dpop_nonce),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -559,7 +559,7 @@ impl Session<WaitingForResponse> {
             &issuer_data.server_url.join("credential").unwrap(),
             &Method::POST,
             Some(&access_token),
-            Some(session_data.dpop_nonce.clone()),
+            Some(&session_data.dpop_nonce),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -641,7 +641,7 @@ impl Session<WaitingForResponse> {
             &issuer_data.server_url.join("batch_credential").unwrap(),
             &Method::POST,
             Some(&access_token),
-            Some(session_data.dpop_nonce.clone()),
+            Some(&session_data.dpop_nonce),
         )
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;

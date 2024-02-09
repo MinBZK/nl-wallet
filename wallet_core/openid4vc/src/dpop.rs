@@ -162,7 +162,7 @@ impl Dpop {
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-        nonce: Option<String>,
+        nonce: Option<&String>,
     ) -> Result<()> {
         if token_data.header.typ != Some(OPENID4VCI_DPOP_JWT_TYPE.to_string()) {
             return Err(DpopError::UnsupportedJwtAlgorithm {
@@ -184,7 +184,7 @@ impl Dpop {
         // Verifying `jti` is not required by its spec (https://datatracker.ietf.org/doc/html/rfc9449).
         // We also do not check the `iat` field, to avoid having to deal with clockdrift.
         // Instead of both of these, the server can specify a `nonce` and later enforce its presence in the DPoP.
-        if token_data.claims.nonce != nonce {
+        if token_data.claims.nonce.as_ref() != nonce {
             return Err(DpopError::IncorrectNonce);
         }
 
@@ -212,7 +212,7 @@ impl Dpop {
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-        nonce: Option<String>,
+        nonce: Option<&String>,
     ) -> Result<()> {
         let token_data = self.verify_signature(expected_verifying_key)?;
         self.verify_data(&token_data, url, method, access_token, nonce)?;
