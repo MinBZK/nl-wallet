@@ -1,0 +1,16 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+    name: db-cluster
+spec:
+    resources:
+        requests:
+            memory: "256Mi"
+            cpu: "0.5"
+        limits:
+            memory: "256Mi"
+            cpu: "0.5"
+    storage:
+        size: 10Gi
+    walStorage:
+        size: 10Gi

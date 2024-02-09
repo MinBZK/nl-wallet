@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-wallet-provider-ont-vpn
+  name: nl-wallet-provider-vpn
 spec:
   ingressClassName: nginx
   rules:
@@ -22,7 +22,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-wallet-provider-ont-public
+  name: nl-wallet-provider-public
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /api/v1/$1
 spec:
@@ -41,28 +41,4 @@ spec:
   tls:
     - hosts:
         - $WALLET_PROVIDER_EXTERNAL_HOSTNAME
-      secretName: nl-wallet-letsencrypt-live-cert
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nl-wallet-config-server-ont-public
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /config/v1/$1
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: $CONFIG_SERVER_EXTERNAL_HOSTNAME
-      http:
-        paths:
-          - backend:
-              service:
-                name: wallet-provider
-                port:
-                  number: 3000
-            path: /$CONFIG_SERVER_EXTERNAL_CONTEXT_PATH/config/v1/(.+)
-            pathType: Prefix
-  tls:
-    - hosts:
-        - $CONFIG_SERVER_EXTERNAL_HOSTNAME
       secretName: nl-wallet-letsencrypt-live-cert

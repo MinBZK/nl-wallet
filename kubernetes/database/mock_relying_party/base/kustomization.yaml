@@ -1,0 +1,3 @@
+resources:
+  - db-cluster-mrp.yaml
+  - db-init.yaml
