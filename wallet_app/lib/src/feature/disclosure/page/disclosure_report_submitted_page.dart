@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/flow_terminal_page.dart';
+import '../../common/page/legacy_terminal_page.dart';
 
 class DisclosureReportSubmittedPage extends StatelessWidget {
   final VoidCallback onClosePressed;
@@ -13,7 +13,7 @@ class DisclosureReportSubmittedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FlowTerminalPage(
+    return LegacyTerminalPage(
       icon: Icons.gpp_maybe_outlined,
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.disclosureReportSubmittedPageTitle,

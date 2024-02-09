@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/feature/common/page/flow_terminal_page.dart';
+import 'package:wallet/src/feature/common/page/legacy_terminal_page.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 
 void main() {
   group('goldens', () {
     testGoldens(
-      'light flow terminal page',
+      'light legacy terminal page',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          FlowTerminalPage(
+          LegacyTerminalPage(
             icon: Icons.add_card_outlined,
             title: 'Title',
             description: 'Description',
@@ -21,14 +21,14 @@ void main() {
             onPrimaryPressed: () {},
           ),
         );
-        await screenMatchesGolden(tester, 'flow_terminal_page/light');
+        await screenMatchesGolden(tester, 'legacy_terminal_page/light');
       },
     );
     testGoldens(
-      'dark flow terminal page',
+      'dark legacy terminal page',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          FlowTerminalPage(
+          LegacyTerminalPage(
             icon: Icons.add_card_outlined,
             title: 'Title',
             description: 'Description',
@@ -39,7 +39,7 @@ void main() {
           ),
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'flow_terminal_page/dark');
+        await screenMatchesGolden(tester, 'legacy_terminal_page/dark');
       },
     );
   });
@@ -47,7 +47,7 @@ void main() {
   group('widgets', () {
     testWidgets('widgets are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        FlowTerminalPage(
+        LegacyTerminalPage(
           icon: Icons.add_card_outlined,
           title: 'T',
           description: 'D',
@@ -79,7 +79,7 @@ void main() {
       bool secondaryCalled = false;
       bool tertiaryCalled = false;
       await tester.pumpWidgetWithAppWrapper(
-        FlowTerminalPage(
+        LegacyTerminalPage(
           icon: Icons.add_card_outlined,
           title: 'T',
           description: 'D',
