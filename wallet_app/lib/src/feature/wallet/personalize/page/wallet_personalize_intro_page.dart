@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../wallet_assets.dart';
-import '../../../common/widget/button/text_icon_button.dart';
+import '../../../common/widget/button/primary_button.dart';
+import '../../../common/widget/button/secondary_button.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
 
 class WalletPersonalizeIntroPage extends StatelessWidget {
@@ -57,39 +58,30 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          ElevatedButton(
-            key: const Key('loginWithDigidCta'),
-            onPressed: onLoginWithDigidPressed,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  WalletAssets.logo_digid,
-                  excludeFromSemantics: true,
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text(context.l10n.walletPersonalizeIntroPageLoginWithDigidCta),
-                ),
-              ],
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const Divider(height: 1),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+          child: Column(
+            children: [
+              PrimaryButton(
+                key: const Key('loginWithDigidCta'),
+                onPressed: onLoginWithDigidPressed,
+                text: context.l10n.walletPersonalizeIntroPageLoginWithDigidCta,
+              ),
+              const SizedBox(height: 12),
+              SecondaryButton(
+                key: const Key('noDigidCta'),
+                onPressed: onNoDigidPressed,
+                text: context.l10n.walletPersonalizeIntroPageNoDigidCta,
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextIconButton(
-              key: const Key('noDigidCta'),
-              onPressed: onNoDigidPressed,
-              child: Text(context.l10n.walletPersonalizeIntroPageNoDigidCta),
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

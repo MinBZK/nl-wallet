@@ -1189,7 +1189,6 @@
     "walletPersonalizeIntroPageTitle": "Log in met jouw DigiD om te beginnen",
     "walletPersonalizeLoadingPhotoPageSubtitle": "Even geduld...",
     "walletPersonalizeLoadingPhotoPageTitle": "Aan het scannen",
-    "walletPersonalizeNoDigidPageBackCta": "Terug",
     "walletPersonalizeNoDigidPageDescription": "Op dit moment kan je alleen een Wallet aanmaken met de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
     "walletPersonalizeNoDigidPageHeadline": "Ik heb geen DigiD",
     "walletPersonalizeNoDigidPageRequestDigidCta": "DigiD aanvragen",

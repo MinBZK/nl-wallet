@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/numbered_list.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 
@@ -33,8 +34,6 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const Divider(height: 1),
-            const SizedBox(height: 24),
             _buildBottomSection(context),
           ],
         ),
@@ -78,16 +77,25 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ElevatedButton(
-            onPressed: onDataRejected,
-            child: Text(context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+          child: Column(
+            children: [
+              PrimaryButton(
+                onPressed: onDataRejected,
+                text: context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta,
+              ),
+              const SizedBox(height: 12),
+              SecondaryButton(
+                onPressed: () => Navigator.maybePop(context),
+                text: context.l10n.generalBottomBackCta,
+                icon: Icons.arrow_back,
+              ),
+            ],
           ),
         ),
-        const BottomBackButton()
       ],
     );
   }

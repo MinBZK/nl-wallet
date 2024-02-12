@@ -21,7 +21,7 @@ import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
-import '../../common/widget/button/wallet_back_button.dart';
+import '../../common/widget/button/wallet_app_bar_back_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -428,7 +428,7 @@ class OtherStylesTab extends StatelessWidget {
                 SliverWalletAppBar(
                   title: 'Sliver App Bar',
                   progress: 0.65,
-                  leading: const WalletBackButton(),
+                  leading: const WalletAppBarBackButton(),
                   actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
                 ),
                 const SliverFillRemaining(
@@ -454,7 +454,7 @@ class OtherStylesTab extends StatelessWidget {
             appBar: WalletAppBar(
               title: const Text('WalletAppBar'),
               progress: 0.55,
-              leading: const WalletBackButton(),
+              leading: const WalletAppBarBackButton(),
               actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
             ),
             body: ListView.builder(
@@ -495,7 +495,7 @@ class OtherStylesTab extends StatelessWidget {
                 child: Text('FadeInAtOffset'),
               ),
               progress: 0.55,
-              leading: const WalletBackButton(),
+              leading: const WalletAppBarBackButton(),
               actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
             ),
             body: ListView.builder(

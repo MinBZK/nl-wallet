@@ -6,7 +6,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/button/wallet_back_button.dart';
+import '../common/widget/button/wallet_app_bar_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../home/bloc/home_bloc.dart';
 import 'bloc/menu_bloc.dart';
@@ -33,7 +33,7 @@ class MenuScreen extends StatelessWidget {
                 slivers: [
                   SliverWalletAppBar(
                     title: context.l10n.menuScreenTitle,
-                    leading: WalletBackButton(
+                    leading: WalletAppBarBackButton(
                       onPressed: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.cards)),
                     ),
                   ),
@@ -42,7 +42,7 @@ class MenuScreen extends StatelessWidget {
               ),
             ),
           ),
-          const BottomBackButton(showDivider: true),
+          const BottomBackButton(),
         ],
       ),
     );

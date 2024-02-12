@@ -9,6 +9,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
+import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/rounded_back_button.dart';
 import '../common/widget/button/text_icon_button.dart';
 import 'page/introduction_page.dart';
@@ -334,20 +335,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildNextButton() {
-    return ElevatedButton(
+    return PrimaryButton(
       key: const Key('introductionNextPageCta'),
       onPressed: () => _onNextPressed(context),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.arrow_forward, size: 16),
-          const SizedBox(width: 8),
-          Text(
-            context.l10n.introductionNextPageCta,
-            key: const Key('introductionNextPageCtaText'),
-          ),
-        ],
-      ),
+      text: context.l10n.introductionNextPageCta,
     );
   }
 

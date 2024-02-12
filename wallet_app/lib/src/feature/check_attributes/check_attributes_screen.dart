@@ -41,7 +41,7 @@ class CheckAttributesScreen extends StatelessWidget {
             Expanded(
               child: _buildContent(context),
             ),
-            const BottomBackButton(showDivider: true),
+            const BottomBackButton(),
           ],
         ),
       ),

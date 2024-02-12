@@ -208,7 +208,7 @@ class HistoryDetailScreen extends StatelessWidget {
             ),
           ),
         ),
-        const BottomBackButton(showDivider: true),
+        const BottomBackButton(),
       ],
     );
   }
