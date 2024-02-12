@@ -147,14 +147,10 @@ impl SecureEncryptionKey for SoftwareEncryptionKey {
             .expect("Could not get lock on ENCRYPTION_CIPHERS");
 
         // Encrypt the provided message
-        let encrypted_msg = encryption_ciphers
-            .get(&self.identifier)
-            .unwrap()
-            .encrypt(nonce, msg)
-            .expect("Could not encrypt message");
+        let encrypted_msg = encryption_ciphers.get(&self.identifier).unwrap().encrypt(nonce, msg)?;
 
         // concatenate nonce with encrypted payload
-        let result: Vec<_> = nonce_bytes.into_iter().chain(encrypted_msg).collect();
+        let result = nonce_bytes.into_iter().chain(encrypted_msg).collect();
 
         Ok(result)
     }
@@ -168,13 +164,10 @@ impl SecureEncryptionKey for SoftwareEncryptionKey {
             .expect("Could not get lock on ENCRYPTION_CIPHERS");
 
         // Decrypt the provided message with the retrieved nonce
-        let decrypted_msg = encryption_ciphers
+        encryption_ciphers
             .get(&self.identifier)
             .unwrap()
             .decrypt(nonce, &msg[12..])
-            .expect("Could not decrypt message");
-
-        Ok(decrypted_msg)
     }
 }
 
