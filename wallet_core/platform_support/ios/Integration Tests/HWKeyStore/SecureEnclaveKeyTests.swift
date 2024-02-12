@@ -24,7 +24,7 @@ final class SecureEnclaveKeyTests: XCTestCase {
         return error.localizedDescription
     }
 
-    private static func publicKey(for key: SecureEnclaveKey) -> SecKey {
+    private static func publicKey(for key: borrowing SecureEnclaveKey) -> SecKey {
         var error: Unmanaged<CFError>?
         let publicKeyAttributes: [String: Any] = [
             kSecAttrKeyType as String: kSecAttrKeyTypeEC,
@@ -41,7 +41,7 @@ final class SecureEnclaveKeyTests: XCTestCase {
         return publicKey
     }
 
-    private static func isValid(signature: Data, for payload: Data, with key: SecureEnclaveKey) -> Bool {
+    private static func isValid(signature: Data, for payload: Data, with key: borrowing SecureEnclaveKey) -> Bool {
         var error: Unmanaged<CFError>?
         let publicKey = self.publicKey(for: key)
 
@@ -63,15 +63,6 @@ final class SecureEnclaveKeyTests: XCTestCase {
 
             SecItemDelete(query as CFDictionary)
         }
-    }
-
-    func testInit() {
-        // first instance should create a key for the identifier
-        let key1 = try! SecureEnclaveKey(identifier: Self.identifiers[0])
-        // second instance should retrieve the newly created key with the identifier
-        let key1Again = try! SecureEnclaveKey(identifier: Self.identifiers[0])
-
-        XCTAssert(key1 !== key1Again)
     }
 
     func testPublicKey() {
@@ -136,5 +127,42 @@ final class SecureEnclaveKeyTests: XCTestCase {
         XCTAssertNotEqual(encrypted1, encrypted2, "Payloads encrypted with different keys should differ")
         XCTAssertEqual(decrypted1, message, "A decrypted payload should equal its source")
         XCTAssertEqual(decrypted2, message, "A decrypted payload should equal its source")
+    }
+
+    func testDelete() {
+        let message = "This is a message that will be both signed and encrypted.".data(using: .ascii)!
+
+        // Create a new private key.
+        let key1 = try! SecureEnclaveKey(identifier: Self.identifiers[0])
+        let signature1 = try! key1.sign(payload: message)
+        let encrypted1 = try! key1.encrypt(payload: message)
+
+        // Create a new key with the same identifier, which should be backed by the same private key.
+        let key2 = try! SecureEnclaveKey(identifier: Self.identifiers[0])
+        let signature2 = try! key2.sign(payload: message)
+        let encrypted2 = try! key2.encrypt(payload: message)
+
+        XCTAssertTrue(Self.isValid(signature: signature1, for: message, with: key1), "The signature should be valid for the key itself")
+        XCTAssertTrue(Self.isValid(signature: signature2, for: message, with: key1), "The signature should be valid for the second copy of the key")
+
+        XCTAssertEqual(try! key1.decrypt(payload: encrypted1), message, "The message should decrypt for the key itself")
+        XCTAssertEqual(try! key1.decrypt(payload: encrypted2), message, "The message should decrypt for the second copy of the key")
+
+        // Now delete this private key, the second call should be a no-op.
+        try! key1.delete()
+        try! key2.delete()
+
+        // Create a key with the same identifier, which should result in a different key.
+        let key3 = try! SecureEnclaveKey(identifier: Self.identifiers[0])
+        let signature3 = try! key3.sign(payload: message)
+        let encrypted3 = try! key3.encrypt(payload: message)
+
+        XCTAssertFalse(Self.isValid(signature: signature1, for: message, with: key3), "The signature should not be valid for the new key")
+        XCTAssertFalse(Self.isValid(signature: signature2, for: message, with: key3), "The signature should not be valid for the new key")
+        XCTAssertTrue(Self.isValid(signature: signature3, for: message, with: key3), "The signature should be valid for the new key itself")
+
+        XCTAssertThrowsError(try key3.decrypt(payload: encrypted1), "Decrypting the message should fail with the new key")
+        XCTAssertThrowsError(try key3.decrypt(payload: encrypted2), "Decrypting the message should fail with the new key")
+        XCTAssertEqual(try! key3.decrypt(payload: encrypted3), message, "The message should decrypt for the new key itself")
     }
 }
