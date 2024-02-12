@@ -4,7 +4,10 @@ use p256::{
 };
 
 use wallet_common::{
-    keys::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, WithIdentifier},
+    keys::{
+        ConstructibleWithIdentifier, DeletableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey,
+        WithIdentifier,
+    },
     spawn,
 };
 
@@ -30,7 +33,7 @@ impl EcdsaKey for HardwareEcdsaKey {
     type Error = HardwareKeyStoreError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.identifier.clone();
 
         spawn::blocking(|| {
             let public_key_bytes = get_signing_key_bridge().public_key(identifier)?;
@@ -42,7 +45,7 @@ impl EcdsaKey for HardwareEcdsaKey {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.identifier.clone();
         let payload = msg.to_vec();
 
         let signature_bytes = spawn::blocking(|| get_signing_key_bridge().sign(identifier, payload)).await?;
@@ -59,6 +62,16 @@ impl ConstructibleWithIdentifier for HardwareEcdsaKey {
         HardwareEcdsaKey {
             identifier: identifier.to_string(),
         }
+    }
+}
+
+impl DeletableWithIdentifier for HardwareEcdsaKey {
+    type Error = HardwareKeyStoreError;
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        spawn::blocking(|| get_signing_key_bridge().delete(self.identifier)).await?;
+
+        Ok(())
     }
 }
 
@@ -90,18 +103,28 @@ impl WithIdentifier for HardwareEncryptionKey {
     }
 }
 
+impl DeletableWithIdentifier for HardwareEncryptionKey {
+    type Error = HardwareKeyStoreError;
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        spawn::blocking(|| get_encryption_key_bridge().delete(self.identifier)).await?;
+
+        Ok(())
+    }
+}
+
 impl SecureEncryptionKey for HardwareEncryptionKey {
     type Error = HardwareKeyStoreError;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.identifier.clone();
         let payload = msg.to_vec();
         let encrypted = spawn::blocking(|| get_encryption_key_bridge().encrypt(identifier, payload)).await?;
         Ok(encrypted)
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.identifier.clone();
         let payload = msg.to_vec();
         let decrypted = spawn::blocking(|| get_encryption_key_bridge().decrypt(identifier, payload)).await?;
         Ok(decrypted)

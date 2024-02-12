@@ -13,7 +13,10 @@ use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
     generator::TimeGenerator,
     jwt::Jwt,
-    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, WithIdentifier},
+    keys::{
+        software::SoftwareEcdsaKey, ConstructibleWithIdentifier, DeletableWithIdentifier, EcdsaKey, SecureEcdsaKey,
+        WithIdentifier,
+    },
     trust_anchor::DerTrustAnchor,
     utils,
 };
@@ -141,6 +144,14 @@ impl PlatformEcdsaKey for FallibleSoftwareEcdsaKey {}
 impl ConstructibleWithIdentifier for FallibleSoftwareEcdsaKey {
     fn new(identifier: &str) -> Self {
         SoftwareEcdsaKey::new(identifier).into()
+    }
+}
+
+impl DeletableWithIdentifier for FallibleSoftwareEcdsaKey {
+    type Error = <SoftwareEcdsaKey as DeletableWithIdentifier>::Error;
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        self.key.delete().await
     }
 }
 

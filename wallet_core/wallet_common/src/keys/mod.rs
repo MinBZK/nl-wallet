@@ -35,6 +35,12 @@ pub trait ConstructibleWithIdentifier: WithIdentifier {
         Self: Sized;
 }
 
+pub trait DeletableWithIdentifier: WithIdentifier {
+    type Error: Error + Send + Sync + 'static;
+
+    async fn delete(self) -> Result<(), Self::Error>;
+}
+
 pub trait WithIdentifier {
     fn identifier(&self) -> &str;
 }

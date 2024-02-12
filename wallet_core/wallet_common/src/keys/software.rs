@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, convert::Infallible, sync::Mutex};
 
 use aes_gcm::{
     aead::{Aead, KeyInit},
@@ -10,7 +10,7 @@ use rand_core::OsRng;
 
 use crate::{keys::WithIdentifier, utils::random_bytes};
 
-use super::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
+use super::{ConstructibleWithIdentifier, DeletableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
 // static for storing identifier -> signing key mapping, will only every grow
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mutex::new(HashMap::new()));
@@ -69,6 +69,17 @@ impl ConstructibleWithIdentifier for SoftwareEcdsaKey {
     }
 }
 
+impl DeletableWithIdentifier for SoftwareEcdsaKey {
+    type Error = Infallible;
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        let mut signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
+        signing_keys.remove(&self.identifier);
+
+        Ok(())
+    }
+}
+
 impl WithIdentifier for SoftwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
@@ -101,6 +112,19 @@ impl ConstructibleWithIdentifier for SoftwareEncryptionKey {
         SoftwareEncryptionKey {
             identifier: identifier.to_string(),
         }
+    }
+}
+
+impl DeletableWithIdentifier for SoftwareEncryptionKey {
+    type Error = Infallible;
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        let mut encryption_ciphers = ENCRYPTION_CIPHERS
+            .lock()
+            .expect("Could not get lock on ENCRYPTION_CIPHERS");
+        encryption_ciphers.remove(&self.identifier);
+
+        Ok(())
     }
 }
 

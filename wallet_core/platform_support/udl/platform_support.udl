@@ -17,6 +17,9 @@ callback interface SigningKeyBridge {
 
     [Throws=KeyStoreError]
     sequence<u8> sign(string identifier, sequence<u8> payload); // Returns a DER encoded signature
+
+    [Throws=KeyStoreError]
+    void delete(string identifier);
 };
 
 // This bridge grants access to encryption keys that are securely stored in hardware.
@@ -31,6 +34,9 @@ callback interface EncryptionKeyBridge {
 
     [Throws=KeyStoreError]
     sequence<u8> decrypt(string identifier, sequence<u8> payload); // Returns decrypted payload
+
+    [Throws=KeyStoreError]
+    void delete(string identifier);
 };
 
 // utils module
