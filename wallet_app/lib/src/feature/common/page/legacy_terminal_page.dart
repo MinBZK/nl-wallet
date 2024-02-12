@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/link_button.dart';
+import '../widget/button/primary_button.dart';
 import '../widget/button/text_icon_button.dart';
 import '../widget/status_icon.dart';
 
@@ -108,17 +109,21 @@ class LegacyTerminalPage extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (secondaryButton != null) secondaryButton,
-        if (secondaryButton != null) const SizedBox(height: 16),
+        const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ElevatedButton(
-            key: const Key('primaryButtonCta'),
-            onPressed: onPrimaryPressed,
-            child: Text(primaryButtonCta),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+          child: Column(
+            children: [
+              if (secondaryButton != null) secondaryButton,
+              if (secondaryButton != null) const SizedBox(height: 12),
+              PrimaryButton(
+                key: const Key('primaryButtonCta'),
+                onPressed: onPrimaryPressed,
+                text: primaryButtonCta,
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
       ],
     );
   }

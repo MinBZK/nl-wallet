@@ -6,7 +6,7 @@ const _kHorizontalPadding = 16.0;
 const _kVerticalPadding = 24.0;
 
 const _kButtonHeight = 48.0;
-const _kButtonSpacing = 8.0;
+const _kButtonSpacing = 12.0;
 const _kButtonTextHorizontalPadding = 16.0;
 const _kButtonTextMaxLines = 1;
 

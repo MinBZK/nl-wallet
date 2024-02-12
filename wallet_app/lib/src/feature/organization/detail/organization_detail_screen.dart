@@ -46,7 +46,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             Expanded(
               child: _buildBody(),
             ),
-            const BottomBackButton(showDivider: true),
+            const BottomBackButton(),
           ],
         ),
       ),

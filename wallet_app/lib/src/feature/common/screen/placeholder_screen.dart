@@ -44,7 +44,7 @@ class PlaceholderScreen extends StatelessWidget {
           ),
         ),
         const Spacer(flex: 2),
-        const BottomBackButton(showDivider: true),
+        const BottomBackButton(),
       ],
     );
   }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 /// Similar to the normal [BackButton] widget, but always uses the [Icons.arrow_back] icon.
-class WalletBackButton extends StatelessWidget {
+class WalletAppBarBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
-  const WalletBackButton({this.onPressed, super.key});
+  const WalletAppBarBackButton({this.onPressed, super.key});
 
   @override
   Widget build(BuildContext context) {

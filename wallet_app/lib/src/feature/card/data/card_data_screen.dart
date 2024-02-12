@@ -81,7 +81,7 @@ class CardDataScreen extends StatelessWidget {
             },
           ),
         ),
-        const BottomBackButton(showDivider: true),
+        const BottomBackButton(),
       ],
     );
   }

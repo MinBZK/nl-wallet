@@ -4,7 +4,9 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/button/link_tile_button.dart';
+import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/rounded_back_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/button/text_icon_button.dart';
 import '../../common/widget/text_with_link.dart';
 import '../theme_screen.dart';
@@ -18,6 +20,7 @@ class ButtonStylesTab extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
       children: [
         const ThemeSectionSubHeader(title: 'Themed Framework Buttons'),
+        const SizedBox(height: 16),
         ElevatedButton(
           onPressed: () => {},
           child: const Text('ElevatedButton'),
@@ -32,6 +35,12 @@ class ButtonStylesTab extends StatelessWidget {
           onPressed: () => {},
           child: const Text('OutlinedButton'),
         ),
+        const SizedBox(height: 16),
+        const ThemeSectionSubHeader(title: 'Primary & Secondary Buttons'),
+        const SizedBox(height: 16),
+        PrimaryButton(onPressed: () => {}, text: 'PrimaryButton'),
+        const SizedBox(height: 16),
+        SecondaryButton(onPressed: () => {}, text: 'SecondaryButton'),
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'TextIconButton'),
         TextIconButton(

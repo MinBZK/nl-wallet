@@ -54,7 +54,7 @@ class DigidHelpScreen extends StatelessWidget {
         const SliverFillRemaining(
           fillOverscroll: true,
           hasScrollBody: false,
-          child: BottomBackButton(showDivider: true),
+          child: BottomBackButton(),
         ),
         const SliverSizedBox(height: 32),
       ],

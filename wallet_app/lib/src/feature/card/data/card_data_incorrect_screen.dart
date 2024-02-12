@@ -33,7 +33,7 @@ class CardDataIncorrectScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const BottomBackButton(showDivider: true)
+            const BottomBackButton()
           ],
         ),
       ),

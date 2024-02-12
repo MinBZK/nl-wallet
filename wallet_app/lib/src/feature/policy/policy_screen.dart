@@ -38,9 +38,7 @@ class PolicyScreen extends StatelessWidget {
             Expanded(
               child: _buildBody(context),
             ),
-            const BottomBackButton(
-              showDivider: true,
-            ),
+            const BottomBackButton(),
           ],
         ),
       ),

@@ -37,7 +37,7 @@ class CardHistoryScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(child: _buildContent(context)),
-            const BottomBackButton(showDivider: true),
+            const BottomBackButton(),
           ],
         ),
       ),
