@@ -104,7 +104,7 @@ class OrganizationApprovePage extends StatelessWidget {
 
   Widget _buildHeaderTitleText(BuildContext context) {
     return Text(
-      context.l10n.organizationApprovePageGenericTitle(organization.legalName.l10nValue(context)),
+      context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
       style: context.textTheme.displayMedium,
       textAlign: TextAlign.start,
     );

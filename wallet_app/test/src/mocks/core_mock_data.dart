@@ -23,7 +23,7 @@ abstract class CoreMockData {
   static const Organization organization = Organization(
     legalName: [LocalizedString(language: 'en', value: 'legalName')],
     displayName: [LocalizedString(language: 'en', value: 'displayName')],
-    description: [LocalizedString(language: 'en', value: 'description')],
     category: [LocalizedString(language: 'en', value: 'category')],
+    description: [LocalizedString(language: 'en', value: 'description')],
   );
 }

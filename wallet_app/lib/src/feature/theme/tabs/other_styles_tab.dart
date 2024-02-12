@@ -80,23 +80,16 @@ final _kSampleCard = WalletCard(
 
 final _kSampleOrganization = Organization(
   id: 'id',
-  legalName: 'Organization Name'.untranslated,
+  legalName: 'Organization Legal Name'.untranslated,
+  displayName: 'Organization Display Name'.untranslated,
   category: 'Category'.untranslated,
-  displayName: 'This is a TimelineAttributeRow'.untranslated,
   description: 'Organization description'.untranslated,
   logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
 );
 
 final _kSampleOperationAttribute = OperationTimelineAttribute(
   dateTime: DateTime.now(),
-  organization: Organization(
-    id: 'id',
-    legalName: 'Organization legalName'.untranslated,
-    category: 'Category'.untranslated,
-    displayName: 'Organization'.untranslated,
-    description: 'Organization description'.untranslated,
-    logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
-  ),
+  organization: _kSampleOrganization,
   dataAttributes: const [],
   status: OperationStatus.issued,
   card: _kSampleCard,
@@ -104,14 +97,7 @@ final _kSampleOperationAttribute = OperationTimelineAttribute(
 
 final _kSampleInteractionAttribute = InteractionTimelineAttribute(
   dateTime: DateTime.now(),
-  organization: Organization(
-    id: 'id',
-    legalName: 'Organization legalName'.untranslated,
-    category: 'Category'.untranslated,
-    displayName: 'Organization'.untranslated,
-    description: 'Organization description'.untranslated,
-    logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
-  ),
+  organization: _kSampleOrganization,
   dataAttributes: const [],
   status: InteractionStatus.success,
   policy: const Policy(

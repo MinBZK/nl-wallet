@@ -53,7 +53,7 @@ class SharedAttributesCard extends StatelessWidget {
                         card.front.title.l10nValue(context),
                         attributes.length,
                       ),
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: context.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -121,7 +121,7 @@ class SharedAttributesCard extends StatelessWidget {
         .map(
           (attribute) => Text(
             attribute.label.l10nValue(context),
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: context.textTheme.bodyLarge,
           ),
         )
         .toList();

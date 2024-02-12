@@ -162,7 +162,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
               style: Theme.of(context)
                   .textButtonTheme
                   .style
-                  ?.copyWith(foregroundColor: MaterialStatePropertyAll(Theme.of(context).colorScheme.error)),
+                  ?.copyWith(foregroundColor: MaterialStatePropertyAll(context.colorScheme.error)),
               onPressed: () => Navigator.pop(context, true),
               child: Text(context.l10n.walletPersonalizeScreenStopDigidDialogPositiveCta),
             ),

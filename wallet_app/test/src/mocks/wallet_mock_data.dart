@@ -55,8 +55,8 @@ abstract class WalletMockData {
   static final Organization organization = Organization(
     id: 'id',
     legalName: 'Organization Legal Name'.untranslated,
+    displayName: 'Organization Display Name'.untranslated,
     category: 'Category'.untranslated,
-    displayName: 'Display Name'.untranslated,
     description: 'Organization description'.untranslated,
     logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
   );
