@@ -877,6 +877,7 @@
     "organizationDetailScreenInfoHeader": "Info",
     "organizationDetailScreenKvk": "KVK: {kvk}",
     "organizationDetailScreenKvkInfo": "KVK nummer",
+    "organizationDetailScreenLegalNameInfo": "Wettelijke bedrijfsnaam",
     "organizationDetailScreenLocationInfo": "Locatie",
     "organizationDetailScreenPrivacyHeader": "Privacy",
     "organizationDetailScreenPrivacyInfo": "Privacyverklaring",

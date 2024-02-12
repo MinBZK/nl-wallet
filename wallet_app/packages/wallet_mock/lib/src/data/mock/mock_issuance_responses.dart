@@ -96,7 +96,7 @@ final _kMockDiplomaWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockDiplomaCardFront,
   attributes: _kMockDiplomaDataAttributes,
-  issuer: kOrganizations[kRvigId]!,
+  issuer: kOrganizations[kDuoId]!,
 );
 
 const _kMultiDiplomaId = 'MULTI_DIPLOMA';
@@ -106,7 +106,7 @@ final _kMockMasterDiplomaWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockMasterDiplomaCardFront,
   attributes: _kMockMasterDiplomaDataAttributes,
-  issuer: kOrganizations[kRvigId]!,
+  issuer: kOrganizations[kDuoId]!,
 );
 
 const _kDrivingLicenseId = 'DRIVING_LICENSE';
@@ -115,7 +115,7 @@ final _kMockDrivingLicenseWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockDrivingLicenseCardFront,
   attributes: _kMockDrivingLicenseDataAttributes,
-  issuer: kOrganizations[kRvigId]!,
+  issuer: kOrganizations[kRdwId]!,
 );
 
 const _kDrivingLicenseRenewedId = 'DRIVING_LICENSE_RENEWED'; // Used in issuance QR only!
@@ -124,7 +124,7 @@ final _kMockDrivingLicenseRenewedWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockDrivingLicenseRenewedCardFront,
   attributes: _kMockDrivingLicenseRenewedDataAttributes,
-  issuer: kOrganizations[kRvigId]!,
+  issuer: kOrganizations[kRdwId]!,
 );
 
 const _kHealthInsuranceId = 'HEALTH_INSURANCE';
@@ -133,7 +133,7 @@ final _kMockHealthInsuranceWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockHealthInsuranceCardFront,
   attributes: _kMockHealthInsuranceDataAttributes,
-  issuer: kOrganizations[kRvigId]!,
+  issuer: kOrganizations[kHealthInsuranceId]!,
 );
 
 const _kVOGId = 'VOG';

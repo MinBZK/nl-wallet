@@ -33,7 +33,7 @@ class DocumentSection extends StatelessWidget {
             textAlign: TextAlign.start,
           ),
           Text(
-            organization.legalName.l10nValue(context),
+            organization.displayName.l10nValue(context),
             style: context.textTheme.bodyLarge,
             textAlign: TextAlign.start,
           ),

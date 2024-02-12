@@ -69,6 +69,5 @@ class WalletAssets {
   static const logo_rp_placeholder = 'assets/non-free/logos/rp_placeholder.png';
 
   // ICONS
-  static const icon_first_share = 'assets/non-free/icons/first_share.png';
   static const icon_card_share = 'assets/non-free/icons/card_share.png';
 }

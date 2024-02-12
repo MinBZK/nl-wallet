@@ -53,10 +53,10 @@ final _kRdwOrganization = Organization(
   legalName: 'Rijksdienst voor het Wegverkeer (RDW)'.untranslated,
   displayName: 'RDW'.untranslated,
   category: 'Overheid'.untranslated,
-  image: Image.asset(path: MockAssets.logo_rdw),
   description:
       'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.'
           .untranslated,
+  image: Image.asset(path: MockAssets.logo_rdw),
 );
 
 final _kDuoOrganization = Organization(
@@ -64,10 +64,10 @@ final _kDuoOrganization = Organization(
   legalName: 'Dienst Uitvoering Onderwijs (DUO)'.untranslated,
   displayName: 'DUO'.untranslated,
   category: 'Overheid'.untranslated,
-  image: Image.asset(path: MockAssets.logo_rijksoverheid),
   description:
       'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.'
           .untranslated,
+  image: Image.asset(path: MockAssets.logo_rijksoverheid),
 );
 
 final _kEmployerOrganization = Organization(
