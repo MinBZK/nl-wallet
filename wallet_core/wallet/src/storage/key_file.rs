@@ -5,7 +5,8 @@ use std::{
 
 use tokio::fs;
 
-use wallet_common::{keys::SecureEncryptionKey, utils::random_bytes};
+use platform_support::hw_keystore::PlatformEncryptionKey;
+use wallet_common::utils;
 
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 
@@ -17,7 +18,7 @@ pub enum KeyFileError {
     Encryption(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
-pub async fn get_or_create_key_file<K: SecureEncryptionKey>(
+pub async fn get_or_create_key_file<K: PlatformEncryptionKey>(
     storage_path: &Path,
     alias: &str,
     byte_length: usize,
@@ -28,7 +29,7 @@ pub async fn get_or_create_key_file<K: SecureEncryptionKey>(
     let encryption_key = K::new(&format!("{}{}", KEY_IDENTIFIER_PREFIX, alias));
 
     // Decrypt file at path, create key and write to file if needed.
-    get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await
+    get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || utils::random_bytes(byte_length)).await
 }
 
 pub async fn delete_key_file(storage_path: &Path, alias: &str) -> Result<(), KeyFileError> {
@@ -45,7 +46,7 @@ fn path_for_key_file(storage_path: &Path, alias: &str) -> PathBuf {
 
 async fn get_or_create_encrypted_file_contents(
     path: &Path,
-    encryption_key: &impl SecureEncryptionKey,
+    encryption_key: &impl PlatformEncryptionKey,
     default: impl FnOnce() -> Vec<u8>,
 ) -> Result<Vec<u8>, KeyFileError> {
     // If no file at the path exists, call the default closure to get the desired contents,
@@ -64,7 +65,7 @@ async fn get_or_create_encrypted_file_contents(
 async fn write_encrypted_file(
     path: &Path,
     contents: &[u8],
-    encryption_key: &impl SecureEncryptionKey,
+    encryption_key: &impl PlatformEncryptionKey,
 ) -> Result<(), KeyFileError> {
     // Encrypt the contents as bytes and write to a new file at the path.
     let encrypted_contents = encryption_key
@@ -76,7 +77,10 @@ async fn write_encrypted_file(
     Ok(())
 }
 
-async fn read_encrypted_file(path: &Path, encryption_key: &impl SecureEncryptionKey) -> Result<Vec<u8>, KeyFileError> {
+async fn read_encrypted_file(
+    path: &Path,
+    encryption_key: &impl PlatformEncryptionKey,
+) -> Result<Vec<u8>, KeyFileError> {
     // Decrypt the bytes of a file at the path.
     let contents = fs::read(path).await?;
     let decrypted_contents = encryption_key

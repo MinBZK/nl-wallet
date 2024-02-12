@@ -42,8 +42,7 @@ pub trait WithIdentifier {
 /// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
-pub trait SecureEncryptionKey: ConstructibleWithIdentifier {
-    // from ConstructibleWithIdentifier: new(), identifier()
+pub trait SecureEncryptionKey {
     type Error: Error + Send + Sync + 'static;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;

@@ -10,7 +10,7 @@ use wallet_common::{
 
 use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
 
-use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey};
+use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 
 impl From<KeyStoreError> for p256::ecdsa::Error {
     // wrap KeyStoreError in p256::ecdsa::signature::error,
@@ -107,3 +107,5 @@ impl SecureEncryptionKey for HardwareEncryptionKey {
         Ok(decrypted)
     }
 }
+
+impl PlatformEncryptionKey for HardwareEncryptionKey {}

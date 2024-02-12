@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
     holder::MdocCopies,
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
 };
-use wallet_common::keys::SecureEncryptionKey;
+use platform_support::hw_keystore::PlatformEncryptionKey;
 
 use super::{
     data::KeyedData,
@@ -87,7 +87,7 @@ impl<K> DatabaseStorage<K> {
 
 impl<K> DatabaseStorage<K>
 where
-    K: SecureEncryptionKey,
+    K: PlatformEncryptionKey,
 {
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
@@ -245,7 +245,7 @@ where
 
 impl<K> Storage for DatabaseStorage<K>
 where
-    K: SecureEncryptionKey,
+    K: PlatformEncryptionKey,
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.

@@ -1,6 +1,6 @@
 pub mod hardware;
 
-use wallet_common::keys::{ConstructibleWithIdentifier, SecureEcdsaKey};
+use wallet_common::keys::{ConstructibleWithIdentifier, SecureEcdsaKey, SecureEncryptionKey};
 
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
@@ -29,5 +29,18 @@ pub trait PlatformEcdsaKey: ConstructibleWithIdentifier + SecureEcdsaKey {
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
+pub trait PlatformEncryptionKey: ConstructibleWithIdentifier + SecureEncryptionKey {
+    // from ConstructibleWithIdentifier: new(), identifier()
+    // from SecureEncryptionKey: encrypt(), decrypt()
+}
+
 #[cfg(feature = "software")]
-impl PlatformEcdsaKey for wallet_common::keys::software::SoftwareEcdsaKey {}
+mod software {
+    use wallet_common::keys::software::{SoftwareEcdsaKey, SoftwareEncryptionKey};
+
+    use super::{PlatformEcdsaKey, PlatformEncryptionKey};
+
+    impl PlatformEcdsaKey for SoftwareEcdsaKey {}
+
+    impl PlatformEncryptionKey for SoftwareEncryptionKey {}
+}

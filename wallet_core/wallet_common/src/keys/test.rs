@@ -27,7 +27,10 @@ pub async fn sign_and_verify_signature<K: ConstructibleWithIdentifier + SecureEc
     public_key.verify(payload, &signature).is_ok()
 }
 
-pub async fn encrypt_and_decrypt_message<K: SecureEncryptionKey>(payload: &[u8], key_identifier: &str) -> bool {
+pub async fn encrypt_and_decrypt_message<K: ConstructibleWithIdentifier + SecureEncryptionKey>(
+    payload: &[u8],
+    key_identifier: &str,
+) -> bool {
     // Create an encryption key for the identifier
     let encryption_key1 = K::new(key_identifier);
     // Create another encryption key with the same identifier, should use the same key
