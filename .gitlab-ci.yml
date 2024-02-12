@@ -521,6 +521,7 @@ build-ios-app:
 
 deploy-android-app:
   resource_group: deploy-android
+  extends: .env-ont-k8s # needs k8s secrets
   rules: !reference [.default-or-release, rules]
   needs:
     - job: build-android-app
@@ -587,6 +588,7 @@ dependency-check-images:
 
 upload-browserstack-android-app:
   resource_group: deploy-android
+  extends: .env-ont-k8s # needs k8s secrets
   rules: !reference [.default-branch, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"

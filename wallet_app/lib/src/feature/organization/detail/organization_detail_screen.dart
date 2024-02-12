@@ -46,7 +46,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             Expanded(
               child: _buildBody(),
             ),
-            const BottomBackButton(showDivider: true),
+            const BottomBackButton(),
           ],
         ),
       ),
@@ -71,7 +71,6 @@ class OrganizationDetailScreen extends StatelessWidget {
                     onPressed: () => PlaceholderScreen.show(context),
                     icon: const Icon(Icons.help_outline_rounded),
                   ),
-                  const CloseButton(),
                 ],
               ),
               content,
@@ -117,9 +116,11 @@ class OrganizationDetailScreen extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         if (state.sharedDataWithOrganizationBefore) ...[
+          const Divider(height: 1),
           _buildInteractionRow(context, state),
-          const SizedBox(height: 16),
         ],
+        const Divider(height: 1),
+        const SizedBox(height: 16),
         _buildInfoSection(context, state.organization),
         const SizedBox(height: 16),
         onReportIssuePressed == null
@@ -161,6 +162,7 @@ class OrganizationDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        _buildLegalNameRow(context, organization),
         _buildCategoryRow(context, organization),
         if (organization.department != null) _buildDepartmentRow(context, organization),
         if (country != null || organization.city != null) _buildLocationRow(context, country, organization),
@@ -171,10 +173,19 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildLegalNameRow(BuildContext context, Organization organization) {
+    return _buildInfoRow(
+      context,
+      icon: Icons.balance_outlined,
+      title: Text(context.l10n.organizationDetailScreenLegalNameInfo),
+      subtitle: Text(organization.legalName.l10nValue(context)),
+    );
+  }
+
   Widget _buildCategoryRow(BuildContext context, Organization organization) {
     return _buildInfoRow(
       context,
-      icon: Icons.apartment,
+      icon: Icons.apartment_outlined,
       title: Text(context.l10n.organizationDetailScreenCategoryInfo),
       subtitle: Text(organization.category?.l10nValue(context) ?? ''),
     );
@@ -230,11 +241,11 @@ class OrganizationDetailScreen extends StatelessWidget {
         child: Text.rich(
           TextSpan(
             text: privacyPolicyUrl,
-            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                  fontWeight: FontWeight.w400,
-                  decoration: TextDecoration.underline,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+            style: context.textTheme.bodyLarge!.copyWith(
+              fontWeight: FontWeight.w400,
+              decoration: TextDecoration.underline,
+              color: context.colorScheme.primary,
+            ),
             recognizer: TapGestureRecognizer()..onTap = () => launchUrlStringCatching(privacyPolicyUrl),
           ),
         ),
@@ -251,8 +262,12 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(BuildContext context,
-      {required IconData icon, required Widget title, required Widget subtitle}) {
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required IconData icon,
+    required Widget title,
+    required Widget subtitle,
+  }) {
     /// Note: not relying on [InfoRow] widget because the styling here is a bit too custom.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -267,11 +282,11 @@ class OrganizationDetailScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DefaultTextStyle(
-                style: Theme.of(context).textTheme.bodySmall!,
+                style: context.textTheme.bodySmall!,
                 child: title,
               ),
               DefaultTextStyle(
-                style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w400),
+                style: context.textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w400),
                 child: subtitle,
               ),
             ],
@@ -317,25 +332,20 @@ class OrganizationDetailScreen extends StatelessWidget {
   Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
     String interaction =
         context.l10n.organizationDetailScreenSomeInteractions(state.organization.displayName.l10nValue(context));
-    return Column(
-      children: [
-        const Divider(height: 1),
-        const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Icon(Icons.history_outlined, size: 24),
-            ),
-            Expanded(
-              child: Text(interaction),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        const Divider(height: 1),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Icon(Icons.history_outlined, size: 24),
+          ),
+          Expanded(
+            child: Text(interaction),
+          ),
+        ],
+      ),
     );
   }
 }

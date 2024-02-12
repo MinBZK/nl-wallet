@@ -41,7 +41,7 @@ class CheckAttributesScreen extends StatelessWidget {
             Expanded(
               child: _buildContent(context),
             ),
-            const BottomBackButton(showDivider: true),
+            const BottomBackButton(),
           ],
         ),
       ),
@@ -89,7 +89,7 @@ class CheckAttributesScreen extends StatelessWidget {
                       case CheckAttributesSuccess():
                         return Text(
                           context.l10n.checkAttributesScreenSubtitle(
-                            state.card.issuer.legalName.l10nValue(context),
+                            state.card.issuer.displayName.l10nValue(context),
                           ),
                           style: context.textTheme.bodySmall,
                           textAlign: TextAlign.start,

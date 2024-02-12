@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../menu/widget/menu_row.dart';
 
@@ -13,12 +14,21 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('settingsScreen'),
-      body: CustomScrollView(
-        slivers: [
-          SliverWalletAppBar(
-            title: context.l10n.settingsScreenTitle,
+      body: Column(
+        children: [
+          Expanded(
+            child: Scrollbar(
+              child: CustomScrollView(
+                slivers: [
+                  SliverWalletAppBar(
+                    title: context.l10n.settingsScreenTitle,
+                  ),
+                  _buildContentSliver(context),
+                ],
+              ),
+            ),
           ),
-          _buildContentSliver(context),
+          const BottomBackButton(),
         ],
       ),
     );

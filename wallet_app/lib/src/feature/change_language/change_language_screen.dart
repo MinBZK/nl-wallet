@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
-import '../common/widget/button/wallet_back_button.dart';
+import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/button/wallet_app_bar_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
@@ -16,16 +17,25 @@ class ChangeLanguageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('changeLanguageScreen'),
-      body: CustomScrollView(
-        slivers: [
-          SliverWalletAppBar(
-            title: context.l10n.changeLanguageScreenTitle,
-            leading: const WalletBackButton(
-              key: Key('changeLanguageScreenBackCta'),
+      body: Column(
+        children: [
+          Expanded(
+            child: Scrollbar(
+              child: CustomScrollView(
+                slivers: [
+                  SliverWalletAppBar(
+                    title: context.l10n.changeLanguageScreenTitle,
+                    leading: const WalletAppBarBackButton(
+                      key: Key('changeLanguageScreenBackCta'),
+                    ),
+                  ),
+                  const SliverSizedBox(height: 12),
+                  _buildContentSliver(context),
+                ],
+              ),
             ),
           ),
-          const SliverSizedBox(height: 12),
-          _buildContentSliver(context),
+          const BottomBackButton(),
         ],
       ),
     );

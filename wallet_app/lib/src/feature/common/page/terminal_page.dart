@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../widget/button/primary_button.dart';
 import '../widget/button/text_icon_button.dart';
 
 class TerminalPage extends StatelessWidget {
@@ -98,17 +99,10 @@ class TerminalPage extends StatelessWidget {
   Widget _buildPrimaryButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ElevatedButton(
+      child: PrimaryButton(
         key: const Key('primaryButtonCta'),
         onPressed: onPrimaryPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.arrow_forward, size: 16),
-            const SizedBox(width: 8),
-            Text(primaryButtonCta),
-          ],
-        ),
+        text: primaryButtonCta,
       ),
     );
   }

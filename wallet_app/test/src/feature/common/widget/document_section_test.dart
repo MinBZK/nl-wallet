@@ -51,7 +51,7 @@ void main() {
 
       // Validate that the widget exists
       final titleFinder = find.text('Title');
-      final orgNameFinder = find.text(WalletMockData.organization.legalName.testValue);
+      final orgNameFinder = find.text(WalletMockData.organization.displayName.testValue);
       final fileFinder = find.text(WalletMockData.document.fileName);
       expect(titleFinder, findsOneWidget);
       expect(orgNameFinder, findsOneWidget);

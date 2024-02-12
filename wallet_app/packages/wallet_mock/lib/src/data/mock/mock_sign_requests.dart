@@ -14,8 +14,8 @@ final kRentalRequest = SignRequest(
   trustProvider: Organization(
     legalName: 'Veilig Ondertekenen B.V.'.untranslated,
     displayName: 'Veilig Ondertekenen B.V.'.untranslated,
-    description: ''.untranslated,
     category: 'Contracten'.untranslated,
+    description: ''.untranslated,
     image: Image.asset(path: MockAssets.logo_sign_provider),
   ),
   document: const Document(

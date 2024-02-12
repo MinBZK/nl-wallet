@@ -5,8 +5,9 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
-import '../common/widget/button/text_icon_button.dart';
-import '../common/widget/button/wallet_back_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/secondary_button.dart';
+import '../common/widget/button/wallet_app_bar_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
@@ -27,7 +28,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
         slivers: [
           SliverWalletAppBar(
             title: context.l10n.introductionPrivacyScreenHeadline,
-            leading: const WalletBackButton(),
+            leading: const WalletAppBarBackButton(),
             progress: 0.08,
             actions: [
               IconButton(
@@ -73,33 +74,30 @@ class IntroductionPrivacyScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          TextIconButton(
-            key: const Key('introductionPrivacyScreenPrivacyCta'),
-            iconPosition: IconPosition.start,
-            child: Text(context.l10n.introductionPrivacyScreenPrivacyCta),
-            onPressed: () => PlaceholderScreen.show(context, secured: false),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const Divider(height: 1),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+          child: Column(
+            children: [
+              SecondaryButton(
+                key: const Key('introductionPrivacyScreenPrivacyCta'),
+                onPressed: () => PlaceholderScreen.show(context, secured: false),
+                text: context.l10n.introductionPrivacyScreenPrivacyCta,
+              ),
+              const SizedBox(height: 12),
+              PrimaryButton(
+                key: const Key('introductionPrivacyScreenNextCta'),
+                onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionConditionsRoute),
+                text: context.l10n.introductionPrivacyScreenNextCta,
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          ElevatedButton(
-            key: const Key('introductionPrivacyScreenNextCta'),
-            onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionConditionsRoute),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.arrow_forward, size: 16),
-                const SizedBox(width: 8),
-                Text(context.l10n.introductionPrivacyScreenNextCta),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

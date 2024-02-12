@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
-import '../../common/widget/button/text_icon_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 
 const _kRequestDigidUrl = 'https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen';
@@ -50,37 +50,30 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          ElevatedButton(
-            key: const Key('applyForDigidCta'),
-            onPressed: () => _openRequestDigidUrl(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(WalletAssets.logo_digid),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text(context.l10n.walletPersonalizeNoDigidPageRequestDigidCta),
-                ),
-              ],
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const Divider(height: 1),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+          child: Column(
+            children: [
+              PrimaryButton(
+                key: const Key('applyForDigidCta'),
+                onPressed: () => _openRequestDigidUrl(),
+                text: context.l10n.walletPersonalizeNoDigidPageRequestDigidCta,
+              ),
+              const SizedBox(height: 12),
+              SecondaryButton(
+                onPressed: () => Navigator.maybePop(context),
+                text: context.l10n.generalBottomBackCta,
+                icon: Icons.arrow_back,
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextIconButton(
-              icon: Icons.arrow_back,
-              iconPosition: IconPosition.start,
-              onPressed: () => Navigator.pop(context),
-              child: Text(context.l10n.walletPersonalizeNoDigidPageBackCta),
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
