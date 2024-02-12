@@ -45,6 +45,7 @@ async fn accept_issuance() {
     let message_client = MockOpenidMessageClient {
         issuer,
         wrong_access_token: false,
+        invalidate_dpop: false,
     };
 
     let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
@@ -66,6 +67,7 @@ async fn reject_issuance() {
     let message_client = MockOpenidMessageClient {
         issuer,
         wrong_access_token: false,
+        invalidate_dpop: false,
     };
 
     let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
@@ -81,6 +83,7 @@ async fn wrong_access_token() {
     let message_client = MockOpenidMessageClient {
         issuer,
         wrong_access_token: true,
+        invalidate_dpop: false,
     };
 
     let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
@@ -95,6 +98,30 @@ async fn wrong_access_token() {
     assert!(matches!(
         result,
         IssuerClientError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidToken)
+    ));
+}
+
+#[tokio::test]
+async fn invalid_dpop() {
+    let (issuer, ca, server_url) = setup();
+    let message_client = MockOpenidMessageClient {
+        issuer,
+        wrong_access_token: false,
+        invalidate_dpop: true,
+    };
+
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+        .await
+        .unwrap();
+
+    let result = session
+        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), &server_url)
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        result,
+        IssuerClientError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidRequest)
     ));
 }
 
@@ -117,6 +144,7 @@ struct MockOpenidMessageClient {
     issuer: MockIssuer,
 
     wrong_access_token: bool,
+    invalidate_dpop: bool,
 }
 
 impl MockOpenidMessageClient {
@@ -126,6 +154,16 @@ impl MockOpenidMessageClient {
             AccessToken::from("0".repeat(32) + code)
         } else {
             AccessToken::from(access_token_header[5..].to_string())
+        }
+    }
+
+    fn dpop(&self, dpop_header: &str) -> Dpop {
+        if self.invalidate_dpop {
+            // Invalidate the signature by modifying the last character
+            let new_char = if !dpop_header.ends_with('A') { 'A' } else { 'B' };
+            Dpop::from((dpop_header[..dpop_header.len() - 1].to_string() + &new_char.to_string()).to_string())
+        } else {
+            Dpop::from(dpop_header.to_string())
         }
     }
 }
@@ -155,7 +193,7 @@ impl OpenidMessageClient for MockOpenidMessageClient {
         self.issuer
             .process_batch_credential(
                 self.access_token(access_token_header),
-                Dpop::from(dpop_header.to_string()),
+                self.dpop(dpop_header),
                 credential_requests.clone(),
             )
             .await
@@ -166,7 +204,7 @@ impl OpenidMessageClient for MockOpenidMessageClient {
         self.issuer
             .process_reject_issuance(
                 self.access_token(access_token_header),
-                Dpop::from(dpop_header.to_string()),
+                self.dpop(dpop_header),
                 "batch_credential",
             )
             .await
