@@ -179,7 +179,7 @@ void main() {
       expect(titleFinder, findsNWidgets(2));
 
       // Tap any title, as the whole row should be clickable
-      await tester.tap(titleFinder.first);
+      await tester.tap(titleFinder.last);
       expect(tapped, true, reason: 'onPressed was not called');
     });
   });
