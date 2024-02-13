@@ -50,21 +50,22 @@ pub enum Error {
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
 pub struct OpenIdClient {
+    client_id: String,
+    issuer_url: Url,
     decrypter_private_key: RsaesJweDecrypter,
-    pub openid_client: openid::Client,
 }
 
 impl OpenIdClient {
     pub async fn new(issuer_url: Url, bsn_privkey: String, client_id: String) -> Result<Self> {
-        let client = Self::discover_client(client_id, issuer_url).await?;
         let userinfo_client = OpenIdClient {
+            client_id,
+            issuer_url,
             decrypter_private_key: OpenIdClient::decrypter(&bsn_privkey)?,
-            openid_client: client,
         };
         Ok(userinfo_client)
     }
 
-    async fn discover_client(client_id: String, issuer_url: Url) -> Result<openid::Client> {
+    async fn discover_client(&self) -> Result<openid::Client> {
         let http_client = reqwest::Client::builder();
         #[cfg(feature = "disable_tls_validation")]
         let http_client = http_client.danger_accept_invalid_certs(true);
@@ -72,7 +73,14 @@ impl OpenIdClient {
             .timeout(CLIENT_TIMEOUT)
             .build()
             .expect("Could not build reqwest HTTP client");
-        let client = openid::Client::discover_with_client(http_client, client_id, None, None, issuer_url).await?;
+        let client = openid::Client::discover_with_client(
+            http_client,
+            self.client_id.clone(),
+            None,
+            None,
+            self.issuer_url.clone(),
+        )
+        .await?;
 
         // Check that the userinfo endpoint was found by discovery
         _ = client
@@ -117,10 +125,11 @@ impl OpenIdClient {
     }
 
     pub async fn request_token(&self, token_request: TokenRequest) -> Result<AccessToken> {
-        let response: TokenResponse = self
-            .openid_client
+        let client = self.discover_client().await?;
+
+        let response: TokenResponse = client
             .http_client
-            .post(self.openid_client.config().token_endpoint.clone())
+            .post(client.config().token_endpoint.clone())
             .form(&token_request)
             .send()
             .map_err(openid_errors::ClientError::from)
@@ -151,16 +160,16 @@ impl OpenIdClient {
     {
         debug!("Access token received, requesting user info from DigiD connector...");
 
+        let client = self.discover_client().await?;
+
         // The JWK set should always be populated by discovery.
-        let jwks = self
-            .openid_client
+        let jwks = client
             .jwks
             .as_ref()
             .expect("OpenID client JWK set not populated by disovery");
 
         // Get userinfo endpoint from discovery, throw an error otherwise.
-        let endpoint = self
-            .openid_client
+        let endpoint = client
             .config()
             .userinfo_endpoint
             .as_ref()
@@ -168,8 +177,7 @@ impl OpenIdClient {
             .expect("OpenID userinfo endpoint not populated by disovery");
 
         // Use the access_token to retrieve the userinfo as a JWE token.
-        let jwe_token = self
-            .openid_client
+        let jwe_token = client
             .http_client
             .post(endpoint)
             .header(header::ACCEPT, APPLICATION_JWT)
