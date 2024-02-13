@@ -78,6 +78,23 @@ where
             .starts_with(self.redirect_uri_base.as_str())
     }
 
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, DigidError> {
+        let pre_authorized_code = self.get_authorization_code(received_redirect_uri)?;
+        let token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            code_verifier: Some(self.pkce_pair.code_verifier().to_string()),
+            client_id: Some(self.client_id),
+            redirect_uri: Some(self.redirect_uri_base.clone()),
+        };
+        Ok(token_request)
+    }
+}
+
+impl<C, P> HttpDigidSession<C, P>
+where
+    P: PkcePair + 'static,
+    C: OpenIdClient,
+{
     fn get_authorization_code(&self, received_redirect_uri: &Url) -> Result<AuthorizationCode, DigidError> {
         // Check if the redirect URL received actually belongs to us.
         if !self.matches_received_redirect_uri(received_redirect_uri) {
@@ -110,15 +127,6 @@ where
             url_find_first_query_value(received_redirect_uri, PARAM_CODE).ok_or(DigidError::NoAuthCode)?;
 
         Ok(authorization_code.into_owned().into())
-    }
-
-    fn into_pre_authorized_code_request(self, pre_authorized_code: AuthorizationCode) -> TokenRequest {
-        TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-            code_verifier: Some(self.pkce_pair.code_verifier().to_string()),
-            client_id: Some(self.client_id),
-            redirect_uri: Some(self.redirect_uri_base.clone()),
-        }
     }
 }
 

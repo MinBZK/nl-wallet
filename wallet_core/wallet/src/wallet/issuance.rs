@@ -135,12 +135,10 @@ where
 
         // Try to take ownership of any active `DigidSession`.
         let session = self.digid_session.take().ok_or(PidIssuanceError::SessionState)?;
-        let code = session
-            .get_authorization_code(redirect_uri)
-            .map_err(PidIssuanceError::DigidSessionFinish)?;
-        let config = self.config_repository.config();
 
-        let token_request = session.into_pre_authorized_code_request(code);
+        let token_request = session
+            .into_token_request(redirect_uri)
+            .map_err(PidIssuanceError::DigidSessionFinish)?;
 
         let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
@@ -149,6 +147,7 @@ where
             )]))
             .build()
             .expect("Could not build reqwest HTTP client");
+        let config = self.config_repository.config();
 
         let (pid_issuer, attestation_previews) = IC::start_issuance(
             HttpOpenidMessageClient::new(http_client),
@@ -284,7 +283,7 @@ mod tests {
     use mockall::predicate::*;
     use openid4vc::{
         mock::MockIssuerClient,
-        token::{AttestationPreview, TokenRequest},
+        token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
     };
     use serial_test::serial;
     use url::Url;
@@ -479,18 +478,16 @@ mod tests {
         wallet.digid_session = {
             let mut session = MockDigidSession::default();
 
-            session
-                .expect_get_authorization_code()
-                .return_once(|_received_redirect_uri| Ok("123".to_string().into()));
-
-            session
-                .expect_into_pre_authorized_code_request()
-                .return_once(|pre_authorized_code| TokenRequest {
-                    grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            session.expect_into_token_request().return_once(|_uri| {
+                Ok(TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
                     code_verifier: None,
                     client_id: None,
                     redirect_uri: None,
-                });
+                })
+            });
 
             session
         }
@@ -570,18 +567,16 @@ mod tests {
         wallet.digid_session = {
             let mut session = MockDigidSession::default();
 
-            session
-                .expect_get_authorization_code()
-                .return_once(|_received_redirect_uri| Ok("123".to_string().into()));
-
-            session
-                .expect_into_pre_authorized_code_request()
-                .return_once(|pre_authorized_code| TokenRequest {
-                    grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            session.expect_into_token_request().return_once(|_uri| {
+                Ok(TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
                     code_verifier: None,
                     client_id: None,
                     redirect_uri: None,
-                });
+                })
+            });
 
             session
         }
@@ -611,18 +606,16 @@ mod tests {
         wallet.digid_session = {
             let mut session = MockDigidSession::default();
 
-            session
-                .expect_get_authorization_code()
-                .return_once(|_received_redirect_uri| Ok("123".to_string().into()));
-
-            session
-                .expect_into_pre_authorized_code_request()
-                .return_once(|pre_authorized_code| TokenRequest {
-                    grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            session.expect_into_token_request().return_once(|_uri| {
+                Ok(TokenRequest {
+                    grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                    },
                     code_verifier: None,
                     client_id: None,
                     redirect_uri: None,
-                });
+                })
+            });
 
             session
         }

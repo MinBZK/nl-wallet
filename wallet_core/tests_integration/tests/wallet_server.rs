@@ -181,16 +181,13 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(&authorization_url, &default_configuration().pid_issuance.digid_url).await;
+    let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
-    let authorization_code = digid_session.get_authorization_code(&redirect_url).unwrap();
-
-    // Exchange the authorization code for an access token and the attestation previews
     let server_url = local_base_url(settings.public_url.port().unwrap())
         .join("issuance/")
         .unwrap();
 
-    let token_request = digid_session.into_pre_authorized_code_request(authorization_code);
-
+    // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
         HttpOpenidMessageClient::new(reqwest_client()),
         &server_url,

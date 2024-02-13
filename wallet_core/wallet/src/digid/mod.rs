@@ -4,7 +4,7 @@ mod openid_pkce;
 
 use url::Url;
 
-use openid4vc::token::{AuthorizationCode, TokenRequest};
+use openid4vc::token::TokenRequest;
 
 pub use self::client::HttpDigidSession;
 pub use self::openid_client::OpenIdError;
@@ -43,8 +43,5 @@ pub trait DigidSession {
     /// Check if the DigiD session matches the provided redirect URI.
     fn matches_received_redirect_uri(&self, received_redirect_uri: &Url) -> bool;
 
-    /// Parse the authorization code from the redirect URI.
-    fn get_authorization_code(&self, received_redirect_uri: &Url) -> Result<AuthorizationCode, DigidError>;
-
-    fn into_pre_authorized_code_request(self, pre_authorized_code: AuthorizationCode) -> TokenRequest;
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, DigidError>;
 }
