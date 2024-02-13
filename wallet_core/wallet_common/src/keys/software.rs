@@ -17,6 +17,10 @@ static SIGNING_KEYS: Lazy<Mutex<HashMap<String, SigningKey>>> = Lazy::new(|| Mut
 // static for storing identifier -> aes cipher mapping, will only ever grow
 static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Aes256Gcm>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
+/// This is a software-based counterpart of `HardwareEcdsaKey` that should be used exclusively for testing.
+/// Please note that its behaviour differs from the Android and iOS backed implementations of `HardwareEcdsaKey`,
+/// in that it initializes the actual keys eagerly (on `new()`) instead of lazily. This should not matter during
+/// testing if the keys are used consistently.
 #[derive(Debug, Clone)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
@@ -86,7 +90,11 @@ impl WithIdentifier for SoftwareEcdsaKey {
     }
 }
 
-#[derive(Clone)]
+/// This is a software-based counterpart of `HardwareEncryptionKey` that should be used exclusively for testing.
+/// Please note that its behaviour differs from the Android and iOS backed implementations of `HardwareEncryptionKey`,
+/// in that it initializes the actual keys eagerly (on `new()`) instead of lazily. This should not matter during
+/// testing if the keys are used consistently.
+#[derive(Debug, Clone)]
 pub struct SoftwareEncryptionKey {
     identifier: String,
 }
