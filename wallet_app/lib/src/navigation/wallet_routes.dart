@@ -17,7 +17,9 @@ import '../feature/card/history/card_history_screen.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
 import '../feature/common/widget/utility/do_on_init.dart';
+import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
+import '../feature/dashboard/dashboard_screen.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
@@ -25,9 +27,6 @@ import '../feature/history/detail/bloc/history_detail_bloc.dart';
 import '../feature/history/detail/history_detail_screen.dart';
 import '../feature/history/overview/bloc/history_overview_bloc.dart';
 import '../feature/history/overview/history_overview_screen.dart';
-import '../feature/home/argument/home_screen_argument.dart';
-import '../feature/home/bloc/home_bloc.dart';
-import '../feature/home/home_screen.dart';
 import '../feature/introduction/introduction_conditions_screen.dart';
 import '../feature/introduction/introduction_expectations_screen.dart';
 import '../feature/introduction/introduction_privacy_screen.dart';
@@ -36,6 +35,7 @@ import '../feature/issuance/argument/issuance_screen_argument.dart';
 import '../feature/issuance/bloc/issuance_bloc.dart';
 import '../feature/issuance/issuance_screen.dart';
 import '../feature/menu/bloc/menu_bloc.dart';
+import '../feature/menu/menu_screen.dart';
 import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
 import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
 import '../feature/organization/detail/organization_detail_screen.dart';
@@ -95,7 +95,8 @@ class WalletRoutes {
   static const confirmRoute = '/confirm';
   static const walletPersonalizeRoute = '/wallet/personalize';
   static const walletHistoryRoute = '/wallet/history';
-  static const homeRoute = '/home';
+  static const dashboardRoute = '/dashboard';
+  static const menuRoute = '/menu';
   static const cardDetailRoute = '/card/detail';
   static const cardDataRoute = '/card/data';
   static const cardHistoryRoute = '/card/history';
@@ -153,8 +154,10 @@ class WalletRoutes {
         return _createSetupSecurityScreenBuilder;
       case WalletRoutes.confirmRoute:
         return _createConfirmScreenBuilder;
-      case WalletRoutes.homeRoute:
-        return _createHomeScreenBuilder(settings);
+      case WalletRoutes.menuRoute:
+        return _createMenuScreenBuilder;
+      case WalletRoutes.dashboardRoute:
+        return _createDashboardScreenBuilder(settings);
       case WalletRoutes.cardDetailRoute:
         return _createCardDetailScreenBuilder(settings);
       case WalletRoutes.cardDataRoute:
@@ -219,7 +222,7 @@ Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
-      child: PinScreen(onUnlock: (_) => Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute)),
+      child: PinScreen(onUnlock: (_) => Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute)),
     );
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(
@@ -227,33 +230,28 @@ Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<S
       child: const SetupSecurityScreen(),
     );
 
-WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
-  final HomeScreenArgument? argument = HomeScreen.getArgument(settings);
-  return (context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider<HomeBloc>(
-          create: (BuildContext context) => HomeBloc(),
+WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
+  final DashboardScreenArgument? argument = DashboardScreen.getArgument(settings);
+  return (context) => BlocProvider(
+        create: (context) => DashboardBloc(
+          context.read(),
+          context.read(),
+          argument?.cards,
         ),
-        BlocProvider<DashboardBloc>(
-          create: (BuildContext context) => DashboardBloc(
-            context.read(),
-            context.read(),
-            argument?.cards,
-          ),
+        child: DoOnInit(
+          child: const DashboardScreen(),
+          onInit: (context) => context.read<NavigationService>().processQueue(),
         ),
-        BlocProvider<MenuBloc>(
-          create: (BuildContext context) => MenuBloc(
-            context.read(),
-          ),
-        ),
-      ],
-      child: DoOnInit(
-        child: const HomeScreen(),
-        onInit: (context) => context.read<NavigationService>().processQueue(),
-      ),
-    );
-  };
+      );
+}
+
+Widget _createMenuScreenBuilder(BuildContext context) {
+  return BlocProvider(
+    create: (context) => MenuBloc(
+      context.read(),
+    ),
+    child: const MenuScreen(),
+  );
 }
 
 WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
