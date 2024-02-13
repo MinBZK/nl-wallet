@@ -1,5 +1,3 @@
-use reqwest::Client;
-
 use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
 use openid4vc::{
     issuer::{AttributeService, Created},
@@ -70,11 +68,4 @@ impl AttributeService for MockPidAttributeService {
 
         Ok(unsigned_mdocs)
     }
-}
-
-pub fn reqwest_client() -> Client {
-    let client_builder = Client::builder();
-    #[cfg(feature = "disable_tls_validation")]
-    let client_builder = client_builder.danger_accept_invalid_certs(true);
-    client_builder.build().unwrap()
 }

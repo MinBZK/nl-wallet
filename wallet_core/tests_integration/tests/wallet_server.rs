@@ -15,7 +15,7 @@ use wallet::{
 };
 use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 use wallet_server::{
-    pid::attributes::{reqwest_client, MockPidAttributeService},
+    pid::attributes::MockPidAttributeService,
     settings::Settings,
     store::SessionStores,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
@@ -189,7 +189,7 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
-        HttpOpenidMessageClient::new(reqwest_client()),
+        HttpOpenidMessageClient::new(reqwest::Client::new()),
         &server_url,
         token_request,
     )
