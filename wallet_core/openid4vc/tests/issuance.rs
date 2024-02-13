@@ -14,7 +14,7 @@ use nl_wallet_mdoc::{
     Tdate,
 };
 use openid4vc::{
-    credential::{CredentialErrorType, CredentialRequests, CredentialResponses},
+    credential::{CredentialErrorType, CredentialRequestProof, CredentialRequests, CredentialResponses},
     dpop::Dpop,
     issuance_client::{HttpIssuerClient, IssuerClient, OpenidMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
@@ -42,11 +42,7 @@ fn setup() -> (MockIssuer, Certificate, Url) {
 #[tokio::test]
 async fn accept_issuance() {
     let (issuer, ca, server_url) = setup();
-    let message_client = MockOpenidMessageClient {
-        issuer,
-        wrong_access_token: false,
-        invalidate_dpop: false,
-    };
+    let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
         .await
@@ -64,11 +60,7 @@ async fn accept_issuance() {
 #[tokio::test]
 async fn reject_issuance() {
     let (issuer, _, server_url) = setup();
-    let message_client = MockOpenidMessageClient {
-        issuer,
-        wrong_access_token: false,
-        invalidate_dpop: false,
-    };
+    let message_client = MockOpenidMessageClient::new(issuer);
 
     let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
         .await
@@ -81,9 +73,8 @@ async fn reject_issuance() {
 async fn wrong_access_token() {
     let (issuer, ca, server_url) = setup();
     let message_client = MockOpenidMessageClient {
-        issuer,
         wrong_access_token: true,
-        invalidate_dpop: false,
+        ..MockOpenidMessageClient::new(issuer)
     };
 
     let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
@@ -105,9 +96,8 @@ async fn wrong_access_token() {
 async fn invalid_dpop() {
     let (issuer, ca, server_url) = setup();
     let message_client = MockOpenidMessageClient {
-        issuer,
-        wrong_access_token: false,
         invalidate_dpop: true,
+        ..MockOpenidMessageClient::new(issuer)
     };
 
     let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
@@ -125,6 +115,29 @@ async fn invalid_dpop() {
     ));
 }
 
+#[tokio::test]
+async fn invalid_pop() {
+    let (issuer, ca, server_url) = setup();
+    let message_client = MockOpenidMessageClient {
+        invalidate_pop: true,
+        ..MockOpenidMessageClient::new(issuer)
+    };
+
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+        .await
+        .unwrap();
+
+    let result = session
+        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), &server_url)
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        result,
+        IssuerClientError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidProof)
+    ));
+}
+
 // Helpers and mocks
 
 fn token_request() -> TokenRequest {
@@ -139,12 +152,31 @@ fn token_request() -> TokenRequest {
 }
 
 /// An implementation of [`OpenidMessageClient`] that sends its messages to the contained issuer
-/// directly by function invocation.
+/// directly by function invocation, optionally allowing the caller to mess with the input to trigger
+/// certain error cases.
+///
+/// NOTE: The specific way in which each message (the Token Request/Response and Credential Request/Response)
+/// is sent over HTTP in OpenID4VCI (e.g. in header or POST body, or JSON or URL encoded) is part of the standard.
+/// Using this mock implementation of `OpenidMessageClient` means that that part of the standard is not used,
+/// since it bypasses HTTP altogether. Therefore, using this struct to test the OpenID4VCI implementation means
+/// that the transport part of this implementation of the protocol is not tested.
 struct MockOpenidMessageClient {
     issuer: MockIssuer,
 
     wrong_access_token: bool,
     invalidate_dpop: bool,
+    invalidate_pop: bool,
+}
+
+impl MockOpenidMessageClient {
+    fn new(issuer: MockIssuer) -> Self {
+        Self {
+            issuer,
+            wrong_access_token: false,
+            invalidate_dpop: false,
+            invalidate_pop: false,
+        }
+    }
 }
 
 impl MockOpenidMessageClient {
@@ -159,13 +191,38 @@ impl MockOpenidMessageClient {
 
     fn dpop(&self, dpop_header: &str) -> Dpop {
         if self.invalidate_dpop {
-            // Invalidate the signature by modifying the last character
-            let new_char = if !dpop_header.ends_with('A') { 'A' } else { 'B' };
-            Dpop::from((dpop_header[..dpop_header.len() - 1].to_string() + &new_char.to_string()).to_string())
+            Dpop::from(invalidate_jwt(dpop_header))
         } else {
             Dpop::from(dpop_header.to_string())
         }
     }
+
+    fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
+        if self.invalidate_pop {
+            let invalidated_proof = match credential_requests
+                .credential_requests
+                .first()
+                .unwrap()
+                .proof
+                .as_ref()
+                .unwrap()
+            {
+                CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
+                    jwt: invalidate_jwt(&jwt.0).into(),
+                },
+            };
+            credential_requests.credential_requests[0].proof = Some(invalidated_proof);
+            credential_requests
+        } else {
+            credential_requests
+        }
+    }
+}
+
+/// Invalidate a JWT by modifying the last character of its signature
+fn invalidate_jwt(jwt: &str) -> String {
+    let new_char = if !jwt.ends_with('A') { 'A' } else { 'B' };
+    jwt[..jwt.len() - 1].to_string() + &new_char.to_string()
 }
 
 impl OpenidMessageClient for MockOpenidMessageClient {
@@ -194,7 +251,7 @@ impl OpenidMessageClient for MockOpenidMessageClient {
             .process_batch_credential(
                 self.access_token(access_token_header),
                 self.dpop(dpop_header),
-                credential_requests.clone(),
+                self.credential_requests(credential_requests.clone()),
             )
             .await
             .map_err(|err| IssuerClientError::CredentialRequest(Box::new(err.into())))
