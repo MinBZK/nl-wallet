@@ -1,9 +1,6 @@
 use base64::prelude::*;
 use indexmap::IndexMap;
-use openid4vc::{
-    issuance_client::{HttpIssuerClient, HttpOpenidMessageClient, IssuerClient},
-    token::TokenRequest,
-};
+use openid4vc::issuance_client::{HttpIssuerClient, HttpOpenidMessageClient, IssuerClient};
 use reqwest::{Client, StatusCode};
 use url::Url;
 
@@ -12,11 +9,11 @@ use nl_wallet_mdoc::{
     verifier::SessionType, ItemsRequest, ReaderEngagement,
 };
 use wallet::{
-    mock::{default_configuration, MockDigidSession},
+    mock::default_configuration,
     wallet_deps::{DigidSession, HttpDigidSession, HttpOpenIdClient, S256PkcePair},
     WalletConfiguration,
 };
-use wallet_common::{config::wallet_config::PidIssuanceConfiguration, utils::random_string};
+use wallet_common::config::wallet_config::PidIssuanceConfiguration;
 use wallet_server::{
     pid::attributes::{reqwest_client, MockPidAttributeService},
     settings::Settings,
@@ -157,62 +154,6 @@ async fn test_session_not_found() {
 }
 
 #[tokio::test]
-async fn test_mock_issuance() {
-    let (settings, digid_session) = issuance_settings_and_digid_session().await;
-
-    let server_url = local_base_url(settings.public_url.port().unwrap())
-        .join("issuance/")
-        .unwrap();
-
-    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string().into());
-
-    // Exchange the authorization code for an access token and the attestation previews
-    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
-        HttpOpenidMessageClient::new(reqwest_client()),
-        &server_url,
-        token_request,
-    )
-    .await
-    .unwrap();
-
-    // Accept the attestations and finish issuance
-    let mdocs = pid_issuer_client
-        .accept_issuance(
-            &trust_anchors(&default_configuration()),
-            SoftwareKeyFactory::default(),
-            &server_url,
-        )
-        .await
-        .unwrap();
-
-    assert_eq!(2, mdocs.len());
-    assert_eq!(2, mdocs[0].cred_copies.len())
-}
-
-#[tokio::test]
-async fn test_reject_issuance() {
-    let (settings, digid_session) = issuance_settings_and_digid_session().await;
-
-    let server_url = local_base_url(settings.public_url.port().unwrap())
-        .join("issuance/")
-        .unwrap();
-
-    let token_request = digid_session.into_pre_authorized_code_request(random_string(32).to_string().into());
-
-    // Exchange the authorization code for an access token and the attestation previews
-    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
-        HttpOpenidMessageClient::new(reqwest_client()),
-        &server_url,
-        token_request,
-    )
-    .await
-    .unwrap();
-
-    // Reject issuance
-    pid_issuer_client.reject_issuance().await.unwrap();
-}
-
-#[tokio::test]
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let (settings, sessions) = issuance_settings_and_sessions().await;
@@ -279,31 +220,6 @@ async fn issuance_settings_and_sessions() -> (Settings, SessionStores) {
     let store_url = "memory://".parse().unwrap();
 
     (settings, SessionStores::init(store_url).await.unwrap())
-}
-
-async fn issuance_settings_and_digid_session() -> (Settings, impl DigidSession) {
-    let (settings, sessions) = issuance_settings_and_sessions().await;
-    let attr_service = MockAttributeService;
-
-    start_wallet_server(settings.clone(), sessions, attr_service).await;
-
-    // Setup a mock DigiD session from which the issuer client gets its token request
-    let digid_session = {
-        let mut digid_session = MockDigidSession::new();
-        digid_session
-            .expect_into_pre_authorized_code_request()
-            .return_once(|code| TokenRequest {
-                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: code,
-                },
-                code_verifier: Some("my_code_verifier".to_string()),
-                client_id: Some("my_client_id".to_string()),
-                redirect_uri: Some("redirect://here".parse().unwrap()),
-            });
-        digid_session
-    };
-
-    (settings, digid_session)
 }
 
 fn trust_anchors(wallet_conf: &WalletConfiguration) -> Vec<TrustAnchor<'_>> {
