@@ -128,7 +128,7 @@ final _kHealthInsurerOrganization = Organization(
 final _kHousingCorporationOrganization = Organization(
   //id: kHousingCorpId,
   legalName: 'BeterWonen'.untranslated,
-  displayName: 'BetwerWonen'.untranslated,
+  displayName: 'BeterWonen'.untranslated,
   category: 'Wooncorporatie'.untranslated,
   description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.'.untranslated,
   image: Image.asset(path: MockAssets.logo_housing_corp),
