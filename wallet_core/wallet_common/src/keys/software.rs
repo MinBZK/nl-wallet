@@ -91,6 +91,16 @@ pub struct SoftwareEncryptionKey {
     identifier: String,
 }
 
+impl SoftwareEncryptionKey {
+    // Peek into the static hashmap to see if an identifier / cipher pair exists.
+    pub fn has_identifier(identifier: &str) -> bool {
+        ENCRYPTION_CIPHERS
+            .lock()
+            .expect("Could not get lock on SIGNING_KEYS")
+            .contains_key(identifier)
+    }
+}
+
 impl ConstructibleWithIdentifier for SoftwareEncryptionKey {
     fn new(identifier: &str) -> Self
     where

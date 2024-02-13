@@ -15,7 +15,7 @@ pub enum KeyFileError {
     #[error("key file I/O error: {0}")]
     Io(#[from] io::Error),
     #[error("key file platform key store error: {0}")]
-    Encryption(#[from] Box<dyn std::error::Error + Send + Sync>),
+    Encryption(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 pub async fn get_or_create_key_file<K: PlatformEncryptionKey>(
@@ -26,17 +26,26 @@ pub async fn get_or_create_key_file<K: PlatformEncryptionKey>(
     // Path to key file will be "<storage_path>/<alias>.key",
     // it will be encrypted with a key named "keyfile_<alias>".
     let path = path_for_key_file(storage_path, alias);
-    let encryption_key = K::new(&format!("{}{}", KEY_IDENTIFIER_PREFIX, alias));
+    let encryption_key = K::new(&key_identifier_for_key_file(alias));
 
     // Decrypt file at path, create key and write to file if needed.
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || utils::random_bytes(byte_length)).await
 }
 
-pub async fn delete_key_file(storage_path: &Path, alias: &str) -> Result<(), KeyFileError> {
+pub async fn delete_key_file<K: PlatformEncryptionKey>(storage_path: &Path, alias: &str) -> Result<(), KeyFileError> {
     let path = path_for_key_file(storage_path, alias);
     fs::remove_file(&path).await?;
 
+    K::new(&key_identifier_for_key_file(alias))
+        .delete()
+        .await
+        .map_err(|e| KeyFileError::Encryption(e.into()))?;
+
     Ok(())
+}
+
+fn key_identifier_for_key_file(alias: &str) -> String {
+    format!("{}{}", KEY_IDENTIFIER_PREFIX, alias)
 }
 
 fn path_for_key_file(storage_path: &Path, alias: &str) -> PathBuf {
@@ -172,8 +181,8 @@ mod tests {
         let storage_path = env::temp_dir();
 
         // Make sure we start with a clean slate.
-        _ = delete_key_file(&storage_path, &alias1).await;
-        _ = delete_key_file(&storage_path, &alias2).await;
+        _ = delete_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1).await;
+        _ = delete_key_file::<SoftwareEncryptionKey>(&storage_path, &alias2).await;
 
         // Create three keys, two of them with the same alias.
         let key1 = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1, byte_length)
@@ -191,8 +200,28 @@ mod tests {
         assert_ne!(key1, key2);
         assert_eq!(key1, key1_again);
 
+        // Check that the keys exist for key file identifiers.
+        assert!(SoftwareEncryptionKey::has_identifier(&key_identifier_for_key_file(
+            &alias1
+        )));
+        assert!(SoftwareEncryptionKey::has_identifier(&key_identifier_for_key_file(
+            &alias2
+        )));
+
         // Cleanup after ourselves.
-        delete_key_file(&storage_path, &alias1).await.unwrap();
-        delete_key_file(&storage_path, &alias2).await.unwrap();
+        delete_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1)
+            .await
+            .unwrap();
+        delete_key_file::<SoftwareEncryptionKey>(&storage_path, &alias2)
+            .await
+            .unwrap();
+
+        // The keys should now no longer exist for the key file identifiers.
+        assert!(!SoftwareEncryptionKey::has_identifier(&key_identifier_for_key_file(
+            &alias1
+        )));
+        assert!(!SoftwareEncryptionKey::has_identifier(&key_identifier_for_key_file(
+            &alias2
+        )));
     }
 }

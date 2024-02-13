@@ -284,7 +284,7 @@ where
             }
 
             let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
-            if let Err(error) = key_file::delete_key_file(&self.storage_path, &key_file_alias).await {
+            if let Err(error) = key_file::delete_key_file::<K>(&self.storage_path, &key_file_alias).await {
                 warn!("Could not delete database key file: {}", error);
             }
         }
@@ -587,7 +587,7 @@ pub(crate) mod tests {
         let database_path = storage.database_path_for_name(name);
 
         // Make sure we start with a clean slate.
-        _ = key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
+        _ = key_file::delete_key_file::<SoftwareEncryptionKey>(&storage.storage_path, &key_file_alias).await;
         _ = fs::remove_file(database_path).await;
 
         let database = storage
