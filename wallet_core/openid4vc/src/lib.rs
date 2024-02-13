@@ -15,7 +15,7 @@ pub mod issuer;
 pub mod errors;
 pub use errors::*;
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(feature = "mock")]
 pub mod mock;
 
 pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";

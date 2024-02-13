@@ -7,7 +7,12 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[test]]
+name = "test"
+path = "tests/issuance.rs"
+
 [features]
+# Include mock implementations for testing
 mock = ["dep:mockall"]
 
 [dependencies]
@@ -35,7 +40,6 @@ nl_wallet_mdoc.path = "../mdoc"
 
 [dev-dependencies]
 ciborium.workspace = true
-mockall.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
 nl_wallet_mdoc = { path = "../mdoc", features = ["mock"]}
