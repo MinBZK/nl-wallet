@@ -67,6 +67,7 @@ indexmap = { workspace = true, optional = true, features = ["serde"] }
 josekit = { workspace = true, optional = true }
 mime.workspace = true
 openid = { workspace = true, optional = true, features = ["rustls"] }
+openssl = { workspace = true, features = ["vendored"] }
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 rand = { workspace = true, optional = true }
