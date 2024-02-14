@@ -43,5 +43,13 @@ pub trait DigidSession {
     /// Check if the DigiD session matches the provided redirect URI.
     fn matches_received_redirect_uri(&self, received_redirect_uri: &Url) -> bool;
 
+    /// Create an OpenID Token Request based on the contents
+    /// of the redirect URI received.
+    ///
+    /// Note that this consumes the [`DigidSession`], either on success or failure.
+    /// Retrying this operation is entirely possible, but most likely not something
+    /// that the UI will present to the user, instead they will have to start a new session.
+    /// For the purpose of simplification, that means that this operation is transactional
+    /// here as well.
     fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, DigidError>;
 }
