@@ -1,15 +1,15 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'home_screen_argument.dart';
+part of 'dashboard_screen_argument.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-HomeScreenArgument _$HomeScreenArgumentFromJson(Map<String, dynamic> json) => HomeScreenArgument(
+DashboardScreenArgument _$DashboardScreenArgumentFromJson(Map<String, dynamic> json) => DashboardScreenArgument(
       cards: (json['cards'] as List<dynamic>).map((e) => WalletCard.fromJson(e as Map<String, dynamic>)).toList(),
     );
 
-Map<String, dynamic> _$HomeScreenArgumentToJson(HomeScreenArgument instance) => <String, dynamic>{
+Map<String, dynamic> _$DashboardScreenArgumentToJson(DashboardScreenArgument instance) => <String, dynamic>{
       'cards': instance.cards.map((e) => e.toJson()).toList(),
     };

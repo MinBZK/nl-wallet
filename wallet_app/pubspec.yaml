@@ -102,7 +102,7 @@ flutter_native_splash:
   android_gravity: center
   ios_content_mode: center
   android_12:
-    image: assets/non-free/logos/3.0x/wallet.png
+    image: assets/non-free/logos/splash_logo.png
     icon_background_color: "#FCFCFC"
-    image_dark: assets/non-free/logos/3.0x/wallet.png
+    image_dark: assets/non-free/logos/splash_logo.png
     icon_background_color_dark: "#1C1E25"

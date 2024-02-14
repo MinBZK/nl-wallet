@@ -11,11 +11,11 @@ mod uri;
 #[cfg(test)]
 mod test;
 
-use openid4vc::issuance_client::HttpIssuerClient;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
+use openid4vc::issuance_client::HttpIssuerClient;
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
 use crate::{

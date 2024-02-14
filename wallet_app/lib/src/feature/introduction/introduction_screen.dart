@@ -314,7 +314,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             onPressed: () async {
               final navigator = Navigator.of(context);
               await context.read<SetupMockedWalletUseCase>().invoke();
-              navigator.pushReplacementNamed(WalletRoutes.homeRoute);
+              navigator.pushReplacementNamed(WalletRoutes.dashboardRoute);
             },
             child: const Text('Skip Setup'),
           ),

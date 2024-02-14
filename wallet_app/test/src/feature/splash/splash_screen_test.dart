@@ -72,7 +72,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text(WalletRoutes.homeRoute), findsOneWidget);
+      expect(find.text(WalletRoutes.dashboardRoute), findsOneWidget);
     });
   });
 }

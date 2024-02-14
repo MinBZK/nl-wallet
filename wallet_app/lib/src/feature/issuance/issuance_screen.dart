@@ -13,8 +13,8 @@ import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../data_incorrect/data_incorrect_screen.dart';
-import '../home/home_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
@@ -190,7 +190,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildIssuanceCompletedPage(BuildContext context, IssuanceCompleted state) {
     return IssuanceSuccessPage(
-      onClose: () => HomeScreen.show(context),
+      onClose: () => DashboardScreen.show(context),
       cards: state.addedCards,
       isRefreshFlow: state.isRefreshFlow,
     );

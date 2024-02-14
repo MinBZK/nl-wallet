@@ -13,7 +13,7 @@ doctest = false
 [[test]]
 name = "postgres"
 path = "tests/postgres.rs"
-required-features = ["postgres", "db_test", "mock", "disable_tls_validation"]
+required-features = ["postgres", "db_test"]
 
 [features]
 default = ["postgres", "issuance"]

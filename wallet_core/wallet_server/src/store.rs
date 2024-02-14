@@ -12,7 +12,7 @@ use openid4vc::issuer::IssuanceData;
 #[cfg(feature = "postgres")]
 use crate::store::postgres::PostgresSessionStore;
 
-trait SessionDataType {
+pub trait SessionDataType {
     const TYPE: &'static str;
 }
 

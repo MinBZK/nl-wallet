@@ -31,9 +31,9 @@ use wallet::{
 use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey};
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
-use wallet_server::settings::{Server, Settings as WsSettings};
 use wallet_server::{
-    pid::{mock::MockAttributesLookup as WSMockAttributesLookup, mock::MockBsnLookup as WSMockBsnLookup},
+    pid::mock::{MockAttributesLookup as WSMockAttributesLookup, MockBsnLookup as WSMockBsnLookup},
+    settings::{Server, Settings as WsSettings},
     store::SessionStores,
 };
 
