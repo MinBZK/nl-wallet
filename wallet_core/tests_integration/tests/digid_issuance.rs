@@ -15,6 +15,7 @@ use crate::common::*;
 pub mod common;
 
 #[tokio::test]
+#[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let settings = common::wallet_server_settings();
     start_wallet_server(settings.clone()).await;
