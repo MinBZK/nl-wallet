@@ -5,12 +5,6 @@ variables:
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
-  RENEW_ON_LETSENCRYPT_STAGING:
-    value: "false"
-    description: "Try to renew the server certificates from the Let's encrypt staging environment."
-  RENEW_ON_LETSENCRYPT_LIVE:
-    value: "false"
-    description: "Try to renew the server certificates from the Let's encrypt live environment."
 
 .env-ont:
   environment:
@@ -778,52 +772,6 @@ run-automation-tests:
     - cd uiautomation
     - gradle wrapper --gradle-version=7.3.3
     - ./gradlew --debug --stacktrace test --tests suite.FeatureTestSuite
-
-.deploy-certs:
-  script:
-    - envsubst < kubernetes/certificates/$CERT_ENV/static-cert.yaml | kubectl apply -f -
-    - envsubst < kubernetes/certificates/$CERT_ENV/wp-cert.yaml | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/$CERT_ENV/static-cert.yaml -f kubernetes/certificates/$CERT_ENV/wp-cert.yaml
-
-.deploy-certs-ont:
-  extends: [.env-ont-k8s, .deploy-certs]
-  variables:
-    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
-    STATIC_EXTERNAL_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ONT
-
-deploy-staging-certs-ont:
-  extends: .deploy-certs-ont
-  rules:
-    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
-  variables:
-    CERT_ENV: "staging"
-
-deploy-live-certs-ont:
-  extends: .deploy-certs-ont
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
-  variables:
-    CERT_ENV: "live"
-
-.deploy-certs-demo:
-  extends: [.env-demo-k8s, .deploy-certs]
-  variables:
-    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
-    STATIC_EXTERNAL_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_DEMO
-
-deploy-staging-certs-demo:
-  extends: .deploy-certs-demo
-  rules:
-    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
-  variables:
-    CERT_ENV: "staging"
-
-deploy-live-certs-demo:
-  extends: .deploy-certs-demo
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
-  variables:
-    CERT_ENV: "live"
 
 build-sbom:
   rules: !reference [.default-or-release, rules]
