@@ -32,7 +32,7 @@ pub struct Settings {
 
 #[derive(Deserialize, Clone)]
 pub struct Verifier {
-    pub usecases: HashMap<String, IssuerKey>,
+    pub usecases: HashMap<String, KeyPair>,
     pub trust_anchors: Vec<DerTrustAnchor>,
 }
 
@@ -44,7 +44,7 @@ pub struct Server {
 
 #[serde_as]
 #[derive(Deserialize, Clone)]
-pub struct IssuerKey {
+pub struct KeyPair {
     #[serde_as(as = "Base64")]
     pub certificate: Vec<u8>,
     #[serde_as(as = "Base64")]
@@ -70,7 +70,7 @@ pub struct MockAttributes {
 #[derive(Deserialize, Clone)]
 pub struct Issuer {
     // Issuer private keys index per doctype
-    pub private_keys: HashMap<String, IssuerKey>,
+    pub private_keys: HashMap<String, KeyPair>,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that

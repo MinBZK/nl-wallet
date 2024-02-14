@@ -23,7 +23,7 @@ use openid4vc::{
 };
 use tracing::warn;
 
-use crate::settings::{IssuerKey, Settings};
+use crate::settings::{self, Settings};
 
 use openid4vc::issuer::*;
 
@@ -39,10 +39,10 @@ impl KeyRing for IssuerKeyRing {
     }
 }
 
-impl TryFrom<HashMap<String, IssuerKey>> for IssuerKeyRing {
+impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
     type Error = anyhow::Error;
 
-    fn try_from(private_keys: HashMap<String, IssuerKey>) -> Result<Self, Self::Error> {
+    fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
         Ok(Self(
             private_keys
                 .into_iter()
