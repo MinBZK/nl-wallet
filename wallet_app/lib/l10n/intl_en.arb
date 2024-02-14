@@ -1,11 +1,19 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-01-10T17:32:04+01:00",
+    "@@last_modified": "2024-02-07T17:06:19+01:00",
     "aboutScreenDescription": "This demo is realized by multiple parties and was commissioned by the dutch government. For more information see edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms and conditions",
     "aboutScreenTitle": "About the NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
+    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} card added.} other {{count} cards added.}}",
+    "activitySummaryEmpty": "No activities",
+    "activitySummaryLastMonth": "Last month",
+    "activitySummaryLastWeek": "Last week",
+    "activitySummarySharedWith": "Shared with {organization}.",
+    "activitySummarySharedWithMultiple": "Shared with {organizations} and {organization}.",
+    "activitySummarySharedWithOthers": "{nrOrganizations} other parties",
+    "activitySummaryToday": "Today",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Yes, next",
     "approveOrganizationPageDenyCta": "No, decline",
@@ -124,8 +132,6 @@
     "cardHistoryTimelineOperationRenewed": "Card updated",
     "cardHistoryTimelineSigningRejected": "Signing stopped",
     "cardHistoryTimelineSigningSuccess": "Signed",
-    "cardOverviewScreenAddCardCta": "Add data",
-    "cardOverviewScreenTitle": "My cards",
     "cardTitleSemanticsLabel": "Card: {cardTitle}",
     "@cardTitleSemanticsLabel": {
         "placeholders": {
@@ -177,6 +183,10 @@
         }
     },
     "confirmAgreementPageTitle": "Do you want to sign using this information",
+    "dashboardScreenFooter": "The government is developing this app for your convenience, privacy and security. Read more at {cta}.",
+    "dashboardScreenFooterCta": "About this app",
+    "dashboardScreenQrCta": "QR-code",
+    "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",
     "@dataAttributeSectionTitle": {
         "placeholders": {
@@ -205,24 +215,6 @@
     "digidHelpScreenTitle": "Need help with DigiD?",
     "disclosureConfirmDataAttributesCheckAttributesCta": "View your data",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Read the conditions",
-    "disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
-    "@disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
-    "@disclosureConfirmDataAttributesCheckConditionsSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
     "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is responsible.",
     "disclosureConfirmDataAttributesPageAllTermsCta": "All terms",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
@@ -241,6 +233,26 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Information will not be shared",
     "disclosureConfirmDataAttributesPageDenyCta": "No, decline",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Is something not right?",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {Attributes are stored for 1 month and not shared with third parties} other {Attributes are stored for {count} months and not shared with third parties}}",
+    "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "Data is not stored and not shared with third parties.",
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {Attributes are stored for 1 month and shared with third parties} other {Attributes are stored for {count} months and shared with third parties}}",
+    "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Data is not stored but is shared with third parties.",
     "disclosureConfirmDataAttributesShareWithTitle": "Share information with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -378,11 +390,11 @@
     "disclosureStopSheetReportIssueCta": "Report a problem",
     "disclosureStopSheetTitle": "Are you sure you want to stop?",
     "disclosureStoppedPageCloseCta": "Close",
-    "disclosureStoppedPageDescription": "Because you have stopped, no data has been shared.",
+    "disclosureStoppedPageDescription": "Because you have stopped, no data has been shared with {organization}.",
     "disclosureStoppedPageFeedbackCta": "Give Feedback",
     "disclosureStoppedPageTitle": "Stopped",
     "disclosureSuccessPageCloseCta": "Close",
-    "disclosureSuccessPageDescription": " Your information is shared with {organization}.",
+    "disclosureSuccessPageDescription": " Your information is shared with {organization}. Close this screen and continue on the website of {organization}.",
     "@disclosureSuccessPageDescription": {
         "placeholders": {
             "organization": {
@@ -392,7 +404,7 @@
         }
     },
     "disclosureSuccessPageHistoryDescription": "You can find the details in your history",
-    "disclosureSuccessPageShowHistoryCta": "History",
+    "disclosureSuccessPageShowHistoryCta": "View activities",
     "disclosureSuccessPageTitle": "Success!",
     "errorScreenGeneralHelpCta": "Need help?",
     "errorScreenGenericCloseCta": "Close",
@@ -413,6 +425,15 @@
     "forgotPinScreenTitle": "Forgot pin",
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
+    "generalConfigVersionText": "Config version: {versionCode}",
+    "@generalConfigVersionText": {
+        "placeholders": {
+            "versionCode": {
+                "example": "1337",
+                "type": "int"
+            }
+        }
+    },
     "generalDays": "{days, plural, one {{days} day} other {{days} days}}",
     "@generalDays": {
         "placeholders": {
@@ -591,13 +612,6 @@
     "historyDetailScreenTermsTitle": "Terms and Conditions",
     "historyDetailScreenTitle": "Details",
     "historyOverviewScreenTitle": "Interactions",
-    "homeBottomNavBarCardsButton": "Cards",
-    "homeBottomNavBarQrButton": "QR",
-    "homeBottomNavBarSettingsButton": "Settings",
-    "homeScreenBottomNavBarCardsCta": "Cards",
-    "homeScreenBottomNavBarMenuCta": "Menu",
-    "homeScreenBottomNavBarQrCta": "QR",
-    "homeScreenBottomNavBarSettingsCta": "Settings",
     "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
     "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can always stop.\nYou don't share your entry code.\nYou decide when sharing is responsible.",
     "introductionConditionsScreenConditionsCta": "Read the conditions",
@@ -640,6 +654,9 @@
         }
     },
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
+    "invalidQrDialogCta": "OK",
+    "invalidQrDialogDescription": "This QR-code is not valid.",
+    "invalidQrDialogTitle": "Invalid QR-code",
     "issuanceCardAddedCloseCta": "Close",
     "issuanceCardAddedSubtitle": "Your card has been added",
     "issuanceCardAddedTitle": "Success!",
@@ -804,8 +821,7 @@
     "mockDigidScreenTitle": "Securely login with DigiD",
     "organizationApprovePageApproveCta": "Yes, next",
     "organizationApprovePageDenyCta": "No, decline",
-    "organizationApprovePageFirstInteraction": "First request",
-    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on  {url}.",
+    "organizationApprovePageFraudInfo": "Be mindful of fraud attempts. Only continue if the QR-code was displayed on {url}.",
     "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
     "@organizationApprovePageGenericTitle": {
         "placeholders": {
@@ -858,16 +874,14 @@
     "organizationButtonLabel": "About this organization",
     "organizationDetailScreenCategoryInfo": "Organization type",
     "organizationDetailScreenDepartmentInfo": "Department",
-    "organizationDetailScreenFirstInteraction": "This is your first interaction with this organization",
     "organizationDetailScreenInfoHeader": "Info",
     "organizationDetailScreenKvk": "KVK: {kvk}",
     "organizationDetailScreenKvkInfo": "KVK number",
+    "organizationDetailScreenLegalNameInfo": "Legal company name",
     "organizationDetailScreenLocationInfo": "Location",
-    "organizationDetailScreenNoInteractions": "No previous interactions with {name}.",
     "organizationDetailScreenPrivacyHeader": "Privacy",
     "organizationDetailScreenPrivacyInfo": "Privacy statement",
     "organizationDetailScreenPrivacyPolicy": "privacy statement",
-    "organizationDetailScreenPrivacyValue": "Privacy statement",
     "organizationDetailScreenReportIssueCta": "Report a problem",
     "organizationDetailScreenSomeInteractions": "You previously shared information with {name}.",
     "organizationDetailScreenTitle": "About {name}",
@@ -929,6 +943,8 @@
     "policyScreenDataCanNotBeDeleted": "You can not request data deletion",
     "policyScreenDataCanNotBeDeletedDescription": "This organizations does not allow you to delete your data.",
     "policyScreenDataIsSignature": "By continuing the agreement will be definitive",
+    "policyScreenDataNotBeStored": "Your information will not be stored",
+    "policyScreenDataNotBeStoredDescription": "Your information will only be used during the current session, and not saved for later use.",
     "policyScreenDataPurposeDescription": "Your information is not used for anything besides the stated purpose.",
     "policyScreenDataRetentionDuration": "{months, plural, one {Data is stored for {months} month} other {Data is stored for {months} months}}",
     "@policyScreenDataRetentionDuration": {
@@ -966,7 +982,8 @@
     "policyScreenPolicySectionTitle": "Want to know more?",
     "policyScreenReportIssueCta": "Report an issue",
     "policyScreenRetryCta": "Try again",
-    "policyScreenTitle": "Terms",
+    "policyScreenSubtitle": "The following terms only apply to the current request.",
+    "policyScreenTitle": "Agreements",
     "qrMyCodeTabHowToCta": "How does my QR-code work?",
     "qrMyCodeTabHowToSheetCloseCta": "Close",
     "qrMyCodeTabHowToSheetDescription": "Have a reviewer scan My QR Code to start sharing. You will then receive a data request. Data will only be shared if you agree to the request.",
@@ -982,11 +999,15 @@
     "qrScanTabHowToScanSheetCloseCta": "Close",
     "qrScanTabHowToScanSheetDescription": "Data can be shared by showing a QR code or scanning a QR code. The party requesting data will indicate what is required.\n\nAfter scanning you will receive a data request. Data will only be shared if you agree to the request.",
     "qrScanTabHowToScanSheetTitle": "How does scanning work?",
+    "qrScreenDisableTorchCta": "Turn flashlight off",
+    "qrScreenEnableTorchCta": "Turn flashlight on",
     "qrScreenHowToScanButton": "How does scanning work?",
     "qrScreenHowToScanSheetCloseButton": "Close",
     "qrScreenHowToScanSheetDescription": "Data can be shared by showing a QR code or scanning a QR code. The party requesting data will indicate what is required.\n\nAfter scanning you will receive a data request. Data will only be shared if you agree to the request.",
     "qrScreenHowToScanSheetTitle": "How does my QR-code work?",
     "qrScreenMyCodeTabTitle": "My code",
+    "qrScreenPermissionHint": "The NL Wallet needs permission to your camera to scan QR codes",
+    "qrScreenScanHint": "Aim your camera at a QR-code",
     "qrScreenScanTabContinueButton": "Scan another QR-code",
     "qrScreenScanTabErrorButton": "Retry",
     "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
@@ -1168,7 +1189,6 @@
     "walletPersonalizeIntroPageTitle": "Login with your DigiD to get started",
     "walletPersonalizeLoadingPhotoPageSubtitle": "One moment...",
     "walletPersonalizeLoadingPhotoPageTitle": "Scanning",
-    "walletPersonalizeNoDigidPageBackCta": "Back",
     "walletPersonalizeNoDigidPageDescription": "At the moment you can only create a Wallet with the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch ID? Then you can apply for a DigiD.",
     "walletPersonalizeNoDigidPageHeadline": "I don't have DigiD",
     "walletPersonalizeNoDigidPageRequestDigidCta": "Request DigiD",

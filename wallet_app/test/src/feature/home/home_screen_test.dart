@@ -3,36 +3,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/feature/card/overview/bloc/card_overview_bloc.dart';
 import 'package:wallet/src/feature/common/widget/sliver_wallet_app_bar.dart';
+import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 import 'package:wallet/src/feature/home/bloc/home_bloc.dart';
 import 'package:wallet/src/feature/home/home_screen.dart';
 import 'package:wallet/src/feature/menu/bloc/menu_bloc.dart';
-import 'package:wallet/src/feature/qr/tab/qr_scan/bloc/qr_scan_bloc.dart';
+import 'package:wallet/src/feature/qr/bloc/qr_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 class MockHomeBloc extends MockBloc<HomeEvent, HomeState> implements HomeBloc {}
 
-class MockCardOverviewBloc extends MockBloc<CardOverviewEvent, CardOverviewState> implements CardOverviewBloc {}
+class MockDashboardBloc extends MockBloc<DashboardEvent, DashboardState> implements DashboardBloc {}
 
 class MockMenuBloc extends MockBloc<MenuEvent, MenuState> implements MenuBloc {}
 
-class MockQrScanBloc extends MockBloc<QrScanEvent, QrScanState> implements QrScanBloc {}
+class MockQrScanBloc extends MockBloc<QrEvent, QrState> implements QrBloc {}
 
 void main() {
   final List<BlocProvider> providers = [
-    BlocProvider<CardOverviewBloc>(create: (context) {
-      var bloc = MockCardOverviewBloc();
+    BlocProvider<DashboardBloc>(create: (context) {
+      var bloc = MockDashboardBloc();
       whenListen(
         bloc,
-        Stream.value(const CardOverviewLoadInProgress()),
-        initialState: const CardOverviewLoadInProgress(),
+        Stream.value(const DashboardLoadInProgress()),
+        initialState: const DashboardLoadInProgress(),
       );
       return bloc;
     }),
-    BlocProvider<QrScanBloc>(create: (context) {
+    BlocProvider<QrBloc>(create: (context) {
       var bloc = MockQrScanBloc();
       whenListen(
         bloc,
@@ -45,8 +46,8 @@ void main() {
       var bloc = MockMenuBloc();
       whenListen(
         bloc,
-        Stream.value(const MenuLoadSuccess(name: 'John Doe')),
-        initialState: const MenuLoadSuccess(name: 'John Doe'),
+        Stream.value(const MenuInitial()),
+        initialState: const MenuInitial(),
       );
       return bloc;
     }),
@@ -68,21 +69,6 @@ void main() {
       await screenMatchesGolden(tester, 'card_tab.light');
     });
 
-    testGoldens('Qr Tab', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const HomeScreen().withState<HomeBloc, HomeState>(
-              MockHomeBloc(),
-              const HomeScreenSelect(HomeTab.qr),
-            ),
-            name: 'qr',
-          ),
-        wrapper: walletAppWrapper(providers: providers),
-      );
-      await screenMatchesGolden(tester, 'qr_tab.light');
-    });
-
     testGoldens('Menu Tab', (tester) async {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
@@ -97,28 +83,10 @@ void main() {
       );
       await screenMatchesGolden(tester, 'menu_tab.light');
     });
-
-    testGoldens('Qr Tab Dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const HomeScreen().withState<HomeBloc, HomeState>(
-              MockHomeBloc(),
-              const HomeScreenSelect(HomeTab.qr),
-            ),
-            name: 'qr',
-          ),
-        wrapper: walletAppWrapper(
-          brightness: Brightness.dark,
-          providers: providers,
-        ),
-      );
-      await screenMatchesGolden(tester, 'qr_tab.dark');
-    });
   });
 
   group('widgets', () {
-    testWidgets('clicking tabs updates the content', (tester) async {
+    testWidgets('clicking menu updates the content', (tester) async {
       final homeBloc = HomeBloc();
       final homeBlocProvider = BlocProvider<HomeBloc>(create: (c) => homeBloc);
       await tester.pumpWidgetBuilder(
@@ -132,26 +100,21 @@ void main() {
       expect(titleFinder, findsOneWidget);
       var titleWidget = (titleFinder.evaluate().single.widget as Text);
 
+      final l10n = await TestUtils.englishLocalizations;
       // Expect it to start at on the cards tab with `My cards` as title
-      expect(titleWidget.data, 'My cards');
-
-      // Tab the QR tab and verify that the page updated
-      await tester.tap(find.text('QR'));
+      expect(titleWidget.data, l10n.dashboardScreenTitle);
+      // Tab the Menu button and verify that the page updated
+      await tester.tap(titleFinder);
       await tester.pumpAndSettle();
-      // We use `first` here because the appbar contains the QR tabs too.
-      titleWidget = (titleFinder.evaluate().first.widget as Text);
-      expect(titleWidget.data, 'QR-code');
 
-      // Tab the Menu tab and verify that the page updated
-      await tester.tap(find.text('Menu'));
-      await tester.pumpAndSettle();
-      // Menu page already uses the [SliverWalletAppBar], lookup accordingly
+      // Menu screen already uses the [SliverWalletAppBar], lookup accordingly
       final sliverWalletAppbarFinder = find.byType(SliverWalletAppBar);
       final titlesFinder = find.descendant(of: sliverWalletAppbarFinder, matching: find.byType(Text));
       final titleCandidates = titlesFinder.evaluate();
       expect(titleCandidates.length, 2, reason: 'SliverWalletAppBar should contain collapsed and expanded titles');
+
       for (final candidate in titleCandidates) {
-        expect((candidate.widget as Text).data, 'Menu');
+        expect((candidate.widget as Text).data, l10n.menuScreenTitle);
       }
     });
   });

@@ -12,7 +12,7 @@ import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../mocks/mock_data.dart';
+import '../../mocks/wallet_mock_data.dart';
 import '../../mocks/wallet_mocks.dart';
 import '../../util/device_utils.dart';
 import '../../util/test_utils.dart';
@@ -65,7 +65,8 @@ void main() {
               MockDisclosureBloc(),
               DisclosureCheckOrganization(
                 relyingParty: WalletMockData.organization,
-                isFirstInteractionWithOrganization: false,
+                originUrl: 'http://origin.org',
+                sharedDataWithOrganizationBefore: true,
               ),
             ),
             name: 'check_organization',
@@ -174,7 +175,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              const DisclosureStopped(),
+              DisclosureStopped(organization: WalletMockData.organization),
             ),
             name: 'stopped',
           ),
@@ -205,7 +206,8 @@ void main() {
           MockDisclosureBloc(),
           DisclosureCheckOrganization(
             relyingParty: WalletMockData.organization,
-            isFirstInteractionWithOrganization: false,
+            originUrl: 'http://origin.org',
+            sharedDataWithOrganizationBefore: true,
           ),
         ),
       );
@@ -227,7 +229,7 @@ void main() {
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.disclosureScreenShowHistoryCta), findsOneWidget);
+      expect(find.text(l10n.disclosureSuccessPageShowHistoryCta), findsOneWidget);
     });
   });
 }

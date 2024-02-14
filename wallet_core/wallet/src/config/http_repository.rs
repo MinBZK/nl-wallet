@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use reqwest::Certificate;
 use tracing::info;
 use url::Url;
 
@@ -21,12 +22,13 @@ pub struct HttpConfigurationRepository {
 impl HttpConfigurationRepository {
     pub async fn new(
         base_url: Url,
+        trust_anchors: Vec<Certificate>,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
         initial_config: WalletConfiguration,
     ) -> Result<Self, ConfigurationError> {
         Ok(Self {
-            client: HttpConfigurationClient::new(base_url, signing_public_key, storage_path).await?,
+            client: HttpConfigurationClient::new(base_url, trust_anchors, signing_public_key, storage_path).await?,
             config: RwLock::new(Arc::new(initial_config)),
         })
     }

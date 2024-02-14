@@ -22,7 +22,7 @@ class WalletCoreForIssuance {
   bool _itemsHaveBeenDisclosed = false;
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeIssuanceResponse], assumes [_activeIssuanceResponse] is non null.
-  List<RequestedCard> get _requestedCardsForActiveRequest => _wallet.getRequestedCards(
+  List<DisclosureCard> get _disclosureCardsForActiveRequest => _wallet.getDisclosureCards(
         _activeIssuanceResponse!.requestedAttributes.map(
           (attribute) => attribute.key,
         ),
@@ -41,7 +41,7 @@ class WalletCoreForIssuance {
       return StartIssuanceResultReadyToDisclose(
         response.organization,
         response.policy,
-        _requestedCardsForActiveRequest,
+        _disclosureCardsForActiveRequest,
       );
     } else {
       final requestedAttributesNotInWallet =
@@ -66,7 +66,7 @@ class WalletCoreForIssuance {
       _eventLog.logDisclosureStep(
         _activeIssuanceResponse!.organization,
         _activeIssuanceResponse!.policy,
-        _requestedCardsForActiveRequest,
+        _disclosureCardsForActiveRequest,
         DisclosureStatus.Success,
       );
     }
@@ -95,7 +95,7 @@ class WalletCoreForIssuance {
       _eventLog.logDisclosureStep(
         _activeIssuanceResponse!.organization,
         _activeIssuanceResponse!.policy,
-        _requestedCardsForActiveRequest,
+        _disclosureCardsForActiveRequest,
         DisclosureStatus.Cancelled,
       );
     }
@@ -118,9 +118,9 @@ sealed class StartIssuanceResult {
 }
 
 class StartIssuanceResultReadyToDisclose extends StartIssuanceResult {
-  final List<RequestedCard> requestedAttributes;
+  final List<DisclosureCard> disclosureCards;
 
-  StartIssuanceResultReadyToDisclose(super.organization, super.policy, this.requestedAttributes);
+  StartIssuanceResultReadyToDisclose(super.organization, super.policy, this.disclosureCards);
 }
 
 class StartIssuanceResultRequestedAttributesMissing extends StartIssuanceResult {

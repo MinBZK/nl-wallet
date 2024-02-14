@@ -9,7 +9,7 @@ mod registration;
 mod uri;
 
 #[cfg(test)]
-mod tests;
+mod test;
 
 use openid4vc::issuance_client::HttpIssuerClient;
 use tokio::sync::RwLock;
@@ -35,6 +35,9 @@ pub use self::{
     registration::WalletRegistrationError,
     uri::{UriIdentificationError, UriType},
 };
+
+#[cfg(test)]
+pub(crate) use self::issuance::rvig_registration;
 
 use self::documents::DocumentsCallback;
 

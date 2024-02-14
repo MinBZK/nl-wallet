@@ -8,22 +8,24 @@ import 'dart:async' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart' as _i11;
+import 'package:wallet/src/data/repository/configuration/configuration_repository.dart' as _i16;
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart' as _i33;
-import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart' as _i14;
-import 'package:wallet/src/data/repository/organization/organization_repository.dart' as _i12;
+import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart' as _i12;
 import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i7;
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i9;
 import 'package:wallet/src/data/service/navigation_service.dart' as _i19;
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart' as _i8;
-import 'package:wallet/src/domain/model/organization.dart' as _i13;
-import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart' as _i16;
-import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart' as _i17;
-import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i15;
+import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart' as _i17;
+import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart' as _i14;
+import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart' as _i15;
+import 'package:wallet/src/domain/model/timeline/timeline_attribute.dart' as _i13;
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i3;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i22;
+import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart' as _i36;
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i30;
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart' as _i34;
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i32;
+import 'package:wallet/src/domain/usecase/history/get_wallet_timeline_attributes_usecase.dart' as _i35;
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i31;
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i27;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i20;
@@ -386,60 +388,35 @@ class MockWalletCardRepository extends _i1.Mock implements _i11.WalletCardReposi
       ) as _i4.Future<_i3.WalletCard>);
 }
 
-/// A class which mocks [OrganizationRepository].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockOrganizationRepository extends _i1.Mock implements _i12.OrganizationRepository {
-  @override
-  _i4.Future<_i13.Organization?> read(String? organizationId) => (super.noSuchMethod(
-        Invocation.method(
-          #read,
-          [organizationId],
-        ),
-        returnValue: _i4.Future<_i13.Organization?>.value(),
-        returnValueForMissingStub: _i4.Future<_i13.Organization?>.value(),
-      ) as _i4.Future<_i13.Organization?>);
-
-  @override
-  _i4.Future<_i13.Organization?> findIssuer(String? docType) => (super.noSuchMethod(
-        Invocation.method(
-          #findIssuer,
-          [docType],
-        ),
-        returnValue: _i4.Future<_i13.Organization?>.value(),
-        returnValueForMissingStub: _i4.Future<_i13.Organization?>.value(),
-      ) as _i4.Future<_i13.Organization?>);
-}
-
 /// A class which mocks [TimelineAttributeRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTimelineAttributeRepository extends _i1.Mock implements _i14.TimelineAttributeRepository {
+class MockTimelineAttributeRepository extends _i1.Mock implements _i12.TimelineAttributeRepository {
   @override
-  _i4.Future<List<_i15.TimelineAttribute>> readAll() => (super.noSuchMethod(
+  _i4.Future<List<_i13.TimelineAttribute>> readAll() => (super.noSuchMethod(
         Invocation.method(
           #readAll,
           [],
         ),
-        returnValue: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
-        returnValueForMissingStub: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
-      ) as _i4.Future<List<_i15.TimelineAttribute>>);
+        returnValue: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+        returnValueForMissingStub: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+      ) as _i4.Future<List<_i13.TimelineAttribute>>);
 
   @override
-  _i4.Future<List<_i15.TimelineAttribute>> readFiltered({required String? docType}) => (super.noSuchMethod(
+  _i4.Future<List<_i13.TimelineAttribute>> readFiltered({required String? docType}) => (super.noSuchMethod(
         Invocation.method(
           #readFiltered,
           [],
           {#docType: docType},
         ),
-        returnValue: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
-        returnValueForMissingStub: _i4.Future<List<_i15.TimelineAttribute>>.value(<_i15.TimelineAttribute>[]),
-      ) as _i4.Future<List<_i15.TimelineAttribute>>);
+        returnValue: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+        returnValueForMissingStub: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+      ) as _i4.Future<List<_i13.TimelineAttribute>>);
 
   @override
-  _i4.Future<_i16.InteractionTimelineAttribute?> readMostRecentInteraction(
+  _i4.Future<_i14.InteractionTimelineAttribute?> readMostRecentInteraction(
     String? docType,
-    _i16.InteractionStatus? status,
+    _i14.InteractionStatus? status,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -449,14 +426,14 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i14.TimelineA
             status,
           ],
         ),
-        returnValue: _i4.Future<_i16.InteractionTimelineAttribute?>.value(),
-        returnValueForMissingStub: _i4.Future<_i16.InteractionTimelineAttribute?>.value(),
-      ) as _i4.Future<_i16.InteractionTimelineAttribute?>);
+        returnValue: _i4.Future<_i14.InteractionTimelineAttribute?>.value(),
+        returnValueForMissingStub: _i4.Future<_i14.InteractionTimelineAttribute?>.value(),
+      ) as _i4.Future<_i14.InteractionTimelineAttribute?>);
 
   @override
-  _i4.Future<_i17.OperationTimelineAttribute?> readMostRecentOperation(
+  _i4.Future<_i15.OperationTimelineAttribute?> readMostRecentOperation(
     String? docType,
-    _i17.OperationStatus? status,
+    _i15.OperationStatus? status,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -466,9 +443,21 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i14.TimelineA
             status,
           ],
         ),
-        returnValue: _i4.Future<_i17.OperationTimelineAttribute?>.value(),
-        returnValueForMissingStub: _i4.Future<_i17.OperationTimelineAttribute?>.value(),
-      ) as _i4.Future<_i17.OperationTimelineAttribute?>);
+        returnValue: _i4.Future<_i15.OperationTimelineAttribute?>.value(),
+        returnValueForMissingStub: _i4.Future<_i15.OperationTimelineAttribute?>.value(),
+      ) as _i4.Future<_i15.OperationTimelineAttribute?>);
+}
+
+/// A class which mocks [ConfigurationRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockConfigurationRepository extends _i1.Mock implements _i16.ConfigurationRepository {
+  @override
+  _i4.Stream<_i17.FlutterAppConfiguration> get appConfiguration => (super.noSuchMethod(
+        Invocation.getter(#appConfiguration),
+        returnValue: _i4.Stream<_i17.FlutterAppConfiguration>.empty(),
+        returnValueForMissingStub: _i4.Stream<_i17.FlutterAppConfiguration>.empty(),
+      ) as _i4.Stream<_i17.FlutterAppConfiguration>);
 }
 
 /// A class which mocks [TypedWalletCore].
@@ -1089,6 +1078,36 @@ class MockCancelDisclosureUseCase extends _i1.Mock implements _i34.CancelDisclos
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
+}
+
+/// A class which mocks [GetWalletTimelineAttributesUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetWalletTimelineAttributesUseCase extends _i1.Mock implements _i35.GetWalletTimelineAttributesUseCase {
+  @override
+  _i4.Future<List<_i13.TimelineAttribute>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+        returnValueForMissingStub: _i4.Future<List<_i13.TimelineAttribute>>.value(<_i13.TimelineAttribute>[]),
+      ) as _i4.Future<List<_i13.TimelineAttribute>>);
+}
+
+/// A class which mocks [ObserveWalletCardsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockObserveWalletCardsUseCase extends _i1.Mock implements _i36.ObserveWalletCardsUseCase {
+  @override
+  _i4.Stream<List<_i3.WalletCard>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i4.Stream<List<_i3.WalletCard>>.empty(),
+        returnValueForMissingStub: _i4.Stream<List<_i3.WalletCard>>.empty(),
+      ) as _i4.Stream<List<_i3.WalletCard>>);
 }
 
 /// A class which mocks [WalletCore].

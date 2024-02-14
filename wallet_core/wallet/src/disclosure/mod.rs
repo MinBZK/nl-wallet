@@ -151,9 +151,7 @@ mod mock {
         Arc, Mutex,
     };
 
-    use nl_wallet_mdoc::{
-        holder::DisclosureError, utils::reader_auth::reader_registration_mock, verifier::SessionType,
-    };
+    use nl_wallet_mdoc::{holder::DisclosureError, verifier::SessionType};
     use once_cell::sync::Lazy;
 
     use super::*;
@@ -248,7 +246,7 @@ mod mock {
             Self {
                 disclosure_uri: Default::default(),
                 certificate: vec![].into(),
-                reader_registration: reader_registration_mock(),
+                reader_registration: ReaderRegistration::new_mock(),
                 session_state: Default::default(),
                 was_terminated: Default::default(),
             }
@@ -268,7 +266,11 @@ mod mock {
                 return Err(error);
             }
 
-            let (reader_registration, session_state) = NEXT_MOCK_FIELDS.lock().unwrap().take().unwrap_or_default();
+            let (reader_registration, session_state) = NEXT_MOCK_FIELDS
+                .lock()
+                .unwrap()
+                .take()
+                .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default()));
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri,

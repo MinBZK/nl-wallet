@@ -14,8 +14,8 @@ import '../../../util/mapper/mapper.dart';
 import '../../../util/mapper/pid/pid_attribute_mapper.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_core/typed/typed_wallet_core.dart';
-import '../../common/page/flow_terminal_page.dart';
 import '../../common/page/generic_loading_page.dart';
+import '../../common/page/legacy_terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
@@ -162,7 +162,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
               style: Theme.of(context)
                   .textButtonTheme
                   .style
-                  ?.copyWith(foregroundColor: MaterialStatePropertyAll(Theme.of(context).colorScheme.error)),
+                  ?.copyWith(foregroundColor: MaterialStatePropertyAll(context.colorScheme.error)),
               onPressed: () => Navigator.pop(context, true),
               child: Text(context.l10n.walletPersonalizeScreenStopDigidDialogPositiveCta),
             ),
@@ -234,7 +234,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       appBar: const WalletAppBar(
         progress: 0.0,
       ),
-      body: FlowTerminalPage(
+      body: LegacyTerminalPage(
         icon: Icons.not_interested,
         iconColor: context.theme.primaryColorDark,
         title: context.l10n.walletPersonalizeScreenErrorTitle,

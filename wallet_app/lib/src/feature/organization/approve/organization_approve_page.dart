@@ -7,6 +7,7 @@ import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text_with_link.dart';
 import '../detail/organization_detail_screen.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
@@ -22,19 +23,23 @@ class OrganizationApprovePage extends StatelessWidget {
   /// The organization that user is interacting with
   final Organization organization;
 
+  /// The url from which the user should have opened the flow. Prominently displayed for the user to check.
+  final String originUrl;
+
   /// Tells the Page in which flow it's currently used, used to select the correct string resources
   final ApprovalPurpose purpose;
 
   /// If true, the 'first interaction' banner will be shown. //FIXME: This should eventually be a interactionCount
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
 
   const OrganizationApprovePage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
     required this.organization,
+    required this.originUrl,
     required this.purpose,
     this.onReportIssuePressed,
-    this.isFirstInteractionWithOrganization = true,
+    this.sharedDataWithOrganizationBefore = false,
     Key? key,
   }) : super(key: key);
 
@@ -77,56 +82,37 @@ class OrganizationApprovePage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          OrganizationLogo(
-            image: organization.logo,
-            size: 64,
-            fixedRadius: 12,
-          ),
-          const SizedBox(height: 24),
-          _buildHeaderTitleText(context),
-          const SizedBox(height: 8),
-          _buildFraudInfoText(context),
-        ],
+      child: MergeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OrganizationLogo(
+              image: organization.logo,
+              size: 64,
+              fixedRadius: 12,
+            ),
+            const SizedBox(height: 24),
+            _buildHeaderTitleText(context),
+            const SizedBox(height: 8),
+            _buildFraudInfoText(context),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeaderTitleText(BuildContext context) {
     return Text(
-      context.l10n.organizationApprovePageGenericTitle(organization.legalName.l10nValue(context)),
+      context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
       style: context.textTheme.displayMedium,
       textAlign: TextAlign.start,
     );
   }
 
   Widget _buildFraudInfoText(BuildContext context) {
-    final url = organization.webUrl ?? 'http://example.org';
-    final fullString = context.l10n.organizationApprovePageFraudInfo(url);
-    final parts = fullString.split(url);
-
-    /// We only support the case where the url is somewhere inside the fullString, e.g. "Open {url} for more info"
-    if (parts.length != 2) return Text(fullString, style: context.textTheme.bodyLarge);
-    return RichText(
-      textAlign: TextAlign.start,
-      text: TextSpan(
-        style: context.textTheme.bodyLarge,
-        children: [
-          TextSpan(text: parts.first),
-          TextSpan(
-            text: url,
-            style: TextStyle(
-              color: context.colorScheme.primary,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-          TextSpan(text: parts.last),
-        ],
-      ),
-    );
+    final fullString = context.l10n.organizationApprovePageFraudInfo(originUrl);
+    return TextWithLink(fullText: fullString, ctaText: originUrl);
   }
 
   String _approveButtonText(BuildContext context) {
@@ -155,7 +141,7 @@ class OrganizationApprovePage extends StatelessWidget {
     OrganizationDetailScreen.showPreloaded(
       context,
       organization,
-      isFirstInteractionWithOrganization,
+      sharedDataWithOrganizationBefore,
       onReportIssuePressed: onReportIssuePressed,
     );
   }

@@ -1,5 +1,9 @@
 variables:
+  CACHE_COMPRESSION_LEVEL: "fastest"
+  FF_USE_FASTZIP: "true"
   FLUTTER_APP_PROJECT_DIR: "wallet_app"
+  CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+  CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   RENEW_ON_LETSENCRYPT_STAGING:
     value: "false"
@@ -8,34 +12,43 @@ variables:
     value: "false"
     description: "Try to renew the server certificates from the Let's encrypt live environment."
 
-.env:
+.env-ont:
   environment:
     name: ${K8S_CLUSTER}
     action: prepare
 
-.env-k8s:
-  extends: .env
+.env-demo:
   environment:
+    name: ${K8S_DEMO_CLUSTER}
+    action: prepare
+
+.env-ont-k8s:
+  extends: .env-ont
+  environment:
+    action: start
     kubernetes:
       namespace: ${K8S_NAMESPACE}
 
-.deploy-k8s:
-  extends: .env-k8s
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:a9fe57c25ab826a5a8a333902a2c63016361cc1961d0cb4a02790aa586fc7382"
-  resource_group: testcluster
+.env-demo-k8s:
+  extends: .env-demo
   environment:
     action: start
+    kubernetes:
+      namespace: ${K8S_DEMO_NAMESPACE}
+
+default:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:a9fe57c25ab826a5a8a333902a2c63016361cc1961d0cb4a02790aa586fc7382"
 
 .kaniko:
-  extends: .env
+  extends: .env-ont
   before_script:
     - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
   image:
     name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [ "" ]
+    entrypoint: [""]
 
 .default-sonar:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli:4.8.1"
 
@@ -44,20 +57,38 @@ variables:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        CACHE_POLICY: pull-push
 
 .default-or-release:
   rules:
-    - !reference [ .default-branch, rules ]
+    - !reference [.default-branch, rules]
     - if: $CI_COMMIT_BRANCH =~ /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
+      variables:
+        CACHE_POLICY: pull
 
 .default-or-release-or-merge-request:
   rules:
-    - !reference [ .default-or-release, rules ]
+    - !reference [.default-or-release, rules]
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      variables:
+        CACHE_POLICY: pull
+
+.rust-cache:
+  cache:
+    key: rust-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
+    paths:
+      - ".cargo/git"
+      - ".cargo/registry/index"
+      - ".cargo/registry/cache"
+      - "wallet_core/target/"
+      - "wallet_core/flutter_rust_bridge_codegen/target"
+      - "wallet_core/uniffi-bindgen/target"
+    policy: ${CACHE_POLICY}
 
 # Working directory is 'wallet_app' directory
 test-flutter:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7d4314db8b5194c93b7afede39de72ecf04e4cd85a217f80f78faaac391325d9"
   script:
@@ -72,7 +103,7 @@ test-flutter:
       - $FLUTTER_APP_PROJECT_DIR/build/reports/test-results.json
 
 test-flutter-ui:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   when: manual
   tags:
     - macos
@@ -86,12 +117,11 @@ test-flutter-ui:
     - flutter --version
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
 
-test-rust:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+lint-rust:
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
-  before_script:
-    - softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label test_token --pin "${WALLET_PROVIDER_HSM__USER_PIN}"
+  cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
     # Check Rust formatting
@@ -99,6 +129,13 @@ test-rust:
     # Check clippy
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+
+test-rust:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+  cache: !reference [.rust-cache, cache]
+  script:
     # Run tests, generate code coverage reports
     - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
     - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path unit-coverage.xml)
@@ -111,9 +148,10 @@ test-rust:
       - wallet_core/lcov.info
 
 test-rust-integration:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+  cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
@@ -131,9 +169,9 @@ test-rust-integration:
     - ./scripts/setup-devenv.sh
     - cd wallet_core
   script:
-    - cargo run --bin wallet_provider_migrations -- up
-    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration -- up
-    - cargo llvm-cov test --features db_test --test '*' --lcov --output-path lcov_integration.info
+    - cargo run --bin wallet_provider_migrations --locked -- up
+    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
+    - cargo llvm-cov test --features db_test --test '*' --locked --lcov --output-path lcov_integration.info
     - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
   artifacts:
     reports:
@@ -144,18 +182,23 @@ test-rust-integration:
       - wallet_core/lcov_integration.info
 
 test-rust-compilation-android-linux:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:4741f165006262ce25cb8306ca50060e7e6d49786ae34c1ae24827e245b22298"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider_migrations --bin wallet_provider_migrations
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package configuration_server --bin configuration_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package pid_issuer --bin pid_issuer
-    - (cd wallet_core; cargo ndk --target arm64-v8a check --locked --release)
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
+    - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
 test-rust-compilation-ios:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   when: manual
   tags:
     - macos
@@ -163,7 +206,7 @@ test-rust-compilation-ios:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --target aarch64-apple-ios --release
 
 test-ios:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   when: manual
   tags:
     - macos
@@ -180,9 +223,10 @@ test-ios:
     - bundle exec fastlane ios test
 
 test-codegen:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:5bf9c226415cf1e010732a7a21a234549a5adec1e808e2cf18e35478ec6bd914"
+  cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
     - (cd $FLUTTER_APP_PROJECT_DIR && flutter pub get)
@@ -193,7 +237,7 @@ test-codegen:
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
 dependency-check:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:88a6ff08245ccee24e4625fc19533985ebc745223a600e193b5e9b0c946f2c8b"
   before_script:
@@ -212,12 +256,23 @@ dependency-check:
       - dependency-check-report.html
       - dependency-check-report.xml
   cache:
-    key: "$CI_PROJECT_NAME"
+    key: dependency-check-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
     paths:
       - $CI_PROJECT_DIR/dependency_check_data
+    policy: ${CACHE_POLICY}
+
+osv-scanner:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "$HARBOR_REGISTRY/ghcr-io-proxy/google/osv-scanner:latest"
+  script:
+    - /osv-scanner --format sarif --recursive "$CI_PROJECT_DIR" > osv.sarif || true
+  artifacts:
+    paths:
+      - osv.sarif
 
 dependency-check-rust:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
   before_script:
@@ -249,7 +304,7 @@ sonar-rust:
       -Dcommunity.rust.lcov.reportPaths="lcov.info,lcov_integration.info"
 
 sonar-flutter:
-  rules: !reference [ .default-or-release-or-merge-request, rules ]
+  rules: !reference [.default-or-release-or-merge-request, rules]
   needs:
     - job: test-flutter
       artifacts: true
@@ -301,7 +356,7 @@ sonar-android:
 
 build-wp-image:
   extends: .kaniko
-  rules: !reference [ .default-or-release, rules ]
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -320,7 +375,7 @@ build-wp-image:
 
 build-wp-migrations-image:
   extends: .kaniko
-  rules: !reference [ .default-branch, rules ]
+  rules: !reference [.default-branch, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -339,7 +394,7 @@ build-wp-migrations-image:
 
 build-pid-issuer-image:
   extends: .kaniko
-  rules: !reference [ .default-or-release, rules ]
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -356,7 +411,7 @@ build-pid-issuer-image:
 
 build-mock-relying-party-image:
   extends: .kaniko
-  rules: !reference [ .default-or-release, rules ]
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -373,7 +428,7 @@ build-mock-relying-party-image:
 
 build-wallet-server-image:
   extends: .kaniko
-  rules: !reference [ .default-or-release, rules ]
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -390,7 +445,7 @@ build-wallet-server-image:
 
 build-ws-migrations-image:
   extends: .kaniko
-  rules: !reference [ .default-or-release, rules ]
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -407,20 +462,9 @@ build-ws-migrations-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migration:$CI_COMMIT_SHORT_SHA
       --cache=true
 
-build-static-files-image:
-  extends: .kaniko
-  rules: !reference [ .default-or-release, rules ]
-  script:
-    - /kaniko/executor
-      --context kubernetes/static-files
-      --dockerfile kubernetes/static-files/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-static-files-hosting:$CI_COMMIT_SHORT_SHA
-      --cache=true
-
 build-android-app:
-  extends: .env-k8s
-  rules: !reference [ .default-or-release, rules ]
+  extends: .env-ont-k8s # needs k8s secrets
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: test-flutter
       artifacts: false
@@ -432,6 +476,7 @@ build-android-app:
       artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:4741f165006262ce25cb8306ca50060e7e6d49786ae34c1ae24827e245b22298"
+  cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
     paths:
@@ -447,8 +492,8 @@ build-android-app:
     - bundle exec fastlane android ci_build
 
 build-ios-app:
-  extends: .env-k8s
-  rules: !reference [ .default-or-release, rules ]
+  extends: .env-ont-k8s # needs k8s secrets
+  rules: !reference [.default-or-release, rules]
   when: manual
   needs:
     - job: test-flutter
@@ -475,8 +520,9 @@ build-ios-app:
     - bundle exec fastlane ios ci_build
 
 deploy-android-app:
-  extends: .env-k8s
-  rules: !reference [ .default-or-release, rules ]
+  resource_group: deploy-android
+  extends: .env-ont-k8s # needs k8s secrets
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: build-android-app
       artifacts: true
@@ -494,8 +540,7 @@ deploy-android-app:
     - bundle exec fastlane android ci_deploy
 
 dependency-check-images:
-  extends: .env-k8s
-  rules: !reference [ .default-branch, rules ]
+  rules: !reference [.default-branch, rules]
   needs:
     - job: build-wp-image
       artifacts: false
@@ -542,8 +587,9 @@ dependency-check-images:
       - trivy
 
 upload-browserstack-android-app:
-  extends: .env-k8s
-  rules: !reference [ .default-branch, rules ]
+  resource_group: deploy-android
+  extends: .env-ont-k8s # needs k8s secrets
+  rules: !reference [.default-branch, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
   needs:
@@ -561,8 +607,8 @@ upload-browserstack-android-app:
     - bundle exec fastlane android ci_browserstack
 
 deploy-ios-app:
-  extends: .env-k8s
-  rules: !reference [ .default-or-release, rules ]
+  resource_group: deploy-ios
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: build-ios-app
       artifacts: true
@@ -578,8 +624,8 @@ deploy-ios-app:
     - bundle exec fastlane ios ci_deploy
 
 upload-browserstack-ios-app:
-  extends: .env-k8s
-  rules: !reference [ .default-branch, rules ]
+  resource_group: deploy-ios
+  rules: !reference [.default-branch, rules]
   needs:
     - job: build-ios-app
       artifacts: true
@@ -595,9 +641,8 @@ upload-browserstack-ios-app:
     - bundle install
     - bundle exec fastlane ios ci_browserstack
 
-run-wallet-provider-migrations:
-  extends: .deploy-k8s
-  rules: !reference [ .default-branch, rules ]
+.run-wp-migrations:
+  rules: !reference [.default-branch, rules]
   when: manual
   needs:
     - job: build-wp-migrations-image
@@ -608,13 +653,16 @@ run-wallet-provider-migrations:
     - envsubst < kubernetes/wallet-provider-migration-job.yaml | kubectl apply -f -
     - kubectl wait --for=condition=complete --timeout=300s job -l app=wallet-provider-migrations
 
-deploy-wallet-provider:
-  extends: .deploy-k8s
-  rules: !reference [ .default-branch, rules ]
+run-wp-migrations-ont:
+  extends: [.env-ont-k8s, .run-wp-migrations]
+
+run-wp-migrations-demo:
+  extends: [.env-demo-k8s, .run-wp-migrations]
+
+.deploy-wallet-provider:
+  rules: !reference [.default-branch, rules]
   needs:
     - job: build-wp-image
-      artifacts: false
-    - job: run-wallet-provider-migrations
       artifacts: false
   variables:
     WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA}
@@ -627,9 +675,26 @@ deploy-wallet-provider:
     - kubectl apply -f kubernetes/wallet-provider-network-policies.yaml
     - kubectl rollout status deployment/wallet-provider
 
-deploy-pid-issuer:
-  extends: .deploy-k8s
-  rules: !reference [ .default-branch, rules ]
+deploy-wallet-provider-ont:
+  extends: [.env-ont-k8s, .deploy-wallet-provider]
+  needs:
+    - job: run-wp-migrations-ont
+      artifacts: false
+  variables:
+    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
+    WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_ONT
+
+deploy-wallet-provider-demo:
+  extends: [.env-demo-k8s, .deploy-wallet-provider]
+  needs:
+    - job: run-wp-migrations-demo
+      artifacts: false
+  variables:
+    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
+    WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
+
+.deploy-pid-issuer:
+  rules: !reference [.default-branch, rules]
   when: manual
   needs:
     - job: build-pid-issuer-image
@@ -642,9 +707,20 @@ deploy-pid-issuer:
     - kubectl apply -f kubernetes/pid-issuer-service.yaml
     - kubectl rollout status deployment/pid-issuer
 
-deploy-mock-relying-party:
-  extends: .deploy-k8s
-  rules: !reference [ .default-branch, rules ]
+deploy-pid-issuer-ont:
+  extends: [.env-ont-k8s, .deploy-pid-issuer]
+  variables:
+    PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_ONT
+    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
+
+deploy-pid-issuer-demo:
+  extends: [.env-demo-k8s, .deploy-pid-issuer]
+  variables:
+    PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
+    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
+
+.deploy-mock-relying-party:
+  rules: !reference [.default-branch, rules]
   when: manual
   needs:
     - job: build-mock-relying-party-image
@@ -658,29 +734,29 @@ deploy-mock-relying-party:
     - envsubst < kubernetes/mrp-wallet-server-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mrp-wallet-server-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mrp-wallet-server-service.yaml
+    - kubectl apply -f kubernetes/mrp-wallet-server-network-policies.yaml
     - kubectl rollout status deployment/mrp-wallet-server
     - envsubst < kubernetes/mock-relying-party-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mock-relying-party-service.yaml
     - kubectl rollout status deployment/mock-relying-party
 
-deploy-static-files-hosting:
-  extends: .deploy-k8s
-  rules: !reference [ .default-branch, rules ]
-  when: manual
-  needs:
-    - job: build-static-files-image
-      artifacts: false
+deploy-mock-relying-party-ont:
+  extends: [.env-ont-k8s, .deploy-mock-relying-party]
   variables:
-    STATIC_FILES_HOSTING_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-static-files-hosting:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < kubernetes/static-files-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/static-files-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f kubernetes/static-files-service.yaml
-    - kubectl rollout status deployment/static-files
+    MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
+    MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
+    MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_ONT
+
+deploy-mock-relying-party-demo:
+  extends: [.env-demo-k8s, .deploy-mock-relying-party]
+  variables:
+    MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
+    MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
+    MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
 
 run-automation-tests:
-  extends: .env-k8s
+  resource_group: automation-tests
   rules:
     - if: $RUN_AUTOMATION_TESTS == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       when: always
@@ -703,20 +779,86 @@ run-automation-tests:
     - gradle wrapper --gradle-version=7.3.3
     - ./gradlew --debug --stacktrace test --tests suite.FeatureTestSuite
 
-deploy-staging-certs:
-  extends: .deploy-k8s
+.deploy-certs:
+  script:
+    - envsubst < kubernetes/certificates/$CERT_ENV/static-cert.yaml | kubectl apply -f -
+    - envsubst < kubernetes/certificates/$CERT_ENV/wp-cert.yaml | kubectl apply -f -
+    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/$CERT_ENV/static-cert.yaml -f kubernetes/certificates/$CERT_ENV/wp-cert.yaml
+
+.deploy-certs-ont:
+  extends: [.env-ont-k8s, .deploy-certs]
+  variables:
+    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
+    STATIC_EXTERNAL_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ONT
+
+deploy-staging-certs-ont:
+  extends: .deploy-certs-ont
   rules:
     - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
-  script:
-    - envsubst < kubernetes/certificates/stage/static-cert.yaml | kubectl apply -f -
-    - envsubst < kubernetes/certificates/stage/wp-cert.yaml | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/stage/static-cert.yaml -f kubernetes/certificates/stage/wp-cert.yaml
+  variables:
+    CERT_ENV: "staging"
 
-deploy-live-certs:
-  extends: .deploy-k8s
+deploy-live-certs-ont:
+  extends: .deploy-certs-ont
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
+  variables:
+    CERT_ENV: "live"
+
+.deploy-certs-demo:
+  extends: [.env-demo-k8s, .deploy-certs]
+  variables:
+    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
+    STATIC_EXTERNAL_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_DEMO
+
+deploy-staging-certs-demo:
+  extends: .deploy-certs-demo
+  rules:
+    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
+  variables:
+    CERT_ENV: "staging"
+
+deploy-live-certs-demo:
+  extends: .deploy-certs-demo
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
+  variables:
+    CERT_ENV: "live"
+
+build-sbom:
+  rules: !reference [.default-or-release, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:fde8c80553826d9bb81d6ef165fccf896391258c7e6d5e4c10e184f9dff829bd"
   script:
-    - envsubst < kubernetes/certificates/live/static-cert.yaml | kubectl apply -f -
-    - envsubst < kubernetes/certificates/live/wp-cert.yaml | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/live/static-cert.yaml -f kubernetes/certificates/live/wp-cert.yaml
+    ## Rust
+    - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json
+    - cargo cyclonedx --manifest-path wallet_core/flutter_rust_bridge_codegen/Cargo.toml --format json
+    - cargo cyclonedx --manifest-path wallet_core/uniffi-bindgen/Cargo.toml --format json
+    ## Flutter
+    - cd wallet_app; cdxgen --type dart --output bom.json; cd -
+    ## iOS
+    # does not support json, so converting to it (we need it to be able to merge)
+    - bundle install
+    - cd wallet_app
+    - flutter pub get
+    - flutter precache --ios
+    - cd ios
+    - bundle exec pod install --allow-root
+    - cyclonedx-cocoapods
+    - cyclonedx convert --input-file bom.xml --output-file bom.json
+    - cd ../..
+    ## Android
+    - cd wallet_app/android/app; cdxgen -t gradle -o bom.json; cd -
+    - cd wallet_core/platform_support/android/platform_support; cdxgen -t gradle -o bom.json; cd -
+    # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
+    - cyclonedx merge --input-files `find . -name bom.json` --output-file bom.json
+    # converting it to xml does work
+    - cyclonedx convert --input-file bom.json --output-file bom.xml
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+  artifacts:
+    when: always
+    paths:
+      - ./bom.xml
+      - ./bom.json

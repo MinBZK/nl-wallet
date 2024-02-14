@@ -28,13 +28,6 @@ void main() {
     );
 
     blocTest<HomeBloc, HomeState>(
-      'state should have `qr` tab selected when tab `qr` is pressed',
-      build: () => bloc,
-      act: (bloc) => bloc.add(const HomeTabPressed(HomeTab.qr)),
-      expect: () => [const HomeScreenSelect(HomeTab.qr)],
-    );
-
-    blocTest<HomeBloc, HomeState>(
       'state should have `menu` tab selected when tab `menu` is pressed',
       build: () => bloc,
       act: (bloc) => bloc.add(const HomeTabPressed(HomeTab.menu)),

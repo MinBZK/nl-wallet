@@ -12,7 +12,7 @@ use serde::Serialize;
 use tower_http::trace::TraceLayer;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore},
 };
 use openid4vc::{
@@ -23,7 +23,7 @@ use openid4vc::{
 };
 use tracing::warn;
 
-use crate::settings::{KeyPair, Settings};
+use crate::settings::{IssuerKey, Settings};
 
 use openid4vc::issuer::*;
 
@@ -31,27 +31,22 @@ struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
 }
 
-pub struct IssuerKeyRing(pub HashMap<String, PrivateKey>);
+pub struct IssuerKeyRing(pub HashMap<String, KeyPair>);
 
 impl KeyRing for IssuerKeyRing {
-    fn private_key(&self, usecase: &str) -> Option<&PrivateKey> {
+    fn private_key(&self, usecase: &str) -> Option<&KeyPair> {
         self.0.get(usecase)
     }
 }
 
-impl TryFrom<HashMap<String, KeyPair>> for IssuerKeyRing {
+impl TryFrom<HashMap<String, IssuerKey>> for IssuerKeyRing {
     type Error = anyhow::Error;
 
-    fn try_from(private_keys: HashMap<String, KeyPair>) -> Result<Self, Self::Error> {
+    fn try_from(private_keys: HashMap<String, IssuerKey>) -> Result<Self, Self::Error> {
         Ok(Self(
             private_keys
                 .into_iter()
-                .map(|(doctype, keypair)| {
-                    Ok((
-                        doctype,
-                        PrivateKey::from_der(&keypair.private_key.0, &keypair.certificate.0)?,
-                    ))
-                })
+                .map(|(doctype, keypair)| Ok((doctype, KeyPair::from_der(&keypair.private_key, &keypair.certificate)?)))
                 .collect::<Result<_, Self::Error>>()?,
         ))
     }

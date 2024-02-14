@@ -4,10 +4,9 @@ pub mod keys;
 pub mod serialization;
 pub mod x509;
 
-pub(crate) mod crypto;
+pub mod crypto;
 
-#[cfg(feature = "mock")]
+#[cfg(feature = "mdocs_map")]
 pub mod mdocs_map;
 
-pub use auth::issuer_auth;
-pub use auth::reader_auth;
+pub use auth::{issuer_auth, reader_auth};

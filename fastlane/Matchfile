@@ -1,5 +1,5 @@
 storage_mode("git")
 git_url("SSSS/wallet/nl-wallet-certificates.git")
-app_identifier(["nl.ictu.edi.wallet.latest", "nl.ictu.edi.wallet.alpha", "nl.ictu.edi.wallet.beta", "nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner"])
+app_identifier(["nl.ictu.edi.wallet.latest", "nl.ictu.edi.wallet.mock", "nl.ictu.edi.wallet.demo", "nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner"])
 
 type("development") # The default type, can be: appstore, adhoc, enterprise or development

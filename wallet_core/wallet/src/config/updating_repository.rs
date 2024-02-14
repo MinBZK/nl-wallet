@@ -5,7 +5,7 @@ use tokio::{
     task::JoinHandle,
     time::{self, MissedTickBehavior},
 };
-use tracing::info;
+use tracing::{error, info};
 
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -32,7 +32,8 @@ impl UpdatingFileHttpConfigurationRepository {
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
             config.base_url,
-            config.signing_public_key.into(),
+            config.trust_anchors,
+            (&config.signing_public_key).into(),
             initial_config,
         )
         .await?;
@@ -56,7 +57,7 @@ where
         }
     }
 
-    // This function is marked as async to force using a Tokio runtime and to prevent runtime panics of used without.
+    // This function is marked as async to force using a Tokio runtime and to prevent runtime panics if used without.
     async fn start_update_task(wrapped: Arc<T>, rx: Receiver<CallbackFunction>, interval: Duration) -> JoinHandle<()> {
         tokio::spawn(async move {
             let mut interval = time::interval(interval);
@@ -67,10 +68,15 @@ where
 
                 info!("Wallet configuration update timer expired, fetching from remote...");
 
-                if let Ok(ConfigurationUpdateState::Updated) = wrapped.fetch().await {
-                    let config = wrapped.config();
-                    let callback = rx.borrow();
-                    callback(config);
+                match wrapped.fetch().await {
+                    Ok(state) => {
+                        if let ConfigurationUpdateState::Updated = state {
+                            let config = wrapped.config();
+                            let callback = rx.borrow();
+                            callback(config);
+                        }
+                    }
+                    Err(e) => error!("fetch configuration error: {}", e),
                 }
             }
         })

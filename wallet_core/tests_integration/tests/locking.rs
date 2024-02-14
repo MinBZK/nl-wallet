@@ -12,7 +12,6 @@ pub mod common;
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_unlock_ok() {
     let pin = "112234".to_string();
 
@@ -34,14 +33,13 @@ async fn test_unlock_ok() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_block() {
     let pin = "112234".to_string();
 
     let mut settings = wallet_provider_settings();
     settings.pin_policy.rounds = 1;
     settings.pin_policy.attempts_per_round = 2;
-    settings.pin_policy.timeouts_in_ms = vec![];
+    settings.pin_policy.timeouts = vec![];
 
     let mut wallet = setup_wallet_and_env(config_server_settings(), settings, wallet_server_settings()).await;
     wallet = do_wallet_registration(wallet, pin).await;
@@ -79,7 +77,6 @@ async fn test_block() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_unlock_error() {
     let pin = "112234".to_string();
     let mut wallet = setup_wallet_and_default_env().await;

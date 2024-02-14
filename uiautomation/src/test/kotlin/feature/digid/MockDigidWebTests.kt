@@ -1,49 +1,27 @@
 package feature.digid
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junitpioneer.jupiter.RetryingTest
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
-import screen.introduction.IntroductionConditionsScreen
-import screen.introduction.IntroductionExpectationsScreen
-import screen.introduction.IntroductionPrivacyScreen
-import screen.introduction.IntroductionScreen
-import screen.personalize.PersonalizeInformScreen
-import screen.security.PinScreen
-import screen.security.SetupSecurityCompletedScreen
 
 class MockDigidWebTests : TestBase() {
 
-    private val chosenPin = "122222"
-    private val bsn = "999991771"
+    private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
 
     @BeforeEach
     fun setUp() {
-        val introductionScreen = IntroductionScreen()
-        val expectationsScreen = IntroductionExpectationsScreen()
-        val privacyScreen = IntroductionPrivacyScreen()
-        val conditionsScreen = IntroductionConditionsScreen()
-        val pinScreen = PinScreen()
-        val setupSecurityCompletedScreen = SetupSecurityCompletedScreen()
-        val personalizeInformScreen = PersonalizeInformScreen()
+        OnboardingNavigator().toScreen(OnboardingScreen.DigidLoginStartWebPage)
 
-        // Start all tests on digid login start web page
-        introductionScreen.clickSkipButton()
-        expectationsScreen.clickNextButton()
-        privacyScreen.clickNextButton()
-        conditionsScreen.clickNextButton()
-        pinScreen.enterPin(chosenPin)
-        pinScreen.enterPin(chosenPin)
-        setupSecurityCompletedScreen.clickNextButton()
-        personalizeInformScreen.clickLoginWithDigidButton()
-        personalizeInformScreen.switchToWebView()
+        digidLoginStartWebPage = DigidLoginStartWebPage()
     }
 
-    @Test
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     fun verifyMockDigidLogin() {
-        val digidLoginStartWebPage = DigidLoginStartWebPage()
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
 
         digidLoginStartWebPage.clickMockLoginButton()
@@ -51,7 +29,7 @@ class MockDigidWebTests : TestBase() {
         val digidLoginMockWebPage = DigidLoginMockWebPage()
         assertTrue(digidLoginMockWebPage.visible(), "digid login mock web page is not visible")
 
-        digidLoginMockWebPage.enterBsn(bsn)
+        digidLoginMockWebPage.enterBsn("999991771")
         digidLoginMockWebPage.clickLoginButton()
     }
 }

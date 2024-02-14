@@ -2,7 +2,7 @@ use wallet::{EventStatus, HistoryEvent};
 
 use crate::models::{
     card::{Card, LocalizedString},
-    disclosure::{Organization, RPLocalizedStrings, RequestPolicy, RequestedCard},
+    disclosure::{DisclosureCard, Organization, RPLocalizedStrings, RequestPolicy},
 };
 
 pub enum WalletEvent {
@@ -11,14 +11,13 @@ pub enum WalletEvent {
         date_time: String,
         relying_party: Organization,
         purpose: Vec<LocalizedString>,
-        requested_cards: Option<Vec<RequestedCard>>,
+        requested_cards: Option<Vec<DisclosureCard>>,
         request_policy: RequestPolicy,
         status: DisclosureStatus,
     },
     Issuance {
         //ISO8601
         date_time: String,
-        issuer: Organization,
         card: Card,
     },
 }
@@ -36,23 +35,13 @@ impl IntoIterator for WalletEvents {
 impl From<HistoryEvent> for WalletEvents {
     fn from(source: HistoryEvent) -> Self {
         let result = match source {
-            HistoryEvent::Issuance {
-                timestamp,
-                mdocs,
-                issuer_registration,
-            } => {
-                let issuer = Organization::from(issuer_registration.organization);
-                let mdocs_count = mdocs.len();
-                mdocs
-                    .into_iter()
-                    .zip(itertools::repeat_n(issuer, mdocs_count))
-                    .map(|(mdoc, issuer)| WalletEvent::Issuance {
-                        date_time: timestamp.to_rfc3339(),
-                        issuer,
-                        card: mdoc.into(),
-                    })
-                    .collect()
-            }
+            HistoryEvent::Issuance { timestamp, mdocs } => mdocs
+                .into_iter()
+                .map(|mdoc| WalletEvent::Issuance {
+                    date_time: timestamp.to_rfc3339(),
+                    card: mdoc.into(),
+                })
+                .collect(),
             HistoryEvent::Disclosure {
                 status,
                 timestamp,
@@ -65,7 +54,7 @@ impl From<HistoryEvent> for WalletEvents {
                     request_policy: RequestPolicy::from(&reader_registration),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
-                    requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(RequestedCard::from).collect()),
+                    requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(DisclosureCard::from).collect()),
                     status: status.into(),
                 }]
             }

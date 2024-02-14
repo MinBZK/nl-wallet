@@ -15,7 +15,6 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		B96C8A6329E5792500470EBE /* libPlatformSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B96C8A5E29E578DD00470EBE /* libPlatformSupport.a */; };
-		B96CBB142B0C9E0600E030BB /* Runner.entitlements in Resources */ = {isa = PBXBuildFile; fileRef = B9ABBFEC2B051D91002807E5 /* Runner.entitlements */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -275,7 +274,6 @@
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
-				B96CBB142B0C9E0600E030BB /* Runner.entitlements in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -488,7 +486,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";
@@ -639,7 +637,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/debug/libwallet_core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";
@@ -685,7 +683,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.rijksoverheid.edi.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.latest";

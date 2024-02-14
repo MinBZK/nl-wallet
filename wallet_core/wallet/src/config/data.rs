@@ -2,10 +2,10 @@ use std::{str::FromStr, time::Duration};
 
 use base64::prelude::*;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
+use reqwest::Certificate;
 use url::Url;
 
 use wallet_common::{
-    account::serialization::DerVerifyingKey,
     config::wallet_config::{
         AccountServerConfiguration, DisclosureConfiguration, LockTimeoutConfiguration, PidIssuanceConfiguration,
         WalletConfiguration,
@@ -19,6 +19,8 @@ use wallet_common::{
 const WALLET_CONFIG_VERSION: &str = "1";
 
 const CONFIG_SERVER_BASE_URL: &str = "http://localhost:3000/config/v1/";
+
+const CONFIG_SERVER_TRUST_ANCHORS: &str = "";
 
 const CONFIG_SERVER_SIGNING_PUBLIC_KEY: &str =
     "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd/0VH7PzLdmAfDEmHpSWwbVRfr5H31fo2rQWtyU\
@@ -69,7 +71,8 @@ macro_rules! config_default {
 #[derive(Debug, Clone)]
 pub struct ConfigServerConfiguration {
     pub base_url: Url,
-    pub signing_public_key: DerVerifyingKey,
+    pub trust_anchors: Vec<Certificate>,
+    pub signing_public_key: VerifyingKey,
     pub update_frequency: Duration,
 }
 
@@ -77,13 +80,16 @@ impl Default for ConfigServerConfiguration {
     fn default() -> Self {
         Self {
             base_url: Url::parse(config_default!(CONFIG_SERVER_BASE_URL)).unwrap(),
+            trust_anchors: config_default!(CONFIG_SERVER_TRUST_ANCHORS)
+                .split('|')
+                .map(|root_ca| reqwest::Certificate::from_der(&BASE64_STANDARD.decode(root_ca).unwrap()).unwrap())
+                .collect(),
             signing_public_key: VerifyingKey::from_public_key_der(
                 &BASE64_STANDARD
                     .decode(config_default!(CONFIG_SERVER_SIGNING_PUBLIC_KEY))
                     .unwrap(),
             )
-            .unwrap()
-            .into(),
+            .unwrap(),
             update_frequency: Duration::from_secs(
                 config_default!(CONFIG_SERVER_UPDATE_FREQUENCY_IN_SEC).parse().unwrap(),
             ),
@@ -121,10 +127,8 @@ pub fn default_configuration() -> WalletConfiguration {
             pid_issuer_url: Url::parse(config_default!(PID_ISSUER_URL)).unwrap(),
             digid_url: Url::parse(config_default!(DIGID_URL)).unwrap(),
             digid_client_id: String::from(config_default!(DIGID_CLIENT_ID)),
-            digid_redirect_path: "authentication".to_string(),
         },
         disclosure: DisclosureConfiguration {
-            uri_base_path: "disclosure".to_string(),
             rp_trust_anchors: parse_trust_anchors(config_default!(RP_TRUST_ANCHORS)),
         },
         mdoc_trust_anchors: parse_trust_anchors(config_default!(MDOC_TRUST_ANCHORS)),

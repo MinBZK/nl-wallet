@@ -5,7 +5,8 @@ import '../../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
-import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/secondary_button.dart';
 import '../common/widget/wallet_app_bar.dart';
 
 class ForgotPinScreen extends StatelessWidget {
@@ -14,6 +15,7 @@ class ForgotPinScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('forgotPinScreen'),
       appBar: WalletAppBar(
         title: Text(context.l10n.forgotPinScreenTitle),
       ),
@@ -60,21 +62,31 @@ class ForgotPinScreen extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     return Column(
       children: [
+        const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: ElevatedButton(
-            onPressed: () async {
-              final navigator = Navigator.of(context);
-              await context.read<ResetWalletUseCase>().invoke();
-              navigator.restorablePushNamedAndRemoveUntil(
-                WalletRoutes.setupSecurityRoute,
-                ModalRoute.withName(WalletRoutes.splashRoute),
-              );
-            },
-            child: Text(context.l10n.forgotPinScreenCta),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+          child: Column(
+            children: [
+              PrimaryButton(
+                onPressed: () async {
+                  final navigator = Navigator.of(context);
+                  await context.read<ResetWalletUseCase>().invoke();
+                  navigator.restorablePushNamedAndRemoveUntil(
+                    WalletRoutes.setupSecurityRoute,
+                    ModalRoute.withName(WalletRoutes.splashRoute),
+                  );
+                },
+                text: context.l10n.forgotPinScreenCta,
+              ),
+              const SizedBox(height: 12),
+              SecondaryButton(
+                onPressed: () => Navigator.maybePop(context),
+                text: context.l10n.generalBottomBackCta,
+                icon: Icons.arrow_back,
+              ),
+            ],
           ),
         ),
-        const BottomBackButton(),
       ],
     );
   }

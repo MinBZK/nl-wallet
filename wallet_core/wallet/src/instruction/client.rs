@@ -107,7 +107,7 @@ where
 
         let challenge = self.instruction_challenge(&mut storage).await?;
 
-        let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt.0);
+        let pin_key = PinKey::new(&self.pin, &self.registration.pin_salt);
 
         let instruction = self
             .with_sequence_number(&mut storage, |seq_num| {

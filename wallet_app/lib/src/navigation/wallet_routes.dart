@@ -14,10 +14,10 @@ import '../feature/card/detail/bloc/card_detail_bloc.dart';
 import '../feature/card/detail/card_detail_screen.dart';
 import '../feature/card/history/bloc/card_history_bloc.dart';
 import '../feature/card/history/card_history_screen.dart';
-import '../feature/card/overview/bloc/card_overview_bloc.dart';
 import '../feature/change_language/bloc/change_language_bloc.dart';
 import '../feature/change_language/change_language_screen.dart';
 import '../feature/common/widget/utility/do_on_init.dart';
+import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
@@ -45,6 +45,8 @@ import '../feature/pin/pin_screen.dart';
 import '../feature/pin_blocked/pin_blocked_screen.dart';
 import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
+import '../feature/qr/bloc/qr_bloc.dart';
+import '../feature/qr/qr_screen.dart';
 import '../feature/settings/settings_screen.dart';
 import '../feature/setup_security/bloc/setup_security_bloc.dart';
 import '../feature/setup_security/setup_security_screen.dart';
@@ -106,6 +108,7 @@ class WalletRoutes {
   static const changeLanguageRoute = '/language';
   static const organizationDetailRoute = '/organization';
   static const settingsRoute = '/settings';
+  static const qrRoute = '/qr';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -132,6 +135,8 @@ class WalletRoutes {
     switch (settings.name) {
       case WalletRoutes.splashRoute:
         return _createSplashScreenBuilder;
+      case WalletRoutes.qrRoute:
+        return _createQrScreenBuilder;
       case WalletRoutes.introductionRoute:
         return _createIntroductionScreenBuilder;
       case WalletRoutes.introductionExpectationsRoute:
@@ -195,6 +200,11 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
       child: const SplashScreen(),
     );
 
+Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
+      create: (BuildContext context) => QrBloc(context.read()),
+      child: const QrScreen(),
+    );
+
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
 
 Widget _createIntroductionExpectationsScreenBuilder(BuildContext context) => const IntroductionExpectationsScreen();
@@ -225,14 +235,17 @@ WidgetBuilder _createHomeScreenBuilder(RouteSettings settings) {
         BlocProvider<HomeBloc>(
           create: (BuildContext context) => HomeBloc(),
         ),
-        BlocProvider<CardOverviewBloc>(
-          create: (BuildContext context) => CardOverviewBloc(
+        BlocProvider<DashboardBloc>(
+          create: (BuildContext context) => DashboardBloc(
+            context.read(),
             context.read(),
             argument?.cards,
           ),
         ),
         BlocProvider<MenuBloc>(
-          create: (BuildContext context) => MenuBloc(context.read(), context.read()),
+          create: (BuildContext context) => MenuBloc(
+            context.read(),
+          ),
         ),
       ],
       child: DoOnInit(
@@ -390,14 +403,14 @@ WidgetBuilder _createPinBlockedScreenBuilder(RouteSettings settings) {
 WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     OrganizationDetailScreenArgument argument = OrganizationDetailScreen.getArgument(settings);
-    assert(argument.organization != null, 'Currently only navigation with organization is supported');
     return BlocProvider<OrganizationDetailBloc>(
-      create: (BuildContext context) => OrganizationDetailBloc.forOrganization(
-        context.read(),
-        context.read(),
-        organization: argument.organization!,
-        isFirstInteractionWithOrganization: false,
-      ),
+      create: (BuildContext context) => OrganizationDetailBloc()
+        ..add(
+          OrganizationProvided(
+            organization: argument.organization,
+            sharedDataWithOrganizationBefore: argument.sharedDataWithOrganizationBefore,
+          ),
+        ),
       child: const OrganizationDetailScreen(),
     );
   };

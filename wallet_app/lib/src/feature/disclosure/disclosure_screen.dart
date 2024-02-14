@@ -9,6 +9,7 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../util/launch_util.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -143,7 +144,8 @@ class DisclosureScreen extends StatelessWidget {
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.read<DisclosureBloc>().add(const DisclosureOrganizationApproved()),
       organization: state.relyingParty,
-      isFirstInteractionWithOrganization: state.isFirstInteractionWithOrganization,
+      originUrl: state.originUrl,
+      sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
       purpose: ApprovalPurpose.disclosure,
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
     );
@@ -177,7 +179,10 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildStoppedPage(BuildContext context, DisclosureStopped state) {
-    return DisclosureStoppedPage(onClosePressed: () => Navigator.pop(context));
+    return DisclosureStoppedPage(
+      organization: state.organization,
+      onClosePressed: () => Navigator.pop(context),
+    );
   }
 
   Widget _buildLeftFeedbackPage(BuildContext context, DisclosureLeftFeedback state) {
@@ -195,12 +200,7 @@ class DisclosureScreen extends StatelessWidget {
 
         // Handle return url
         if (state.returnUrl != null) {
-          try {
-            final uri = Uri.parse(state.returnUrl!);
-            launchUrl(uri, mode: LaunchMode.externalApplication);
-          } catch (error) {
-            Fimber.e('Failed to open returnUrl', ex: error);
-          }
+          launchUrlStringCatching(state.returnUrl!, mode: LaunchMode.externalApplication);
         }
       },
     );
@@ -294,15 +294,29 @@ class DisclosureScreen extends StatelessWidget {
               ),
             ),
           DisclosureConfirmPin() => null,
-          DisclosureStopped() => null,
+          DisclosureStopped() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.disclosureStoppedPageTitle),
+            ),
           DisclosureLeftFeedback() => null,
           DisclosureSuccess() => FadeInAtOffset(
-              appearOffset: 150,
-              visibleOffset: 180,
+              appearOffset: 48,
+              visibleOffset: 70,
               child: Text(context.l10n.disclosureSuccessPageTitle),
             ),
-          DisclosureNetworkError() => null,
-          DisclosureGenericError() => null,
+          DisclosureNetworkError() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(state.hasInternet
+                  ? context.l10n.errorScreenServerHeadline
+                  : context.l10n.errorScreenNoInternetHeadline),
+            ),
+          DisclosureGenericError() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.disclosureGenericErrorPageTitle),
+            ),
         };
 
         return result ?? const SizedBox.shrink();

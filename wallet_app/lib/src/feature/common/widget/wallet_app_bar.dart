@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import 'button/wallet_back_button.dart';
+import 'button/wallet_app_bar_back_button.dart';
 import 'sliver_wallet_app_bar.dart';
 import 'stepper_indicator.dart';
 
@@ -41,7 +41,7 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
       titleTextStyle: context.textTheme.displayMedium,
       centerTitle: false,
       actions: actions,
-      leading: leading ?? (showBackButton ? const WalletBackButton() : null),
+      leading: leading ?? (showBackButton ? const WalletAppBarBackButton() : null),
       automaticallyImplyLeading: automaticallyImplyLeading,
       titleSpacing: leading == null && !showBackButton ? null : 0.0,
       bottom: bottom ?? (progress == null ? null : _buildStepper(progress!)),

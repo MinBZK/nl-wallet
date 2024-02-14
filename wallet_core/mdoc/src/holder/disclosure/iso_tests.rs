@@ -11,11 +11,13 @@ use crate::{
         disclosure::DeviceResponse,
         engagement::DeviceAuthenticationBytes,
     },
-    mock::{self, DebugCollapseBts, SoftwareKeyFactory},
+    software_key_factory::SoftwareKeyFactory,
+    test::{self, DebugCollapseBts},
+    utils::serialization::{CborSeq, TaggedBytes},
     SessionTranscript,
 };
 
-use super::{request::DeviceRequestMatch, test_utils::*};
+use super::{request::DeviceRequestMatch, test::*};
 
 /// This function uses the `MockMdocDataSource` to provide the mdoc from the example
 /// `DeviceResponse` in the standard. This is used to match against a `DeviceRequest`
@@ -23,7 +25,7 @@ use super::{request::DeviceRequestMatch, test_utils::*};
 /// by signing it.
 async fn create_example_device_response(
     device_request: &DeviceRequest,
-    session_transcript: SessionTranscript,
+    session_transcript: &SessionTranscript,
 ) -> Result<DeviceResponse> {
     let request_match = device_request
         .match_stored_documents(&MockMdocDataSource::default(), session_transcript)
@@ -58,12 +60,13 @@ async fn do_and_verify_iso_example_disclosure() {
 
     // Verify reader's request
     let reader_trust_anchors = Examples::reader_trust_anchors();
-    let session_transcript = ReaderAuthenticationBytes::example().0 .0.session_transcript;
+    let TaggedBytes(CborSeq(example_reader_auth)) = ReaderAuthenticationBytes::example();
+    let session_transcript = example_reader_auth.session_transcript.into_owned();
     let certificate = device_request
         .doc_requests
         .first()
         .unwrap()
-        .verify(session_transcript.clone(), &IsoCertTimeGenerator, reader_trust_anchors)
+        .verify(&session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
         .unwrap();
     let reader_x509_subject = certificate.unwrap().subject();
 
@@ -75,7 +78,7 @@ async fn do_and_verify_iso_example_disclosure() {
     println!("Reader: {:#?}", reader_x509_subject);
 
     // Construct a new `DeviceResponse`, based on the mdoc from the example device response in the standard.
-    let resp = create_example_device_response(&device_request, session_transcript.clone())
+    let resp = create_example_device_response(&device_request, &session_transcript)
         .await
         .unwrap();
     println!("DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));
@@ -92,7 +95,7 @@ async fn do_and_verify_iso_example_disclosure() {
     println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 
     // The first disclosed attribute is the same as we saw earlier in the DeviceRequest
-    mock::assert_disclosure_contains(
+    test::assert_disclosure_contains(
         &disclosed_attrs,
         EXAMPLE_DOC_TYPE,
         EXAMPLE_NAMESPACE,
@@ -115,7 +118,7 @@ async fn iso_examples_custom_disclosure() {
     println!("My Request: {:#?}", DebugCollapseBts::from(&request));
 
     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
-    let resp = create_example_device_response(&request, session_transcript.clone())
+    let resp = create_example_device_response(&request, &session_transcript)
         .await
         .unwrap();
     println!("My DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));
@@ -131,7 +134,7 @@ async fn iso_examples_custom_disclosure() {
     println!("My Disclosure: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 
     // The first disclosed attribute is the one we requested in our device request
-    mock::assert_disclosure_contains(
+    test::assert_disclosure_contains(
         &disclosed_attrs,
         EXAMPLE_DOC_TYPE,
         EXAMPLE_NAMESPACE,

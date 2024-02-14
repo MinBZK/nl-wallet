@@ -5,7 +5,8 @@ use std::{sync::Arc, time::Duration};
 use chrono::{DateTime, Utc};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use p256::{elliptic_curve::rand_core::OsRng, SecretKey};
+use p256::SecretKey;
+use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use strum;
 use tokio::task::JoinHandle;
@@ -23,7 +24,7 @@ use crate::{
     basic_sa_ext::Entry,
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::{
         cose::{self, ClonePayload, MdocCose},
@@ -158,32 +159,32 @@ pub enum DisclosureData {
     Done(Done),
 }
 
-impl SessionState<Created> {
-    fn into_enum(self) -> SessionState<DisclosureData> {
+impl From<SessionState<Created>> for SessionState<DisclosureData> {
+    fn from(value: SessionState<Created>) -> Self {
         SessionState {
-            session_data: DisclosureData::Created(self.session_data),
-            token: self.token,
-            last_active: self.last_active,
+            session_data: DisclosureData::Created(value.session_data),
+            token: value.token,
+            last_active: value.last_active,
         }
     }
 }
 
-impl SessionState<WaitingForResponse> {
-    fn into_enum(self) -> SessionState<DisclosureData> {
+impl From<SessionState<WaitingForResponse>> for SessionState<DisclosureData> {
+    fn from(value: SessionState<WaitingForResponse>) -> Self {
         SessionState {
-            session_data: DisclosureData::WaitingForResponse(self.session_data),
-            token: self.token,
-            last_active: self.last_active,
+            session_data: DisclosureData::WaitingForResponse(value.session_data),
+            token: value.token,
+            last_active: value.last_active,
         }
     }
 }
 
-impl SessionState<Done> {
-    fn into_enum(self) -> SessionState<DisclosureData> {
+impl From<SessionState<Done>> for SessionState<DisclosureData> {
+    fn from(value: SessionState<Done>) -> Self {
         SessionState {
-            session_data: DisclosureData::Done(self.session_data),
-            token: self.token,
-            last_active: self.last_active,
+            session_data: DisclosureData::Done(value.session_data),
+            token: value.token,
+            last_active: value.last_active,
         }
     }
 }
@@ -281,7 +282,7 @@ where
             &self.url.join("disclosure/").unwrap(),
         )?;
         self.sessions
-            .write(&session_state.state.into_enum())
+            .write(&session_state.state.into())
             .await
             .map_err(VerificationError::SessionStore)?;
         Ok((session_token, reader_engagement))
@@ -312,8 +313,8 @@ where
                     .process_device_engagement(cbor_deserialize(msg)?, &self.keys)
                     .await;
                 match session {
-                    Ok(next) => Ok((response, next.state.into_enum())),
-                    Err(next) => Ok((response, next.state.into_enum())),
+                    Ok(next) => Ok((response, next.state.into())),
+                    Err(next) => Ok((response, next.state.into())),
                 }
             }
             DisclosureData::WaitingForResponse(session_data) => {
@@ -332,7 +333,7 @@ where
                         .collect::<Vec<_>>()
                         .as_slice(),
                 );
-                Ok((response, session.state.into_enum()))
+                Ok((response, session.state.into()))
             }
             DisclosureData::Done(_) => Err(Error::from(VerificationError::UnexpectedInput)),
         }?;
@@ -592,24 +593,21 @@ impl Session<Created> {
     async fn new_device_request(
         &self,
         session_transcript: &SessionTranscript,
-        private_key: &PrivateKey,
+        private_key: &KeyPair,
     ) -> Result<DeviceRequest> {
         let doc_requests = try_join_all(self.state().items_requests.0.iter().map(|items_request| async {
-            let reader_auth = ReaderAuthenticationKeyed {
-                reader_auth_string: Default::default(),
-                session_transcript: session_transcript.clone(),
-                items_request_bytes: items_request.clone().into(),
-            };
+            let items_request = items_request.clone().into();
+            let reader_auth = ReaderAuthenticationKeyed::new(session_transcript, &items_request);
             let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
                 &TaggedBytes(CborSeq(reader_auth)),
-                cose::new_certificate_header(&private_key.cert_bts),
+                cose::new_certificate_header(private_key.certificate()),
                 private_key,
                 false,
             )
             .await?;
             let cose = MdocCose::from(cose.0);
             let doc_request = DocRequest {
-                items_request: items_request.clone().into(),
+                items_request,
                 reader_auth: Some(cose),
             };
             Result::<DocRequest>::Ok(doc_request)
@@ -909,9 +907,8 @@ impl Document {
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
-        let device_authentication =
-            DeviceAuthentication::from_session_transcript(session_transcript.clone(), self.doc_type.clone());
-        let device_authentication_bts = cbor_serialize(&TaggedBytes(device_authentication))?;
+        let device_authentication = DeviceAuthenticationKeyed::new(&self.doc_type, session_transcript);
+        let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
 
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
@@ -963,13 +960,13 @@ mod tests {
             EXAMPLE_NAMESPACE,
         },
         identifiers::AttributeIdentifierHolder,
-        mock::{self, DebugCollapseBts},
-        server_keys::{PrivateKey, SingleKeyRing},
+        server_keys::{KeyPair, SingleKeyRing},
         server_state::MemorySessionStore,
+        test::{self, DebugCollapseBts},
         utils::{
             crypto::{SessionKey, SessionKeyUser},
+            reader_auth::ReaderRegistration,
             serialization::cbor_serialize,
-            x509::{Certificate, CertificateType},
         },
         verifier::{
             SessionType, ValidityError,
@@ -1048,7 +1045,7 @@ mod tests {
         println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
 
         // The first disclosed attribute is the same as we saw earlier in the DeviceResponse
-        mock::assert_disclosure_contains(
+        test::assert_disclosure_contains(
             &disclosed_attrs,
             EXAMPLE_DOC_TYPE,
             EXAMPLE_NAMESPACE,
@@ -1057,8 +1054,6 @@ mod tests {
         );
     }
 
-    const RP_CA_CN: &str = "ca.rp.example.com";
-    const RP_CERT_CN: &str = "cert.rp.example.com";
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
     const DISCLOSURE_NAME_SPACE: &str = "example_namespace";
     const DISCLOSURE_ATTRS: [(&str, bool); 2] = [("first_name", true), ("family_name", false)];
@@ -1083,20 +1078,14 @@ mod tests {
     #[tokio::test]
     async fn disclosure() {
         // Initialize server state
-        let (ca, ca_privkey) = Certificate::new_ca(RP_CA_CN).unwrap();
+        let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![
-            DerTrustAnchor::from_der(ca.as_bytes().to_vec())
+            DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec())
                 .unwrap()
                 .owned_trust_anchor,
         ];
-        let (rp_cert, rp_privkey) = Certificate::new(
-            &ca,
-            &ca_privkey,
-            RP_CERT_CN,
-            CertificateType::ReaderAuth(Default::default()),
-        )
-        .unwrap();
-        let keys = SingleKeyRing(PrivateKey::new(rp_privkey, rp_cert));
+        let rp_privkey = ca.generate_reader_mock(ReaderRegistration::new_mock().into()).unwrap();
+        let keys = SingleKeyRing(rp_privkey);
         let session_store = MemorySessionStore::new();
 
         let verifier = Verifier::new(

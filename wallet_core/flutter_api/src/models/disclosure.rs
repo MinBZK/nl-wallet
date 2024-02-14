@@ -25,6 +25,7 @@ pub struct Organization {
     pub description: Vec<LocalizedString>,
     pub image: Option<Image>,
     pub web_url: Option<String>,
+    pub privacy_policy_url: Option<String>,
     pub kvk: Option<String>,
     pub city: Option<Vec<LocalizedString>>,
     pub category: Vec<LocalizedString>,
@@ -43,7 +44,8 @@ pub struct MissingAttribute {
     pub labels: Vec<LocalizedString>,
 }
 
-pub struct RequestedCard {
+pub struct DisclosureCard {
+    pub issuer: Organization,
     pub doc_type: String,
     pub attributes: Vec<CardAttribute>,
 }
@@ -52,15 +54,17 @@ pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
         policy: RequestPolicy,
-        requested_cards: Vec<RequestedCard>,
-        is_first_interaction_with_relying_party: bool,
+        requested_cards: Vec<DisclosureCard>,
+        shared_data_with_relying_party_before: bool,
         request_purpose: Vec<LocalizedString>,
+        request_origin_base_url: String,
     },
     RequestAttributesMissing {
         relying_party: Organization,
         missing_attributes: Vec<MissingAttribute>,
-        is_first_interaction_with_relying_party: bool,
+        shared_data_with_relying_party_before: bool,
         request_purpose: Vec<LocalizedString>,
+        request_origin_base_url: String,
     },
 }
 
@@ -111,14 +115,20 @@ impl From<wallet::mdoc::Organization> for Organization {
             department: value.department.map(|department| RPLocalizedStrings(department).into()),
             country_code: value.country_code,
             web_url: value.web_url.map(|url| url.to_string()),
+            privacy_policy_url: value.privacy_policy_url.map(|url| url.to_string()),
         }
     }
 }
 
 impl From<&ReaderRegistration> for RequestPolicy {
     fn from(value: &ReaderRegistration) -> Self {
+        let data_storage_duration_in_minutes = value
+            .retention_policy
+            .intent_to_retain
+            .then_some(value.retention_policy.max_duration_in_minutes)
+            .flatten();
         RequestPolicy {
-            data_storage_duration_in_minutes: value.retention_policy.max_duration_in_minutes,
+            data_storage_duration_in_minutes,
             data_shared_with_third_parties: value.sharing_policy.intent_to_share,
             data_deletion_possible: value.deletion_policy.deleteable,
             policy_url: value
@@ -131,15 +141,16 @@ impl From<&ReaderRegistration> for RequestPolicy {
     }
 }
 
-impl RequestedCard {
+impl DisclosureCard {
     fn from_disclosure_documents(documents: Vec<DisclosureDocument>) -> Vec<Self> {
-        documents.into_iter().map(RequestedCard::from).collect()
+        documents.into_iter().map(DisclosureCard::from).collect()
     }
 }
 
-impl From<DisclosureDocument> for RequestedCard {
+impl From<DisclosureDocument> for DisclosureCard {
     fn from(value: DisclosureDocument) -> Self {
-        RequestedCard {
+        DisclosureCard {
+            issuer: value.issuer_registration.organization.into(),
             doc_type: value.doc_type.to_string(),
             attributes: into_card_attributes(value.attributes),
         }
@@ -178,9 +189,10 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_cards: RequestedCard::from_disclosure_documents(proposal.documents),
-                    is_first_interaction_with_relying_party: false, //TODO: Resolve this value
+                    requested_cards: DisclosureCard::from_disclosure_documents(proposal.documents),
+                    shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     request_purpose,
+                    request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
                 };
 
                 Ok(result)
@@ -189,6 +201,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 DisclosureError::AttributesNotAvailable {
                     reader_registration,
                     missing_attributes,
+                    shared_data_with_relying_party_before,
                 } => {
                     let request_purpose: Vec<LocalizedString> =
                         RPLocalizedStrings(reader_registration.purpose_statement).into();
@@ -196,8 +209,9 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     let result = StartDisclosureResult::RequestAttributesMissing {
                         relying_party: reader_registration.organization.into(),
                         missing_attributes,
-                        is_first_interaction_with_relying_party: false, //TODO: Resolve this value
+                        shared_data_with_relying_party_before,
                         request_purpose,
+                        request_origin_base_url: reader_registration.request_origin_base_url.into(),
                     };
 
                     Ok(result)

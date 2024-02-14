@@ -9,13 +9,16 @@ use axum::{
     routing::get,
     Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use etag::EntityTag;
 use http::{header, HeaderMap, HeaderValue, StatusCode};
 use tracing::{debug, info};
 
 use super::settings::Settings;
 
-pub async fn serve(settings: Settings, config_jwt: Vec<u8>) -> Result<(), Box<dyn Error>> {
+pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
+    let config = RustlsConfig::from_der(vec![settings.config_server_cert], settings.config_server_key).await?;
+
     let socket = SocketAddr::new(settings.ip, settings.port);
     let listener = TcpListener::bind(socket)?;
     debug!("listening on {}", socket);
@@ -24,10 +27,12 @@ pub async fn serve(settings: Settings, config_jwt: Vec<u8>) -> Result<(), Box<dy
         "/config/v1",
         Router::new()
             .route("/wallet-config", get(configuration))
-            .with_state(config_jwt),
+            .with_state(settings.wallet_config_jwt.into_bytes()),
     );
 
-    axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
+    axum_server::from_tcp_rustls(listener, config)
+        .serve(app.into_make_service())
+        .await?;
 
     Ok(())
 }

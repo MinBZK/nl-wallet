@@ -13,7 +13,18 @@ name = "wallet_provider"
 [lib]
 doctest = false
 
+[[test]]
+name = "hsm"
+path = "tests/hsm.rs"
+required-features = ["db_test"]
+
+[[test]]
+name = "settings"
+path = "tests/settings.rs"
+required-features = ["db_test"]
+
 [features]
+# Include and run test that depend on an external PostgreSQL database
 db_test = []
 
 [dependencies]
@@ -30,7 +41,6 @@ http.workspace = true
 mime.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
-rand.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono"] }
@@ -55,4 +65,5 @@ wallet_provider_persistence.path = "persistence"
 wallet_provider_service.path = "service"
 
 [dev-dependencies]
+rand_core.workspace = true
 serial_test.workspace = true

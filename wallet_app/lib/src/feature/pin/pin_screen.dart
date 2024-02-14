@@ -13,6 +13,7 @@ class PinScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('pinScreen'),
       appBar: WalletAppBar(
         title: Text(context.l10n.pinScreenTitle),
         automaticallyImplyLeading: false,

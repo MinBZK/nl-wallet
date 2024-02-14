@@ -4,6 +4,8 @@
 //! This data structure does not directly contain the attributes ([`IssuerSignedItem`]) but instead only their digests,
 //! to enable selective disclosure.
 
+use std::{fmt::Debug, result::Result};
+
 use chrono::{DateTime, ParseError, Utc};
 use ciborium::{tag, value::Value};
 use indexmap::IndexMap;
@@ -11,14 +13,16 @@ use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
-use std::fmt::Debug;
 
 use wallet_common::utils::random_bytes;
 
 use crate::{
     basic_sa_ext::Entry,
-    utils::{cose::CoseKey, crypto::cbor_digest, serialization::TaggedBytes},
-    Error, Result,
+    utils::{
+        cose::CoseKey,
+        crypto::{cbor_digest, CryptoError},
+        serialization::{CborError, TaggedBytes},
+    },
 };
 
 /// Name of a namespace within an mdoc.
@@ -35,14 +39,14 @@ pub type DigestID = u64;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
 impl TryFrom<&Attributes> for DigestIDs {
-    type Error = Error;
-    fn try_from(val: &Attributes) -> Result<Self> {
+    type Error = CborError;
+    fn try_from(val: &Attributes) -> Result<Self, Self::Error> {
         let ids = DigestIDs(
             val.0
                 .iter()
                 .enumerate()
                 .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
-                .collect::<Result<IndexMap<_, _>>>()?,
+                .collect::<Result<IndexMap<_, _>, CborError>>()?,
         );
         Ok(ids)
     }
@@ -52,12 +56,12 @@ impl TryFrom<&Attributes> for DigestIDs {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ValueDigests(pub IndexMap<NameSpace, DigestIDs>);
 impl TryFrom<&IssuerNameSpaces> for ValueDigests {
-    type Error = Error;
-    fn try_from(val: &IssuerNameSpaces) -> Result<Self> {
+    type Error = CborError;
+    fn try_from(val: &IssuerNameSpaces) -> Result<Self, Self::Error> {
         let digests = ValueDigests(
             val.iter()
                 .map(|(namespace, attrs)| Ok((namespace.clone(), DigestIDs::try_from(attrs)?)))
-                .collect::<Result<IndexMap<_, _>>>()?,
+                .collect::<Result<IndexMap<_, _>, CborError>>()?,
         );
         Ok(digests)
     }
@@ -105,14 +109,15 @@ pub struct DeviceKeyInfo {
 }
 
 impl TryFrom<DeviceKeyInfo> for VerifyingKey {
-    type Error = Error;
-    fn try_from(value: DeviceKeyInfo) -> Result<Self> {
+    type Error = CryptoError;
+    fn try_from(value: DeviceKeyInfo) -> Result<Self, Self::Error> {
         (&value.device_key).try_into()
     }
 }
+
 impl TryFrom<VerifyingKey> for DeviceKeyInfo {
-    type Error = Error;
-    fn try_from(value: VerifyingKey) -> Result<Self> {
+    type Error = CryptoError;
+    fn try_from(value: VerifyingKey) -> Result<Self, Self::Error> {
         let key_info = DeviceKeyInfo {
             device_key: (&value).try_into()?,
             key_authorizations: None,
@@ -191,7 +196,7 @@ impl Tdate {
 
 impl TryFrom<&Tdate> for DateTime<Utc> {
     type Error = ParseError;
-    fn try_from(value: &Tdate) -> std::result::Result<DateTime<Utc>, Self::Error> {
+    fn try_from(value: &Tdate) -> Result<DateTime<Utc>, Self::Error> {
         DateTime::parse_from_rfc3339(&value.0 .0).map(|t| t.with_timezone(&Utc))
     }
 }
@@ -212,22 +217,21 @@ impl From<Vec<IssuerSignedItemBytes>> for Attributes {
         Attributes(val)
     }
 }
-impl TryFrom<IndexMap<DataElementIdentifier, DataElementValue>> for Attributes {
-    type Error = Error;
-    fn try_from(val: IndexMap<String, Value>) -> Result<Self> {
-        let attrs = Attributes(
+
+impl From<IndexMap<DataElementIdentifier, DataElementValue>> for Attributes {
+    fn from(val: IndexMap<String, Value>) -> Self {
+        Attributes(
             val.into_iter()
                 .enumerate()
-                .map(|(i, (key, val))| Ok(IssuerSignedItem::new(i as u64, key, val)?.into()))
-                .collect::<Result<Vec<_>>>()?,
-        );
-        Ok(attrs)
+                .map(|(i, (key, val))| IssuerSignedItem::new(i as u64, key, val).into())
+                .collect(),
+        )
     }
 }
-impl TryFrom<Vec<Entry>> for Attributes {
-    type Error = Error;
-    fn try_from(attrs: Vec<Entry>) -> std::result::Result<Self, Self::Error> {
-        Attributes::try_from(
+
+impl From<Vec<Entry>> for Attributes {
+    fn from(attrs: Vec<Entry>) -> Self {
+        Attributes::from(
             attrs
                 .iter()
                 .map(|entry| (entry.name.clone(), entry.value.clone()))
@@ -270,14 +274,13 @@ impl IssuerSignedItem {
         digest_id: u64,
         element_identifier: DataElementIdentifier,
         element_value: DataElementValue,
-    ) -> Result<IssuerSignedItem> {
+    ) -> IssuerSignedItem {
         let random = ByteBuf::from(random_bytes(ATTR_RANDOM_LENGTH));
-        let item = IssuerSignedItem {
+        IssuerSignedItem {
             digest_id,
             random,
             element_identifier,
             element_value,
-        };
-        Ok(item)
+        }
     }
 }

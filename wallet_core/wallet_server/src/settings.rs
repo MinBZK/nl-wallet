@@ -1,10 +1,11 @@
+use serde_with::{base64::Base64, serde_as};
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use url::Url;
 
-use wallet_common::account::serialization::Base64Bytes;
+use wallet_common::trust_anchor::DerTrustAnchor;
 
 #[cfg(feature = "mock")]
 use crate::pid::mock::{PersonAttributes, ResidentAttributes};
@@ -31,8 +32,8 @@ pub struct Settings {
 
 #[derive(Deserialize, Clone)]
 pub struct Verifier {
-    pub usecases: HashMap<String, KeyPair>,
-    pub trust_anchors: Vec<String>,
+    pub usecases: HashMap<String, IssuerKey>,
+    pub trust_anchors: Vec<DerTrustAnchor>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -41,10 +42,13 @@ pub struct Server {
     pub port: u16,
 }
 
+#[serde_as]
 #[derive(Deserialize, Clone)]
-pub struct KeyPair {
-    pub certificate: Base64Bytes,
-    pub private_key: Base64Bytes,
+pub struct IssuerKey {
+    #[serde_as(as = "Base64")]
+    pub certificate: Vec<u8>,
+    #[serde_as(as = "Base64")]
+    pub private_key: Vec<u8>,
 }
 
 #[cfg(feature = "issuance")]
@@ -66,7 +70,7 @@ pub struct MockAttributes {
 #[derive(Deserialize, Clone)]
 pub struct Issuer {
     // Issuer private keys index per doctype
-    pub private_keys: HashMap<String, KeyPair>,
+    pub private_keys: HashMap<String, IssuerKey>,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that

@@ -4,8 +4,12 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, utils::issuer_auth::IssuerRegistration};
+use nl_wallet_mdoc::{
+    basic_sa_ext::UnsignedMdoc,
+    utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
+};
 use platform_support::hw_keystore::PlatformEcdsaKey;
+use wallet_common::config::wallet_config::ISSUANCE_REDIRECT_URI;
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -17,7 +21,7 @@ use crate::{
     utils::reqwest::default_reqwest_client_builder,
 };
 
-use super::Wallet;
+use super::{documents::DocumentsError, Wallet};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
@@ -38,15 +42,51 @@ pub enum PidIssuanceError {
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
     #[error("could not interpret mdoc attributes: {0}")]
-    Document(#[from] DocumentMdocError),
-    #[error("could not access mdocs database: {0}")]
+    MdocDocument(#[from] DocumentMdocError),
+    #[error("could not insert mdocs in database: {0}")]
     MdocStorage(#[source] StorageError),
     #[error("could not store history in database: {0}")]
     HistoryStorage(#[source] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
+    #[error("invalid issuer certificate: {0}")]
+    InvalidIssuerCertificate(#[source] CoseError),
     #[error("issuer not authenticated")]
     MissingIssuerRegistration,
+    #[error("could not read documents from storage: {0}")]
+    Document(#[source] DocumentsError),
+}
+
+// TODO: Remove this once issuer certificate can be known early in the issuance protocol
+pub fn rvig_registration() -> IssuerRegistration {
+    serde_json::from_str(r#"
+        {
+          "organization": {
+            "displayName": {
+              "nl": "Rijksdienst voor Identiteitsgegevens"
+            },
+            "legalName": {
+              "nl": "RvIG"
+            },
+            "description": {
+                "nl": "Opvragen van PID (Person Identification Data)"
+            },
+            "webUrl": "https://www.rvig.nl",
+            "city": {
+              "nl": "'s-Gravenhage"
+            },
+            "category": {
+              "nl": "Overheid"
+            },
+            "logo": {
+              "mimeType": "image/png",
+              "imageData": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAR6SURBVHgB7ZtNbFRVHMXPffUDByNtnCIktlMXMqELWtNCIoYiAaUmIAQ0uiGRhcHIRraYiBBjTFyIGyPBBBMw0UQabUlEAlGmESPSMGWB0g2dYiKlQ2ZMYCofncv/3M59vGlo6DwYCL3vlzTzvnJnzrn//7kvnXkKExjJXXtRe94arbEW0E2YFqi0Ujo9VqzZPrdODZadsRtnc7p2plfcprV+D9MYT6mdl4re9mfqVJ77xgCKj6niLzLjrXAClS5obxlN8LjLmXdHPNGtjxvNYsW/Od3kqbGzcBBP62VejTe2DY4yBqwVE5RDpV+OUmqNGs5f13AYD44TGQDHiQyA40QGwHEiA+A4kQFwnMgAOE5kABzHeQMeQgj2d6fQ1dNrtr/Z/T4eZKIWwD1g5GLe/E3lukLhyl0bbyqEaoGpsl/a5OfDx3G58L/Zr39yFta92oGOxQv8ayh473eH0Jce8K+Lx2v981vefQ1NDU+Z7YNHjqOru9e/bmZsBlauWIT1q5cgLFUz4Ms9B9B7rN9sx+OzMCpCRy7+h117enB59ApeWb7QnNv1dTdOnBxAQkSulGNZuSZ17BRiIq699Vn/uzua2SXZQyic0Agey2bz2LRxNcJQFQMowIp/Z+MqLFncYsTvk5mmWH7opc8vELF5s0+2bH7dVAgpiLATUhHzk03GGJpixXO2WUWEx2gM349VNT+ZQKVUJQP6Tp4xr23PJY14QnGdyxeZbQq8IOIvBVrDiifx0vZIdrzPj/7WX7qu1hdPOqX8bTUMnhtGGKpiQLYUUImnZ5cdT5R6mYyKePY2BbA6fjrypwm202cy6Osfr4r6UhbwPInHnygbj20Siz1qtgslMyulqiE4MdGzJSEWCtj01irJgQPY9+0h82dhtQTDcny8q5O+R6xUCZVSFQMaGuZISV5A6vdTWC8la2cpFShl26+nB4ZMmAVDrDnZKG1wcyVgpfC2K3PuvDHRtghXBbsitEu7heGODWCqB9nwxstYKjPXK8HEsty6YzfaWpPI/DOMv6S8SeeKhf71fenxvOA5K+yo9D7Lv1lM4jFWAu88KfajT/f65jH8zHhSLcEMqYRQ3w0Gb4UnsvOTzWaGbUIHYb+vkxRneN0cS5a3ntQtx6Kojz9421RQRkLusy++94PRQvEb3nwJYQllAD9MZpLUbZfZtiXP8BoaOm8SmjMaPGfH2brjKynfef4KQVg5zAXTGpIRHS+0+Oe4wnA8mslQDbP0BQnVAnzjYKJPhl3e2ibpT5sJscdmlAlhsNEoGlAfuCskHKstZL/fiqquArcj0TjHvLKXWS02yf+WPKD4sDc3lXBfDbDL3MHDf/gBydJubJiN5nmJspueahH9QAKOExkAx4kMgONEBsBxIgPgOJEBcJzIADhOZAAcJzJA/icyCEdRUGlP6+KPcBWlxQDgBzgKH6X15tY9/KvW+nM4BjXzOWLz+4NcTtdedfnR2TrZeEQOuFAJ1GjFc19NvMA8SotrH0LVtEyfilCDDHvmHVs+eOYGfAbtBPsp8XkAAAAASUVORK5CYII="
+            },
+            "countryCode": "nl",
+            "kvk": "27373207",
+            "privacyPolicyUrl": "https://www.rvig.nl/privacy"
+          }
+        }"#).unwrap()
 }
 
 impl<CR, S, PEK, APC, DGS, IC, MDS> Wallet<CR, S, PEK, APC, DGS, IC, MDS>
@@ -76,13 +116,10 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
-        // Assume that redirect URI creation is checked when updating the `Configuration`.
-        let digid_redirect_uri = pid_issuance_config.digid_redirect_uri().unwrap();
-
         let session = DGS::start(
             pid_issuance_config.digid_url.clone(),
             pid_issuance_config.digid_client_id.to_string(),
-            digid_redirect_uri,
+            ISSUANCE_REDIRECT_URI.to_owned(),
         )
         .await
         .map_err(PidIssuanceError::DigidSessionStart)?;
@@ -159,9 +196,10 @@ where
         self.pid_issuer.replace(pid_issuer);
 
         info!("PID received successfully from issuer, returning preview documents");
+        // TODO: obtain IssuerRegistration via some Issuer Authentication mechanism
         let mut documents = attestation_previews
             .into_iter()
-            .map(|preview| Document::try_from(UnsignedMdoc::from(preview)))
+            .map(|preview| Document::from_unsigned_mdoc(UnsignedMdoc::from(preview), rvig_registration()))
             .collect::<Result<Vec<_>, _>>()?;
 
         documents.sort_by_key(Document::priority);
@@ -238,23 +276,29 @@ where
             )
             .await?;
 
+        // TODO: Wipe the wallet when receiving a PIN timeout from the WP or when it is blocked.
+
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
+            // Extract first copy from cred_copies
             let mdocs = mdocs
                 .iter()
                 .flat_map(|mdoc| mdoc.cred_copies.first())
                 .cloned()
                 .collect::<Vec<_>>();
 
-            // This should never fail after successful issuance
-            let certificate = mdocs.first().unwrap().issuer_certificate().unwrap();
+            // Validate all issuer_certificates
+            for mdoc in mdocs.iter() {
+                let certificate = mdoc
+                    .issuer_certificate()
+                    .map_err(PidIssuanceError::InvalidIssuerCertificate)?;
 
-            // Verify that the certificate contains IssuerRegistration
-            if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
-                return Err(PidIssuanceError::MissingIssuerRegistration);
+                // Verify that the certificate contains IssuerRegistration
+                if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
+                    return Err(PidIssuanceError::MissingIssuerRegistration);
+                }
             }
-
-            WalletEvent::new_issuance(mdocs.into(), certificate)
+            WalletEvent::new_issuance(mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?)
         };
 
         info!("PID accepted, storing mdoc in database");
@@ -268,7 +312,7 @@ where
             .await
             .map_err(PidIssuanceError::HistoryStorage)?;
 
-        self.emit_documents().await.map_err(PidIssuanceError::MdocStorage)?;
+        self.emit_documents().await.map_err(PidIssuanceError::Document)?;
 
         Ok(())
     }
@@ -293,10 +337,10 @@ mod tests {
     use crate::{
         digid::{MockDigidSession, OpenIdError},
         document::{self, DocumentPersistence},
-        wallet::tests,
+        wallet::test,
     };
 
-    use super::{super::tests::WalletWithMocks, *};
+    use super::{super::test::WalletWithMocks, *};
 
     #[tokio::test]
     #[serial]
@@ -470,6 +514,7 @@ mod tests {
     const REDIRECT_URI: &str = "redirect://here";
 
     #[tokio::test]
+    #[serial]
     async fn test_continue_pid_issuance() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -559,6 +604,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_continue_pid_issuance_error_pid_issuer() {
         // Prepare a registered wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -598,6 +644,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_continue_pid_issuance_error_document() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -644,7 +691,7 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, PidIssuanceError::Document(_));
+        assert_matches!(error, PidIssuanceError::MdocDocument(_));
     }
 
     #[tokio::test]
@@ -755,7 +802,7 @@ mod tests {
 
         // Have the `PidIssuerClient` accept the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        let mdoc = tests::create_full_pid_mdoc().await;
+        let mdoc = test::create_full_pid_mdoc().await;
         wallet.pid_issuer = Some({
             let mut client = MockIssuerClient::new();
             client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
@@ -794,7 +841,7 @@ mod tests {
 
         // Have the `PidIssuerClient` accept the PID with a single instance of `MdocCopies`, which contains a single
         // valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
-        let mdoc = tests::create_full_pid_mdoc_unauthenticated().await;
+        let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
         wallet.pid_issuer = Some({
             let mut client = MockIssuerClient::new();
             client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
@@ -889,7 +936,7 @@ mod tests {
 
         // Have the `PidIssuerClient` report a a session
         // and have the database return an error on query.
-        let mdoc = tests::create_full_pid_mdoc().await;
+        let mdoc = test::create_full_pid_mdoc().await;
         wallet.pid_issuer = Some({
             let mut client = MockIssuerClient::new();
             client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));

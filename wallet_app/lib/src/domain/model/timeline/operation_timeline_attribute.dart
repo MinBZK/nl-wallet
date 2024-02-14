@@ -1,28 +1,28 @@
 import '../attribute/data_attribute.dart';
-import '../localized_text.dart';
+import '../wallet_card.dart';
 import 'timeline_attribute.dart';
 
 class OperationTimelineAttribute extends TimelineAttribute {
   final OperationStatus status;
-  final LocalizedText cardTitle;
+  final WalletCard card;
 
   const OperationTimelineAttribute({
     required this.status,
-    required this.cardTitle,
+    required this.card,
     required super.dateTime,
     required super.organization,
     required super.dataAttributes,
   }) : super(type: TimelineType.operation);
 
   @override
-  List<Object?> get props => [status, cardTitle, ...super.props];
+  List<Object?> get props => [status, card, ...super.props];
 
   @override
-  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes, OperationStatus? status}) {
+  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes, OperationStatus? status, DateTime? dateTime}) {
     return OperationTimelineAttribute(
       status: status ?? this.status,
-      cardTitle: cardTitle,
-      dateTime: dateTime,
+      card: card,
+      dateTime: dateTime ?? this.dateTime,
       organization: organization,
       dataAttributes: dataAttributes ?? this.dataAttributes,
     );

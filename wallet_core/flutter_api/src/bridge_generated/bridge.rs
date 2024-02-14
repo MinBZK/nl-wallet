@@ -28,11 +28,11 @@ use crate::models::card::GenderCardValue;
 use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
+use crate::models::disclosure::DisclosureCard;
 use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::Organization;
 use crate::models::disclosure::RequestPolicy;
-use crate::models::disclosure::RequestedCard;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::WalletInstructionError;
 use crate::models::instruction::WalletInstructionResult;
@@ -376,6 +376,7 @@ impl rust2dart::IntoIntoDart<AcceptDisclosureResult> for AcceptDisclosureResult 
 impl support::IntoDart for Card {
     fn into_dart(self) -> support::DartAbi {
         vec![
+            self.issuer.into_into_dart().into_dart(),
             self.persistence.into_into_dart().into_dart(),
             self.doc_type.into_into_dart().into_dart(),
             self.attributes.into_into_dart().into_dart(),
@@ -441,6 +442,23 @@ impl rust2dart::IntoIntoDart<CardValue> for CardValue {
     }
 }
 
+impl support::IntoDart for DisclosureCard {
+    fn into_dart(self) -> support::DartAbi {
+        vec![
+            self.issuer.into_into_dart().into_dart(),
+            self.doc_type.into_into_dart().into_dart(),
+            self.attributes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DisclosureCard {}
+impl rust2dart::IntoIntoDart<DisclosureCard> for DisclosureCard {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for DisclosureStatus {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -463,6 +481,7 @@ impl support::IntoDart for FlutterConfiguration {
         vec![
             self.inactive_lock_timeout.into_into_dart().into_dart(),
             self.background_lock_timeout.into_into_dart().into_dart(),
+            self.version.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -562,6 +581,7 @@ impl support::IntoDart for Organization {
             self.description.into_into_dart().into_dart(),
             self.image.into_dart(),
             self.web_url.into_dart(),
+            self.privacy_policy_url.into_dart(),
             self.kvk.into_dart(),
             self.city.into_dart(),
             self.category.into_into_dart().into_dart(),
@@ -614,22 +634,6 @@ impl rust2dart::IntoIntoDart<RequestPolicy> for RequestPolicy {
     }
 }
 
-impl support::IntoDart for RequestedCard {
-    fn into_dart(self) -> support::DartAbi {
-        vec![
-            self.doc_type.into_into_dart().into_dart(),
-            self.attributes.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl support::IntoDartExceptPrimitive for RequestedCard {}
-impl rust2dart::IntoIntoDart<RequestedCard> for RequestedCard {
-    fn into_into_dart(self) -> Self {
-        self
-    }
-}
-
 impl support::IntoDart for StartDisclosureResult {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -637,27 +641,31 @@ impl support::IntoDart for StartDisclosureResult {
                 relying_party,
                 policy,
                 requested_cards,
-                is_first_interaction_with_relying_party,
+                shared_data_with_relying_party_before,
                 request_purpose,
+                request_origin_base_url,
             } => vec![
                 0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 policy.into_into_dart().into_dart(),
                 requested_cards.into_into_dart().into_dart(),
-                is_first_interaction_with_relying_party.into_into_dart().into_dart(),
+                shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
+                request_origin_base_url.into_into_dart().into_dart(),
             ],
             Self::RequestAttributesMissing {
                 relying_party,
                 missing_attributes,
-                is_first_interaction_with_relying_party,
+                shared_data_with_relying_party_before,
                 request_purpose,
+                request_origin_base_url,
             } => vec![
                 1.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 missing_attributes.into_into_dart().into_dart(),
-                is_first_interaction_with_relying_party.into_into_dart().into_dart(),
+                shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
+                request_origin_base_url.into_into_dart().into_dart(),
             ],
         }
         .into_dart()
@@ -689,14 +697,9 @@ impl support::IntoDart for WalletEvent {
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
             ],
-            Self::Issuance {
-                date_time,
-                issuer,
-                card,
-            } => vec![
+            Self::Issuance { date_time, card } => vec![
                 1.into_dart(),
                 date_time.into_into_dart().into_dart(),
-                issuer.into_into_dart().into_dart(),
                 card.into_into_dart().into_dart(),
             ],
         }

@@ -1,9 +1,9 @@
 import 'package:wallet_core/core.dart' as core show Organization;
 import 'package:wallet_core/core.dart' hide Organization;
 
-import '../../../data/repository/organization/organization_repository.dart';
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/localized_text.dart';
+import '../../../domain/model/organization.dart';
 import '../../../wallet_assets.dart';
 import '../mapper.dart';
 
@@ -28,5 +28,6 @@ class OrganizationMapper extends Mapper<core.Organization, Organization> {
         countryCode: input.countryCode,
         city: input.city == null ? null : _localizedStringMapper.map(input.city!),
         webUrl: input.webUrl,
+        privacyPolicyUrl: input.privacyPolicyUrl,
       );
 }

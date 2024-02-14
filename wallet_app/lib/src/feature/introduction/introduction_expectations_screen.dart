@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/rounded_back_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 
@@ -96,17 +97,10 @@ class IntroductionExpectationsScreen extends StatelessWidget {
   Widget _buildCreateWalletButton(BuildContext context) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
-      child: ElevatedButton(
+      child: PrimaryButton(
         key: const Key('introductionExpectationsScreenCta'),
         onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionPrivacyRoute),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.arrow_forward, size: 16),
-            const SizedBox(width: 8),
-            Text(context.l10n.introductionExpectationsScreenCta),
-          ],
-        ),
+        text: context.l10n.introductionExpectationsScreenCta,
       ),
     );
   }

@@ -6,7 +6,7 @@ import 'package:wallet/src/feature/check_attributes/bloc/check_attributes_bloc.d
 import 'package:wallet/src/feature/check_attributes/check_attributes_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../mocks/mock_data.dart';
+import '../../mocks/wallet_mock_data.dart';
 import '../../util/device_utils.dart';
 
 class MockCheckAttributesBloc extends MockBloc<CheckAttributesEvent, CheckAttributesState>
@@ -24,7 +24,6 @@ void main() {
             CheckAttributesSuccess(
               card: WalletMockData.card,
               attributes: WalletMockData.card.attributes,
-              cardIssuer: WalletMockData.organization,
             ),
           ),
         );
@@ -58,7 +57,6 @@ void main() {
           CheckAttributesSuccess(
             card: WalletMockData.card,
             attributes: WalletMockData.card.attributes,
-            cardIssuer: WalletMockData.organization,
           ),
         ),
       );

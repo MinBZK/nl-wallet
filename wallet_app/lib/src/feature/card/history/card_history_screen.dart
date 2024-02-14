@@ -32,11 +32,12 @@ class CardHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('cardHistoryScreen'),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(child: _buildContent(context)),
-            const BottomBackButton(showDivider: true),
+            const BottomBackButton(),
           ],
         ),
       ),

@@ -17,7 +17,7 @@ use tracing::{debug, error, warn};
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     issuer::{IssuanceData, Issuer},
-    server_keys::{PrivateKey, SingleKeyRing},
+    server_keys::{KeyPair, SingleKeyRing},
     server_state::MemorySessionStore,
     ServiceEngagement,
 };
@@ -75,7 +75,7 @@ where
 {
     debug!("DigiD issuer discovered, starting HTTP server");
 
-    let key = SingleKeyRing(PrivateKey::from_der(
+    let key = SingleKeyRing(KeyPair::from_der(
         &BASE64_STANDARD.decode(&settings.issuer_key.private_key)?,
         &BASE64_STANDARD.decode(&settings.issuer_key.certificate)?,
     )?);

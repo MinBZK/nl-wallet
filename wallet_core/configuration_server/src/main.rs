@@ -1,7 +1,5 @@
 use std::error::Error;
 
-use configuration_server::read_config_jwt;
-
 use crate::settings::Settings;
 
 mod server;
@@ -11,10 +9,9 @@ mod settings;
 async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
 
-    let settings = Settings::new()?;
-    let config_jwt = read_config_jwt();
+    let settings = Settings::new().unwrap();
 
-    server::serve(settings, config_jwt).await?;
+    server::serve(settings).await?;
 
     Ok(())
 }

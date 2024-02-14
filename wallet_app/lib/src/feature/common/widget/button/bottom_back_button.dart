@@ -7,13 +7,10 @@ const _kButtonHeight = 72.0;
 const _kLandscapeButtonHeight = 56.0;
 
 /// Back button that is aligned at the bottom of the screen,
-/// can be rendered with divider by setting [showDivider].
+/// rendered with a divider.
 /// Often used as a direct child of a [SliverFillRemaining] widget.
 class BottomBackButton extends StatelessWidget {
-  final bool showDivider;
-
   const BottomBackButton({
-    this.showDivider = false,
     Key? key,
   }) : super(key: key);
 
@@ -24,7 +21,7 @@ class BottomBackButton extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showDivider) const Divider(height: 1),
+          const Divider(height: 1),
           SizedBox(
             height: context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight,
             width: double.infinity,
@@ -38,7 +35,7 @@ class BottomBackButton extends StatelessWidget {
                 ),
               ),
               child: TextIconButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.maybePop(context),
                 iconPosition: IconPosition.start,
                 icon: Icons.arrow_back,
                 child: Text(context.l10n.generalBottomBackCta),

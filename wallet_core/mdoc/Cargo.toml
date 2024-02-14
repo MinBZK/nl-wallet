@@ -7,17 +7,28 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[test]]
+name = "test"
+path = "tests/tests.rs"
+required-features = ["generate", "software_key_factory", "test", "mock"]
+
 [features]
-examples = ["dep:anyhow", "dep:hex-literal"]
-generate = ["dep:rcgen"]
-mock = [
-    "examples",
-    "generate",
-    "regex",
-    "wallet_common/mock",
-    "wallet_common/software-keys",
-]
+# Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = []
+# Include code for generating certificates and keys
+generate = ["dep:rcgen"]
+# Include examples from the ISO specification
+examples = ["dep:anyhow", "dep:hex-literal"]
+# Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
+software_keys = ["wallet_common/software_keys"]
+# Include SoftwareKeyFactory, which implements KeyFactory for testing
+software_key_factory = ["wallet_common/software_keys"]
+# Include MdocsMap, which can be used for tests that store Mdocs
+mdocs_map = []
+# Include miscellaneous test utilities
+test = []
+# Include mock implementations and constructors for testing
+mock = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -32,7 +43,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
-regex = { workspace = true, optional = true }
+rand_core.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
 rustls-webpki.workspace = true
@@ -45,6 +56,7 @@ serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["chrono", "base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
+time.workspace = true
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
@@ -52,13 +64,21 @@ x509-parser = { workspace = true, features = ["verify", "validate"] }
 anyhow = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
+regex = { workspace = true, optional = true }
 
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
+anyhow.workspace = true
 assert_matches.workspace = true
+hex-literal.workspace = true
 http.workspace = true
+rcgen = { workspace = true, features = ["x509-parser"] }
+regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
 
-nl_wallet_mdoc = { path = ".", features = ["mock", "examples"] }
+wallet_common = { path = "../wallet_common", features = [
+    "software_keys",
+    "mock_p256_keys",
+] }

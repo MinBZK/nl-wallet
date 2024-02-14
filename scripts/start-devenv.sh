@@ -270,7 +270,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Running wallet_server database migrations${NC}"
-        pushd ${WALLET_CORE_DIR}
+        pushd "${WALLET_CORE_DIR}"
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server" cargo run --bin wallet_server_migration -- fresh
         popd
         echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"

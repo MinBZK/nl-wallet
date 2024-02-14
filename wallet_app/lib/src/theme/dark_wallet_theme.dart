@@ -10,6 +10,7 @@ class DarkWalletTheme {
     brightness: Brightness.dark,
     primary: primary,
     secondary: Color(0xFFA5C8FF),
+    onSecondary: Color(0XFF383EDE),
     error: Color(0xFFFF8989),
     background: Color(0xFF1C1E25),
     inverseSurface: Color(0xFF414966),

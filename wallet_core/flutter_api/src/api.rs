@@ -96,7 +96,7 @@ pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) {
     wallet()
         .write()
         .await
-        .set_config_callback(move |config| sink.add((&config.lock_timeouts).into()));
+        .set_config_callback(move |config| sink.add(config.as_ref().into()));
 }
 
 #[async_runtime]

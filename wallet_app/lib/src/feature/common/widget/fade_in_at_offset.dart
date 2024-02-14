@@ -49,9 +49,12 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
     /// Check if we are ready to build, as before the first layout the _scrollController will not be initialized.
     if (scrollOffset == null && _afterFirstLayout == false) return const SizedBox.shrink();
     final offset = scrollOffset?.offset ?? _scrollController!.offset;
-    return Opacity(
-      opacity: offset.normalize(widget.appearOffset, widget.visibleOffset).toDouble(),
-      child: widget.child,
+    return IgnorePointer(
+      ignoring: offset <= widget.appearOffset,
+      child: Opacity(
+        opacity: offset.normalize(widget.appearOffset, widget.visibleOffset).toDouble(),
+        child: widget.child,
+      ),
     );
   }
 

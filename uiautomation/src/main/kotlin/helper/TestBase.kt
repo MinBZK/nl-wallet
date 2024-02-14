@@ -8,6 +8,7 @@ import config.RemoteOrLocal
 import config.TestDataConfig.Companion.testDataConfig
 import driver.BrowserStackMobileDriver
 import driver.LocalMobileDriver
+import io.appium.java_client.android.AndroidDriver
 import io.qameta.allure.Allure
 import io.qameta.allure.Allure.ThrowableRunnableVoid
 import io.qameta.allure.selenide.AllureSelenide
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
+import org.openqa.selenium.remote.RemoteWebDriver
 import service.AppiumServiceProvider
 import util.SetupTestTagHandler.Companion.handleTestTags
 import java.time.Duration
@@ -53,7 +55,22 @@ open class TestBase {
         }
     }
 
+    protected fun restartApp() {
+        val driver = getWebDriver() as RemoteWebDriver
+        val platform = driver.capabilities.platformName.name
+        val packageName = testDataConfig.appPackage
+        if (platform == "ANDROID") {
+            val androidDriver = driver as AndroidDriver
+            androidDriver.terminateApp(packageName)
+            androidDriver.activateApp(packageName)
+        } else {
+            throw Exception("Platform $platform is not supported")
+        }
+    }
+
     companion object {
+        const val MAX_RETRY_COUNT = 3
+
         var sessionName: String = ""
 
         @JvmStatic

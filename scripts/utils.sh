@@ -70,6 +70,16 @@ function random_bytes {
     dd if=/dev/urandom bs="$1" count=1 2>/dev/null
 }
 
+# Generate a key and certificate to use as root CA.
+#
+# $1 - Target directory
+# $2 - Common name
+function generate_root_ca {
+    openssl req -subj "/C=NL/CN=$2" -nodes -x509 -sha256 -days 1825 -newkey rsa:2048 -keyout "$1/ca.key.pem" -out "$1/ca.crt.pem" > /dev/null
+    openssl pkcs8 -topk8 -inform PEM -outform DER -in "$1/ca.key.pem" -out "$1/ca.key.der" -nocrypt
+    openssl x509 -in "$1/ca.crt.pem" -outform DER -out "$1/ca.crt.der"
+}
+
 # Generate a key and certificate to use for local TLS.
 # The generated certificate will have the following SAN names:
 #
@@ -77,10 +87,10 @@ function random_bytes {
 # IP.1    = 10.0.2.2 # special IP address for android emulator
 # DNS.1   = localhost
 #
-# The certificate will be signed by the cacert of the digid-connector.
-#
 # $1 - TARGET: Target directory
 # $2 - NAME: Key name, used as file name without extension
+# $3 - CA PUBLIC KEY: CA certificate signing public key
+# $4 - CA PRIVATE KEY: CA certificate signing private key
 function generate_ssl_key_pair_with_san {
     echo -e "${INFO}Generating SSL private key and CSR${NC}"
     openssl req \
@@ -90,7 +100,7 @@ function generate_ssl_key_pair_with_san {
             -sha256 \
             -keyout "$1/$2.key" \
             -out "$1/$2.csr" \
-            -config "${DEVENV}/openssl-san.cfg" 2>/dev/null
+            -config "${DEVENV}/openssl-san.cfg" > /dev/null
 
     echo -e "${INFO}Generating SSL CERT from CSR${NC}"
     openssl x509 \
@@ -98,16 +108,24 @@ function generate_ssl_key_pair_with_san {
             -sha256 \
             -in "$1/$2.csr" \
             -days 500 \
-            -CA "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
-            -CAkey "${DIGID_CONNECTOR_PATH}/secrets/cacert.key" \
+            -CA "$3" \
+            -CAkey "$4" \
             -out "$1/$2.crt" \
             -extensions req_ext \
-            -extfile "${DEVENV}/openssl-san.cfg" 2>/dev/null
+            -extfile "${DEVENV}/openssl-san.cfg" > /dev/null
 
     echo -e "${INFO}Exporting SSL public key${NC}"
     openssl rsa \
             -in "$1/$2.key" \
             -pubout > "$1/$2.pub"
+
+    echo -e "${INFO}Converting SSL CERT to DER${NC}"
+    openssl x509 -in "$1/$2.crt" \
+                -outform der -out "$1/$2.crt.der"
+
+    echo -e "${INFO}Converting SSL private key to DER${NC}"
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+            -in "$1/$2.key" -out "$1/$2.key.der" -nocrypt
 }
 
 # Generate a private EC key and return the PEM body
@@ -187,20 +205,24 @@ function generate_mock_relying_party_root_ca {
 }
 
 # Generate an EC key pair for the mock_relying_party
+#
+# $1 - READER_NAME: Name of the Relying Party
 function generate_mock_relying_party_key_pair {
+    render_template "${DEVENV}/$1_reader_auth.json" "${TARGET_DIR}/mock_relying_party/$1_reader_auth.json"
+
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --features "allow_http_return_url" \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
-        --common-name "rp.example.com" \
-        --reader-auth-file "${DEVENV}/reader_auth.json" \
-        --file-prefix "${TARGET_DIR}/mock_relying_party/rp" \
+        --common-name "$1.example.com" \
+        --reader-auth-file "${TARGET_DIR}/mock_relying_party/$1_reader_auth.json" \
+        --file-prefix "${TARGET_DIR}/mock_relying_party/$1" \
         --force
 
-    openssl x509 -in "${TARGET_DIR}/mock_relying_party/rp.crt.pem" \
-        -outform der -out "${TARGET_DIR}/mock_relying_party/rp.crt.der"
+    openssl x509 -in "${TARGET_DIR}/mock_relying_party/$1.crt.pem" \
+        -outform der -out "${TARGET_DIR}/mock_relying_party/$1.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/mock_relying_party/rp.key.pem" -out "${TARGET_DIR}/mock_relying_party/rp.key.der" -nocrypt
+        -in "${TARGET_DIR}/mock_relying_party/$1.key.pem" -out "${TARGET_DIR}/mock_relying_party/$1.key.der" -nocrypt
 }

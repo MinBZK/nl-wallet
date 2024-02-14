@@ -1,19 +1,21 @@
-import '../../../data/repository/organization/organization_repository.dart';
 import '../attribute/attribute.dart';
 import '../attribute/data_attribute.dart';
 import '../attribute/missing_attribute.dart';
+import '../organization.dart';
 import '../policy/policy.dart';
 import '../wallet_card.dart';
 
 sealed class StartDisclosureResult {
   final Organization relyingParty;
+  final String originUrl;
   final LocalizedText requestPurpose;
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
 
   StartDisclosureResult(
     this.relyingParty,
     this.requestPurpose,
-    this.isFirstInteractionWithOrganization,
+    this.originUrl,
+    this.sharedDataWithOrganizationBefore,
   );
 }
 
@@ -24,8 +26,9 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
   StartDisclosureReadyToDisclose(
     super.relyingParty,
     this.policy,
+    super.originUrl,
     super.requestPurpose,
-    super.isFirstInteractionWithOrganization,
+    super.sharedDataWithOrganizationBefore,
     this.requestedAttributes,
   );
 }
@@ -36,7 +39,8 @@ class StartDisclosureMissingAttributes extends StartDisclosureResult {
   StartDisclosureMissingAttributes(
     super.relyingParty,
     super.requestPurpose,
-    super.isFirstInteractionWithOrganization,
+    super.originUrl,
+    super.sharedDataWithOrganizationBefore,
     this.missingAttributes,
   );
 }

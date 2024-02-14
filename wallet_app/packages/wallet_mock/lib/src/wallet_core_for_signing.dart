@@ -23,7 +23,7 @@ class WalletCoreForSigning {
   SignRequest? _activeSignRequest;
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeSignRequest], assumes [_activeSignRequest] is non null.
-  List<RequestedCard> get _requestedCardsForActiveRequest => _wallet.getRequestedCards(
+  List<DisclosureCard> get _disclosureCardsForActiveRequest => _wallet.getDisclosureCards(
         _activeSignRequest!.requestedAttributes.map(
           (attribute) => attribute.key,
         ),
@@ -44,7 +44,7 @@ class WalletCoreForSigning {
         policy: request.policy,
         trustProvider: request.trustProvider,
         document: request.document,
-        requestedAttributes: _requestedCardsForActiveRequest,
+        disclosureCards: _disclosureCardsForActiveRequest,
       );
     } else {
       final requestedAttributesNotInWallet =
@@ -70,7 +70,7 @@ class WalletCoreForSigning {
       _eventLog.logDisclosureStep(
         _activeSignRequest!.organization,
         _activeSignRequest!.policy,
-        _requestedCardsForActiveRequest,
+        _disclosureCardsForActiveRequest,
         DisclosureStatus.Success,
       );
     }
@@ -82,7 +82,7 @@ class WalletCoreForSigning {
       _eventLog.logDisclosureStep(
         _activeSignRequest!.organization,
         _activeSignRequest!.policy,
-        _requestedCardsForActiveRequest,
+        _disclosureCardsForActiveRequest,
         DisclosureStatus.Cancelled,
       );
     }
@@ -105,14 +105,14 @@ sealed class StartSigningResult {
 }
 
 class StartSignResultReadyToDisclose extends StartSigningResult {
-  final List<RequestedCard> requestedAttributes;
+  final List<DisclosureCard> disclosureCards;
 
   StartSignResultReadyToDisclose({
     required super.organization,
     required super.policy,
     required super.trustProvider,
     required super.document,
-    required this.requestedAttributes,
+    required this.disclosureCards,
   });
 }
 

@@ -1,17 +1,27 @@
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
+    basic_sa_ext::Entry,
     errors::Result,
     identifiers::AttributeIdentifier,
     iso::{
-        basic_sa_ext::Entry,
         disclosure::{DeviceSigned, Document, IssuerSigned},
-        mdocs::{DocType, NameSpace},
+        mdocs::DocType,
     },
-    utils::keys::{KeyFactory, MdocEcdsaKey},
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        x509::Certificate,
+    },
+    NameSpace,
 };
 
 use super::StoredMdoc;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProposedDocumentAttributes {
+    pub issuer: Certificate,
+    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+}
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
 /// for disclosure. Note that this is for internal use of [`DisclosureSession`] only.
@@ -22,6 +32,7 @@ pub struct ProposedDocument<I> {
     pub doc_type: DocType,
     pub issuer_signed: IssuerSigned,
     pub device_signed_challenge: Vec<u8>,
+    pub issuer_certificate: Certificate,
 }
 
 impl<I> ProposedDocument<I> {
@@ -37,7 +48,7 @@ impl<I> ProposedDocument<I> {
         stored_mdocs: Vec<StoredMdoc<I>>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
-    ) -> (Vec<Self>, Vec<Vec<AttributeIdentifier>>) {
+    ) -> Result<(Vec<Self>, Vec<Vec<AttributeIdentifier>>)> {
         let mut all_missing_attributes = Vec::new();
 
         // Collect all `ProposedDocument`s for this `doc_type`,
@@ -68,20 +79,20 @@ impl<I> ProposedDocument<I> {
             .into_iter()
             .zip(itertools::repeat_n(device_signed_challenge, document_count))
             .map(|(stored_mdoc, device_signed_challenge)| {
-                ProposedDocument::from_stored_mdoc(stored_mdoc, requested_attributes, device_signed_challenge)
+                ProposedDocument::try_from_stored_mdoc(stored_mdoc, requested_attributes, device_signed_challenge)
             })
-            .collect();
+            .collect::<Result<Vec<_>>>()?;
 
-        (proposed_documents, all_missing_attributes)
+        Ok((proposed_documents, all_missing_attributes))
     }
 
     /// Create a [`ProposedDocument`] from a [`StoredMdoc`], containing only those
     /// attributes that are requested and a [`DeviceSigned`] challenge.
-    fn from_stored_mdoc(
+    fn try_from_stored_mdoc(
         stored_mdoc: StoredMdoc<I>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
-    ) -> Self {
+    ) -> Result<Self> {
         let StoredMdoc {
             id: source_identifier,
             mdoc,
@@ -120,18 +131,24 @@ impl<I> ProposedDocument<I> {
             issuer_auth: mdoc.issuer_signed.issuer_auth,
         };
 
-        ProposedDocument {
+        let issuer_certificate = issuer_signed.issuer_auth.signing_cert()?;
+
+        let proposed_document = ProposedDocument {
             source_identifier,
             private_key_id: mdoc.private_key_id,
             doc_type: mdoc.doc_type,
             issuer_signed,
             device_signed_challenge,
-        }
+            issuer_certificate,
+        };
+        Ok(proposed_document)
     }
 
-    /// Return the attributes contained within this [`ProposedDocument`].
-    pub fn name_spaces(&self) -> IndexMap<NameSpace, Vec<Entry>> {
-        self.issuer_signed
+    /// Return the issuer and attributes contained within this [`ProposedDocument`].
+    pub fn proposed_attributes(&self) -> ProposedDocumentAttributes {
+        let issuer = self.issuer_certificate.clone();
+        let attributes = self
+            .issuer_signed
             .name_spaces
             .as_ref()
             .map(|name_spaces| {
@@ -140,7 +157,8 @@ impl<I> ProposedDocument<I> {
                     .map(|(name_space, attributes)| (name_space.clone(), attributes.into()))
                     .collect()
             })
-            .unwrap_or_default()
+            .unwrap_or_default();
+        ProposedDocumentAttributes { issuer, attributes }
     }
 
     /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.
@@ -189,21 +207,22 @@ mod tests {
     use crate::{
         errors::Error,
         examples::EXAMPLE_NAMESPACE,
+        holder::Mdoc,
         iso::disclosure::DeviceAuth,
-        mock::SoftwareKeyFactory,
+        software_key_factory::SoftwareKeyFactory,
         utils::{
             cose::{self, CoseError},
             serialization::TaggedBytes,
         },
     };
 
-    use super::{super::test_utils::*, *};
+    use super::{super::test::*, *};
 
     #[test]
     fn test_proposed_document_from_stored_mdoc() {
         let stored_mdoc = StoredMdoc {
             id: "id_1234",
-            mdoc: create_example_mdoc(),
+            mdoc: Mdoc::new_example_mock(),
         };
         let id = stored_mdoc.id;
         let doc_type = stored_mdoc.mdoc.doc_type.clone();
@@ -214,7 +233,7 @@ mod tests {
             example_identifiers_from_attributes(["driving_privileges", "family_name", "document_number"]);
 
         let proposed_document =
-            ProposedDocument::from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec());
+            ProposedDocument::try_from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec()).unwrap();
 
         assert_eq!(proposed_document.source_identifier, id);
         assert_eq!(proposed_document.doc_type, doc_type);
@@ -244,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
-        let mdoc1 = create_example_mdoc();
+        let mdoc1 = Mdoc::new_example_mock();
         let mdoc2 = {
             let mut mdoc = mdoc1.clone();
             let attributes = &mut mdoc
@@ -299,7 +318,8 @@ mod tests {
                 stored_mdocs,
                 &requested_attributes,
                 b"challenge".to_vec(),
-            );
+            )
+            .unwrap();
 
         assert_eq!(proposed_documents.len(), 2);
 

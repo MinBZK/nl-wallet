@@ -58,3 +58,7 @@ wallet_app/coverage
 
 # UI automation
 uiautomation/node_modules
+
+# gitlab-ci-local
+/.gitlab-ci-local-variables.yml
+/.gitlab-ci-local/

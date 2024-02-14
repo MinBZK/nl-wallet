@@ -7,7 +7,7 @@ import 'package:wallet/src/feature/organization/detail/bloc/organization_detail_
 import 'package:wallet/src/feature/organization/detail/organization_detail_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../mocks/mock_data.dart';
+import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
 import '../../../util/test_utils.dart';
 
@@ -25,7 +25,7 @@ void main() {
               MockOrganizationDetailBloc(),
               OrganizationDetailSuccess(
                 organization: WalletMockData.organization,
-                isFirstInteractionWithOrganization: true,
+                sharedDataWithOrganizationBefore: false,
               ),
             ),
           ),
@@ -43,7 +43,7 @@ void main() {
               MockOrganizationDetailBloc(),
               OrganizationDetailSuccess(
                 organization: WalletMockData.organization,
-                isFirstInteractionWithOrganization: true,
+                sharedDataWithOrganizationBefore: false,
               ),
             ),
           ),
@@ -80,7 +80,7 @@ void main() {
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
             organization: WalletMockData.organization,
-            isFirstInteractionWithOrganization: true,
+            sharedDataWithOrganizationBefore: false,
           ),
         ),
       );
@@ -100,7 +100,7 @@ void main() {
           MockOrganizationDetailBloc(),
           OrganizationDetailSuccess(
             organization: WalletMockData.organization,
-            isFirstInteractionWithOrganization: true,
+            sharedDataWithOrganizationBefore: false,
           ),
         ),
       );

@@ -4,11 +4,13 @@ use crate::{errors::Result, iso::disclosure::IssuerSigned};
 
 impl IssuerSigned {
     pub fn public_key(&self) -> Result<VerifyingKey> {
-        self.issuer_auth
+        let public_key = self
+            .issuer_auth
             .dangerous_parse_unverified()?
             .0
             .device_key_info
-            .try_into()
+            .try_into()?;
+        Ok(public_key)
     }
 }
 
@@ -16,11 +18,11 @@ impl IssuerSigned {
 mod tests {
     use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey};
 
-    use super::super::test_utils::*;
+    use crate::holder::Mdoc;
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {
-        let mdoc = create_example_mdoc();
+        let mdoc = Mdoc::new_example_mock();
 
         let public_key = mdoc
             .issuer_signed

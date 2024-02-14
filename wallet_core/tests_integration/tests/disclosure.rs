@@ -8,10 +8,12 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::Entry,
+    server_state::SessionToken,
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };
 use wallet::{errors::DisclosureError, mock::MockDigidSession};
+use wallet_common::utils;
 use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
 use crate::common::*;
@@ -33,7 +35,6 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 #[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()))]
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<ReturnUrlTemplate>) {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
@@ -46,7 +47,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
                 grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
+                    pre_authorized_code: utils::random_string(32).into(),
                 },
                 code_verifier: Some("my_code_verifier".to_string()),
                 client_id: Some("my_client_id".to_string()),
@@ -117,7 +118,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         StatusResponse::Created
     );
 
-    // disclosed attributes endpoint should return a response with code Bad Request
+    // disclosed attributes endpoint should return a response with code Bad Request when the status is not DONE
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
@@ -133,7 +134,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         StatusResponse::WaitingForResponse
     );
 
-    // disclosed attributes endpoint should return a response with code Bad Request
+    // disclosed attributes endpoint should return a response with code Bad Request when the status is not DONE
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
@@ -145,7 +146,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
     // after disclosure it should have status "Done"
     assert_matches!(get_verifier_status(&client, session_url).await, StatusResponse::Done);
 
-    // this only works reliably if the return_url has only transcript_hash as query
+    // passing the transcript_hash this way only works reliably it is the only query paramater (which should be the case here)
     if let Some(url) = return_url {
         disclosed_attributes_url.set_query(url.query());
     }
@@ -179,7 +180,6 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_disclosure_without_pid() {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
@@ -265,8 +265,8 @@ async fn test_disclosure_without_pid() {
     assert_matches!(
         error,
         DisclosureError::AttributesNotAvailable {
-            reader_registration: _,
-            missing_attributes: attrs
+            missing_attributes: attrs,
+            ..
         } if attrs
             .iter()
             .flat_map(|attr| attr.attributes.keys().map(|k| k.to_owned()).collect::<Vec<&str>>())
@@ -291,4 +291,56 @@ async fn test_disclosure_without_pid() {
     let response = client.get(disclosed_attributes_url).send().await.unwrap();
     // a cancelled disclosure does not result in any disclosed attributes
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_disclosure_not_found() {
+    let settings = wallet_server_settings();
+    start_wallet_server(settings.clone()).await;
+
+    let client = reqwest::Client::new();
+    // check if a freshly generated token returns a 404 on the status URL
+    let response = client
+        .get(
+            settings
+                .public_url
+                .join(&format!("/{}/status", SessionToken::from("does_not_exist".to_owned())))
+                .unwrap(),
+        )
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // check if a freshly generated token returns a 404 on the wallet URL
+    let response = client
+        .post(
+            settings
+                .public_url
+                .join(&format!("/{}", SessionToken::from("does_not_exist".to_owned())))
+                .unwrap(),
+        )
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // check if a freshly generated token returns a 404 on the disclosed_attributes URL
+    let response = client
+        .get(
+            settings
+                .internal_url
+                .join(&format!(
+                    "/{}/disclosed_attributes",
+                    SessionToken::from("does_not_exist".to_owned())
+                ))
+                .unwrap(),
+        )
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }

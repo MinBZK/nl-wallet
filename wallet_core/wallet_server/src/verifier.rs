@@ -9,7 +9,6 @@ use axum::{
     Json, Router,
 };
 use base64::prelude::*;
-use lazy_static::lazy_static;
 use nutype::nutype;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use reqwest::Method;
@@ -29,8 +28,7 @@ use url::Url;
 
 use crate::{cbor::Cbor, settings::Settings};
 use nl_wallet_mdoc::{
-    holder::TrustAnchor,
-    server_keys::{KeyRing, PrivateKey},
+    server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken},
     utils::{reader_auth::ReturnUrlPrefix, serialization::cbor_serialize, x509::Certificate},
     verifier::{
@@ -38,12 +36,7 @@ use nl_wallet_mdoc::{
     },
     SessionData,
 };
-use wallet_common::trust_anchor::OwnedTrustAnchor;
-
-lazy_static! {
-    static ref UL_ENGAGEMENT: Url =
-        Url::parse("walletdebuginteraction://wallet.edi.rijksoverheid.nl/disclosure/").unwrap();
-}
+use wallet_common::config::wallet_config::DISCLOSURE_BASE_URI;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -81,10 +74,10 @@ impl IntoResponse for Error {
     }
 }
 
-struct RelyingPartyKeyRing(HashMap<String, PrivateKey>);
+struct RelyingPartyKeyRing(HashMap<String, KeyPair>);
 
 impl KeyRing for RelyingPartyKeyRing {
-    fn private_key(&self, usecase: &str) -> Option<&PrivateKey> {
+    fn private_key(&self, usecase: &str) -> Option<&KeyPair> {
         self.0.get(usecase)
     }
 }
@@ -110,9 +103,9 @@ where
                     .map(|(usecase, keypair)| {
                         Ok((
                             usecase,
-                            PrivateKey::new(
-                                SigningKey::from_pkcs8_der(&keypair.private_key.0)?,
-                                Certificate::from(&keypair.certificate.0),
+                            KeyPair::new(
+                                SigningKey::from_pkcs8_der(&keypair.private_key)?,
+                                Certificate::from(&keypair.certificate),
                             ),
                         ))
                     })
@@ -123,12 +116,8 @@ where
                 .verifier
                 .trust_anchors
                 .into_iter()
-                .map(|certificate| {
-                    Ok(Into::<OwnedTrustAnchor>::into(&TryInto::<TrustAnchor>::try_into(
-                        &Certificate::from(BASE64_STANDARD.decode(certificate)?),
-                    )?))
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?,
+                .map(|ta| ta.owned_trust_anchor)
+                .collect::<Vec<_>>(),
         ),
         internal_url: settings.internal_url,
         public_url: settings.public_url,
@@ -263,9 +252,12 @@ where
         .expect("should always be a valid URL");
 
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here
-    let engagement_url = UL_ENGAGEMENT
-        .join(&BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(&engagement).unwrap()))
-        .expect("universal link should be hardcoded s.t. this will never fail");
+    let engagement_url = DISCLOSURE_BASE_URI
+        .join(
+            &BASE64_URL_SAFE_NO_PAD
+                .encode(cbor_serialize(&engagement).expect("serializing an engagement should never fail")),
+        )
+        .expect("universal link and base should be hardcoded s.t. this will never fail");
 
     // add session_type and if available the return_url
     let engagement_url = format_engagement_url_params(

@@ -1,7 +1,5 @@
 use std::{
-    env,
     net::{IpAddr, TcpListener},
-    path::PathBuf,
     process,
     str::FromStr,
     time::Duration,
@@ -9,19 +7,17 @@ use std::{
 
 use ctor::ctor;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
-use openid4vc::{
-    issuance_client::HttpIssuerClient,
-    issuer::{AttributeService, Created},
-    token::TokenRequest,
-};
+use reqwest::Certificate;
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use tokio::time;
 use url::Url;
 
 use configuration_server::settings::Settings as CsSettings;
-use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
-    server_state::{MemorySessionStore, SessionState},
+use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
+use openid4vc::{
+    issuance_client::HttpIssuerClient,
+    issuer::{AttributeService, Created},
+    token::TokenRequest,
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
@@ -38,7 +34,7 @@ use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::settings::{Server, Settings as WsSettings};
 use wallet_server::{
     pid::{mock::MockAttributesLookup as WSMockAttributesLookup, mock::MockBsnLookup as WSMockBsnLookup},
-    store::{SessionStoreVariant, SessionStores},
+    store::SessionStores,
 };
 
 #[ctor]
@@ -56,7 +52,7 @@ pub fn local_wp_base_url(port: &u16) -> Url {
 }
 
 pub fn local_config_base_url(port: &u16) -> Url {
-    Url::parse(&format!("http://localhost:{}/config/v1/", port)).expect("Could not create url")
+    Url::parse(&format!("https://localhost:{}/config/v1/", port)).expect("Could not create url")
 }
 
 pub fn local_pid_base_url(port: &u16) -> Url {
@@ -89,7 +85,7 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
 
 /// Create an instance of [`Wallet`].
 pub async fn setup_wallet_and_env(
-    cs_settings: CsSettings,
+    mut cs_settings: CsSettings,
     wp_settings: WpSettings,
     ws_settings: WsSettings,
 ) -> WalletWithMocks {
@@ -102,26 +98,21 @@ pub async fn setup_wallet_and_env(
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.base_url = local_wp_base_url(&wp_settings.webserver.port);
 
-    let config_bytes = read_file("wallet-config.json");
+    let config_bytes = configuration_server::read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
     served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     served_wallet_config.account_server.base_url = local_wp_base_url(&wp_settings.webserver.port);
 
-    start_config_server(cs_settings, config_jwt(&served_wallet_config)).await;
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
+
+    start_config_server(cs_settings).await;
     start_wallet_provider(wp_settings).await;
-    start_wallet_server(
-        ws_settings,
-        SessionStores {
-            disclosure: SessionStoreVariant::Memory(MemorySessionStore::new()),
-            issuance: SessionStoreVariant::Memory(MemorySessionStore::new()),
-        },
-        MockAttributeService,
-    )
-    .await;
+    start_wallet_server(ws_settings).await;
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.base_url,
-        config_server_config.signing_public_key.into(),
+        config_server_config.trust_anchors,
+        (&config_server_config.signing_public_key).into(),
         SoftwareUtilities::storage_path().await.unwrap(),
         wallet_config,
     )
@@ -162,8 +153,8 @@ pub fn config_server_settings() -> CsSettings {
     settings
 }
 
-pub fn config_jwt(wallet_config: &WalletConfiguration) -> Vec<u8> {
-    let key = read_file("config_signing.pem");
+pub fn config_jwt(wallet_config: &WalletConfiguration) -> String {
+    let key = configuration_server::read_file("config_signing.pem");
 
     jsonwebtoken::encode(
         &Header {
@@ -174,7 +165,6 @@ pub fn config_jwt(wallet_config: &WalletConfiguration) -> Vec<u8> {
         &EncodingKey::from_ec_pem(&key).unwrap(),
     )
     .unwrap()
-    .into_bytes()
 }
 
 pub fn wallet_provider_settings() -> WpSettings {
@@ -183,21 +173,22 @@ pub fn wallet_provider_settings() -> WpSettings {
     let mut settings = WpSettings::new().expect("Could not read settings");
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.webserver.port = port;
-    settings.pin_policy.timeouts_in_ms = vec![200, 400, 600];
+    settings.pin_policy.timeouts = vec![200, 400, 600].into_iter().map(Duration::from_millis).collect();
     settings
 }
 
-pub async fn start_config_server(settings: CsSettings, config_jwt: Vec<u8>) {
+pub async fn start_config_server(settings: CsSettings) {
     let base_url = local_config_base_url(&settings.port);
-    tokio::spawn(async {
-        if let Err(error) = configuration_server::server::serve(settings, config_jwt).await {
-            println!("Could not start config_server: {:?}", error);
+    let root_ca = Certificate::from_pem(&configuration_server::read_file("ca.crt.pem")).unwrap();
 
+    tokio::spawn(async {
+        if let Err(error) = configuration_server::server::serve(settings).await {
+            println!("Could not start config_server: {:?}", error);
             process::exit(1);
         }
     });
 
-    wait_for_server(base_url).await;
+    wait_for_server(base_url, vec![root_ca]).await;
 }
 
 pub async fn start_wallet_provider(settings: WpSettings) {
@@ -210,7 +201,7 @@ pub async fn start_wallet_provider(settings: WpSettings) {
         }
     });
 
-    wait_for_server(base_url).await;
+    wait_for_server(base_url, vec![]).await;
 }
 
 pub fn wallet_server_settings() -> WsSettings {
@@ -231,32 +222,36 @@ pub fn wallet_server_settings() -> WsSettings {
     settings
 }
 
-pub async fn start_wallet_server<A>(settings: WsSettings, sessions: SessionStores, attr_service: A)
-where
-    A: AttributeService + Send + Sync + 'static,
-{
+pub async fn start_wallet_server(settings: WsSettings) {
     let public_url = settings.public_url.clone();
+    let sessions = SessionStores::init(settings.store_url.clone()).await.unwrap();
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve_full(attr_service, settings, sessions).await {
+        if let Err(error) = wallet_server::server::serve_full(MockAttributeService, settings, sessions).await {
             println!("Could not start wallet_server: {:?}", error);
 
             process::exit(1);
         }
     });
 
-    wait_for_server(public_url.join("disclosure/").unwrap()).await;
+    wait_for_server(public_url.join("disclosure/").unwrap(), vec![]).await;
 }
 
-async fn wait_for_server(base_url: Url) {
-    let client = reqwest::Client::new();
+async fn wait_for_server(base_url: Url, trust_anchors: Vec<Certificate>) {
+    let client = trust_anchors
+        .into_iter()
+        .fold(reqwest::Client::builder(), |builder, anchor| {
+            builder.add_root_certificate(anchor)
+        })
+        .build()
+        .unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(10));
         loop {
             match client.get(base_url.join("health").unwrap()).send().await {
                 Ok(_) => break,
-                _ => {
-                    println!("Waiting for wallet_server...");
+                Err(e) => {
+                    println!("Server not yet up: {e}");
                     interval.tick().await;
                 }
             }
@@ -264,12 +259,6 @@ async fn wait_for_server(base_url: Url) {
     })
     .await
     .unwrap();
-}
-
-fn read_file(file_name: &str) -> Vec<u8> {
-    let root_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-    let file = root_path.join(file_name);
-    std::fs::read(file.as_path()).unwrap()
 }
 
 pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: String) -> WalletWithMocks {

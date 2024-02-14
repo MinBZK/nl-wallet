@@ -10,11 +10,7 @@ class LocalizationHelper {
 
     fun getString(key: String): String {
         val path = "../wallet_app/lib/l10n"
-        val jsonFile = if (language == "NL") {
-            File("$path/intl_nl.arb")
-        } else {
-            File("$path/intl_en.arb")
-        }
+        val jsonFile = File("$path/intl_${if (language == "NL") "nl" else "en"}.arb")
         val json = jsonFile.readText()
 
         val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()

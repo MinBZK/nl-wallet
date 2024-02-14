@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use p256::ecdsa::{
-    signature::{rand_core::OsRng, Verifier},
-    SigningKey,
-};
+use p256::ecdsa::{signature::Verifier, SigningKey};
+use rand_core::OsRng;
 use serial_test::serial;
 
 use wallet_common::utils::{random_bytes, random_string};
@@ -21,6 +19,8 @@ fn setup_hsm() -> (Pkcs11Hsm, Settings) {
     let hsm = Pkcs11Hsm::new(
         settings.hsm.library_path,
         settings.hsm.user_pin,
+        settings.hsm.max_sessions,
+        settings.hsm.max_session_lifetime,
         settings.attestation_wrapping_key_identifier,
     )
     .unwrap();
@@ -29,7 +29,6 @@ fn setup_hsm() -> (Pkcs11Hsm, Settings) {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn generate_key_and_sign() {
     let (hsm, _) = setup_hsm();
 
@@ -50,7 +49,6 @@ async fn generate_key_and_sign() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn sign_sha256_hmac_using_new_secret_key() {
     let (hsm, _) = setup_hsm();
 
@@ -66,7 +64,6 @@ async fn sign_sha256_hmac_using_new_secret_key() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn sign_sha256_hmac() {
     let (hsm, settings) = setup_hsm();
 
@@ -91,7 +88,6 @@ async fn sign_sha256_hmac() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn wrap_key_and_sign() {
     let (hsm, _) = setup_hsm();
 
@@ -107,7 +103,6 @@ async fn wrap_key_and_sign() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn encrypt_decrypt() {
     let (hsm, settings) = setup_hsm();
 
@@ -128,7 +123,6 @@ async fn encrypt_decrypt() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn encrypt_decrypt_verifying_key() {
     let (hsm, settings) = setup_hsm();
 

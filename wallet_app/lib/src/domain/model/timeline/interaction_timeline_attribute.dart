@@ -1,5 +1,6 @@
 import '../attribute/attribute.dart';
 import '../attribute/data_attribute.dart';
+import '../organization.dart';
 import '../policy/policy.dart';
 import 'timeline_attribute.dart';
 
@@ -21,13 +22,18 @@ class InteractionTimelineAttribute extends TimelineAttribute {
   List<Object?> get props => [status, policy, requestPurpose, ...super.props];
 
   @override
-  TimelineAttribute copyWith({List<DataAttribute>? dataAttributes, InteractionStatus? status, DateTime? dateTime}) {
+  TimelineAttribute copyWith({
+    List<DataAttribute>? dataAttributes,
+    InteractionStatus? status,
+    DateTime? dateTime,
+    Organization? organization,
+  }) {
     return InteractionTimelineAttribute(
       status: status ?? this.status,
       policy: policy,
       requestPurpose: requestPurpose,
       dateTime: dateTime ?? this.dateTime,
-      organization: organization,
+      organization: organization ?? this.organization,
       dataAttributes: dataAttributes ?? this.dataAttributes,
     );
   }

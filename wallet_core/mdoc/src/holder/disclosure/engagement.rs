@@ -1,4 +1,5 @@
-use p256::{elliptic_curve::rand_core::OsRng, PublicKey, SecretKey};
+use p256::{PublicKey, SecretKey};
+use rand_core::OsRng;
 use url::Url;
 
 use crate::{

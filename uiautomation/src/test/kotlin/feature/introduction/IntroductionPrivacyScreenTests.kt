@@ -1,15 +1,15 @@
 package feature.introduction
 
 import helper.TestBase
+import navigator.OnboardingNavigator
+import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
+import org.junitpioneer.jupiter.RetryingTest
 import screen.common.PlaceholderScreen
 import screen.introduction.IntroductionConditionsScreen
-import screen.introduction.IntroductionExpectationsScreen
 import screen.introduction.IntroductionPrivacyScreen
-import screen.introduction.IntroductionScreen
 
 @DisplayName("UC 1.1 - App displays privacy statement [PVW-1220]")
 class IntroductionPrivacyScreenTests : TestBase() {
@@ -18,23 +18,18 @@ class IntroductionPrivacyScreenTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        val introductionScreen = IntroductionScreen()
-        val expectationsScreen = IntroductionExpectationsScreen()
-
-        // Start all tests on privacy screen
-        introductionScreen.clickSkipButton()
-        expectationsScreen.clickNextButton()
+        OnboardingNavigator().toScreen(OnboardingScreen.IntroductionPrivacy)
 
         privacyScreen = IntroductionPrivacyScreen()
     }
 
-    @Test
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("1. The App displays the summary of the privacy statement.")
     fun verifyPrivacyScreen() {
         assertTrue(privacyScreen.visible(), "privacy screen is not visible")
     }
 
-    @Test
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("2. The App offers an entrance to the full privacy statement, which is embedded in the app.")
     fun verifyPrivacyPolicyButton() {
         privacyScreen.clickPrivacyButton()
@@ -43,7 +38,7 @@ class IntroductionPrivacyScreenTests : TestBase() {
         assertTrue(placeholderScreen.visible(), "placeholder screen is not visible")
     }
 
-    @Test
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("3. The User can proceed to terms & conditions.")
     fun verifyNextButton() {
         privacyScreen.clickNextButton()
@@ -52,7 +47,7 @@ class IntroductionPrivacyScreenTests : TestBase() {
         assertTrue(conditionsScreen.visible(), "conditions screen is not visible")
     }
 
-    @Test
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("4. The App offers a return to the previous screen.")
     fun verifyBackButton() {
         privacyScreen.clickBackButton()

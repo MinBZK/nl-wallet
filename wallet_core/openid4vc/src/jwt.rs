@@ -146,7 +146,7 @@ mod tests {
     use serde::{Deserialize, Serialize};
 
     use nl_wallet_mdoc::{
-        mock::SoftwareKeyFactory,
+        software_key_factory::SoftwareKeyFactory,
         utils::keys::{KeyFactory, MdocEcdsaKey},
     };
     use wallet_common::jwt::{validations, EcdsaDecodingKey};

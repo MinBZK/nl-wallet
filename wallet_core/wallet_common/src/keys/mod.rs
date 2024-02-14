@@ -2,10 +2,10 @@ use std::error::Error;
 
 use p256::ecdsa::{Signature, VerifyingKey};
 
-#[cfg(feature = "integration-test")]
-pub mod integration_test;
-#[cfg(feature = "software-keys")]
+#[cfg(feature = "software_keys")]
 pub mod software;
+#[cfg(any(all(feature = "software_keys", test), feature = "integration_test"))]
+pub mod test;
 
 pub trait EcdsaKey {
     type Error: Error + Send + Sync + 'static;
@@ -63,7 +63,7 @@ pub trait SecureEncryptionKey: ConstructibleWithIdentifier {
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
 }
 
-#[cfg(any(test, feature = "mock"))]
+#[cfg(any(test, feature = "mock_p256_keys"))]
 mod mock {
     impl super::EphemeralEcdsaKey for p256::ecdsa::SigningKey {}
     impl super::SecureEcdsaKey for p256::ecdsa::SigningKey {}

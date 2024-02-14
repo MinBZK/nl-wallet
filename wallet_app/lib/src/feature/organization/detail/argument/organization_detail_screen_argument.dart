@@ -1,33 +1,28 @@
-import '../../../../data/repository/organization/organization_repository.dart';
+import '../../../../domain/model/organization.dart';
 
 class OrganizationDetailScreenArgument {
-  static const _kTitleKey = 'title';
-  static const _kOrganizationIdKey = 'organization_id';
   static const _kOrganizationKey = 'organization';
+  static const _kSharedDataBeforeKey = 'shared_data_before';
 
-  final String title;
-  final String organizationId;
-  final Organization? organization;
+  final Organization organization;
+  final bool sharedDataWithOrganizationBefore;
 
   const OrganizationDetailScreenArgument({
-    required this.title,
-    required this.organizationId,
-    this.organization,
+    required this.organization,
+    required this.sharedDataWithOrganizationBefore,
   });
 
   Map<String, dynamic> toMap() {
     return {
-      _kTitleKey: title,
-      _kOrganizationIdKey: organizationId,
       _kOrganizationKey: organization,
+      _kSharedDataBeforeKey: sharedDataWithOrganizationBefore,
     };
   }
 
   static OrganizationDetailScreenArgument fromMap(Map<String, dynamic> map) {
     return OrganizationDetailScreenArgument(
-      title: map[_kTitleKey],
-      organizationId: map[_kOrganizationIdKey],
       organization: map[_kOrganizationKey],
+      sharedDataWithOrganizationBefore: map[_kSharedDataBeforeKey],
     );
   }
 
@@ -36,15 +31,13 @@ class OrganizationDetailScreenArgument {
       identical(this, other) ||
       other is OrganizationDetailScreenArgument &&
           runtimeType == other.runtimeType &&
-          title == other.title &&
-          organizationId == other.organizationId &&
+          sharedDataWithOrganizationBefore == other.sharedDataWithOrganizationBefore &&
           organization == other.organization;
 
   @override
   int get hashCode => Object.hash(
         runtimeType,
-        title,
-        organizationId,
+        sharedDataWithOrganizationBefore,
         organization,
       );
 }

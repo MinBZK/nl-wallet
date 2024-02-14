@@ -5,7 +5,7 @@ import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/feature/common/widget/organization/organization_logo.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
-import '../../../../mocks/mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 
 void main() {
   const kGoldenSize = Size(80, 80);

@@ -4,10 +4,10 @@ import 'package:wallet_mock/mock.dart' hide StartIssuanceResult;
 import '../../../../domain/model/attribute/missing_attribute.dart';
 import '../../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
+import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';
-import '../../organization/organization_repository.dart';
 import '../issuance_repository.dart';
 
 class CoreIssuanceRepository implements IssuanceRepository {
@@ -15,7 +15,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
   final WalletCoreForIssuance _core;
 
   final Mapper<core.Card, WalletCard> _cardMapper;
-  final Mapper<core.RequestedCard, WalletCard> _requestedCardMapper;
+  final Mapper<core.DisclosureCard, WalletCard> _disclosureCardMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
@@ -23,7 +23,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
   CoreIssuanceRepository(
     this._core,
     this._cardMapper,
-    this._requestedCardMapper,
+    this._disclosureCardMapper,
     this._organizationMapper,
     this._missingAttributeMapper,
     this._requestPolicyMapper,
@@ -34,7 +34,7 @@ class CoreIssuanceRepository implements IssuanceRepository {
     final result = await _core.startIssuance(disclosureUri);
     switch (result) {
       case StartIssuanceResultReadyToDisclose():
-        final cards = _requestedCardMapper.mapList(result.requestedAttributes);
+        final cards = _disclosureCardMapper.mapList(result.disclosureCards);
         final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
         return StartIssuanceReadyToDisclose(
           relyingParty: _organizationMapper.map(result.organization),

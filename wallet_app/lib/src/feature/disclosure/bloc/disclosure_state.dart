@@ -40,7 +40,8 @@ class DisclosureNetworkError extends DisclosureState {
 
 class DisclosureCheckOrganization extends DisclosureState {
   final Organization relyingParty;
-  final bool isFirstInteractionWithOrganization;
+  final bool sharedDataWithOrganizationBefore;
+  final String originUrl;
   final bool afterBackPressed;
 
   @override
@@ -51,14 +52,15 @@ class DisclosureCheckOrganization extends DisclosureState {
 
   const DisclosureCheckOrganization({
     required this.relyingParty,
-    required this.isFirstInteractionWithOrganization,
+    required this.sharedDataWithOrganizationBefore,
+    required this.originUrl,
     this.afterBackPressed = false,
   });
 
   @override
   List<Object?> get props => [
         relyingParty,
-        isFirstInteractionWithOrganization,
+        sharedDataWithOrganizationBefore,
         ...super.props,
       ];
 }
@@ -150,13 +152,18 @@ class DisclosureSuccess extends DisclosureState {
 }
 
 class DisclosureStopped extends DisclosureState {
+  final Organization organization;
+
   @override
   double get stepperProgress => 1;
 
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureStopped();
+  const DisclosureStopped({required this.organization});
+
+  @override
+  List<Object?> get props => [organization, ...super.props];
 }
 
 class DisclosureLeftFeedback extends DisclosureState {

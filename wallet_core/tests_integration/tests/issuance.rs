@@ -4,13 +4,13 @@ use openid4vc::token::TokenRequest;
 use url::Url;
 
 use wallet::{mock::MockDigidSession, AttributeValue, Document};
+use wallet_common::utils;
 
 use crate::common::*;
 
 pub mod common;
 
 #[tokio::test]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let digid_context = MockDigidSession::start_context();
     digid_context.expect().return_once(|_, _, _| {
@@ -23,7 +23,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
                 grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
+                    pre_authorized_code: utils::random_string(32).into(),
                 },
                 code_verifier: Some("my_code_verifier".to_string()),
                 client_id: Some("my_client_id".to_string()),

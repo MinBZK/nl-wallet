@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/launch_util.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/link_button.dart';
 import '../common/widget/sliver_divider.dart';
@@ -53,7 +54,7 @@ class DigidHelpScreen extends StatelessWidget {
         const SliverFillRemaining(
           fillOverscroll: true,
           hasScrollBody: false,
-          child: BottomBackButton(showDivider: true),
+          child: BottomBackButton(),
         ),
         const SliverSizedBox(height: 32),
       ],
@@ -75,7 +76,7 @@ class DigidHelpScreen extends StatelessWidget {
           style: context.textTheme.bodyLarge,
         ),
         LinkButton(
-          onPressed: () => launchUrl(kRequestDigidUri, mode: LaunchMode.externalApplication),
+          onPressed: () => launchUriCatching(kRequestDigidUri, mode: LaunchMode.externalApplication),
           customPadding: EdgeInsets.zero,
           child: Text(context.l10n.digidHelpScreenNoDigidCta),
         ),
@@ -98,7 +99,7 @@ class DigidHelpScreen extends StatelessWidget {
           style: context.textTheme.bodyLarge,
         ),
         LinkButton(
-          onPressed: () => launchUrl(kDigidHelpUri, mode: LaunchMode.externalApplication),
+          onPressed: () => launchUriCatching(kDigidHelpUri, mode: LaunchMode.externalApplication),
           customPadding: EdgeInsets.zero,
           child: Text(context.l10n.digidHelpScreenHelpNeededCta),
         ),

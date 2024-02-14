@@ -79,6 +79,7 @@ final _kMockPidWalletCard = Card(
   docType: kPidDocType,
   persistence: CardPersistence.inMemory(),
   attributes: _kMockPidDataAttributes,
+  issuer: kOrganizations[kRvigId]!,
 );
 
 final _kMockAddressWalletCard = Card(
@@ -86,6 +87,7 @@ final _kMockAddressWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockAddressCardFront,
   attributes: _kMockAddressDataAttributes,
+  issuer: kOrganizations[kRvigId]!,
 );
 
 const _kDiplomaId = 'DIPLOMA_1';
@@ -94,6 +96,7 @@ final _kMockDiplomaWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockDiplomaCardFront,
   attributes: _kMockDiplomaDataAttributes,
+  issuer: kOrganizations[kDuoId]!,
 );
 
 const _kMultiDiplomaId = 'MULTI_DIPLOMA';
@@ -103,6 +106,7 @@ final _kMockMasterDiplomaWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockMasterDiplomaCardFront,
   attributes: _kMockMasterDiplomaDataAttributes,
+  issuer: kOrganizations[kDuoId]!,
 );
 
 const _kDrivingLicenseId = 'DRIVING_LICENSE';
@@ -111,6 +115,7 @@ final _kMockDrivingLicenseWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockDrivingLicenseCardFront,
   attributes: _kMockDrivingLicenseDataAttributes,
+  issuer: kOrganizations[kRdwId]!,
 );
 
 const _kDrivingLicenseRenewedId = 'DRIVING_LICENSE_RENEWED'; // Used in issuance QR only!
@@ -119,6 +124,7 @@ final _kMockDrivingLicenseRenewedWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockDrivingLicenseRenewedCardFront,
   attributes: _kMockDrivingLicenseRenewedDataAttributes,
+  issuer: kOrganizations[kRdwId]!,
 );
 
 const _kHealthInsuranceId = 'HEALTH_INSURANCE';
@@ -127,6 +133,7 @@ final _kMockHealthInsuranceWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockHealthInsuranceCardFront,
   attributes: _kMockHealthInsuranceDataAttributes,
+  issuer: kOrganizations[kHealthInsuranceId]!,
 );
 
 const _kVOGId = 'VOG';
@@ -135,6 +142,7 @@ final _kMockVOGWalletCard = Card(
   persistence: CardPersistence.inMemory(),
   // front: _kMockVOGCardFront,
   attributes: _kMockVOGDataAttributes,
+  issuer: kOrganizations[kRvigId]!,
 );
 
 // endregion

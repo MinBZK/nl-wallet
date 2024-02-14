@@ -13,7 +13,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     server_keys::KeyRing,
     server_state::{SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS},
-    utils::serialization::CborError,
+    utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
 use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
@@ -91,7 +91,7 @@ pub enum CredentialRequestError {
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
     #[error("failed to convert P256 public key to COSE key: {0}")]
-    CoseKeyConversion(nl_wallet_mdoc::Error),
+    CoseKeyConversion(CryptoError),
     #[error("missing issuance private key for doctype {0}")]
     MissingPrivateKey(String),
     #[error("failed to sign attestation: {0}")]

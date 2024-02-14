@@ -6,10 +6,12 @@ use std::collections::HashMap;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+
 pub use mdoc::{AttributeValueType, DocumentMdocError};
 
-#[cfg(feature = "mock")]
-pub use mdoc::mock::{
+#[cfg(test)]
+pub use mdoc::tests::{
     create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,
     create_minimal_unsigned_pid_mdoc,
 };
@@ -26,6 +28,7 @@ pub struct Document {
     pub persistence: DocumentPersistence,
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
+    pub issuer_registration: IssuerRegistration,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +71,7 @@ pub struct MissingDisclosureAttributes {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisclosureDocument {
+    pub issuer_registration: IssuerRegistration,
     pub doc_type: DocumentType,
     pub attributes: DocumentAttributes,
 }
@@ -90,6 +94,8 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
+    use crate::wallet::rvig_registration;
+
     use super::*;
 
     fn empty_document(doc_type: &'static str) -> Document {
@@ -97,6 +103,7 @@ mod tests {
             persistence: DocumentPersistence::InMemory,
             doc_type,
             attributes: Default::default(),
+            issuer_registration: rvig_registration(),
         }
     }
 

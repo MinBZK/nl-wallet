@@ -4,6 +4,9 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
+import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/config_version_text.dart';
+import '../common/widget/mock_indicator_text.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/version_text.dart';
 import '../menu/widget/menu_row.dart';
@@ -17,10 +20,19 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('aboutScreen'),
-      body: CustomScrollView(
-        slivers: [
-          SliverWalletAppBar(title: context.l10n.aboutScreenTitle),
-          _buildContentSliver(context),
+      body: Column(
+        children: [
+          Expanded(
+            child: Scrollbar(
+              child: CustomScrollView(
+                slivers: [
+                  SliverWalletAppBar(title: context.l10n.aboutScreenTitle),
+                  _buildContentSliver(context),
+                ],
+              ),
+            ),
+          ),
+          const BottomBackButton(),
         ],
       ),
     );
@@ -47,7 +59,14 @@ class AboutScreen extends StatelessWidget {
         const Divider(height: 1),
         const Padding(
           padding: EdgeInsets.all(16),
-          child: VersionText(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              VersionText(),
+              ConfigVersionText(),
+              MockIndicatorText(),
+            ],
+          ),
         ),
       ],
     );

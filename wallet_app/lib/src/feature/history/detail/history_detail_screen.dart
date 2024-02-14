@@ -208,7 +208,7 @@ class HistoryDetailScreen extends StatelessWidget {
             ),
           ),
         ),
-        const BottomBackButton(showDivider: true),
+        const BottomBackButton(),
       ],
     );
   }
@@ -300,7 +300,7 @@ class HistoryDetailScreen extends StatelessWidget {
     if (attribute is InteractionTimelineAttribute) {
       title = context.l10n.historyDetailScreenInteractionAttributesTitle(attribute.dataAttributes.length);
     } else if (attribute is OperationTimelineAttribute) {
-      title = attribute.cardTitle.l10nValue(context);
+      title = attribute.card.front.title.l10nValue(context);
       subtitle = TimelineAttributeStatusDescriptionTextFormatter.map(context, attribute);
       icon = Icon(
         Icons.credit_card_outlined,

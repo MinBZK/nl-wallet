@@ -15,7 +15,7 @@ use crate::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::cbor_serialize,
     },
-    DocType, Result, SessionId,
+    DocType, Error, Result, SessionId,
 };
 
 #[derive(thiserror::Error, Debug)]
@@ -61,7 +61,9 @@ impl Response {
                 .await
                 .map_err(|e| IssuanceError::PrivatePublicKeyConversion(e.into()))?;
 
-            CoseKey::try_from(&verifying_key).map(|public_key| (key, Response { public_key, signature }))
+            let response =
+                CoseKey::try_from(&verifying_key).map(|public_key| (key, Response { public_key, signature }))?;
+            Ok::<(K, Response), Error>(response)
         }))
         .await?;
 
@@ -72,7 +74,8 @@ impl Response {
         let expected_payload = &ResponseSignaturePayload::new(challenge.to_vec());
         self.signature
             .clone_with_payload(cbor_serialize(&expected_payload)?)
-            .verify(&(&self.public_key).try_into()?)
+            .verify(&(&self.public_key).try_into()?)?;
+        Ok(())
     }
 }
 

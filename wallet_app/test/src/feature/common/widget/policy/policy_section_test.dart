@@ -4,7 +4,7 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/policy/policy_section.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
-import '../../../../mocks/mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 
 void main() {
   const kGoldenSize = Size(300, 192);

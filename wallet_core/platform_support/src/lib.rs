@@ -3,8 +3,8 @@ mod bridge;
 pub mod hw_keystore;
 pub mod utils;
 
-#[cfg(feature = "integration-test")]
-pub mod integration_test;
+#[cfg(feature = "hardware_integration_test")]
+pub mod hardware_test;
 
 // import generated Rust bindings
 use crate::bridge::{

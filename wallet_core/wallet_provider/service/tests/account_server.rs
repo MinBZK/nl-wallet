@@ -96,7 +96,6 @@ async fn assert_instruction_data(
     }
 }
 
-#[cfg_attr(not(feature = "db_test"), ignore)]
 #[tokio::test]
 async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");

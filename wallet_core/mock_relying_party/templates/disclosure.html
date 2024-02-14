@@ -43,7 +43,8 @@
         let disclosedAttributesUrl;
         if (window.location.hash) {
             let sessionId = window.location.hash.substring(1)
-            disclosedAttributesUrl = `/sessions/${sessionId}/disclosed_attributes`
+            let publicUrl = [window.location.protocol, '//', window.location.host, window.location.pathname].join('');
+            disclosedAttributesUrl = `${publicUrl}${window.location.pathname.endsWith('/') ? '' : '/'}sessions/${sessionId}/disclosed_attributes`
             if (window.location.search.startsWith("?transcript_hash=")) {
                 let end = window.location.search.search("&")
                 end = end == -1 ? window.location.search.length : end
@@ -77,15 +78,16 @@
         <div id="session" {% if engagement.is_none() %}style="display: none;" {% endif %}>
             <h2>Session</h2>
             <h3><span id="attributes"></span></h3>
+            <dl>
+                <dt>Status</dt>
+                <dd><span id="status"></span></dd>
+            </dl>
             <dl id="result">
             </dl>
         </div>
         {% match engagement -%}
         {% when Some(urls) -%}
         <dl>
-            <dt>Status</dt>
-            <dd><span id="status"></span></dd>
-
             <dt>Usecase</dt>
             <dd>{{ selected.as_ref().unwrap().usecase }}</dd>
 
@@ -113,7 +115,7 @@
         </script>
         {% endif %}
         <script>
-            console.log('Engagement URL: {{ urls.0 }}') // write engagement URL to console
+            console.log('Engagement URL: {{ urls.0|safe }}') // write engagement URL to console (Note: unescaped!)
             sessionUrl = '{{ urls.1 }}' // overwrite sessionUrl
             disclosedAttributesUrl = '{{ urls.2 }}' // overwrite disclosedAttributesUrl
         </script>
@@ -197,6 +199,7 @@
 
                 let resultElem = document.createElement('dt')
                 resultElem.innerText = 'Result'
+                statusSpan.innerText = 'DONE'
 
                 resultList.parentElement.insertBefore(resultElem, resultList)
             }

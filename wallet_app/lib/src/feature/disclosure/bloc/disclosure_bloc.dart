@@ -45,7 +45,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: _startDisclosureResult!.relyingParty,
-          isFirstInteractionWithOrganization: _startDisclosureResult!.isFirstInteractionWithOrganization,
+          originUrl: _startDisclosureResult!.originUrl,
+          sharedDataWithOrganizationBefore: _startDisclosureResult!.sharedDataWithOrganizationBefore,
         ),
       );
     } catch (ex) {
@@ -65,7 +66,12 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
     } finally {
-      emit(const DisclosureStopped());
+      final relyingParty = _startDisclosureResult?.relyingParty;
+      if (relyingParty == null) {
+        emit(DisclosureGenericError());
+      } else {
+        emit(DisclosureStopped(organization: _startDisclosureResult!.relyingParty));
+      }
     }
   }
 
@@ -76,7 +82,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
-          isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
+          originUrl: _startDisclosureResult!.originUrl,
+          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
           afterBackPressed: true,
         ),
       );
@@ -85,7 +92,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
-          isFirstInteractionWithOrganization: _startDisclosureResult?.isFirstInteractionWithOrganization == true,
+          originUrl: _startDisclosureResult!.originUrl,
+          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
           afterBackPressed: true,
         ),
       );
@@ -154,17 +162,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   @override
   Future<void> close() async {
     _startDisclosureStreamSubscription?.cancel();
-    if (state is DisclosureConfirmPin) {
-      /// The bloc being closed while in the [DisclosureConfirmPin] indicates the user has provided
-      /// an incorrect pin too many times, causing the [DisclosureScreen] and thus this bloc to be
-      /// closed. To avoid any issues with future disclosure we make sure to cancel the onGoing flow
-      /// here.
-      try {
-        await _cancelDisclosureUseCase.invoke();
-      } catch (ex) {
-        Fimber.e('Failed to explicitly cancel disclosure', ex: ex);
-      }
-    }
     return super.close();
   }
 }

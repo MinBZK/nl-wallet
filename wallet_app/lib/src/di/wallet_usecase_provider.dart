@@ -24,13 +24,11 @@ import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
-import '../domain/usecase/disclosure/impl/reject_disclosure_usecase_impl.dart';
+import '../domain/usecase/disclosure/impl/cancel_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
-import '../domain/usecase/history/has_previously_interacted_with_organization_usecase.dart';
 import '../domain/usecase/history/impl/get_wallet_timeline_attributes_usecase_impl.dart';
-import '../domain/usecase/history/impl/has_previously_interacted_with_organization_usecase_impl.dart';
 import '../domain/usecase/issuance/accept_issuance_usecase.dart';
 import '../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../domain/usecase/issuance/continue_issuance_usecase.dart';
@@ -45,8 +43,6 @@ import '../domain/usecase/navigation/impl/perform_pre_navigation_actions_usecase
 import '../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import '../domain/usecase/network/check_has_internet_usecase.dart';
 import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
-import '../domain/usecase/organization/get_organization_by_id_usecase.dart';
-import '../domain/usecase/organization/impl/get_organization_by_id_usecase_impl.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/continue_pid_issuance_usecase.dart';
@@ -76,11 +72,9 @@ import '../domain/usecase/sign/start_sign_usecase.dart';
 import '../domain/usecase/uri/decode_uri_usecase.dart';
 import '../domain/usecase/uri/impl/decode_uri_usecase_impl.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
-import '../domain/usecase/wallet/get_first_names_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
 import '../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
 import '../domain/usecase/wallet/impl/create_wallet_usecase_impl.dart';
-import '../domain/usecase/wallet/impl/get_first_names_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
@@ -127,9 +121,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<LockWalletUseCase>(
           create: (context) => LockWalletUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<GetFirstNamesUseCase>(
-          create: (context) => GetFirstNamesUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<GetWalletCardsUseCase>(
           create: (context) => GetWalletCardsUseCaseImpl(context.read()),
         ),
@@ -144,7 +135,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ObserveWalletCardDetailUseCase>(
           create: (context) => ObserveWalletCardDetailUseCaseImpl(
-            context.read(),
             context.read(),
             context.read(),
           ),
@@ -178,12 +168,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<IsWalletInitializedWithPidUseCase>(
           create: (context) => IsWalletInitializedWithPidUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<HasPreviouslyInteractedWithOrganizationUseCase>(
-          create: (context) => HasPreviouslyInteractedWithOrganizationUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<GetOrganizationByIdUseCase>(
-          create: (context) => GetOrganizationByIdUseCaseImpl(context.read()),
         ),
         RepositoryProvider<GetRequestedAttributesWithCardUseCase>(
           create: (context) => GetRequestedAttributesWithCardUseCaseImpl(context.read()),

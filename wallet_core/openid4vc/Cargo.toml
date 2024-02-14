@@ -42,4 +42,4 @@ nl_wallet_mdoc.path = "../mdoc"
 ciborium.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock"]}
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate"]}

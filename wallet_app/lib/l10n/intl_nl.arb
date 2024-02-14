@@ -1,11 +1,19 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-01-10T17:32:04+01:00",
+    "@@last_modified": "2024-02-07T17:06:19+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
     "aboutScreenTitle": "Over de NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
+    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd.} other {{count} kaarten toegevoegd.}}",
+    "activitySummaryEmpty": "Geen activiteiten",
+    "activitySummaryLastMonth": "Afgelopen maand",
+    "activitySummaryLastWeek": "Afgelopen week",
+    "activitySummarySharedWith": "Gedeeld met {organization}.",
+    "activitySummarySharedWithMultiple": "Gedeeld met {organizations} en {organization}.",
+    "activitySummarySharedWithOthers": "nog {nrOrganizations} partijen",
+    "activitySummaryToday": "Vandaag",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Ja, volgende",
     "approveOrganizationPageDenyCta": "Nee",
@@ -124,8 +132,6 @@
     "cardHistoryTimelineOperationRenewed": "Kaart vernieuwd",
     "cardHistoryTimelineSigningRejected": "Ondertekenen gestopt",
     "cardHistoryTimelineSigningSuccess": "Ondertekend",
-    "cardOverviewScreenAddCardCta": "Gegevens toevoegen",
-    "cardOverviewScreenTitle": "Mijn kaarten",
     "cardTitleSemanticsLabel": "Kaart: {cardTitle}",
     "@cardTitleSemanticsLabel": {
         "placeholders": {
@@ -177,6 +183,10 @@
         }
     },
     "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
+    "dashboardScreenFooter": "De overheid ontwikkelt deze app voor jouw gemak, privacy en veiligheid. Lees meer in {cta}.",
+    "dashboardScreenFooterCta": "Over de app",
+    "dashboardScreenQrCta": "QR-code",
+    "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "Uit {source}",
     "@dataAttributeSectionTitle": {
         "placeholders": {
@@ -205,24 +215,6 @@
     "digidHelpScreenTitle": "Hulp nodig met DigiD?",
     "disclosureConfirmDataAttributesCheckAttributesCta": "Bekijk jouw gegevens",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
-    "disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
-    "@disclosureConfirmDataAttributesCheckConditionsDataSharedSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "disclosureConfirmDataAttributesCheckConditionsSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
-    "@disclosureConfirmDataAttributesCheckConditionsSubtitle": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
     "disclosureConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is.",
     "disclosureConfirmDataAttributesPageAllTermsCta": "Alle voorwaarden",
     "disclosureConfirmDataAttributesPageApproveCta": "Delen",
@@ -241,6 +233,26 @@
     "disclosureConfirmDataAttributesPageDataWillNotBeShared": "Gegevens worden niet gedeeld",
     "disclosureConfirmDataAttributesPageDenyCta": "Nee",
     "disclosureConfirmDataAttributesPageIncorrectCta": "Klopt er iets niet?",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en niet gedeeld met derden} other {Gegevens worden {count} maanden bewaard en niet gedeeld met derden}}",
+    "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle": "Gegevens worden niet bewaard en niet gedeeld met derden.",
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {Gegevens worden 1 maand bewaard en gedeeld met derden} other {Gegevens worden {count} maanden bewaard en gedeeld met derden}}",
+    "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Gegevens worden niet bewaard maar wel gedeeld met derden.",
     "disclosureConfirmDataAttributesShareWithTitle": "Wil je delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -378,11 +390,11 @@
     "disclosureStopSheetReportIssueCta": "Een probleem melden",
     "disclosureStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
     "disclosureStoppedPageCloseCta": "Sluiten",
-    "disclosureStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
+    "disclosureStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld met {organization}.",
     "disclosureStoppedPageFeedbackCta": "Geef feedback",
     "disclosureStoppedPageTitle": "Gestopt",
     "disclosureSuccessPageCloseCta": "Sluiten",
-    "disclosureSuccessPageDescription": " Je gegevens zijn gedeeld met {organization}.",
+    "disclosureSuccessPageDescription": "Je gegevens zijn gedeeld met {organization}. Sluit dit scherm en ga verder op de website van {organization}.",
     "@disclosureSuccessPageDescription": {
         "placeholders": {
             "organization": {
@@ -392,7 +404,7 @@
         }
     },
     "disclosureSuccessPageHistoryDescription": "Je kunt de details vinden in je geschiedenis.",
-    "disclosureSuccessPageShowHistoryCta": "Geschiedenis",
+    "disclosureSuccessPageShowHistoryCta": "Bekijk activiteiten",
     "disclosureSuccessPageTitle": "Gelukt!",
     "errorScreenGeneralHelpCta": "Hulp nodig?",
     "errorScreenGenericCloseCta": "Sluiten",
@@ -413,6 +425,15 @@
     "forgotPinScreenTitle": "Toegangscode vergeten",
     "generalBottomBackCta": "Terug",
     "generalCancelCta": "Annuleren",
+    "generalConfigVersionText": "Config versie: {versionCode}",
+    "@generalConfigVersionText": {
+        "placeholders": {
+            "versionCode": {
+                "example": "1337",
+                "type": "int"
+            }
+        }
+    },
     "generalDays": "{days, plural, one {{days} dag} other {{days} dagen}}",
     "@generalDays": {
         "placeholders": {
@@ -591,13 +612,6 @@
     "historyDetailScreenTermsTitle": "Voorwaarden",
     "historyDetailScreenTitle": "Details",
     "historyOverviewScreenTitle": "Activiteiten",
-    "homeBottomNavBarCardsButton": "Kaarten",
-    "homeBottomNavBarQrButton": "QR",
-    "homeBottomNavBarSettingsButton": "Instellingen",
-    "homeScreenBottomNavBarCardsCta": "Kaarten",
-    "homeScreenBottomNavBarMenuCta": "Menu",
-    "homeScreenBottomNavBarQrCta": "QR",
-    "homeScreenBottomNavBarSettingsCta": "Instellingen",
     "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de Wallet",
     "introductionConditionsScreenBulletPoints": "Je kunt je gegevens online gebruiken.\nJe kunt op elk moment stoppen.\nJij houdt je toegangscode voor jezelf.\nJij bedenkt altijd of delen verstandig is.",
     "introductionConditionsScreenConditionsCta": "Lees de voorwaarden",
@@ -640,6 +654,9 @@
         }
     },
     "introductionWCAGDutchGovernmentLogoLabel": "Rijksoverheid logo",
+    "invalidQrDialogCta": "OK",
+    "invalidQrDialogDescription": "Deze QR-code is not geldig.",
+    "invalidQrDialogTitle": "Ongeldige QR-code",
     "issuanceCardAddedCloseCta": "Naar mijn kaarten",
     "issuanceCardAddedSubtitle": "Je kunt de gegevens vinden in je kaarten overzicht.",
     "issuanceCardAddedTitle": "Gelukt!",
@@ -804,7 +821,6 @@
     "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
     "organizationApprovePageApproveCta": "Ja, volgende",
     "organizationApprovePageDenyCta": "Nee",
-    "organizationApprovePageFirstInteraction": "Eerste deelverzoek",
     "organizationApprovePageFraudInfo": "Pas op voor fraude. Ga alleen verder als de QR-code op {url} staat.",
     "organizationApprovePageGenericTitle": "Herken je {organization}?",
     "@organizationApprovePageGenericTitle": {
@@ -858,16 +874,14 @@
     "organizationButtonLabel": "Over deze partij",
     "organizationDetailScreenCategoryInfo": "Soort organisatie",
     "organizationDetailScreenDepartmentInfo": "Afdeling",
-    "organizationDetailScreenFirstInteraction": "Dit is je eerste deelverzoek met deze organisatie.",
     "organizationDetailScreenInfoHeader": "Info",
     "organizationDetailScreenKvk": "KVK: {kvk}",
     "organizationDetailScreenKvkInfo": "KVK nummer",
+    "organizationDetailScreenLegalNameInfo": "Wettelijke bedrijfsnaam",
     "organizationDetailScreenLocationInfo": "Locatie",
-    "organizationDetailScreenNoInteractions": "Geen eerdere activiteiten met {name}.",
     "organizationDetailScreenPrivacyHeader": "Privacy",
     "organizationDetailScreenPrivacyInfo": "Privacyverklaring",
     "organizationDetailScreenPrivacyPolicy": "privacy verklaring",
-    "organizationDetailScreenPrivacyValue": "Privacy verklaring",
     "organizationDetailScreenReportIssueCta": "Een probleem melden",
     "organizationDetailScreenSomeInteractions": "Je hebt eerder gedeeld met {name}.",
     "organizationDetailScreenTitle": "Over {name}",
@@ -929,6 +943,8 @@
     "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
     "policyScreenDataCanNotBeDeletedDescription": "De partij biedt geen manier aan om je opgeslagen gegevens te laten verwijderen.",
     "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+    "policyScreenDataNotBeStored": "Je gegevens worden niet bewaard",
+    "policyScreenDataNotBeStoredDescription": "Je gegevens worden alleen gebruikt in deze sessie, en niet verder opgeslagen.",
     "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doeleinden gebruikt.",
     "policyScreenDataRetentionDuration": "{months, plural, one {Gegevens worden {months} maand bewaard} other {Gegevens worden {months} maanden bewaard}}",
     "@policyScreenDataRetentionDuration": {
@@ -966,7 +982,8 @@
     "policyScreenPolicySectionTitle": "Meer weten?",
     "policyScreenReportIssueCta": "Een probleem melden",
     "policyScreenRetryCta": "Probeer opnieuw",
-    "policyScreenTitle": "Voorwaarden",
+    "policyScreenSubtitle": "De volgende afspraken gelden alléén voor deze uitnodiging tot delen.",
+    "policyScreenTitle": "Afspraken",
     "qrMyCodeTabHowToCta": "Hoe werkt mijn QR code?",
     "qrMyCodeTabHowToSheetCloseCta": "Sluiten",
     "qrMyCodeTabHowToSheetDescription": "Laat Mijn QR-code scannen door een controleur om te beginnen met delen. Vervolgens krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
@@ -982,11 +999,15 @@
     "qrScanTabHowToScanSheetCloseCta": "Sluiten",
     "qrScanTabHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt, zal aangeven wat nodig is.\n\nNa het scannen krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
     "qrScanTabHowToScanSheetTitle": "Hoe werkt scannen?",
+    "qrScreenDisableTorchCta": "Zet zaklamp uit",
+    "qrScreenEnableTorchCta": "Zet zaklamp aan",
     "qrScreenHowToScanButton": "Hoe werkt scannen?",
     "qrScreenHowToScanSheetCloseButton": "Sluiten",
     "qrScreenHowToScanSheetDescription": "Gegevens kunnen worden gedeeld door een QR-code te laten zien óf een QR-code te scannen. De partij die om gegevens vraagt, zal aangeven wat nodig is.\n\nNa het scannen krijg je een gegevens verzoek. Alleen als je akkoord gaat met het verzoek zullen gegevens worden gedeeld.",
     "qrScreenHowToScanSheetTitle": "Hoe werkt scannen?",
     "qrScreenMyCodeTabTitle": "Mijn code",
+    "qrScreenPermissionHint": "De NL wallet heeft toegang nodig tot je camera om een QR-code te scannen",
+    "qrScreenScanHint": "Richt je camera op een QR-code",
     "qrScreenScanTabContinueButton": "Nog een QR scannen",
     "qrScreenScanTabErrorButton": "Probeer opnieuw",
     "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
@@ -1168,7 +1189,6 @@
     "walletPersonalizeIntroPageTitle": "Log in met jouw DigiD om te beginnen",
     "walletPersonalizeLoadingPhotoPageSubtitle": "Even geduld...",
     "walletPersonalizeLoadingPhotoPageTitle": "Aan het scannen",
-    "walletPersonalizeNoDigidPageBackCta": "Terug",
     "walletPersonalizeNoDigidPageDescription": "Op dit moment kan je alleen een Wallet aanmaken met de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
     "walletPersonalizeNoDigidPageHeadline": "Ik heb geen DigiD",
     "walletPersonalizeNoDigidPageRequestDigidCta": "DigiD aanvragen",

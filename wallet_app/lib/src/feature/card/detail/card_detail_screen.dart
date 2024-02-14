@@ -52,6 +52,7 @@ class CardDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('cardDetailScreen'),
       appBar: _buildAppBar(context),
       body: SafeArea(
         child: _buildBody(context),
@@ -154,8 +155,8 @@ class CardDetailScreen extends StatelessWidget {
                 InfoRow(
                   icon: Icons.description_outlined,
                   title: Text(context.l10n.cardDetailScreenCardDataCta),
-                  subtitle:
-                      Text(context.l10n.cardDetailScreenCardDataIssuedBy(detail.issuer.displayName.l10nValue(context))),
+                  subtitle: Text(
+                      context.l10n.cardDetailScreenCardDataIssuedBy(detail.card.issuer.displayName.l10nValue(context))),
                   onTap: () => _onCardDataPressed(context, card),
                 ),
                 const Divider(height: 1),
@@ -187,7 +188,7 @@ class CardDetailScreen extends StatelessWidget {
             ),
           ),
         ),
-        const BottomBackButton(showDivider: true),
+        const BottomBackButton(),
       ],
     );
   }

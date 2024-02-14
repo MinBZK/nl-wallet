@@ -4,7 +4,12 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
+    holder::ProposedDocumentAttributes,
     identifiers::AttributeIdentifier,
+    utils::{
+        issuer_auth::IssuerRegistration,
+        x509::{CertificateError, MdocCertificateExtension},
+    },
     DataElementIdentifier, DataElementValue, NameSpace,
 };
 
@@ -42,6 +47,8 @@ pub enum DocumentMdocError {
         name: DataElementIdentifier,
         value: Option<DataElementValue>,
     },
+    #[error("certificate error for \"{doc_type}\": {error}")]
+    Certificate { error: CertificateError, doc_type: String },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -150,19 +157,12 @@ fn document_attributes_from_mdoc_attributes(
     Ok((doc_type, document_attributes))
 }
 
-impl TryFrom<UnsignedMdoc> for Document {
-    type Error = DocumentMdocError;
-
-    fn try_from(value: UnsignedMdoc) -> Result<Self, Self::Error> {
-        Document::from_mdoc_attributes(DocumentPersistence::InMemory, &value.doc_type, value.attributes)
-    }
-}
-
 impl Document {
     pub(crate) fn from_mdoc_attributes(
         persistence: DocumentPersistence,
         doc_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
+        issuer_registration: IssuerRegistration,
     ) -> Result<Self, DocumentMdocError> {
         let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, true)?;
 
@@ -170,9 +170,22 @@ impl Document {
             persistence,
             doc_type,
             attributes: document_attributes,
+            issuer_registration,
         };
 
         Ok(document)
+    }
+
+    pub(crate) fn from_unsigned_mdoc(
+        mdoc: UnsignedMdoc,
+        issuer_registration: IssuerRegistration,
+    ) -> Result<Self, DocumentMdocError> {
+        Document::from_mdoc_attributes(
+            DocumentPersistence::InMemory,
+            &mdoc.doc_type,
+            mdoc.attributes,
+            issuer_registration,
+        )
     }
 }
 
@@ -278,11 +291,19 @@ impl MissingDisclosureAttributes {
 impl DisclosureDocument {
     pub(crate) fn from_mdoc_attributes(
         doc_type: &str,
-        attributes: IndexMap<NameSpace, Vec<Entry>>,
+        attributes: ProposedDocumentAttributes,
     ) -> Result<Self, DocumentMdocError> {
-        let (doc_type, document_attributes) = document_attributes_from_mdoc_attributes(doc_type, attributes, false)?;
+        let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
+            .map_err(|error| DocumentMdocError::Certificate {
+                doc_type: doc_type.to_owned(),
+                error,
+            })?
+            .expect("IssuerRegistration must exist after successful issuance");
+        let (doc_type, document_attributes) =
+            document_attributes_from_mdoc_attributes(doc_type, attributes.attributes, false)?;
 
         let document = DisclosureDocument {
+            issuer_registration,
             doc_type,
             attributes: document_attributes,
         };
@@ -291,16 +312,28 @@ impl DisclosureDocument {
     }
 }
 
-#[cfg(feature = "mock")]
-pub mod mock {
-    use chrono::{Days, Utc};
+#[cfg(test)]
+pub mod tests {
+    use std::{collections::HashMap, mem};
 
-    use nl_wallet_mdoc::Tdate;
+    use assert_matches::assert_matches;
+    use chrono::{Days, Utc};
+    use once_cell::sync::Lazy;
+    use rstest::rstest;
+
+    use nl_wallet_mdoc::{server_keys::KeyPair, Tdate};
+
+    use crate::wallet::rvig_registration;
 
     use super::{
         super::{ADDRESS_DOCTYPE, PID_DOCTYPE},
         *,
     };
+
+    static ISSUER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
+    });
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
@@ -427,22 +460,13 @@ pub mod mock {
 
         unsigned_mdoc
     }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use std::{collections::HashMap, mem};
-
-    use assert_matches::assert_matches;
-    use rstest::rstest;
-
-    use super::{super::PID_DOCTYPE, mock::*, *};
 
     #[test]
     fn test_minimal_unsigned_mdoc_to_document_mapping() {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
-        let document = Document::try_from(unsigned_mdoc).expect("Could not convert minimal mdoc to document");
+        let document = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+            .expect("Could not convert minimal mdoc to document");
 
         assert_matches!(document.persistence, DocumentPersistence::InMemory);
         assert_eq!(document.doc_type, PID_DOCTYPE);
@@ -492,7 +516,8 @@ pub mod tests {
     fn test_full_unsigned_mdoc_to_document_mapping() {
         let unsigned_mdoc = create_full_unsigned_pid_mdoc();
 
-        let document = Document::try_from(unsigned_mdoc).expect("Could not convert full mdoc to document");
+        let document = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+            .expect("Could not convert full mdoc to document");
 
         assert_matches!(
             document.attributes.get("gender").unwrap(),
@@ -509,7 +534,7 @@ pub mod tests {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.doc_type = "com.example.foobar".to_string();
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -523,7 +548,7 @@ pub mod tests {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -538,7 +563,8 @@ pub mod tests {
         unsigned_mdoc = create_full_unsigned_pid_mdoc();
         unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
-        _ = Document::try_from(unsigned_mdoc).expect("Could not convert full mdoc to document");
+        _ = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+            .expect("Could not convert full mdoc to document");
     }
 
     #[test]
@@ -553,7 +579,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -577,7 +603,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -606,7 +632,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -630,7 +656,7 @@ pub mod tests {
             value: DataElementValue::Text("Foo Bar".to_string()),
         });
 
-        let result = Document::try_from(unsigned_mdoc);
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
 
         assert_matches!(
             result,
@@ -648,9 +674,14 @@ pub mod tests {
     fn test_mdoc_to_proposed_disclosure_document_mapping_minimal() {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
-        let disclosure_document =
-            DisclosureDocument::from_mdoc_attributes(&unsigned_mdoc.doc_type, unsigned_mdoc.attributes)
-                .expect("Could not convert attributes to proposed disclosure document");
+        let disclosure_document = DisclosureDocument::from_mdoc_attributes(
+            &unsigned_mdoc.doc_type,
+            ProposedDocumentAttributes {
+                attributes: unsigned_mdoc.attributes,
+                issuer: ISSUER_KEY.certificate().clone(),
+            },
+        )
+        .expect("Could not convert attributes to proposed disclosure document");
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
@@ -706,8 +737,14 @@ pub mod tests {
         )]);
 
         // This should not result in a `DocumentMdocError::MissingAttribute` error.
-        let disclosure_document = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes)
-            .expect("Could not convert attributes to proposed disclosure document");
+        let disclosure_document = DisclosureDocument::from_mdoc_attributes(
+            PID_DOCTYPE,
+            ProposedDocumentAttributes {
+                attributes,
+                issuer: ISSUER_KEY.certificate().clone(),
+            },
+        )
+        .expect("Could not convert attributes to proposed disclosure document");
 
         assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
         assert_eq!(
@@ -733,7 +770,13 @@ pub mod tests {
             }],
         )]);
 
-        let result = DisclosureDocument::from_mdoc_attributes("com.example.foobar", attributes);
+        let result = DisclosureDocument::from_mdoc_attributes(
+            "com.example.foobar",
+            ProposedDocumentAttributes {
+                attributes,
+                issuer: ISSUER_KEY.certificate().clone(),
+            },
+        );
 
         assert_matches!(
             result,
@@ -751,7 +794,13 @@ pub mod tests {
             }],
         )]);
 
-        let result = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+        let result = DisclosureDocument::from_mdoc_attributes(
+            PID_DOCTYPE,
+            ProposedDocumentAttributes {
+                attributes,
+                issuer: ISSUER_KEY.certificate().clone(),
+            },
+        );
 
         assert_matches!(
             result,
@@ -776,7 +825,13 @@ pub mod tests {
             }],
         )]);
 
-        let result = DisclosureDocument::from_mdoc_attributes(PID_DOCTYPE, attributes);
+        let result = DisclosureDocument::from_mdoc_attributes(
+            PID_DOCTYPE,
+            ProposedDocumentAttributes {
+                attributes,
+                issuer: ISSUER_KEY.certificate().clone(),
+            },
+        );
 
         assert_matches!(
             result,

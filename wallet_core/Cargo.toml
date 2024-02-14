@@ -35,7 +35,7 @@ rust-version = "1.75"
 async_fn_in_trait = "allow"
 
 [workspace.dependencies]
-aes-gcm = "0.10.1"
+aes-gcm = "0.10.3"
 android_logger = "0.13.1"
 anyhow = "1.0.66"
 assert_cmd = "2.0.12"
@@ -45,6 +45,7 @@ assert_matches = "1"
 async-trait = "0.1.68"
 axum = { version = "0.6.19", default-features = false }
 axum-extra = "0.8.0"
+axum-server = "0.5.1"
 backtrace = "0.3.67"
 base64 = "0.21.0"
 chrono = { version = "0.4.26", default-features = false }
@@ -71,7 +72,6 @@ itertools = "0.11.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = "8.2.0"
-lazy_static = "1.4.0"
 libsqlite3-sys = { version = "0.26.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.11.4"
@@ -110,8 +110,9 @@ sha2 = "0.10.6"
 strfmt = "0.2.4"
 strum = "0.25.0"
 syn = "2.0"
-tempfile = "3.5.0"
+tempfile = "3.9.0"
 thiserror = "1.0.39"
+time = "0.3.31"
 tokio = { version = "1.27.0", default-features = false }
 tower-http = { version = "0.4.0", default-features = false }
 tracing = "0.1"

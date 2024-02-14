@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/card/detail/argument/card_detail_screen_argument.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 
-import '../../../../mocks/mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 
 void main() {
   group(

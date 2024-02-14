@@ -4,11 +4,15 @@ abstract class OrganizationDetailEvent extends Equatable {
   const OrganizationDetailEvent();
 }
 
-class OrganizationLoadTriggered extends OrganizationDetailEvent {
-  final String organizationId;
+class OrganizationProvided extends OrganizationDetailEvent {
+  final Organization organization;
+  final bool sharedDataWithOrganizationBefore;
 
-  const OrganizationLoadTriggered({required this.organizationId});
+  const OrganizationProvided({
+    required this.organization,
+    required this.sharedDataWithOrganizationBefore,
+  });
 
   @override
-  List<Object?> get props => [organizationId];
+  List<Object?> get props => [organization, sharedDataWithOrganizationBefore];
 }

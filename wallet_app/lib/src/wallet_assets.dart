@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class WalletAssets {
   static Future<void> preloadPidSvgs() async {
-    final svgs = [svg_rijks_card_holo, svg_rijks_card_bg_light, svg_rijks_card_bg_dark];
+    final svgs = [svg_rijks_card_holo, svg_rijks_card_bg_light, svg_rijks_card_bg_dark, svg_qr_button];
     final loaders = svgs.map((svg) => SvgAssetLoader(svg));
     await Future.wait(
       loaders.map(
@@ -19,6 +19,7 @@ class WalletAssets {
   static const svg_rijks_card_holo = 'assets/non-free/svg/rijks_card_holo.svg';
   static const svg_rijks_card_bg_light = 'assets/non-free/svg/rijks_card_bg_light.svg';
   static const svg_rijks_card_bg_dark = 'assets/non-free/svg/rijks_card_bg_dark.svg';
+  static const svg_qr_button = 'assets/non-free/svg/qr_button.svg';
 
   // IMAGES
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';
@@ -68,6 +69,5 @@ class WalletAssets {
   static const logo_rp_placeholder = 'assets/non-free/logos/rp_placeholder.png';
 
   // ICONS
-  static const icon_first_share = 'assets/non-free/icons/first_share.png';
   static const icon_card_share = 'assets/non-free/icons/card_share.png';
 }

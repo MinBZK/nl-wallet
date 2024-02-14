@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
-import org.junit.jupiter.api.Test
+import org.junitpioneer.jupiter.RetryingTest
 import screen.introduction.IntroductionScreen
 import screen.splash.SplashScreen
 
@@ -22,7 +22,7 @@ class AppStartTests : TestBase() {
         introductionScreen = IntroductionScreen()
     }
 
-    @Test
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("1. When the App is started, it shows a loading screen until necessary resources are loaded, including the name and logo of the app.")
     fun verifySplashScreen() {
         val splashScreen = SplashScreen()
@@ -33,21 +33,21 @@ class AppStartTests : TestBase() {
     @DisplayName("2. When a language has not been configured in-app, the App uses the language preferences of the OS.")
     inner class LanguagePreferences {
 
-        @Test
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("dutch"))
         @DisplayName("2.1. If the device language is set to Dutch, then the app starts in Dutch")
         fun verifyDutchLanguage() {
             assertEquals(introductionScreen.readNextButtonText(), "Volgende")
         }
 
-        @Test
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
         @DisplayName("2.2. If the device language is set to English, then the app starts in English")
         fun verifyEnglishLanguage() {
             assertEquals(introductionScreen.readNextButtonText(), "Next")
         }
 
-        @Test
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("france"))
         @DisplayName("2.3. If the device language is set to France, then the app starts in English")
         fun verifyOtherLanguage() {
@@ -55,15 +55,14 @@ class AppStartTests : TestBase() {
         }
     }
 
-    @Test
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("3. When a PIN has not yet been set up, the App starts UC 1.1 Introduce the App")
     fun verifyAppStartBeforeSecuritySetup() {
         assertTrue(introductionScreen.page1Visible())
     }
 
-    //@Test
-    @DisplayName("4. When a PIN has been set up before, the App starts UC 2.3 Unlock the App")
-    fun verifyAppStartAfterSecuritySetup() {
-        // Should be tested in security related feature.
-    }
+    /**
+     * 4. When a PIN has been set up before, the App starts UC 2.3 Unlock the App
+     * >> Should be tested in security related feature.
+     */
 }

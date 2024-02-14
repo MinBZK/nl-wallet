@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/flow_terminal_page.dart';
+import '../../common/page/legacy_terminal_page.dart';
 
 class IssuanceGenericErrorPage extends StatelessWidget {
   final VoidCallback onClosePressed;
@@ -13,7 +13,7 @@ class IssuanceGenericErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FlowTerminalPage(
+    return LegacyTerminalPage(
       icon: Icons.priority_high,
       iconColor: context.theme.primaryColorDark,
       title: context.l10n.issuanceGenericErrorPageTitle,

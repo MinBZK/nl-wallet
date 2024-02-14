@@ -2,7 +2,8 @@ use std::env;
 
 use assert_matches::assert_matches;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
-use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng, pkcs8::EncodePrivateKey};
+use p256::{ecdsa::SigningKey, pkcs8::EncodePrivateKey};
+use rand_core::OsRng;
 use regex::Regex;
 use reqwest::header::HeaderValue;
 use serial_test::serial;
@@ -24,19 +25,19 @@ pub mod common;
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_config() {
     let mut served_wallet_config = default_configuration();
     served_wallet_config.lock_timeouts.inactive_timeout = 1;
     served_wallet_config.lock_timeouts.background_timeout = 1;
     served_wallet_config.version = 2;
 
-    let cs_settings = config_server_settings();
+    let mut cs_settings = config_server_settings();
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
     let config_server_config = ConfigServerConfiguration {
         base_url: local_config_base_url(&cs_settings.port),
         ..Default::default()
     };
-    start_config_server(cs_settings, config_jwt(&served_wallet_config)).await;
+    start_config_server(cs_settings).await;
 
     let settings = wallet_provider_settings();
     start_wallet_provider(settings.clone()).await;
@@ -51,7 +52,8 @@ async fn test_wallet_config() {
 
     let http_config = HttpConfigurationRepository::new(
         config_server_config.base_url,
-        config_server_config.signing_public_key.into(),
+        config_server_config.trust_anchors,
+        (&config_server_config.signing_public_key).into(),
         storage_path.clone(),
         wallet_config,
     )
@@ -78,19 +80,19 @@ async fn test_wallet_config() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_config_stale() {
     let settings = wallet_provider_settings();
 
     let mut served_wallet_config = default_configuration();
     served_wallet_config.account_server.base_url = local_wp_base_url(&settings.webserver.port);
 
-    let cs_settings = config_server_settings();
+    let mut cs_settings = config_server_settings();
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
     let config_server_config = ConfigServerConfiguration {
         base_url: local_config_base_url(&cs_settings.port),
         ..Default::default()
     };
-    start_config_server(cs_settings, config_jwt(&served_wallet_config)).await;
+    start_config_server(cs_settings).await;
 
     start_wallet_provider(settings.clone()).await;
 
@@ -99,7 +101,8 @@ async fn test_wallet_config_stale() {
 
     let http_config = HttpConfigurationRepository::new(
         config_server_config.base_url,
-        config_server_config.signing_public_key.into(),
+        config_server_config.trust_anchors,
+        (&config_server_config.signing_public_key).into(),
         env::temp_dir(),
         wallet_config,
     )
@@ -116,7 +119,6 @@ async fn test_wallet_config_stale() {
 
 #[tokio::test]
 #[serial]
-#[cfg_attr(not(feature = "db_test"), ignore)]
 async fn test_wallet_config_signature_verification_failed() {
     let settings = wallet_provider_settings();
 
@@ -126,7 +128,7 @@ async fn test_wallet_config_signature_verification_failed() {
     // we already have in the default configuration
     served_wallet_config.version = 0;
 
-    let cs_settings = config_server_settings();
+    let mut cs_settings = config_server_settings();
     let config_server_config = ConfigServerConfiguration {
         base_url: local_config_base_url(&cs_settings.port),
         ..Default::default()
@@ -142,10 +144,10 @@ async fn test_wallet_config_signature_verification_failed() {
         &served_wallet_config,
         &EncodingKey::from_ec_der(pkcs8_der.as_bytes()),
     )
-    .unwrap()
-    .into_bytes();
+    .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
-    start_config_server(cs_settings, jwt).await;
+    cs_settings.wallet_config_jwt = jwt;
+    start_config_server(cs_settings).await;
 
     start_wallet_provider(settings.clone()).await;
 
@@ -154,7 +156,8 @@ async fn test_wallet_config_signature_verification_failed() {
 
     let http_config = HttpConfigurationRepository::new(
         config_server_config.base_url,
-        config_server_config.signing_public_key.into(),
+        config_server_config.trust_anchors,
+        (&config_server_config.signing_public_key).into(),
         env::temp_dir(),
         wallet_config,
     )

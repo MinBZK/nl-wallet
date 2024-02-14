@@ -7,10 +7,10 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
-    mock::{generate_issuance_key_and_ca, SoftwareKeyFactory},
-    server_keys::SingleKeyRing,
+    server_keys::{KeyPair, SingleKeyRing},
     server_state::{MemorySessionStore, SessionState},
-    utils::x509::Certificate,
+    software_key_factory::SoftwareKeyFactory,
+    utils::{issuer_auth::IssuerRegistration, x509::Certificate},
     Tdate,
 };
 use openid4vc::{
@@ -25,7 +25,8 @@ use openid4vc::{
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
 fn setup() -> (MockIssuer, Certificate, Url) {
-    let (privkey, ca) = generate_issuance_key_and_ca().unwrap();
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let privkey = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
     let server_url = "https://example.com/".parse().unwrap();
 
     let issuer = MockIssuer::new(
@@ -36,7 +37,7 @@ fn setup() -> (MockIssuer, Certificate, Url) {
         vec!["https://example.com".to_string()],
     );
 
-    (issuer, ca, server_url.join("issuance/").unwrap())
+    (issuer, ca.certificate().clone(), server_url.join("issuance/").unwrap())
 }
 
 #[tokio::test]

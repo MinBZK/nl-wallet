@@ -10,7 +10,7 @@ import 'package:wallet/src/feature/common/widget/history/timeline_section_sliver
 import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
-import '../../../../mocks/mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 
 void main() {
   const kGoldenSize = Size(350, 356);
@@ -24,11 +24,12 @@ void main() {
       requestPurpose: 'Request Purpose'.untranslated,
     ),
     OperationTimelineAttribute(
-        dateTime: DateTime(2023, 1, 2),
-        dataAttributes: [WalletMockData.textDataAttribute],
-        organization: WalletMockData.organization,
-        status: OperationStatus.expired,
-        cardTitle: 'Card Title'.untranslated),
+      dateTime: DateTime(2023, 1, 2),
+      dataAttributes: [WalletMockData.textDataAttribute],
+      organization: WalletMockData.organization,
+      status: OperationStatus.expired,
+      card: WalletMockData.card,
+    ),
     SigningTimelineAttribute(
       dateTime: DateTime(2023, 1, 3),
       dataAttributes: [WalletMockData.textDataAttribute],

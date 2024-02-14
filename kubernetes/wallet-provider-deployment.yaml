@@ -45,25 +45,7 @@ spec:
             - name: pkcs11-config-volume
               mountPath: /cs_pkcs11_R3.cfg
               subPath: cs_pkcs11_R3.cfg
-            - name: wallet-config-volume
-              mountPath: /wallet.toml
-              subPath: wallet.toml
           env:
-            - name: WALLET_PROVIDER_CERTIFICATE_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: nl-wallet-secret-signing-keys
-                  key: certificate_private_key
-            - name: WALLET_PROVIDER_INSTRUCTION_RESULT_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: nl-wallet-secret-signing-keys
-                  key: instruction_result_private_key
-            - name: WALLET_PROVIDER_PIN_HASH_SALT
-              valueFrom:
-                secretKeyRef:
-                  name: nl-wallet-secret-signing-keys
-                  key: pin_hash_salt
             - name: WALLET_PROVIDER_DATABASE__NAME
               value: wallet_provider
             - name: WALLET_PROVIDER_DATABASE__HOST
@@ -81,7 +63,7 @@ spec:
             - name: WALLET_PROVIDER_HSM__USER_PIN
               valueFrom:
                 secretKeyRef:
-                  name: nl-wallet-provider-hsm
+                  name: nl-wallet-hsm-config
                   key: user_pin
             - name: CS_PKCS11_R3_CFG
               value: "/cs_pkcs11_R3.cfg"
@@ -89,6 +71,3 @@ spec:
         - name: pkcs11-config-volume
           configMap:
             name: nl-wallet-hsm-pkcs11
-        - name: wallet-config-volume
-          configMap:
-            name: nl-wallet-config
