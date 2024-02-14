@@ -162,6 +162,18 @@ class SigningKeyBridgeInstrumentedTest {
     }
 
     @Test
+    fun test_key_deletion() {
+        val keyAPublicKey = signingKeyBridge.getOrCreateKey(KEY_1_IDENTIFIER).publicKey()
+        signingKeyBridge.delete(KEY_1_IDENTIFIER)
+        val keyBPublicKey = signingKeyBridge.getOrCreateKey(KEY_1_IDENTIFIER).publicKey()
+        assertNotEquals(
+            "Keys with same identifier should be different after intermediate deletion",
+            keyAPublicKey,
+            keyBPublicKey
+        )
+    }
+
+    @Test
     fun bridge_test_signature() {
         // Explicitly load platform_support since hw_keystore_test_hardware_signature() is stripped from rust_core
         System.loadLibrary("platform_support")
@@ -175,7 +187,7 @@ class SigningKeyBridgeInstrumentedTest {
     private fun isValidSignature(
         signatureBytes: ByteArray,
         payload: ByteArray,
-        publicKeyBytes: ByteArray
+        publicKeyBytes: ByteArray,
     ): Boolean {
         val x509EncodedKeySpec = X509EncodedKeySpec(publicKeyBytes)
         val keyFactory: KeyFactory = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_EC)
