@@ -482,9 +482,11 @@ build-ws-migrations-image:
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
+    when: always
     paths:
       - "*.aab"
       - "*.apk"
+      - wallet_app/android/app/src/main/AndroidManifest.xml
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -511,6 +513,7 @@ build-ws-migrations-image:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
+    UL_HOSTNAME: $EXTERNAL_HOSTNAME_ONT
 
 build-android-app-latest-release:
   extends: .build-android-app-latest
@@ -545,6 +548,7 @@ build-android-app-mock-release:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
     APP_MOCK: "false"
+    UL_HOSTNAME: $EXTERNAL_HOSTNAME_DEMO
 
 build-android-app-demo-release:
   extends: .build-android-app-demo
