@@ -762,6 +762,11 @@ update-automation-test-branch:
   resource_group: automation-tests
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:1b0d6c2f6fe1e66d5f72e3d76648c973c9d0c0fa1bf57c3d94da30f6e8c97414"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "$AUTOMATION_TESTS_BRANCH"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "$AUTOMATION_TESTS_BRANCH"
+      when: manual
   artifacts:
     when: always
     paths:
@@ -781,6 +786,8 @@ run-automation-tests-12:
   needs:
     - job: run-automation-tests-13
       artifacts: false
+    - job: run-automation-tests-14
+      artifacts: false
   variables:
     BROWSERSTACK_DEVICE: "Google Pixel 6"
 
@@ -794,11 +801,6 @@ run-automation-tests-13:
 
 run-automation-tests-14:
   extends: [.run-automation-tests]
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == "$AUTOMATION_TESTS_BRANCH"
-      when: always
-    - if: $CI_COMMIT_BRANCH == "$AUTOMATION_TESTS_BRANCH"
-      when: manual
   variables:
     BROWSERSTACK_DEVICE: "Google Pixel 8"
 
