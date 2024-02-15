@@ -12,7 +12,7 @@ class MenuScreen : MobileActions() {
     private val feedbackButton = find.byText(l10n.getString("menuScreenFeedbackCta"))
     private val aboutButton = find.byText(l10n.getString("menuScreenAboutCta"))
     private val logoutButton = find.byText(l10n.getString("menuScreenLockCta"))
-    private val backButton = find.byToolTip(l10n.getString("generalWCAGBack"))
+    private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
 
     fun visible() = isElementVisible(screen)
 
@@ -21,8 +21,6 @@ class MenuScreen : MobileActions() {
             isElementVisible(feedbackButton) && isElementVisible(aboutButton) && isElementVisible(logoutButton)
 
     fun logoutButtonVisible() = isElementVisible(logoutButton)
-
-    fun backButtonVisible() = isElementVisible(backButton)
 
     fun clickHelpButton() = clickElement(helpButton)
 
@@ -36,5 +34,5 @@ class MenuScreen : MobileActions() {
 
     fun clickLogoutButton() = clickElement(logoutButton)
 
-    fun clickBackButton() = clickElement(backButton)
+    fun clickBottomBackButton() = clickElement(bottomBackButton)
 }

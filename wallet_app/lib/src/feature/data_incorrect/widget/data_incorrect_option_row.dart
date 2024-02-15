@@ -14,8 +14,8 @@ class DataIncorrectOptionRow extends StatelessWidget {
     required this.cta,
     required this.icon,
     required this.onTap,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

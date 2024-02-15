@@ -13,8 +13,8 @@ class LinkButton extends StatelessWidget {
     required this.child,
     this.onPressed,
     this.customPadding,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

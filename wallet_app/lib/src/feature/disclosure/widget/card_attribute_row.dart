@@ -11,8 +11,8 @@ class CardAttributeRow extends StatelessWidget {
 
   const CardAttributeRow({
     required this.entry,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

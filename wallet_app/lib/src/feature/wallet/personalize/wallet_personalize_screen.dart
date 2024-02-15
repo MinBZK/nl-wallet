@@ -20,8 +20,8 @@ import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/wallet_app_bar.dart';
+import '../../dashboard/dashboard_screen.dart';
 import '../../digid_help/digid_help_screen.dart';
-import '../../home/home_screen.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
@@ -32,7 +32,7 @@ import 'page/wallet_personalize_success_page.dart';
 import 'wallet_personalize_no_digid_screen.dart';
 
 class WalletPersonalizeScreen extends StatelessWidget {
-  const WalletPersonalizeScreen({Key? key}) : super(key: key);
+  const WalletPersonalizeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +223,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       ),
       body: WalletPersonalizeSuccessPage(
         key: const Key('personalizeSuccessPage'),
-        onContinuePressed: () => HomeScreen.show(context, cards: state.addedCards),
+        onContinuePressed: () => DashboardScreen.show(context, cards: state.addedCards),
         cards: state.addedCards,
       ),
     );

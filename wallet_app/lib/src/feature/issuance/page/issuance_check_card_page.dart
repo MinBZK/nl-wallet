@@ -19,8 +19,8 @@ class IssuanceCheckCardPage extends StatelessWidget {
     required this.card,
     required this.totalNrOfCards,
     required this.currentCardIndex,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

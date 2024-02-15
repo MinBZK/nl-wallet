@@ -26,7 +26,7 @@ class PolicyScreen extends StatelessWidget {
   final Policy policy;
   final VoidCallback? onReportIssuePressed;
 
-  const PolicyScreen({required this.policy, this.onReportIssuePressed, Key? key}) : super(key: key);
+  const PolicyScreen({required this.policy, this.onReportIssuePressed, super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -18,9 +19,10 @@ import '../common/widget/activity_summary.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
+import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/wallet_app_bar.dart';
-import '../home/bloc/home_bloc.dart';
+import 'argument/dashboard_screen_argument.dart';
 import 'bloc/dashboard_bloc.dart';
 
 /// Defines the width required to render a card,
@@ -28,7 +30,18 @@ import 'bloc/dashboard_bloc.dart';
 const _kCardBreakPointWidth = 300.0;
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  static DashboardScreenArgument? getArgument(RouteSettings settings) {
+    final args = settings.arguments;
+    if (args == null) return null;
+    try {
+      return DashboardScreenArgument.fromJson(args as Map<String, dynamic>);
+    } catch (exception, stacktrace) {
+      Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
+      return null;
+    }
+  }
+
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -48,14 +61,14 @@ class DashboardScreen extends StatelessWidget {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return WalletAppBar(
       leading: IconButton(
-        onPressed: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.menu)),
+        onPressed: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
         icon: const Icon(Icons.menu),
         tooltip: context.l10n.dashboardScreenTitle,
       ),
       title: ExcludeSemantics(
         excluding: true /* Excluding as the IconButton above is already read out, including the 'menu' tooltip */,
         child: GestureDetector(
-          onTap: () => context.read<HomeBloc>().add(const HomeTabPressed(HomeTab.menu)),
+          onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
           child: Text(
             context.l10n.dashboardScreenTitle,
             style: context.textTheme.titleMedium!.copyWith(
@@ -123,6 +136,9 @@ class DashboardScreen extends StatelessWidget {
         ),
         SliverToBoxAdapter(
           child: _buildFooter(context),
+        ),
+        SliverSizedBox(
+          height: context.mediaQuery.padding.bottom,
         )
       ],
     );
@@ -217,6 +233,19 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Show the [DashboardScreen], placing it at the root of the navigation stack. When [cards] are provided
+  /// the [DashboardBloc] is initialized with these cards, so that they are instantly
+  /// available, e.g. useful when triggering Hero animations.
+  static void show(BuildContext context, {List<WalletCard>? cards}) {
+    if (cards != null) SecuredPageRoute.overrideDurationOfNextTransition(const Duration(milliseconds: 800));
+    Navigator.restorablePushNamedAndRemoveUntil(
+      context,
+      WalletRoutes.dashboardRoute,
+      ModalRoute.withName(WalletRoutes.splashRoute),
+      arguments: cards == null ? null : DashboardScreenArgument(cards: cards).toJson(),
     );
   }
 }

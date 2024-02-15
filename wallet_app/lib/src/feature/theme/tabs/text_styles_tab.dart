@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 class TextStylesTab extends StatelessWidget {
-  const TextStylesTab({Key? key}) : super(key: key);
+  const TextStylesTab({super.key});
 
   @override
   Widget build(BuildContext context) {

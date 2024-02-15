@@ -10,7 +10,7 @@ import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 
 class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
-  const WalletPersonalizeSetupFailedScreen({Key? key}) : super(key: key);
+  const WalletPersonalizeSetupFailedScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

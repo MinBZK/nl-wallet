@@ -26,8 +26,8 @@ class IssuanceProofIdentityPage extends StatelessWidget {
     required this.attributes,
     required this.policy,
     required this.isRefreshFlow,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

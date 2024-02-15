@@ -15,8 +15,8 @@ class IssuanceSuccessPage extends StatelessWidget {
     required this.onClose,
     required this.cards,
     required this.isRefreshFlow,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

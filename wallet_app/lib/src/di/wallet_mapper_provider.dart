@@ -43,7 +43,7 @@ class WalletMapperProvider extends StatelessWidget {
   final Widget child;
   final bool provideMocks;
 
-  const WalletMapperProvider({required this.child, this.provideMocks = false, Key? key}) : super(key: key);
+  const WalletMapperProvider({required this.child, this.provideMocks = false, super.key});
 
   @override
   Widget build(BuildContext context) {

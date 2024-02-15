@@ -16,7 +16,7 @@ class WalletDataSourceProvider extends StatelessWidget {
   final Widget child;
   final bool provideMocks;
 
-  const WalletDataSourceProvider({required this.child, this.provideMocks = false, Key? key}) : super(key: key);
+  const WalletDataSourceProvider({required this.child, this.provideMocks = false, super.key});
 
   @override
   Widget build(BuildContext context) {

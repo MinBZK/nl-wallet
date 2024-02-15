@@ -5,7 +5,7 @@ import '../../../wallet_constants.dart';
 class AnimatedLinearProgressIndicator extends StatelessWidget {
   final double progress;
 
-  const AnimatedLinearProgressIndicator({required this.progress, Key? key}) : super(key: key);
+  const AnimatedLinearProgressIndicator({required this.progress, super.key});
 
   @override
   Widget build(BuildContext context) {

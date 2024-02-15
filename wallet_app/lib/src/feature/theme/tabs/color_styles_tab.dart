@@ -4,7 +4,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/icon_row.dart';
 
 class ColorStylesTab extends StatelessWidget {
-  const ColorStylesTab({Key? key}) : super(key: key);
+  const ColorStylesTab({super.key});
 
   @override
   Widget build(BuildContext context) {

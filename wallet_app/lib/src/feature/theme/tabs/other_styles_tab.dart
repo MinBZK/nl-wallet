@@ -113,7 +113,7 @@ final _kSampleInteractionAttribute = InteractionTimelineAttribute(
 );
 
 class OtherStylesTab extends StatelessWidget {
-  const OtherStylesTab({Key? key}) : super(key: key);
+  const OtherStylesTab({super.key});
 
   @override
   Widget build(BuildContext context) {

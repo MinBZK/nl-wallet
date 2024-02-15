@@ -5,7 +5,7 @@ import '../../../../util/extension/build_context_extension.dart';
 class DataAttributeRowMissing extends StatelessWidget {
   final String label;
 
-  const DataAttributeRowMissing({required this.label, Key? key}) : super(key: key);
+  const DataAttributeRowMissing({required this.label, super.key});
 
   @override
   Widget build(BuildContext context) {

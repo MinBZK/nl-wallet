@@ -11,10 +11,10 @@ environment:
 
 dependencies:
   after_layout: ^1.2.0
-  app_links: ^3.4.5
-  bloc_concurrency: ^0.2.3
-  collection: ^1.17.2
-  connectivity_plus: ^5.0.1
+  app_links: ^3.5.0
+  bloc_concurrency: ^0.2.4
+  collection: ^1.18.0
+  connectivity_plus: ^5.0.2
   country_codes:
     git:
       url: https://github.com/kyle-seongwoo-jun/country_codes.git
@@ -22,36 +22,36 @@ dependencies:
       # We need those changes to resolve the localized country labels,
       # once it's merged we can fall back to normal country_code package.
       ref: 521ef1c2f1e3756eade396513b7e423664435776
-  device_info_plus: ^9.0.3
+  device_info_plus: ^9.1.2
   equatable: ^2.0.5
   ffi: ^2.1.0
   fimber: ^0.7.0
   flutter:
     sdk: flutter
-  flutter_bloc: ^8.1.3
+  flutter_bloc: ^8.1.4
   flutter_localizations:
     sdk: flutter
-  flutter_native_splash: ^2.3.6
+  flutter_native_splash: ^2.3.10
   flutter_staggered_grid_view: ^0.7.0
   flutter_sticky_header: ^0.6.5
-  flutter_svg: ^2.0.7
-  foil: ^0.9.0+1
+  flutter_svg: ^2.0.9
   golden_toolkit: ^0.15.0
   internet_connection_checker: ^1.0.0+1
   intl: ^0.18.1
   json_annotation: ^4.8.1
   json_serializable: ^6.7.1
-  meta: ^1.9.1
-  mobile_scanner: ^3.4.1
-  package_info_plus: ^4.1.0
-  permission_handler: ^10.4.3
+  meta: ^1.10.0
+  mobile_scanner: ^4.0.0
+  package_info_plus: ^5.0.1
+  permission_handler: ^11.3.0
   provider: ^6.1.1
   qr_flutter: ^4.1.0
   rxdart: ^0.27.7
-  screen_brightness: ^0.2.2+1
-  shared_preferences: ^2.2.1
-  url_launcher: ^6.1.14
-  vibration: ^1.8.1
+  screen_brightness: ^1.0.0
+  sensors_plus: ^4.0.2
+  shared_preferences: ^2.2.2
+  url_launcher: ^6.2.4
+  vibration: ^1.8.4
   visibility_detector: ^0.4.0+2
   wallet_core:
     path: ./packages/wallet_core
@@ -59,17 +59,17 @@ dependencies:
     path: ./packages/wallet_mock
 
 dev_dependencies:
-  bloc_test: ^9.1.4
-  build_runner: ^2.4.6
+  bloc_test: ^9.1.6
+  build_runner: ^2.4.8
   flutter_driver:
     sdk: flutter
-  flutter_lints: ^2.0.3
+  flutter_lints: ^3.0.1
   flutter_test:
     sdk: flutter
-  get_it: ^7.6.2
-  mockito: ^5.4.2
-  rename: ^2.1.1
-  test: ^1.24.2
+  get_it: ^7.6.7
+  mockito: ^5.4.4
+  rename: 2.1.1
+  test: ^1.24.9
 
 flutter:
   uses-material-design: true
@@ -102,7 +102,7 @@ flutter_native_splash:
   android_gravity: center
   ios_content_mode: center
   android_12:
-    image: assets/non-free/logos/3.0x/wallet.png
+    image: assets/non-free/logos/splash_logo.png
     icon_background_color: "#FCFCFC"
-    image_dark: assets/non-free/logos/3.0x/wallet.png
+    image_dark: assets/non-free/logos/splash_logo.png
     icon_background_color_dark: "#1C1E25"

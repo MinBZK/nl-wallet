@@ -7,8 +7,8 @@ class LimitFontScaling extends StatelessWidget {
   const LimitFontScaling({
     required this.maxScaleFactor,
     required this.child,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

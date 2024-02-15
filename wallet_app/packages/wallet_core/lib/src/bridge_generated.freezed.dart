@@ -12,7 +12,7 @@ part of 'bridge_generated.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#custom-getters-and-methods');
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
 mixin _$AcceptDisclosureResult {
@@ -118,7 +118,7 @@ class _$AcceptDisclosureResult_OkImpl implements AcceptDisclosureResult_Ok {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$AcceptDisclosureResult_OkImpl &&
@@ -261,7 +261,7 @@ class _$AcceptDisclosureResult_InstructionErrorImpl implements AcceptDisclosureR
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$AcceptDisclosureResult_InstructionErrorImpl &&
@@ -436,7 +436,7 @@ class _$CardPersistence_InMemoryImpl implements CardPersistence_InMemory {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) || (other.runtimeType == runtimeType && other is _$CardPersistence_InMemoryImpl);
   }
 
@@ -555,7 +555,7 @@ class _$CardPersistence_StoredImpl implements CardPersistence_Stored {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$CardPersistence_StoredImpl &&
@@ -755,7 +755,7 @@ class _$CardValue_StringImpl implements CardValue_String {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$CardValue_StringImpl &&
@@ -897,7 +897,7 @@ class _$CardValue_BooleanImpl implements CardValue_Boolean {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$CardValue_BooleanImpl &&
@@ -1039,7 +1039,7 @@ class _$CardValue_DateImpl implements CardValue_Date {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$CardValue_DateImpl &&
@@ -1181,7 +1181,7 @@ class _$CardValue_GenderImpl implements CardValue_Gender {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$CardValue_GenderImpl &&
@@ -1391,7 +1391,7 @@ class _$Image_SvgImpl implements Image_Svg {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$Image_SvgImpl &&
@@ -1531,7 +1531,7 @@ class _$Image_PngImpl implements Image_Png {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$Image_PngImpl &&
@@ -1671,7 +1671,7 @@ class _$Image_JpgImpl implements Image_Jpg {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$Image_JpgImpl &&
@@ -1812,7 +1812,7 @@ class _$Image_AssetImpl implements Image_Asset {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$Image_AssetImpl &&
@@ -2130,7 +2130,7 @@ class _$StartDisclosureResult_RequestImpl implements StartDisclosureResult_Reque
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$StartDisclosureResult_RequestImpl &&
@@ -2364,7 +2364,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl implements StartDiscl
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$StartDisclosureResult_RequestAttributesMissingImpl &&
@@ -2681,7 +2681,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletEvent_DisclosureImpl &&
@@ -2846,7 +2846,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletEvent_IssuanceImpl &&
@@ -3061,7 +3061,7 @@ class _$WalletInstructionError_IncorrectPinImpl implements WalletInstructionErro
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletInstructionError_IncorrectPinImpl &&
@@ -3205,7 +3205,7 @@ class _$WalletInstructionError_TimeoutImpl implements WalletInstructionError_Tim
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletInstructionError_TimeoutImpl &&
@@ -3327,7 +3327,7 @@ class _$WalletInstructionError_BlockedImpl implements WalletInstructionError_Blo
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType && other is _$WalletInstructionError_BlockedImpl);
   }
@@ -3494,7 +3494,7 @@ class _$WalletInstructionResult_OkImpl implements WalletInstructionResult_Ok {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) || (other.runtimeType == runtimeType && other is _$WalletInstructionResult_OkImpl);
   }
 
@@ -3623,7 +3623,7 @@ class _$WalletInstructionResult_InstructionErrorImpl implements WalletInstructio
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletInstructionResult_InstructionErrorImpl &&

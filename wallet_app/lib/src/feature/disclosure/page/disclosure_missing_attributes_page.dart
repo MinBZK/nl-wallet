@@ -17,8 +17,8 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
     required this.organization,
     required this.missingAttributes,
     required this.onDecline,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

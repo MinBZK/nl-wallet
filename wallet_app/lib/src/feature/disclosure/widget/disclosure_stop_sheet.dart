@@ -19,8 +19,8 @@ class DisclosureStopSheet extends StatelessWidget {
     this.onReportIssuePressed,
     required this.onCancelPressed,
     required this.onConfirmPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

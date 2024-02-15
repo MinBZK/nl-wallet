@@ -8,7 +8,7 @@ import '../common/widget/button/rounded_back_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 
 class IntroductionExpectationsScreen extends StatelessWidget {
-  const IntroductionExpectationsScreen({Key? key}) : super(key: key);
+  const IntroductionExpectationsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

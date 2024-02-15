@@ -23,8 +23,8 @@ class TerminalPage extends StatelessWidget {
     this.secondaryButtonCta,
     this.onSecondaryButtonPressed,
     this.illustration,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

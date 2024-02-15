@@ -95,8 +95,6 @@ open class MobileActions {
         }
     }
 
-    protected fun readElementText(element: WebElement): String? = element.text
-
     protected fun switchToWebViewContext() {
         val platform = platformName()
         if (platform == "ANDROID") {

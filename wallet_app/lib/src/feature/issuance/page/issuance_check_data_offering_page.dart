@@ -14,8 +14,8 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
     required this.onDeclinePressed,
     required this.onAcceptPressed,
     required this.attributes,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

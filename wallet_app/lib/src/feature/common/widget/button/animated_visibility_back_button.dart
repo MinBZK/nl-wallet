@@ -10,8 +10,8 @@ class AnimatedVisibilityBackButton extends StatelessWidget {
   const AnimatedVisibilityBackButton({
     required this.visible,
     this.onPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -12,8 +12,8 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
   const WalletPersonalizeSuccessPage({
     required this.onContinuePressed,
     required this.cards,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

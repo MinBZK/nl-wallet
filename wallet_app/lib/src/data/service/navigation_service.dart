@@ -51,19 +51,19 @@ class NavigationService {
       case DisclosureNavigationRequest():
         _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
-          ModalRoute.withName(WalletRoutes.homeRoute),
+          ModalRoute.withName(WalletRoutes.dashboardRoute),
           arguments: request.argument,
         );
       case IssuanceNavigationRequest():
         _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
-          ModalRoute.withName(WalletRoutes.homeRoute),
+          ModalRoute.withName(WalletRoutes.dashboardRoute),
           arguments: request.argument,
         );
       case SignNavigationRequest():
         _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
-          ModalRoute.withName(WalletRoutes.homeRoute),
+          ModalRoute.withName(WalletRoutes.dashboardRoute),
           arguments: request.argument,
         );
       case GenericNavigationRequest():

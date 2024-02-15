@@ -10,8 +10,8 @@ class IssuanceStoppedPage extends StatelessWidget {
   const IssuanceStoppedPage({
     required this.onClosePressed,
     required this.onGiveFeedbackPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

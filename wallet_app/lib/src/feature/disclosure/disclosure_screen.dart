@@ -42,7 +42,7 @@ class DisclosureScreen extends StatelessWidget {
     }
   }
 
-  const DisclosureScreen({Key? key}) : super(key: key);
+  const DisclosureScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

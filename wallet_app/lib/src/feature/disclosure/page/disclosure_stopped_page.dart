@@ -12,8 +12,8 @@ class DisclosureStoppedPage extends StatelessWidget {
   const DisclosureStoppedPage({
     required this.onClosePressed,
     required this.organization,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

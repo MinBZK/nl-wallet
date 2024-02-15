@@ -12,7 +12,7 @@ import screen.personalize.PersonalizePidDataIncorrectScreen
 import screen.personalize.PersonalizePidPreviewScreen
 
 @DisplayName("UC 3.1 - User confirms/rejects offered PID [PVW-1037]")
-class PersonalizePidPreviewScreenTests : TestBase() {
+class PersonalizePidPreviewTests : TestBase() {
 
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
 

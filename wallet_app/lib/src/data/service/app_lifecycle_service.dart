@@ -24,8 +24,8 @@ class AppLifecycleObserver extends StatefulWidget {
 
   const AppLifecycleObserver({
     this.child,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<AppLifecycleObserver> createState() => _AppLifecycleObserverState();

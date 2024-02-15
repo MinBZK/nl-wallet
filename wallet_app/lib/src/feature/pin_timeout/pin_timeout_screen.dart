@@ -27,8 +27,8 @@ class PinTimeoutScreen extends StatelessWidget {
 
   const PinTimeoutScreen({
     required this.expiryTime,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

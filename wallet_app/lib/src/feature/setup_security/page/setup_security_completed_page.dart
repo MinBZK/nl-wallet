@@ -6,7 +6,7 @@ import '../../common/page/legacy_terminal_page.dart';
 class SetupSecurityCompletedPage extends StatelessWidget {
   final VoidCallback onSetupWalletPressed;
 
-  const SetupSecurityCompletedPage({required this.onSetupWalletPressed, Key? key}) : super(key: key);
+  const SetupSecurityCompletedPage({required this.onSetupWalletPressed, super.key});
 
   @override
   Widget build(BuildContext context) {

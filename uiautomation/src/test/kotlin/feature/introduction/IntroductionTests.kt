@@ -10,7 +10,7 @@ import screen.introduction.IntroductionExpectationsScreen
 import screen.introduction.IntroductionScreen
 
 @DisplayName("UC 1.1 - App displays introductory information [PVW-1218]")
-class IntroductionScreenTests : TestBase() {
+class IntroductionTests : TestBase() {
 
     private lateinit var introductionScreen: IntroductionScreen
 

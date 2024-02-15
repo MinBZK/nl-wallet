@@ -13,8 +13,8 @@ class SecondaryButton extends StatelessWidget {
     required this.onPressed,
     required this.text,
     this.icon = Icons.arrow_forward,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -13,8 +13,6 @@ class IntroductionScreen : MobileActions() {
     private val skipButton = find.byValueKey("introductionSkipCta")
     private val backButton = find.byValueKey("introductionBackCta")
 
-    private val nextButtonText = find.byValueKey("introductionNextPageCtaText")
-
     fun page1Visible() = isElementVisible(page1)
 
     fun page2Visible() = isElementVisible(page2)
@@ -25,7 +23,7 @@ class IntroductionScreen : MobileActions() {
 
     fun page4Absent() = isElementAbsent(page4)
 
-    fun readNextButtonText() = readElementText(nextButtonText)
+    fun nextButtonTextVisible(text: String) = isElementVisible(find.byText(text))
 
     fun clickNextButton() = clickElement(nextButton)
 

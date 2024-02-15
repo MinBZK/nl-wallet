@@ -11,7 +11,7 @@ import '../common/widget/wallet_logo.dart';
 import 'bloc/splash_bloc.dart';
 
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class SplashScreen extends StatelessWidget {
         listener: (context, state) {
           if (state is SplashLoaded) {
             if (state.hasPid && state.isRegistered) {
-              Navigator.restorablePushReplacementNamed(context, WalletRoutes.homeRoute);
+              Navigator.restorablePushReplacementNamed(context, WalletRoutes.dashboardRoute);
             } else if (state.isRegistered) {
               Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute);
             } else {

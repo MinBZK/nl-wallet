@@ -11,8 +11,8 @@ class PolicyEntryRow extends StatelessWidget {
     this.icon,
     required this.title,
     required this.description,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

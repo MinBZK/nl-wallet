@@ -39,8 +39,8 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     required this.requestedAttributes,
     required this.policy,
     required this.requestPurpose,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

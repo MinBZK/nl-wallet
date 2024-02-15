@@ -11,7 +11,7 @@ import 'ui_attribute_row.dart';
 class AttributeRow extends StatelessWidget {
   final Attribute attribute;
 
-  const AttributeRow({required this.attribute, Key? key}) : super(key: key);
+  const AttributeRow({required this.attribute, super.key});
 
   @override
   Widget build(BuildContext context) {

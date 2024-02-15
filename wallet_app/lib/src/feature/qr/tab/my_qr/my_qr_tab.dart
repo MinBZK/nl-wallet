@@ -10,7 +10,7 @@ import '../../../common/widget/utility/max_brightness.dart';
 const _kLandscapeQrSize = 200.0;
 
 class MyQrTab extends StatelessWidget {
-  const MyQrTab({Key? key}) : super(key: key);
+  const MyQrTab({super.key});
 
   @override
   Widget build(BuildContext context) {

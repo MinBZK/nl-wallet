@@ -26,8 +26,8 @@ class ConfirmActionSheet extends StatelessWidget {
     required this.confirmButtonText,
     this.confirmIcon,
     this.extraContent,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -8,7 +8,7 @@ import 'pin_page.dart';
 class PinScreen extends StatelessWidget {
   final OnPinValidatedCallback? onUnlock;
 
-  const PinScreen({this.onUnlock, Key? key}) : super(key: key);
+  const PinScreen({this.onUnlock, super.key});
 
   @override
   Widget build(BuildContext context) {

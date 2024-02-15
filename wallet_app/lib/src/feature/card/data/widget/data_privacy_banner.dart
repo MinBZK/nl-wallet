@@ -8,12 +8,13 @@ class DataPrivacyBanner extends StatelessWidget {
 
   const DataPrivacyBanner({
     required this.onPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      key: const Key('dataPrivacyBanner'),
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),

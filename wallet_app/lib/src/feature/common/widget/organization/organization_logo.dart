@@ -16,8 +16,8 @@ class OrganizationLogo extends StatelessWidget {
     required this.image,
     required this.size,
     this.fixedRadius,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

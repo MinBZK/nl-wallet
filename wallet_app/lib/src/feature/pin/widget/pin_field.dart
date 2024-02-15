@@ -14,8 +14,8 @@ class PinField extends StatefulWidget {
     required this.digits,
     required this.enteredDigits,
     required this.state,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<PinField> createState() => _PinFieldState();

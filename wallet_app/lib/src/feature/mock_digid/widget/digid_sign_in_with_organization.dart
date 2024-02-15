@@ -8,7 +8,7 @@ import '../../common/widget/organization/organization_logo.dart';
 const _kOrganizationLogoSize = 72.0;
 
 class DigidSignInWithOrganization extends StatelessWidget {
-  const DigidSignInWithOrganization({Key? key}) : super(key: key);
+  const DigidSignInWithOrganization({super.key});
 
   @override
   Widget build(BuildContext context) {

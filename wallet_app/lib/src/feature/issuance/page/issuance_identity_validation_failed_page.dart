@@ -10,8 +10,8 @@ class IssuanceIdentityValidationFailedPage extends StatelessWidget {
   const IssuanceIdentityValidationFailedPage({
     required this.onClosePressed,
     required this.onSomethingNotRightPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
