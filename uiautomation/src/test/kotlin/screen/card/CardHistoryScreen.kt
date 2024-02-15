@@ -6,5 +6,5 @@ class CardHistoryScreen : MobileActions() {
 
     private val screen = find.byValueKey("cardHistoryScreen")
 
-    fun visible() = isElementVisible(screen)
+    fun visible() = isElementVisible(screen, false)
 }
