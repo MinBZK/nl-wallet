@@ -7,7 +7,7 @@ const CODE_VERIFIER_LENGTH: usize = 128;
 
 /// This represents a code verifier and code challenge pair for
 /// a PKCE exchange.
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait PkcePair {
     /// The code challenge method implemented by this pair.
     const CODE_CHALLENGE_METHOD: &'static str = "INVALID";

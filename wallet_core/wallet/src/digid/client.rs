@@ -1,13 +1,13 @@
 use base64::prelude::*;
-use openid4vc::token::{AuthorizationCode, TokenRequest, TokenRequestGrantType};
+use openid4vc::{
+    pkce::{PkcePair, S256PkcePair},
+    token::{AuthorizationCode, TokenRequest, TokenRequestGrantType},
+};
 use url::Url;
 
 use wallet_common::utils;
 
-use crate::{
-    pkce::{PkcePair, S256PkcePair},
-    utils::url::url_find_first_query_value,
-};
+use crate::utils::url::url_find_first_query_value;
 
 use super::{
     openid_client::{HttpOpenIdClient, OpenIdClient},
@@ -134,9 +134,10 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
+    use openid4vc::pkce::MockPkcePair;
     use serial_test::serial;
 
-    use crate::{digid::openid_client::MockOpenIdClient, pkce::MockPkcePair, utils::url::url_with_query_pairs};
+    use crate::{digid::openid_client::MockOpenIdClient, utils::url::url_with_query_pairs};
 
     use super::*;
 

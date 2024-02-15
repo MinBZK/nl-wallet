@@ -6,7 +6,6 @@ mod document;
 mod instruction;
 mod lock;
 mod pin;
-mod pkce;
 mod storage;
 mod utils;
 mod wallet;
@@ -41,7 +40,7 @@ pub mod wallet_deps {
             FileStorageConfigurationRepository, HttpConfigurationRepository, UpdateableConfigurationRepository,
             UpdatingFileHttpConfigurationRepository,
         },
-        digid::{DigidSession, HttpDigidSession, HttpOpenIdClient, S256PkcePair},
+        digid::{DigidSession, HttpDigidSession, HttpOpenIdClient},
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },

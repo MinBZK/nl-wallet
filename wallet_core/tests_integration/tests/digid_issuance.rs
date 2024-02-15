@@ -1,11 +1,14 @@
-use openid4vc::issuance_client::{HttpIssuerClient, HttpOpenidMessageClient, IssuerClient};
+use openid4vc::{
+    issuance_client::{HttpIssuerClient, HttpOpenidMessageClient, IssuerClient},
+    pkce::S256PkcePair,
+};
 use reqwest::Client;
 use url::Url;
 
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
 use wallet::{
     mock::default_configuration,
-    wallet_deps::{DigidSession, HttpDigidSession, HttpOpenIdClient, S256PkcePair},
+    wallet_deps::{DigidSession, HttpDigidSession, HttpOpenIdClient},
     WalletConfiguration,
 };
 use wallet_common::config::wallet_config::{PidIssuanceConfiguration, ISSUANCE_REDIRECT_URI};

@@ -1,7 +1,8 @@
 use openid::Options;
+use openid4vc::pkce::PkcePair;
 use url::Url;
 
-use crate::{pkce::PkcePair, utils::reqwest::default_reqwest_client_builder};
+use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::openid_pkce::Client;
 
@@ -85,7 +86,7 @@ mod tests {
         Mock, MockServer, ResponseTemplate,
     };
 
-    use crate::pkce::MockPkcePair;
+    use openid4vc::pkce::MockPkcePair;
 
     use super::*;
 
