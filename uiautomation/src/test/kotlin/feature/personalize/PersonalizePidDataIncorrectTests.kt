@@ -12,7 +12,7 @@ import screen.personalize.PersonalizePidDataIncorrectScreen
 import screen.personalize.PersonalizePidPreviewScreen
 
 @DisplayName("UC 3.1 - User reports that PID/address is incorrect [PVW-1040]")
-class PersonalizePidDataIncorrectScreenTests : TestBase() {
+class PersonalizePidDataIncorrectTests : TestBase() {
 
     private lateinit var personalizePidDataIncorrectScreen: PersonalizePidDataIncorrectScreen
 

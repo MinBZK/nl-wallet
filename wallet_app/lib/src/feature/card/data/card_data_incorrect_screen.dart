@@ -11,6 +11,7 @@ class CardDataIncorrectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('cardDataIncorrectScreen'),
       body: SafeArea(
         child: Column(
           children: [

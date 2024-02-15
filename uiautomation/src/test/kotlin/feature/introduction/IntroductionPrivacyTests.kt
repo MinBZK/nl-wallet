@@ -12,7 +12,7 @@ import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionPrivacyScreen
 
 @DisplayName("UC 1.1 - App displays privacy statement [PVW-1220]")
-class IntroductionPrivacyScreenTests : TestBase() {
+class IntroductionPrivacyTests : TestBase() {
 
     private lateinit var privacyScreen: IntroductionPrivacyScreen
 

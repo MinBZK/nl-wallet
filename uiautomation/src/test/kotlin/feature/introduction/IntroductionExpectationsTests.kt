@@ -11,7 +11,7 @@ import screen.introduction.IntroductionExpectationsScreen
 import screen.introduction.IntroductionPrivacyScreen
 
 @DisplayName("UC 1.1 - App displays onboarding process summary [PVW-1219]")
-class IntroductionExpectationsScreenTests : TestBase() {
+class IntroductionExpectationsTests : TestBase() {
 
     private lateinit var expectationsScreen: IntroductionExpectationsScreen
 

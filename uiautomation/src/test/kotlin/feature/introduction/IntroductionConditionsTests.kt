@@ -12,7 +12,7 @@ import screen.introduction.IntroductionConditionsScreen
 import screen.security.PinScreen
 
 @DisplayName("UC 1.1 - User accepts terms & conditions [PVW-1221]")
-class IntroductionConditionsScreenTests : TestBase() {
+class IntroductionConditionsTests : TestBase() {
 
     private lateinit var conditionsScreen: IntroductionConditionsScreen
 
