@@ -32,5 +32,7 @@ class MenuScreen : MobileActions() {
 
     fun clickAboutButton() = clickElement(aboutButton)
 
+    fun clickLogoutButton() = clickElement(logoutButton)
+
     fun clickBottomBackButton() = clickElement(bottomBackButton)
 }
