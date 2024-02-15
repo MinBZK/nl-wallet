@@ -13,7 +13,7 @@ import screen.personalize.PersonalizeInformScreen
 import screen.personalize.PersonalizeNoDigidScreen
 
 @DisplayName("UC 3.1 - App informs User before personalization [PVW-1034]")
-class PersonalizeInformScreenTests : TestBase() {
+class PersonalizeInformTests : TestBase() {
 
     private lateinit var personalizeInformScreen: PersonalizeInformScreen
 
