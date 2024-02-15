@@ -17,8 +17,8 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
   const WalletPersonalizeConfirmPinPage({
     required this.onPidAccepted,
     this.bloc,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -13,8 +13,8 @@ class SignSuccessPage extends StatelessWidget {
     required this.organizationName,
     required this.onClosePressed,
     this.onHistoryPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

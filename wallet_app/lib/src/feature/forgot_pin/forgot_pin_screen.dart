@@ -10,7 +10,7 @@ import '../common/widget/button/secondary_button.dart';
 import '../common/widget/wallet_app_bar.dart';
 
 class ForgotPinScreen extends StatelessWidget {
-  const ForgotPinScreen({Key? key}) : super(key: key);
+  const ForgotPinScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -19,8 +19,8 @@ class PinKeyboard extends StatelessWidget {
   const PinKeyboard({
     this.onKeyPressed,
     this.onBackspacePressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

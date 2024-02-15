@@ -25,7 +25,7 @@ const _kParallaxStrength = 0.4;
 const _kBackButtonSortKey = -1.0;
 
 class IntroductionScreen extends StatefulWidget {
-  const IntroductionScreen({Key? key}) : super(key: key);
+  const IntroductionScreen({super.key});
 
   @override
   State<IntroductionScreen> createState() => _IntroductionScreenState();

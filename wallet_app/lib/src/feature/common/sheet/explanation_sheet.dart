@@ -12,8 +12,8 @@ class ExplanationSheet extends StatelessWidget {
     required this.title,
     required this.description,
     required this.closeButtonText,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

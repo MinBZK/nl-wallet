@@ -8,7 +8,7 @@ import '../localization/preferred_locale_cubit.dart';
 class WalletBlocProvider extends StatelessWidget {
   final Widget child;
 
-  const WalletBlocProvider({required this.child, Key? key}) : super(key: key);
+  const WalletBlocProvider({required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {

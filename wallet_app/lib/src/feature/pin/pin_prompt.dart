@@ -8,7 +8,7 @@ import 'pin_screen.dart';
 
 /// Pin prompt that can be shown at any time to request and verify the user's pin using the static [confirm] method.
 class PinPrompt extends StatelessWidget {
-  const PinPrompt({Key? key}) : super(key: key);
+  const PinPrompt({super.key});
 
   @override
   Widget build(BuildContext context) {

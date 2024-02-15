@@ -15,7 +15,7 @@ import '../detail/argument/history_detail_screen_argument.dart';
 import 'bloc/history_overview_bloc.dart';
 
 class HistoryOverviewScreen extends StatelessWidget {
-  const HistoryOverviewScreen({Key? key}) : super(key: key);
+  const HistoryOverviewScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

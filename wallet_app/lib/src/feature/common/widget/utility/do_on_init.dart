@@ -10,8 +10,8 @@ class DoOnInit extends StatefulWidget {
   const DoOnInit({
     required this.child,
     required this.onInit,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<DoOnInit> createState() => _DoOnInitState();

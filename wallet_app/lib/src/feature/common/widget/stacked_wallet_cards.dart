@@ -12,8 +12,8 @@ class StackedWalletCards extends StatelessWidget {
   const StackedWalletCards({
     required this.cards,
     this.onCardPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

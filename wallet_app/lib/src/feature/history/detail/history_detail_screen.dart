@@ -41,7 +41,7 @@ class HistoryDetailScreen extends StatelessWidget {
     }
   }
 
-  const HistoryDetailScreen({Key? key}) : super(key: key);
+  const HistoryDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -7,7 +7,7 @@ class DigidConfirmButtons extends StatelessWidget {
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
 
-  const DigidConfirmButtons({this.onAccept, this.onDecline, Key? key}) : super(key: key);
+  const DigidConfirmButtons({this.onAccept, this.onDecline, super.key});
 
   @override
   Widget build(BuildContext context) {

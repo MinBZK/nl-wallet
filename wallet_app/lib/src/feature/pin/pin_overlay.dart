@@ -20,8 +20,8 @@ class PinOverlay extends StatelessWidget {
     required this.child,
     required this.isLockedStream,
     this.bloc,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

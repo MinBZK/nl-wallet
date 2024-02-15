@@ -11,7 +11,7 @@ import '../common/widget/sliver_wallet_app_bar.dart';
 import 'bloc/change_language_bloc.dart';
 
 class ChangeLanguageScreen extends StatelessWidget {
-  const ChangeLanguageScreen({Key? key}) : super(key: key);
+  const ChangeLanguageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

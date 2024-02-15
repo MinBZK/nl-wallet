@@ -94,7 +94,7 @@ import '../util/extension/bloc_extension.dart';
 class WalletUseCaseProvider extends StatelessWidget {
   final Widget child;
 
-  const WalletUseCaseProvider({required this.child, Key? key}) : super(key: key);
+  const WalletUseCaseProvider({required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {

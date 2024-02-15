@@ -8,11 +8,11 @@ class PinHeader extends StatelessWidget {
   final bool hasError;
 
   const PinHeader({
-    Key? key,
+    super.key,
     required this.title,
     required this.description,
     required this.hasError,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

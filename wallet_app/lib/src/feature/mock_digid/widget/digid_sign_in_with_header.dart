@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 class DigidSignInWithHeader extends StatelessWidget {
-  const DigidSignInWithHeader({Key? key}) : super(key: key);
+  const DigidSignInWithHeader({super.key});
 
   @override
   Widget build(BuildContext context) {

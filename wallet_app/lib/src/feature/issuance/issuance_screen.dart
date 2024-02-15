@@ -39,7 +39,7 @@ class IssuanceScreen extends StatelessWidget {
     }
   }
 
-  const IssuanceScreen({Key? key}) : super(key: key);
+  const IssuanceScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

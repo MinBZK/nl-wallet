@@ -10,7 +10,7 @@ import '../../common/widget/sliver_wallet_app_bar.dart';
 const _kRequestDigidUrl = 'https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen';
 
 class WalletPersonalizeNoDigidScreen extends StatelessWidget {
-  const WalletPersonalizeNoDigidScreen({Key? key}) : super(key: key);
+  const WalletPersonalizeNoDigidScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

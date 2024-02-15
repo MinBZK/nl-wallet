@@ -57,7 +57,7 @@ class WalletCardItem extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const WalletCardItem({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle1,
     this.subtitle2,
@@ -67,7 +67,7 @@ class WalletCardItem extends StatelessWidget {
     required this.brightness,
     this.onPressed,
     this.ctaAnimation,
-  }) : super(key: key);
+  });
 
   WalletCardItem.fromCardFront(
       {required BuildContext context, required CardFront front, this.onPressed, this.ctaAnimation, super.key})

@@ -10,7 +10,7 @@ import '../common/widget/wallet_app_bar.dart';
 class ReportIssueScreen extends StatelessWidget {
   final List<ReportingOption> options;
 
-  const ReportIssueScreen({required this.options, Key? key}) : super(key: key);
+  const ReportIssueScreen({required this.options, super.key});
 
   @override
   Widget build(BuildContext context) {

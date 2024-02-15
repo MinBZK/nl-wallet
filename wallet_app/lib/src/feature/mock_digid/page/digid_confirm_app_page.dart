@@ -12,8 +12,8 @@ class DigidConfirmAppPage extends StatelessWidget {
   const DigidConfirmAppPage({
     required this.onConfirmPressed,
     required this.onDeclinePressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

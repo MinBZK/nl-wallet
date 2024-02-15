@@ -47,7 +47,7 @@ class CardDetailScreen extends StatelessWidget {
 
   final String cardTitle;
 
-  const CardDetailScreen({required this.cardTitle, Key? key}) : super(key: key);
+  const CardDetailScreen({required this.cardTitle, super.key});
 
   @override
   Widget build(BuildContext context) {

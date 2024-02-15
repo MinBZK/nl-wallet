@@ -12,7 +12,7 @@ import '../../common/widget/text_with_link.dart';
 import '../theme_screen.dart';
 
 class ButtonStylesTab extends StatelessWidget {
-  const ButtonStylesTab({Key? key}) : super(key: key);
+  const ButtonStylesTab({super.key});
 
   @override
   Widget build(BuildContext context) {

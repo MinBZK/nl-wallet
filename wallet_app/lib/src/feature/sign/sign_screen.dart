@@ -33,7 +33,7 @@ class SignScreen extends StatelessWidget {
     }
   }
 
-  const SignScreen({Key? key}) : super(key: key);
+  const SignScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

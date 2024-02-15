@@ -23,8 +23,8 @@ class SetupSecurityPinPage extends StatelessWidget {
     required this.enteredDigits,
     this.showInput = true,
     this.isShowingError = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

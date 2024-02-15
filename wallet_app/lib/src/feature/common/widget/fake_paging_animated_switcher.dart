@@ -16,8 +16,8 @@ class FakePagingAnimatedSwitcher extends StatelessWidget {
     required this.child,
     this.animate = true,
     this.animateBackwards = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

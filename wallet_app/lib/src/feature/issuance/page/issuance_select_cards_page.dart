@@ -23,8 +23,8 @@ class IssuanceSelectCardsPage extends StatelessWidget {
     required this.onStopPressed,
     required this.onAddSelectedPressed,
     this.showNoSelectionError = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

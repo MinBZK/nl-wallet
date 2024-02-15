@@ -25,8 +25,8 @@ class ErrorPage extends StatelessWidget {
     this.illustration,
     this.secondaryActionText,
     this.onSecondaryActionPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   factory ErrorPage.generic(
     BuildContext context, {

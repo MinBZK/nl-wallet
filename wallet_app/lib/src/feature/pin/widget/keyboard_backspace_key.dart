@@ -5,7 +5,7 @@ import '../../../util/extension/build_context_extension.dart';
 class KeyboardBackspaceKey extends StatelessWidget {
   final VoidCallback? onBackspacePressed;
 
-  const KeyboardBackspaceKey({this.onBackspacePressed, Key? key}) : super(key: key);
+  const KeyboardBackspaceKey({this.onBackspacePressed, super.key});
 
   @override
   Widget build(BuildContext context) {

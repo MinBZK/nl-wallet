@@ -15,8 +15,8 @@ class WalletAppTestWidget extends StatelessWidget {
   const WalletAppTestWidget({
     required this.child,
     this.brightness = Brightness.light,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

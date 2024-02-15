@@ -25,8 +25,8 @@ class FlutterAppConfigurationProvider extends StatelessWidget {
     required this.builder,
     this.configProvider,
     this.defaultConfig,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -27,7 +27,7 @@ class CardHistoryScreen extends StatelessWidget {
     }
   }
 
-  const CardHistoryScreen({Key? key}) : super(key: key);
+  const CardHistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -10,11 +10,11 @@ class MenuRow extends StatelessWidget {
   final VoidCallback onTap;
 
   const MenuRow({
-    Key? key,
+    super.key,
     this.icon,
     required this.label,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

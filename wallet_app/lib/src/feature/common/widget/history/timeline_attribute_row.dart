@@ -26,8 +26,8 @@ class TimelineAttributeRow extends StatelessWidget {
     required this.attribute,
     required this.onPressed,
     this.showOperationTitle = true,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

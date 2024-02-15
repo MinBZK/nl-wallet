@@ -8,8 +8,8 @@ class DataPrivacyBanner extends StatelessWidget {
 
   const DataPrivacyBanner({
     required this.onPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

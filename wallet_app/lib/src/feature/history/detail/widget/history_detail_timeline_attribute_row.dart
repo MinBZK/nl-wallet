@@ -18,8 +18,8 @@ class HistoryDetailTimelineAttributeRow extends StatelessWidget {
 
   const HistoryDetailTimelineAttributeRow({
     required this.attribute,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

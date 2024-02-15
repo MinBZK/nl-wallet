@@ -15,8 +15,8 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
     required this.onLoginWithDigidPressed,
     required this.onNoDigidPressed,
     this.progress,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

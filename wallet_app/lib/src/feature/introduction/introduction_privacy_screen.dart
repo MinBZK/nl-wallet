@@ -11,7 +11,7 @@ import '../common/widget/button/wallet_app_bar_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
-  const IntroductionPrivacyScreen({Key? key}) : super(key: key);
+  const IntroductionPrivacyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

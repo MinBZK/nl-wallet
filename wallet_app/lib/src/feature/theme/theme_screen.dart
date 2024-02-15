@@ -8,7 +8,7 @@ import 'tabs/other_styles_tab.dart';
 import 'tabs/text_styles_tab.dart';
 
 class ThemeScreen extends StatefulWidget {
-  const ThemeScreen({Key? key}) : super(key: key);
+  const ThemeScreen({super.key});
 
   @override
   State<ThemeScreen> createState() => _ThemeScreenState();
@@ -71,7 +71,7 @@ class _ThemeScreenState extends State<ThemeScreen> with SingleTickerProviderStat
 class ThemeSectionHeader extends StatelessWidget {
   final String title;
 
-  const ThemeSectionHeader({required this.title, Key? key}) : super(key: key);
+  const ThemeSectionHeader({required this.title, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +86,7 @@ class ThemeSectionHeader extends StatelessWidget {
 class ThemeSectionSubHeader extends StatelessWidget {
   final String title;
 
-  const ThemeSectionSubHeader({required this.title, Key? key}) : super(key: key);
+  const ThemeSectionSubHeader({required this.title, super.key});
 
   @override
   Widget build(BuildContext context) {

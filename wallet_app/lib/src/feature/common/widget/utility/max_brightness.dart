@@ -8,8 +8,8 @@ class MaxBrightness extends StatefulWidget {
 
   const MaxBrightness({
     required this.child,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<MaxBrightness> createState() => _MaxBrightnessState();

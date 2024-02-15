@@ -6,7 +6,7 @@ class KeyboardDigitKey extends StatelessWidget {
   final int digit;
   final Function(int)? onKeyPressed;
 
-  const KeyboardDigitKey({required this.digit, this.onKeyPressed, Key? key}) : super(key: key);
+  const KeyboardDigitKey({required this.digit, this.onKeyPressed, super.key});
 
   @override
   Widget build(BuildContext context) {

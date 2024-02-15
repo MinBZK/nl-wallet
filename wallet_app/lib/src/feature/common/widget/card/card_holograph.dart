@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:foil/foil.dart';
 
-import '../../../../../environment.dart';
 import '../svg_or_image.dart';
+import 'gyro_gradient_overlay.dart';
 
 final Color _kWhite0 = Colors.white.withOpacity(0);
 final Color _kWhite5 = Colors.white.withOpacity(0.05);
@@ -18,27 +17,15 @@ class CardHolograph extends StatelessWidget {
   const CardHolograph({
     required this.holograph,
     required this.brightness,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // We avoid the [Roll] with the shimmer offset in tests, as it's animation never settles causing the tests to fail.
-    if (Environment.isTest) return _buildFoils();
-    return Roll(
-      crinkle: Crinkle(
-        transform: (x, y) => const TranslateGradient(percentX: 0, percentY: -.8),
-      ),
-      child: _buildFoils(),
-    );
-  }
-
-  Widget _buildFoils() {
     return Stack(
       alignment: Alignment.centerRight,
       children: [
-        Foil(
-          blendMode: BlendMode.modulate,
+        GyroGradientOverlay(
           gradient: _generateHoloGradient(),
           child: SvgOrImage(
             asset: holograph,
@@ -46,8 +33,7 @@ class CardHolograph extends StatelessWidget {
             alignment: Alignment.center,
           ),
         ),
-        Foil(
-          blendMode: BlendMode.modulate,
+        GyroGradientOverlay(
           gradient: _generateOutlineGradient(),
           child: Container(
             width: 132,

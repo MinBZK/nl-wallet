@@ -8,7 +8,7 @@ import '../../../../util/formatter/attribute_value_formatter.dart';
 class UiAttributeRow extends StatelessWidget {
   final UiAttribute attribute;
 
-  const UiAttributeRow({required this.attribute, Key? key}) : super(key: key);
+  const UiAttributeRow({required this.attribute, super.key});
 
   @override
   Widget build(BuildContext context) {
