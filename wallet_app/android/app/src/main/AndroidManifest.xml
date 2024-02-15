@@ -10,8 +10,7 @@
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:label="NL Wallet"
-    >
+        android:label="NL Wallet">
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -31,22 +30,18 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
+            <!-- Universal / deep link intent filter -->
+            <intent-filter android:autoVerify="${ulIntentFilterAutoVerify}">
                 <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="walletdebuginteraction" />
-            </intent-filter>
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="https"
-                    android:host="example.com"
-                    android:pathPrefix="/deeplink" />
-            </intent-filter>
 
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="${ulIntentFilterHost}"
+                    android:pathPrefix="${ulIntentFilterPathPrefix}"
+                    android:scheme="${ulIntentFilterScheme}" />
+            </intent-filter>
         </activity>
         <!-- Used to inform the platform_support module to load the wallet_core.so file -->
         <meta-data
