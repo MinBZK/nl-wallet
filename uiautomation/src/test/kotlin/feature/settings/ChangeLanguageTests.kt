@@ -1,4 +1,4 @@
-package feature.menu
+package feature.settings
 
 import helper.TestBase
 import navigator.OnboardingNavigator
