@@ -201,7 +201,7 @@ mod generate {
         }
     }
 
-    #[cfg(feature = "mock")]
+    #[cfg(any(test, feature = "mock"))]
     mod mock {
         use crate::{
             server_keys::KeyPair,
