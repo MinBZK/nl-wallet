@@ -45,6 +45,15 @@ if (project.hasProperty('dart-defines')) {
             }
 }
 
+// Universal / deep links config
+def ulHostname = dartEnvironmentVariables['UL_HOSTNAME']
+def ulHostnameIsSet = ulHostname != null && !ulHostname.isEmpty()
+
+def ulIntentFilterAutoVerify = ulHostnameIsSet
+def ulIntentFilterHost = ulHostnameIsSet ? ulHostname : '*'
+def ulIntentFilterPathPrefix = ulHostnameIsSet ? '/deeplink' : ''
+def ulIntentFilterScheme = ulHostnameIsSet ? 'https' : 'walletdebuginteraction'
+
 android {
     compileSdkVersion overrideFlutterCompileSdkVersion
     ndkVersion flutter.ndkVersion
@@ -83,6 +92,12 @@ android {
         targetSdkVersion overrideFlutterTargetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
+        // Set universal & deep links intent-filter placeholders
+        manifestPlaceholders['ulIntentFilterAutoVerify'] = ulIntentFilterAutoVerify
+        manifestPlaceholders['ulIntentFilterHost'] = ulIntentFilterHost
+        manifestPlaceholders['ulIntentFilterPathPrefix'] = ulIntentFilterPathPrefix
+        manifestPlaceholders['ulIntentFilterScheme'] = ulIntentFilterScheme
     }
 
     signingConfigs {
