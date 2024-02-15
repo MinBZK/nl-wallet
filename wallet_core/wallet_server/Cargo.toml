@@ -71,7 +71,7 @@ openssl = { workspace = true, features = ["vendored"] }
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 rand = { workspace = true, optional = true }
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
