@@ -1,9 +1,5 @@
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
-INTERNAL_APP_IDENTIFIER = "nl.ictu.edi.wallet"
-INTERNAL_APP_IDENTIFIER_MOCK_SECTION = "mock"
-BRANCH_APP_IDENTIFIER_SUFFIX_MAP = { "main" => "latest" }
-APP_NAME = "NL Wallet"
 
 # opt out of analytics
 opt_out_usage
@@ -31,24 +27,13 @@ private_lane :ci_get_build do
   pipeline_id.to_i + BUILD_OFFSET
 end
 
-private_lane :ci_get_app_identifier_version_and_suffix do |options|
+private_lane :ci_get_version do |options|
   ref_name = ENV["CI_COMMIT_REF_NAME"]
   UI.user_error!("No CI_COMMIT_REF_NAME environment variable set") unless ref_name
 
-  mock = options[:mock] || false
-
   release, version = ref_name.match(/([^\/]+)(?:\/(\d+\.\d+\.\d+))?$/)&.captures
-  branch_suffix = BRANCH_APP_IDENTIFIER_SUFFIX_MAP[release] || release unless release == "release"
 
-  suffix_parts = []
-  suffix_parts << INTERNAL_APP_IDENTIFIER_MOCK_SECTION if mock
-  suffix_parts << branch_suffix unless branch_suffix.nil?
-  suffix = suffix_parts.join(".")
-
-  app_identifier = INTERNAL_APP_IDENTIFIER.dup
-  app_identifier << ".#{suffix}" unless suffix.empty?
-
-  [app_identifier, version, suffix]
+  version
 end
 
 private_lane :ci_get_basic_auth do
@@ -75,20 +60,6 @@ private_lane :flutter_cmd do
   end
 end
 
-private_lane :ci_get_k8s_secrets do |options|
-  secrets = sh("kubectl", "get", "secret", options[:name], "-o" ,"jsonpath=\"{.data}\"", log: false)
-
-  JSON.parse(secrets[1...-1]).map { |key, value| [key, Base64.strict_decode64(value)] }.to_h
-end
-
-private_lane :ci_get_k8s_secret_file do |options|
-  secrets = sh("kubectl", "get", "secret", options[:name], "-o" ,"jsonpath=\"{.data.#{options[:key]}}\"", log: false)
-
-  Dir.chdir("..") do
-    File.write(options[:path], Base64.strict_decode64(secrets[1...-1]))
-  end
-end
-
 private_lane :get_newest_file do |options|
   Dir.chdir("..") do
     Dir.glob("*.#{options[:extension]}").max_by {|f| File.mtime(f)}
@@ -96,15 +67,15 @@ private_lane :get_newest_file do |options|
 end
 
 lane :upload_to_play_store_internal_track do |options|
-  app_identifier = options[:app_identifier]
+  package_name = options[:package_name]
   version = options[:version]
-  key_file = options[:key_file]
+  json_key_data = options[:json_key_data]
   
   upload_to_play_store(
-    package_name: app_identifier,
+    package_name: package_name,
     track: "internal",
-    json_key: key_file,
-    aab: "#{app_identifier}-#{version}-release.aab",
+    json_key_data: json_key_data,
+    aab: "#{package_name}-#{version}-release.aab",
     skip_upload_apk: true
   )
 end
@@ -122,28 +93,14 @@ end
 
 platform :android do
   desc "Build release and profile versions of Android app from GitLab CI"
-  lane :ci_build do
-    
-    # retrieve signing & environment secrets
-    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "keystore", path: "wallet_app/android/upload-keystore.jks")
-    ci_get_k8s_secret_file(name: "nl-wallet-play-store-upload-key", key: "key-properties", path: "wallet_app/android/key.properties")
-    ci_get_k8s_secret_file(name: "nl-wallet-core-env-file", key: "env", path: "wallet_core/wallet/.env")
-    
-    # retrieve build number
+  lane :ci_build do |options|
     build = ci_get_build
-    
-    # build non-mock app for Play Store & BrowserStack
-    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
-    
-    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "aab", build_mode: "release")
-    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "apk", build_mode: "profile")
-    
-    # build mock app for Play Store
-    mock_app = true
-    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix(mock: mock_app)
+    version = ci_get_version
 
-    build(package_name: app_identifier, build: build, version: version, name_suffix: suffix, file_format: "aab", build_mode: "release", mock_repositories: mock_app)
+    options[:build] = build
+    options[:version] = version
 
+    build(options)
   end
 
   desc "Build and sign Android app"
@@ -151,13 +108,15 @@ platform :android do
     package_name = options[:package_name] || get_app_identifier
     UI.user_error!("No app_identifier or package_name option set") unless package_name
 
+    app_name = options[:app_name]
+    UI.user_error!("No app_name option set") unless app_name
+
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
     version = options[:version] || local_version
-    name_suffix = options[:name_suffix]
     file_format = options[:file_format] || "aab"
     build_mode = options[:build_mode] || "release"
-    mock_repositories = options[:mock_repositories] || false
+    mock_repositories = options[:mock] || false
     
     # always `true`, but ignored when `mock_repositories == true`, this flag is used in local development only
     env_configuration = true
@@ -174,7 +133,7 @@ platform :android do
       sh(*flutter, "pub", "get")
 
       sh(*flutter, "pub", "run", "rename", "--target", "android", "--bundleId", package_name)
-      sh(*flutter, "pub", "run", "rename", "--target", "android", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
+      sh(*flutter, "pub", "run", "rename", "--target", "android", "--appname", app_name)
 
       sh(*flutter, "build", file_format_command, "--build-number", build.to_s, "--build-name", version.to_s, "--#{build_mode}", "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}", "--dart-define=ENV_CONFIGURATION=#{env_configuration}")
       sh("mv", "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}", "../#{package_name}-#{version}-#{build_mode}.#{file_format}")
@@ -182,39 +141,36 @@ platform :android do
   end
 
   desc "Deploy Android app from GitLab CI"
-  lane :ci_deploy do
-    
-    # retrieve upload secret
-    key_file = "play-store-key.json"
-    ci_get_k8s_secret_file(name: "nl-wallet-play-store-api-key", key: "json", path: key_file)
+  lane :ci_deploy do |options|
+    json_key_data = ENV["JSON_KEY_DATA"]
+    UI.user_error!("No JSON_KEY_DATA environment variable set") unless json_key_data
+
+    package_name = options[:package_name]
+    UI.user_error!("No package_name or package_name option set") unless package_name
 
     # retrieve local version
     local_version, _ = get_local_version_and_build
 
     # upload non-mock app
-    app_identifier, version, _ = ci_get_app_identifier_version_and_suffix
-    upload_to_play_store_internal_track(app_identifier: app_identifier, version: version || local_version, key_file: key_file)
-
-    # upload mock app
-    mock_app_identifier, _, _ = ci_get_app_identifier_version_and_suffix(mock: true)
-    upload_to_play_store_internal_track(app_identifier: mock_app_identifier, version: version || local_version, key_file: key_file)
-
-    Dir.chdir("..") do
-      sh("rm", key_file)
-    end
+    version = ci_get_version
+    upload_to_play_store_internal_track(package_name: package_name, version: version || local_version, json_key_data: json_key_data)
   end
 
   desc "Upload Android app to BrowserStack from GitLab CI"
-  lane :ci_browserstack do
-    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
+  lane :ci_browserstack do |options|
+    package_name = options[:package_name]
+    UI.user_error!("No package_name or package_name option set") unless package_name
+
+    version = ci_get_version
     local_version, local_build = get_local_version_and_build
 
-    credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
+    browserstack_user = ENV["BROWSERSTACK_USER"]
+    browserstack_key = ENV["BROWSERSTACK_KEY"]
 
     browserstack(
-      file: "#{app_identifier}-#{version || local_version}-profile.apk",
-      user: credentials["user"],
-      key: credentials["key"]
+      file: "#{package_name}-#{version || local_version}-profile.apk",
+      user: browserstack_user,
+      key: browserstack_key
     )
   end
 
@@ -230,45 +186,42 @@ end
 
 platform :ios do
   desc "Build iOS app from GitLab CI"
-  lane :ci_build do
+  lane :ci_build do |options|
     build = ci_get_build
-    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
+    version = ci_get_version
     match_basic_auth = ci_get_basic_auth
+    match_keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
 
-    ENV["MATCH_PASSWORD"] = ci_get_k8s_secrets(name: "nl-wallet-fastlane-match")["password"]
+    options[:build] = build
+    options[:version] = version
+    options[:app_store] = true
+    options[:match_basic_auth] = match_basic_auth
+    options[:keychain_password] = match_keychain_password
 
-    build(
-      bundle_id: app_identifier,
-      build: build,
-      version: version,
-      name_suffix: suffix,
-      app_store: true,
-      match_basic_auth: match_basic_auth,
-      keychain_password: "admin" # hardcoded for now
-    )
+    build(options)
   end
 
-  desc "Deploy iOS app from GitLab CI"
-  lane :ci_deploy do
-    app_identifier, version, suffix = ci_get_app_identifier_version_and_suffix
-
-    api_key_secrets = ci_get_k8s_secrets(name: "nl-wallet-app-store-api-key")
-    api_key = app_store_connect_api_key(
-      key_id: api_key_secrets["key_id"],
-      issuer_id: api_key_secrets["issuer_id"],
-      key_content: api_key_secrets["private_key"]
-    )
-
-    deploy(bundle_id: app_identifier)
-  end
-
-  desc "Upload iOS app to BrowserStack from GitLab CI"
-  lane :ci_browserstack do
-    ipa_file = get_newest_file(extension: "ipa")
-    credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
-
-    browserstack(ipa_file: ipa_file, user: credentials["user"], key: credentials["key"])
-  end
+#   desc "Deploy iOS app from GitLab CI"
+#   lane :ci_deploy do
+#     app_identifier, version, suffix = ci_get_version
+#
+#     api_key_secrets = ci_get_k8s_secrets(name: "nl-wallet-app-store-api-key")
+#     api_key = app_store_connect_api_key(
+#       key_id: api_key_secrets["key_id"],
+#       issuer_id: api_key_secrets["issuer_id"],
+#       key_content: api_key_secrets["private_key"]
+#     )
+#
+#     deploy(bundle_id: app_identifier)
+#   end
+#
+#   desc "Upload iOS app to BrowserStack from GitLab CI"
+#   lane :ci_browserstack do
+#     ipa_file = get_newest_file(extension: "ipa")
+#     credentials = ci_get_k8s_secrets(name: "nl-wallet-browserstack")
+#
+#     browserstack(ipa_file: ipa_file, user: credentials["user"], key: credentials["key"])
+#   end
 
   desc "Test iOS app"
   lane :test do
@@ -284,10 +237,12 @@ platform :ios do
     bundle_id = options[:bundle_id] || get_app_identifier
     UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
 
+    app_name = options[:app_name]
+    UI.user_error!("No app_name option set") unless app_name
+
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
     version = options[:version] || local_version
-    name_suffix = options[:name_suffix]
     build_mode = options[:build_mode] || "release"
 
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
@@ -298,7 +253,7 @@ platform :ios do
       sh(*flutter, "pub", "get")
 
       sh(*flutter, "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
-      sh(*flutter, "pub", "run", "rename", "--target", "ios", "--appname", name_suffix.nil? ? APP_NAME : "#{APP_NAME} (#{name_suffix})")
+      sh(*flutter, "pub", "run", "rename", "--target", "ios", "--appname", app_name)
 
       sh(*flutter, "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign", "--#{build_mode}")
     end
