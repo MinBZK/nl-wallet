@@ -755,7 +755,7 @@ update-automation-test-branch:
   script:
     - git fetch origin
     - git checkout $AUTOMATION_TESTS_BRANCH
-    - git merge $CI_DEFAULT_BRANCH --ff-only
+    - git merge origin/${CI_DEFAULT_BRANCH} --ff-only
     - git push origin $AUTOMATION_TESTS_BRANCH
 
 .run-automation-tests:
