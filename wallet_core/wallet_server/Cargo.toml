@@ -66,9 +66,9 @@ hyper = { version = "0.14.27", optional = true, features = ["full"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 josekit = { workspace = true, optional = true }
 mime.workspace = true
+nutype = { workspace = true, features = ["serde"] }
 openid = { workspace = true, optional = true, features = ["rustls"] }
 openssl = { workspace = true, features = ["vendored"] }
-nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 rand = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
