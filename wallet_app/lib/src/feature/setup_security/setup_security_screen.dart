@@ -22,7 +22,7 @@ const _kSelectPinScreenKey = ValueKey('selectPinScreen');
 const _kConfirmPinScreenKey = ValueKey('confirmPinScreen');
 
 class SetupSecurityScreen extends StatelessWidget {
-  const SetupSecurityScreen({Key? key}) : super(key: key);
+  const SetupSecurityScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

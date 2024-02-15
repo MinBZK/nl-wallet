@@ -11,8 +11,8 @@ const _kLandscapeButtonHeight = 56.0;
 /// Often used as a direct child of a [SliverFillRemaining] widget.
 class BottomBackButton extends StatelessWidget {
   const BottomBackButton({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

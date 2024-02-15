@@ -16,8 +16,8 @@ class DocumentSection extends StatelessWidget {
     required this.document,
     required this.organization,
     this.padding = EdgeInsets.zero,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

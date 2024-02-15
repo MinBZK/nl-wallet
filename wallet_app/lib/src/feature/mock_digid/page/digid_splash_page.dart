@@ -4,7 +4,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 
 class DigidSplashPage extends StatelessWidget {
-  const DigidSplashPage({Key? key}) : super(key: key);
+  const DigidSplashPage({super.key});
 
   @override
   Widget build(BuildContext context) {

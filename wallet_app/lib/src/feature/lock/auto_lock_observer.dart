@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -18,8 +17,8 @@ class AutoLockObserver extends StatefulWidget {
   const AutoLockObserver({
     required this.child,
     required this.configuration,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<AutoLockObserver> createState() => _AutoLockObserverState();

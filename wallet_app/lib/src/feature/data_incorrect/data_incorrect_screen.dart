@@ -8,7 +8,7 @@ import '../common/widget/sliver_wallet_app_bar.dart';
 import 'widget/data_incorrect_option_row.dart';
 
 class DataIncorrectScreen extends StatelessWidget {
-  const DataIncorrectScreen({Key? key}) : super(key: key);
+  const DataIncorrectScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

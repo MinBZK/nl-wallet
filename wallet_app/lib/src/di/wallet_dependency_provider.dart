@@ -18,8 +18,8 @@ class WalletDependencyProvider extends StatelessWidget {
   const WalletDependencyProvider({
     required this.child,
     required this.navigatorKey,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

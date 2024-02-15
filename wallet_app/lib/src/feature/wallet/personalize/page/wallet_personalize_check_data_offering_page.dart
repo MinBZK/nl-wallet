@@ -19,8 +19,8 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
     required this.onRejectPressed,
     required this.attributes,
     required this.progress,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

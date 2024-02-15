@@ -14,8 +14,8 @@ class OrganizationRow extends StatelessWidget {
     required this.subtitle,
     this.onTap,
     this.image,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

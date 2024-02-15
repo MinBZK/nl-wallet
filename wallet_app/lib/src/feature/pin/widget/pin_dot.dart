@@ -8,7 +8,7 @@ class PinDot extends StatelessWidget {
   final bool checked;
   final Color color;
 
-  const PinDot({required this.checked, this.color = Colors.black, Key? key}) : super(key: key);
+  const PinDot({required this.checked, this.color = Colors.black, super.key});
 
   @override
   Widget build(BuildContext context) {

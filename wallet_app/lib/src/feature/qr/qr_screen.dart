@@ -16,7 +16,7 @@ import 'widget/qr_scanner.dart';
 final _scannerKey = Environment.isTest ? ValueKey(DateTime.now()) : GlobalKey();
 
 class QrScreen extends StatelessWidget {
-  const QrScreen({Key? key}) : super(key: key);
+  const QrScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

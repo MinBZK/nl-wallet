@@ -9,7 +9,7 @@ import 'policy_row.dart';
 class PolicySection extends StatelessWidget {
   final Policy policy;
 
-  const PolicySection(this.policy, {Key? key}) : super(key: key);
+  const PolicySection(this.policy, {super.key});
 
   @override
   Widget build(BuildContext context) {

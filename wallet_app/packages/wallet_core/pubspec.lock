@@ -93,10 +93,10 @@ packages:
     dependency: "direct dev"
     description:
       name: build_runner
-      sha256: "10c6bcdbf9d049a0b666702cf1cee4ddfdc38f02a19d35ae392863b47519848b"
+      sha256: "581bacf68f89ec8792f5e5a0b2c4decd1c948e97ce659dc783688c8a88fbec21"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.6"
+    version: "2.4.8"
   build_runner_core:
     dependency: transitive
     description:
@@ -221,18 +221,18 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_rust_bridge
-      sha256: "7c5e94d037ccb0de7b5f7de3ff2491548d292b5aad01b01f5a5703f8aac9389b"
+      sha256: "02720226035257ad0b571c1256f43df3e1556a499f6bcb004849a0faaa0e87f0"
       url: "https://pub.dev"
     source: hosted
-    version: "1.82.4"
+    version: "1.82.6"
   freezed:
     dependency: "direct dev"
     description:
       name: freezed
-      sha256: "21bf2825311de65501d22e563e3d7605dff57fb5e6da982db785ae5372ff018a"
+      sha256: "57247f692f35f068cae297549a46a9a097100685c6780fe67177503eea5ed4e5"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.5"
+    version: "2.4.7"
   freezed_annotation:
     dependency: "direct main"
     description:

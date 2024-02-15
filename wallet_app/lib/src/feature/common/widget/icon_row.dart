@@ -11,8 +11,8 @@ class IconRow extends StatelessWidget {
     required this.icon,
     required this.text,
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

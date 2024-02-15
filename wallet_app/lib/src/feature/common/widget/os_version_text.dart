@@ -9,7 +9,7 @@ import '../../../util/extension/build_context_extension.dart';
 class OsVersionText extends StatelessWidget {
   final TextStyle? textStyle;
 
-  const OsVersionText({this.textStyle, Key? key}) : super(key: key);
+  const OsVersionText({this.textStyle, super.key});
 
   @override
   Widget build(BuildContext context) {

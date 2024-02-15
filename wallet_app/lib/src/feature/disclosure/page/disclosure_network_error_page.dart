@@ -10,8 +10,8 @@ class DisclosureNetworkErrorPage extends StatelessWidget {
   const DisclosureNetworkErrorPage({
     required this.onStopPressed,
     required this.hasInternet,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

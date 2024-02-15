@@ -32,7 +32,7 @@ import 'page/wallet_personalize_success_page.dart';
 import 'wallet_personalize_no_digid_screen.dart';
 
 class WalletPersonalizeScreen extends StatelessWidget {
-  const WalletPersonalizeScreen({Key? key}) : super(key: key);
+  const WalletPersonalizeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

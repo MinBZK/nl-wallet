@@ -9,8 +9,8 @@ const _kButtonSize = 32.0;
 
 class RoundedBackButton extends StatelessWidget {
   const RoundedBackButton({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -14,7 +14,7 @@ import '../menu/widget/menu_row.dart';
 const _kAboutUrl = 'https://edi.pleio.nl/';
 
 class AboutScreen extends StatelessWidget {
-  const AboutScreen({Key? key}) : super(key: key);
+  const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

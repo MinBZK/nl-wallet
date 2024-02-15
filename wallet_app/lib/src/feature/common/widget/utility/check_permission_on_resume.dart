@@ -10,8 +10,8 @@ class CheckPermissionOnResume extends StatefulWidget {
     required this.child,
     required this.onPermissionGranted,
     required this.permission,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<CheckPermissionOnResume> createState() => _CheckPermissionOnResumeState();

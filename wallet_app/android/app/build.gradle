@@ -22,8 +22,8 @@ if (flutterVersionName == null) {
 }
 
 def overrideFlutterMinSdkVersion = 23
-def overrideFlutterTargetSdkVersion = 33
-def overrideFlutterCompileSdkVersion = 33
+def overrideFlutterTargetSdkVersion = 34
+def overrideFlutterCompileSdkVersion = 34
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
@@ -38,11 +38,11 @@ if (keystorePropertiesFile.exists()) {
 def dartEnvironmentVariables = []
 if (project.hasProperty('dart-defines')) {
     dartEnvironmentVariables = project.property('dart-defines')
-        .split(',')
-        .collectEntries { entry ->
-            def pair = new String(entry.decodeBase64(), 'UTF-8').split('=')
-            [(pair.first()): pair.last()]
-        }
+            .split(',')
+            .collectEntries { entry ->
+                def pair = new String(entry.decodeBase64(), 'UTF-8').split('=')
+                [(pair.first()): pair.last()]
+            }
 }
 
 android {
@@ -153,7 +153,7 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
             args '--no-strip'
         }
         args 'build',
-             '-p', 'flutter_api'
+                '-p', 'flutter_api'
         if (profileMode != null) {
             args profileMode
         }

@@ -8,8 +8,8 @@ class SliverSizedBox extends StatelessWidget {
     this.width,
     this.height,
     this.child,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

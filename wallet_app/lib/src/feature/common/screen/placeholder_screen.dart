@@ -11,7 +11,7 @@ enum PlaceholderType { generic, contract }
 class PlaceholderScreen extends StatelessWidget {
   final PlaceholderType type;
 
-  const PlaceholderScreen({required this.type, Key? key}) : super(key: key);
+  const PlaceholderScreen({required this.type, super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -41,16 +41,11 @@ sealed class NavigationRequest extends Equatable {
 
 class GenericNavigationRequest extends NavigationRequest {
   const GenericNavigationRequest(
-    String destination, {
-    Object? argument,
-    List<NavigationPrerequisite> navigatePrerequisites = const [],
-    List<PreNavigationAction> preNavigationActions = const [],
-  }) : super(
-          destination,
-          argument: argument,
-          navigatePrerequisites: navigatePrerequisites,
-          preNavigationActions: preNavigationActions,
-        );
+    super.destination, {
+    super.argument,
+    super.navigatePrerequisites,
+    super.preNavigationActions,
+  });
 }
 
 class PidIssuanceNavigationRequest extends NavigationRequest {

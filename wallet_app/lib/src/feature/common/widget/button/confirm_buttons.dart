@@ -33,8 +33,8 @@ class ConfirmButtons extends StatelessWidget {
     this.forceVertical = false,
     this.acceptIcon = Icons.check,
     this.declineIcon = Icons.not_interested,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -12,11 +12,11 @@ class AppImage extends StatelessWidget {
   final Alignment alignment;
 
   const AppImage({
-    Key? key,
+    super.key,
     required this.asset,
     this.fit = BoxFit.contain,
     this.alignment = Alignment.center,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

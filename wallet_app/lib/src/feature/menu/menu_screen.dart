@@ -14,7 +14,7 @@ import 'widget/menu_row.dart';
 class MenuScreen extends StatelessWidget {
   bool get showDesignSystemRow => kDebugMode;
 
-  const MenuScreen({Key? key}) : super(key: key);
+  const MenuScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -27,8 +27,8 @@ class ErrorScreen extends StatelessWidget {
     this.illustration,
     this.secondaryActionText,
     this.onSecondaryActionPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

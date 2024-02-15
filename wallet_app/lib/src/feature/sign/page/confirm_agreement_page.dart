@@ -27,8 +27,8 @@ class ConfirmAgreementPage extends StatelessWidget {
     required this.policy,
     required this.trustProvider,
     required this.requestedAttributes,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

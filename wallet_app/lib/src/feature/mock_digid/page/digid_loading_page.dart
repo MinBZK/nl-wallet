@@ -9,7 +9,7 @@ import '../widget/digid_sign_in_with_organization.dart';
 class DigidLoadingPage extends StatelessWidget {
   final Duration mockDelay;
 
-  const DigidLoadingPage({required this.mockDelay, Key? key}) : super(key: key);
+  const DigidLoadingPage({required this.mockDelay, super.key});
 
   @override
   Widget build(BuildContext context) {

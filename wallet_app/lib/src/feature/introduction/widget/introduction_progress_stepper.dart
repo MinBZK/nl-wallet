@@ -16,8 +16,8 @@ class IntroductionProgressStepper extends StatelessWidget {
   const IntroductionProgressStepper({
     required this.currentStep,
     required this.totalSteps,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

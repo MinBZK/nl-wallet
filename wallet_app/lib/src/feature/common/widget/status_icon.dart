@@ -8,7 +8,7 @@ class StatusIcon extends StatelessWidget {
   final IconData icon;
   final Color? color;
 
-  const StatusIcon({required this.icon, this.color, Key? key}) : super(key: key);
+  const StatusIcon({required this.icon, this.color, super.key});
 
   @override
   Widget build(BuildContext context) {

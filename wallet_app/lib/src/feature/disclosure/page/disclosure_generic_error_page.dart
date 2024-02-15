@@ -8,8 +8,8 @@ class DisclosureGenericErrorPage extends StatelessWidget {
 
   const DisclosureGenericErrorPage({
     required this.onStopPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

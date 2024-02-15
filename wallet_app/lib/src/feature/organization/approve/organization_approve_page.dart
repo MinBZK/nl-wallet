@@ -40,8 +40,8 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.purpose,
     this.onReportIssuePressed,
     this.sharedDataWithOrganizationBefore = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

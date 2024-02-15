@@ -16,7 +16,7 @@ const _kDigidOrange = Color(0xFFD2762B);
 /// Screen that can be navigated to when DigiD authentication is to be faked.
 /// Most likely used via 'await MockDigidScreen.show(context);`
 class MockDigidScreen extends StatelessWidget {
-  const MockDigidScreen({Key? key}) : super(key: key);
+  const MockDigidScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

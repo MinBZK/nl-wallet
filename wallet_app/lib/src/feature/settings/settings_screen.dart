@@ -8,7 +8,7 @@ import '../common/widget/sliver_wallet_app_bar.dart';
 import '../menu/widget/menu_row.dart';
 
 class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

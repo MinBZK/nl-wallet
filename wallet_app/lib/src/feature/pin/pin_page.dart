@@ -42,8 +42,8 @@ class PinPage extends StatelessWidget {
     this.onPinValidated,
     this.onStateChanged,
     this.headerBuilder,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

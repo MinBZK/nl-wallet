@@ -10,8 +10,8 @@ import '../common/widget/wallet_app_bar.dart';
 
 class PinBlockedScreen extends StatelessWidget {
   const PinBlockedScreen({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

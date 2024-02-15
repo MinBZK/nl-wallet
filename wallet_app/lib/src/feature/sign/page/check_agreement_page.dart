@@ -25,8 +25,8 @@ class CheckAgreementPage extends StatelessWidget {
     required this.organization,
     required this.trustProvider,
     required this.document,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

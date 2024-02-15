@@ -10,7 +10,7 @@ import '../../common/widget/sliver_wallet_app_bar.dart';
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   final VoidCallback onDataRejected;
 
-  const WalletPersonalizeDataIncorrectScreen({required this.onDataRejected, Key? key}) : super(key: key);
+  const WalletPersonalizeDataIncorrectScreen({required this.onDataRejected, super.key});
 
   @override
   Widget build(BuildContext context) {

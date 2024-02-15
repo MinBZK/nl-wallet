@@ -6,7 +6,7 @@ import 'flutter_app_configuration_provider.dart';
 class ConfigVersionText extends StatelessWidget {
   final TextStyle? textStyle;
 
-  const ConfigVersionText({this.textStyle, Key? key}) : super(key: key);
+  const ConfigVersionText({this.textStyle, super.key});
 
   @override
   Widget build(BuildContext context) {

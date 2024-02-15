@@ -16,8 +16,8 @@ class DisclosureConfirmPinPage extends StatelessWidget {
   const DisclosureConfirmPinPage({
     required this.onPinValidated,
     this.bloc,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

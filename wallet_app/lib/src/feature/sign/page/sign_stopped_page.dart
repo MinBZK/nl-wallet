@@ -10,8 +10,8 @@ class SignStoppedPage extends StatelessWidget {
   const SignStoppedPage({
     required this.onClosePressed,
     this.onGiveFeedbackPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

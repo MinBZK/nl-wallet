@@ -11,7 +11,7 @@ import '../common/widget/button/wallet_app_bar_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
 class IntroductionConditionsScreen extends StatelessWidget {
-  const IntroductionConditionsScreen({Key? key}) : super(key: key);
+  const IntroductionConditionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
