@@ -1,13 +1,13 @@
+use std::{collections::HashSet, sync::Mutex};
+
+use once_cell::sync::Lazy;
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
 
 use wallet_common::{
-    keys::{
-        ConstructibleWithIdentifier, DeletableWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey,
-        WithIdentifier,
-    },
+    keys::{EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier, WithIdentifier},
     spawn,
 };
 
@@ -15,9 +15,32 @@ use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_brid
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 
+/// A static set that contains all the identifiers for `HardwareEcdsaKey` that are currently in use.
+static ECDSA_KEY_IDENTIFIERS: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
+/// A static set that contains all the identifiers for `HardwareEncryptionKey` that are currently in use.
+static ENCRYPTION_KEY_IDENTIFIERS: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
+
+/// This helper function claims a particular identifier by inserting it into a `HashSet` and
+/// returning `true`, If the set already contains the identifier, it will return `false`.
+fn claim_unique_identifier(identifiers: &Mutex<HashSet<String>>, identifier: &str) -> bool {
+    // We should panic if this fails, as an error resulting from
+    // `lock()` can only ever be caused by another panic.
+    let mut identifiers = identifiers
+        .lock()
+        .expect("Could not get mutex lock for key identifiers");
+
+    let can_claim = !identifiers.contains(identifier);
+
+    if can_claim {
+        identifiers.insert(identifier.to_string());
+    }
+
+    can_claim
+}
+
 impl From<KeyStoreError> for p256::ecdsa::Error {
-    // wrap KeyStoreError in p256::ecdsa::signature::error,
-    // as try_sign() has the latter as error type
+    // Wrap KeyStoreError in `p256::ecdsa::signature::error`,
+    // as try_sign() has the latter as error type.
     fn from(value: KeyStoreError) -> Self {
         p256::ecdsa::Error::from_source(value)
     }
@@ -27,6 +50,16 @@ impl From<KeyStoreError> for p256::ecdsa::Error {
 #[derive(Clone)]
 pub struct HardwareEcdsaKey {
     identifier: String,
+}
+
+impl Drop for HardwareEcdsaKey {
+    // Remove our entry from the static `HashSet`.
+    fn drop(&mut self) {
+        ECDSA_KEY_IDENTIFIERS
+            .lock()
+            .expect("Could not get mutex lock for key identifiers")
+            .remove(&self.identifier);
+    }
 }
 
 impl EcdsaKey for HardwareEcdsaKey {
@@ -57,25 +90,28 @@ impl EcdsaKey for HardwareEcdsaKey {
 
 impl SecureEcdsaKey for HardwareEcdsaKey {}
 
-impl ConstructibleWithIdentifier for HardwareEcdsaKey {
-    fn get_or_create(identifier: String) -> Self {
-        HardwareEcdsaKey { identifier }
-    }
-}
-
-impl DeletableWithIdentifier for HardwareEcdsaKey {
-    type Error = HardwareKeyStoreError;
-
-    async fn delete(self) -> Result<(), Self::Error> {
-        spawn::blocking(|| get_signing_key_bridge().delete(self.identifier)).await?;
-
-        Ok(())
-    }
-}
-
 impl WithIdentifier for HardwareEcdsaKey {
     fn identifier(&self) -> &str {
         &self.identifier
+    }
+}
+
+impl StoredByIdentifier for HardwareEcdsaKey {
+    type Error = HardwareKeyStoreError;
+
+    fn new_unique(identifier: &str) -> Option<Self> {
+        // Only return a new `HardwareEcdsaKey` if we can claim the identifier.
+        claim_unique_identifier(&ECDSA_KEY_IDENTIFIERS, identifier).then(|| HardwareEcdsaKey {
+            identifier: identifier.to_string(),
+        })
+    }
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        // Clone the identifier, as this type implements `Drop`.
+        let identifier = self.identifier.clone();
+        spawn::blocking(|| get_signing_key_bridge().delete(identifier)).await?;
+
+        Ok(())
     }
 }
 
@@ -87,9 +123,13 @@ pub struct HardwareEncryptionKey {
     identifier: String,
 }
 
-impl ConstructibleWithIdentifier for HardwareEncryptionKey {
-    fn get_or_create(identifier: String) -> Self {
-        HardwareEncryptionKey { identifier }
+impl Drop for HardwareEncryptionKey {
+    // Remove our entry from the static `HashSet`.
+    fn drop(&mut self) {
+        ENCRYPTION_KEY_IDENTIFIERS
+            .lock()
+            .expect("Could not get mutex lock for key identifiers")
+            .remove(&self.identifier);
     }
 }
 
@@ -99,11 +139,20 @@ impl WithIdentifier for HardwareEncryptionKey {
     }
 }
 
-impl DeletableWithIdentifier for HardwareEncryptionKey {
+impl StoredByIdentifier for HardwareEncryptionKey {
     type Error = HardwareKeyStoreError;
 
+    fn new_unique(identifier: &str) -> Option<Self> {
+        // Only return a new `HardwareEncryptionKey` if we can claim the identifier.
+        claim_unique_identifier(&ENCRYPTION_KEY_IDENTIFIERS, identifier).then(|| HardwareEncryptionKey {
+            identifier: identifier.to_string(),
+        })
+    }
+
     async fn delete(self) -> Result<(), Self::Error> {
-        spawn::blocking(|| get_encryption_key_bridge().delete(self.identifier)).await?;
+        // Clone the identifier, as this type implements `Drop`.
+        let identifier = self.identifier.clone();
+        spawn::blocking(|| get_encryption_key_bridge().delete(identifier)).await?;
 
         Ok(())
     }

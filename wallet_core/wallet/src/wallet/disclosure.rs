@@ -1009,7 +1009,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_error_session_state() {
+    async fn test_wallet_accept_disclosure_error_session_state_no_session() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -1023,7 +1023,10 @@ mod tests {
         assert_matches!(error, DisclosureError::SessionState);
         assert!(wallet.disclosure_session.is_none());
         assert!(!wallet.is_locked());
+    }
 
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_session_state_missing_attributes() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 

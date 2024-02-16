@@ -416,7 +416,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_pid_issuance_auth_url_error_session_state() {
+    async fn test_create_pid_issuance_auth_url_error_session_state_digid() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an active `DigidSession`.
@@ -430,8 +430,10 @@ mod tests {
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
         assert_matches!(error, PidIssuanceError::SessionState);
+    }
 
-        // Prepare another wallet.
+    #[tokio::test]
+    async fn test_create_pid_issuance_auth_url_error_session_state_pid_issuer() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` report that it has an active session.

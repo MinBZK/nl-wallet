@@ -1,6 +1,6 @@
 pub mod hardware;
 
-use wallet_common::keys::{ConstructibleWithIdentifier, DeletableWithIdentifier, SecureEcdsaKey, SecureEncryptionKey};
+use wallet_common::keys::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
@@ -24,15 +24,13 @@ pub enum KeyStoreError {
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
-pub trait PlatformEcdsaKey: ConstructibleWithIdentifier + DeletableWithIdentifier + SecureEcdsaKey {
-    // from ConstructibleWithIdentifier: new(), identifier()
-    // from DeletableWithIdentifier: delete(), identifier()
+pub trait PlatformEcdsaKey: StoredByIdentifier + SecureEcdsaKey {
+    // from StoredByIdentifier: new_unique(), delete(), identifier()
     // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
 }
 
-pub trait PlatformEncryptionKey: ConstructibleWithIdentifier + DeletableWithIdentifier + SecureEncryptionKey {
-    // from ConstructibleWithIdentifier: new(), identifier()
-    // from DeletableWithIdentifier: delete(), identifier()
+pub trait PlatformEncryptionKey: StoredByIdentifier + SecureEncryptionKey {
+    // from StoredByIdentifier: new_unique(), delete(), identifier()
     // from SecureEncryptionKey: encrypt(), decrypt()
 }
 

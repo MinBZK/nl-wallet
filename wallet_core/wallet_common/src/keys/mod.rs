@@ -27,24 +27,6 @@ pub trait EphemeralEcdsaKey: EcdsaKey {}
 /// e.g., a HSM, Android's TEE/StrongBox, or Apple's SE.
 pub trait SecureEcdsaKey: EcdsaKey {}
 
-/// The contract of this trait includes that a constructed type with the same
-/// identifier behaves exactly the same, i.e. has the same key material backing it.
-pub trait ConstructibleWithIdentifier: WithIdentifier {
-    fn get_or_create(identifier: String) -> Self
-    where
-        Self: Sized;
-}
-
-pub trait DeletableWithIdentifier: WithIdentifier {
-    type Error: Error + Send + Sync + 'static;
-
-    async fn delete(self) -> Result<(), Self::Error>;
-}
-
-pub trait WithIdentifier {
-    fn identifier(&self) -> &str;
-}
-
 /// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
@@ -53,6 +35,37 @@ pub trait SecureEncryptionKey {
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error>;
+}
+
+/// This trait is included with keys that are uniquely identified by an string.
+pub trait WithIdentifier {
+    fn identifier(&self) -> &str;
+}
+
+/// This trait is implemented on keys that are stored in a particular backing store,
+/// such as Android's TEE/StrongBox or Apple's SE. These keys can be constructed by
+/// an identifier, with the guarantee that only one instance can exist per identifier
+/// in the entire process. If the key exists within the backing store, it will be
+/// retrieved on first use, otherwise a random key will be created.
+///
+/// The key can be deleted from the backing store by a method that consumes the type.
+/// If the type is simply dropped, it will remain in the backing store.
+///
+/// The limitation of having only one instance per identifier codifies that there is
+/// only ever one owner of this key. If multiple instances with the same identifier
+/// could be created, this could lead to undefined behaviour when the owner of one
+/// of the types deletes the backing store key.
+pub trait StoredByIdentifier: WithIdentifier {
+    type Error: Error + Send + Sync + 'static;
+
+    // Creates a unique instance of the specified identifier. If an instance
+    // already exist with this identifier, `Ok(None)` will be returned.
+    fn new_unique(identifier: &str) -> Option<Self>
+    where
+        Self: Sized;
+
+    // Delete the key from the backing store and consume the type.
+    async fn delete(self) -> Result<(), Self::Error>;
 }
 
 #[cfg(any(test, feature = "mock_p256_keys"))]

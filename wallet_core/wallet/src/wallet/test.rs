@@ -13,10 +13,7 @@ use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
     generator::TimeGenerator,
     jwt::Jwt,
-    keys::{
-        software::SoftwareEcdsaKey, ConstructibleWithIdentifier, DeletableWithIdentifier, EcdsaKey, SecureEcdsaKey,
-        WithIdentifier,
-    },
+    keys::{software::SoftwareEcdsaKey, EcdsaKey, SecureEcdsaKey, StoredByIdentifier, WithIdentifier},
     trust_anchor::DerTrustAnchor,
     utils,
 };
@@ -96,23 +93,22 @@ pub static ISSUER_KEY_UNAUTHENTICATED: Lazy<IssuerKey> = Lazy::new(|| {
 
 /// Generates a valid `Mdoc` that contains a full PID.
 pub async fn create_full_pid_mdoc() -> Mdoc {
-    let private_key_id = utils::random_string(16);
     let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, private_key_id, &ISSUER_KEY).await
+    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY).await
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
 pub async fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
-    let private_key_id = utils::random_string(16);
     let unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, private_key_id, &ISSUER_KEY_UNAUTHENTICATED).await
+    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY_UNAUTHENTICATED).await
 }
 
-/// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and key identifier.
-pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: String, issuer_key: &IssuerKey) -> Mdoc {
-    let mdoc_public_key = (&SoftwareEcdsaKey::get_or_create(private_key_id.clone())
+/// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and issuer key.
+pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -> Mdoc {
+    let private_key_id = utils::random_string(16);
+    let mdoc_public_key = (&SoftwareEcdsaKey::new_random(private_key_id.clone())
         .verifying_key()
         .await
         .unwrap())
@@ -144,14 +140,12 @@ impl From<SoftwareEcdsaKey> for FallibleSoftwareEcdsaKey {
 
 impl PlatformEcdsaKey for FallibleSoftwareEcdsaKey {}
 
-impl ConstructibleWithIdentifier for FallibleSoftwareEcdsaKey {
-    fn get_or_create(identifier: String) -> Self {
-        SoftwareEcdsaKey::get_or_create(identifier).into()
-    }
-}
+impl StoredByIdentifier for FallibleSoftwareEcdsaKey {
+    type Error = <SoftwareEcdsaKey as StoredByIdentifier>::Error;
 
-impl DeletableWithIdentifier for FallibleSoftwareEcdsaKey {
-    type Error = <SoftwareEcdsaKey as DeletableWithIdentifier>::Error;
+    fn new_unique(identifier: &str) -> Option<Self> {
+        SoftwareEcdsaKey::new_unique(identifier).map(Self::from)
+    }
 
     async fn delete(self) -> Result<(), Self::Error> {
         self.key.delete().await

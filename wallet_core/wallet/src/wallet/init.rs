@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use tokio::sync::RwLock;
 
 use platform_support::{
@@ -20,6 +22,18 @@ use super::Wallet;
 
 const WALLET_KEY_ID: &str = "wallet";
 
+/// This helper function normally simply returns `WALLET_KEY_ID` and
+/// returns `WALLET_KEY_ID` suffixed with a unique thread local identifier
+/// when running tests. This allows multiple `Wallet` instances to be
+/// created in parallel.
+fn wallet_key_id() -> Cow<'static, str> {
+    #[cfg(not(test))]
+    return Cow::from(WALLET_KEY_ID);
+
+    #[cfg(test)]
+    Cow::from(format!("{}_{}", WALLET_KEY_ID, tests::WALLET_TEST_ID.get()))
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum WalletInitError {
     #[error("wallet configuration error")]
@@ -36,7 +50,7 @@ impl Wallet {
         tracing::warn!("TLS validation disabled");
 
         let storage_path = HardwareUtilities::storage_path().await?;
-        let storage = DatabaseStorage::<HardwareEncryptionKey>::init(storage_path.clone());
+        let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
             storage_path,
             ConfigServerConfiguration::default(),
@@ -67,10 +81,18 @@ where
         pid_issuer: PIC,
         registration: Option<RegistrationData>,
     ) -> Self {
+        // Get or create the hardware ECDSA key for communication with the account server.
+        // The identifier used for this should be globally unique. If this is not the case,
+        // the `Wallet` has multiple instances, which is programmer error and should result
+        // in a panic.
+        println!("WALLED KEY ID: {}", wallet_key_id().as_ref());
+        let hw_privkey =
+            PEK::new_unique(wallet_key_id().as_ref()).expect("wallet hardware key identifier is already in use");
+
         Wallet {
             config_repository,
             storage: RwLock::new(storage),
-            hw_privkey: PEK::get_or_create(WALLET_KEY_ID.to_string()),
+            hw_privkey,
             account_provider_client,
             digid_session: None,
             pid_issuer,
@@ -117,10 +139,21 @@ where
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
+    use std::{
+        cell::Cell,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
+
     use crate::{pin::key as pin_key, storage::MockStorage};
 
     use super::{super::test::WalletWithMocks, *};
+
+    static WALLET_TEST_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    thread_local! {
+        pub static WALLET_TEST_ID: Cell<usize> = WALLET_TEST_ID_COUNTER.fetch_add(1, Ordering::Relaxed).into();
+    }
 
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
@@ -132,10 +165,9 @@ mod tests {
         assert!(!wallet.has_registration());
     }
 
-    // Tests the logic of fetching the wallet registration during init and its interaction with the database.
+    // Tests the initialization logic on a wallet without a database file.
     #[tokio::test]
-    async fn test_wallet_init_fetch_registration() {
-        // Test with a wallet without a database file.
+    async fn test_wallet_init_fetch_registration_no_database() {
         let wallet = WalletWithMocks::init_registration_mocks()
             .await
             .expect("Could not initialize wallet");
@@ -150,8 +182,11 @@ mod tests {
 
         // The wallet should be locked by default
         assert!(wallet.is_locked());
+    }
 
-        // Test with a wallet with a database file, no registration.
+    // Tests the initialization logic on a wallet with a database file, but no registration.
+    #[tokio::test]
+    async fn test_wallet_init_fetch_registration_no_registration() {
         let wallet =
             WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(StorageState::Unopened, None))
                 .await
@@ -164,8 +199,11 @@ mod tests {
             wallet.storage.read().await.state().await.unwrap(),
             StorageState::Opened
         ));
+    }
 
-        // Test with a wallet with a database file, contains registration.
+    // Tests the initialization logic on a wallet with a database file that contains a registration.
+    #[tokio::test]
+    async fn test_wallet_init_fetch_with_registration() {
         let pin_salt = pin_key::new_pin_salt();
         let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
             StorageState::Unopened,

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf};
 
 use futures::try_join;
 use sea_orm::{
@@ -34,10 +34,15 @@ use super::{
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
 const DATABASE_FILE_EXT: &str = "db";
+const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 
 fn key_file_alias_for_name(database_name: &str) -> String {
     // Append suffix to database name to get key file alias
     format!("{}{}", database_name, KEY_FILE_SUFFIX)
+}
+
+fn key_identifier_for_key_file(alias: &str) -> String {
+    format!("{}{}", KEY_IDENTIFIER_PREFIX, alias)
 }
 
 /// This is the implementation of [`Storage`] as used by the [`crate::Wallet`]. Its responsibilities are:
@@ -51,22 +56,28 @@ fn key_file_alias_for_name(database_name: &str) -> String {
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
     storage_path: PathBuf,
-    database: Option<Database>,
-    _key: PhantomData<K>,
+    open_database: Option<OpenDatabaseStorage<K>>,
+}
+
+#[derive(Debug)]
+struct OpenDatabaseStorage<K> {
+    database: Database,
+    key_file_key: K,
 }
 
 impl<K> DatabaseStorage<K> {
-    pub fn init(storage_path: PathBuf) -> Self {
+    pub fn new(storage_path: PathBuf) -> Self {
         DatabaseStorage {
             storage_path,
-            database: None,
-            _key: PhantomData,
+            open_database: None,
         }
     }
 
     // Helper method, should be called before accessing database.
     fn database(&self) -> StorageResult<&Database> {
-        self.database.as_ref().ok_or(StorageError::NotOpened)
+        let database = &self.open_database.as_ref().ok_or(StorageError::NotOpened)?.database;
+
+        Ok(database)
     }
 
     fn database_path_for_name(&self, name: &str) -> PathBuf {
@@ -92,20 +103,32 @@ where
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
     /// instance.
-    async fn open_encrypted_database(&self, name: &str) -> StorageResult<Database> {
+    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
         let key_file_alias = key_file_alias_for_name(name);
+        let key_file_key_identifier = key_identifier_for_key_file(&key_file_alias);
         let database_path = self.database_path_for_name(name);
 
+        // Get or create the encryption key for the key file contents. The identifier used
+        // for this should be globally unique. If this is not the case, the same database is
+        // being opened multiple times, which is a programmer error and should result in a panic.
+        let key_file_key =
+            K::new_unique(&key_file_key_identifier).expect("database key file key identifier is already in use");
+
         // Get database key of the correct length including a salt, stored in encrypted file.
-        let key_bytes =
-            key_file::get_or_create_key_file::<K>(&self.storage_path, &key_file_alias, SqlCipherKey::size_with_salt())
-                .await?;
+        let key_bytes = key_file::get_or_create_key_file(
+            &self.storage_path,
+            &key_file_alias,
+            &key_file_key,
+            SqlCipherKey::size_with_salt(),
+        )
+        .await?;
         let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
 
         // Open database at the path, encrypted using the key
         let database = Database::open(SqliteUrl::File(database_path), key).await?;
+        let open_database = OpenDatabaseStorage { database, key_file_key };
 
-        Ok(database)
+        Ok(open_database)
     }
 
     async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<StoredMdocCopy>>
@@ -250,7 +273,7 @@ where
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
     async fn state(&self) -> StorageResult<StorageState> {
-        if self.database.is_some() {
+        if self.open_database.is_some() {
             return Ok(StorageState::Opened);
         }
 
@@ -265,12 +288,12 @@ where
 
     /// Load a database, creating a new key file and database file if necessary.
     async fn open(&mut self) -> StorageResult<()> {
-        if self.database.is_some() {
+        if self.open_database.is_some() {
             return Err(StorageError::AlreadyOpened);
         }
 
-        let database = self.open_encrypted_database(DATABASE_NAME).await?;
-        self.database.replace(database);
+        let open_database = self.open_encrypted_database(DATABASE_NAME).await?;
+        self.open_database.replace(open_database);
 
         Ok(())
     }
@@ -278,14 +301,18 @@ where
     /// Clear the contents of the database by closing it and removing both database and key file.
     async fn clear(&mut self) {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
-        if let Some(database) = self.database.take() {
-            if let Err(error) = database.close_and_delete().await {
+        if let Some(open_database) = self.open_database.take() {
+            if let Err(error) = open_database.database.close_and_delete().await {
                 warn!("Could not close and delete database: {}", error);
             }
 
             let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
-            if let Err(error) = key_file::delete_key_file::<K>(&self.storage_path, &key_file_alias).await {
+            if let Err(error) = key_file::delete_key_file(&self.storage_path, &key_file_alias).await {
                 warn!("Could not delete database key file: {}", error);
+            }
+
+            if let Err(error) = open_database.key_file_key.delete().await {
+                warn!("Could not delete database key file key: {}", error);
             }
         }
     }
@@ -549,7 +576,9 @@ pub(crate) mod tests {
     };
     use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
     use wallet_common::{
-        account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
+        account::messages::auth::WalletCertificate,
+        keys::{software::SoftwareEncryptionKey, WithIdentifier},
+        utils::random_bytes,
     };
 
     use crate::storage::data::RegistrationData;
@@ -580,25 +609,31 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_database_open_encrypted_database() {
-        let storage = DatabaseStorage::<SoftwareEncryptionKey>::init(SoftwareUtilities::storage_path().await.unwrap());
+        let storage = DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
 
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
         let database_path = storage.database_path_for_name(name);
 
         // Make sure we start with a clean slate.
-        _ = key_file::delete_key_file::<SoftwareEncryptionKey>(&storage.storage_path, &key_file_alias).await;
+        _ = key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
         _ = fs::remove_file(database_path).await;
 
-        let database = storage
+        let open_database = storage
             .open_encrypted_database(name)
             .await
             .expect("Could not open encrypted database");
 
-        assert!(matches!(&database.url, SqliteUrl::File(path)
+        assert!(matches!(&open_database.database.url, SqliteUrl::File(path)
             if path.to_str().unwrap().contains("test_open_encrypted_database.db")));
 
-        database
+        assert!(open_database
+            .key_file_key
+            .identifier()
+            .contains("test_open_encrypted_database"));
+
+        open_database
+            .database
             .close_and_delete()
             .await
             .expect("Could not close and delete database");
@@ -606,14 +641,19 @@ pub(crate) mod tests {
 
     async fn open_test_database_storage() -> DatabaseStorage<SoftwareEncryptionKey> {
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::init(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
 
         // Create a test database, override the database field on Storage.
         let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
         let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
             .await
             .expect("Could not open in-memory database");
-        storage.database = Some(database);
+
+        // Create an encryption key for the key file, which is not actually used,
+        // but still needs to be present.
+        let key_file_key = SoftwareEncryptionKey::new_random("open_test_database_storage".to_string());
+
+        storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
 
         storage
     }
