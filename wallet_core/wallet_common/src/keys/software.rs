@@ -5,15 +5,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use aes_gcm::{
-    aead::{Aead, KeyInit},
-    Aes256Gcm, Nonce,
-};
+use aes_gcm::{aead::KeyInit, Aes256Gcm};
 use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
-use crate::{keys::WithIdentifier, utils};
+use crate::keys::WithIdentifier;
 
 use super::{EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
@@ -149,28 +146,14 @@ impl Debug for SoftwareEncryptionKey {
 }
 
 impl SecureEncryptionKey for SoftwareEncryptionKey {
-    type Error = aes_gcm::Error;
+    type Error = <Aes256Gcm as SecureEncryptionKey>::Error;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
-        // Generate a random nonce
-        let nonce_bytes = utils::random_bytes(12);
-        let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
-
-        // Encrypt the provided message
-        let encrypted_msg = self.cipher.encrypt(nonce, msg)?;
-
-        // concatenate nonce with encrypted payload
-        let result = nonce_bytes.into_iter().chain(encrypted_msg).collect();
-
-        Ok(result)
+        <Aes256Gcm as SecureEncryptionKey>::encrypt(&self.cipher, msg).await
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
-        // Re-create the nonce from the first 12 bytes
-        let nonce = Nonce::from_slice(&msg[..12]);
-
-        // Decrypt the provided message with the retrieved nonce
-        self.cipher.decrypt(nonce, &msg[12..])
+        <Aes256Gcm as SecureEncryptionKey>::decrypt(&self.cipher, msg).await
     }
 }
 

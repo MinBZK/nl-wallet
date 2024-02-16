@@ -11,10 +11,11 @@ workspace = true
 doctest = false
 
 [features]
-# Implement EcdsaKey and related traits for p256::ecdsa::SigningKey
-mock_p256_keys = []
+# Implement SecureEcdsaKey, EphemeralEcdsaKey and SecureEncryptionKey
+# on keys from the p256 and aes-gcm crates
+mock_secure_keys = ["dep:aes-gcm"]
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
-software_keys = ["dep:aes-gcm", "dep:rand_core"]
+software_keys = ["mock_secure_keys", "dep:rand_core"]
 # Enable helper code for integration tests
 integration_test = []
 

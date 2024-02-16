@@ -56,7 +56,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 
 wallet_common = { path = "../../wallet_common", features = [
-    "mock_p256_keys",
+    "mock_secure_keys",
     "software_keys",
 ] }
 wallet_provider_database_settings.path = "../database_settings"

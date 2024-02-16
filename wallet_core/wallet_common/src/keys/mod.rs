@@ -68,11 +68,14 @@ pub trait StoredByIdentifier: WithIdentifier {
     async fn delete(self) -> Result<(), Self::Error>;
 }
 
-#[cfg(any(test, feature = "mock_p256_keys"))]
+#[cfg(any(test, feature = "mock_secure_keys"))]
 mod mock {
+    use aes_gcm::{aead::Aead, Aes256Gcm, Nonce};
     use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 
-    use super::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey};
+    use crate::utils;
+
+    use super::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
     // make sure we can substitute a SigningKey instead in tests
     impl EcdsaKey for SigningKey {
@@ -89,4 +92,30 @@ mod mock {
 
     impl EphemeralEcdsaKey for SigningKey {}
     impl SecureEcdsaKey for SigningKey {}
+
+    impl SecureEncryptionKey for Aes256Gcm {
+        type Error = aes_gcm::Error;
+
+        async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
+            // Generate a random nonce
+            let nonce_bytes = utils::random_bytes(12);
+            let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
+
+            // Encrypt the provided message
+            let encrypted_msg = <Aes256Gcm as Aead>::encrypt(self, nonce, msg)?;
+
+            // concatenate nonce with encrypted payload
+            let result = nonce_bytes.into_iter().chain(encrypted_msg).collect();
+
+            Ok(result)
+        }
+
+        async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
+            // Re-create the nonce from the first 12 bytes
+            let nonce = Nonce::from_slice(&msg[..12]);
+
+            // Decrypt the provided message with the retrieved nonce
+            <Aes256Gcm as Aead>::decrypt(self, nonce, &msg[12..])
+        }
+    }
 }

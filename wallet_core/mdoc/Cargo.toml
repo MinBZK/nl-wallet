@@ -79,6 +79,6 @@ tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
 
 wallet_common = { path = "../wallet_common", features = [
+    "mock_secure_keys",
     "software_keys",
-    "mock_p256_keys",
 ] }

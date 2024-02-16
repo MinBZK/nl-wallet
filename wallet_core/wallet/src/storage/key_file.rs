@@ -88,8 +88,9 @@ async fn read_encrypted_file(path: &Path, encryption_key: &impl SecureEncryption
 mod tests {
     use std::{cell::RefCell, env};
 
+    use aes_gcm::{Aes256Gcm, KeyInit};
+    use rand_core::OsRng;
     use tempfile::{NamedTempFile, TempPath};
-    use wallet_common::keys::software::SoftwareEncryptionKey;
 
     use super::*;
 
@@ -107,7 +108,7 @@ mod tests {
     async fn test_read_and_write_encrypted_file() {
         let path = create_temporary_file_path();
         let contents = "This will be encrypted in a file.";
-        let encryption_key = SoftwareEncryptionKey::new_random("test_read_and_write_encrypted_file".to_string());
+        let encryption_key = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
 
         // encrypt and decrypt a file, read encrypted file manually.
         write_encrypted_file(&path, contents.as_bytes(), &encryption_key)
@@ -129,7 +130,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_or_create_encrypted_file_contents() {
         let path = create_temporary_file_path();
-        let encryption_key = SoftwareEncryptionKey::new_random("get_or_create_encrypted_file_contents".to_string());
+        let encryption_key = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
 
         let contents = "This will be encrypted in a file.";
         let default_counter = RefCell::new(0);
@@ -169,8 +170,8 @@ mod tests {
         _ = delete_key_file(&storage_path, &alias2).await;
 
         // Create three keys, two of them with the same alias.
-        let encryption_key1 = SoftwareEncryptionKey::new_random(alias1.clone());
-        let encryption_key2 = SoftwareEncryptionKey::new_random(alias2.clone());
+        let encryption_key1 = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
+        let encryption_key2 = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
         let key1 = get_or_create_key_file(&storage_path, &alias1, &encryption_key1, byte_length)
             .await
             .expect("Could not create key file");
