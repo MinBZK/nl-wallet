@@ -72,7 +72,8 @@ class ButtonStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'RoundedBackButton'),
         const RoundedBackButton(),
         const ThemeSectionSubHeader(title: 'ConfirmButtons'),
-        ConfirmButtons(onDeclinePressed: () {}, onAcceptPressed: () {}, acceptText: 'Accept', declineText: 'Decline'),
+        ConfirmButtons(
+            onSecondaryPressed: () {}, onPrimaryPressed: () {}, primaryText: 'Accept', secondaryText: 'Decline'),
       ],
     );
   }
