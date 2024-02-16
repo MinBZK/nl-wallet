@@ -4,6 +4,7 @@ import '../../../../util/extension/build_context_extension.dart';
 
 const _kHorizontalPadding = 16.0;
 const _kVerticalPadding = 24.0;
+const _kVerticalLandscapePadding = 8.0;
 
 const _kButtonHeight = 48.0;
 const _kButtonSpacing = 12.0;
@@ -15,47 +16,69 @@ const _kButtonIconSpacing = 8.0;
 const _kButtonIconHorizontalSpace = _kButtonIconSize + _kButtonIconSpacing;
 
 class ConfirmButtons extends StatelessWidget {
-  final VoidCallback onDeclinePressed;
-  final VoidCallback onAcceptPressed;
-  final String acceptText;
-  final String declineText;
-  final String? declineTextSemanticsLabel;
-  final IconData? acceptIcon;
-  final IconData? declineIcon;
+  /// Primary config
+  final VoidCallback onPrimaryPressed;
+  final String primaryText;
+  final String? primarySemanticsLabel;
+  final IconData? primaryIcon;
+  final ConfirmButtonType primaryButtonStyle;
+  final Key? primaryButtonKey;
+
+  /// Secondary config
+  final VoidCallback onSecondaryPressed;
+  final String secondaryText;
+  final String? secondarySemanticsLabel;
+  final IconData? secondaryIcon;
+  final ConfirmButtonType secondaryButtonStyle;
+  final Key? secondaryButtonKey;
+
+  /// Other config
   final bool forceVertical;
 
   const ConfirmButtons({
-    required this.onDeclinePressed,
-    required this.onAcceptPressed,
-    required this.acceptText,
-    required this.declineText,
-    this.declineTextSemanticsLabel,
+    required this.primaryText,
+    required this.onPrimaryPressed,
+    this.primaryIcon = Icons.check,
+    this.primarySemanticsLabel,
+    this.primaryButtonStyle = ConfirmButtonType.primary,
+    this.primaryButtonKey,
+    required this.secondaryText,
+    required this.onSecondaryPressed,
+    this.secondaryIcon = Icons.not_interested,
+    this.secondarySemanticsLabel,
+    this.secondaryButtonStyle = ConfirmButtonType.outlined,
+    this.secondaryButtonKey,
     this.forceVertical = false,
-    this.acceptIcon = Icons.check,
-    this.declineIcon = Icons.not_interested,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool buttonExceedsWidth = _isExceedingMaxWidth(
-          context,
-          ConfirmButtonType.reject,
-          declineIcon != null,
-          declineText,
-        ) ||
-        _isExceedingMaxWidth(
-          context,
-          ConfirmButtonType.accept,
-          acceptIcon != null,
-          acceptText,
-        );
+    final primaryButtonExceedsMaxWidth = _isExceedingMaxWidth(
+      context,
+      ConfirmButtonType.primary,
+      primaryIcon != null,
+      primaryText,
+    );
+    final secondaryButtonExceedsMaxWidth = _isExceedingMaxWidth(
+      context,
+      ConfirmButtonType.outlined,
+      secondaryIcon != null,
+      secondaryText,
+    );
+    final bool buttonExceedsWidth = primaryButtonExceedsMaxWidth || secondaryButtonExceedsMaxWidth;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _kHorizontalPadding, vertical: _kVerticalPadding),
-      child: _buildDirectionalButtonsLayout(
-        context,
-        vertical: forceVertical || buttonExceedsWidth,
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: _kHorizontalPadding,
+          vertical: context.isLandscape ? _kVerticalLandscapePadding : _kVerticalPadding,
+        ),
+        child: _buildDirectionalButtonsLayout(
+          context,
+          vertical: forceVertical || buttonExceedsWidth,
+        ),
       ),
     );
   }
@@ -82,24 +105,19 @@ class ConfirmButtons extends StatelessWidget {
         vertical: vertical,
         child: _buildButtonContainer(
           context,
-          ConfirmButtonType.reject,
-          onDeclinePressed,
-          declineIcon,
-          declineText,
-          declineTextSemanticsLabel,
+          secondaryButtonStyle,
+          onSecondaryPressed,
+          secondaryIcon,
+          secondaryText,
+          secondarySemanticsLabel,
+          secondaryButtonKey ?? const Key('rejectButton'),
         ),
       ),
       const SizedBox(width: _kButtonSpacing, height: _kButtonSpacing),
       _buildButtonWrapper(
         vertical: vertical,
-        child: _buildButtonContainer(
-          context,
-          ConfirmButtonType.accept,
-          onAcceptPressed,
-          acceptIcon,
-          acceptText,
-          null,
-        ),
+        child: _buildButtonContainer(context, primaryButtonStyle, onPrimaryPressed, primaryIcon, primaryText,
+            primarySemanticsLabel, primaryButtonKey ?? const Key('acceptButton')),
       ),
     ];
 
@@ -123,12 +141,14 @@ class ConfirmButtons extends StatelessWidget {
     IconData? icon,
     String text,
     String? textSemanticsLabel,
+    Key? key,
   ) {
     return SizedBox(
       height: _kButtonHeight,
       width: double.infinity,
       child: _buildButtonType(
         type: type,
+        key: key,
         onPressed: onPressed,
         child: icon == null
             ? _buildButtonText(context, type, text, textSemanticsLabel)
@@ -146,17 +166,24 @@ class ConfirmButtons extends StatelessWidget {
     );
   }
 
-  Widget _buildButtonType({required ConfirmButtonType type, required VoidCallback onPressed, required Widget child}) {
+  Widget _buildButtonType(
+      {required ConfirmButtonType type, required VoidCallback onPressed, required Widget child, Key? key}) {
     switch (type) {
-      case ConfirmButtonType.accept:
+      case ConfirmButtonType.primary:
         return ElevatedButton(
-          key: const Key('acceptButton'),
+          key: key,
           onPressed: onPressed,
           child: child,
         );
-      case ConfirmButtonType.reject:
+      case ConfirmButtonType.outlined:
         return OutlinedButton(
-          key: const Key('rejectButton'),
+          key: key,
+          onPressed: onPressed,
+          child: child,
+        );
+      case ConfirmButtonType.text:
+        return TextButton(
+          key: key,
           onPressed: onPressed,
           child: child,
         );
@@ -181,13 +208,16 @@ class ConfirmButtons extends StatelessWidget {
   TextStyle? _getButtonTextStyle(BuildContext context, ConfirmButtonType type) {
     final states = {MaterialState.focused};
     switch (type) {
-      case ConfirmButtonType.accept:
+      case ConfirmButtonType.primary:
         return context.theme.elevatedButtonTheme.style?.textStyle?.resolve(states);
-      case ConfirmButtonType.reject:
+      case ConfirmButtonType.outlined:
         return context.theme.outlinedButtonTheme.style?.textStyle?.resolve(states);
+      case ConfirmButtonType.text:
+        return context.theme.textButtonTheme.style?.textStyle?.resolve(states);
     }
   }
 
+  /// Check if the provided button type fits in 50% of the horizontal screen real estate without spanning multiple lines
   bool _isExceedingMaxWidth(BuildContext context, ConfirmButtonType type, bool hasIcon, String text) {
     final double screenWidth = context.mediaQuery.size.width.roundToDouble();
     final double buttonWidth = (screenWidth - (_kHorizontalPadding * 2) - _kButtonSpacing) / 2;
@@ -215,4 +245,4 @@ class ConfirmButtons extends StatelessWidget {
   }
 }
 
-enum ConfirmButtonType { accept, reject }
+enum ConfirmButtonType { primary, outlined, text }

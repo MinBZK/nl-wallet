@@ -180,10 +180,9 @@ then
     fi
     if [ "${START}" == "0" ]
     then
-        echo -e "Building ${ORANGE}digid-connector${NC} image"
-        docker compose build
-        echo -e "Starting ${ORANGE}digid-connector${NC}"
-        docker compose up -d
+
+        echo -e "Building and starting ${ORANGE}digid-connector${NC}"
+        docker compose up -d --build --force-recreate
     fi
 fi
 

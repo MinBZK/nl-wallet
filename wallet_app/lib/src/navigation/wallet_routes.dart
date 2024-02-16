@@ -28,7 +28,6 @@ import '../feature/history/detail/history_detail_screen.dart';
 import '../feature/history/overview/bloc/history_overview_bloc.dart';
 import '../feature/history/overview/history_overview_screen.dart';
 import '../feature/introduction/introduction_conditions_screen.dart';
-import '../feature/introduction/introduction_expectations_screen.dart';
 import '../feature/introduction/introduction_privacy_screen.dart';
 import '../feature/introduction/introduction_screen.dart';
 import '../feature/issuance/argument/issuance_screen_argument.dart';
@@ -70,7 +69,6 @@ class WalletRoutes {
   static const publicRoutes = [
     splashRoute,
     introductionRoute,
-    introductionExpectationsRoute,
     introductionPrivacyRoute,
     introductionConditionsRoute,
     aboutRoute,
@@ -84,7 +82,6 @@ class WalletRoutes {
 
   static const splashRoute = '/';
   static const introductionRoute = '/introduction';
-  static const introductionExpectationsRoute = '/introduction/expectations';
   static const introductionPrivacyRoute = '/introduction/privacy';
   static const introductionConditionsRoute = '/introduction/conditions';
   static const aboutRoute = '/about';
@@ -140,8 +137,6 @@ class WalletRoutes {
         return _createQrScreenBuilder;
       case WalletRoutes.introductionRoute:
         return _createIntroductionScreenBuilder;
-      case WalletRoutes.introductionExpectationsRoute:
-        return _createIntroductionExpectationsScreenBuilder;
       case WalletRoutes.introductionPrivacyRoute:
         return _createIntroductionPrivacyScreenBuilder;
       case WalletRoutes.introductionConditionsRoute:
@@ -209,8 +204,6 @@ Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
     );
 
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
-
-Widget _createIntroductionExpectationsScreenBuilder(BuildContext context) => const IntroductionExpectationsScreen();
 
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
 

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-02-14T13:26:53+01:00",
+    "@@last_modified": "2024-02-15T15:56:03+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende partijen in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -447,6 +447,7 @@
             }
         }
     },
+    "generalHelpCta": "Help",
     "generalHours": "{hours, plural, one {{hours} uur} other {{hours} uur}}",
     "@generalHours": {
         "placeholders": {
@@ -629,13 +630,13 @@
     "introductionExpectationsScreenTitle": "Maak jouw wallet aan in 3 stappen.",
     "introductionLanguageSelectCta": "Nederlands",
     "introductionNextPageCta": "Volgende",
-    "introductionPage1Description": "Met de NL Wallet heb je jouw persoonsgegevens op jouw telefoon. Bijvoorbeeld je officiële naam en adres.",
-    "introductionPage1Title": "Welkom in de NL Wallet.",
+    "introductionPage1Description": "Dit is jouw digitale portemonnee. Je kunt kaarten toevoegen met je gegevens, zoals je naam en adres.",
+    "introductionPage1Title": "Welkom in de NL Wallet",
     "introductionPage2BulletPoints": "Inloggen op een website.\nOnline je leeftijd bewijzen.\nOnline je adres bewijzen.",
-    "introductionPage2Description": "Zo kun je dingen online regelen, bijvoorbeeld:",
-    "introductionPage2Title": "Deel je gegevens veilig en eenvoudig.",
-    "introductionPage3Description": "Wil een organisatie weten of je ouder bent dan 18? Dan deel je alleen “ja” of “nee”. Je hoeft niet je geboortedatum te delen.",
-    "introductionPage3Title": "Deel alleen wat nodig is. ",
+    "introductionPage2Description": "Je kunt veilig inloggen bij de overheid en andere aangesloten organisaties.",
+    "introductionPage2Title": "Veilig inloggen",
+    "introductionPage3Description": "Heeft een organisatie bijvoorbeeld je postcode nodig? Dan deel je eenvoudig je postcode.",
+    "introductionPage3Title": "Eenvoudig gegevens delen",
     "introductionPage4BulletPoints": "Je ziet welke gegevens je deelt.\nJe ziet duidelijk de voorwaarden.\nJe kunt terugzien met wie je hebt gedeeld.",
     "introductionPage4Title": "Jij hebt de controle.",
     "introductionPrivacyScreenBulletPoints": "Je gegevens staan alleen op dit apparaat.\nJe gegevens zijn beschermd door een toegangscode.\nTelefoon kwijt? Je kunt de app op afstand op slot zetten.",
