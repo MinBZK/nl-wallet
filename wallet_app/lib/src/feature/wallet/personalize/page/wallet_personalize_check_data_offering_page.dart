@@ -74,11 +74,11 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return ConfirmButtons(
-      onDeclinePressed: () => WalletPersonalizeDataIncorrectScreen.show(context, onRejectPressed),
-      onAcceptPressed: onAcceptPressed,
-      acceptText: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
-      declineText: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
-      declineTextSemanticsLabel: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel,
+      onSecondaryPressed: () => WalletPersonalizeDataIncorrectScreen.show(context, onRejectPressed),
+      onPrimaryPressed: onAcceptPressed,
+      primaryText: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
+      secondaryText: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
+      secondarySemanticsLabel: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel,
     );
   }
 }

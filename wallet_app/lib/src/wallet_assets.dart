@@ -20,15 +20,14 @@ class WalletAssets {
   static const svg_rijks_card_bg_light = 'assets/non-free/svg/rijks_card_bg_light.svg';
   static const svg_rijks_card_bg_dark = 'assets/non-free/svg/rijks_card_bg_dark.svg';
   static const svg_qr_button = 'assets/non-free/svg/qr_button.svg';
+  static const svg_intro_placeholder_1 = 'assets/non-free/svg/intro_placeholder_1.svg';
+  static const svg_intro_placeholder_2 = 'assets/non-free/svg/intro_placeholder_2.svg';
+  static const svg_intro_placeholder_3 = 'assets/non-free/svg/intro_placeholder_3.svg';
 
   // IMAGES
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';
   static const image_bg_nl_driving_license = 'assets/non-free/images/bg_nl_driving_license.png';
   static const image_bg_health_insurance = 'assets/non-free/images/bg_health_insurance.png';
-  static const image_intro_page_4 = 'assets/non-free/images/intro_page_4.png';
-  static const image_intro_page_3 = 'assets/non-free/images/intro_page_3.png';
-  static const image_intro_page_2 = 'assets/non-free/images/intro_page_2.png';
-  static const image_intro_page_1 = 'assets/non-free/images/intro_page_1.png';
 
   // ILLUSTRATIONS
   static const illustration_sign_1 = 'assets/non-free/illustrations/sign_1.png';

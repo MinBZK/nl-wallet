@@ -54,10 +54,10 @@ class CheckAgreementPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onAcceptPressed: onAccept,
-                acceptText: context.l10n.checkAgreementPageConfirmCta,
-                onDeclinePressed: onDecline,
-                declineText: context.l10n.checkAgreementPageCancelCta,
+                onPrimaryPressed: onAccept,
+                primaryText: context.l10n.checkAgreementPageConfirmCta,
+                onSecondaryPressed: onDecline,
+                secondaryText: context.l10n.checkAgreementPageCancelCta,
               ),
             ),
           ),
