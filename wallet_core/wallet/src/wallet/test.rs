@@ -112,7 +112,10 @@ pub async fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
 
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and key identifier.
 pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, private_key_id: String, issuer_key: &IssuerKey) -> Mdoc {
-    let mdoc_public_key = (&SoftwareEcdsaKey::new(&private_key_id).verifying_key().await.unwrap())
+    let mdoc_public_key = (&SoftwareEcdsaKey::get_or_create(private_key_id.clone())
+        .verifying_key()
+        .await
+        .unwrap())
         .try_into()
         .unwrap();
     let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuer_key.issuance_key)
@@ -142,8 +145,8 @@ impl From<SoftwareEcdsaKey> for FallibleSoftwareEcdsaKey {
 impl PlatformEcdsaKey for FallibleSoftwareEcdsaKey {}
 
 impl ConstructibleWithIdentifier for FallibleSoftwareEcdsaKey {
-    fn new(identifier: &str) -> Self {
-        SoftwareEcdsaKey::new(identifier).into()
+    fn get_or_create(identifier: String) -> Self {
+        SoftwareEcdsaKey::get_or_create(identifier).into()
     }
 }
 

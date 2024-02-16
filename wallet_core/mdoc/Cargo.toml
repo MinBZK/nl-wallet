@@ -22,7 +22,7 @@ examples = ["dep:anyhow", "dep:hex-literal"]
 # Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
 software_keys = ["wallet_common/software_keys"]
 # Include SoftwareKeyFactory, which implements KeyFactory for testing
-software_key_factory = ["wallet_common/software_keys"]
+software_key_factory = ["software_keys"]
 # Include MdocsMap, which can be used for tests that store Mdocs
 mdocs_map = []
 # Include miscellaneous test utilities

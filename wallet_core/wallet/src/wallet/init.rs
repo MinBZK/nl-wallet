@@ -70,7 +70,7 @@ where
         Wallet {
             config_repository,
             storage: RwLock::new(storage),
-            hw_privkey: PEK::new(WALLET_KEY_ID),
+            hw_privkey: PEK::get_or_create(WALLET_KEY_ID.to_string()),
             account_provider_client,
             digid_session: None,
             pid_issuer,

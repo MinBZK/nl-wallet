@@ -58,10 +58,8 @@ impl EcdsaKey for HardwareEcdsaKey {
 impl SecureEcdsaKey for HardwareEcdsaKey {}
 
 impl ConstructibleWithIdentifier for HardwareEcdsaKey {
-    fn new(identifier: &str) -> Self {
-        HardwareEcdsaKey {
-            identifier: identifier.to_string(),
-        }
+    fn get_or_create(identifier: String) -> Self {
+        HardwareEcdsaKey { identifier }
     }
 }
 
@@ -90,10 +88,8 @@ pub struct HardwareEncryptionKey {
 }
 
 impl ConstructibleWithIdentifier for HardwareEncryptionKey {
-    fn new(identifier: &str) -> Self {
-        HardwareEncryptionKey {
-            identifier: identifier.to_string(),
-        }
+    fn get_or_create(identifier: String) -> Self {
+        HardwareEncryptionKey { identifier }
     }
 }
 

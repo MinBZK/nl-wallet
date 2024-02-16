@@ -26,7 +26,7 @@ pub async fn get_or_create_key_file<K: PlatformEncryptionKey>(
     // Path to key file will be "<storage_path>/<alias>.key",
     // it will be encrypted with a key named "keyfile_<alias>".
     let path = path_for_key_file(storage_path, alias);
-    let encryption_key = K::new(&key_identifier_for_key_file(alias));
+    let encryption_key = K::get_or_create(key_identifier_for_key_file(alias));
 
     // Decrypt file at path, create key and write to file if needed.
     get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || utils::random_bytes(byte_length)).await
@@ -36,7 +36,7 @@ pub async fn delete_key_file<K: PlatformEncryptionKey>(storage_path: &Path, alia
     let path = path_for_key_file(storage_path, alias);
     fs::remove_file(&path).await?;
 
-    K::new(&key_identifier_for_key_file(alias))
+    K::get_or_create(key_identifier_for_key_file(alias))
         .delete()
         .await
         .map_err(|e| KeyFileError::Encryption(e.into()))?;
@@ -123,7 +123,7 @@ mod tests {
     async fn test_read_and_write_encrypted_file() {
         let path = create_temporary_file_path();
         let contents = "This will be encrypted in a file.";
-        let encryption_key = SoftwareEncryptionKey::new("test_read_and_write_encrypted_file");
+        let encryption_key = SoftwareEncryptionKey::get_or_create("test_read_and_write_encrypted_file".to_string());
 
         // encrypt and decrypt a file, read encrypted file manually.
         write_encrypted_file(&path, contents.as_bytes(), &encryption_key)
@@ -145,7 +145,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_or_create_encrypted_file_contents() {
         let path = create_temporary_file_path();
-        let encryption_key = SoftwareEncryptionKey::new("get_or_create_encrypted_file_contents");
+        let encryption_key = SoftwareEncryptionKey::get_or_create("get_or_create_encrypted_file_contents".to_string());
 
         let contents = "This will be encrypted in a file.";
         let default_counter = RefCell::new(0);

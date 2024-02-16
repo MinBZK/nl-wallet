@@ -26,7 +26,10 @@ use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
-    utils::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration, serialization, x509::Certificate},
+    utils::{
+        issuer_auth::IssuerRegistration, keys::KeyFactory, reader_auth::ReaderRegistration, serialization,
+        x509::Certificate,
+    },
     verifier::{DisclosureData, SessionType, Verifier},
 };
 use webpki::TrustAnchor;
@@ -110,7 +113,12 @@ impl HttpClient for MockDisclosureHttpClient {
     }
 }
 
-fn setup_issuance_test() -> (Wallet<MockIssuanceHttpClient>, Arc<MockIssuanceServer>, Certificate) {
+fn setup_issuance_test() -> (
+    Wallet<MockIssuanceHttpClient>,
+    Arc<MockIssuanceServer>,
+    SoftwareKeyFactory,
+    Certificate,
+) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
@@ -125,7 +133,9 @@ fn setup_issuance_test() -> (Wallet<MockIssuanceHttpClient>, Arc<MockIssuanceSer
     let client = MockIssuanceHttpClient::new(Arc::clone(&issuance_server));
     let wallet = Wallet::new(client);
 
-    (wallet, issuance_server, ca.into())
+    let key_factory = SoftwareKeyFactory::default();
+
+    (wallet, issuance_server, key_factory, ca.into())
 }
 
 fn setup_verifier_test(
@@ -215,15 +225,17 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
     }]
 }
 
-async fn issuance_using_consent<H>(
+async fn issuance_using_consent<H, KF>(
     user_consent: bool,
     request: Vec<UnsignedMdoc>,
     wallet: &mut Wallet<H>,
     issuance_server: &MockIssuanceServer,
+    key_factory: &KF,
     ca: &Certificate,
 ) -> Option<Vec<MdocCopies>>
 where
     H: HttpClient,
+    KF: KeyFactory,
 {
     let service_engagement = issuance_server
         .new_session(request)
@@ -245,7 +257,7 @@ where
     }
 
     let mdocs = wallet
-        .finish_issuance(&[ca.try_into().unwrap()], &SoftwareKeyFactory::default())
+        .finish_issuance(&[ca.try_into().unwrap()], key_factory)
         .await
         .expect("finishing issuance on the Wallet should succeed");
 
@@ -264,10 +276,17 @@ async fn test_issuance() {
         .collect::<IndexSet<_>>();
 
     // Agree with issuance
-    let (mut wallet, server, ca) = setup_issuance_test();
-    let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, server.as_ref(), &ca)
-        .await
-        .unwrap();
+    let (mut wallet, server, key_factory, ca) = setup_issuance_test();
+    let mdocs = issuance_using_consent(
+        true,
+        new_issuance_request(),
+        &mut wallet,
+        server.as_ref(),
+        &key_factory,
+        &ca,
+    )
+    .await
+    .unwrap();
     assert_eq!(1, mdocs.len());
     let mdoc_copies = mdocs.first().unwrap();
     assert_eq!(mdoc_copies.cred_copies.len(), 2);
@@ -281,8 +300,16 @@ async fn test_issuance() {
     );
 
     // Decline issuance
-    let (mut wallet, server, ca) = setup_issuance_test();
-    let mdocs = issuance_using_consent(false, new_issuance_request(), &mut wallet, server.as_ref(), &ca).await;
+    let (mut wallet, server, key_factory, ca) = setup_issuance_test();
+    let mdocs = issuance_using_consent(
+        false,
+        new_issuance_request(),
+        &mut wallet,
+        server.as_ref(),
+        &key_factory,
+        &ca,
+    )
+    .await;
     assert!(mdocs.is_none());
 
     // Issue not-yet-valid mdocs
@@ -293,10 +320,17 @@ async fn test_issuance() {
         .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
     assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
 
-    let (mut wallet, server, ca) = setup_issuance_test();
-    let mdocs = issuance_using_consent(true, new_issuance_request(), &mut wallet, server.as_ref(), &ca)
-        .await
-        .unwrap();
+    let (mut wallet, server, key_factory, ca) = setup_issuance_test();
+    let mdocs = issuance_using_consent(
+        true,
+        new_issuance_request(),
+        &mut wallet,
+        server.as_ref(),
+        &key_factory,
+        &ca,
+    )
+    .await
+    .unwrap();
     assert_eq!(1, mdocs.len());
     let mdoc_copies = mdocs.first().unwrap();
     assert_eq!(mdoc_copies.cred_copies.len(), 2);
@@ -318,12 +352,13 @@ async fn test_issuance() {
 #[tokio::test]
 async fn test_issuance_and_disclosure(#[case] session_type: SessionType, #[case] return_url: Option<Url>) {
     // Perform issuance and save result in `MockMdocDataSource`.
-    let (mut wallet, issuance_server, mdoc_ca) = setup_issuance_test();
+    let (mut wallet, issuance_server, key_factory, mdoc_ca) = setup_issuance_test();
     let mdoc_data_source: MockMdocDataSource = issuance_using_consent(
         true,
         new_issuance_request(),
         &mut wallet,
         issuance_server.as_ref(),
+        &key_factory,
         &mdoc_ca,
     )
     .await
@@ -368,7 +403,7 @@ async fn test_issuance_and_disclosure(#[case] session_type: SessionType, #[case]
 
     // Get the disclosed attributes from the verifier session.
     disclosure_session_proposal
-        .disclose(&SoftwareKeyFactory::default())
+        .disclose(&key_factory)
         .await
         .expect("disclosure of proposed attributes should succeed");
 

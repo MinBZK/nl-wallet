@@ -15,7 +15,10 @@ fn hw_keystore_test_hardware_signature() -> bool {
         .build()
         .unwrap();
 
-    rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(payload, identifier))
+    rt.block_on(test::sign_and_verify_signature::<HardwareEcdsaKey>(
+        payload,
+        identifier.to_string(),
+    ))
 }
 
 #[no_mangle]
@@ -38,7 +41,8 @@ fn hw_keystore_test_hardware_encryption() -> bool {
         .unwrap();
 
     rt.block_on(test::encrypt_and_decrypt_message::<HardwareEncryptionKey>(
-        payload, identifier,
+        payload,
+        identifier.to_string(),
     ))
 }
 

@@ -1,11 +1,16 @@
-use std::{collections::HashMap, convert::Infallible, sync::Mutex};
+use std::{
+    collections::HashMap,
+    convert::Infallible,
+    fmt::{self, Debug},
+    sync::Mutex,
+};
 
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
 use once_cell::sync::Lazy;
-use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
 use crate::{keys::WithIdentifier, utils::random_bytes};
@@ -21,19 +26,27 @@ static ENCRYPTION_CIPHERS: Lazy<Mutex<HashMap<String, Aes256Gcm>>> = Lazy::new(|
 /// Please note that its behaviour differs from the Android and iOS backed implementations of `HardwareEcdsaKey`,
 /// in that it initializes the actual keys eagerly (on `new()`) instead of lazily. This should not matter during
 /// testing if the keys are used consistently.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SoftwareEcdsaKey {
     identifier: String,
+    key: SigningKey,
 }
 
 impl SoftwareEcdsaKey {
-    /// Insert a given existing key in the map of [`SoftwareEcdsaKey`]s, for use in testing
-    /// (e.g. with the keys in ISO 23220).
-    pub fn insert(identifier: &str, key: SigningKey) {
-        SIGNING_KEYS
-            .lock()
-            .expect("Could not get lock on SIGNING_KEYS")
-            .insert(identifier.to_string(), key);
+    pub fn new(identifier: String, key: SigningKey) -> Self {
+        SoftwareEcdsaKey { identifier, key }
+    }
+
+    pub fn new_random(identifier: String) -> Self {
+        Self::new(identifier, SigningKey::random(&mut OsRng))
+    }
+}
+
+impl Debug for SoftwareEcdsaKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SoftwareEcdsaKey")
+            .field("identifier", &self.identifier)
+            .finish_non_exhaustive()
     }
 }
 
@@ -41,35 +54,32 @@ impl EcdsaKey for SoftwareEcdsaKey {
     type Error = p256::ecdsa::Error;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
-        let key = signing_keys.get(&self.identifier).unwrap().verifying_key();
+        let key = self.key.verifying_key();
 
         Ok(*key)
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        let signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
-        let key = signing_keys.get(&self.identifier).unwrap();
-        p256::ecdsa::signature::Signer::try_sign(key, msg)
+        Signer::try_sign(&self.key, msg)
     }
 }
 impl SecureEcdsaKey for SoftwareEcdsaKey {}
 
 impl ConstructibleWithIdentifier for SoftwareEcdsaKey {
-    fn new(identifier: &str) -> Self
+    fn get_or_create(identifier: String) -> Self
     where
         Self: Sized,
     {
-        // obtain lock on SIGNING_KEYS static hashmap
+        // Obtain lock on SIGNING_KEYS static hashmap.
         let mut signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
-        // insert new random signing key, if the key is not present
-        if !signing_keys.contains_key(identifier) {
-            signing_keys.insert(identifier.to_string(), SigningKey::random(&mut OsRng));
-        }
 
-        SoftwareEcdsaKey {
-            identifier: identifier.to_string(),
-        }
+        // Insert new random signing key, if the key is not present.
+        let key = signing_keys
+            .entry(identifier.clone())
+            .or_insert_with(|| SigningKey::random(&mut OsRng))
+            .clone();
+
+        SoftwareEcdsaKey { identifier, key }
     }
 }
 
@@ -94,12 +104,21 @@ impl WithIdentifier for SoftwareEcdsaKey {
 /// Please note that its behaviour differs from the Android and iOS backed implementations of `HardwareEncryptionKey`,
 /// in that it initializes the actual keys eagerly (on `new()`) instead of lazily. This should not matter during
 /// testing if the keys are used consistently.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SoftwareEncryptionKey {
     identifier: String,
+    cipher: Aes256Gcm,
 }
 
 impl SoftwareEncryptionKey {
+    pub fn new(identifier: String, cipher: Aes256Gcm) -> Self {
+        SoftwareEncryptionKey { identifier, cipher }
+    }
+
+    pub fn new_random(identifier: String) -> Self {
+        Self::new(identifier, Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)))
+    }
+
     // Peek into the static hashmap to see if an identifier / cipher pair exists.
     pub fn has_identifier(identifier: &str) -> bool {
         ENCRYPTION_CIPHERS
@@ -109,8 +128,16 @@ impl SoftwareEncryptionKey {
     }
 }
 
+impl Debug for SoftwareEncryptionKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SoftwareEncryptionKey")
+            .field("identifier", &self.identifier)
+            .finish_non_exhaustive()
+    }
+}
+
 impl ConstructibleWithIdentifier for SoftwareEncryptionKey {
-    fn new(identifier: &str) -> Self
+    fn get_or_create(identifier: String) -> Self
     where
         Self: Sized,
     {
@@ -119,17 +146,13 @@ impl ConstructibleWithIdentifier for SoftwareEncryptionKey {
             .lock()
             .expect("Could not get lock on ENCRYPTION_CIPHERS");
 
-        // insert new random encryption cipher, if the key is not present
-        if !encryption_ciphers.contains_key(identifier) {
-            encryption_ciphers.insert(
-                identifier.to_string(),
-                Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)),
-            );
-        }
+        // Insert new random encryption cipher, if the key is not present.
+        let cipher = encryption_ciphers
+            .entry(identifier.clone())
+            .or_insert_with(|| Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)))
+            .clone();
 
-        SoftwareEncryptionKey {
-            identifier: identifier.to_string(),
-        }
+        SoftwareEncryptionKey { identifier, cipher }
     }
 }
 
@@ -160,12 +183,8 @@ impl SecureEncryptionKey for SoftwareEncryptionKey {
         let nonce_bytes = random_bytes(12);
         let nonce = Nonce::from_slice(&nonce_bytes); // 96-bits; unique per message
 
-        let encryption_ciphers = ENCRYPTION_CIPHERS
-            .lock()
-            .expect("Could not get lock on ENCRYPTION_CIPHERS");
-
         // Encrypt the provided message
-        let encrypted_msg = encryption_ciphers.get(&self.identifier).unwrap().encrypt(nonce, msg)?;
+        let encrypted_msg = self.cipher.encrypt(nonce, msg)?;
 
         // concatenate nonce with encrypted payload
         let result = nonce_bytes.into_iter().chain(encrypted_msg).collect();
@@ -177,15 +196,8 @@ impl SecureEncryptionKey for SoftwareEncryptionKey {
         // Re-create the nonce from the first 12 bytes
         let nonce = Nonce::from_slice(&msg[..12]);
 
-        let encryption_ciphers = ENCRYPTION_CIPHERS
-            .lock()
-            .expect("Could not get lock on ENCRYPTION_CIPHERS");
-
         // Decrypt the provided message with the retrieved nonce
-        encryption_ciphers
-            .get(&self.identifier)
-            .unwrap()
-            .decrypt(nonce, &msg[12..])
+        self.cipher.decrypt(nonce, &msg[12..])
     }
 }
 
@@ -198,7 +210,7 @@ mod tests {
         let payload = b"This is a message that will be signed.";
         let identifier = "key";
 
-        assert!(test::sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier).await);
+        assert!(test::sign_and_verify_signature::<SoftwareEcdsaKey>(payload, identifier.to_string()).await);
     }
 
     #[tokio::test]
@@ -206,6 +218,6 @@ mod tests {
         let payload = b"This message will be encrypted.";
         let identifier = "key";
 
-        assert!(test::encrypt_and_decrypt_message::<SoftwareEncryptionKey>(payload, identifier).await);
+        assert!(test::encrypt_and_decrypt_message::<SoftwareEncryptionKey>(payload, identifier.to_string()).await);
     }
 }

@@ -7,12 +7,12 @@ use super::{ConstructibleWithIdentifier, DeletableWithIdentifier, SecureEcdsaKey
 // and by integration test performed in platform_support from Android / iOS.
 pub async fn sign_and_verify_signature<K: ConstructibleWithIdentifier + DeletableWithIdentifier + SecureEcdsaKey>(
     payload: &[u8],
-    key_identifier: &str,
+    key_identifier: String,
 ) -> bool {
     // Create a signing key for the identifier
-    let key1 = K::new(key_identifier);
+    let key1 = K::get_or_create(key_identifier.clone());
     // Create another signing key with the same identifier, should use the same private key
-    let key2 = K::new(key_identifier);
+    let key2 = K::get_or_create(key_identifier.clone());
 
     // Check if identifiers match
     assert_eq!(key1.identifier(), key_identifier);
@@ -30,7 +30,7 @@ pub async fn sign_and_verify_signature<K: ConstructibleWithIdentifier + Deletabl
         .expect("Could not delete private key");
 
     // Creating a new signing key with a new private key should result in a different public key
-    let key3 = K::new(key_identifier);
+    let key3 = K::get_or_create(key_identifier);
     let new_public_key = key3.verifying_key().await.expect("Could not get public key");
     assert_ne!(public_key, new_public_key);
 
@@ -42,12 +42,12 @@ pub async fn encrypt_and_decrypt_message<
     K: ConstructibleWithIdentifier + DeletableWithIdentifier + SecureEncryptionKey,
 >(
     payload: &[u8],
-    key_identifier: &str,
+    key_identifier: String,
 ) -> bool {
     // Create an encryption key for the identifier
-    let encryption_key1 = K::new(key_identifier);
+    let encryption_key1 = K::get_or_create(key_identifier.clone());
     // Create another encryption key with the same identifier, should use the same key
-    let encryption_key2 = K::new(key_identifier);
+    let encryption_key2 = K::get_or_create(key_identifier.clone());
 
     // Check if identifiers match
     assert_eq!(encryption_key1.identifier(), key_identifier);
@@ -71,7 +71,7 @@ pub async fn encrypt_and_decrypt_message<
         .expect("Could not delete encryption key");
 
     // Creating a new encryption key with the same identifier should use a new key
-    let encryption_key3 = K::new(key_identifier);
+    let encryption_key3 = K::get_or_create(key_identifier);
     // Decrypting the payload encrypted with the previous key should not work
     encryption_key3
         .decrypt(&encrypted_payload)
