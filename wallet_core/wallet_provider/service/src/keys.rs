@@ -7,8 +7,8 @@ use wallet_provider_domain::model::hsm::Hsm;
 
 use crate::hsm::{HsmError, Pkcs11Hsm};
 
-pub trait CertificateSigningKey: SecureEcdsaKey {}
-pub trait InstructionResultSigningKey: SecureEcdsaKey {}
+pub trait CertificateSigningKey: SecureEcdsaKey + WithIdentifier {}
+pub trait InstructionResultSigningKey: SecureEcdsaKey + WithIdentifier {}
 
 pub struct CertificateSigning(pub WalletProviderEcdsaKey);
 pub struct InstructionResultSigning(pub WalletProviderEcdsaKey);
