@@ -13,12 +13,7 @@ use tokio::time;
 use url::Url;
 
 use configuration_server::settings::Settings as CsSettings;
-use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
-use openid4vc::{
-    issuance_client::HttpIssuerClient,
-    issuer::{AttributeService, Created},
-    token::TokenRequest,
-};
+use openid4vc::issuance_client::HttpIssuerClient;
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
@@ -32,7 +27,7 @@ use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::{
-    pid::mock::{MockAttributesLookup as WSMockAttributesLookup, MockBsnLookup as WSMockBsnLookup},
+    pid::attributes::MockPidAttributeService,
     settings::{Server, Settings as WsSettings},
     store::SessionStores,
 };
@@ -226,7 +221,13 @@ pub async fn start_wallet_server(settings: WsSettings) {
     let public_url = settings.public_url.clone();
     let sessions = SessionStores::init(settings.store_url.clone()).await.unwrap();
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve_full(MockAttributeService, settings, sessions).await {
+        if let Err(error) = wallet_server::server::serve_full(
+            MockPidAttributeService::new(&settings.issuer).await.unwrap(),
+            settings,
+            sessions,
+        )
+        .await
+        {
             println!("Could not start wallet_server: {:?}", error);
 
             process::exit(1);
@@ -291,19 +292,4 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
         .await
         .expect("Could not accept pid issuance");
     wallet
-}
-
-pub struct MockAttributeService;
-
-impl AttributeService for MockAttributeService {
-    type Error = wallet_server::verifier::Error; // arbitrary type that implements the required trait bounds
-
-    async fn attributes(
-        &self,
-        _session: &SessionState<Created>,
-        _token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
-        let mock_bsn = WSMockBsnLookup::default().bsn("access_token").await.unwrap();
-        Ok(WSMockAttributesLookup::default().attributes(&mock_bsn).unwrap())
-    }
 }
