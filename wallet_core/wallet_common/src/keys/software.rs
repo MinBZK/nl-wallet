@@ -127,14 +127,6 @@ impl SoftwareEncryptionKey {
     pub fn new_random(identifier: String) -> Self {
         Self::new(identifier, Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)))
     }
-
-    // Peek into the static hashmap to see if an identifier / cipher pair exists.
-    pub fn has_identifier(identifier: &str) -> bool {
-        ENCRYPTION_CIPHERS
-            .lock()
-            .expect("Could not get lock on SIGNING_KEYS")
-            .contains_key(identifier)
-    }
 }
 
 impl Debug for SoftwareEncryptionKey {
