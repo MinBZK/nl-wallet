@@ -576,9 +576,7 @@ pub(crate) mod tests {
     };
     use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
     use wallet_common::{
-        account::messages::auth::WalletCertificate,
-        keys::{software::SoftwareEncryptionKey, WithIdentifier},
-        utils::random_bytes,
+        account::messages::auth::WalletCertificate, keys::software::SoftwareEncryptionKey, utils::random_bytes,
     };
 
     use crate::storage::data::RegistrationData;
@@ -608,35 +606,51 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_database_open_encrypted_database() {
-        let storage = DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+    async fn test_database_open_encrypted_database_and_clear() {
+        let mut storage =
+            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
 
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
+        let key_file_identifier = key_identifier_for_key_file(&key_file_alias);
         let database_path = storage.database_path_for_name(name);
 
         // Make sure we start with a clean slate.
         _ = key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
         _ = fs::remove_file(database_path).await;
 
+        // The key file encryption key should be absent.
+        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+
+        // Open the encrypted database.
         let open_database = storage
             .open_encrypted_database(name)
             .await
             .expect("Could not open encrypted database");
 
-        assert!(matches!(&open_database.database.url, SqliteUrl::File(path)
-            if path.to_str().unwrap().contains("test_open_encrypted_database.db")));
+        // The database should have opened a file at the expected path.
+        let database_path = match open_database.database.url {
+            SqliteUrl::File(ref path) => path.clone(),
+            _ => panic!("Unexpected database URL"),
+        };
+        assert!(database_path
+            .to_str()
+            .unwrap()
+            .contains("test_open_encrypted_database.db"));
+        assert!(fs::try_exists(&database_path).await.unwrap());
 
-        assert!(open_database
-            .key_file_key
-            .identifier()
-            .contains("test_open_encrypted_database"));
+        // The key file encryption key should be present.
+        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
 
-        open_database
-            .database
-            .close_and_delete()
-            .await
-            .expect("Could not close and delete database");
+        // Set the open database on the `DatabaseStorage` instance.
+        storage.open_database = open_database.into();
+
+        // Clear the database and consume the `DatabaseStorage` instance.
+        storage.clear().await;
+
+        // The database file should be gone and the key file encryption key should be absent.
+        assert!(!fs::try_exists(&database_path).await.unwrap());
+        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
     }
 
     async fn open_test_database_storage() -> DatabaseStorage<SoftwareEncryptionKey> {

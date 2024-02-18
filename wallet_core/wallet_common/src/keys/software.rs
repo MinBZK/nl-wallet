@@ -37,6 +37,16 @@ impl SoftwareEcdsaKey {
     pub fn new_random(identifier: String) -> Self {
         Self::new(identifier, SigningKey::random(&mut OsRng))
     }
+
+    // Peek into the static hashmap to see if an instance of
+    // `SoftwareEcdsaKey` with the specified identifier exists.
+    pub fn identifier_exists(identifier: &str) -> bool {
+        SIGNING_KEYS
+            .lock()
+            .get(identifier)
+            .map(|key| Arc::strong_count(key) > 1)
+            .unwrap_or_default()
+    }
 }
 
 impl Debug for SoftwareEcdsaKey {
@@ -124,6 +134,16 @@ impl SoftwareEncryptionKey {
 
     pub fn new_random(identifier: String) -> Self {
         Self::new(identifier, Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)))
+    }
+
+    // Peek into the static hashmap to see if an instance of
+    // `SoftwareEncryptionKey` with the specified identifier exists.
+    pub fn identifier_exists(identifier: &str) -> bool {
+        ENCRYPTION_CIPHERS
+            .lock()
+            .get(identifier)
+            .map(|key| Arc::strong_count(key) > 1)
+            .unwrap_or_default()
     }
 }
 
