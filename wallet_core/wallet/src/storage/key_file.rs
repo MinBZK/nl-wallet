@@ -165,9 +165,16 @@ mod tests {
 
         let storage_path = env::temp_dir();
 
+        let path1 = path_for_key_file(&storage_path, &alias1);
+        let path2 = path_for_key_file(&storage_path, &alias2);
+
         // Make sure we start with a clean slate.
         _ = delete_key_file(&storage_path, &alias1).await;
         _ = delete_key_file(&storage_path, &alias2).await;
+
+        // Double check that neither key file exists on disk.
+        assert!(!fs::try_exists(&path1).await.unwrap());
+        assert!(!fs::try_exists(&path2).await.unwrap());
 
         // Create three keys, two of them with the same alias.
         let encryption_key1 = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
@@ -187,8 +194,16 @@ mod tests {
         assert_ne!(key1, key2);
         assert_eq!(key1, key1_again);
 
+        // Both key files should exist on disk.
+        assert!(fs::try_exists(&path1).await.unwrap());
+        assert!(fs::try_exists(&path2).await.unwrap());
+
         // Cleanup after ourselves.
         delete_key_file(&storage_path, &alias1).await.unwrap();
         delete_key_file(&storage_path, &alias2).await.unwrap();
+
+        // Both key files should be deleted from disk.
+        assert!(!fs::try_exists(&path1).await.unwrap());
+        assert!(!fs::try_exists(&path2).await.unwrap());
     }
 }
