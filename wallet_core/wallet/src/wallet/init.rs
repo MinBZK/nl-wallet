@@ -85,7 +85,6 @@ where
         // The identifier used for this should be globally unique. If this is not the case,
         // the `Wallet` has multiple instances, which is programmer error and should result
         // in a panic.
-        println!("WALLED KEY ID: {}", wallet_key_id().as_ref());
         let hw_privkey =
             PEK::new_unique(wallet_key_id().as_ref()).expect("wallet hardware key identifier is already in use");
 
