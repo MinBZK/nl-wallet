@@ -9,7 +9,7 @@ use super::FileStorageError;
 pub async fn get_config_file(storage_path: &Path) -> Result<Option<WalletConfiguration>, FileStorageError> {
     let path = path_for_config_file(storage_path);
 
-    if !path.try_exists()? {
+    if !fs::try_exists(&path).await? {
         return Ok(None);
     }
 

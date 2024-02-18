@@ -50,7 +50,7 @@ impl HttpConfigurationClient {
     async fn read_latest_etag(storage_path: &Path) -> Result<Option<HeaderValue>, FileStorageError> {
         let path = Self::path_for_etag_file(storage_path);
 
-        if !path.try_exists()? {
+        if !fs::try_exists(&path).await? {
             return Ok(None);
         }
 
