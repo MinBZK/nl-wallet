@@ -1,5 +1,5 @@
 use p256::ecdsa::signature;
-use tracing::{info, instrument};
+use tracing::{info, instrument, warn};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -282,14 +282,24 @@ where
             });
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
-        // wipe the contents of the wallet and return it to its initial state.
+        // wipe the the database, remove the registration and lock the wallet.
         if matches!(
             mdocs_result,
             Err(PidIssuanceError::Instruction(
                 InstructionError::Timeout { .. } | InstructionError::Blocked
             ))
         ) {
-            self.reset_to_initial_state().await;
+            // Clear the PID issuer state by rejecting the PID.
+            // Log any errors that occur and continue.
+            if let Err(error) = self.pid_issuer.reject_pid().await {
+                warn!("Could not reject PID issuance: {0}", error);
+            }
+
+            // TODO: Determine if it is a problem that we do not reset the hardware key.
+            self.storage.get_mut().clear().await;
+
+            self.registration.take();
+            self.lock.lock();
         }
         let mdocs = mdocs_result?;
 

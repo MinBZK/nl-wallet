@@ -1,5 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
+use parking_lot::Mutex;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -19,7 +23,7 @@ use super::{
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
 #[derive(Debug)]
 pub struct MockStorage {
-    pub state: StorageState,
+    pub state: Arc<Mutex<StorageState>>,
     pub data: HashMap<&'static str, String>,
     pub mdocs: MdocsMap,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
@@ -38,7 +42,7 @@ impl MockStorage {
         let mdocs = MdocsMap::new();
 
         MockStorage {
-            state,
+            state: Arc::new(Mutex::new(state)),
             data,
             mdocs,
             mdoc_copies_usage_counts: HashMap::new(),
@@ -64,18 +68,18 @@ impl Default for MockStorage {
 
 impl Storage for MockStorage {
     async fn state(&self) -> StorageResult<StorageState> {
-        Ok(self.state)
+        Ok(*self.state.lock())
     }
 
     async fn open(&mut self) -> StorageResult<()> {
-        self.state = StorageState::Opened;
+        *self.state.lock() = StorageState::Opened;
 
         Ok(())
     }
 
     async fn clear(&mut self) {
         self.data.clear();
-        self.state = StorageState::Uninitialized;
+        *self.state.lock() = StorageState::Uninitialized;
     }
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>> {

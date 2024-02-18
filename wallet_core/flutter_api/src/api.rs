@@ -21,9 +21,10 @@ use crate::{
     stream::ClosingStreamSink,
 };
 
-static WALLET: OnceCell<RwLock<Wallet>> = OnceCell::const_new();
+// TODO: Add utility to prevent having to `unwrap()` for every call.
+static WALLET: OnceCell<RwLock<Option<Wallet>>> = OnceCell::const_new();
 
-fn wallet() -> &'static RwLock<Wallet> {
+fn wallet() -> &'static RwLock<Option<Wallet>> {
     WALLET
         .get()
         .expect("Wallet must be initialized. Please execute `init()` first.")
@@ -63,7 +64,7 @@ async fn create_wallet() -> std::result::Result<bool, WalletInitError> {
             let wallet = Wallet::init_all().await?;
             created = true;
 
-            Ok::<_, WalletInitError>(RwLock::new(wallet))
+            Ok::<_, WalletInitError>(RwLock::new(wallet.into()))
         })
         .await?;
 
@@ -84,12 +85,14 @@ pub async fn set_lock_stream(sink: StreamSink<bool>) {
     wallet()
         .write()
         .await
+        .as_mut()
+        .unwrap()
         .set_lock_callback(Box::new(move |locked| sink.add(locked)));
 }
 
 #[async_runtime]
 pub async fn clear_lock_stream() {
-    wallet().write().await.clear_lock_callback();
+    wallet().write().await.as_mut().unwrap().clear_lock_callback();
 }
 
 #[async_runtime]
@@ -97,14 +100,16 @@ pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) {
     let sink = ClosingStreamSink::from(sink);
 
     wallet()
-        .write()
+        .read()
         .await
+        .as_ref()
+        .unwrap()
         .set_config_callback(Box::new(move |config| sink.add(config.as_ref().into())));
 }
 
 #[async_runtime]
 pub async fn clear_configuration_stream() {
-    wallet().write().await.clear_config_callback();
+    wallet().read().await.as_ref().unwrap().clear_config_callback();
 }
 
 #[async_runtime]
@@ -114,6 +119,8 @@ pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> Result<()> {
     wallet()
         .write()
         .await
+        .as_mut()
+        .unwrap()
         .set_documents_callback(Box::new(move |documents| {
             let cards = documents.into_iter().map(|document| document.into()).collect();
 
@@ -126,7 +133,7 @@ pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> Result<()> {
 
 #[async_runtime]
 pub async fn clear_cards_stream() {
-    wallet().write().await.clear_documents_callback();
+    wallet().write().await.as_mut().unwrap().clear_documents_callback();
 }
 
 #[async_runtime]
@@ -134,7 +141,7 @@ pub async fn clear_cards_stream() {
 pub async fn unlock_wallet(pin: String) -> Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.unlock(pin).await.try_into()?;
+    let result = wallet.as_mut().unwrap().unlock(pin).await.try_into()?;
 
     Ok(result)
 }
@@ -143,12 +150,12 @@ pub async fn unlock_wallet(pin: String) -> Result<WalletInstructionResult> {
 pub async fn lock_wallet() {
     let mut wallet = wallet().write().await;
 
-    wallet.lock();
+    wallet.as_mut().unwrap().lock();
 }
 
 #[async_runtime]
 pub async fn has_registration() -> bool {
-    wallet().read().await.has_registration()
+    wallet().read().await.as_ref().unwrap().has_registration()
 }
 
 #[async_runtime]
@@ -156,7 +163,7 @@ pub async fn has_registration() -> bool {
 pub async fn register(pin: String) -> Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.register(pin).await?;
+    wallet.as_mut().unwrap().register(pin).await?;
 
     Ok(())
 }
@@ -166,7 +173,7 @@ pub async fn register(pin: String) -> Result<()> {
 pub async fn identify_uri(uri: String) -> Result<IdentifyUriResult> {
     let wallet = wallet().read().await;
 
-    let identify_uri_result = wallet.identify_uri(&uri).try_into()?;
+    let identify_uri_result = wallet.as_ref().unwrap().identify_uri(&uri).try_into()?;
 
     Ok(identify_uri_result)
 }
@@ -176,7 +183,7 @@ pub async fn identify_uri(uri: String) -> Result<IdentifyUriResult> {
 pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
     let mut wallet = wallet().write().await;
 
-    let auth_url = wallet.create_pid_issuance_auth_url().await?;
+    let auth_url = wallet.as_mut().unwrap().create_pid_issuance_auth_url().await?;
 
     Ok(auth_url.into())
 }
@@ -186,7 +193,7 @@ pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
 pub async fn cancel_pid_issuance() -> Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_pid_issuance()?;
+    wallet.as_mut().unwrap().cancel_pid_issuance()?;
 
     Ok(())
 }
@@ -198,7 +205,7 @@ pub async fn continue_pid_issuance(uri: String) -> Result<Vec<Card>> {
 
     let mut wallet = wallet().write().await;
 
-    let documents = wallet.continue_pid_issuance(&url).await?;
+    let documents = wallet.as_mut().unwrap().continue_pid_issuance(&url).await?;
 
     let cards = documents.into_iter().map(Card::from).collect();
 
@@ -210,7 +217,7 @@ pub async fn continue_pid_issuance(uri: String) -> Result<Vec<Card>> {
 pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
+    let result = wallet.as_mut().unwrap().accept_pid_issuance(pin).await.try_into()?;
 
     Ok(result)
 }
@@ -220,7 +227,7 @@ pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult>
 pub async fn reject_pid_issuance() -> Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.reject_pid_issuance().await?;
+    wallet.as_mut().unwrap().reject_pid_issuance().await?;
 
     Ok(())
 }
@@ -232,7 +239,7 @@ pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
 
     let mut wallet = wallet().write().await;
 
-    let result = wallet.start_disclosure(&url).await.try_into()?;
+    let result = wallet.as_mut().unwrap().start_disclosure(&url).await.try_into()?;
 
     Ok(result)
 }
@@ -242,7 +249,7 @@ pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
 pub async fn cancel_disclosure() -> Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_disclosure().await?;
+    wallet.as_mut().unwrap().cancel_disclosure().await?;
 
     Ok(())
 }
@@ -252,7 +259,7 @@ pub async fn cancel_disclosure() -> Result<()> {
 pub async fn accept_disclosure(pin: String) -> Result<AcceptDisclosureResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_disclosure(pin).await.try_into()?;
+    let result = wallet.as_mut().unwrap().accept_disclosure(pin).await.try_into()?;
 
     Ok(result)
 }
@@ -261,7 +268,7 @@ pub async fn accept_disclosure(pin: String) -> Result<AcceptDisclosureResult> {
 #[flutter_api_error]
 pub async fn get_history() -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
-    let history = wallet.get_history().await?;
+    let history = wallet.as_ref().unwrap().get_history().await?;
     let history = history.into_iter().flat_map(WalletEvents::from).collect();
     Ok(history)
 }
@@ -270,7 +277,7 @@ pub async fn get_history() -> Result<Vec<WalletEvent>> {
 #[flutter_api_error]
 pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
-    let history = wallet.get_history_for_card(&doc_type).await?;
+    let history = wallet.as_ref().unwrap().get_history_for_card(&doc_type).await?;
     let history = history
         .into_iter()
         .flat_map(WalletEvents::from)
@@ -285,7 +292,39 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
 #[async_runtime]
 #[flutter_api_error]
 pub async fn reset_wallet() -> Result<()> {
-    wallet().write().await.reset().await?;
+    let mut wallet_write_lock = wallet().write().await;
+
+    // Take all of the callbacks from the old `Wallet`,
+    // so we can transplant them onto the new one.
+    let mut old_wallet = wallet_write_lock.take().unwrap();
+    let lock_callback = old_wallet.clear_lock_callback();
+    let config_callback = old_wallet.clear_config_callback();
+    let documents_callback = old_wallet.clear_documents_callback();
+
+    // Reset the old `Wallet` instance, which consumes it.
+    old_wallet.reset().await;
+
+    // Create a new wallet instance. Assume that, since the wallet
+    // initialized the first time, it can do so without any errors again.
+    // TODO: Should we somehow catch and report errors instead?
+    let mut new_wallet = Wallet::init_all().await.expect("Could not re-initialize wallet");
+
+    // Transplant all of the callbacks, if present.
+    if let Some(lock_callback) = lock_callback {
+        new_wallet.set_lock_callback(lock_callback);
+    }
+
+    if let Some(config_callback) = config_callback {
+        new_wallet.set_config_callback(config_callback);
+    }
+
+    if let Some(documents_callback) = documents_callback {
+        // There are no documents, so we there should be no errors.
+        new_wallet.set_documents_callback(documents_callback).await.unwrap();
+    }
+
+    // Actually save the new `Wallet` instance to the lock.
+    wallet_write_lock.replace(new_wallet);
 
     Ok(())
 }

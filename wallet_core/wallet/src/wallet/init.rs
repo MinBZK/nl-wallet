@@ -26,7 +26,7 @@ const WALLET_KEY_ID: &str = "wallet";
 /// returns `WALLET_KEY_ID` suffixed with a unique thread local identifier
 /// when running tests. This allows multiple `Wallet` instances to be
 /// created in parallel.
-fn wallet_key_id() -> Cow<'static, str> {
+pub(super) fn wallet_key_id() -> Cow<'static, str> {
     #[cfg(not(test))]
     return Cow::from(WALLET_KEY_ID);
 
