@@ -9,7 +9,7 @@ mod android;
 #[cfg(target_os = "ios")]
 mod ios;
 
-use std::sync::Once;
+use parking_lot::Once;
 
 use self::tracing::init_tracing_subscriber;
 
