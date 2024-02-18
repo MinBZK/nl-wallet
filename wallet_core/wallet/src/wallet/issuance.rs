@@ -793,7 +793,9 @@ mod tests {
         // Set the documents callback on the `Wallet`, which should
         // immediately be called with an empty `Vec`.
         wallet
-            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
+            .set_documents_callback(Box::new(move |documents| {
+                callback_documents.lock().push(documents.clone())
+            }))
             .await
             .expect("Could not set documents callback");
 

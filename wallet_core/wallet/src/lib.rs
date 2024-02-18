@@ -21,7 +21,9 @@ pub use crate::{
         MissingDisclosureAttributes,
     },
     pin::validation::validate_pin,
-    wallet::{DisclosureProposal, EventStatus, HistoryEvent, UriType, Wallet},
+    wallet::{
+        ConfigCallback, DisclosureProposal, DocumentsCallback, EventStatus, HistoryEvent, LockCallback, UriType, Wallet,
+    },
 };
 
 pub mod mdoc {

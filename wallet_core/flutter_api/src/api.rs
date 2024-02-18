@@ -81,7 +81,10 @@ pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
 pub async fn set_lock_stream(sink: StreamSink<bool>) {
     let sink = ClosingStreamSink::from(sink);
 
-    wallet().write().await.set_lock_callback(move |locked| sink.add(locked));
+    wallet()
+        .write()
+        .await
+        .set_lock_callback(Box::new(move |locked| sink.add(locked)));
 }
 
 #[async_runtime]
@@ -96,7 +99,7 @@ pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) {
     wallet()
         .write()
         .await
-        .set_config_callback(move |config| sink.add(config.as_ref().into()));
+        .set_config_callback(Box::new(move |config| sink.add(config.as_ref().into())));
 }
 
 #[async_runtime]
@@ -111,11 +114,11 @@ pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> Result<()> {
     wallet()
         .write()
         .await
-        .set_documents_callback(move |documents| {
+        .set_documents_callback(Box::new(move |documents| {
             let cards = documents.into_iter().map(|document| document.into()).collect();
 
             sink.add(cards);
-        })
+        }))
         .await?;
 
     Ok(())

@@ -68,11 +68,11 @@ where
         Ok(())
     }
 
-    pub async fn set_documents_callback<F>(&mut self, callback: F) -> Result<(), DocumentsError>
-    where
-        F: FnMut(Vec<Document>) + Send + Sync + 'static,
-    {
-        self.documents_callback.replace(Box::new(callback));
+    pub async fn set_documents_callback(
+        &mut self,
+        callback: DocumentsCallback,
+    ) -> Result<Option<DocumentsCallback>, DocumentsError> {
+        let previous_callback = self.documents_callback.replace(callback);
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case send an empty vec, so the UI has something to work with.
@@ -84,11 +84,11 @@ where
             self.documents_callback.as_mut().unwrap()(Default::default());
         }
 
-        Ok(())
+        Ok(previous_callback)
     }
 
-    pub fn clear_documents_callback(&mut self) {
-        self.documents_callback.take();
+    pub fn clear_documents_callback(&mut self) -> Option<DocumentsCallback> {
+        self.documents_callback.take()
     }
 }
 #[cfg(test)]
@@ -117,7 +117,9 @@ mod tests {
         // Set the documents callback on the `Wallet`, which
         // should immediately be called with an empty `Vec`.
         wallet
-            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
+            .set_documents_callback(Box::new(move |documents| {
+                callback_documents.lock().push(documents.clone())
+            }))
             .await
             .expect("Could not set documents callback");
 
@@ -157,7 +159,9 @@ mod tests {
         // Set the documents callback on the `Wallet`, which should
         // immediately be called with a `Vec` containing a single `Document`
         wallet
-            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
+            .set_documents_callback(Box::new(move |documents| {
+                callback_documents.lock().push(documents.clone())
+            }))
             .await
             .expect("Could not set documents callback");
 
@@ -201,8 +205,11 @@ mod tests {
         // Set the documents callback on the `Wallet`, which should
         // immediately be called with a `Vec` containing a single `Document`
         let error = wallet
-            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
+            .set_documents_callback(Box::new(move |documents| {
+                callback_documents.lock().push(documents.clone())
+            }))
             .await
+            .map(|_| ())
             .expect_err("Expected error");
 
         assert_matches!(error, DocumentsError::MissingIssuerRegistration);
@@ -220,8 +227,9 @@ mod tests {
 
         // Confirm that setting the callback returns an error.
         let error = wallet
-            .set_documents_callback(|_| {})
+            .set_documents_callback(Box::new(|_| {}))
             .await
+            .map(|_| ())
             .expect_err("Setting documents callback should have resulted in an error");
 
         assert_matches!(error, DocumentsError::Storage(_));

@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use wallet_common::config::wallet_config::WalletConfiguration;
+pub use crate::config::ConfigCallback;
 
 use crate::config::ObservableConfigurationRepository;
 
@@ -10,16 +8,13 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     CR: ObservableConfigurationRepository,
 {
-    pub fn set_config_callback<F>(&self, callback: F)
-    where
-        F: Fn(Arc<WalletConfiguration>) + Send + Sync + 'static,
-    {
+    pub fn set_config_callback(&self, callback: ConfigCallback) -> Option<ConfigCallback> {
         callback(self.config_repository.config());
-        self.config_repository.register_callback_on_update(callback);
+        self.config_repository.register_callback_on_update(callback)
     }
 
-    pub fn clear_config_callback(&self) {
-        self.config_repository.clear_callback();
+    pub fn clear_config_callback(&self) -> Option<ConfigCallback> {
+        self.config_repository.clear_callback()
     }
 }
 
@@ -30,9 +25,11 @@ mod tests {
     use parking_lot::Mutex;
     use tokio::sync::Notify;
 
+    use wallet_common::config::wallet_config::WalletConfiguration;
+
     use crate::config::default_configuration;
 
-    use super::{super::test::WalletWithMocks, *};
+    use super::super::test::WalletWithMocks;
 
     // Tests both setting and clearing the configuration callback.
     #[tokio::test]
@@ -52,10 +49,10 @@ mod tests {
 
         // Set the configuration callback on the `Wallet`,
         // which should immediately be called exactly once.
-        wallet.set_config_callback(move |config| {
+        wallet.set_config_callback(Box::new(move |config| {
             callback_configs.lock().push(config);
             callback_notifier.notify_one();
-        });
+        }));
 
         // Wait for the callback to be completed.
         notifier.notified().await;

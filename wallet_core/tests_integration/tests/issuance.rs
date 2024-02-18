@@ -36,10 +36,10 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     {
         let documents = documents.clone();
         wallet
-            .set_documents_callback(move |mut d| {
+            .set_documents_callback(Box::new(move |mut d| {
                 let mut documents = documents.lock().unwrap();
                 documents.append(&mut d)
-            })
+            }))
             .await
             .unwrap();
     }

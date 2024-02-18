@@ -26,6 +26,8 @@ pub type UpdatingFileHttpConfigurationRepository =
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::LocalConfigurationRepository;
 
+pub type ConfigCallback = Box<dyn Fn(Arc<WalletConfiguration>) + Send + Sync>;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigurationError {
     #[error("networking error: {0}")]
@@ -64,9 +66,6 @@ pub trait LocalUpdateableConfigurationRepository: ConfigurationRepository {
 }
 
 pub trait ObservableConfigurationRepository: ConfigurationRepository {
-    fn register_callback_on_update<F>(&self, callback: F)
-    where
-        F: Fn(Arc<WalletConfiguration>) + Send + Sync + 'static;
-
-    fn clear_callback(&self);
+    fn register_callback_on_update(&self, callback: ConfigCallback) -> Option<ConfigCallback>;
+    fn clear_callback(&self) -> Option<ConfigCallback>;
 }

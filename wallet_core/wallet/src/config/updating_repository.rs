@@ -10,7 +10,7 @@ use tracing::{error, info};
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use super::{
-    ConfigServerConfiguration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+    ConfigCallback, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
     FileStorageConfigurationRepository, ObservableConfigurationRepository, UpdateableConfigurationRepository,
     UpdatingFileHttpConfigurationRepository,
 };
@@ -18,10 +18,8 @@ use super::{
 pub struct UpdatingConfigurationRepository<T> {
     wrapped: Arc<T>,
     updating_task: JoinHandle<()>,
-    callback_sender: Sender<CallbackFunction>,
+    callback_sender: Sender<Option<ConfigCallback>>,
 }
-
-pub type CallbackFunction = Box<dyn Fn(Arc<WalletConfiguration>) + Send + Sync>;
 
 impl UpdatingFileHttpConfigurationRepository {
     pub async fn init(
@@ -47,7 +45,7 @@ where
     T: UpdateableConfigurationRepository + Send + Sync + 'static,
 {
     pub async fn new(wrapped: T, update_frequency: Duration) -> UpdatingConfigurationRepository<T> {
-        let (tx, rx) = channel::<CallbackFunction>(Box::new(|_| {}));
+        let (tx, rx) = channel(None);
         let wrapped = Arc::new(wrapped);
         let updating_task = Self::start_update_task(Arc::clone(&wrapped), rx, update_frequency).await;
         Self {
@@ -58,7 +56,11 @@ where
     }
 
     // This function is marked as async to force using a Tokio runtime and to prevent runtime panics if used without.
-    async fn start_update_task(wrapped: Arc<T>, rx: Receiver<CallbackFunction>, interval: Duration) -> JoinHandle<()> {
+    async fn start_update_task(
+        wrapped: Arc<T>,
+        rx: Receiver<Option<ConfigCallback>>,
+        interval: Duration,
+    ) -> JoinHandle<()> {
         tokio::spawn(async move {
             let mut interval = time::interval(interval);
             interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -72,8 +74,10 @@ where
                     Ok(state) => {
                         if let ConfigurationUpdateState::Updated = state {
                             let config = wrapped.config();
-                            let callback = rx.borrow();
-                            callback(config);
+
+                            if let Some(callback) = rx.borrow().as_deref() {
+                                callback(config);
+                            }
                         }
                     }
                     Err(e) => error!("fetch configuration error: {}", e),
@@ -96,15 +100,12 @@ impl<T> ObservableConfigurationRepository for UpdatingConfigurationRepository<T>
 where
     T: ConfigurationRepository,
 {
-    fn register_callback_on_update<F>(&self, callback: F)
-    where
-        F: Fn(Arc<WalletConfiguration>) + Send + Sync + 'static,
-    {
-        let _ = self.callback_sender.send_replace(Box::new(callback));
+    fn register_callback_on_update(&self, callback: ConfigCallback) -> Option<ConfigCallback> {
+        self.callback_sender.send_replace(Some(callback))
     }
 
-    fn clear_callback(&self) {
-        let _ = self.callback_sender.send_replace(Box::new(|_| {}));
+    fn clear_callback(&self) -> Option<ConfigCallback> {
+        self.callback_sender.send_replace(None)
     }
 }
 
@@ -169,14 +170,14 @@ mod tests {
 
         let counter = Arc::new(AtomicU64::new(0));
         let callback_counter = Arc::clone(&counter);
-        config.register_callback_on_update(move |config| {
+        config.register_callback_on_update(Box::new(move |config| {
             assert_eq!(900, config.lock_timeouts.background_timeout);
             let prev = callback_counter.fetch_add(1, Ordering::SeqCst);
             // when the previous value is 2 (= bigger than 1), the current value is 3 and the notifier is notified.
             if prev > 1 {
                 callback_notifier.notify_one();
             }
-        });
+        }));
 
         time::advance(Duration::from_millis(3000)).await;
         notifier.notified().await;
@@ -209,9 +210,9 @@ mod tests {
             )
             .await;
 
-            config.register_callback_on_update(move |_| {
+            config.register_callback_on_update(Box::new(move |_| {
                 callback_counter.fetch_add(1, Ordering::SeqCst);
-            });
+            }));
 
             // Advance the clock so that the initial fetch plus 9 additional ones occur.
             for _ in 0..(9 * 101) {

@@ -4,6 +4,8 @@ use tracing::{info, instrument};
 
 use wallet_common::account::messages::instructions::CheckPin;
 
+pub use crate::lock::LockCallback;
+
 use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
@@ -28,15 +30,11 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
         self.lock.is_locked()
     }
 
-    pub fn set_lock_callback<F>(&mut self, callback: F)
-    where
-        F: FnMut(bool) + Send + Sync + 'static,
-    {
-        // callback(self.lock.is_locked());
-        self.lock.set_lock_callback(callback);
+    pub fn set_lock_callback(&mut self, callback: LockCallback) -> Option<LockCallback> {
+        self.lock.set_lock_callback(callback)
     }
 
-    pub fn clear_lock_callback(&mut self) {
+    pub fn clear_lock_callback(&mut self) -> Option<LockCallback> {
         self.lock.clear_lock_callback()
     }
 
@@ -139,7 +137,7 @@ mod tests {
 
         // Set the lock callback on the `Wallet`,
         // which should immediately be called exactly once.
-        wallet.set_lock_callback(move |is_locked| callback_is_locked_vec.lock().push(is_locked));
+        wallet.set_lock_callback(Box::new(move |is_locked| callback_is_locked_vec.lock().push(is_locked)));
 
         // Lock the `Wallet`, then lock it again.
         wallet.lock();

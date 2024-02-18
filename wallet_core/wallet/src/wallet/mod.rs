@@ -28,11 +28,13 @@ use crate::{
 };
 
 pub use self::{
+    config::ConfigCallback,
     disclosure::{DisclosureError, DisclosureProposal},
+    documents::DocumentsCallback,
     history::{EventStatus, HistoryError, HistoryEvent},
     init::WalletInitError,
     issuance::PidIssuanceError,
-    lock::WalletUnlockError,
+    lock::{LockCallback, WalletUnlockError},
     registration::WalletRegistrationError,
     reset::ResetError,
     uri::{UriIdentificationError, UriType},
@@ -40,8 +42,6 @@ pub use self::{
 
 #[cfg(test)]
 pub(crate) use self::issuance::rvig_registration;
-
-use self::documents::DocumentsCallback;
 
 pub struct Wallet<
     CR = UpdatingFileHttpConfigurationRepository,  // ConfigurationRepository
