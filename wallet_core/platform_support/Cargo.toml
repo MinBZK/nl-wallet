@@ -26,6 +26,7 @@ hardware_integration_test = ["integration_test", "dep:jni"]
 [dependencies]
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
+parking_lot.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
 uniffi.workspace = true

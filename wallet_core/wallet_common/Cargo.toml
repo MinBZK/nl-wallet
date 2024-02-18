@@ -15,7 +15,7 @@ doctest = false
 # on keys from the p256 and aes-gcm crates
 mock_secure_keys = ["dep:aes-gcm"]
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
-software_keys = ["mock_secure_keys", "dep:rand_core"]
+software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Enable helper code for integration tests
 integration_test = []
 
@@ -29,6 +29,7 @@ http.workspace = true
 jsonwebtoken.workspace = true
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
+parking_lot = { workspace = true, optional = true }
 rand.workspace = true
 ring.workspace = true
 rustls-webpki.workspace = true

@@ -1,8 +1,9 @@
-use std::{collections::HashMap, iter, sync::Mutex};
+use std::{collections::HashMap, iter};
 
 use futures::{executor, future};
 use p256::ecdsa::{Signature, VerifyingKey};
 
+use parking_lot::Mutex;
 use wallet_common::{
     keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
     utils,
@@ -46,7 +47,6 @@ impl KeyFactory for SoftwareKeyFactory {
 
         self.software_keys
             .lock()
-            .unwrap()
             .extend(keys.iter().map(|key| (key.identifier().to_string(), key.clone())));
 
         Ok(keys)
@@ -56,7 +56,6 @@ impl KeyFactory for SoftwareKeyFactory {
         let key = self
             .software_keys
             .lock()
-            .unwrap()
             .get(&identifier.into())
             .expect("called generate_existing() with unknown identifier")
             .clone();

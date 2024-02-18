@@ -2,12 +2,13 @@ use std::{
     collections::HashMap,
     convert::Infallible,
     fmt::{self, Debug},
-    sync::{Arc, Mutex},
+    sync::Arc,
 };
 
 use aes_gcm::{aead::KeyInit, Aes256Gcm};
 use once_cell::sync::Lazy;
 use p256::ecdsa::{signature::Signer, Signature, SigningKey, VerifyingKey};
+use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use crate::keys::WithIdentifier;
@@ -72,7 +73,7 @@ impl StoredByIdentifier for SoftwareEcdsaKey {
 
     fn new_unique(identifier: &str) -> Option<Self> {
         // Obtain lock on SIGNING_KEYS static hashmap.
-        let mut signing_keys = SIGNING_KEYS.lock().expect("Could not get lock on SIGNING_KEYS");
+        let mut signing_keys = SIGNING_KEYS.lock();
 
         // Retrieve the signing key from the static hashmap.
         let maybe_key = signing_keys.get(identifier);
@@ -101,10 +102,7 @@ impl StoredByIdentifier for SoftwareEcdsaKey {
 
     async fn delete(self) -> Result<(), Self::Error> {
         // Simply remove the signing key from the static hashmap, if present.
-        SIGNING_KEYS
-            .lock()
-            .expect("Could not get lock on SIGNING_KEYS")
-            .remove(&self.identifier);
+        SIGNING_KEYS.lock().remove(&self.identifier);
 
         Ok(())
     }
@@ -160,9 +158,7 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
 
     fn new_unique(identifier: &str) -> Option<Self> {
         // Obtain lock on ENCRYPTION_CIPHERS static hashmap.
-        let mut encryption_ciphers = ENCRYPTION_CIPHERS
-            .lock()
-            .expect("Could not get lock on ENCRYPTION_CIPHERS");
+        let mut encryption_ciphers = ENCRYPTION_CIPHERS.lock();
 
         // Retrieve the cipher from the static hashmap.
         let maybe_cipher = encryption_ciphers.get(identifier);
@@ -191,10 +187,7 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
 
     async fn delete(self) -> Result<(), Self::Error> {
         // Simply remove the encryption cipher from the static hashmap, if present.
-        ENCRYPTION_CIPHERS
-            .lock()
-            .expect("Could not get lock on ENCRYPTION_CIPHERS")
-            .remove(&self.identifier);
+        ENCRYPTION_CIPHERS.lock().remove(&self.identifier);
 
         Ok(())
     }

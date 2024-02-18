@@ -22,7 +22,7 @@ examples = ["dep:anyhow", "dep:hex-literal"]
 # Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
 software_keys = ["wallet_common/software_keys"]
 # Include SoftwareKeyFactory, which implements KeyFactory for testing
-software_key_factory = ["software_keys"]
+software_key_factory = ["software_keys", "dep:parking_lot"]
 # Include MdocsMap, which can be used for tests that store Mdocs
 mdocs_map = []
 # Include miscellaneous test utilities
@@ -43,6 +43,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
+parking_lot = { workspace = true, optional = true }
 rand_core.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true

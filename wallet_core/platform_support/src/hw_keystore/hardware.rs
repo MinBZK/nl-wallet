@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Mutex};
+use std::{borrow::BorrowMut, collections::HashSet};
 
 use once_cell::sync::Lazy;
 use p256::{
@@ -6,6 +6,7 @@ use p256::{
     pkcs8::DecodePublicKey,
 };
 
+use parking_lot::Mutex;
 use wallet_common::{
     keys::{EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier, WithIdentifier},
     spawn,
@@ -22,13 +23,7 @@ static ENCRYPTION_KEY_IDENTIFIERS: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| M
 
 /// This helper function claims a particular identifier by inserting it into a `HashSet` and
 /// returning `true`, If the set already contains the identifier, it will return `false`.
-fn claim_unique_identifier(identifiers: &Mutex<HashSet<String>>, identifier: &str) -> bool {
-    // We should panic if this fails, as an error resulting from
-    // `lock()` can only ever be caused by another panic.
-    let mut identifiers = identifiers
-        .lock()
-        .expect("Could not get mutex lock for key identifiers");
-
+fn claim_unique_identifier(identifiers: &mut HashSet<String>, identifier: &str) -> bool {
     let can_claim = !identifiers.contains(identifier);
 
     if can_claim {
@@ -55,10 +50,7 @@ pub struct HardwareEcdsaKey {
 impl Drop for HardwareEcdsaKey {
     // Remove our entry from the static `HashSet`.
     fn drop(&mut self) {
-        ECDSA_KEY_IDENTIFIERS
-            .lock()
-            .expect("Could not get mutex lock for key identifiers")
-            .remove(&self.identifier);
+        ECDSA_KEY_IDENTIFIERS.lock().remove(&self.identifier);
     }
 }
 
@@ -101,7 +93,7 @@ impl StoredByIdentifier for HardwareEcdsaKey {
 
     fn new_unique(identifier: &str) -> Option<Self> {
         // Only return a new `HardwareEcdsaKey` if we can claim the identifier.
-        claim_unique_identifier(&ECDSA_KEY_IDENTIFIERS, identifier).then(|| HardwareEcdsaKey {
+        claim_unique_identifier(ECDSA_KEY_IDENTIFIERS.lock().borrow_mut(), identifier).then(|| HardwareEcdsaKey {
             identifier: identifier.to_string(),
         })
     }
@@ -126,10 +118,7 @@ pub struct HardwareEncryptionKey {
 impl Drop for HardwareEncryptionKey {
     // Remove our entry from the static `HashSet`.
     fn drop(&mut self) {
-        ENCRYPTION_KEY_IDENTIFIERS
-            .lock()
-            .expect("Could not get mutex lock for key identifiers")
-            .remove(&self.identifier);
+        ENCRYPTION_KEY_IDENTIFIERS.lock().remove(&self.identifier);
     }
 }
 
@@ -144,8 +133,10 @@ impl StoredByIdentifier for HardwareEncryptionKey {
 
     fn new_unique(identifier: &str) -> Option<Self> {
         // Only return a new `HardwareEncryptionKey` if we can claim the identifier.
-        claim_unique_identifier(&ENCRYPTION_KEY_IDENTIFIERS, identifier).then(|| HardwareEncryptionKey {
-            identifier: identifier.to_string(),
+        claim_unique_identifier(ENCRYPTION_KEY_IDENTIFIERS.lock().borrow_mut(), identifier).then(|| {
+            HardwareEncryptionKey {
+                identifier: identifier.to_string(),
+            }
         })
     }
 
