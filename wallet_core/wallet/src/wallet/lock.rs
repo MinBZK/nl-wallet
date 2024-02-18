@@ -96,16 +96,14 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        ops::Deref,
-        sync::{Arc, Mutex},
-    };
+    use std::{ops::Deref, sync::Arc};
 
     use assert_matches::assert_matches;
     use http::StatusCode;
     use mockall::predicate::*;
 
     use p256::ecdsa::SigningKey;
+    use parking_lot::Mutex;
     use rand_core::OsRng;
     use wallet_common::{
         account::{
@@ -141,7 +139,7 @@ mod tests {
 
         // Set the lock callback on the `Wallet`,
         // which should immediately be called exactly once.
-        wallet.set_lock_callback(move |is_locked| callback_is_locked_vec.lock().unwrap().push(is_locked));
+        wallet.set_lock_callback(move |is_locked| callback_is_locked_vec.lock().push(is_locked));
 
         // Lock the `Wallet`, then lock it again.
         wallet.lock();
@@ -224,7 +222,7 @@ mod tests {
 
         // Test the contents of the `Vec<bool>`.
         {
-            let is_locked_vec = is_locked_vec.lock().unwrap();
+            let is_locked_vec = is_locked_vec.lock();
 
             assert_eq!(is_locked_vec.deref(), &vec![false, true, false]);
         }
@@ -239,7 +237,7 @@ mod tests {
         wallet.lock();
 
         // Test that the callback was not called.
-        assert_eq!(is_locked_vec.lock().unwrap().len(), 3);
+        assert_eq!(is_locked_vec.lock().len(), 3);
     }
 
     #[tokio::test]
@@ -411,7 +409,6 @@ mod tests {
             .hw_privkey
             .next_private_key_error
             .lock()
-            .unwrap()
             .replace(p256::ecdsa::Error::new());
 
         let error = wallet

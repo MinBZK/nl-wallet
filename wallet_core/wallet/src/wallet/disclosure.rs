@@ -397,12 +397,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{atomic::Ordering, Arc, Mutex};
+    use std::sync::{atomic::Ordering, Arc};
 
     use assert_matches::assert_matches;
     use itertools::Itertools;
     use mockall::predicate::*;
     use once_cell::sync::Lazy;
+    use parking_lot::Mutex;
     use rstest::rstest;
     use serial_test::serial;
 
@@ -1116,7 +1117,6 @@ mod tests {
                 proposal
                     .next_error
                     .lock()
-                    .unwrap()
                     .replace(nl_wallet_mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
                     )))

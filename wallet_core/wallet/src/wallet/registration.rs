@@ -283,7 +283,6 @@ mod tests {
             .hw_privkey
             .next_public_key_error
             .lock()
-            .unwrap()
             .replace(p256::ecdsa::Error::new());
 
         let error = wallet
@@ -310,7 +309,6 @@ mod tests {
             .hw_privkey
             .next_private_key_error
             .lock()
-            .unwrap()
             .replace(p256::ecdsa::Error::new());
 
         let error = wallet

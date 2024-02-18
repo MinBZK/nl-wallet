@@ -148,11 +148,12 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
 mod mock {
     use std::sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
-        Arc, Mutex,
+        Arc,
     };
 
     use nl_wallet_mdoc::{holder::DisclosureError, verifier::SessionType};
     use once_cell::sync::Lazy;
+    use parking_lot::Mutex;
 
     use super::*;
 
@@ -208,7 +209,7 @@ mod mock {
             KF: KeyFactory<Key = K>,
             K: MdocEcdsaKey,
         {
-            if let Some(error) = self.next_error.lock().unwrap().take() {
+            if let Some(error) = self.next_error.lock().take() {
                 return Err(DisclosureError::new(self.attributes_shared, error));
             }
 
@@ -230,14 +231,11 @@ mod mock {
 
     impl MockMdocDisclosureSession {
         pub fn next_fields(reader_registration: ReaderRegistration, session_state: SessionState) {
-            NEXT_MOCK_FIELDS
-                .lock()
-                .unwrap()
-                .replace((reader_registration, session_state));
+            NEXT_MOCK_FIELDS.lock().replace((reader_registration, session_state));
         }
 
         pub fn next_start_error(error: nl_wallet_mdoc::Error) {
-            NEXT_START_ERROR.lock().unwrap().replace(error);
+            NEXT_START_ERROR.lock().replace(error);
         }
     }
 
@@ -262,13 +260,12 @@ mod mock {
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
         ) -> nl_wallet_mdoc::Result<Self> {
-            if let Some(error) = NEXT_START_ERROR.lock().unwrap().take() {
+            if let Some(error) = NEXT_START_ERROR.lock().take() {
                 return Err(error);
             }
 
             let (reader_registration, session_state) = NEXT_MOCK_FIELDS
                 .lock()
-                .unwrap()
                 .take()
                 .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default()));
 

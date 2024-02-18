@@ -68,7 +68,9 @@ impl Debug for WalletLock {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
+
+    use parking_lot::Mutex;
 
     use super::*;
 
@@ -89,26 +91,26 @@ mod tests {
         assert!(lock.is_locked());
 
         let callback_is_locked_clone = Arc::clone(&callback_is_locked);
-        lock.set_lock_callback(move |is_locked| *callback_is_locked_clone.lock().unwrap() = Some(is_locked));
+        lock.set_lock_callback(move |is_locked| *callback_is_locked_clone.lock() = Some(is_locked));
 
         assert!(lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
 
         lock.lock();
         assert!(lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
 
         lock.unlock();
         assert!(!lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(false)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(false)));
 
         lock.lock();
         assert!(lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
 
         lock.clear_lock_callback();
         lock.unlock();
         assert!(!lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
     }
 }

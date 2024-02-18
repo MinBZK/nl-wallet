@@ -1,7 +1,8 @@
-use std::{sync::Mutex, time::Duration};
+use std::time::Duration;
 
 use once_cell::sync::Lazy;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use nl_wallet_mdoc::{
@@ -164,7 +165,7 @@ impl EcdsaKey for FallibleSoftwareEcdsaKey {
     type Error = <SoftwareEcdsaKey as EcdsaKey>::Error;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let next_error = self.next_public_key_error.lock().unwrap().take();
+        let next_error = self.next_public_key_error.lock().take();
 
         match next_error {
             None => self.key.verifying_key().await,
@@ -173,7 +174,7 @@ impl EcdsaKey for FallibleSoftwareEcdsaKey {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        let next_error = self.next_private_key_error.lock().unwrap().take();
+        let next_error = self.next_private_key_error.lock().take();
 
         match next_error {
             None => self.key.try_sign(msg).await,

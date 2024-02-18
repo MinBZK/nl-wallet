@@ -119,11 +119,12 @@ mod tests {
     use std::{
         sync::{
             atomic::{AtomicU64, Ordering},
-            Arc, RwLock,
+            Arc,
         },
         time::Duration,
     };
 
+    use parking_lot::RwLock;
     use tokio::{sync::Notify, time};
 
     use wallet_common::config::wallet_config::WalletConfiguration;
@@ -137,13 +138,13 @@ mod tests {
 
     impl ConfigurationRepository for TestConfigRepo {
         fn config(&self) -> Arc<WalletConfiguration> {
-            Arc::new(self.0.read().unwrap().clone())
+            Arc::new(self.0.read().clone())
         }
     }
 
     impl UpdateableConfigurationRepository for TestConfigRepo {
         async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
-            let mut config = self.0.write().unwrap();
+            let mut config = self.0.write();
             config.lock_timeouts.background_timeout = 900;
             Ok(ConfigurationUpdateState::Updated)
         }

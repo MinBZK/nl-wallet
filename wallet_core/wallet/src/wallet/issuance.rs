@@ -335,11 +335,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
+    use parking_lot::Mutex;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -792,7 +793,7 @@ mod tests {
         // Set the documents callback on the `Wallet`, which should
         // immediately be called with an empty `Vec`.
         wallet
-            .set_documents_callback(move |documents| callback_documents.lock().unwrap().push(documents.clone()))
+            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
             .await
             .expect("Could not set documents callback");
 
@@ -813,7 +814,7 @@ mod tests {
         assert_matches!(events.first().unwrap(), WalletEvent::Issuance { .. });
 
         // Test which `Document` instances we have received through the callback.
-        let documents = documents.lock().unwrap();
+        let documents = documents.lock();
 
         // The first entry should be empty, because there are no mdocs in the database.
         assert_eq!(documents.len(), 2);

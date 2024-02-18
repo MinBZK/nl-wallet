@@ -93,9 +93,10 @@ where
 }
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use parking_lot::Mutex;
 
     use super::{
         super::test::{self, WalletWithMocks},
@@ -116,7 +117,7 @@ mod tests {
         // Set the documents callback on the `Wallet`, which
         // should immediately be called with an empty `Vec`.
         wallet
-            .set_documents_callback(move |documents| callback_documents.lock().unwrap().push(documents.clone()))
+            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
             .await
             .expect("Could not set documents callback");
 
@@ -125,7 +126,7 @@ mod tests {
 
         // Confirm that we received an empty `Vec` in the callback.
         {
-            let documents = documents.lock().unwrap();
+            let documents = documents.lock();
 
             assert_eq!(documents.len(), 1);
             assert!(documents.first().unwrap().is_empty());
@@ -156,7 +157,7 @@ mod tests {
         // Set the documents callback on the `Wallet`, which should
         // immediately be called with a `Vec` containing a single `Document`
         wallet
-            .set_documents_callback(move |documents| callback_documents.lock().unwrap().push(documents.clone()))
+            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
             .await
             .expect("Could not set documents callback");
 
@@ -165,7 +166,7 @@ mod tests {
 
         // Confirm that we received a single `Document` on the callback.
         {
-            let documents = documents.lock().unwrap();
+            let documents = documents.lock();
 
             let document = documents
                 .first()
@@ -200,7 +201,7 @@ mod tests {
         // Set the documents callback on the `Wallet`, which should
         // immediately be called with a `Vec` containing a single `Document`
         let error = wallet
-            .set_documents_callback(move |documents| callback_documents.lock().unwrap().push(documents.clone()))
+            .set_documents_callback(move |documents| callback_documents.lock().push(documents.clone()))
             .await
             .expect_err("Expected error");
 

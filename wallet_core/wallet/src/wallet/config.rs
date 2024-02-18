@@ -25,8 +25,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
+    use parking_lot::Mutex;
     use tokio::sync::Notify;
 
     use crate::config::default_configuration;
@@ -52,7 +53,7 @@ mod tests {
         // Set the configuration callback on the `Wallet`,
         // which should immediately be called exactly once.
         wallet.set_config_callback(move |config| {
-            callback_configs.lock().unwrap().push(config);
+            callback_configs.lock().push(config);
             callback_notifier.notify_one();
         });
 
@@ -64,7 +65,7 @@ mod tests {
 
         // Test the contents of the `Vec<Configuration>`.
         {
-            let configs = configs.lock().unwrap();
+            let configs = configs.lock();
 
             assert_eq!(configs.len(), 1);
             assert_eq!(
