@@ -18,7 +18,7 @@ allow_http_return_url = []
 # Include code for generating certificates and keys
 generate = ["dep:rcgen"]
 # Include examples from the ISO specification
-examples = ["dep:anyhow", "dep:hex-literal"]
+examples = ["dep:anyhow", "dep:hex-literal", "dep:once_cell"]
 # Implement the MdocEcdsaKey trait on SoftwareEcdsaKey
 software_keys = ["wallet_common/software_keys"]
 # Include SoftwareKeyFactory, which implements KeyFactory for testing
@@ -41,7 +41,7 @@ futures.workspace = true
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-once_cell.workspace = true
+once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
 parking_lot = { workspace = true, optional = true }
 rand_core.workspace = true
