@@ -38,7 +38,7 @@ serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 sha2.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["rt", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
 aes-gcm = { workspace = true, optional = true, features = ["std"] }
@@ -47,8 +47,4 @@ rand_core = { workspace = true, optional = true }
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 rand_core.workspace = true
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "macros",
-    "parking_lot",
-] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
