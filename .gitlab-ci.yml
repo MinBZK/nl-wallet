@@ -187,9 +187,11 @@ test-rust-integration:
 test-rust-compilation-android-linux:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:4741f165006262ce25cb8306ca50060e7e6d49786ae34c1ae24827e245b22298"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d8fed65dc2aeb408215005fee7a208f23c278b526a45c75d9f4bfbeb79aabca0"
   variables:
     RUSTFLAGS: "-D warnings"
+  before_script:
+    - sdkmanager --sdk_root=/opt/android-sdk --install "ndk;26.2.11394342"
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider_migrations --bin wallet_provider_migrations
@@ -478,7 +480,7 @@ build-ws-migrations-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:4741f165006262ce25cb8306ca50060e7e6d49786ae34c1ae24827e245b22298"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d8fed65dc2aeb408215005fee7a208f23c278b526a45c75d9f4bfbeb79aabca0"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -491,6 +493,8 @@ build-ws-migrations-image:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
+  before_script:
+    - sdkmanager --sdk_root=/opt/android-sdk --install "ndk;26.2.11394342"
   script:
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.key-properties}' | base64 --decode > wallet_app/android/key.properties
