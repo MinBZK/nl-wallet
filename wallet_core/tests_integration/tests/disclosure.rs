@@ -296,7 +296,7 @@ async fn test_disclosure_without_pid() {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let settings = wallet_server_settings();
-    start_wallet_server(settings.clone()).await;
+    start_wallet_server(settings.clone(), MockAttributeService).await;
 
     let client = reqwest::Client::new();
     // check if a freshly generated token returns a 404 on the status URL

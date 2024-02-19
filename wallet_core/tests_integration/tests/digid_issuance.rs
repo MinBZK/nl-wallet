@@ -12,6 +12,7 @@ use wallet::{
     WalletConfiguration,
 };
 use wallet_common::config::wallet_config::{PidIssuanceConfiguration, ISSUANCE_REDIRECT_URI};
+use wallet_server::pid::attributes::MockPidAttributeService;
 
 use crate::common::*;
 
@@ -21,7 +22,8 @@ pub mod common;
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let settings = common::wallet_server_settings();
-    start_wallet_server(settings.clone()).await;
+    let attr_service = MockPidAttributeService::new(&settings.issuer).await.unwrap();
+    start_wallet_server(settings.clone(), attr_service).await;
 
     let pid_issuance_config = &PidIssuanceConfiguration {
         pid_issuer_url: local_base_url(settings.public_url.port().unwrap()),
