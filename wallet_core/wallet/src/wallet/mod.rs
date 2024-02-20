@@ -36,6 +36,7 @@ pub use self::{
     issuance::PidIssuanceError,
     lock::{LockCallback, WalletUnlockError},
     registration::WalletRegistrationError,
+    reset::ResetError,
     uri::{UriIdentificationError, UriType},
 };
 

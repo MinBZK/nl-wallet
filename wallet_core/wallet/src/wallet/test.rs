@@ -227,7 +227,7 @@ impl WalletWithMocks {
 
         // Store the registration in `Storage`, populate the field
         // on `Wallet` and set the wallet to unlocked.
-        *wallet.storage.get_mut().state.lock() = StorageState::Opened;
+        wallet.storage.get_mut().state = StorageState::Opened;
         wallet.storage.get_mut().data.insert(
             <RegistrationData as KeyedData>::KEY,
             serde_json::to_string(&registration).unwrap(),
