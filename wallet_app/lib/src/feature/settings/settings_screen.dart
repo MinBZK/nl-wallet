@@ -14,22 +14,24 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('settingsScreen'),
-      body: Column(
-        children: [
-          Expanded(
-            child: Scrollbar(
-              child: CustomScrollView(
-                slivers: [
-                  SliverWalletAppBar(
-                    title: context.l10n.settingsScreenTitle,
-                  ),
-                  _buildContentSliver(context),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Scrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: context.l10n.settingsScreenTitle,
+                    ),
+                    _buildContentSliver(context),
+                  ],
+                ),
               ),
             ),
-          ),
-          const BottomBackButton(),
-        ],
+            const BottomBackButton(),
+          ],
+        ),
       ),
     );
   }
@@ -62,6 +64,7 @@ class SettingsScreen extends StatelessWidget {
           onTap: () => PlaceholderScreen.show(context),
         ),
         const Divider(height: 1),
+        const SizedBox(height: 24),
       ],
     );
   }

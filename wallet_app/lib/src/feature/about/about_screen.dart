@@ -20,20 +20,22 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('aboutScreen'),
-      body: Column(
-        children: [
-          Expanded(
-            child: Scrollbar(
-              child: CustomScrollView(
-                slivers: [
-                  SliverWalletAppBar(title: context.l10n.aboutScreenTitle),
-                  _buildContentSliver(context),
-                ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Scrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(title: context.l10n.aboutScreenTitle),
+                    _buildContentSliver(context),
+                  ],
+                ),
               ),
             ),
-          ),
-          const BottomBackButton(),
-        ],
+            const BottomBackButton(),
+          ],
+        ),
       ),
     );
   }
@@ -68,6 +70,7 @@ class AboutScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 24),
       ],
     );
   }

@@ -156,6 +156,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       top: false,
       bottom: false,
       child: Scrollbar(
+        controller: controller,
         child: CustomScrollView(
           controller: controller,
           physics: const AlwaysScrollableScrollPhysics(),

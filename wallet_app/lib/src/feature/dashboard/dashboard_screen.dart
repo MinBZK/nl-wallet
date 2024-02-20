@@ -95,15 +95,19 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context) {
-    return BlocBuilder<DashboardBloc, DashboardState>(
-      builder: (context, state) {
-        return switch (state) {
-          DashboardStateInitial() => _buildLoading(),
-          DashboardLoadInProgress() => _buildLoading(),
-          DashboardLoadSuccess() => _buildContent(context, state),
-          DashboardLoadFailure() => _buildError(context),
-        };
-      },
+    return SafeArea(
+      bottom: false,
+      top: false,
+      child: BlocBuilder<DashboardBloc, DashboardState>(
+        builder: (context, state) {
+          return switch (state) {
+            DashboardStateInitial() => _buildLoading(),
+            DashboardLoadInProgress() => _buildLoading(),
+            DashboardLoadSuccess() => _buildContent(context, state),
+            DashboardLoadFailure() => _buildError(context),
+          };
+        },
+      ),
     );
   }
 
@@ -215,8 +219,8 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildError(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return SafeArea(
+      minimum: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
