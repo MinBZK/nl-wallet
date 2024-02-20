@@ -37,11 +37,13 @@ class SetupSecurityScreen extends StatelessWidget {
         onPopInvoked: (didPop) {
           if (!didPop) context.bloc.add(SetupSecurityBackPressed());
         },
-        child: Column(
-          children: [
-            _buildStepper(),
-            Expanded(child: _buildPage()),
-          ],
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildStepper(),
+              Expanded(child: _buildPage()),
+            ],
+          ),
         ),
       ),
     );
@@ -80,7 +82,7 @@ class SetupSecurityScreen extends StatelessWidget {
           SetupSecurityGenericError() => _buildSetupFailed(context),
           SetupSecurityNetworkError() => _buildSetupFailed(context),
         };
-        return SafeArea(child: FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result));
+        return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
     );
   }

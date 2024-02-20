@@ -18,10 +18,13 @@ import '../../../util/formatter/time_ago_formatter.dart';
 import '../../../util/formatter/timeline_attribute_status_formatter.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
+import '../../common/widget/animated_fade_in.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
+import '../../common/widget/sliver_divider.dart';
+import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
@@ -91,31 +94,34 @@ class CardDetailScreen extends StatelessWidget {
 
   Widget _buildLoading(BuildContext context, {WalletCard? card}) {
     if (card == null) return const CenteredLoadingIndicator();
-    return Column(
-      children: [
-        const SizedBox(height: 24 + 8),
-        ExcludeSemantics(
-          child: FractionallySizedBox(
-            widthFactor: 0.6,
-            child: Hero(
-              tag: card.id,
-              flightShuttleBuilder: (
-                BuildContext flightContext,
-                Animation<double> animation,
-                HeroFlightDirection flightDirection,
-                BuildContext fromHeroContext,
-                BuildContext toHeroContext,
-              ) {
-                animation.addOnCompleteListener(() => context.read<CardDetailBloc>().notifyEntryTransitionCompleted());
-                return WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeOut);
-              },
-              child: WalletCardItem.fromCardFront(context: context, front: card.front),
+    return CustomScrollView(
+      slivers: [
+        const SliverSizedBox(height: 24 + 8),
+        SliverToBoxAdapter(
+          child: ExcludeSemantics(
+            child: FractionallySizedBox(
+              widthFactor: 0.6,
+              child: Hero(
+                tag: card.id,
+                flightShuttleBuilder: (
+                  BuildContext flightContext,
+                  Animation<double> animation,
+                  HeroFlightDirection flightDirection,
+                  BuildContext fromHeroContext,
+                  BuildContext toHeroContext,
+                ) {
+                  animation
+                      .addOnCompleteListener(() => context.read<CardDetailBloc>().notifyEntryTransitionCompleted());
+                  return WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeOut);
+                },
+                child: WalletCardItem.fromCardFront(context: context, front: card.front),
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 32),
-        const Divider(height: 1),
-        const Expanded(
+        const SliverSizedBox(height: 32),
+        const SliverDivider(height: 1),
+        const SliverFillRemaining(
           child: CenteredLoadingIndicator(),
         ),
       ],
@@ -152,43 +158,54 @@ class CardDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 32),
                 const Divider(height: 1),
-                InfoRow(
-                  icon: Icons.description_outlined,
-                  title: Text(context.l10n.cardDetailScreenCardDataCta),
-                  subtitle: Text(
-                      context.l10n.cardDetailScreenCardDataIssuedBy(detail.card.issuer.displayName.l10nValue(context))),
-                  onTap: () => _onCardDataPressed(context, card),
+                AnimatedFadeIn(
+                  child: _buildDetailContent(context, detail),
                 ),
-                const Divider(height: 1),
-                InfoRow(
-                  icon: Icons.history_outlined,
-                  title: Text(context.l10n.cardDetailScreenCardHistoryCta),
-                  subtitle: Text(_createInteractionText(context, detail.latestSuccessInteraction)),
-                  onTap: () => _onCardHistoryPressed(context, card.docType),
-                ),
-                const Divider(height: 1),
-                if (card.config.updatable) ...[
-                  InfoRow(
-                    icon: Icons.replay_outlined,
-                    title: Text(context.l10n.cardDetailScreenCardUpdateCta),
-                    subtitle: Text(_createOperationText(context, detail.latestIssuedOperation)),
-                    onTap: () => _onCardUpdatePressed(context, card),
-                  ),
-                  const Divider(height: 1),
-                ],
-                if (card.config.removable) ...[
-                  InfoRow(
-                    icon: Icons.delete_outline_rounded,
-                    title: Text(context.l10n.cardDetailScreenCardDeleteCta),
-                    onTap: () => _onCardDeletePressed(context),
-                  ),
-                  const Divider(height: 1)
-                ],
               ],
             ),
           ),
         ),
         const BottomBackButton(),
+      ],
+    );
+  }
+
+  Widget _buildDetailContent(BuildContext context, WalletCardDetail detail) {
+    final card = detail.card;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InfoRow(
+          icon: Icons.description_outlined,
+          title: Text(context.l10n.cardDetailScreenCardDataCta),
+          subtitle: Text(context.l10n.cardDetailScreenCardDataIssuedBy(card.issuer.displayName.l10nValue(context))),
+          onTap: () => _onCardDataPressed(context, card),
+        ),
+        const Divider(height: 1),
+        InfoRow(
+          icon: Icons.history_outlined,
+          title: Text(context.l10n.cardDetailScreenCardHistoryCta),
+          subtitle: Text(_createInteractionText(context, detail.latestSuccessInteraction)),
+          onTap: () => _onCardHistoryPressed(context, card.docType),
+        ),
+        const Divider(height: 1),
+        if (card.config.updatable) ...[
+          InfoRow(
+            icon: Icons.replay_outlined,
+            title: Text(context.l10n.cardDetailScreenCardUpdateCta),
+            subtitle: Text(_createOperationText(context, detail.latestIssuedOperation)),
+            onTap: () => _onCardUpdatePressed(context, card),
+          ),
+          const Divider(height: 1),
+        ],
+        if (card.config.removable) ...[
+          InfoRow(
+            icon: Icons.delete_outline_rounded,
+            title: Text(context.l10n.cardDetailScreenCardDeleteCta),
+            onTap: () => _onCardDeletePressed(context),
+          ),
+          const Divider(height: 1)
+        ],
       ],
     );
   }
