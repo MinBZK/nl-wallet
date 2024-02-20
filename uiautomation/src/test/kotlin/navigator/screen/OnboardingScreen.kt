@@ -2,7 +2,6 @@ package navigator.screen
 
 enum class OnboardingScreen {
     Introduction,
-    IntroductionExpectations,
     IntroductionPrivacy,
     IntroductionConditions,
     SecurityChoosePin,
