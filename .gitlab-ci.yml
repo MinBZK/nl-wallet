@@ -684,7 +684,6 @@ upload-browserstack-android-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
-
 #deploy-ios-app:
 #  resource_group: deploy-ios
 #  rules: !reference [.default-or-release, rules]
@@ -722,7 +721,6 @@ upload-browserstack-android-app-demo:
 #  script:
 #    - bundle install
 #    - bundle exec fastlane ios ci_browserstack
-
 
 dependency-check-images:
   rules: !reference [.default-branch, rules]
@@ -885,16 +883,14 @@ deploy-mock-relying-party-demo:
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
 
-update-automation-test-branch:
-  resource_group: automation-tests
-  # rules: !reference [.default-branch, rules]
+check-gitlab-ci-changed:
   rules:
-    - when: never # temporarily disable until we have a solution for pushing
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
   script:
     - git fetch origin
-    - git checkout $AUTOMATION_TEST_BRANCH
-    - git merge origin/${CI_DEFAULT_BRANCH} --ff-only
-    - git push origin $AUTOMATION_TEST_BRANCH
+    # fails if .gitlab-ci.yml is different on CI_DEFAULT_BRANCH
+    - git diff --exit-code origin/$CI_DEFAULT_BRANCH -- .gitlab-ci.yml
 
 .run-automation-tests:
   resource_group: automation-tests
@@ -911,6 +907,8 @@ update-automation-test-branch:
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
     - set -euxo pipefail
     - java -version
+    - git fetch origin
+    - git checkout $CI_DEFAULT_BRANCH
     - cd uiautomation
   script:
     - gradle wrapper --gradle-version=7.3.3
