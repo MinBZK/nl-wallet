@@ -41,7 +41,9 @@ if (project.hasProperty('dart-defines')) {
             .split(',')
             .collectEntries { entry ->
                 def pair = new String(entry.decodeBase64(), 'UTF-8').split('=')
-                [(pair.first()): pair.last()]
+
+                // Check if the pair actually contains 2 values, else return empty string as value.
+                [(pair.first()): pair.size() == 2 ? pair.last() : '']
             }
 }
 
