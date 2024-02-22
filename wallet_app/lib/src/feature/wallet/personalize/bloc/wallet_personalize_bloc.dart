@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/attribute.dart';
+import '../../../../domain/model/error/network_error.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
@@ -42,6 +43,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeBackPressed>(_onBackPressed);
     on<WalletPersonalizeRetryPressed>(_onRetryPressed);
     on<WalletPersonalizeAuthInProgress>(_onAuthInProgress);
+    on<WalletPersonalizeUpdateState>(_onStateUpdate);
 
     if (pidIssuanceUri != null) {
       _continuePidIssuance(pidIssuanceUri);
@@ -61,7 +63,15 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
           add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser));
       }
     } catch (ex) {
-      add(const WalletPersonalizeLoginWithDigidFailed());
+      await handleError(
+        ex,
+        onNetworkError: (ex, hasInternet) => add(
+          WalletPersonalizeUpdateState(
+            WalletPersonalizeNetworkError(hasInternet: hasInternet),
+          ),
+        ),
+        onUnhandledError: (ex) => add(const WalletPersonalizeLoginWithDigidFailed()),
+      );
     }
   }
 
@@ -74,6 +84,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       Fimber.e('Failed to get authentication url', ex: ex, stacktrace: stack);
       await handleError(
         ex,
+        onNetworkError: (ex, hasInternet) => emit(WalletPersonalizeNetworkError(hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(WalletPersonalizeDigidFailure()),
       );
     }
@@ -113,6 +124,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onRetryPressed(event, emit) async => emit(const WalletPersonalizeInitial());
+
+  void _onStateUpdate(WalletPersonalizeUpdateState event, emit) => emit(event.state);
 
   void _onAuthInProgress(event, emit) async => emit(const WalletPersonalizeAuthenticating());
 

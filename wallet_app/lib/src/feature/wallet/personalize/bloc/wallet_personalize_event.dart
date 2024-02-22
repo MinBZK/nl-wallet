@@ -9,6 +9,12 @@ abstract class WalletPersonalizeEvent extends Equatable {
 
 class WalletPersonalizeLoginWithDigidClicked extends WalletPersonalizeEvent {}
 
+class WalletPersonalizeUpdateState extends WalletPersonalizeEvent {
+  final WalletPersonalizeState state;
+
+  const WalletPersonalizeUpdateState(this.state);
+}
+
 class WalletPersonalizeAuthInProgress extends WalletPersonalizeEvent {}
 
 class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {
@@ -36,9 +42,3 @@ class WalletPersonalizeRetryPressed extends WalletPersonalizeEvent {}
 class WalletPersonalizeBackPressed extends WalletPersonalizeEvent {}
 
 class WalletPersonalizePinConfirmed extends WalletPersonalizeEvent {}
-
-class WalletPersonalizeSelectedCardToggled extends WalletPersonalizeEvent {
-  final WalletCard card;
-
-  const WalletPersonalizeSelectedCardToggled(this.card);
-}
