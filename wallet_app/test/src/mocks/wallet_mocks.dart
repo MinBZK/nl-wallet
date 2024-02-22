@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -33,6 +34,9 @@ import 'package:wallet_core/core.dart';
 import 'wallet_mocks.mocks.dart';
 
 export 'wallet_mocks.mocks.dart';
+
+/// Mock framework
+@GenerateNiceMocks([MockSpec<NavigatorState>()])
 
 /// Mock mappers
 @GenerateNiceMocks([MockSpec<Mapper>()])

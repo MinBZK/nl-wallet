@@ -1,6 +1,7 @@
-import 'dart:io';
+import 'dart:io' as io;
 
 import 'package:fimber/fimber.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
@@ -9,7 +10,12 @@ import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
 
+typedef ExitFn = Function(int code);
+
 class CoreWalletRepository implements WalletRepository {
+  @visibleForTesting
+  ExitFn exit = io.exit;
+
   final TypedWalletCore _walletCore;
   final Mapper<PinValidationResult, PinValidationError?> _pinValidationErrorMapper;
 
@@ -44,7 +50,7 @@ class CoreWalletRepository implements WalletRepository {
   Stream<bool> get isLockedStream => _walletCore.isLocked;
 
   @override
-  void lockWallet() async {
+  Future<void> lockWallet() async {
     try {
       await _walletCore.lockWallet();
     } catch (exception) {
