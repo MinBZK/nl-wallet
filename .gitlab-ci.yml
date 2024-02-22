@@ -503,6 +503,7 @@ build-ws-migrations-image:
         file_format:"${APP_FILE_FORMAT}"
         build_mode:"${APP_BUILD_MODE}"
         mock:"${APP_MOCK}"
+        ul_hostname:"${UL_HOSTNAME}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
