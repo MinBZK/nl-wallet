@@ -22,6 +22,7 @@ import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../digid_help/digid_help_screen.dart';
+import '../../error/error_page.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
@@ -88,6 +89,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeFailure() => _buildErrorPage(context),
           WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
           WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
+          WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -296,6 +298,26 @@ class WalletPersonalizeScreen extends StatelessWidget {
         onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
       ),
     );
+  }
+
+  Widget _buildNetworkError(BuildContext context, WalletPersonalizeNetworkError state) {
+    if (state.hasInternet) {
+      return Scaffold(
+        appBar: WalletAppBar(progress: state.stepperProgress),
+        body: ErrorPage.network(
+          context,
+          onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+        ),
+      );
+    } else {
+      return Scaffold(
+        appBar: WalletAppBar(progress: state.stepperProgress),
+        body: ErrorPage.noInternet(
+          context,
+          onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+        ),
+      );
+    }
   }
 }
 
