@@ -182,7 +182,7 @@ function generate_pid_issuer_key_pair {
         --ca-key-file "${TARGET_DIR}/pid_issuer/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
         --common-name "pid.example.com" \
-        --issuer-auth-file "${DEVENV}/issuer_auth.json" \
+        --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
         --force
 
