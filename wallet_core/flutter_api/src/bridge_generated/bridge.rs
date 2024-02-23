@@ -142,6 +142,26 @@ fn wire_clear_cards_stream_impl(port_: MessagePort) {
         move || move |task_callback| Result::<_, ()>::Ok(clear_cards_stream()),
     )
 }
+fn wire_set_recent_history_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+        WrapInfo {
+            debug_name: "set_recent_history_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Stream,
+        },
+        move || move |task_callback| set_recent_history_stream(task_callback.stream_sink::<_, Vec<WalletEvent>>()),
+    )
+}
+fn wire_clear_recent_history_stream_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+        WrapInfo {
+            debug_name: "clear_recent_history_stream",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| Result::<_, ()>::Ok(clear_recent_history_stream()),
+    )
+}
 fn wire_unlock_wallet_impl(port_: MessagePort, pin: impl Wire2Api<String> + UnwindSafe) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, WalletInstructionResult, _>(
         WrapInfo {

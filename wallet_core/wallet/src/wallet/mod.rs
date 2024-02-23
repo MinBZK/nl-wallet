@@ -31,7 +31,7 @@ pub use self::{
     config::ConfigCallback,
     disclosure::{DisclosureError, DisclosureProposal},
     documents::DocumentsCallback,
-    history::{EventStatus, HistoryError, HistoryEvent},
+    history::{EventStatus, HistoryError, HistoryEvent, RecentHistoryCallback},
     init::WalletInitError,
     issuance::PidIssuanceError,
     lock::{LockCallback, WalletUnlockError},
@@ -62,4 +62,5 @@ pub struct Wallet<
     lock: WalletLock,
     registration: Option<RegistrationData>,
     documents_callback: Option<DocumentsCallback>,
+    recent_history_callback: Option<RecentHistoryCallback>,
 }

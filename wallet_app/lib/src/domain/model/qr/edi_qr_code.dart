@@ -7,7 +7,7 @@ class EdiQrCode {
   final String id;
   final EdiQrType type;
 
-  EdiQrCode({required this.id, required this.type});
+  const EdiQrCode({required this.id, required this.type});
 
   factory EdiQrCode.fromJson(Map<String, dynamic> json) {
     return _$EdiQrCodeFromJson(json);

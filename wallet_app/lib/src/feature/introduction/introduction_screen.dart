@@ -146,6 +146,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }
 
   Widget _buildPage({
+    required Key key,
     required BuildContext context,
     required String title,
     required String description,
@@ -153,9 +154,11 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     ScrollController? controller,
   }) {
     return SafeArea(
+      key: key,
       top: false,
       bottom: false,
       child: Scrollbar(
+        controller: controller,
         child: CustomScrollView(
           controller: controller,
           physics: const AlwaysScrollableScrollPhysics(),
@@ -204,6 +207,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
   Widget _buildPage1(BuildContext context) {
     return _buildPage(
+      key: const Key('introductionPage1'),
       context: context,
       title: context.l10n.introductionPage1Title,
       description: context.l10n.introductionPage1Description,
@@ -214,6 +218,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
   Widget _buildPage2(BuildContext context) {
     return _buildPage(
+      key: const Key('introductionPage2'),
       context: context,
       title: context.l10n.introductionPage2Title,
       description: context.l10n.introductionPage2Description,
@@ -224,6 +229,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
   Widget _buildPage3(BuildContext context) {
     return _buildPage(
+      key: const Key('introductionPage3'),
       context: context,
       title: context.l10n.introductionPage3Title,
       description: context.l10n.introductionPage3Description,

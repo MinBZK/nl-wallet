@@ -2,10 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/repository/wallet/core/core_wallet_repository.dart';
+import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/util/mapper/pin/pin_validation_error_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../../../mocks/core_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 const _kValidPin = '112233';
@@ -91,6 +93,18 @@ void main() {
     });
   });
 
+  group('pin validation', () {
+    test('checking invalid pin results in a thrown PinValidationError', () async {
+      when(core.isValidPin(any)).thenAnswer((realInvocation) async => PinValidationResult.TooFewUniqueDigits);
+      expect(() async => repo.validatePin('000000'), throwsA(isA<PinValidationError>()));
+    });
+
+    test('checking a valid pin completes without throwing', () async {
+      when(core.isValidPin(any)).thenAnswer((realInvocation) async => PinValidationResult.Ok);
+      expect(repo.validatePin('112233'), completes);
+    });
+  });
+
   group('reset wallet', () {
     test('wallet reset is passed on to core', () async {
       await repo.resetWallet();
@@ -120,6 +134,35 @@ void main() {
       );
       final result = await repo.unlockWallet('invalid');
       expect(result, expected);
+    });
+
+    test('when locking fails, the app exits', () async {
+      await repo.createWallet(_kValidPin);
+      when(core.lockWallet()).thenAnswer((realInvocation) async => throw 'failed to lock');
+      var exitCodeUsed = -1;
+      repo.exit = (code) => exitCodeUsed = code;
+      await repo.lockWallet();
+      expect(exitCodeUsed, 1);
+    });
+  });
+
+  group('contains pid', () {
+    test('when wallet contains pid the method returns true', () async {
+      const cardWithPidDocType = Card(
+        persistence: CardPersistence.stored(id: '0'),
+        docType: kPidDocType,
+        attributes: [],
+        issuer: CoreMockData.organization,
+      );
+      when(core.observeCards()).thenAnswer((_) => Stream.value([cardWithPidDocType]));
+      final result = await repo.containsPid();
+      expect(result, isTrue);
+    });
+
+    test('when wallet does not contain pid the method returns false', () async {
+      when(core.observeCards()).thenAnswer((_) => Stream.value([]));
+      final result = await repo.containsPid();
+      expect(result, isFalse);
     });
   });
 

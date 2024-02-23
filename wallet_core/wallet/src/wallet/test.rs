@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use once_cell::sync::Lazy;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
@@ -28,9 +28,10 @@ use crate::{
     pid_issuer::MockPidIssuerClient,
     pin::key as pin_key,
     storage::{KeyedData, MockStorage, RegistrationData, StorageState},
+    Document, HistoryEvent,
 };
 
-use super::{Wallet, WalletInitError};
+use super::{documents::DocumentsError, HistoryError, Wallet, WalletInitError};
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
@@ -278,5 +279,46 @@ impl WalletWithMocks {
             MockPidIssuerClient::default(),
         )
         .await
+    }
+}
+
+pub async fn setup_mock_documents_callback(
+    wallet: &mut WalletWithMocks,
+) -> Result<Arc<Mutex<Vec<Vec<Document>>>>, (Arc<Mutex<Vec<Vec<Document>>>>, DocumentsError)> {
+    // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
+    // so we can write to it from the closure.
+    let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(1)));
+    let callback_documents = Arc::clone(&documents);
+
+    // Set the documents callback on the `Wallet`, which
+    // should immediately be called with an empty `Vec`.
+    let result = wallet
+        .set_documents_callback(Box::new(move |documents| {
+            callback_documents.lock().push(documents.clone())
+        }))
+        .await;
+
+    match result {
+        Ok(_) => Ok(documents),
+        Err(e) => Err((documents, e)),
+    }
+}
+
+pub async fn setup_mock_recent_history_callback(
+    wallet: &mut WalletWithMocks,
+) -> Result<Arc<Mutex<Vec<Vec<HistoryEvent>>>>, (Arc<Mutex<Vec<Vec<HistoryEvent>>>>, HistoryError)> {
+    // Wrap a `Vec<HistoryEvent>` in both a `Mutex` and `Arc`,
+    // so we can write to it from the closure.
+    let events = Arc::new(Mutex::new(Vec::<Vec<HistoryEvent>>::with_capacity(2)));
+    let callback_events = Arc::clone(&events);
+
+    // Set the recent_history callback on the `Wallet`, which should immediately be called with an empty `Vec`.
+    let result = wallet
+        .set_recent_history_callback(Box::new(move |events| callback_events.lock().push(events.clone())))
+        .await;
+
+    match result {
+        Ok(_) => Ok(events),
+        Err(e) => Err((events, e)),
     }
 }

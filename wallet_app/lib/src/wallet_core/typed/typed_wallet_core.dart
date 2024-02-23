@@ -19,6 +19,7 @@ class TypedWalletCore {
   final Completer _isInitialized = Completer();
   final BehaviorSubject<bool> _isLocked = BehaviorSubject.seeded(true);
   final BehaviorSubject<FlutterConfiguration> _flutterConfig = BehaviorSubject();
+  final BehaviorSubject<List<WalletEvent>> _recentHistory = BehaviorSubject();
   final BehaviorSubject<List<Card>> _cards = BehaviorSubject();
 
   TypedWalletCore(this._walletCore, this._errorMapper) {
@@ -26,6 +27,7 @@ class TypedWalletCore {
     _setupLockedStream();
     _setupConfigurationStream();
     _setupCardsStream();
+    _setupRecentHistoryStream();
   }
 
   void _initWalletCore() async {
@@ -41,6 +43,7 @@ class TypedWalletCore {
       await _walletCore.clearLockStream();
       await _walletCore.clearConfigurationStream();
       await _walletCore.clearCardsStream();
+      await _walletCore.clearRecentHistoryStream();
       // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
       await _walletCore.lockWallet();
     }
@@ -69,6 +72,14 @@ class TypedWalletCore {
     //FIXME: the wallet_core cards stream through the complete lifecycle of the app for now.
     await _isInitialized.future;
     _walletCore.setCardsStream().listen((event) => _cards.add(event));
+  }
+
+  void _setupRecentHistoryStream() {
+    _recentHistory.onListen = () async {
+      await _isInitialized.future;
+      _walletCore.setRecentHistoryStream().listen((event) => _recentHistory.add(event));
+    };
+    _recentHistory.onCancel = () => _walletCore.clearRecentHistoryStream();
   }
 
   Future<PinValidationResult> isValidPin(String pin) => call((core) => core.isValidPin(pin: pin));
@@ -111,6 +122,8 @@ class TypedWalletCore {
 
   Future<List<WalletEvent>> getHistoryForCard(String docType) =>
       call((core) => core.getHistoryForCard(docType: docType));
+
+  Stream<List<WalletEvent>> observeRecentHistory() => _recentHistory.stream;
 
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.

@@ -120,3 +120,16 @@ class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {
   @override
   List<Object?> get props => [progress, ...super.props];
 }
+
+class WalletPersonalizeNetworkError extends WalletPersonalizeState implements NetworkError {
+  @override
+  final int? statusCode;
+
+  @override
+  final bool hasInternet;
+
+  const WalletPersonalizeNetworkError({required this.hasInternet, this.statusCode});
+
+  @override
+  List<Object?> get props => [hasInternet, statusCode, ...super.props];
+}

@@ -20,4 +20,7 @@ abstract class TimelineAttributeRepository {
 
   /// Returns most recent [OperationTimelineAttribute] for card filtered by [OperationStatus]
   Future<OperationTimelineAttribute?> readMostRecentOperation(String docType, OperationStatus status);
+
+  /// Returns a stream of the most recent [TimelineAttribute]s
+  Stream<List<TimelineAttribute>> observeRecentHistory();
 }

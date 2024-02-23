@@ -91,12 +91,12 @@ where
         self.documents_callback.take()
     }
 }
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use parking_lot::Mutex;
 
     use super::{
         super::test::{self, WalletWithMocks},
@@ -109,19 +109,10 @@ mod tests {
         // Prepare an unregistered wallet.
         let mut wallet = WalletWithMocks::new_unregistered().await;
 
-        // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
-        // so we can write to it from the closure.
-        let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(1)));
-        let callback_documents = Arc::clone(&documents);
-
-        // Set the documents callback on the `Wallet`, which
-        // should immediately be called with an empty `Vec`.
-        wallet
-            .set_documents_callback(Box::new(move |documents| {
-                callback_documents.lock().push(documents.clone())
-            }))
+        // Register mock document_callback
+        let documents = test::setup_mock_documents_callback(&mut wallet)
             .await
-            .expect("Could not set documents callback");
+            .expect("Failed to set mock documents callback");
 
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&documents), 2);
@@ -151,19 +142,10 @@ mod tests {
         let mdoc_doc_type = mdoc.doc_type.clone();
         wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
 
-        // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
-        // so we can write to it from the closure.
-        let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(1)));
-        let callback_documents = Arc::clone(&documents);
-
-        // Set the documents callback on the `Wallet`, which should
-        // immediately be called with a `Vec` containing a single `Document`
-        wallet
-            .set_documents_callback(Box::new(move |documents| {
-                callback_documents.lock().push(documents.clone())
-            }))
+        // Register mock document_callback
+        let documents = test::setup_mock_documents_callback(&mut wallet)
             .await
-            .expect("Could not set documents callback");
+            .expect("Failed to set mock documents callback");
 
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&documents), 2);
@@ -197,17 +179,8 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
         wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
 
-        // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
-        // so we can write to it from the closure.
-        let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(1)));
-        let callback_documents = Arc::clone(&documents);
-
-        // Set the documents callback on the `Wallet`, which should
-        // immediately be called with a `Vec` containing a single `Document`
-        let error = wallet
-            .set_documents_callback(Box::new(move |documents| {
-                callback_documents.lock().push(documents.clone())
-            }))
+        // Register mock document_callback
+        let (documents, error) = test::setup_mock_documents_callback(&mut wallet)
             .await
             .map(|_| ())
             .expect_err("Expected error");

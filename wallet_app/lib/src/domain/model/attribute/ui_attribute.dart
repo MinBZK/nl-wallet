@@ -28,5 +28,5 @@ class UiAttribute extends Attribute {
   String get key => throw UnsupportedError('UiAttributes should only be used to render data to the screen');
 
   @override
-  List<Object?> get props => [value, icon, key, label];
+  List<Object?> get props => [value, icon, label];
 }

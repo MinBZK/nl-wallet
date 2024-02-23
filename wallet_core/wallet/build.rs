@@ -34,14 +34,21 @@ fn android_x86_64_workaround() {
             .join("llvm")
             .join("prebuilt")
             .join(format!("{host_os}-x86_64"))
-            .join("lib64")
+            .join("lib")
             .join("clang");
-        // We need to find the correct clang version directory to add (e.g. "14.0.7"),
-        // just add the first subdirectory we can find, since it should only contain one.
-        let linux_x86_64_lib_dir = fs::read_dir(&linux_x86_64_clang_dir)
+
+        // We need to find the correct clang version directory to add (e.g. "17.0.2"),
+        // so in order to find the last available version, sort the subdirectories
+        // and pick the last one.
+        let mut linux_x86_64_lib_dir_subdirs = fs::read_dir(&linux_x86_64_clang_dir)
             .unwrap_or_else(|_| panic!("Could not read directory: {}", linux_x86_64_clang_dir.to_str().unwrap()))
             .map(|e| e.unwrap().path())
-            .find(|p| p.is_dir())
+            .filter(|p| p.is_dir())
+            .collect::<Vec<_>>();
+        linux_x86_64_lib_dir_subdirs.sort();
+
+        let linux_x86_64_lib_dir = linux_x86_64_lib_dir_subdirs
+            .last()
             .unwrap_or_else(|| {
                 panic!(
                     "Could not find subdirectory in path: {}",

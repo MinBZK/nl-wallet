@@ -5,7 +5,6 @@ import '../../common/widget/button/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/button/primary_button.dart';
-import '../../common/widget/button/rounded_back_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/button/text_icon_button.dart';
 import '../../common/widget/text_with_link.dart';
@@ -69,8 +68,6 @@ class ButtonStylesTab extends StatelessWidget {
         const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'BottomBackButton'),
         const BottomBackButton(),
-        const ThemeSectionSubHeader(title: 'RoundedBackButton'),
-        const RoundedBackButton(),
         const ThemeSectionSubHeader(title: 'ConfirmButtons'),
         ConfirmButtons(
             onSecondaryPressed: () {}, onPrimaryPressed: () {}, primaryText: 'Accept', secondaryText: 'Decline'),

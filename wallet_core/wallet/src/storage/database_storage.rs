@@ -1,8 +1,9 @@
 use std::{collections::HashSet, path::PathBuf};
 
 use futures::try_join;
+use migration::SimpleExpr;
 use sea_orm::{
-    sea_query::{Alias, Expr, Query},
+    sea_query::{Alias, BinOper, Expr, IntoColumnRef, Query},
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoSimpleExpr, JoinType, ModelTrait,
     QueryFilter, QueryOrder, QueryResult, QuerySelect, RelationDef, RelationTrait, Select, Set, StatementBuilder,
     TransactionTrait,
@@ -94,41 +95,14 @@ impl<K> DatabaseStorage<K> {
         let query_result = connection.query_one(query).await?;
         Ok(query_result)
     }
-}
 
-impl<K> DatabaseStorage<K>
-where
-    K: PlatformEncryptionKey,
-{
-    /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
-    /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
-    /// instance.
-    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
-        let key_file_alias = key_file_alias_for_name(name);
-        let key_file_key_identifier = key_identifier_for_key_file(&key_file_alias);
-        let database_path = self.database_path_for_name(name);
-
-        // Get or create the encryption key for the key file contents. The identifier used
-        // for this should be globally unique. If this is not the case, the same database is
-        // being opened multiple times, which is a programmer error and should result in a panic.
-        let key_file_key =
-            K::new_unique(&key_file_key_identifier).expect("database key file key identifier is already in use");
-
-        // Get database key of the correct length including a salt, stored in encrypted file.
-        let key_bytes = key_file::get_or_create_key_file(
-            &self.storage_path,
-            &key_file_alias,
-            &key_file_key,
-            SqlCipherKey::size_with_salt(),
+    /// Returns a [`SimpleExpr`], comparing whether `timestamp_column` is newer than 31 days.
+    fn newer_than_31_days(timestamp_column: impl IntoColumnRef) -> SimpleExpr {
+        SimpleExpr::Binary(
+            Box::new(SimpleExpr::Column(timestamp_column.into_column_ref())),
+            BinOper::GreaterThan,
+            Box::new(SimpleExpr::Custom("DATETIME('now', '-31 day')".to_owned())),
         )
-        .await?;
-        let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
-
-        // Open database at the path, encrypted using the key
-        let database = Database::open(SqliteUrl::File(database_path), key).await?;
-        let open_database = OpenDatabaseStorage { database, key_file_key };
-
-        Ok(open_database)
     }
 
     async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<StoredMdocCopy>>
@@ -263,6 +237,42 @@ where
         issuance_events.append(&mut disclosure_events);
         issuance_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
         Ok(issuance_events)
+    }
+}
+
+impl<K> DatabaseStorage<K>
+where
+    K: PlatformEncryptionKey,
+{
+    /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
+    /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
+    /// instance.
+    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
+        let key_file_alias = key_file_alias_for_name(name);
+        let key_file_key_identifier = key_identifier_for_key_file(&key_file_alias);
+        let database_path = self.database_path_for_name(name);
+
+        // Get or create the encryption key for the key file contents. The identifier used
+        // for this should be globally unique. If this is not the case, the same database is
+        // being opened multiple times, which is a programmer error and should result in a panic.
+        let key_file_key =
+            K::new_unique(&key_file_key_identifier).expect("database key file key identifier is already in use");
+
+        // Get database key of the correct length including a salt, stored in encrypted file.
+        let key_bytes = key_file::get_or_create_key_file(
+            &self.storage_path,
+            &key_file_alias,
+            &key_file_key,
+            SqlCipherKey::size_with_salt(),
+        )
+        .await?;
+        let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
+
+        // Open database at the path, encrypted using the key
+        let database = Database::open(SqliteUrl::File(database_path), key).await?;
+        let open_database = OpenDatabaseStorage { database, key_file_key };
+
+        Ok(open_database)
     }
 }
 
@@ -505,6 +515,24 @@ where
             .all(connection);
 
         let fetch_disclosure_events = disclosure_history_event::Entity::find()
+            .order_by_desc(disclosure_history_event::Column::Timestamp)
+            .all(connection);
+
+        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+
+        Self::combine_history_events(issuance_events, disclosure_events)
+    }
+
+    async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
+        let connection = self.database()?.connection();
+
+        let fetch_issuance_events = issuance_history_event::Entity::find()
+            .filter(Self::newer_than_31_days(issuance_history_event::Column::Timestamp))
+            .order_by_desc(issuance_history_event::Column::Timestamp)
+            .all(connection);
+
+        let fetch_disclosure_events = disclosure_history_event::Entity::find()
+            .filter(Self::newer_than_31_days(disclosure_history_event::Column::Timestamp))
             .order_by_desc(disclosure_history_event::Column::Timestamp)
             .all(connection);
 

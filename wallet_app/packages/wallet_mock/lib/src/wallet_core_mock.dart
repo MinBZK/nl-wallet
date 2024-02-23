@@ -209,6 +209,26 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   @override
   Future<List<WalletEvent>> getHistoryForCard({required String docType, hint}) async =>
       _eventLog.logForDocType(docType);
+
+  @override
+  Future<void> clearRecentHistoryStream({hint}) {
+    // TODO: implement clearRecentHistoryStream
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement kClearRecentHistoryStreamConstMeta
+  FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => throw UnimplementedError();
+
+  @override
+  // TODO: implement kSetRecentHistoryStreamConstMeta
+  FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => throw UnimplementedError();
+
+  @override
+  Stream<List<WalletEvent>> setRecentHistoryStream({hint}) {
+    // TODO: implement setRecentHistoryStream
+    throw UnimplementedError();
+  }
 }
 
 /// Helper class to make [WalletCoreMock] satisfy [WalletCore]

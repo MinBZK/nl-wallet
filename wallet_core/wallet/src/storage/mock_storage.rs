@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use chrono::{Duration, Utc};
 use sea_orm::DbErr;
 use uuid::Uuid;
 
@@ -173,12 +174,29 @@ impl Storage for MockStorage {
     }
 
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
+        self.check_query_error()?;
+
         let mut events = self.event_log.to_vec();
         events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)
     }
 
+    async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
+        self.check_query_error()?;
+
+        let mut events: Vec<_> = self
+            .event_log
+            .iter()
+            .filter(|event| *event.timestamp() > Utc::now() - Duration::days(31))
+            .cloned()
+            .collect();
+        events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
+        Ok(events)
+    }
+
     async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
+        self.check_query_error()?;
+
         let mut events = self
             .event_log
             .clone()
@@ -190,6 +208,8 @@ impl Storage for MockStorage {
     }
 
     async fn did_share_data_with_relying_party(&self, certificate: &Certificate) -> StorageResult<bool> {
+        self.check_query_error()?;
+
         let exists = self.event_log.iter().any(|event| match event {
             WalletEvent::Issuance { .. } => false,
             WalletEvent::Disclosure { reader_certificate, .. } => reader_certificate == certificate,
@@ -199,7 +219,7 @@ impl Storage for MockStorage {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use serde::{Deserialize, Serialize};
 
     use crate::storage::{

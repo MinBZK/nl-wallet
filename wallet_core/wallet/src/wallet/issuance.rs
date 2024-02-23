@@ -19,7 +19,7 @@ use crate::{
     storage::{Storage, StorageError, WalletEvent},
 };
 
-use super::{documents::DocumentsError, Wallet};
+use super::{documents::DocumentsError, HistoryError, Wallet};
 
 #[derive(Debug, thiserror::Error)]
 pub enum PidIssuanceError {
@@ -44,7 +44,7 @@ pub enum PidIssuanceError {
     #[error("could not insert mdocs in database: {0}")]
     MdocStorage(#[source] StorageError),
     #[error("could not store history in database: {0}")]
-    HistoryStorage(#[source] StorageError),
+    HistoryStorage(#[source] HistoryError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
     #[error("invalid issuer certificate: {0}")]
@@ -335,12 +335,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
-    use parking_lot::Mutex;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -351,10 +348,13 @@ mod tests {
         digid::{MockDigidSession, OpenIdError},
         document::{self, DocumentPersistence},
         storage::StorageState,
-        wallet::test,
+        HistoryEvent,
     };
 
-    use super::{super::test::WalletWithMocks, *};
+    use super::{
+        super::test::{self, WalletWithMocks},
+        *,
+    };
 
     #[tokio::test]
     #[serial]
@@ -785,19 +785,11 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
-        // so we can write to it from the closure.
-        let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(2)));
-        let callback_documents = Arc::clone(&documents);
+        // Register mock document_callback
+        let documents = test::setup_mock_documents_callback(&mut wallet).await.unwrap();
 
-        // Set the documents callback on the `Wallet`, which should
-        // immediately be called with an empty `Vec`.
-        wallet
-            .set_documents_callback(Box::new(move |documents| {
-                callback_documents.lock().push(documents.clone())
-            }))
-            .await
-            .expect("Could not set documents callback");
+        // Register mock recent_history_callback
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         // Have the `PidIssuerClient` accept the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
@@ -809,11 +801,6 @@ mod tests {
             .accept_pid_issuance(PIN.to_string())
             .await
             .expect("Could not accept PID issuance");
-
-        // Test that one successful issuance event is logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
-        assert_eq!(events.len(), 1);
-        assert_matches!(events.first().unwrap(), WalletEvent::Issuance { .. });
 
         // Test which `Document` instances we have received through the callback.
         let documents = documents.lock();
@@ -827,6 +814,13 @@ mod tests {
         let document = &documents[1][0];
         assert_matches!(document.persistence, DocumentPersistence::Stored(_));
         assert_eq!(document.doc_type, "com.example.pid");
+
+        // Test that one successful issuance event is logged
+        let events = events.lock();
+        assert_eq!(events.len(), 2);
+        assert!(events[0].is_empty());
+        assert_eq!(events[1].len(), 1);
+        assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());

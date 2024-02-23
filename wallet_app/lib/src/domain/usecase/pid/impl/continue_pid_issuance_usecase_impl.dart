@@ -23,13 +23,11 @@ class ContinuePidIssuanceUseCaseImpl implements ContinuePidIssuanceUseCase {
     }
   }
 
+  /// Try to extract a [RedirectError] from the provided exception. Throws the
+  /// original exception if the conversion fails.
   RedirectError _extractRedirectError(Object exception) {
-    try {
-      final redirectUriError = tryCast<CoreRedirectUriError>(exception);
-      return redirectUriError?.redirectError ?? RedirectError.unknown;
-    } catch (ex) {
-      Fimber.e('Failed to extract RedirectError', ex: ex);
-      return RedirectError.unknown;
-    }
+    final redirectUriError = tryCast<CoreRedirectUriError>(exception);
+    if (redirectUriError == null) throw exception;
+    return redirectUriError.redirectError;
   }
 }

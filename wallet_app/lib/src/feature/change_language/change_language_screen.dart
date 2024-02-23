@@ -17,26 +17,28 @@ class ChangeLanguageScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('changeLanguageScreen'),
-      body: Column(
-        children: [
-          Expanded(
-            child: Scrollbar(
-              child: CustomScrollView(
-                slivers: [
-                  SliverWalletAppBar(
-                    title: context.l10n.changeLanguageScreenTitle,
-                    leading: const WalletAppBarBackButton(
-                      key: Key('changeLanguageScreenBackCta'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Scrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: context.l10n.changeLanguageScreenTitle,
+                      leading: const WalletAppBarBackButton(
+                        key: Key('changeLanguageScreenBackCta'),
+                      ),
                     ),
-                  ),
-                  const SliverSizedBox(height: 12),
-                  _buildContentSliver(context),
-                ],
+                    const SliverSizedBox(height: 12),
+                    _buildContentSliver(context),
+                  ],
+                ),
               ),
             ),
-          ),
-          const BottomBackButton(),
-        ],
+            const BottomBackButton(),
+          ],
+        ),
       ),
     );
   }
