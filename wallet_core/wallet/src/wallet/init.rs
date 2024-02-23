@@ -78,6 +78,7 @@ where
             lock: WalletLock::new(true),
             registration,
             documents_callback: None,
+            recent_history_callback: None,
         }
     }
 

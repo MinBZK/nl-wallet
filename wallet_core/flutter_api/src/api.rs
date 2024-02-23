@@ -127,6 +127,28 @@ pub async fn clear_cards_stream() {
 }
 
 #[async_runtime]
+pub async fn set_recent_history_stream(sink: StreamSink<Vec<WalletEvent>>) -> Result<()> {
+    let sink = ClosingStreamSink::from(sink);
+
+    wallet()
+        .write()
+        .await
+        .set_recent_history_callback(move |events| {
+            let recent_history = events.into_iter().flat_map(WalletEvents::from).collect();
+
+            sink.add(recent_history);
+        })
+        .await?;
+
+    Ok(())
+}
+
+#[async_runtime]
+pub async fn clear_recent_history_stream() {
+    wallet().write().await.clear_recent_history_callback();
+}
+
+#[async_runtime]
 #[flutter_api_error]
 pub async fn unlock_wallet(pin: String) -> Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;

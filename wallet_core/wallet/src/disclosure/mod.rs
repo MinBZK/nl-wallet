@@ -151,7 +151,7 @@ mod mock {
         Arc, Mutex,
     };
 
-    use nl_wallet_mdoc::{holder::DisclosureError, verifier::SessionType};
+    use nl_wallet_mdoc::{holder::DisclosureError, server_keys::KeyPair, verifier::SessionType};
     use once_cell::sync::Lazy;
 
     use super::*;
@@ -241,11 +241,19 @@ mod mock {
         }
     }
 
+    /// The reader key, generated once for testing.
+    static READER_KEY: Lazy<KeyPair> = Lazy::new(|| {
+        let reader_ca = KeyPair::generate_reader_mock_ca().unwrap();
+        reader_ca
+            .generate_reader_mock(ReaderRegistration::new_mock().into())
+            .unwrap()
+    });
+
     impl Default for MockMdocDisclosureSession {
         fn default() -> Self {
             Self {
                 disclosure_uri: Default::default(),
-                certificate: vec![].into(),
+                certificate: READER_KEY.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_state: Default::default(),
                 was_terminated: Default::default(),

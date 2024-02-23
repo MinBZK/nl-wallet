@@ -230,7 +230,7 @@ WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
           context.read(),
           context.read(),
           argument?.cards,
-        ),
+        )..add(const DashboardLoadTriggered()),
         child: DoOnInit(
           child: const DashboardScreen(),
           onInit: (context) => context.read<NavigationService>().processQueue(),

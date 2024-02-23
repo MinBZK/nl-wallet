@@ -50,6 +50,14 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta;
 
+  Stream<List<WalletEvent>> setRecentHistoryStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta;
+
+  Future<void> clearRecentHistoryStream({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta;
+
   Future<WalletInstructionResult> unlockWallet({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kUnlockWalletConstMeta;
@@ -504,6 +512,38 @@ class WalletCoreImpl implements WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kClearCardsStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "clear_cards_stream",
+        argNames: [],
+      );
+
+  Stream<List<WalletEvent>> setRecentHistoryStream({dynamic hint}) {
+    return _platform.executeStream(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_set_recent_history_stream(port_),
+      parseSuccessData: _wire2api_list_wallet_event,
+      parseErrorData: null,
+      constMeta: kSetRecentHistoryStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "set_recent_history_stream",
+        argNames: [],
+      );
+
+  Future<void> clearRecentHistoryStream({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_clear_recent_history_stream(port_),
+      parseSuccessData: _wire2api_unit,
+      parseErrorData: null,
+      constMeta: kClearRecentHistoryStreamConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "clear_recent_history_stream",
         argNames: [],
       );
 
@@ -1350,6 +1390,30 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_clear_cards_streamPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_cards_stream');
   late final _wire_clear_cards_stream = _wire_clear_cards_streamPtr.asFunction<void Function(int)>();
+
+  void wire_set_recent_history_stream(
+    int port_,
+  ) {
+    return _wire_set_recent_history_stream(
+      port_,
+    );
+  }
+
+  late final _wire_set_recent_history_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_set_recent_history_stream');
+  late final _wire_set_recent_history_stream = _wire_set_recent_history_streamPtr.asFunction<void Function(int)>();
+
+  void wire_clear_recent_history_stream(
+    int port_,
+  ) {
+    return _wire_clear_recent_history_stream(
+      port_,
+    );
+  }
+
+  late final _wire_clear_recent_history_streamPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_clear_recent_history_stream');
+  late final _wire_clear_recent_history_stream = _wire_clear_recent_history_streamPtr.asFunction<void Function(int)>();
 
   void wire_unlock_wallet(
     int port_,

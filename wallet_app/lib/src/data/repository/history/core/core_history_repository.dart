@@ -56,4 +56,8 @@ class CoreHistoryRepository extends HistoryRepository implements TimelineAttribu
         .whereType<OperationTimelineAttribute>()
         .firstWhereOrNull((attribute) => attribute.status == status);
   }
+
+  @override
+  Stream<List<TimelineAttribute>> observeRecentHistory() =>
+      _walletCore.observeRecentHistory().map((event) => _walletEventMapper.mapList(event));
 }
