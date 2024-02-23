@@ -150,6 +150,17 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
+/// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
+/// the token request. See for example the [`MockPidAttributeService`].
+///
+/// A future implementation of this trait is expected to enable generic issuance of attributes as follows:
+/// - The owner of the issuance server determines the attributes to be issued and sends those to the issuance server.
+/// - The issuance server creates a new `SessionState<Created>` instance, puts that in its session store, and returns an
+///   authorization code that is to be forwarded to the wallet.
+/// - The wallet contacts the issuance server with the authorization code.
+/// - The issuance server looks up the `SessionState<Created>` from its session store and feeds that to the future
+///   implementation of this trait.
+/// - That implementation of this trait returns the attributes to be issued out of the `SessionState<Created>`.
 #[trait_variant::make(AttributeService: Send)]
 pub trait LocalAttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
