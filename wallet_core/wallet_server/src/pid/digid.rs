@@ -56,7 +56,7 @@ pub struct OpenIdClient {
 }
 
 impl OpenIdClient {
-    pub async fn new(issuer_url: Url, bsn_privkey: String, client_id: String) -> Result<Self> {
+    pub fn new(issuer_url: Url, bsn_privkey: String, client_id: String) -> Result<Self> {
         let userinfo_client = OpenIdClient {
             client_id,
             issuer_url,

@@ -40,8 +40,7 @@ impl MockPidAttributeService {
                 settings.digid.issuer_url.clone(),
                 settings.digid.bsn_privkey.clone(),
                 settings.digid.client_id.clone(),
-            )
-            .await?,
+            )?,
             attrs_lookup: MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default()),
         })
     }
