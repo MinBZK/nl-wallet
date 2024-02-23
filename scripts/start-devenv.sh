@@ -274,7 +274,7 @@ then
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server" cargo run --bin wallet_server_migration -- fresh
         popd
         echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
-        RUST_LOG=debug cargo run --features "allow_http_return_url" --bin wallet_server > "${TARGET_DIR}/mrp_wallet_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --features "allow_http_return_url,disable_tls_validation" --bin wallet_server > "${TARGET_DIR}/mrp_wallet_server.log" 2>&1 &
 
         echo -e "wallet_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_wallet_server.log${NC}"
     fi
