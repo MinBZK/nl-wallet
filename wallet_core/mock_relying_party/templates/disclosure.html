@@ -51,8 +51,6 @@
                 disclosedAttributesUrl += window.location.search.substring(0, end)
             }
         }
-
-        console.log('Results URL: ', disclosedAttributesUrl);
     </script>
 </head>
 
@@ -123,6 +121,8 @@
         {% endmatch -%}
     </main>
     <script>
+        console.log('Results URL: ', disclosedAttributesUrl);
+
         let sessionDiv = document.getElementById('session')
         let statusSpan = document.getElementById('status')
         let resultList = document.getElementById('result')

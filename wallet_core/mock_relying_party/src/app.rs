@@ -130,11 +130,14 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
         )
         .await?;
 
-    // the mrp disclosed attributes url matches the wallet server disclosed attributes url, make sure we don't have double slashes
-    let start = state.public_url.path().ends_with('/').then_some(1).unwrap_or_default();
-    let mrp_disclosed_attributes_url: Url = state
-        .public_url
-        .join(&disclosed_attributes_url.path()[start..]) // `.path()` always starts with a `/`
+    let mut public_url = state.public_url.clone();
+    // the mrp disclosed attributes url matches the wallet server disclosed attributes url
+    if !public_url.path().ends_with('/') {
+        public_url.path_segments_mut().unwrap().push("/");
+    }
+
+    let mrp_disclosed_attributes_url: Url = public_url
+        .join(&disclosed_attributes_url.path()[1..]) // `.path()` always starts with a `/`
         .expect("should always be a valid url");
 
     Ok(askama_axum::into_response(&DisclosureTemplate {
