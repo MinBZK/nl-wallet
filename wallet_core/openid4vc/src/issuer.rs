@@ -564,7 +564,10 @@ impl Session<WaitingForResponse> {
         .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
-        // Try to determine which attestation the wallet is requesting
+        // Try to determine which attestation the wallet is requesting:
+        // - If it names a doctype and we are offering a single attestation of that doctype, return that.
+        // - If it names no doctype and we are offering a single attestation, return that.
+        // NB: the OpenID4VCI specification leaves open how to make this determination, this is our own behaviour.
         let unsigned = match credential_request.doctype {
             Some(ref requested_doctype) => {
                 let offered_mdocs: Vec<_> = session_data
