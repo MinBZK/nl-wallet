@@ -188,9 +188,13 @@ pub enum TokenErrorType {
     UnauthorizedClient,
     UnsupportedGrantType,
     InvalidScope,
-    ServerError,
     AuthorizationPending, // OpenID4VCI-specific error type
     SlowDown,             // OpenID4VCI-specific error type
+
+    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
+    /// This error type is not defined in the specs, but then again the entire HTTP response in case
+    /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
+    ServerError,
 }
 
 impl ErrorStatusCode for TokenErrorType {

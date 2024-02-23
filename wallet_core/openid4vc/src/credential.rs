@@ -75,12 +75,16 @@ pub enum CredentialErrorType {
     UnsupportedCredentialFormat,
     InvalidProof,
     InvalidEncryptionParameters,
-    ServerError,
 
     // From https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
     InvalidRequest,
     InvalidToken,
     InsufficientScope,
+
+    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
+    /// This error type is not defined in the spec, but then again the entire HTTP response in case
+    /// 5xx status codes is not defined by the spec, so we have freedom to return what we want.
+    ServerError,
 }
 
 impl ErrorStatusCode for CredentialErrorType {
