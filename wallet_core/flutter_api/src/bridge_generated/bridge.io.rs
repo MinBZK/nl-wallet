@@ -47,6 +47,16 @@ pub extern "C" fn wire_clear_cards_stream(port_: i64) {
 }
 
 #[no_mangle]
+pub extern "C" fn wire_set_recent_history_stream(port_: i64) {
+    wire_set_recent_history_stream_impl(port_)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_clear_recent_history_stream(port_: i64) {
+    wire_clear_recent_history_stream_impl(port_)
+}
+
+#[no_mangle]
 pub extern "C" fn wire_unlock_wallet(port_: i64, pin: *mut wire_uint_8_list) {
     wire_unlock_wallet_impl(port_, pin)
 }

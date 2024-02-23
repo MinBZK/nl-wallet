@@ -34,6 +34,7 @@ import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.d
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart' as _i42;
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i40;
 import 'package:wallet/src/domain/usecase/history/get_wallet_timeline_attributes_usecase.dart' as _i43;
+import 'package:wallet/src/domain/usecase/history/observe_recent_history_usecase.dart' as _i45;
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i39;
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i35;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i28;
@@ -1477,6 +1478,16 @@ class MockTimelineAttributeRepository extends _i1.Mock implements _i20.TimelineA
         returnValue: _i9.Future<_i23.OperationTimelineAttribute?>.value(),
         returnValueForMissingStub: _i9.Future<_i23.OperationTimelineAttribute?>.value(),
       ) as _i9.Future<_i23.OperationTimelineAttribute?>);
+
+  @override
+  _i9.Stream<List<_i21.TimelineAttribute>> observeRecentHistory() => (super.noSuchMethod(
+        Invocation.method(
+          #observeRecentHistory,
+          [],
+        ),
+        returnValue: _i9.Stream<List<_i21.TimelineAttribute>>.empty(),
+        returnValueForMissingStub: _i9.Stream<List<_i21.TimelineAttribute>>.empty(),
+      ) as _i9.Stream<List<_i21.TimelineAttribute>>);
 }
 
 /// A class which mocks [ConfigurationRepository].
@@ -1751,6 +1762,16 @@ class MockTypedWalletCore extends _i1.Mock implements _i26.TypedWalletCore {
         returnValue: _i9.Future<List<_i7.WalletEvent>>.value(<_i7.WalletEvent>[]),
         returnValueForMissingStub: _i9.Future<List<_i7.WalletEvent>>.value(<_i7.WalletEvent>[]),
       ) as _i9.Future<List<_i7.WalletEvent>>);
+
+  @override
+  _i9.Stream<List<_i7.WalletEvent>> observeRecentHistory() => (super.noSuchMethod(
+        Invocation.method(
+          #observeRecentHistory,
+          [],
+        ),
+        returnValue: _i9.Stream<List<_i7.WalletEvent>>.empty(),
+        returnValueForMissingStub: _i9.Stream<List<_i7.WalletEvent>>.empty(),
+      ) as _i9.Stream<List<_i7.WalletEvent>>);
 
   @override
   _i9.Future<T> call<T>(_i9.Future<T> Function(_i7.WalletCore)? runnable) => (super.noSuchMethod(
@@ -2153,6 +2174,21 @@ class MockObserveWalletCardsUseCase extends _i1.Mock implements _i44.ObserveWall
       ) as _i9.Stream<List<_i8.WalletCard>>);
 }
 
+/// A class which mocks [ObserveRecentHistoryUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockObserveRecentHistoryUseCase extends _i1.Mock implements _i45.ObserveRecentHistoryUseCase {
+  @override
+  _i9.Stream<List<_i21.TimelineAttribute>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i9.Stream<List<_i21.TimelineAttribute>>.empty(),
+        returnValueForMissingStub: _i9.Stream<List<_i21.TimelineAttribute>>.empty(),
+      ) as _i9.Stream<List<_i21.TimelineAttribute>>);
+}
+
 /// A class which mocks [WalletCore].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -2271,6 +2307,32 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
         returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_13(
           this,
           Invocation.getter(#kClearCardsStreamConstMeta),
+        ),
+      ) as _i7.FlutterRustBridgeTaskConstMeta);
+
+  @override
+  _i7.FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kSetRecentHistoryStreamConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_13(
+          this,
+          Invocation.getter(#kSetRecentHistoryStreamConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_13(
+          this,
+          Invocation.getter(#kSetRecentHistoryStreamConstMeta),
+        ),
+      ) as _i7.FlutterRustBridgeTaskConstMeta);
+
+  @override
+  _i7.FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => (super.noSuchMethod(
+        Invocation.getter(#kClearRecentHistoryStreamConstMeta),
+        returnValue: _FakeFlutterRustBridgeTaskConstMeta_13(
+          this,
+          Invocation.getter(#kClearRecentHistoryStreamConstMeta),
+        ),
+        returnValueForMissingStub: _FakeFlutterRustBridgeTaskConstMeta_13(
+          this,
+          Invocation.getter(#kClearRecentHistoryStreamConstMeta),
         ),
       ) as _i7.FlutterRustBridgeTaskConstMeta);
 
@@ -2581,6 +2643,28 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
   _i9.Future<void> clearCardsStream({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #clearCardsStream,
+          [],
+          {#hint: hint},
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+
+  @override
+  _i9.Stream<List<_i7.WalletEvent>> setRecentHistoryStream({dynamic hint}) => (super.noSuchMethod(
+        Invocation.method(
+          #setRecentHistoryStream,
+          [],
+          {#hint: hint},
+        ),
+        returnValue: _i9.Stream<List<_i7.WalletEvent>>.empty(),
+        returnValueForMissingStub: _i9.Stream<List<_i7.WalletEvent>>.empty(),
+      ) as _i9.Stream<List<_i7.WalletEvent>>);
+
+  @override
+  _i9.Future<void> clearRecentHistoryStream({dynamic hint}) => (super.noSuchMethod(
+        Invocation.method(
+          #clearRecentHistoryStream,
           [],
           {#hint: hint},
         ),
