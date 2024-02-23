@@ -18,6 +18,7 @@ mock = ["dep:mockall"]
 [dependencies]
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
+derive_more.workspace = true
 futures.workspace = true
 indexmap.workspace = true
 itertools.workspace = true

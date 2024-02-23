@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use derive_more::From;
 use indexmap::IndexSet;
 use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
 use nl_wallet_mdoc::server_state::SessionToken;
@@ -13,14 +14,8 @@ use wallet_common::utils::{random_string, sha256};
 
 use crate::{authorization::AuthorizationDetails, ErrorStatusCode};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
-
-impl From<String> for AuthorizationCode {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
 
 impl AsRef<str> for AuthorizationCode {
     fn as_ref(&self) -> &str {
@@ -28,14 +23,8 @@ impl AsRef<str> for AuthorizationCode {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, From)]
 pub struct AccessToken(String);
-
-impl From<String> for AccessToken {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
 
 impl AsRef<str> for AccessToken {
     fn as_ref(&self) -> &str {
