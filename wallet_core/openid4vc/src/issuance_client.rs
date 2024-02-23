@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use futures::{future::try_join_all, TryFutureExt};
 use itertools::Itertools;
 use p256::{
@@ -274,30 +276,26 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
             Ok::<_, IssuerClientError>((pubkey, id))
         }))
         .await?;
-        let responses_and_keys: Vec<_> = responses.credential_responses.into_iter().zip(keys).collect();
+        let mut responses_and_keys: VecDeque<_> = responses.credential_responses.into_iter().zip(keys).collect();
 
-        // Group all the responses and keys (a flat `Vec`) back into a nested structure,
-        // i.e., with the responses/keys grouped per the attestation for which they are intended.
-        let grouped_responses_and_keys = self
+        let mdocs = self
             .session_state
             .attestation_previews
             .iter()
-            .enumerate()
-            .flat_map(|(idx, preview)| itertools::repeat_n(idx, preview.copy_count() as usize))
-            .zip(responses_and_keys)
-            .group_by(|(idx, _)| *idx);
+            .map(|preview| {
+                let copy_count: usize = preview.copy_count().try_into().unwrap();
 
-        // Finally we can iterate over the attestation previews, and using all responses/keys received for each of them
-        // turn them into mdoc copies.
-        let mdocs = grouped_responses_and_keys
-            .into_iter()
-            .zip(&self.session_state.attestation_previews)
-            .map(|((_, responses_and_keys), preview)| {
+                // Consume the amount of copies from the front of `responses_and_keys`.
                 let cred_copies = responses_and_keys
-                    .map(move |(_, (cred_response, (pubkey, key_id)))| {
+                    .drain(..copy_count)
+                    .map(|(cred_response, (pubkey, key_id))| {
+                        // Convert the response into an `Mdoc`, verifying it against both the
+                        // trust anchors and the `UnsignedMdoc` we received in the preview.
                         cred_response.into_mdoc::<K>(key_id, pubkey, preview.into(), trust_anchors)
                     })
                     .collect::<Result<_, _>>()?;
+
+                // For each preview we have an `MdocCopies` instance.
                 Ok(MdocCopies { cred_copies })
             })
             .collect::<Result<_, IssuerClientError>>()?;
