@@ -32,9 +32,9 @@ impl AsRef<str> for AccessToken {
     }
 }
 
-impl From<&AuthorizationCode> for SessionToken {
-    fn from(value: &AuthorizationCode) -> Self {
-        Self::from(value.as_ref().to_string())
+impl From<AuthorizationCode> for SessionToken {
+    fn from(value: AuthorizationCode) -> Self {
+        SessionToken::from(value.0)
     }
 }
 

@@ -246,7 +246,7 @@ where
         token_request: TokenRequest,
         dpop: Dpop,
     ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
-        let session_token = token_request.code().into();
+        let session_token = token_request.code().clone().into();
 
         // Retrieve the session from the session store, if present. It need not be, depending on the implementation of the
         // attribute service.
@@ -294,7 +294,7 @@ where
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self
             .sessions
-            .get(&(&code).into())
+            .get(&code.clone().into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
@@ -323,7 +323,7 @@ where
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self
             .sessions
-            .get(&(&code).into())
+            .get(&code.clone().into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
@@ -352,7 +352,7 @@ where
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
         let session = self
             .sessions
-            .get(&(&code).into())
+            .get(&code.clone().into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
             .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
