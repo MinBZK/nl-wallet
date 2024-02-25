@@ -69,7 +69,7 @@ android {
         jvmTarget = '1.8'
     }
 
-    ndkVersion "25.2.9519653"
+    ndkVersion "26.2.11394342"
 
     sourceSets {
         main {
