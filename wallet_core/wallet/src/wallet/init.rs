@@ -121,11 +121,16 @@ where
 
 #[cfg(test)]
 mod tests {
+    use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
+
     use crate::{pin::key as pin_key, storage::MockStorage};
 
-    use super::{super::test::WalletWithMocks, *};
+    use super::{
+        super::{registration, test::WalletWithMocks},
+        *,
+    };
 
-    // Tests if the Wallet::init() method completes successfully with the mock generics.
+    // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]
     async fn test_wallet_init_registration() {
         let wallet = WalletWithMocks::init_registration_mocks()
@@ -195,5 +200,53 @@ mod tests {
 
         // The registration data should now be available.
         assert_eq!(wallet.registration.unwrap().data.pin_salt, pin_salt);
+    }
+
+    // Tests that the Wallet can be initialized multiple times and uses the same hardware key every time.
+    #[tokio::test]
+    async fn test_wallet_init_hw_privkey() {
+        // The hardware private key should not exist at this point in the test.
+        // In a real life scenario it does, as this test models a `Wallet` with
+        // a pre-existing registration in its database.
+        assert!(!SoftwareEcdsaKey::identifier_exists(
+            registration::wallet_key_id().as_ref()
+        ));
+
+        // Create a `Wallet` with `MockStorage`, then drop that `Wallet` again, while stealing
+        // stealing said `MockStorage` and getting the public key of the hardware private key.
+        let (storage, hw_pubkey) = {
+            let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
+                StorageState::Unopened,
+                Some(RegistrationData {
+                    pin_salt: pin_key::new_pin_salt(),
+                    wallet_certificate: "thisisjwt".to_string().into(),
+                }),
+            ))
+            .await
+            .expect("Could not initialize wallet");
+
+            let registration = wallet.registration.expect("Wallet should have registration");
+
+            (
+                wallet.storage.into_inner(),
+                registration.hw_privkey.verifying_key().await.unwrap(),
+            )
+        };
+
+        // The hardware private key should now exist.
+        assert!(SoftwareEcdsaKey::identifier_exists(
+            registration::wallet_key_id().as_ref()
+        ));
+
+        // We should be able to create a new `Wallet`,
+        // based on the contents of the `MockStorage`.
+        let wallet = WalletWithMocks::init_registration_mocks_with_storage(storage)
+            .await
+            .expect("Could not initialize wallet a second time");
+        let registration = wallet.registration.expect("Second Wallet should have registration");
+
+        // The public keys of the hardware private key should match
+        // that of the hardware private key of the previous instance.
+        assert_eq!(registration.hw_privkey.verifying_key().await.unwrap(), hw_pubkey);
     }
 }

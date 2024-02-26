@@ -1,5 +1,7 @@
 use tracing::{info, instrument, warn};
 
+use wallet_common::keys::StoredByIdentifier;
+
 use crate::{pid_issuer::PidIssuerClient, storage::Storage};
 
 use super::Wallet;
@@ -15,30 +17,40 @@ type ResetResult<T> = std::result::Result<T, ResetError>;
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
 where
     S: Storage,
+    PEK: StoredByIdentifier,
     PIC: PidIssuerClient,
 {
-    pub(super) async fn reset_to_initial_state(&mut self) {
-        info!("Resetting wallet to inital state and wiping all local data");
+    pub(super) async fn reset_to_initial_state(&mut self) -> bool {
+        // Only reset if we actually have a registration.
+        if let Some(registration) = self.registration.take() {
+            info!("Resetting wallet to inital state and wiping all local data");
 
-        // Clear the database and its encryption key.
-        self.storage.get_mut().clear().await;
+            // Clear the database and its encryption key.
+            self.storage.get_mut().clear().await;
 
-        // TODO: Reset the hardware private key.
+            // Delete the hardware private key, log any potential error.
+            if let Err(error) = registration.hw_privkey.delete().await {
+                warn!("Could not delete hardware private key: {0}", error);
+            };
 
-        self.digid_session.take();
-        self.disclosure_session.take();
-        self.registration.take();
+            self.digid_session.take();
+            self.disclosure_session.take();
 
-        if self.pid_issuer.has_session() {
-            // Clear the PID issuer state by rejecting the PID.
-            // Do not propagate if this results in an error.
-            if let Err(error) = self.pid_issuer.reject_pid().await {
-                warn!("Could not reject PID issuance: {0}", error);
+            if self.pid_issuer.has_session() {
+                // Clear the PID issuer state by rejecting the PID.
+                // Do not propagate if this results in an error.
+                if let Err(error) = self.pid_issuer.reject_pid().await {
+                    warn!("Could not reject PID issuance: {0}", error);
+                }
             }
+
+            // The wallet should be locked in its initial state.
+            self.lock.lock();
+
+            return true;
         }
 
-        // The wallet should be locked in its initial state.
-        self.lock.lock();
+        false
     }
 
     #[instrument(skip_all)]
@@ -48,11 +60,9 @@ where
         // Note that this method can be called even if the Wallet is locked!
 
         info!("Checking if registered");
-        if self.registration.is_none() {
+        if !self.reset_to_initial_state().await {
             return Err(ResetError::NotRegistered);
         }
-
-        self.reset_to_initial_state().await;
 
         Ok(())
     }
@@ -62,31 +72,43 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use nl_wallet_mdoc::issuer_shared::IssuanceError;
+    use wallet_common::keys::software::SoftwareEcdsaKey;
 
     use crate::{
         digid::MockDigidSession, disclosure::MockMdocDisclosureSession, pid_issuer::PidIssuerError,
         storage::StorageState,
     };
 
-    use super::{super::test::WalletWithMocks, *};
+    use super::{
+        super::{registration, test::WalletWithMocks},
+        *,
+    };
 
     #[tokio::test]
     async fn test_wallet_reset() {
         // Test resetting a registered and unlocked Wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
+        assert!(SoftwareEcdsaKey::identifier_exists(
+            registration::wallet_key_id().as_ref()
+        ));
+
+        // Check that the hardware key exists.
         wallet
             .reset()
             .await
             .expect("resetting the Wallet should have succeeded");
 
-        // The Wallet should now have an uninitialized database
-        // and should be both unregistered and locked.
+        // The database should now be uninitialized, the hardware key should
+        // be gone and the `Wallet` should be both unregistered and locked.
+        assert!(wallet.registration.is_none());
         assert_matches!(
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized
         );
-        assert!(wallet.registration.is_none());
+        assert!(!SoftwareEcdsaKey::identifier_exists(
+            registration::wallet_key_id().as_ref()
+        ));
         assert!(wallet.is_locked());
     }
 
@@ -100,19 +122,27 @@ mod tests {
         wallet.pid_issuer.next_error =
             PidIssuerError::MdocError(nl_wallet_mdoc::Error::Issuance(IssuanceError::SessionEnded)).into();
 
+        // Check that the hardware key exists.
+        assert!(SoftwareEcdsaKey::identifier_exists(
+            registration::wallet_key_id().as_ref()
+        ));
+
         wallet
             .reset()
             .await
             .expect("resetting the Wallet should have succeeded");
 
         // The wallet should now be totally cleared, even though the PidIssuerClient returned an error.
+        assert!(wallet.registration.is_none());
         assert_matches!(
             wallet.storage.get_mut().state().await.unwrap(),
             StorageState::Uninitialized
         );
+        assert!(!SoftwareEcdsaKey::identifier_exists(
+            registration::wallet_key_id().as_ref()
+        ));
         assert!(wallet.digid_session.is_none());
         assert!(wallet.disclosure_session.is_none());
-        assert!(wallet.registration.is_none());
         assert!(wallet.is_locked());
     }
 
