@@ -25,7 +25,7 @@ use tracing::warn;
 
 use crate::settings::{self, Settings};
 
-use openid4vc::issuer::*;
+use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
 struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
