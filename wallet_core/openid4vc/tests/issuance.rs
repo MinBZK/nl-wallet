@@ -285,7 +285,7 @@ const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "
 struct MockAttributeService;
 
 impl AttributeService for MockAttributeService {
-    type Error = openid4vc::issuance_client::IssuerClientError; // arbitrary type that implements the required bounds
+    type Error = std::convert::Infallible;
 
     async fn attributes(
         &self,
