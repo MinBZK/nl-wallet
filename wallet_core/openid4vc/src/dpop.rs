@@ -121,6 +121,12 @@ impl From<String> for Dpop {
     }
 }
 
+impl From<Dpop> for String {
+    fn from(value: Dpop) -> Self {
+        value.as_ref().to_string()
+    }
+}
+
 pub const OPENID4VCI_DPOP_JWT_TYPE: &str = "dpop+jwt";
 
 impl Dpop {

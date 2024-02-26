@@ -361,6 +361,6 @@ impl IssuanceState {
 
         let access_token_header = "DPoP ".to_string() + self.access_token.as_ref();
 
-        Ok((dpop_header.as_ref().to_string(), access_token_header))
+        Ok((dpop_header.into(), access_token_header))
     }
 }
