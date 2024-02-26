@@ -76,8 +76,9 @@ struct SelectForm {
 #[strum(serialize_all = "snake_case")]
 enum MrpSessionType {
     SameDevice,
+    SameDeviceNoReturn,
     CrossDevice,
-    Hybrid,
+    CrossDeviceWithReturn,
 }
 
 #[derive(Template)]
@@ -105,7 +106,7 @@ struct EngageUrlparams {
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
     // return URL is just http://public.url/#{session_id}
     let return_url_template = match selected.session_type {
-        MrpSessionType::Hybrid | MrpSessionType::SameDevice => Some(
+        MrpSessionType::CrossDeviceWithReturn | MrpSessionType::SameDevice => Some(
             format!("{}#{{session_id}}", state.public_url)
                 .parse()
                 .expect("should always be a valid ReturnUrlTemplate"),
@@ -123,7 +124,7 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
                 .ok_or(anyhow::Error::msg("usecase not found"))?
                 .clone(),
             match selected.session_type {
-                MrpSessionType::SameDevice => SessionType::SameDevice,
+                MrpSessionType::SameDevice | MrpSessionType::SameDeviceNoReturn => SessionType::SameDevice,
                 _ => SessionType::CrossDevice,
             },
             return_url_template,

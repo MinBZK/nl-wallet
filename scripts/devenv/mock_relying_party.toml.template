@@ -5,10 +5,33 @@ public_url = 'http://${SERVICES_HOST}:3004/'
 # ip = '0.0.0.0'
 # port = 3004
 
-[[usecases.driving_license]]
+[[usecases.mijn_amsterdam]]
 docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { given_name = false, family_name = true, family_name_birth = true } }
+nameSpaces = { "com.example.pid" = { bsn = true } }
 
-[[usecases.parking_permit]]
+[[usecases.xyz_bank]]
+docType = "com.example.pid"
+nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, bsn = true } }
+
+# TODO: uncomment once multiple cards bug is fixed
+# [[usecases.xyz_bank]]
+# docType = "com.example.address"
+# nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
+
+# TODO: uncomment once multiple cards bug is fixed
+# [[usecases.online_marketplace]]
+# docType = "com.example.pid"
+# nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true } }
+
+[[usecases.online_marketplace]]
 docType = "com.example.address"
-nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_city = true } }
+nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
+
+# TODO: uncomment once multiple cards bug is fixed
+# [[usecases.monkey_bike]]
+# docType = "com.example.pid"
+# nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, gender = true, nationality = true } }
+
+[[usecases.monkey_bike]]
+docType = "com.example.address"
+nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true, resident_city = true } }

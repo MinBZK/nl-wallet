@@ -120,6 +120,11 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
+  Future<void> clearRecentHistoryStream({hint}) async {
+    // Stub only, no need to clear it on the mock
+  }
+
+  @override
   Future<List<Card>> continuePidIssuance({required String uri, hint}) async => kPidCards;
 
   @override
@@ -211,24 +216,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       _eventLog.logForDocType(docType);
 
   @override
-  Future<void> clearRecentHistoryStream({hint}) {
-    // TODO: implement clearRecentHistoryStream
-    throw UnimplementedError();
-  }
-
-  @override
-  // TODO: implement kClearRecentHistoryStreamConstMeta
-  FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => throw UnimplementedError();
-
-  @override
-  // TODO: implement kSetRecentHistoryStreamConstMeta
-  FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => throw UnimplementedError();
-
-  @override
-  Stream<List<WalletEvent>> setRecentHistoryStream({hint}) {
-    // TODO: implement setRecentHistoryStream
-    throw UnimplementedError();
-  }
+  Stream<List<WalletEvent>> setRecentHistoryStream({hint}) => _eventLog.logStream;
 }
 
 /// Helper class to make [WalletCoreMock] satisfy [WalletCore]
@@ -283,4 +271,8 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => throw UnimplementedError();
 }
