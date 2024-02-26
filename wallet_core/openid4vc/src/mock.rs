@@ -1,8 +1,9 @@
+use url::Url;
+
 use nl_wallet_mdoc::{
     holder::{MdocCopies, TrustAnchor},
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
-use url::Url;
 
 use crate::{
     issuance_client::{HttpOpenidMessageClient, IssuerClient, IssuerClientError},
