@@ -584,7 +584,7 @@ impl Session<WaitingForResponse> {
                 let offered_mdocs: Vec<_> = session_data
                     .attestation_previews
                     .iter()
-                    .map(|preview| preview.into())
+                    .map(|preview| preview.as_ref())
                     .filter(|unsigned: &&UnsignedMdoc| unsigned.doc_type == *requested_doctype)
                     .collect();
                 match offered_mdocs.len() {
@@ -596,7 +596,7 @@ impl Session<WaitingForResponse> {
                 }
             }
             None => match session_data.attestation_previews.len() {
-                1 => Ok(session_data.attestation_previews.first().unwrap().into()),
+                1 => Ok(session_data.attestation_previews.first().unwrap().as_ref()),
                 _ => Err(CredentialRequestError::UseBatchIssuance),
             },
         }?;
@@ -665,7 +665,7 @@ impl Session<WaitingForResponse> {
                 .credential_requests
                 .iter()
                 .zip(session_data.attestation_previews.iter().flat_map(|preview| {
-                    itertools::repeat_n::<&UnsignedMdoc>(preview.into(), preview.copy_count() as usize)
+                    itertools::repeat_n::<&UnsignedMdoc>(preview.as_ref(), preview.copy_count() as usize)
                 }))
                 .map(|(cred_req, unsigned_mdoc)| async move {
                     verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc.clone(), issuer_data)

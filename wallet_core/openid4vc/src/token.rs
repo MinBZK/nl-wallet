@@ -145,9 +145,9 @@ impl AttestationPreview {
 }
 
 // Shorthands to convert the preview to the currently only supported format
-impl<'a> From<&'a AttestationPreview> for &'a UnsignedMdoc {
-    fn from(value: &'a AttestationPreview) -> Self {
-        match value {
+impl AsRef<UnsignedMdoc> for AttestationPreview {
+    fn as_ref(&self) -> &UnsignedMdoc {
+        match self {
             AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
         }
     }

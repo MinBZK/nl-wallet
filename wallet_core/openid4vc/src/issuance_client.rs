@@ -291,7 +291,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
                     .map(|(cred_response, (pubkey, key_id))| {
                         // Convert the response into an `Mdoc`, verifying it against both the
                         // trust anchors and the `UnsignedMdoc` we received in the preview.
-                        cred_response.into_mdoc::<K>(key_id, pubkey, preview.into(), trust_anchors)
+                        cred_response.into_mdoc::<K>(key_id, pubkey, preview.as_ref(), trust_anchors)
                     })
                     .collect::<Result<_, _>>()?;
 
