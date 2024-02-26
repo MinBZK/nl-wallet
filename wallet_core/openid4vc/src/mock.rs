@@ -29,7 +29,7 @@ mockall::mock! {
 impl IssuerClient for MockIssuerClient {
     async fn start_issuance(
         _: HttpOpenidMessageClient,
-        _: &Url,
+        _: Url,
         _: TokenRequest,
     ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
     where

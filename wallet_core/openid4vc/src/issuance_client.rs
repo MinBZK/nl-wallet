@@ -75,7 +75,7 @@ pub enum IssuerClientError {
 pub trait IssuerClient<H = HttpOpenidMessageClient> {
     async fn start_issuance(
         message_client: H,
-        base_url: &Url,
+        base_url: Url,
         token_request: TokenRequest,
     ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
     where
@@ -221,7 +221,7 @@ struct IssuanceState {
 impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
     async fn start_issuance(
         message_client: H,
-        base_url: &Url,
+        base_url: Url,
         token_request: TokenRequest,
     ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError> {
         let url = base_url.join("token").unwrap(); // TODO discover token endpoint instead
@@ -238,7 +238,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
                 .c_nonce
                 .ok_or(IssuerClientError::MissingNonce)?,
             attestation_previews: token_response.attestation_previews.clone(),
-            issuer_url: base_url.clone(),
+            issuer_url: base_url,
             dpop_private_key,
             dpop_nonce,
         };

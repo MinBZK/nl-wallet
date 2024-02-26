@@ -44,7 +44,7 @@ async fn accept_issuance() {
     let (issuer, ca, server_url) = setup();
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -62,7 +62,7 @@ async fn reject_issuance() {
     let (issuer, _, server_url) = setup();
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url, token_request())
         .await
         .unwrap();
 
@@ -77,7 +77,7 @@ async fn wrong_access_token() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -100,7 +100,7 @@ async fn invalid_dpop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -123,7 +123,7 @@ async fn invalid_pop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, &server_url, token_request())
+    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 

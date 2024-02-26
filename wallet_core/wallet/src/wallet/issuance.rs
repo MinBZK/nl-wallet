@@ -188,7 +188,7 @@ where
 
         let (pid_issuer, attestation_previews) = IC::start_issuance(
             HttpOpenidMessageClient::new(http_client),
-            &config.pid_issuance.pid_issuer_url,
+            config.pid_issuance.pid_issuer_url.clone(),
             token_request,
         )
         .await?;
