@@ -15,10 +15,12 @@
   },
   "organization": {
     "displayName": {
-      "nl": "Marktplek"
+      "nl": "Marktplek",
+      "en": "Marktplek"
     },
     "legalName": {
-      "nl": "Marktplek B.V."
+      "nl": "Marktplek B.V.",
+      "en": "Marktplek B.V."
     },
     "description": {
       "nl": "Verkoop eenvoudig jouw tweedehands spullen online op Marktplek.",
@@ -26,7 +28,8 @@
     },
     "webUrl": "https://www.marktplek.nl",
     "city": {
-      "nl": "Zwolle"
+      "nl": "Zwolle",
+      "en": "Zwolle"
     },
     "category": {
       "nl": "Handelsplatform",
