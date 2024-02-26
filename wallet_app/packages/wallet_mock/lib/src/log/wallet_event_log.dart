@@ -1,13 +1,17 @@
+import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
 import '../util/extension/string_extension.dart';
 
 class WalletEventLog {
   final List<WalletEvent> _log = List.empty(growable: true);
+  final BehaviorSubject<List<WalletEvent>> _logSubject = BehaviorSubject.seeded([]);
 
   WalletEventLog();
 
   List<WalletEvent> get log => List.from(_log);
+
+  Stream<List<WalletEvent>> get logStream => _logSubject.stream;
 
   List<WalletEvent> logForDocType(String docType) => log
       .where(
@@ -72,6 +76,7 @@ class WalletEventLog {
   void _logEvent(WalletEvent event) {
     _log.add(event);
     _log.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    _logSubject.add(_log);
   }
 
   bool includesInteractionWith(Organization organization) {
