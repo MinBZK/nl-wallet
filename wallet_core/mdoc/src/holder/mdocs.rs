@@ -2,7 +2,7 @@ use std::result::Result;
 
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use itertools::{EitherOrBoth, Itertools};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
@@ -107,51 +107,65 @@ impl Mdoc {
 
     /// Check that the namespaces, attribute names and attribute values of this instance are equal to to the
     /// provided unsigned value.
-    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), Vec<AttributeIdentifier>> {
+    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedAttributesMismatch> {
         let our_attrs = self.attributes();
-        let our_attrs = flatten_attrs(&self.doc_type, &our_attrs);
-        let expected_attrs = flatten_attrs(&unsigned.doc_type, &unsigned.attributes);
+        let our_attrs = flatten_map(&self.doc_type, &our_attrs);
+        let expected_attrs = flatten_map(&unsigned.doc_type, &unsigned.attributes);
 
-        let difference = expected_attrs
-            .zip_longest(our_attrs)
-            .filter_map(|pair| match pair {
-                EitherOrBoth::Left(expected) => Some(expected.identifier),
-                EitherOrBoth::Right(received) => Some(received.identifier),
-                EitherOrBoth::Both(expected, received) => {
-                    if expected != received {
-                        Some(expected.identifier)
-                    } else {
-                        None
-                    }
+        let missing = expected_attrs
+            .iter()
+            .filter_map(|(id, expected)| {
+                if !our_attrs.contains_key(id) || our_attrs[id] != *expected {
+                    Some(id.clone())
+                } else {
+                    None
                 }
             })
             .collect_vec();
 
-        if !difference.is_empty() {
-            return Err(difference);
+        let unexpected = our_attrs
+            .iter()
+            .filter_map(|(id, received)| {
+                if !expected_attrs.contains_key(id) || expected_attrs[id] != *received {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect_vec();
+
+        if !missing.is_empty() || !unexpected.is_empty() {
+            return Err(IssuedAttributesMismatch { missing, unexpected });
         }
+
         Ok(())
     }
 }
 
-#[derive(PartialEq)]
-struct Attribute<'a> {
-    identifier: AttributeIdentifier,
-    value: &'a ciborium::Value,
+#[derive(Debug, thiserror::Error)]
+#[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
+pub struct IssuedAttributesMismatch {
+    pub missing: Vec<AttributeIdentifier>,
+    pub unexpected: Vec<AttributeIdentifier>,
 }
 
-fn flatten_attrs<'a>(
+fn flatten_map<'a>(
     doctype: &'a DocType,
     attrs: &'a IndexMap<NameSpace, Vec<Entry>>,
-) -> impl Iterator<Item = Attribute<'a>> {
-    attrs.iter().flat_map(|(namespace, entries)| {
-        entries.iter().map(|entry| Attribute {
-            identifier: AttributeIdentifier {
-                doc_type: doctype.clone(),
-                namespace: namespace.clone(),
-                attribute: entry.name.clone(),
-            },
-            value: &entry.value,
+) -> IndexMap<AttributeIdentifier, &'a ciborium::Value> {
+    attrs
+        .iter()
+        .flat_map(|(namespace, entries)| {
+            entries.iter().map(|entry| {
+                (
+                    AttributeIdentifier {
+                        doc_type: doctype.clone(),
+                        namespace: namespace.clone(),
+                        attribute: entry.name.clone(),
+                    },
+                    &entry.value,
+                )
+            })
         })
-    })
+        .collect()
 }

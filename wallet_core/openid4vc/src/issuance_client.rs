@@ -14,8 +14,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
-    holder::{Mdoc, MdocCopies, TrustAnchor},
-    identifiers::AttributeIdentifier,
+    holder::{IssuedAttributesMismatch, Mdoc, MdocCopies, TrustAnchor},
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::CborError,
@@ -52,8 +51,8 @@ pub enum IssuerClientError {
     Cbor(#[from] CborError),
     #[error("base64 decoding failed: {0}")]
     Base64Error(#[from] base64::DecodeError),
-    #[error("mismatch between issued and expected attributes")]
-    IssuedAttributesMismatch(Vec<AttributeIdentifier>),
+    #[error("mismatch between issued and expected attributes: {0}")]
+    IssuedAttributesMismatch(IssuedAttributesMismatch),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
