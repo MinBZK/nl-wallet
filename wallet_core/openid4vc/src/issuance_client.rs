@@ -6,7 +6,10 @@ use p256::{
     ecdsa::{SigningKey, VerifyingKey},
     elliptic_curve::rand_core::OsRng,
 };
-use reqwest::{header::AUTHORIZATION, Method};
+use reqwest::{
+    header::{ToStrError, AUTHORIZATION},
+    Method,
+};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -65,6 +68,8 @@ pub enum IssuerClientError {
     PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("received {found} responses, expected {expected}")]
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
+    #[error("error reading HTTP error: {0}")]
+    HeaderToStr(#[from] ToStrError),
 }
 
 pub trait IssuerClient<H = HttpOpenidMessageClient> {
@@ -144,7 +149,9 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
                     let dpop_nonce = response
                         .headers()
                         .get(DPOP_NONCE_HEADER_NAME)
-                        .and_then(|val| val.to_str().map(str::to_string).ok());
+                        .map(|val| val.to_str())
+                        .transpose()?
+                        .map(str::to_string);
                     let deserialized = response.json::<TokenResponseWithPreviews>().await?;
                     Ok((deserialized, dpop_nonce))
                 }
