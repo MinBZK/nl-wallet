@@ -106,7 +106,7 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
         .collect::<Result<Vec<_>, JwtError>>()?;
 
     // Associate the messages to the keys with which they are to be signed, for below
-    let keys_messages_map: HashMap<_, _> = keys
+    let mut keys_messages_map: HashMap<_, _> = keys
         .iter()
         .zip(&messages)
         .map(|(key, msg)| (key.identifier().to_string(), msg.clone()))
@@ -130,7 +130,7 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
         .into_iter()
         .map(|(key, sig)| {
             // The WP will respond only with the keys we fed it above, so we can unwrap
-            let msg = keys_messages_map.get(&key.identifier().to_string()).unwrap().clone();
+            let msg = keys_messages_map.remove(key.identifier()).unwrap();
             let jwt = [msg, BASE64_URL_SAFE_NO_PAD.encode(sig.to_vec())].join(".").into();
             (key, jwt)
         })
