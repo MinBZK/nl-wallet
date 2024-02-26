@@ -36,7 +36,7 @@ fn setup() -> (MockIssuer, Certificate, Url) {
         vec!["https://example.com".to_string()],
     );
 
-    (issuer, ca.certificate().clone(), server_url.join("issuance/").unwrap())
+    (issuer, ca.into(), server_url.join("issuance/").unwrap())
 }
 
 #[tokio::test]
