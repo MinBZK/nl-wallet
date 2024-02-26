@@ -16,7 +16,7 @@ use crate::{
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
 };
 
-use super::Wallet;
+use super::{Wallet, WalletRegistration};
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletInitError {
@@ -63,14 +63,16 @@ where
         storage: S,
         account_provider_client: APC,
         pid_issuer: PIC,
-        registration: Option<RegistrationData>,
+        registration_data: Option<RegistrationData>,
     ) -> Self {
-        let hw_privkey = Self::hw_privkey();
+        let registration = registration_data.map(|data| WalletRegistration {
+            hw_privkey: Self::hw_privkey(),
+            data,
+        });
 
         Wallet {
             config_repository,
             storage: RwLock::new(storage),
-            hw_privkey,
             account_provider_client,
             digid_session: None,
             pid_issuer,
@@ -192,6 +194,6 @@ mod tests {
         ));
 
         // The registration data should now be available.
-        assert_eq!(wallet.registration.unwrap().pin_salt, pin_salt);
+        assert_eq!(wallet.registration.unwrap().data.pin_salt, pin_salt);
     }
 }

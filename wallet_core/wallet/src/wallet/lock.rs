@@ -54,7 +54,7 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
         info!("Validating pin");
 
         info!("Checking if registered");
-        let registration_data = self
+        let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
@@ -71,9 +71,9 @@ impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
         let remote_instruction = InstructionClient::new(
             pin,
             &self.storage,
-            &self.hw_privkey,
+            &registration.hw_privkey,
             &self.account_provider_client,
-            registration_data,
+            &registration.data,
             &config.account_server.base_url,
             &instruction_result_public_key,
         );
@@ -149,8 +149,9 @@ mod tests {
 
         // Set up the instruction challenge.
         let challenge_response = challenge.clone();
-        let wallet_cert = wallet.registration.as_ref().unwrap().wallet_certificate.clone();
-        let hw_pubkey = wallet.hw_privkey.verifying_key().await.unwrap();
+        let registration = wallet.registration.as_ref().unwrap();
+        let wallet_cert = registration.data.wallet_certificate.clone();
+        let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
 
         wallet
             .account_provider_client
@@ -174,10 +175,10 @@ mod tests {
             });
 
         // Set up the instruction.
-        let wallet_cert = wallet.registration.as_ref().unwrap().wallet_certificate.clone();
-        let hw_pubkey = wallet.hw_privkey.verifying_key().await.unwrap();
+        let wallet_cert = registration.data.wallet_certificate.clone();
+        let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
 
-        let pin_key = PinKey::new(PIN, &wallet.registration.as_ref().unwrap().pin_salt);
+        let pin_key = PinKey::new(PIN, &registration.data.pin_salt);
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
         let result_claims = InstructionResultClaims {
@@ -404,9 +405,12 @@ mod tests {
 
         // Have the hardware key signing fail.
         wallet
+            .registration
+            .as_mut()
+            .unwrap()
             .hw_privkey
             .next_private_key_error
-            .lock()
+            .get_mut()
             .replace(p256::ecdsa::Error::new());
 
         let error = wallet

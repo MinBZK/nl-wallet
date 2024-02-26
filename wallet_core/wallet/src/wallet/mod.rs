@@ -43,6 +43,11 @@ pub use self::{
 #[cfg(test)]
 pub(crate) use self::issuance::rvig_registration;
 
+struct WalletRegistration<K> {
+    hw_privkey: K,
+    data: RegistrationData,
+}
+
 pub struct Wallet<
     CR = UpdatingFileHttpConfigurationRepository,  // ConfigurationRepository
     S = DatabaseStorage<HardwareEncryptionKey>,    // Storage
@@ -54,13 +59,12 @@ pub struct Wallet<
 > {
     config_repository: CR,
     storage: RwLock<S>,
-    hw_privkey: PEK,
     account_provider_client: APC,
     digid_session: Option<DGS>,
     pid_issuer: PIC,
     disclosure_session: Option<MDS>,
     lock: WalletLock,
-    registration: Option<RegistrationData>,
+    registration: Option<WalletRegistration<PEK>>,
     documents_callback: Option<DocumentsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
 }

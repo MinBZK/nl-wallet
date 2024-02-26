@@ -224,7 +224,7 @@ where
         info!("Accepting disclosure");
 
         info!("Checking if registered");
-        let registration_data = self
+        let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| DisclosureError::NotRegistered)?;
@@ -277,9 +277,9 @@ where
         let remote_instruction = InstructionClient::new(
             pin,
             &self.storage,
-            &self.hw_privkey,
+            &registration.hw_privkey,
             &self.account_provider_client,
-            registration_data,
+            &registration.data,
             &config.account_server.base_url,
             &instruction_result_public_key,
         );
