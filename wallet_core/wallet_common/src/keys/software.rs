@@ -41,11 +41,7 @@ impl SoftwareEcdsaKey {
     // Peek into the static hashmap to see if an instance of
     // `SoftwareEcdsaKey` with the specified identifier exists.
     pub fn identifier_exists(identifier: &str) -> bool {
-        SIGNING_KEYS
-            .lock()
-            .get(identifier)
-            .map(|key| Arc::strong_count(key) > 1)
-            .unwrap_or_default()
+        SIGNING_KEYS.lock().contains_key(identifier)
     }
 }
 
@@ -139,11 +135,7 @@ impl SoftwareEncryptionKey {
     // Peek into the static hashmap to see if an instance of
     // `SoftwareEncryptionKey` with the specified identifier exists.
     pub fn identifier_exists(identifier: &str) -> bool {
-        ENCRYPTION_CIPHERS
-            .lock()
-            .get(identifier)
-            .map(|key| Arc::strong_count(key) > 1)
-            .unwrap_or_default()
+        ENCRYPTION_CIPHERS.lock().contains_key(identifier)
     }
 }
 

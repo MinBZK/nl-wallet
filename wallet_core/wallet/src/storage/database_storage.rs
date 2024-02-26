@@ -593,6 +593,8 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::mem;
+
     use chrono::{TimeZone, Utc};
     use once_cell::sync::Lazy;
     use tokio::fs;
@@ -670,10 +672,22 @@ pub(crate) mod tests {
         // The key file encryption key should be present.
         assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
 
-        // Set the open database on the `DatabaseStorage` instance.
+        // Set the open database on the `DatabaseStorage` instance, then drop the storage.
+        // Both the database file and the encryption key should still exist.
         storage.open_database = open_database.into();
+        mem::drop(storage);
+        assert!(fs::try_exists(&database_path).await.unwrap());
+        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
 
-        // Clear the database and consume the `DatabaseStorage` instance.
+        // Re-open the encrypted database, set it on the `DatabaseStorage`
+        // instance and then clear and consume this instance.
+        let mut storage =
+            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+        storage.open_database = storage
+            .open_encrypted_database(name)
+            .await
+            .expect("Could not open encrypted database")
+            .into();
         storage.clear().await;
 
         // The database file should be gone and the key file encryption key should be absent.
