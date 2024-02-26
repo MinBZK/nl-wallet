@@ -288,20 +288,27 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
 
         // Split into N keys and N credential requests, so we can send the credential request proofs separately
         // to the issuer.
-        let (keys, credential_requests): (Vec<K>, Vec<CredentialRequest>) = keys_and_proofs
-            .into_iter()
-            .zip(doctypes)
-            .map(|((key, response), doctype)| {
-                (
-                    key,
-                    CredentialRequest {
+        let (pubkeys, credential_requests): (Vec<_>, Vec<_>) = try_join_all(
+            keys_and_proofs
+                .into_iter()
+                .zip(doctypes)
+                .map(|((key, response), doctype)| async move {
+                    let pubkey = key
+                        .verifying_key()
+                        .await
+                        .map_err(|e| IssuerClientError::VerifyingKeyFromPrivateKey(e.into()))?;
+                    let id = key.identifier().to_string();
+                    let cred_request = CredentialRequest {
                         format: Format::MsoMdoc,
                         doctype: Some(doctype),
                         proof: Some(response),
-                    },
-                )
-            })
-            .unzip();
+                    };
+                    Ok::<_, IssuerClientError>(((pubkey, id), cred_request))
+                }),
+        )
+        .await?
+        .into_iter()
+        .unzip();
 
         let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
@@ -318,22 +325,13 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
 
         // The server must have responded with enough credential responses, N, so that we have exactly enough responses
         // for all copies of all mdocs constructed below.
-        if responses.credential_responses.len() != keys.len() {
+        if responses.credential_responses.len() != pubkeys.len() {
             return Err(IssuerClientError::UnexpectedCredentialResponseCount {
                 found: responses.credential_responses.len(),
-                expected: keys.len(),
+                expected: pubkeys.len(),
             });
         }
 
-        let pubkeys: Vec<_> = try_join_all(keys.iter().map(|key| async {
-            let pubkey = key
-                .verifying_key()
-                .await
-                .map_err(|e| IssuerClientError::VerifyingKeyFromPrivateKey(e.into()))?;
-            let id = key.identifier().to_string();
-            Ok::<_, IssuerClientError>((pubkey, id))
-        }))
-        .await?;
         let mut responses_and_pubkeys: VecDeque<_> = responses.credential_responses.into_iter().zip(pubkeys).collect();
 
         let mdocs = self
