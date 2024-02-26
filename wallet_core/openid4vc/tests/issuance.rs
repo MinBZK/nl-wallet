@@ -44,7 +44,7 @@ async fn accept_issuance() {
     let (issuer, ca, server_url) = setup();
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
+    let (session, previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -54,7 +54,16 @@ async fn accept_issuance() {
         .unwrap();
 
     assert_eq!(mdoc_copies.len(), 2);
-    assert_eq!(mdoc_copies[0].cred_copies.len(), 2)
+    assert_eq!(mdoc_copies[0].cred_copies.len(), 2);
+
+    mdoc_copies.into_iter().zip(previews).for_each(|(copies, preview)| {
+        copies
+            .cred_copies
+            .first()
+            .unwrap()
+            .compare_unsigned(preview.as_ref())
+            .unwrap()
+    });
 }
 
 #[tokio::test]
