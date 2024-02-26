@@ -90,8 +90,9 @@
             <dd>{{ selected.as_ref().unwrap().usecase }}</dd>
 
             <dt>Type</dt>
-            {% if selected.as_ref().unwrap().session_type == MrpSessionType::SameDevice %}
-            <dd>same_device</dd>
+            {% if (selected.as_ref().unwrap().session_type == MrpSessionType::SameDevice) ||
+            (selected.as_ref().unwrap().session_type == MrpSessionType::SameDeviceNoReturn) %}
+            <dd>{{ selected.as_ref().unwrap().session_type }}</dd>
         </dl>
         <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;" rel="noopener">
             Open NL Wallet
