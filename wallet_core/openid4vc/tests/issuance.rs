@@ -16,10 +16,9 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorType, CredentialRequestProof, CredentialRequests, CredentialResponses},
     dpop::Dpop,
-    issuance_client::{HttpIssuerClient, IssuerClient, OpenidMessageClient},
+    issuance_client::{HttpIssuerClient, IssuerClient, IssuerClientError, OpenidMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     token::{AccessToken, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
-    IssuerClientError,
 };
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
@@ -277,7 +276,7 @@ const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "
 struct MockAttributeService;
 
 impl AttributeService for MockAttributeService {
-    type Error = openid4vc::IssuerClientError; // arbitrary type that implements the required bounds
+    type Error = openid4vc::issuance_client::IssuerClientError; // arbitrary type that implements the required bounds
 
     async fn attributes(
         &self,

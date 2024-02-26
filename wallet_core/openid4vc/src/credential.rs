@@ -14,8 +14,9 @@ use nl_wallet_mdoc::{
 use wallet_common::jwt::Jwt;
 
 use crate::{
+    issuance_client::IssuerClientError,
     jwt::{self, jwk_jwt_header},
-    ErrorStatusCode, Format, IssuerClientError,
+    ErrorStatusCode, Format,
 };
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.

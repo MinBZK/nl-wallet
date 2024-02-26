@@ -5,9 +5,8 @@ use nl_wallet_mdoc::{
 use url::Url;
 
 use crate::{
-    issuance_client::{HttpOpenidMessageClient, IssuerClient},
+    issuance_client::{HttpOpenidMessageClient, IssuerClient, IssuerClientError},
     token::{AttestationPreview, TokenRequest},
-    IssuerClientError,
 };
 
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept

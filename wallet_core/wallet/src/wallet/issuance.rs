@@ -1,5 +1,5 @@
 use http::{header, HeaderMap, HeaderValue};
-use openid4vc::issuance_client::{HttpOpenidMessageClient, IssuerClient};
+use openid4vc::issuance_client::{HttpOpenidMessageClient, IssuerClient, IssuerClientError};
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
@@ -36,7 +36,7 @@ pub enum PidIssuanceError {
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[from] openid4vc::IssuerClientError),
+    PidIssuer(#[from] IssuerClientError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -632,7 +632,7 @@ mod tests {
         let start_context = MockIssuerClient::start_context();
         start_context
             .expect()
-            .return_once(|| Err(openid4vc::IssuerClientError::MissingNonce));
+            .return_once(|| Err(IssuerClientError::MissingNonce));
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -768,7 +768,7 @@ mod tests {
             let mut client = MockIssuerClient::new();
             client
                 .expect_reject()
-                .return_once(|| Err(openid4vc::IssuerClientError::MissingNonce));
+                .return_once(|| Err(IssuerClientError::MissingNonce));
             client
         });
 
@@ -916,7 +916,7 @@ mod tests {
             let mut client = MockIssuerClient::new();
             client
                 .expect_accept()
-                .return_once(|| Err(openid4vc::IssuerClientError::MissingNonce));
+                .return_once(|| Err(IssuerClientError::MissingNonce));
             client
         });
 
