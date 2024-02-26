@@ -325,7 +325,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
             });
         }
 
-        let keys: Vec<_> = try_join_all(keys.iter().map(|key| async {
+        let pubkeys: Vec<_> = try_join_all(keys.iter().map(|key| async {
             let pubkey = key
                 .verifying_key()
                 .await
@@ -334,7 +334,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
             Ok::<_, IssuerClientError>((pubkey, id))
         }))
         .await?;
-        let mut responses_and_keys: VecDeque<_> = responses.credential_responses.into_iter().zip(keys).collect();
+        let mut responses_and_pubkeys: VecDeque<_> = responses.credential_responses.into_iter().zip(pubkeys).collect();
 
         let mdocs = self
             .session_state
@@ -344,7 +344,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
                 let copy_count: usize = preview.copy_count().try_into().unwrap();
 
                 // Consume the amount of copies from the front of `responses_and_keys`.
-                let cred_copies = responses_and_keys
+                let cred_copies = responses_and_pubkeys
                     .drain(..copy_count)
                     .map(|(cred_response, (pubkey, key_id))| {
                         // Convert the response into an `Mdoc`, verifying it against both the
