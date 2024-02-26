@@ -120,7 +120,7 @@ pub struct TokenResponse {
     pub authorization_details: Option<AuthorizationDetails>,
 }
 
-/// A [`TokenRespone`] with an extra field for the attestation previews.
+/// A [`TokenResponse`] with an extra field for the attestation previews.
 /// This is an custom field so other implementations might not send it. For now however we assume that it is always
 /// present so it is not an [`Option`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
