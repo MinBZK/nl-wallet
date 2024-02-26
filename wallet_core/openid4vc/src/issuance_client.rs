@@ -211,7 +211,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
                     match preview {
                         AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.doc_type.clone(),
                     },
-                    preview.copy_count() as usize,
+                    preview.copy_count().try_into().unwrap(),
                 )
             })
             .collect_vec();

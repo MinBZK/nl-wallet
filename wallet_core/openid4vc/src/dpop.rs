@@ -298,7 +298,7 @@ mod tests {
     /// Decode and deserialize the specified part of the JWT.
     fn part<T: DeserializeOwned>(i: u8, jwt: &str) -> T {
         let bts = BASE64_URL_SAFE_NO_PAD
-            .decode(jwt.split('.').take((i + 1) as usize).last().unwrap())
+            .decode(jwt.split('.').take((i + 1).into()).last().unwrap())
             .unwrap();
         serde_json::from_slice(&bts).unwrap()
     }
