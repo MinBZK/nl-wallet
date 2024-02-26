@@ -1,9 +1,9 @@
-use std::error::Error;
+use std::{borrow::Cow, error::Error};
 
 use tracing::{info, instrument};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{account::messages::auth::Registration, jwt::JwtError};
+use wallet_common::{account::messages::auth::Registration, jwt::JwtError, keys::StoredByIdentifier};
 
 use crate::{
     account_provider::{AccountProviderClient, AccountProviderError},
@@ -16,6 +16,33 @@ use crate::{
 };
 
 use super::Wallet;
+
+const WALLET_KEY_ID: &str = "wallet";
+
+/// This helper function normally simply returns `WALLET_KEY_ID`, but
+/// returns `WALLET_KEY_ID` suffixed with a unique thread local identifier
+/// when running tests. This allows multiple `Wallet` instances to be
+/// created in parallel.
+fn wallet_key_id() -> Cow<'static, str> {
+    #[cfg(not(test))]
+    return Cow::from(WALLET_KEY_ID);
+
+    #[cfg(test)]
+    {
+        use std::{
+            cell::Cell,
+            sync::atomic::{AtomicUsize, Ordering},
+        };
+
+        static WALLET_TEST_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+        thread_local! {
+            pub static WALLET_TEST_ID: Cell<usize> = WALLET_TEST_ID_COUNTER.fetch_add(1, Ordering::Relaxed).into();
+        }
+
+        Cow::from(format!("{}_{}", WALLET_KEY_ID, WALLET_TEST_ID.get()))
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletRegistrationError {
@@ -40,6 +67,17 @@ pub enum WalletRegistrationError {
 }
 
 impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
+    pub(super) fn hw_privkey() -> PEK
+    where
+        PEK: StoredByIdentifier,
+    {
+        // Get or create the hardware ECDSA key for communication with the account server.
+        // The identifier used for this should be globally unique. If this is not the case,
+        // the `Wallet` has multiple instances, which is programmer error and should result
+        // in a panic.
+        PEK::new_unique(wallet_key_id().as_ref()).expect("wallet hardware key identifier is already in use")
+    }
+
     pub fn has_registration(&self) -> bool {
         self.registration.is_some()
     }

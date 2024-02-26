@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use tokio::sync::RwLock;
 
 use platform_support::{
@@ -19,20 +17,6 @@ use crate::{
 };
 
 use super::Wallet;
-
-const WALLET_KEY_ID: &str = "wallet";
-
-/// This helper function normally simply returns `WALLET_KEY_ID` and
-/// returns `WALLET_KEY_ID` suffixed with a unique thread local identifier
-/// when running tests. This allows multiple `Wallet` instances to be
-/// created in parallel.
-fn wallet_key_id() -> Cow<'static, str> {
-    #[cfg(not(test))]
-    return Cow::from(WALLET_KEY_ID);
-
-    #[cfg(test)]
-    Cow::from(format!("{}_{}", WALLET_KEY_ID, tests::WALLET_TEST_ID.get()))
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletInitError {
@@ -81,12 +65,7 @@ where
         pid_issuer: PIC,
         registration: Option<RegistrationData>,
     ) -> Self {
-        // Get or create the hardware ECDSA key for communication with the account server.
-        // The identifier used for this should be globally unique. If this is not the case,
-        // the `Wallet` has multiple instances, which is programmer error and should result
-        // in a panic.
-        let hw_privkey =
-            PEK::new_unique(wallet_key_id().as_ref()).expect("wallet hardware key identifier is already in use");
+        let hw_privkey = Self::hw_privkey();
 
         Wallet {
             config_repository,
@@ -139,21 +118,10 @@ where
 }
 
 #[cfg(test)]
-pub mod tests {
-    use std::{
-        cell::Cell,
-        sync::atomic::{AtomicUsize, Ordering},
-    };
-
+mod tests {
     use crate::{pin::key as pin_key, storage::MockStorage};
 
     use super::{super::test::WalletWithMocks, *};
-
-    static WALLET_TEST_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
-
-    thread_local! {
-        pub static WALLET_TEST_ID: Cell<usize> = WALLET_TEST_ID_COUNTER.fetch_add(1, Ordering::Relaxed).into();
-    }
 
     // Tests if the Wallet::init() method completes successfully with the mock generics.
     #[tokio::test]
