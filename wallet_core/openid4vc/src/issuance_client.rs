@@ -193,8 +193,18 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
             .header(DPOP_HEADER_NAME, dpop_header)
             .header(AUTHORIZATION, access_token_header)
             .send()
-            .await?
-            .error_for_status()?;
+            .map_err(IssuerClientError::from)
+            .and_then(|response| async {
+                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+                let status = response.status();
+                if status.is_client_error() || status.is_server_error() {
+                    let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
+                    Err(IssuerClientError::CredentialRequest(error.into()))
+                } else {
+                    Ok(())
+                }
+            })
+            .await?;
         Ok(())
     }
 }
