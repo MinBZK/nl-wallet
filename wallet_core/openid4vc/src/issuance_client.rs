@@ -180,8 +180,8 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
                     let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
                     Err(IssuerClientError::CredentialRequest(error.into()))
                 } else {
-                    let text = response.json().await?;
-                    Ok(text)
+                    let credential_responses = response.json().await?;
+                    Ok(credential_responses)
                 }
             })
             .await
