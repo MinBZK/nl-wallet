@@ -487,9 +487,9 @@ impl Session<Created> {
                 authorization_details: None,
             },
             attestation_previews: unsigned_mdocs
-                .iter()
+                .into_iter()
                 .map(|unsigned| AttestationPreview::MsoMdoc {
-                    unsigned_mdoc: unsigned.clone(),
+                    unsigned_mdoc: unsigned,
                 })
                 .collect(),
         };
