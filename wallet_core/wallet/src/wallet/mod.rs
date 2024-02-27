@@ -39,7 +39,7 @@ pub use self::{
 #[cfg(test)]
 pub(crate) use self::issuance::rvig_registration;
 
-use self::documents::DocumentsCallback;
+use self::{documents::DocumentsCallback, issuance::PidIssuanceSession};
 
 pub struct Wallet<
     CR = UpdatingFileHttpConfigurationRepository,  // ConfigurationRepository
@@ -54,8 +54,7 @@ pub struct Wallet<
     storage: RwLock<S>,
     hw_privkey: PEK,
     account_provider_client: APC,
-    digid_session: Option<DGS>,
-    pid_issuer: Option<IS>,
+    issuance_session: Option<PidIssuanceSession<DGS, IS>>,
     disclosure_session: Option<MDS>,
     lock: WalletLock,
     registration: Option<RegistrationData>,
