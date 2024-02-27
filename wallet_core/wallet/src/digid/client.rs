@@ -82,7 +82,7 @@ where
         let pre_authorized_code = self.get_authorization_code(received_redirect_uri)?;
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-            code_verifier: Some(self.pkce_pair.code_verifier().to_string()),
+            code_verifier: Some(self.pkce_pair.into_code_verifier()),
             client_id: Some(self.client_id),
             redirect_uri: Some(self.redirect_uri_base),
         };

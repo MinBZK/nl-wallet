@@ -18,7 +18,7 @@ pub trait PkcePair {
         Self: Sized;
 
     /// The code verifier of this pair, which is a random string of characters.
-    fn code_verifier(&self) -> &str;
+    fn into_code_verifier(self) -> String;
 
     /// The code challenge of this pair, which is base64 encoded.
     fn code_challenge(&self) -> &str;
@@ -45,8 +45,8 @@ impl PkcePair for S256PkcePair {
         Self(code_verifier, code_challenge)
     }
 
-    fn code_verifier(&self) -> &str {
-        &self.0
+    fn into_code_verifier(self) -> String {
+        self.0
     }
 
     fn code_challenge(&self) -> &str {
@@ -62,11 +62,14 @@ mod tests {
     fn test_s256_pkce_pair() {
         let pair = S256PkcePair::generate();
 
-        assert_eq!(pair.code_verifier().len(), CODE_VERIFIER_LENGTH);
+        let challenge = pair.code_challenge().to_string();
+        let verifier = pair.into_code_verifier();
+
+        assert_eq!(verifier.len(), CODE_VERIFIER_LENGTH);
 
         assert_eq!(
-            sha256(pair.code_verifier().as_bytes()),
-            BASE64_URL_SAFE_NO_PAD.decode(pair.code_challenge()).unwrap()
-        )
+            sha256(verifier.as_bytes()),
+            BASE64_URL_SAFE_NO_PAD.decode(challenge).unwrap()
+        );
     }
 }
