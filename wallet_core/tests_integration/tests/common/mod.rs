@@ -296,7 +296,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
 pub struct MockAttributeService;
 
 impl AttributeService for MockAttributeService {
-    type Error = wallet_server::verifier::Error; // arbitrary type that implements the required trait bounds
+    type Error = std::convert::Infallible; // arbitrary type that implements the required trait bounds
 
     async fn attributes(
         &self,
