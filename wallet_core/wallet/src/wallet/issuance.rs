@@ -1,5 +1,4 @@
 use http::{header, HeaderMap, HeaderValue};
-use openid4vc::issuance_client::{HttpOpenidMessageClient, IssuerClient, IssuerClientError};
 use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
@@ -8,6 +7,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
 };
+use openid4vc::issuance_client::{HttpOpenidMessageClient, IssuerClient, IssuerClientError};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::ISSUANCE_REDIRECT_URI;
 
