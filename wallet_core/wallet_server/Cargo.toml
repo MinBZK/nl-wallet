@@ -46,7 +46,6 @@ log_requests = ["dep:hyper"]
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = [
-    "form",
     "headers",
     "http1",
     "json",
