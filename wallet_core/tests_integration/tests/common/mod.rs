@@ -32,7 +32,7 @@ use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::{
-    pid::mock::{MockAttributesLookup as WSMockAttributesLookup, MockBsnLookup as WSMockBsnLookup},
+    pid::mock::MockAttributesLookup,
     settings::{Server, Settings as WsSettings},
     store::SessionStores,
 };
@@ -303,7 +303,6 @@ impl AttributeService for MockAttributeService {
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
     ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
-        let mock_bsn = WSMockBsnLookup::default().bsn("access_token").await.unwrap();
-        Ok(WSMockAttributesLookup::default().attributes(&mock_bsn).unwrap())
+        Ok(MockAttributesLookup::default().attributes("999991772").unwrap())
     }
 }

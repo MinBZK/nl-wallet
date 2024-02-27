@@ -9,32 +9,9 @@ use nl_wallet_mdoc::{
     basic_sa_ext::{Entry, UnsignedMdoc},
     Tdate,
 };
-use rand::Rng;
 use serde::Deserialize;
 
 use crate::settings::MockAttributes;
-
-use super::digid;
-
-pub struct MockBsnLookup(Vec<String>);
-
-impl Default for MockBsnLookup {
-    fn default() -> Self {
-        Self(vec!["999991772".to_owned()])
-    }
-}
-
-impl From<Vec<MockAttributes>> for MockBsnLookup {
-    fn from(value: Vec<MockAttributes>) -> Self {
-        Self(value.iter().map(|p| p.person.bsn.clone()).collect())
-    }
-}
-
-impl MockBsnLookup {
-    pub async fn bsn(&self, _access_token: &str) -> Result<String, digid::Error> {
-        Ok(self.0[rand::thread_rng().gen_range(0..self.0.len())].clone())
-    }
-}
 
 // ISO/IEC 5218
 #[allow(dead_code)]
