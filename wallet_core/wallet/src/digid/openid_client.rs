@@ -153,8 +153,5 @@ mod tests {
                 )
                 .unwrap(),
         );
-
-        // TODO: Add test for the authenticate() method by mocking an authentication
-        //       response that can actually be verified by the client.
     }
 }
