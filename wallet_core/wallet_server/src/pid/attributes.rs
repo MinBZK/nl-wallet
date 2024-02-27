@@ -4,8 +4,9 @@ use openid4vc::{
     token::{TokenErrorType, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
+use url::Url;
 
-use crate::settings::Issuer;
+use crate::settings::MockAttributes;
 
 use super::{
     digid::{self, OpenIdClient},
@@ -34,14 +35,15 @@ pub struct MockPidAttributeService {
 }
 
 impl MockPidAttributeService {
-    pub async fn new(settings: &Issuer) -> Result<Self, Error> {
+    pub fn new(
+        issuer_url: Url,
+        bsn_privkey: String,
+        client_id: String,
+        mock_data: Option<Vec<MockAttributes>>,
+    ) -> Result<Self, Error> {
         Ok(MockPidAttributeService {
-            openid_client: OpenIdClient::new(
-                settings.digid.issuer_url.clone(),
-                settings.digid.bsn_privkey.clone(),
-                settings.digid.client_id.clone(),
-            )?,
-            attrs_lookup: MockAttributesLookup::from(settings.mock_data.clone().unwrap_or_default()),
+            openid_client: OpenIdClient::new(issuer_url, bsn_privkey, client_id)?,
+            attrs_lookup: MockAttributesLookup::from(mock_data.unwrap_or_default()),
         })
     }
 }

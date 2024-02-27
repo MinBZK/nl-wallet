@@ -22,7 +22,13 @@ pub mod common;
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let settings = common::wallet_server_settings();
-    let attr_service = MockPidAttributeService::new(&settings.issuer).await.unwrap();
+    let attr_service = MockPidAttributeService::new(
+        settings.issuer.digid.issuer_url.clone(),
+        settings.issuer.digid.bsn_privkey.clone(),
+        settings.issuer.digid.client_id.clone(),
+        settings.issuer.mock_data.clone(),
+    )
+    .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
 
     let pid_issuance_config = &PidIssuanceConfiguration {
