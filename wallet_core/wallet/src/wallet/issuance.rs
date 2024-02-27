@@ -201,17 +201,16 @@ where
         )
         .await?;
 
-        self.issuance_session
-            .replace(PidIssuanceSession::Openid4vci(pid_issuer));
-
         info!("PID received successfully from issuer, returning preview documents");
         // TODO: obtain IssuerRegistration via some Issuer Authentication mechanism
         let mut documents = attestation_previews
             .into_iter()
             .map(|preview| Document::from_unsigned_mdoc(UnsignedMdoc::from(preview), rvig_registration()))
             .collect::<Result<Vec<_>, _>>()?;
-
         documents.sort_by_key(Document::priority);
+
+        self.issuance_session
+            .replace(PidIssuanceSession::Openid4vci(pid_issuer));
 
         Ok(documents)
     }
