@@ -261,6 +261,42 @@ mod tests {
         assert!(!session.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
     }
 
+    #[test]
+    fn test_into_token_request() {
+        let mut session = create_digid_session();
+
+        session
+            .pkce_pair
+            .expect_into_code_verifier()
+            .return_const("code_verifier".to_string());
+
+        let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
+        let received_redirect_uri =
+            url_with_query_pairs(redirect_uri.clone(), &[("state", &session.csrf_token), ("code", "123")]);
+
+        let token_request = session.into_token_request(&received_redirect_uri).unwrap();
+
+        assert_eq!(token_request.client_id, Some(CLIENT_ID.to_string()));
+        assert_eq!(token_request.code_verifier, Some("code_verifier".to_string()));
+        assert_eq!(token_request.redirect_uri, Some(redirect_uri));
+        assert_matches!(
+            token_request.grant_type,
+            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } if pre_authorized_code.as_ref() == "123"
+        );
+    }
+
+    #[test]
+    fn test_get_authorization_url() {
+        let session = create_digid_session();
+
+        let redirect_uri = url_with_query_pairs(
+            Url::parse(REDIRECT_URI).unwrap(),
+            &[("state", &session.csrf_token), ("code", "123")],
+        );
+
+        assert_eq!(session.get_authorization_code(&redirect_uri).unwrap().as_ref(), "123");
+    }
+
     // Helper function for testing `HttpDigidSession.get_access_token()`
     // calls that should result in an error.
     fn create_session_and_get_access_token_error(uri: &Url) -> DigidError {
