@@ -21,7 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.openqa.selenium.remote.RemoteWebDriver
 import service.AppiumServiceProvider
 import util.SetupTestTagHandler.Companion.handleTestTags
-import java.time.Duration
 
 @ExtendWith(TestResultsListener::class)
 open class TestBase {
@@ -35,8 +34,6 @@ open class TestBase {
 
         // Start driver
         Selenide.open()
-
-        getWebDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10))
     }
 
     @AfterEach
