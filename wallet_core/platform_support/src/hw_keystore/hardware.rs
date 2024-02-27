@@ -5,8 +5,8 @@ use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
-
 use parking_lot::Mutex;
+
 use wallet_common::{
     keys::{EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier, WithIdentifier},
     spawn,

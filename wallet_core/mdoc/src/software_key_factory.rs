@@ -2,8 +2,8 @@ use std::{collections::HashMap, iter};
 
 use futures::{executor, future};
 use p256::ecdsa::{Signature, VerifyingKey};
-
 use parking_lot::Mutex;
+
 use wallet_common::{
     keys::{software::SoftwareEcdsaKey, EcdsaKey, WithIdentifier},
     utils,
@@ -29,7 +29,7 @@ pub enum SoftwareKeyFactoryError {
     #[error("signing error")]
     Signing,
     #[error("ECDSA error: {0}")]
-    ECDSA(#[source] <SoftwareEcdsaKey as EcdsaKey>::Error),
+    Ecdsa(#[source] <SoftwareEcdsaKey as EcdsaKey>::Error),
 }
 
 impl KeyFactory for SoftwareKeyFactory {
@@ -86,7 +86,7 @@ impl KeyFactory for SoftwareKeyFactory {
             let signature = key
                 .try_sign(msg.as_slice())
                 .await
-                .map_err(SoftwareKeyFactoryError::ECDSA)?;
+                .map_err(SoftwareKeyFactoryError::Ecdsa)?;
 
             Ok((key, signature))
         }))
@@ -111,7 +111,7 @@ impl KeyFactory for SoftwareKeyFactory {
                 .map(|(msg, keys)| async move {
                     let signatures_by_identifier: Vec<(Self::Key, Signature)> =
                         future::try_join_all(keys.into_iter().map(|key| async {
-                            let signature = key.try_sign(&msg).await.map_err(SoftwareKeyFactoryError::ECDSA)?;
+                            let signature = key.try_sign(&msg).await.map_err(SoftwareKeyFactoryError::Ecdsa)?;
 
                             Ok((key, signature))
                         }))
