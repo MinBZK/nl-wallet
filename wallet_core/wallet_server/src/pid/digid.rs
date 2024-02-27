@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
+use axum::http::header;
 use futures::future::TryFutureExt;
-use http::header;
 use josekit::{
     jwe::{self, alg::rsaes::RsaesJweDecrypter},
     JoseError,

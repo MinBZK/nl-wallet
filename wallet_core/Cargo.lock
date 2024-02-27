@@ -5181,7 +5181,6 @@ dependencies = [
  "config",
  "dashmap",
  "futures",
- "http",
  "hyper",
  "indexmap 2.0.2",
  "josekit",

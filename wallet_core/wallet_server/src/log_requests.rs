@@ -1,9 +1,9 @@
 use axum::{
+    http::{HeaderMap, HeaderValue, Method, Request, StatusCode, Uri, Version},
     middleware::Next,
     response::{IntoResponse, Response},
 };
 use base64::prelude::*;
-use http::{HeaderMap, HeaderValue, Method, Request, StatusCode, Uri, Version};
 use hyper::{body::Bytes, Body};
 
 pub(crate) async fn log_request_response(

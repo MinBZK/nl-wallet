@@ -31,7 +31,6 @@ issuance = [
     "axum/form",
     "dep:ciborium",
     "dep:futures",
-    "dep:http",
     "dep:indexmap",
     "dep:josekit",
     "dep:openid",
@@ -60,7 +59,6 @@ chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
 futures = { workspace = true, optional = true }
-http = { workspace = true, optional = true }
 hyper = { version = "0.14.27", optional = true, features = ["full"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 josekit = { workspace = true, optional = true }
