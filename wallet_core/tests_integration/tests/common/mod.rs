@@ -15,7 +15,7 @@ use url::Url;
 use configuration_server::settings::Settings as CsSettings;
 use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
 use openid4vc::{
-    issuance_client::HttpIssuerClient,
+    issuance_session::HttpIssuanceSession,
     issuer::{AttributeService, Created},
     token::TokenRequest,
 };
@@ -71,7 +71,7 @@ pub type WalletWithMocks = Wallet<
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
     MockDigidSession,
-    HttpIssuerClient,
+    HttpIssuanceSession,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {

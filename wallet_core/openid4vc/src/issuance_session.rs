@@ -34,7 +34,7 @@ use crate::{
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum IssuerClientError {
+pub enum IssuanceSessionError {
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("DPoP error: {0}")]
@@ -71,12 +71,12 @@ pub enum IssuerClientError {
     HeaderToStr(#[from] ToStrError),
 }
 
-pub trait IssuerClient<H = HttpOpenidMessageClient> {
+pub trait IssuanceSession<H = HttpOpenidMessageClient> {
     async fn start_issuance(
         message_client: H,
         base_url: Url,
         token_request: TokenRequest,
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
+    ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
     where
         Self: Sized;
 
@@ -85,12 +85,12 @@ pub trait IssuerClient<H = HttpOpenidMessageClient> {
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: &Url,
-    ) -> Result<Vec<MdocCopies>, IssuerClientError>;
+    ) -> Result<Vec<MdocCopies>, IssuanceSessionError>;
 
-    async fn reject_issuance(self) -> Result<(), IssuerClientError>;
+    async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 }
 
-pub struct HttpIssuerClient<H = HttpOpenidMessageClient> {
+pub struct HttpIssuanceSession<H = HttpOpenidMessageClient> {
     message_client: H,
     session_state: IssuanceState,
 }
@@ -102,7 +102,7 @@ pub trait OpenidMessageClient {
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuerClientError>;
+    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError>;
 
     async fn request_credentials(
         &self,
@@ -110,9 +110,10 @@ pub trait OpenidMessageClient {
         credential_requests: &CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, IssuerClientError>;
+    ) -> Result<CredentialResponses, IssuanceSessionError>;
 
-    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), IssuerClientError>;
+    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str)
+        -> Result<(), IssuanceSessionError>;
 }
 
 pub struct HttpOpenidMessageClient {
@@ -131,19 +132,19 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuerClientError> {
+    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError> {
         self.http_client
             .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header.as_ref())
             .form(&token_request)
             .send()
-            .map_err(IssuerClientError::from)
+            .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<TokenErrorType>>().await?;
-                    Err(IssuerClientError::TokenRequest(error.into()))
+                    Err(IssuanceSessionError::TokenRequest(error.into()))
                 } else {
                     let dpop_nonce = response
                         .headers()
@@ -164,20 +165,20 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
         credential_requests: &CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, IssuerClientError> {
+    ) -> Result<CredentialResponses, IssuanceSessionError> {
         self.http_client
             .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header)
             .header(AUTHORIZATION, access_token_header)
             .json(credential_requests)
             .send()
-            .map_err(IssuerClientError::from)
+            .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
-                    Err(IssuerClientError::CredentialRequest(error.into()))
+                    Err(IssuanceSessionError::CredentialRequest(error.into()))
                 } else {
                     let credential_responses = response.json().await?;
                     Ok(credential_responses)
@@ -186,19 +187,24 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
             .await
     }
 
-    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), IssuerClientError> {
+    async fn reject(
+        &self,
+        url: &Url,
+        dpop_header: &str,
+        access_token_header: &str,
+    ) -> Result<(), IssuanceSessionError> {
         self.http_client
             .delete(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header)
             .header(AUTHORIZATION, access_token_header)
             .send()
-            .map_err(IssuerClientError::from)
+            .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
-                    Err(IssuerClientError::CredentialRequest(error.into()))
+                    Err(IssuanceSessionError::CredentialRequest(error.into()))
                 } else {
                     Ok(())
                 }
@@ -217,12 +223,12 @@ struct IssuanceState {
     dpop_nonce: Option<String>,
 }
 
-impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
+impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn start_issuance(
         message_client: H,
         base_url: Url,
         token_request: TokenRequest,
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError> {
+    ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError> {
         let url = base_url.join("token").unwrap(); // TODO discover token endpoint instead
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
@@ -235,7 +241,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
             c_nonce: token_response
                 .token_response
                 .c_nonce
-                .ok_or(IssuerClientError::MissingNonce)?,
+                .ok_or(IssuanceSessionError::MissingNonce)?,
             attestation_previews: token_response.attestation_previews.clone(),
             issuer_url: base_url,
             dpop_private_key,
@@ -254,7 +260,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: &Url,
-    ) -> Result<Vec<MdocCopies>, IssuerClientError> {
+    ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
         // has no support (yet) for issuance of multiple copies of multiple attestations.
         // We implement this below by simply flattening the relevant nested iterators when communicating with the issuer.
@@ -295,14 +301,14 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
                     let pubkey = key
                         .verifying_key()
                         .await
-                        .map_err(|e| IssuerClientError::VerifyingKeyFromPrivateKey(e.into()))?;
+                        .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let id = key.identifier().to_string();
                     let cred_request = CredentialRequest {
                         format: Format::MsoMdoc,
                         doctype: Some(doctype),
                         proof: Some(response),
                     };
-                    Ok::<_, IssuerClientError>(((pubkey, id), cred_request))
+                    Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
                 }),
         )
         .await?
@@ -325,7 +331,7 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
         // The server must have responded with enough credential responses, N, so that we have exactly enough responses
         // for all copies of all mdocs constructed below.
         if responses.credential_responses.len() != pubkeys.len() {
-            return Err(IssuerClientError::UnexpectedCredentialResponseCount {
+            return Err(IssuanceSessionError::UnexpectedCredentialResponseCount {
                 found: responses.credential_responses.len(),
                 expected: pubkeys.len(),
             });
@@ -353,12 +359,12 @@ impl<H: OpenidMessageClient> IssuerClient<H> for HttpIssuerClient<H> {
                 // For each preview we have an `MdocCopies` instance.
                 Ok(MdocCopies { cred_copies })
             })
-            .collect::<Result<_, IssuerClientError>>()?;
+            .collect::<Result<_, IssuanceSessionError>>()?;
 
         Ok(mdocs)
     }
 
-    async fn reject_issuance(self) -> Result<(), IssuerClientError> {
+    async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
         let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
@@ -378,33 +384,33 @@ impl CredentialResponse {
         verifying_key: VerifyingKey,
         unsigned: &UnsignedMdoc,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Mdoc, IssuerClientError> {
+    ) -> Result<Mdoc, IssuanceSessionError> {
         let issuer_signed = match self {
             CredentialResponse::MsoMdoc { credential } => credential.0,
         };
 
         if issuer_signed
             .public_key()
-            .map_err(IssuerClientError::PublicKeyFromMdoc)?
+            .map_err(IssuanceSessionError::PublicKeyFromMdoc)?
             != verifying_key
         {
-            return Err(IssuerClientError::PublicKeyMismatch);
+            return Err(IssuanceSessionError::PublicKeyMismatch);
         }
 
         // Construct the new mdoc; this also verifies it against the trust anchors.
         let mdoc = Mdoc::new::<K>(key_id, issuer_signed, &TimeGenerator, trust_anchors)
-            .map_err(IssuerClientError::MdocVerification)?;
+            .map_err(IssuanceSessionError::MdocVerification)?;
 
         // Check that our mdoc contains exactly the attributes the issuer said it would have
         mdoc.compare_unsigned(unsigned)
-            .map_err(IssuerClientError::IssuedAttributesMismatch)?;
+            .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
 
         Ok(mdoc)
     }
 }
 
 impl IssuanceState {
-    async fn auth_headers(&self, url: Url, method: reqwest::Method) -> Result<(String, String), IssuerClientError> {
+    async fn auth_headers(&self, url: Url, method: reqwest::Method) -> Result<(String, String), IssuanceSessionError> {
         let dpop_header = Dpop::new(
             &self.dpop_private_key,
             url,

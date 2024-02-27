@@ -14,7 +14,7 @@ use nl_wallet_mdoc::{
 use wallet_common::jwt::Jwt;
 
 use crate::{
-    issuance_client::IssuerClientError,
+    issuance_session::IssuanceSessionError,
     jwt::{self, jwk_jwt_header},
     ErrorStatusCode, Format,
 };
@@ -111,11 +111,11 @@ impl CredentialRequestProof {
         credential_issuer_identifier: &Url,
         number_of_keys: u64,
         key_factory: impl KeyFactory<Key = K>,
-    ) -> Result<Vec<(K, CredentialRequestProof)>, IssuerClientError> {
+    ) -> Result<Vec<(K, CredentialRequestProof)>, IssuanceSessionError> {
         let keys = key_factory
             .generate_new_multiple(number_of_keys)
             .await
-            .map_err(|e| IssuerClientError::PrivateKeyGeneration(Box::new(e)))?;
+            .map_err(|e| IssuanceSessionError::PrivateKeyGeneration(Box::new(e)))?;
 
         let keys_and_jwt_payloads = try_join_all(keys.into_iter().map(|privkey| async {
             let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, &privkey).await?;
@@ -125,7 +125,7 @@ impl CredentialRequestProof {
                 aud: credential_issuer_identifier.to_string(),
                 iat: Utc::now(),
             };
-            Ok::<_, IssuerClientError>((privkey, (payload, header)))
+            Ok::<_, IssuanceSessionError>((privkey, (payload, header)))
         }))
         .await?;
 

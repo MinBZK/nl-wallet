@@ -7,7 +7,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
 };
-use openid4vc::issuance_client::{HttpOpenidMessageClient, IssuerClient, IssuerClientError};
+use openid4vc::issuance_session::{HttpOpenidMessageClient, IssuanceSession, IssuanceSessionError};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::ISSUANCE_REDIRECT_URI;
 
@@ -36,7 +36,7 @@ pub enum PidIssuanceError {
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[from] IssuerClientError),
+    PidIssuer(#[from] IssuanceSessionError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -89,11 +89,11 @@ pub fn rvig_registration() -> IssuerRegistration {
         }"#).unwrap()
 }
 
-impl<CR, S, PEK, APC, DGS, IC, MDS> Wallet<CR, S, PEK, APC, DGS, IC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     CR: ConfigurationRepository,
     DGS: DigidSession,
-    IC: IssuerClient,
+    IS: IssuanceSession,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -186,7 +186,7 @@ where
             .expect("Could not build reqwest HTTP client");
         let config = self.config_repository.config();
 
-        let (pid_issuer, attestation_previews) = IC::start_issuance(
+        let (pid_issuer, attestation_previews) = IS::start_issuance(
             HttpOpenidMessageClient::new(http_client),
             config.pid_issuance.pid_issuer_url.clone(),
             token_request,
@@ -632,7 +632,7 @@ mod tests {
         let start_context = MockIssuerClient::start_context();
         start_context
             .expect()
-            .return_once(|| Err(IssuerClientError::MissingNonce));
+            .return_once(|| Err(IssuanceSessionError::MissingNonce));
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -768,7 +768,7 @@ mod tests {
             let mut client = MockIssuerClient::new();
             client
                 .expect_reject()
-                .return_once(|| Err(IssuerClientError::MissingNonce));
+                .return_once(|| Err(IssuanceSessionError::MissingNonce));
             client
         });
 
@@ -916,7 +916,7 @@ mod tests {
             let mut client = MockIssuerClient::new();
             client
                 .expect_accept()
-                .return_once(|| Err(IssuerClientError::MissingNonce));
+                .return_once(|| Err(IssuanceSessionError::MissingNonce));
             client
         });
 

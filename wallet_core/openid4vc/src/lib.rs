@@ -9,7 +9,7 @@ pub mod jwt;
 pub mod pkce;
 
 // Issuance code for the server and client.
-pub mod issuance_client;
+pub mod issuance_session;
 pub mod issuer;
 
 // Errors used throughout the crate.

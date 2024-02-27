@@ -20,7 +20,7 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<CR, S, PEK, APC, DGS, IC, MDS> Wallet<CR, S, PEK, APC, DGS, IC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     CR: ConfigurationRepository,
     DGS: DigidSession,

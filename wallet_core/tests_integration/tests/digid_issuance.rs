@@ -1,5 +1,5 @@
 use openid4vc::{
-    issuance_client::{HttpIssuerClient, HttpOpenidMessageClient, IssuerClient},
+    issuance_session::{HttpIssuanceSession, HttpOpenidMessageClient, IssuanceSession},
     pkce::S256PkcePair,
 };
 use reqwest::Client;
@@ -57,7 +57,7 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     // Start issuance by exchanging the authorization code for the attestation previews
-    let (pid_issuer_client, _) = HttpIssuerClient::start_issuance(
+    let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(
         HttpOpenidMessageClient::new(reqwest::Client::new()),
         server_url.clone(),
         token_request,

@@ -6,7 +6,7 @@ use nl_wallet_mdoc::{
 };
 
 use crate::{
-    issuance_client::{HttpOpenidMessageClient, IssuerClient, IssuerClientError},
+    issuance_session::{HttpOpenidMessageClient, IssuanceSession, IssuanceSessionError},
     token::{AttestationPreview, TokenRequest},
 };
 
@@ -15,24 +15,24 @@ use crate::{
 
 mockall::mock! {
     pub IssuerClient {
-        pub fn start() -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
+        pub fn start() -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
         where
             Self: Sized;
 
         pub fn accept(
             self,
-        ) -> Result<Vec<MdocCopies>, IssuerClientError>;
+        ) -> Result<Vec<MdocCopies>, IssuanceSessionError>;
 
-        pub fn reject(self) -> Result<(), IssuerClientError>;
+        pub fn reject(self) -> Result<(), IssuanceSessionError>;
     }
 }
 
-impl IssuerClient for MockIssuerClient {
+impl IssuanceSession for MockIssuerClient {
     async fn start_issuance(
         _: HttpOpenidMessageClient,
         _: Url,
         _: TokenRequest,
-    ) -> Result<(Self, Vec<AttestationPreview>), IssuerClientError>
+    ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
     where
         Self: Sized,
     {
@@ -44,11 +44,11 @@ impl IssuerClient for MockIssuerClient {
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
         _: &Url,
-    ) -> Result<Vec<MdocCopies>, IssuerClientError> {
+    ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
         self.accept()
     }
 
-    async fn reject_issuance(self) -> Result<(), IssuerClientError> {
+    async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
         self.reject()
     }
 }

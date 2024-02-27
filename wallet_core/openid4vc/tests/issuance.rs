@@ -16,7 +16,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorType, CredentialRequestProof, CredentialRequests, CredentialResponses},
     dpop::Dpop,
-    issuance_client::{HttpIssuerClient, IssuerClient, IssuerClientError, OpenidMessageClient},
+    issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, OpenidMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     token::{AccessToken, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
@@ -44,7 +44,7 @@ async fn accept_issuance() {
     let (issuer, ca, server_url) = setup();
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
+    let (session, previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -71,7 +71,7 @@ async fn reject_issuance() {
     let (issuer, _, server_url) = setup();
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url, token_request())
+    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url, token_request())
         .await
         .unwrap();
 
@@ -86,7 +86,7 @@ async fn wrong_access_token() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
+    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -97,7 +97,7 @@ async fn wrong_access_token() {
 
     assert!(matches!(
         result,
-        IssuerClientError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidToken)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidToken)
     ));
 }
 
@@ -109,7 +109,7 @@ async fn invalid_dpop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
+    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -120,7 +120,7 @@ async fn invalid_dpop() {
 
     assert!(matches!(
         result,
-        IssuerClientError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidRequest)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidRequest)
     ));
 }
 
@@ -132,7 +132,7 @@ async fn invalid_pop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuerClient::start_issuance(message_client, server_url.clone(), token_request())
+    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
         .await
         .unwrap();
 
@@ -143,7 +143,7 @@ async fn invalid_pop() {
 
     assert!(matches!(
         result,
-        IssuerClientError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidProof)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidProof)
     ));
 }
 
@@ -240,12 +240,12 @@ impl OpenidMessageClient for MockOpenidMessageClient {
         _url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuerClientError> {
+    ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError> {
         let (token_response, dpop_nonce) = self
             .issuer
             .process_token_request(token_request.clone(), dpop_header.clone())
             .await
-            .map_err(|err| IssuerClientError::TokenRequest(Box::new(err.into())))?;
+            .map_err(|err| IssuanceSessionError::TokenRequest(Box::new(err.into())))?;
         Ok((token_response, Some(dpop_nonce)))
     }
 
@@ -255,7 +255,7 @@ impl OpenidMessageClient for MockOpenidMessageClient {
         credential_requests: &CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, IssuerClientError> {
+    ) -> Result<CredentialResponses, IssuanceSessionError> {
         self.issuer
             .process_batch_credential(
                 self.access_token(access_token_header),
@@ -263,10 +263,15 @@ impl OpenidMessageClient for MockOpenidMessageClient {
                 self.credential_requests(credential_requests.clone()),
             )
             .await
-            .map_err(|err| IssuerClientError::CredentialRequest(Box::new(err.into())))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 
-    async fn reject(&self, _url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), IssuerClientError> {
+    async fn reject(
+        &self,
+        _url: &Url,
+        dpop_header: &str,
+        access_token_header: &str,
+    ) -> Result<(), IssuanceSessionError> {
         self.issuer
             .process_reject_issuance(
                 self.access_token(access_token_header),
@@ -274,7 +279,7 @@ impl OpenidMessageClient for MockOpenidMessageClient {
                 "batch_credential",
             )
             .await
-            .map_err(|err| IssuerClientError::CredentialRequest(Box::new(err.into())))
+            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
     }
 }
 

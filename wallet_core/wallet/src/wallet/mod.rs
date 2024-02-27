@@ -15,7 +15,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
-use openid4vc::issuance_client::HttpIssuerClient;
+use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
 use crate::{
@@ -47,7 +47,7 @@ pub struct Wallet<
     PEK = HardwareEcdsaKey,                        // PlatformEcdsaKey
     APC = HttpAccountProviderClient,               // AccountProviderClient
     DGS = HttpDigidSession,                        // DigidSession
-    IC = HttpIssuerClient,                         // IssuerClient
+    IS = HttpIssuanceSession,                      // IssuanceSession
     MDS = DisclosureSession<CborHttpClient, Uuid>, // MdocDisclosureSession
 > {
     config_repository: CR,
@@ -55,7 +55,7 @@ pub struct Wallet<
     hw_privkey: PEK,
     account_provider_client: APC,
     digid_session: Option<DGS>,
-    pid_issuer: Option<IC>,
+    pid_issuer: Option<IS>,
     disclosure_session: Option<MDS>,
     lock: WalletLock,
     registration: Option<RegistrationData>,
