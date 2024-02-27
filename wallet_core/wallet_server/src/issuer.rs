@@ -194,8 +194,8 @@ impl Header for DpopHeader {
             return Err(axum::headers::Error::invalid());
         }
 
-        let str = value.to_str().map_err(|_| axum::headers::Error::invalid())?.to_string();
-        Ok(DpopHeader(str.into()))
+        let value = value.to_str().map_err(|_| axum::headers::Error::invalid())?.to_string();
+        Ok(DpopHeader(value.into()))
     }
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
