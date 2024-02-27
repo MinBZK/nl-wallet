@@ -9,14 +9,14 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError};
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::config::wallet_config::ISSUANCE_REDIRECT_URI;
+use wallet_common::{config::wallet_config::ISSUANCE_REDIRECT_URI, jwt::JwtError};
 
 use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
     digid::{DigidError, DigidSession, HttpDigidSession},
     document::{Document, DocumentMdocError},
-    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyFactory},
+    instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     storage::{Storage, StorageError, WalletEvent},
     utils::reqwest::default_reqwest_client_builder,
 };
@@ -288,7 +288,21 @@ where
                 &remote_key_factory,
                 &config.pid_issuance.pid_issuer_url,
             )
-            .await?;
+            .await
+            .map_err(|error| {
+                match error {
+                    // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
+                    // that it is the error type of the `RemoteEcdsaKeyFactory` we provide above.
+                    IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
+                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                            RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
+                            RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
+                            RemoteEcdsaKeyError::KeyNotFound(identifier) => PidIssuanceError::KeyNotFound(identifier),
+                        }
+                    }
+                    _ => PidIssuanceError::PidIssuer(error),
+                }
+            })?;
 
         // TODO: Wipe the wallet when receiving a PIN timeout from the WP or when it is blocked.
 
