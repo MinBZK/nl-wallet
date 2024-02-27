@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorType, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    token::{TokenErrorType, TokenRequest, TokenResponseWithPreviews},
+    token::{AccessToken, TokenErrorType, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
 };
 use tracing::warn;
@@ -103,7 +103,7 @@ where
 
 async fn credential<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
-    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorType>>
@@ -112,7 +112,7 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>>,
 {
-    let access_token = authorization_header.0.token().to_string().into();
+    let access_token = authorization_header.into();
     let response = state
         .issuer
         .process_credential(access_token, dpop, credential_request)
@@ -123,7 +123,7 @@ where
 
 async fn batch_credential<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
-    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
 ) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorType>>
@@ -132,7 +132,7 @@ where
     K: KeyRing,
     S: SessionStore<Data = SessionState<IssuanceData>>,
 {
-    let access_token = authorization_header.0.token().to_string().into();
+    let access_token = authorization_header.into();
     let response = state
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
@@ -143,7 +143,7 @@ where
 
 async fn reject_issuance<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
-    TypedHeader(authorization_header): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
 ) -> Result<StatusCode, ErrorResponse<CredentialErrorType>>
@@ -154,7 +154,7 @@ where
 {
     let uri_path = &uri.path()[1..]; // strip off leading slash
 
-    let access_token = authorization_header.0.token().to_string().into();
+    let access_token = authorization_header.into();
     state
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
@@ -207,9 +207,9 @@ impl Header for DpopHeader {
 #[derive(Clone, Debug)]
 pub struct DpopBearer(String);
 
-impl DpopBearer {
-    pub fn token(&self) -> &str {
-        &self.0.as_str()[(DPOP_HEADER_NAME.len() + 1)..] // +1 to account for space after "DPoP"
+impl From<DpopBearer> for AccessToken {
+    fn from(value: DpopBearer) -> Self {
+        value.0.into()
     }
 }
 
@@ -217,10 +217,13 @@ impl Credentials for DpopBearer {
     const SCHEME: &'static str = DPOP_HEADER_NAME;
 
     fn decode(value: &HeaderValue) -> Option<Self> {
-        value.to_str().ok().map(|value| Self(value.to_string()))
+        value
+            .to_str()
+            .ok() // + 1 to account for space after "DPoP"
+            .map(|value| Self(value[(DPOP_HEADER_NAME.len() + 1)..].to_string()))
     }
 
     fn encode(&self) -> HeaderValue {
-        HeaderValue::from_str(&self.0).unwrap()
+        HeaderValue::from_str(&(DPOP_HEADER_NAME.to_string() + " " + &self.0)).unwrap()
     }
 }
