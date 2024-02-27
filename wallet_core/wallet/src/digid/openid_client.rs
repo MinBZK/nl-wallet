@@ -1,6 +1,7 @@
 use openid::Options;
-use openid4vc::pkce::PkcePair;
 use url::Url;
+
+use openid4vc::pkce::PkcePair;
 
 use crate::utils::reqwest::default_reqwest_client_builder;
 

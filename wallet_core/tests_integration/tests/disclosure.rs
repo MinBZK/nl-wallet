@@ -1,6 +1,5 @@
 use assert_matches::assert_matches;
 use indexmap::IndexMap;
-use openid4vc::token::TokenRequest;
 use reqwest::StatusCode;
 use rstest::rstest;
 use serial_test::serial;
@@ -12,6 +11,7 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };
+use openid4vc::token::TokenRequest;
 use wallet::{errors::DisclosureError, mock::MockDigidSession};
 use wallet_common::utils;
 use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};

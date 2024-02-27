@@ -1,10 +1,10 @@
 use base64::prelude::*;
+use url::Url;
+
 use openid4vc::{
     pkce::{PkcePair, S256PkcePair},
     token::{AuthorizationCode, TokenRequest, TokenRequestGrantType},
 };
-use url::Url;
-
 use wallet_common::utils;
 
 use crate::utils::url::url_find_first_query_value;

@@ -6,8 +6,7 @@ use url::Url;
 
 use openid4vc::token::TokenRequest;
 
-pub use self::client::HttpDigidSession;
-pub use self::openid_client::OpenIdError;
+pub use self::{client::HttpDigidSession, openid_client::OpenIdError};
 
 #[cfg(feature = "wallet_deps")]
 pub use self::openid_client::HttpOpenIdClient;

@@ -1,7 +1,6 @@
 use std::{sync::Mutex, time::Duration};
 
 use once_cell::sync::Lazy;
-use openid4vc::mock::MockIssuerClient;
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use rand_core::OsRng;
 
@@ -9,6 +8,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
     IssuerSigned,
 };
+use openid4vc::mock::MockIssuerClient;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
