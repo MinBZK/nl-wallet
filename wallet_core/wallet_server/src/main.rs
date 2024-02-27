@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
     )
     .await?;
     #[cfg(not(feature = "issuance"))]
-    server::serve_disclosure(&settings, sessions).await?;
+    server::serve_disclosure(settings, sessions).await?;
 
     Ok(())
 }
