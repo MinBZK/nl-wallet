@@ -84,7 +84,7 @@ where
             grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
             code_verifier: Some(self.pkce_pair.code_verifier().to_string()),
             client_id: Some(self.client_id),
-            redirect_uri: Some(self.redirect_uri_base.clone()),
+            redirect_uri: Some(self.redirect_uri_base),
         };
         Ok(token_request)
     }
