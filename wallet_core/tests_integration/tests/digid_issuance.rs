@@ -58,7 +58,7 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(
-        HttpOpenidMessageClient::new(reqwest::Client::new()),
+        HttpOpenidMessageClient::from(reqwest::Client::new()),
         server_url.clone(),
         token_request,
     )

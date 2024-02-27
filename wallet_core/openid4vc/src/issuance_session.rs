@@ -120,8 +120,8 @@ pub struct HttpOpenidMessageClient {
     http_client: reqwest::Client,
 }
 
-impl HttpOpenidMessageClient {
-    pub fn new(http_client: reqwest::Client) -> Self {
+impl From<reqwest::Client> for HttpOpenidMessageClient {
+    fn from(http_client: reqwest::Client) -> Self {
         Self { http_client }
     }
 }

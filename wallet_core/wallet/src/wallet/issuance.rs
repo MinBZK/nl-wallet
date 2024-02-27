@@ -7,9 +7,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc,
     utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
 };
-use openid4vc::issuance_session::{
-    HttpIssuanceSession, HttpOpenidMessageClient, IssuanceSession, IssuanceSessionError,
-};
+use openid4vc::issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::ISSUANCE_REDIRECT_URI;
 
@@ -197,7 +195,7 @@ where
         let config = self.config_repository.config();
 
         let (pid_issuer, attestation_previews) = IS::start_issuance(
-            HttpOpenidMessageClient::new(http_client),
+            http_client.into(),
             config.pid_issuance.pid_issuer_url.clone(),
             token_request,
         )
