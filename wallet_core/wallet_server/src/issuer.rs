@@ -40,7 +40,7 @@ impl KeyRing for IssuerKeyRing {
 }
 
 impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
-    type Error = anyhow::Error;
+    type Error = nl_wallet_mdoc::Error;
 
     fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
         Ok(Self(
