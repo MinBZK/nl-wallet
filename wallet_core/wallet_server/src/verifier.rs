@@ -9,9 +9,9 @@ use axum::{
     Json, Router,
 };
 use base64::prelude::*;
+use http::Method;
 use nutype::nutype;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
-use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_with::{
     base64::{Base64, UrlSafe},
