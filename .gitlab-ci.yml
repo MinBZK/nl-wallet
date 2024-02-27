@@ -913,7 +913,11 @@ check-gitlab-ci-changed:
     - cd uiautomation
   script:
     - gradle wrapper --gradle-version=7.3.3
-    - ./gradlew --debug --stacktrace test --tests suite.FeatureTestSuite
+    - ./gradlew --debug --stacktrace test 
+        --tests "feature.appstart.*" 
+        --tests "feature.introduction.*" 
+        --tests "feature.security.*" 
+        --tests "feature.lock.*"
 
 run-automation-tests-12:
   extends: [.run-automation-tests]

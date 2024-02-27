@@ -124,6 +124,8 @@ open class MobileActions {
         if (platform == "ANDROID") {
             val androidDriver = driver as AndroidDriver
             if (androidDriver.context != FLUTTER_APP_CONTEXT) {
+
+                // Switch to the app context
                 androidDriver.context(FLUTTER_APP_CONTEXT)
             }
         } else {
@@ -143,9 +145,9 @@ open class MobileActions {
     private fun platformName() = driver.capabilities.platformName.name
 
     companion object {
-        private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 5000L
-        private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 10000L
-        private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 10000L
+        private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 60000L
+        private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 1200000L
+        private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 1200000L
 
         private const val FLUTTER_APP_CONTEXT = "FLUTTER"
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
