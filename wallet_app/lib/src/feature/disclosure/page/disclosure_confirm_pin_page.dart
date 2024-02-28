@@ -9,12 +9,14 @@ import '../../pin/pin_page.dart';
 
 class DisclosureConfirmPinPage extends StatelessWidget {
   final OnPinValidatedCallback onPinValidated;
+  final OnPinErrorCallback onConfirmWithPinFailed;
 
   @visibleForTesting
   final PinBloc? bloc;
 
   const DisclosureConfirmPinPage({
     required this.onPinValidated,
+    required this.onConfirmWithPinFailed,
     this.bloc,
     super.key,
   });
@@ -41,6 +43,7 @@ class DisclosureConfirmPinPage extends StatelessWidget {
           );
         },
         onPinValidated: onPinValidated,
+        onPinError: onConfirmWithPinFailed,
       ),
     );
   }

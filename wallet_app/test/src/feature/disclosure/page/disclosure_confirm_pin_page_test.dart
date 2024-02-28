@@ -17,6 +17,7 @@ void main() {
           ..addScenario(
             widget: DisclosureConfirmPinPage(
               bloc: PinBloc(Mocks.create()),
+              onConfirmWithPinFailed: (context, state) {},
               onPinValidated: (_) {},
             ),
           ),
@@ -31,6 +32,7 @@ void main() {
           ..addScenario(
             widget: DisclosureConfirmPinPage(
               bloc: PinBloc(Mocks.create()),
+              onConfirmWithPinFailed: (context, state) {},
               onPinValidated: (_) {},
             ),
           ),
@@ -48,6 +50,7 @@ void main() {
           child: DisclosureConfirmPinPage(
             onPinValidated: (_) {},
             bloc: PinBloc(Mocks.create()),
+            onConfirmWithPinFailed: (context, state) {},
           ),
         ),
       );

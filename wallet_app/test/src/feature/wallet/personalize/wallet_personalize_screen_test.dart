@@ -309,7 +309,7 @@ void main() {
           ..addScenario(
             widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
               MockWalletPersonalizeBloc(),
-              WalletPersonalizeDigidFailure(),
+              const WalletPersonalizeDigidFailure(error: ''),
             ),
             name: 'digid_failure',
           ),
@@ -339,7 +339,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeDigidFailure(),
+          const WalletPersonalizeDigidFailure(error: ''),
         ),
       );
       await screenMatchesGolden(tester, 'wallet_personalize/digid_failure.portrait.light');

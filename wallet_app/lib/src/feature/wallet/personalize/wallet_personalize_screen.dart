@@ -90,6 +90,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
           WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
           WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
+          WalletPersonalizeGenericError() => _buildGenericError(context),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -296,6 +297,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       ),
       body: WalletPersonalizeConfirmPinPage(
         onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
+        onAcceptPidFailed: (context, error) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: error)),
       ),
     );
   }
@@ -318,6 +320,16 @@ class WalletPersonalizeScreen extends StatelessWidget {
         ),
       );
     }
+  }
+
+  Widget _buildGenericError(BuildContext context) {
+    return Scaffold(
+      appBar: const WalletAppBar(progress: 0),
+      body: ErrorPage.generic(
+        context,
+        onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      ),
+    );
   }
 }
 

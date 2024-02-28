@@ -49,3 +49,9 @@ class DisclosureReportPressed extends DisclosureEvent {
   @override
   List<Object?> get props => [option];
 }
+
+class DisclosureConfirmPinFailed extends DisclosureEvent {
+  final Object error;
+
+  const DisclosureConfirmPinFailed({required this.error});
+}
