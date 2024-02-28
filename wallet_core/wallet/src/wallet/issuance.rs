@@ -938,6 +938,54 @@ mod tests {
         assert_matches!(error, PidIssuanceError::SessionState);
     }
 
+    async fn test_accept_pid_issuance_error_remote_key(key_error: RemoteEcdsaKeyError) -> PidIssuanceError {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Have the issuance session return a particular `RemoteEcdsaKeyError`.
+        let pid_issuer = {
+            let mut client = MockIssuerClient::new();
+            client
+                .expect_accept()
+                .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
+            client
+        };
+        wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
+
+        // Accepting PID issuance should result in an error.
+        wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error")
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_instruction() {
+        let error =
+            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(InstructionError::Blocked)).await;
+
+        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        assert_matches!(error, PidIssuanceError::Instruction(_));
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_signature() {
+        let error =
+            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(signature::Error::default())).await;
+
+        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        assert_matches!(error, PidIssuanceError::Signature(_));
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_key_not_found() {
+        let error =
+            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::KeyNotFound("not found".to_string())).await;
+
+        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        assert_matches!(error, PidIssuanceError::KeyNotFound(_));
+    }
+
     #[tokio::test]
     async fn test_accept_pid_issuance_error_pid_issuer() {
         // Prepare a registered and unlocked wallet.
