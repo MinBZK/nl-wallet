@@ -286,7 +286,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             self.session_state.c_nonce.clone(),
             NL_WALLET_CLIENT_ID.to_string(),
             credential_issuer_identifier,
-            doctypes.len() as u64,
+            doctypes.len().try_into().unwrap(),
             key_factory,
         )
         .await?;
