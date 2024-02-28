@@ -38,6 +38,8 @@
 //! }
 //! ```
 
+use std::collections::HashSet;
+
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use jsonwebtoken::{Algorithm, TokenData, Validation};
 use p256::ecdsa::VerifyingKey;
@@ -154,7 +156,7 @@ impl Dpop {
 
     fn verify_signature(&self, verifying_key: &VerifyingKey) -> Result<TokenData<DpopPayload>> {
         let mut validation_options = Validation::new(Algorithm::ES256);
-        validation_options.required_spec_claims = Default::default();
+        validation_options.required_spec_claims = HashSet::default();
         let token_data = jsonwebtoken::decode::<DpopPayload>(
             &self.0 .0,
             &EcdsaDecodingKey::from(verifying_key).0,

@@ -117,7 +117,7 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
         .sign_with_existing_keys(
             messages
                 .into_iter()
-                .map(|msg| msg.into_bytes())
+                .map(String::into_bytes)
                 .zip(keys.into_iter().map(|key| vec![key]))
                 .collect_vec(),
         )

@@ -397,9 +397,8 @@ impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
     type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
-        let session_data = match value.session_data {
-            IssuanceData::Created(state) => state,
-            _ => return Err(IssuanceError::UnexpectedState),
+        let IssuanceData::Created(session_data) = value.session_data else {
+            return Err(IssuanceError::UnexpectedState);
         };
         Ok(Session::<Created> {
             state: SessionState {
@@ -512,9 +511,8 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
     type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
-        let session_data = match value.session_data {
-            IssuanceData::WaitingForResponse(state) => state,
-            _ => return Err(IssuanceError::UnexpectedState),
+        let IssuanceData::WaitingForResponse(session_data) = value.session_data else {
+            return Err(IssuanceError::UnexpectedState);
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
@@ -584,7 +582,7 @@ impl Session<WaitingForResponse> {
                 let offered_mdocs: Vec<_> = session_data
                     .attestation_previews
                     .iter()
-                    .map(|preview| preview.as_ref())
+                    .map(AsRef::as_ref)
                     .filter(|unsigned: &&UnsignedMdoc| unsigned.doc_type == *requested_doctype)
                     .collect();
                 match offered_mdocs.len() {
