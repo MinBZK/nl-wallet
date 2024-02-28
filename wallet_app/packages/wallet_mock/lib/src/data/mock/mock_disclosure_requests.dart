@@ -14,6 +14,7 @@ const _kOpenBankAccount = 'OPEN_BANK_ACCOUNT';
 const _kProvideContractDetails = 'PROVIDE_CONTRACT_DETAILS';
 const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
 const _kPharmacy = 'PHARMACY';
+const _kAmsterdamLoginId = 'AMSTERDAM_LOGIN';
 
 final List<DisclosureRequest> kDisclosureRequests = [
   DisclosureRequest(
@@ -86,6 +87,13 @@ final List<DisclosureRequest> kDisclosureRequests = [
     purpose: 'Herhaalrecept',
     policy: _kMockFirstAidPolicy,
   ),
+  DisclosureRequest(
+    id: _kAmsterdamLoginId,
+    relyingParty: kOrganizations[kMunicipalityAmsterdamId]!,
+    requestedAttributes: _kCitizenshipNumberRequest,
+    purpose: 'Inloggen',
+    policy: _kMunicipalityAmsterdamPolicy,
+  ),
 ];
 
 // region RequestedAttributes
@@ -97,6 +105,13 @@ final _kFirstAndLastNameRequest = [
   RequestedAttribute(
     label: 'Achternaam',
     key: 'mock.lastName',
+  ),
+];
+
+final _kCitizenshipNumberRequest = [
+  RequestedAttribute(
+    label: 'Burgerservicenummer',
+    key: 'mock.citizenshipNumber',
   ),
 ];
 
@@ -219,10 +234,7 @@ final _kOpenBankAccountRequestedAttributes = [
     label: 'Nationaliteit',
     key: 'mock.nationality',
   ),
-  RequestedAttribute(
-    label: 'Burgerservicenummer',
-    key: 'mock.citizenshipNumber',
-  ),
+  ..._kCitizenshipNumberRequest,
   RequestedAttribute(
     label: 'Straatnaam',
     key: 'mock.streetName',
@@ -348,6 +360,13 @@ const _kMonkeyBikePolicy = RequestPolicy(
   dataSharedWithThirdParties: true,
   dataDeletionPossible: true,
   policyUrl: 'https://www.example.org',
+);
+
+const _kMunicipalityAmsterdamPolicy = RequestPolicy(
+  dataStorageDurationInMinutes: 60 * 24 * 365,
+  dataSharedWithThirdParties: false,
+  dataDeletionPossible: false,
+  policyUrl: 'https://www.amsterdam.nl/privacy',
 );
 
 // endregion
