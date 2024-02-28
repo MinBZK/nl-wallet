@@ -108,7 +108,7 @@ impl CredentialRequestProof {
     pub async fn new_multiple<K: MdocEcdsaKey>(
         nonce: String,
         wallet_client_id: String,
-        credential_issuer_identifier: &Url,
+        credential_issuer_identifier: Url,
         number_of_keys: u64,
         key_factory: impl KeyFactory<Key = K>,
     ) -> Result<Vec<(K, CredentialRequestProof)>, IssuanceSessionError> {
@@ -117,14 +117,15 @@ impl CredentialRequestProof {
             .await
             .map_err(|e| IssuanceSessionError::PrivateKeyGeneration(Box::new(e)))?;
 
+        let payload = CredentialRequestProofJwtPayload {
+            nonce: Some(nonce),
+            iss: wallet_client_id,
+            aud: credential_issuer_identifier.into(),
+            iat: Utc::now(),
+        };
         let keys_and_jwt_payloads = try_join_all(keys.into_iter().map(|privkey| async {
             let header = jwk_jwt_header(OPENID4VCI_VC_POP_JWT_TYPE, &privkey).await?;
-            let payload = CredentialRequestProofJwtPayload {
-                nonce: Some(nonce.clone()),
-                iss: wallet_client_id.clone(),
-                aud: credential_issuer_identifier.to_string(),
-                iat: Utc::now(),
-            };
+            let payload = payload.clone();
             Ok::<_, IssuanceSessionError>((privkey, (payload, header)))
         }))
         .await?;

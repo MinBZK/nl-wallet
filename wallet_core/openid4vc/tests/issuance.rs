@@ -49,7 +49,7 @@ async fn accept_issuance() {
         .unwrap();
 
     let mdoc_copies = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), &server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
         .unwrap();
 
@@ -91,7 +91,7 @@ async fn wrong_access_token() {
         .unwrap();
 
     let result = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), &server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
         .unwrap_err();
 
@@ -114,7 +114,7 @@ async fn invalid_dpop() {
         .unwrap();
 
     let result = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), &server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
         .unwrap_err();
 
@@ -137,7 +137,7 @@ async fn invalid_pop() {
         .unwrap();
 
     let result = session
-        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), &server_url)
+        .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
         .await
         .unwrap_err();
 

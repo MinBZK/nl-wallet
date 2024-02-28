@@ -84,7 +84,7 @@ pub trait IssuanceSession<H = HttpOpenidMessageClient> {
         self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        credential_issuer_identifier: &Url,
+        credential_issuer_identifier: Url,
     ) -> Result<Vec<MdocCopies>, IssuanceSessionError>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
@@ -259,7 +259,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        credential_issuer_identifier: &Url,
+        credential_issuer_identifier: Url,
     ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
         // has no support (yet) for issuance of multiple copies of multiple attestations.

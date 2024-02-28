@@ -286,7 +286,7 @@ where
             .accept_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
-                &config.pid_issuance.pid_issuer_url,
+                config.pid_issuance.pid_issuer_url.clone(),
             )
             .await
             .map_err(|error| {

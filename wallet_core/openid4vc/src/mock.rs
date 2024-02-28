@@ -43,7 +43,7 @@ impl IssuanceSession for MockIssuerClient {
         self,
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
-        _: &Url,
+        _: Url,
     ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
         self.accept()
     }
