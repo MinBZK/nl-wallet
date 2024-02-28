@@ -1,5 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
+use futures::future;
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -12,7 +13,7 @@ use wallet_common::{
 };
 use wallet_provider_domain::{
     model::{
-        hsm::{WalletUserHsm, WrappedKeySigningPayload},
+        hsm::WalletUserHsm,
         wallet_user::{WalletUser, WalletUserKey, WalletUserKeys},
     },
     repository::{Committable, TransactionStarter, WalletUserRepository},
@@ -110,48 +111,32 @@ impl HandleInstruction for Sign {
     where
         T: Committable,
     {
-        let identifiers = &self
-            .messages_with_identifiers
-            .iter()
-            .flat_map(|(_msg, identifiers)| identifiers.clone())
-            .collect::<Vec<_>>();
+        let (data, identifiers): (Vec<_>, Vec<_>) = self.messages_with_identifiers.into_iter().unzip();
 
         let tx = wallet_user_repository.begin_transaction().await?;
-        let mut found_keys = wallet_user_repository
-            .find_keys_by_identifiers(&tx, wallet_user.id, identifiers)
+        let found_keys = wallet_user_repository
+            .find_keys_by_identifiers(
+                &tx,
+                wallet_user.id,
+                &identifiers.clone().into_iter().flatten().collect::<Vec<_>>(),
+            )
             .await?;
         tx.commit().await?;
 
-        let message_with_keys: Vec<WrappedKeySigningPayload> = self
-            .messages_with_identifiers
-            .into_iter()
-            .flat_map(|(data, identifiers)| {
-                let data = Arc::new(data);
-                identifiers
-                    .into_iter()
-                    .map(|identifier| {
-                        let wrapped_key = found_keys.remove(&identifier).unwrap();
+        let signatures = future::try_join_all(identifiers.iter().zip(data).map(|(identifiers, data)| async {
+            let data = Arc::new(data);
+            future::try_join_all(identifiers.iter().map(|identifier| async {
+                let wrapped_key = found_keys.get(identifier).cloned().unwrap();
+                wallet_user_hsm
+                    .sign_wrapped(wrapped_key, Arc::clone(&data))
+                    .await
+                    .map(DerSignature::from)
+            }))
+            .await
+        }))
+        .await?;
 
-                        WrappedKeySigningPayload {
-                            identifier,
-                            wrapped_key,
-                            data: Arc::clone(&data),
-                        }
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect();
-
-        let identifiers_and_signatures = wallet_user_hsm.sign_multiple_wrapped(message_with_keys).await?;
-
-        let signatures_by_identifier: HashMap<String, DerSignature> = identifiers_and_signatures
-            .into_iter()
-            .map(|(identifier, signature)| (identifier, signature.into()))
-            .collect();
-
-        Ok(SignResult {
-            signatures_by_identifier,
-        })
+        Ok(SignResult { signatures })
     }
 }
 
@@ -227,12 +212,18 @@ mod tests {
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
 
-        let random_msg = random_bytes(32);
+        let random_msg_1 = random_bytes(32);
+        let random_msg_2 = random_bytes(32);
         let instruction = Sign {
-            messages_with_identifiers: vec![(random_msg.clone(), vec!["key1".to_string()])],
+            messages_with_identifiers: vec![
+                (random_msg_1.clone(), vec!["key1".to_string(), "key2".to_string()]),
+                (random_msg_2.clone(), vec!["key2".to_string()]),
+            ],
         };
-        let signing_key = SigningKey::random(&mut OsRng);
-        let signing_key_bytes = signing_key.to_bytes().to_vec();
+        let signing_key_1 = SigningKey::random(&mut OsRng);
+        let signing_key_2 = SigningKey::random(&mut OsRng);
+        let signing_key_1_bytes = signing_key_1.to_bytes().to_vec();
+        let signing_key_2_bytes = signing_key_2.to_bytes().to_vec();
 
         let pkcs11_client = MockPkcs11Client::default();
 
@@ -246,10 +237,10 @@ mod tests {
             .expect_find_keys_by_identifiers()
             .withf(|_, _, key_identifiers| key_identifiers.contains(&"key1".to_string()))
             .return_once(move |_, _, _| {
-                Ok(HashMap::from([(
-                    "key1".to_string(),
-                    WrappedKey::new(signing_key_bytes),
-                )]))
+                Ok(HashMap::from([
+                    ("key1".to_string(), WrappedKey::new(signing_key_1_bytes)),
+                    ("key2".to_string(), WrappedKey::new(signing_key_2_bytes)),
+                ]))
             });
 
         let result = instruction
@@ -257,11 +248,17 @@ mod tests {
             .await
             .unwrap();
 
-        result
-            .signatures_by_identifier
-            .iter()
-            .for_each(|(_identifier, signature)| {
-                signing_key.verifying_key().verify(&random_msg, &signature.0).unwrap();
-            })
+        signing_key_1
+            .verifying_key()
+            .verify(&random_msg_1, &result.signatures[0][0].0)
+            .unwrap();
+        signing_key_2
+            .verifying_key()
+            .verify(&random_msg_1, &result.signatures[0][1].0)
+            .unwrap();
+        signing_key_2
+            .verifying_key()
+            .verify(&random_msg_2, &result.signatures[1][0].0)
+            .unwrap();
     }
 }

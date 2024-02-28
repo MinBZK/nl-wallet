@@ -5100,6 +5100,7 @@ dependencies = [
  "chrono",
  "cryptoki",
  "der",
+ "futures",
  "hmac",
  "jsonwebtoken",
  "p256",
