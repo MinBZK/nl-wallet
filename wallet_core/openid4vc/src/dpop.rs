@@ -202,7 +202,7 @@ impl Dpop {
     /// Verify the DPoP JWT against the public key inside its header, returning that public key.
     /// This should only be called in the first HTTP request of a protocol. In later requests,
     /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
-    pub async fn verify(&self, url: Url, method: Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
+    pub fn verify(&self, url: Url, method: Method, access_token: Option<&AccessToken>) -> Result<VerifyingKey> {
         // Grab the public key from the JWT header
         let header = jsonwebtoken::decode_header(&self.0 .0)?;
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(DpopError::MissingJwk)?)?;
@@ -214,7 +214,7 @@ impl Dpop {
     }
 
     /// Verify the DPoP JWT against the specified public key obtained previously from [`Dpop::verify()`].
-    pub async fn verify_expecting_key(
+    pub fn verify_expecting_key(
         &self,
         expected_verifying_key: &VerifyingKey,
         url: &Url,
@@ -278,27 +278,20 @@ mod tests {
 
         // Verifying it against incorrect parameters doesn't work
         dpop.verify(url.clone(), method.clone(), wrong_access_token.as_ref())
-            .await
             .unwrap_err();
         dpop.verify(url.clone(), Method::PATCH, access_token.as_ref())
-            .await
             .unwrap_err();
         dpop.verify(
             "https://incorrect_url/".parse().unwrap(),
             method.clone(),
             access_token.as_ref(),
         )
-        .await
         .unwrap_err();
 
         // We can verify the DPoP
-        let pubkey = dpop
-            .verify(url.clone(), method.clone(), access_token.as_ref())
-            .await
-            .unwrap();
+        let pubkey = dpop.verify(url.clone(), method.clone(), access_token.as_ref()).unwrap();
         assert_eq!(pubkey, *private_key.verifying_key());
         dpop.verify_expecting_key(&pubkey, &url, &method, access_token.as_ref(), None)
-            .await
             .unwrap();
     }
 

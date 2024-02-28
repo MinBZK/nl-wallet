@@ -377,7 +377,6 @@ where
             Some(&access_token),
             Some(&session_data.dpop_nonce),
         )
-        .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let next = session.transition(Done {
@@ -457,7 +456,6 @@ impl Session<Created> {
 
         let dpop_public_key = dpop
             .verify(server_url.join("token").unwrap(), Method::POST, None)
-            .await
             .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let code = token_request.code().clone();
@@ -570,7 +568,6 @@ impl Session<WaitingForResponse> {
             Some(&access_token),
             Some(&session_data.dpop_nonce),
         )
-        .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         // Try to determine which attestation the wallet is requesting:
@@ -655,7 +652,6 @@ impl Session<WaitingForResponse> {
             Some(&access_token),
             Some(&session_data.dpop_nonce),
         )
-        .await
         .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let credential_responses = try_join_all(
