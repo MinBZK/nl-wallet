@@ -37,10 +37,10 @@ pub trait KeyFactory {
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
 
-    async fn sign_with_existing_keys(
+    async fn sign_multiple_with_existing_keys(
         &self,
-        messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
-    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error>;
+        messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+    ) -> Result<Vec<Vec<Signature>>, Self::Error>;
 }
 
 #[cfg(any(test, feature = "software_keys"))]

@@ -121,30 +121,28 @@ impl KeyFactory for SoftwareKeyFactory {
         Ok(signatures_by_identifier)
     }
 
-    async fn sign_with_existing_keys(
+    async fn sign_multiple_with_existing_keys(
         &self,
-        messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
-    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+        messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+    ) -> Result<Vec<Vec<Signature>>, Self::Error> {
         let result = future::try_join_all(
             messages_and_keys
                 .into_iter()
                 .map(|(msg, keys)| async move {
-                    let signatures_by_identifier: Vec<(Self::Key, Signature)> =
-                        future::try_join_all(keys.into_iter().map(|key| async {
-                            let signature = key.try_sign(&msg).await?;
-                            Ok((key, signature))
-                        }))
-                        .await?
-                        .into_iter()
-                        .collect();
+                    let signatures = future::try_join_all(keys.into_iter().map(|key| async {
+                        let signature = key.try_sign(&msg).await?;
+                        Ok(signature)
+                    }))
+                    .await?
+                    .into_iter()
+                    .collect::<Vec<_>>();
 
-                    Ok(signatures_by_identifier)
+                    Ok(signatures)
                 })
                 .collect::<Vec<_>>(),
         )
         .await?
         .into_iter()
-        .flatten()
         .collect::<Vec<_>>();
 
         Ok(result)
