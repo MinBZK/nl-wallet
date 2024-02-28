@@ -354,7 +354,7 @@ mod tests {
     use chrono::{Days, Utc};
     use mockall::predicate::*;
     use openid4vc::{
-        mock::MockIssuerClient,
+        mock::MockIssuanceSession,
         token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
     };
     use serial_test::serial;
@@ -450,7 +450,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Have the `PidIssuerClient` report that it has an active session.
-        wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(MockIssuerClient::default()));
+        wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(MockIssuanceSession::default()));
 
         // Creating a DigiD authentication URL on a `Wallet` that has
         // an active `PidIssuerClient` session should return an error.
@@ -567,10 +567,10 @@ mod tests {
         wallet.issuance_session = Some(PidIssuanceSession::Digid(digid_session));
 
         // Set up the `PidIssuerClient` to return one `UnsignedMdoc`.
-        let start_context = MockIssuerClient::start_context();
+        let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             Ok((
-                MockIssuerClient::new(),
+                MockIssuanceSession::new(),
                 vec![AttestationPreview::MsoMdoc {
                     unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
                 }],
@@ -657,7 +657,7 @@ mod tests {
         wallet.issuance_session = Some(PidIssuanceSession::Digid(digid_session));
 
         // Set up the `PidIssuerClient` to return an error.
-        let start_context = MockIssuerClient::start_context();
+        let start_context = MockIssuanceSession::start_context();
         start_context
             .expect()
             .return_once(|| Err(IssuanceSessionError::MissingNonce));
@@ -697,10 +697,10 @@ mod tests {
         wallet.issuance_session = Some(PidIssuanceSession::Digid(digid_session));
 
         // Set up the `PidIssuerClient` to return an `UnsignedMdoc` with an unknown doctype.
-        let start_context = MockIssuerClient::start_context();
+        let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             Ok((
-                MockIssuerClient::new(),
+                MockIssuanceSession::new(),
                 vec![AttestationPreview::MsoMdoc {
                     unsigned_mdoc: UnsignedMdoc {
                         doc_type: "foobar".to_string(),
@@ -729,7 +729,7 @@ mod tests {
 
         // Set up the `PidIssuerClient`
         let pid_issuer = {
-            let mut client = MockIssuerClient::new();
+            let mut client = MockIssuanceSession::new();
             client.expect_reject().return_once(|| Ok(()));
             client
         };
@@ -794,7 +794,7 @@ mod tests {
 
         // Set up the `PidIssuerClient` to return an error
         let pid_issuer = {
-            let mut client = MockIssuerClient::new();
+            let mut client = MockIssuanceSession::new();
             client
                 .expect_reject()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
@@ -834,7 +834,7 @@ mod tests {
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
-            let mut client = MockIssuerClient::new();
+            let mut client = MockIssuanceSession::new();
             client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
             client
         };
@@ -874,7 +874,7 @@ mod tests {
         // valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
         let mdoc = test::create_full_pid_mdoc_unauthenticated().await;
         let pid_issuer = {
-            let mut client = MockIssuerClient::new();
+            let mut client = MockIssuanceSession::new();
             client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
             client
         };
@@ -944,7 +944,7 @@ mod tests {
 
         // Have the issuance session return a particular `RemoteEcdsaKeyError`.
         let pid_issuer = {
-            let mut client = MockIssuerClient::new();
+            let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
@@ -993,7 +993,7 @@ mod tests {
 
         // Have the `PidIssuerClient` return an error.
         let pid_issuer = {
-            let mut client = MockIssuerClient::new();
+            let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
@@ -1019,7 +1019,7 @@ mod tests {
         // and have the database return an error on query.
         let mdoc = test::create_full_pid_mdoc().await;
         let pid_issuer = {
-            let mut client = MockIssuerClient::new();
+            let mut client = MockIssuanceSession::new();
             client.expect_accept().return_once(|| Ok(vec![vec![mdoc].into()]));
             client
         };

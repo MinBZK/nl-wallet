@@ -14,7 +14,7 @@ use crate::{
 // traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
 
 mockall::mock! {
-    pub IssuerClient {
+    pub IssuanceSession {
         pub fn start() -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
         where
             Self: Sized;
@@ -27,7 +27,7 @@ mockall::mock! {
     }
 }
 
-impl IssuanceSession for MockIssuerClient {
+impl IssuanceSession for MockIssuanceSession {
     async fn start_issuance(
         _: HttpOpenidMessageClient,
         _: Url,

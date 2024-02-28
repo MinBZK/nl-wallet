@@ -8,7 +8,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
     IssuerSigned,
 };
-use openid4vc::mock::MockIssuerClient;
+use openid4vc::mock::MockIssuanceSession;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
@@ -59,7 +59,7 @@ pub type WalletWithMocks = Wallet<
     FallibleSoftwareEcdsaKey,
     MockAccountProviderClient,
     MockDigidSession,
-    MockIssuerClient,
+    MockIssuanceSession,
     MockMdocDisclosureSession,
 >;
 
