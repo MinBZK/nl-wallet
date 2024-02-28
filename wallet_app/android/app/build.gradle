@@ -21,7 +21,7 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-def overrideFlutterMinSdkVersion = 23
+def overrideFlutterMinSdkVersion = 24
 def overrideFlutterTargetSdkVersion = 34
 def overrideFlutterCompileSdkVersion = 34
 
