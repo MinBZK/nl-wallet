@@ -1,27 +1,23 @@
 package util
 
-import config.RemoteOrLocal
-import config.TestDataConfig.Companion.testDataConfig
+import data.TestConfigRepository.Companion.testConfig
 import org.junit.jupiter.api.TestInfo
 import javax.naming.ConfigurationException
 
-class SetupTestTagHandler {
+class TestInfoHandler {
 
     companion object {
         private const val ENGLISH_LANGUAGE_TAG = "english"
         private const val FRANCE_LANGUAGE_TAG = "france"
 
+        private val platformName = testConfig.platformName
+
+        var sessionName: String = ""
         var language: String = ""
         var locale: String = ""
-        var platformName = ""
 
-        fun handleTestTags(testInfo: TestInfo) {
-            platformName = when (testDataConfig.remoteOrLocal) {
-                RemoteOrLocal.Remote -> testDataConfig.defaultRemoteDevice?.platformName
-                RemoteOrLocal.Local -> testDataConfig.defaultLocalDevice?.platformName
-            }
-                ?: throw UninitializedPropertyAccessException("Make sure 'device' in setupTestTagHandler resolves to a platformName")
-
+        fun processTestInfo(testInfo: TestInfo) {
+            sessionName = testInfo.displayName
             setupLanguage(testInfo)
         }
 
