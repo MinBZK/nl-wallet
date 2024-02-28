@@ -123,7 +123,7 @@ impl From<String> for Dpop {
 
 impl From<Dpop> for String {
     fn from(value: Dpop) -> Self {
-        value.as_ref().to_string()
+        value.0 .0
     }
 }
 
