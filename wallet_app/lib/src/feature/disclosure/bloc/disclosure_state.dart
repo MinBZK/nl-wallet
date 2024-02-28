@@ -21,21 +21,40 @@ class DisclosureInitial extends DisclosureState {
 
 class DisclosureLoadInProgress extends DisclosureState {}
 
-class DisclosureGenericError extends DisclosureState {
+class DisclosureGenericError extends DisclosureState implements ErrorState {
+  @override
+  final Object error;
+
   @override
   bool get showStopConfirmation => false;
+
+  const DisclosureGenericError({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
 }
 
-class DisclosureNetworkError extends DisclosureState {
-  final bool hasInternet;
-
-  const DisclosureNetworkError({this.hasInternet = true});
-
+class DisclosureNetworkError extends DisclosureState implements NetworkErrorState {
   @override
   bool get showStopConfirmation => false;
 
   @override
-  List<Object?> get props => [hasInternet, ...super.props];
+  final bool hasInternet;
+
+  @override
+  final Object error;
+
+  @override
+  final int? statusCode;
+
+  const DisclosureNetworkError({
+    this.statusCode,
+    required this.error,
+    this.hasInternet = true,
+  });
+
+  @override
+  List<Object?> get props => [hasInternet, statusCode, error, ...super.props];
 }
 
 class DisclosureCheckOrganization extends DisclosureState {

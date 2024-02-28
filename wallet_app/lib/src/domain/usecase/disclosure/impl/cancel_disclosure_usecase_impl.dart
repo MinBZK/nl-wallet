@@ -1,3 +1,5 @@
+import 'package:fimber/fimber.dart';
+
 import '../cancel_disclosure_usecase.dart';
 
 class CancelDisclosureUseCaseImpl extends CancelDisclosureUseCase {
@@ -6,5 +8,8 @@ class CancelDisclosureUseCaseImpl extends CancelDisclosureUseCase {
   CancelDisclosureUseCaseImpl(this._disclosureRepository);
 
   @override
-  Future<void> invoke() => _disclosureRepository.cancelDisclosure();
+  Future<void> invoke() async {
+    Fimber.d('Cancelling active disclosure session');
+    await _disclosureRepository.cancelDisclosure();
+  }
 }

@@ -6,7 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/error/network_error.dart';
+import '../../../../domain/model/bloc/error_state.dart';
+import '../../../../domain/model/bloc/network_error_state.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
@@ -27,50 +28,46 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
 
   WalletPersonalizeBloc(
-    String? pidIssuanceUri,
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
     this.cancelPidIssuanceUseCase,
     this.rejectOfferedPidUseCase,
     this.continuePidIssuanceUseCase,
-  ) : super(pidIssuanceUri == null ? const WalletPersonalizeInitial() : const WalletPersonalizeAuthenticating()) {
+  ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
     on<WalletPersonalizeLoginWithDigidFailed>(_onLoginWithDigidFailed);
+    on<WalletPersonalizeAcceptPidFailed>(_onAcceptPidFailed);
     on<WalletPersonalizeOfferingAccepted>(_onOfferingVerified);
     on<WalletPersonalizeOfferingRejected>(_onOfferingRejected);
     on<WalletPersonalizePinConfirmed>(_onPinConfirmed);
     on<WalletPersonalizeBackPressed>(_onBackPressed);
     on<WalletPersonalizeRetryPressed>(_onRetryPressed);
-    on<WalletPersonalizeAuthInProgress>(_onAuthInProgress);
     on<WalletPersonalizeUpdateState>(_onStateUpdate);
-
-    if (pidIssuanceUri != null) {
-      _continuePidIssuance(pidIssuanceUri);
-    }
+    on<WalletPersonalizeContinuePidIssuance>(_continuePidIssuance);
   }
 
-  void _continuePidIssuance(String uri) async {
+  void _continuePidIssuance(WalletPersonalizeContinuePidIssuance event, emit) async {
     try {
-      add(WalletPersonalizeAuthInProgress());
-      final result = await continuePidIssuanceUseCase.invoke(uri);
+      add(const WalletPersonalizeUpdateState(WalletPersonalizeAuthenticating()));
+      final result = await continuePidIssuanceUseCase.invoke(event.authUrl);
       switch (result) {
         case PidIssuanceSuccess():
           add(WalletPersonalizeLoginWithDigidSucceeded(result.previews));
         case PidIssuanceError():
           //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
           final cancelledByUser = result.error == RedirectError.accessDenied;
-          add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser));
+          add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser, error: result.error));
       }
     } catch (ex) {
       await handleError(
         ex,
         onNetworkError: (ex, hasInternet) => add(
           WalletPersonalizeUpdateState(
-            WalletPersonalizeNetworkError(hasInternet: hasInternet),
+            WalletPersonalizeNetworkError(error: ex, hasInternet: hasInternet),
           ),
         ),
-        onUnhandledError: (ex) => add(const WalletPersonalizeLoginWithDigidFailed()),
+        onUnhandledError: (ex) => add(WalletPersonalizeLoginWithDigidFailed(error: ex)),
       );
     }
   }
@@ -84,8 +81,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       Fimber.e('Failed to get authentication url', ex: ex, stacktrace: stack);
       await handleError(
         ex,
-        onNetworkError: (ex, hasInternet) => emit(WalletPersonalizeNetworkError(hasInternet: hasInternet)),
-        onUnhandledError: (ex) => emit(WalletPersonalizeDigidFailure()),
+        onNetworkError: (ex, hasInternet) => emit(WalletPersonalizeNetworkError(error: ex, hasInternet: hasInternet)),
+        onUnhandledError: (ex) => emit(WalletPersonalizeDigidFailure(error: ex)),
       );
     }
   }
@@ -104,7 +101,20 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         emit(WalletPersonalizeDigidCancelled());
       }
     } else {
-      emit(WalletPersonalizeDigidFailure());
+      emit(WalletPersonalizeDigidFailure(error: event.error ?? 'unknown'));
+    }
+  }
+
+  void _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, emit) async {
+    // await cancelPidIssuanceUseCase.invoke(); //TODO: Discuss which errors require cancellation (related to PVW-2239)
+    if (event.error == null) {
+      emit(const WalletPersonalizeGenericError(error: 'unknown'));
+    } else {
+      await handleError(
+        event.error!,
+        onNetworkError: (ex, hasInternet) => emit(WalletPersonalizeNetworkError(error: ex, hasInternet: hasInternet)),
+        onUnhandledError: (ex) => emit(WalletPersonalizeGenericError(error: ex)),
+      );
     }
   }
 
@@ -126,8 +136,6 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onRetryPressed(event, emit) async => emit(const WalletPersonalizeInitial());
 
   void _onStateUpdate(WalletPersonalizeUpdateState event, emit) => emit(event.state);
-
-  void _onAuthInProgress(event, emit) async => emit(const WalletPersonalizeAuthenticating());
 
   void _onBackPressed(event, emit) async {
     final state = this.state;
