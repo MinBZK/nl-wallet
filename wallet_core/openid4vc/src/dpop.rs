@@ -166,7 +166,6 @@ impl Dpop {
     }
 
     fn verify_data(
-        &self,
         token_data: &TokenData<DpopPayload>,
         url: &Url,
         method: &Method,
@@ -209,7 +208,7 @@ impl Dpop {
         let verifying_key = jwk_to_p256(&header.jwk.ok_or(DpopError::MissingJwk)?)?;
 
         let token_data = self.verify_signature(&verifying_key)?;
-        self.verify_data(&token_data, &url, &method, access_token, None)?;
+        Self::verify_data(&token_data, &url, &method, access_token, None)?;
 
         Ok(verifying_key)
     }
@@ -224,7 +223,7 @@ impl Dpop {
         nonce: Option<&str>,
     ) -> Result<()> {
         let token_data = self.verify_signature(expected_verifying_key)?;
-        self.verify_data(&token_data, url, method, access_token, nonce)?;
+        Self::verify_data(&token_data, url, method, access_token, nonce)?;
 
         // Compare the specified key against the one in the JWT header
         let contained_key = jwk_to_p256(&token_data.header.jwk.ok_or(DpopError::MissingJwk)?)?;
