@@ -107,12 +107,10 @@ open class MobileActions {
                 wait.until { androidDriver.contextHandles.firstOrNull { it.contains(WEB_VIEW_CONTEXT_PREFIX) } != null }
 
                 // Switch to the web view context
-                val webViewContext = androidDriver.contextHandles.first { it.contains(WEB_VIEW_CONTEXT_PREFIX) }
-                androidDriver.context(webViewContext)
+                androidDriver.context(androidDriver.contextHandles.first { it.contains(WEB_VIEW_CONTEXT_PREFIX) })
 
                 // Switch to the latest created browser tab (in case multiple tabs are open)
-                val windowHandles = androidDriver.windowHandles
-                androidDriver.switchTo().window(windowHandles.first())
+                androidDriver.switchTo().window(androidDriver.windowHandles.first())
             }
         } else {
             throw Exception("Platform $platform is not supported")

@@ -70,7 +70,7 @@ lane :upload_to_play_store_internal_track do |options|
   package_name = options[:package_name]
   version = options[:version]
   json_key_data = options[:json_key_data]
-  
+
   upload_to_play_store(
     package_name: package_name,
     track: "internal",
@@ -118,7 +118,7 @@ platform :android do
     build_mode = options[:build_mode] || "release"
     mock = options[:mock] || false
     ul_hostname = options[:ul_hostname] || ""
-    
+
     # always `true`, but ignored when `mock_repositories == true`, this flag is used in local development only
     env_configuration = true
 
@@ -171,7 +171,8 @@ platform :android do
     browserstack(
       file: "#{package_name}-#{version || local_version}-profile.apk",
       user: browserstack_user,
-      key: browserstack_key
+      key: browserstack_key,
+      package_name: package_name
     )
   end
 
@@ -180,8 +181,9 @@ platform :android do
     file = options[:file]
     user = options[:user]
     key = options[:key]
+    package_name = options[:package_name]
 
-    upload_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid")
+    upload_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid_#{package_name}")
   end
 end
 
