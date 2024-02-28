@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/report_option_title_formatter.dart';
+import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/icon_row.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -64,7 +65,8 @@ class ReportIssueScreen extends StatelessWidget {
       (context, index) => Column(
         children: [
           InkWell(
-            onTap: () => Navigator.pop(context, options[index]),
+            //TODO: Use selected option once "issue report" is implemented: Navigator.pop(context, options[index]),
+            onTap: () => PlaceholderScreen.show(context),
             child: IconRow(
               icon: Icon(
                 Icons.sms_failed_outlined,
