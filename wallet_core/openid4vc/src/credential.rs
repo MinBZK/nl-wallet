@@ -91,13 +91,13 @@ pub enum CredentialErrorType {
 impl ErrorStatusCode for CredentialErrorType {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
-            CredentialErrorType::InvalidCredentialRequest => StatusCode::BAD_REQUEST,
-            CredentialErrorType::UnsupportedCredentialType => StatusCode::BAD_REQUEST,
-            CredentialErrorType::UnsupportedCredentialFormat => StatusCode::BAD_REQUEST,
-            CredentialErrorType::InvalidProof => StatusCode::BAD_REQUEST,
-            CredentialErrorType::InvalidEncryptionParameters => StatusCode::BAD_REQUEST,
+            CredentialErrorType::InvalidCredentialRequest
+            | CredentialErrorType::UnsupportedCredentialType
+            | CredentialErrorType::UnsupportedCredentialFormat
+            | CredentialErrorType::InvalidProof
+            | CredentialErrorType::InvalidEncryptionParameters
+            | CredentialErrorType::InvalidRequest => StatusCode::BAD_REQUEST,
             CredentialErrorType::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            CredentialErrorType::InvalidRequest => StatusCode::BAD_REQUEST,
             CredentialErrorType::InvalidToken => StatusCode::UNAUTHORIZED,
             CredentialErrorType::InsufficientScope => StatusCode::FORBIDDEN,
         }

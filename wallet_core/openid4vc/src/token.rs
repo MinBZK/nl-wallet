@@ -189,15 +189,15 @@ pub enum TokenErrorType {
 impl ErrorStatusCode for TokenErrorType {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
-            TokenErrorType::InvalidRequest => StatusCode::BAD_REQUEST,
+            TokenErrorType::InvalidRequest
+            | TokenErrorType::InvalidGrant
+            | TokenErrorType::UnauthorizedClient
+            | TokenErrorType::UnsupportedGrantType
+            | TokenErrorType::InvalidScope
+            | TokenErrorType::AuthorizationPending
+            | TokenErrorType::SlowDown => StatusCode::BAD_REQUEST,
             TokenErrorType::InvalidClient => StatusCode::UNAUTHORIZED,
-            TokenErrorType::InvalidGrant => StatusCode::BAD_REQUEST,
-            TokenErrorType::UnauthorizedClient => StatusCode::BAD_REQUEST,
-            TokenErrorType::UnsupportedGrantType => StatusCode::BAD_REQUEST,
-            TokenErrorType::InvalidScope => StatusCode::BAD_REQUEST,
             TokenErrorType::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            TokenErrorType::AuthorizationPending => StatusCode::BAD_REQUEST,
-            TokenErrorType::SlowDown => StatusCode::BAD_REQUEST,
         }
     }
 }
