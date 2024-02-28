@@ -107,7 +107,7 @@
             document.getElementById("status").innerText = 'CREATED'
 
             qrcodegen.init().then(function (api) {
-                let matrix = api.encodeText('{{ urls.0 }}', qrcodegen.Ecc.LOW)
+                let matrix = api.encodeText('{{ urls.0|safe }}', qrcodegen.Ecc.LOW)
                 let canvas = document.getElementById('canvas')
                 qrcodegen.drawCanvas(canvas, matrix)
             })
