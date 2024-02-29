@@ -16,7 +16,7 @@ pub use crate::{
     pin::{key::PinKeyError, validation::PinValidationError},
     storage::{KeyFileError, StorageError},
     wallet::{
-        DisclosureError, HistoryError, PidIssuanceError, UriIdentificationError, WalletInitError,
-        WalletRegistrationError, WalletUnlockError,
+        DisclosureError, EventConversionError, EventStorageError, HistoryError, PidIssuanceError,
+        UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
     },
 };

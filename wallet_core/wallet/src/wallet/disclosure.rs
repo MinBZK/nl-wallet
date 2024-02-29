@@ -26,7 +26,7 @@ use crate::{
     EventStatus,
 };
 
-use super::{HistoryError, Wallet};
+use super::{history::EventStorageError, Wallet};
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposal {
@@ -47,6 +47,8 @@ pub enum DisclosureError {
     DisclosureUri(#[source] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
     DisclosureSession(#[source] nl_wallet_mdoc::Error),
+    #[error("could not fetch if attributes were shared before: {0}")]
+    HistoryRetrieval(#[source] StorageError),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
@@ -59,8 +61,8 @@ pub enum DisclosureError {
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
     IncrementUsageCount(#[source] StorageError),
-    #[error("could not store history in database: {0}")]
-    HistoryStorage(#[source] HistoryError),
+    #[error("could not store event in history database: {0}")]
+    EventStorage(#[source] EventStorageError),
 }
 
 impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
@@ -107,8 +109,7 @@ where
             .await
             .did_share_data_with_relying_party(session.rp_certificate())
             .await
-            .map_err(HistoryError::Storage)
-            .map_err(DisclosureError::HistoryStorage)?;
+            .map_err(DisclosureError::HistoryRetrieval)?;
 
         let proposal_session = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
@@ -176,7 +177,7 @@ where
 
         self.store_history_event(event)
             .await
-            .map_err(DisclosureError::HistoryStorage)?;
+            .map_err(DisclosureError::EventStorage)?;
 
         Ok(())
     }
@@ -213,7 +214,7 @@ where
         );
         self.store_history_event(event)
             .await
-            .map_err(DisclosureError::HistoryStorage)
+            .map_err(DisclosureError::EventStorage)
     }
 
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
@@ -347,7 +348,7 @@ where
         );
         self.store_history_event(event)
             .await
-            .map_err(DisclosureError::HistoryStorage)?;
+            .map_err(DisclosureError::EventStorage)?;
 
         // When disclosure is successful, we can remove the session.
         self.disclosure_session.take();
