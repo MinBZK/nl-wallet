@@ -11,11 +11,15 @@ import '../wallet_personalize_setup_failed_screen.dart';
 class WalletPersonalizeConfirmPinPage extends StatelessWidget {
   final OnPinValidatedCallback onPidAccepted;
 
+  /// Callback for when accepting pid fails with an unrecoverable error.
+  final OnPinErrorCallback onAcceptPidFailed;
+
   @visibleForTesting
   final PinBloc? bloc;
 
   const WalletPersonalizeConfirmPinPage({
     required this.onPidAccepted,
+    required this.onAcceptPidFailed,
     this.bloc,
     super.key,
   });
@@ -43,12 +47,11 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
           );
         },
         onPinValidated: onPidAccepted,
+        onPinError: onAcceptPidFailed,
         onStateChanged: (context, state) {
-          if (state is PinValidateTimeout) {
-            WalletPersonalizeSetupFailedScreen.show(context);
-            return true;
-          }
-          return false;
+          /// Handle the special case where the user has forgotten her pin right after the setup
+          if (state is PinValidateTimeout) WalletPersonalizeSetupFailedScreen.show(context);
+          return state is PinValidateTimeout;
         },
       ),
     );

@@ -39,6 +39,8 @@ pub enum PidIssuanceError {
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
+    #[error("no signature received from Wallet Provider")]
+    MissingSignature,
     #[error("could not interpret mdoc attributes: {0}")]
     MdocDocument(#[from] DocumentMdocError),
     #[error("could not insert mdocs in database: {0}")]
@@ -275,6 +277,7 @@ where
                             RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
                             RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
                             RemoteEcdsaKeyError::KeyNotFound(identifier) => PidIssuanceError::KeyNotFound(identifier),
+                            RemoteEcdsaKeyError::MissingSignature => PidIssuanceError::MissingSignature,
                         }
                     }
                     _ => PidIssuanceError::PidIssuer(error),

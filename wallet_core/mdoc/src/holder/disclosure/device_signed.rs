@@ -30,23 +30,18 @@ impl DeviceSigned {
     pub async fn new_signatures<K, KF>(
         keys_and_challenges: Vec<(K, &[u8])>,
         key_factory: &KF,
-    ) -> Result<Vec<(String, DeviceSigned)>>
+    ) -> Result<Vec<DeviceSigned>>
     where
         K: MdocEcdsaKey,
         KF: KeyFactory<Key = K>,
     {
-        let keys_and_coses = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;
+        let coses = sign_coses(keys_and_challenges, key_factory, Header::default(), false).await?;
 
-        let signed = keys_and_coses
+        let signed = coses
             .into_iter()
-            .map(|(key, cose)| {
-                (
-                    String::from(key.identifier()),
-                    DeviceSigned {
-                        name_spaces: IndexMap::new().into(),
-                        device_auth: DeviceAuth::DeviceSignature(cose.into()),
-                    },
-                )
+            .map(|cose| DeviceSigned {
+                name_spaces: IndexMap::new().into(),
+                device_auth: DeviceAuth::DeviceSignature(cose.into()),
             })
             .collect();
 

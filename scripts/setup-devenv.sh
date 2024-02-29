@@ -125,7 +125,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   echo -e "${SECTION}Configure and start digid-connector${NC}"
 
   cd "${DIGID_CONNECTOR_PATH}"
-  make setup-secrets setup-config
+  make setup-secrets setup-saml setup-config
 
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
   render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"

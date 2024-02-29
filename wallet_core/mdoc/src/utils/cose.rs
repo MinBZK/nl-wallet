@@ -53,6 +53,8 @@ pub enum CoseError {
     Certificate(#[from] CertificateError),
     #[error("signing failed: {0}")]
     Signing(Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("no signature received")]
+    SignatureMissing(),
 }
 
 impl Cose for CoseSign1 {
@@ -209,7 +211,7 @@ impl<T> MdocCose<CoseSign1, T> {
         let cert_bts = self
             .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))?
             .as_bytes()
-            .ok_or_else(|| CoseError::CertificateUnexpectedHeaderType)?;
+            .ok_or(CoseError::CertificateUnexpectedHeaderType)?;
 
         let cert = Certificate::from(cert_bts);
         Ok(cert)
@@ -306,40 +308,35 @@ pub async fn sign_coses<K: MdocEcdsaKey>(
     key_factory: &impl KeyFactory<Key = K>,
     unprotected_header: Header,
     include_payload: bool,
-) -> Result<Vec<(K, CoseSign1)>, CoseError> {
-    let payloads = keys_and_challenges
+) -> Result<Vec<CoseSign1>, CoseError> {
+    let (keys, challenges): (Vec<_>, Vec<_>) = keys_and_challenges.into_iter().unzip();
+
+    let (sigs_data, protected_header) = signatures_data_and_header(&challenges);
+
+    let keys_and_signature_data = keys
         .iter()
-        .map(|(_key, challenge)| *challenge)
-        .collect::<Vec<&[u8]>>();
-
-    let (sigs_data, protected_header) = signatures_data_and_header(&payloads);
-
-    let keys_and_signature_data = keys_and_challenges
-        .into_iter()
         .zip(sigs_data)
-        .map(|((key, _challenge), sig_data)| (sig_data, vec![key]))
-        .collect::<Vec<(Vec<u8>, Vec<K>)>>();
+        .map(|(key, sig_data)| (sig_data, vec![key]))
+        .collect::<Vec<_>>();
 
-    let keys_and_signatures = key_factory
-        .sign_with_existing_keys(keys_and_signature_data)
+    let signatures = key_factory
+        .sign_multiple_with_existing_keys(keys_and_signature_data)
         .await
         .map_err(|error| CoseError::Signing(error.into()))?;
 
-    let signed = keys_and_signatures
+    let signed = signatures
         .into_iter()
-        .zip(payloads)
-        .map(|((key, signature), payload)| {
-            (
-                key,
-                CoseSign1 {
-                    signature: signature.to_vec(),
-                    payload: include_payload.then(|| payload.to_vec()),
-                    protected: protected_header.clone(),
-                    unprotected: unprotected_header.clone(),
-                },
-            )
+        .zip(challenges)
+        .map(|(signature, payload)| {
+            let cose = CoseSign1 {
+                signature: signature.first().ok_or(CoseError::SignatureMissing())?.to_vec(),
+                payload: include_payload.then(|| payload.to_vec()),
+                protected: protected_header.clone(),
+                unprotected: unprotected_header.clone(),
+            };
+            Ok(cose)
         })
-        .collect();
+        .collect::<Result<Vec<_>, CoseError>>()?;
 
     Ok(signed)
 }

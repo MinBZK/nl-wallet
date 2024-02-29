@@ -1,64 +1,79 @@
 package driver
 
 import com.codeborne.selenide.WebDriverProvider
-import config.TestDataConfig.Companion.browserstackAccessKey
-import config.TestDataConfig.Companion.browserstackUserName
-import config.TestDataConfig.Companion.testDataConfig
+import data.TestConfigRepository.Companion.testConfig
 import helper.BrowserStackHelper
-import helper.TestBase
 import io.appium.java_client.android.AndroidDriver
 import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.remote.DesiredCapabilities
-import util.SetupTestTagHandler
+import util.EnvironmentUtil
+import util.TestInfoHandler
 import java.net.URL
 
 class BrowserStackMobileDriver : WebDriverProvider {
 
-    override fun createDriver(capabilities: Capabilities): WebDriver {
-        val remoteDevice = testDataConfig.defaultRemoteDevice
-            ?: throw UninitializedPropertyAccessException("Make sure 'device' in testDataConfig resolves to a browserStackDevice")
+    private val browserStackUserName = EnvironmentUtil.getVar("BROWSERSTACK_USER")
+    private val browserStackAccessKey = EnvironmentUtil.getVar("BROWSERSTACK_KEY")
 
+    override fun createDriver(capabilities: Capabilities): WebDriver {
+
+        // Specify device and OS version for testing
         val caps = DesiredCapabilities()
-        val browserstackOptions = HashMap<String, Any>()
+        caps.setCapability("appium:automationName", "Flutter")
+        caps.setCapability("platformName", testConfig.platformName)
+        caps.setCapability("appium:platformVersion", testConfig.platformVersion)
+        caps.setCapability("appium:deviceName", testConfig.deviceName)
+        caps.setCapability("appium:language", TestInfoHandler.language)
+        caps.setCapability("appium:locale", TestInfoHandler.locale)
+        caps.setCapability("appium:retryBackoffTime", APPIUM_RETRY_BACKOFF_TIME_MILLIS)
 
         // Set other BrowserStack capabilities
+        val browserstackOptions = HashMap<String, Any>()
         browserstackOptions["appiumVersion"] = "2.0.1"
         browserstackOptions["buildName"] = BrowserStackHelper.buildName
         browserstackOptions["disableAnimations"] = "true"
         browserstackOptions["idleTimeout"] = BROWSER_STACK_IDLE_TIMEOUT_SECONDS
         browserstackOptions["networkLogs"] = "true"
-        browserstackOptions["projectName"] = testDataConfig.browserStackCapabilities.project
-        browserstackOptions["sessionName"] = TestBase.sessionName
+        browserstackOptions["sessionName"] = TestInfoHandler.sessionName
         caps.setCapability("bstack:options", browserstackOptions)
-
-        // Specify device and OS version for testing
-        caps.setCapability("platformName", remoteDevice.platformName)
-        caps.setCapability("appium:automationName", "Flutter")
-        caps.setCapability("appium:platformVersion", remoteDevice.platformVersion)
-        caps.setCapability("appium:deviceName", remoteDevice.deviceName)
-        caps.setCapability("appium:language", SetupTestTagHandler.language)
-        caps.setCapability("appium:locale", SetupTestTagHandler.locale)
-        caps.setCapability("appium:retryBackoffTime", APPIUM_RETRY_BACKOFF_TIME_MILLIS)
 
         // Set URL of the application under test
         caps.setCapability(
             "appium:app",
-            when (remoteDevice.platformName) {
-                "android" -> BrowserStackHelper.getAppUrl("NLWalletAndroid")
-                "ios" -> BrowserStackHelper.getAppUrl("NLWalletIos")
-                else -> throw IllegalArgumentException("Invalid app: ${remoteDevice.platformName}")
+            when (testConfig.platformName) {
+                "android" -> BrowserStackHelper.getAppUrl(
+                    BROWSER_STACK_RECENT_APPS_ENDPOINT,
+                    browserStackUserName,
+                    browserStackAccessKey,
+                    CUSTOM_ID_PREFIX_ANDROID_APP + testConfig.appIdentifier,
+                )
+
+                "ios" -> BrowserStackHelper.getAppUrl(
+                    BROWSER_STACK_RECENT_APPS_ENDPOINT,
+                    browserStackUserName,
+                    browserStackAccessKey,
+                    CUSTOM_ID_PREFIX_IOS_APP + testConfig.appIdentifier,
+                )
+
+                else -> throw IllegalArgumentException("Invalid platform name: ${testConfig.platformName}")
             },
         )
 
         return AndroidDriver(
-            URL("http://$browserstackUserName:$browserstackAccessKey@hub-cloud.browserstack.com/wd/hub"),
+            URL("http://$browserStackUserName:$browserStackAccessKey@$BROWSER_STACK_SERVER_URL"),
             caps,
         )
     }
 
     companion object {
-        private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500 // Default: 3000 milliseconds
+        private const val CUSTOM_ID_PREFIX_ANDROID_APP = "NLWalletAndroid_"
+        private const val CUSTOM_ID_PREFIX_IOS_APP = "NLWalletIos_"
+
+        private const val BROWSER_STACK_SERVER_URL = "hub-cloud.browserstack.com/wd/hub"
+        private const val BROWSER_STACK_RECENT_APPS_ENDPOINT =
+            "https://api-cloud.browserstack.com/app-automate/recent_apps/"
         private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60 // Default: 90 seconds
+        private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500 // Default: 3000 milliseconds
     }
 }

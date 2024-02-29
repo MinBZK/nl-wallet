@@ -17,6 +17,7 @@ void main() {
         widget: WalletPersonalizeConfirmPinPage(
           bloc: PinBloc(Mocks.create()),
           onPidAccepted: (_) {},
+          onAcceptPidFailed: (context, state) {},
         ),
       );
   }
@@ -46,6 +47,7 @@ void main() {
         WalletAppTestWidget(
           child: WalletPersonalizeConfirmPinPage(
             onPidAccepted: (_) {},
+            onAcceptPidFailed: (context, state) {},
             bloc: PinBloc(Mocks.create()),
           ),
         ),

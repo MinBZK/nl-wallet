@@ -178,15 +178,14 @@ impl<I> ProposedDocument<I> {
                 let challenge = doc.device_signed_challenge.as_slice();
                 Ok((key, challenge))
             })
-            .collect::<Result<Vec<(K, &[u8])>>>()?;
+            .collect::<Result<Vec<_>>>()?;
 
-        let keys_and_device_signed: Vec<(String, DeviceSigned)> =
-            DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
+        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, key_factory).await?;
 
         let documents = proposed_documents
             .into_iter()
-            .zip(keys_and_device_signed)
-            .map(|(proposed_doc, (_key, device_signed))| Document {
+            .zip(device_signed)
+            .map(|(proposed_doc, device_signed)| Document {
                 doc_type: proposed_doc.doc_type,
                 issuer_signed: proposed_doc.issuer_signed,
                 device_signed,

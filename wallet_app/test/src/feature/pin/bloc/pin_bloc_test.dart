@@ -122,7 +122,7 @@ void main() {
         () => throw const CoreGenericError('generic'),
       ),
       skip: 6,
-      expect: () => [const PinValidateGenericError()],
+      expect: () => [const PinValidateGenericError(error: CoreGenericError('generic'))],
     );
     blocTest<PinBloc, PinState>(
       'Verify that CheckPinResultServerError results in PinValidateNetworkError with true as hasInternet flag',
@@ -132,7 +132,7 @@ void main() {
         () => throw const CoreNetworkError('network'),
       ),
       skip: 6,
-      expect: () => [const PinValidateNetworkError(hasInternet: true)],
+      expect: () => [const PinValidateNetworkError(error: CoreNetworkError('network'), hasInternet: true)],
     );
     blocTest<PinBloc, PinState>(
       'Verify that CheckPinResultServerError results in PinValidateNetworkError with false as hasInternet flag',
@@ -143,7 +143,7 @@ void main() {
         () => throw const CoreNetworkError('network'),
       ),
       skip: 6,
-      expect: () => [const PinValidateNetworkError(hasInternet: false)],
+      expect: () => [const PinValidateNetworkError(error: CoreNetworkError('network'), hasInternet: false)],
     );
   });
 }

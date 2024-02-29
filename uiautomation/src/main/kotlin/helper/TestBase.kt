@@ -3,15 +3,10 @@ package helper
 import com.codeborne.selenide.Configuration
 import com.codeborne.selenide.Selenide
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
-import com.codeborne.selenide.logevents.SelenideLogger
-import config.RemoteOrLocal
-import config.TestDataConfig.Companion.testDataConfig
+import data.TestConfigRepository.Companion.testConfig
 import driver.BrowserStackMobileDriver
 import driver.LocalMobileDriver
 import io.appium.java_client.android.AndroidDriver
-import io.qameta.allure.Allure
-import io.qameta.allure.Allure.ThrowableRunnableVoid
-import io.qameta.allure.selenide.AllureSelenide
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -20,49 +15,43 @@ import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
 import org.openqa.selenium.remote.RemoteWebDriver
 import service.AppiumServiceProvider
-import util.SetupTestTagHandler.Companion.handleTestTags
-import java.time.Duration
+import util.TestInfoHandler.Companion.processTestInfo
 
 @ExtendWith(TestResultsListener::class)
 open class TestBase {
 
     @BeforeEach
     fun startDriver(testInfo: TestInfo) {
-        handleTestTags(testInfo)
-        sessionName = testInfo.displayName
-
-        SelenideLogger.addListener("AllureSelenide", AllureSelenide())
+        // Process session name, platform, language and locale
+        processTestInfo(testInfo)
 
         // Start driver
         Selenide.open()
-
-        getWebDriver().manage().timeouts().implicitlyWait(Duration.ofSeconds(10))
     }
 
     @AfterEach
     fun afterEach() {
+        // Close browser tab
         try {
-            // Close browser tab
             Selenide.closeWindow()
         } catch (e: Exception) {
             // Ignore
         }
 
-        if (testDataConfig.remoteOrLocal == RemoteOrLocal.Local) {
-            Allure.step("Close driver", ThrowableRunnableVoid {
-                Selenide.closeWebDriver()
-            })
+        // Close web driver
+        if (!testConfig.remote) {
+            Selenide.closeWebDriver()
         }
     }
 
     protected fun restartApp() {
         val driver = getWebDriver() as RemoteWebDriver
         val platform = driver.capabilities.platformName.name
-        val packageName = testDataConfig.appPackage
+        val appIdentifier = testConfig.appIdentifier
         if (platform == "ANDROID") {
             val androidDriver = driver as AndroidDriver
-            androidDriver.terminateApp(packageName)
-            androidDriver.activateApp(packageName)
+            androidDriver.terminateApp(appIdentifier)
+            androidDriver.activateApp(appIdentifier)
         } else {
             throw Exception("Platform $platform is not supported")
         }
@@ -71,20 +60,20 @@ open class TestBase {
     companion object {
         const val MAX_RETRY_COUNT = 3
 
-        var sessionName: String = ""
-
         @JvmStatic
         @BeforeAll
         fun setup() {
             // Start Appium service if running locally
-            if (testDataConfig.remoteOrLocal == RemoteOrLocal.Local) {
+            if (!testConfig.remote) {
                 AppiumServiceProvider.startService()
             }
 
-            when (testDataConfig.remoteOrLocal) {
-                RemoteOrLocal.Local -> Configuration.browser = LocalMobileDriver::class.java.name
-                RemoteOrLocal.Remote -> Configuration.browser = BrowserStackMobileDriver::class.java.name
+            if (testConfig.remote) {
+                Configuration.browser = BrowserStackMobileDriver::class.java.name
+            } else {
+                Configuration.browser = LocalMobileDriver::class.java.name
             }
+
             Configuration.browserSize = null
         }
 
@@ -92,7 +81,7 @@ open class TestBase {
         @AfterAll
         fun destroy() {
             // Stop Appium service if running locally
-            if (testDataConfig.remoteOrLocal == RemoteOrLocal.Local) {
+            if (!testConfig.remote) {
                 AppiumServiceProvider.stopService()
             }
         }

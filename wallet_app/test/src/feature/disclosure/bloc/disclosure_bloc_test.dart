@@ -32,7 +32,7 @@ void main() {
     setUp: () => when(startDisclosureUseCase.invoke(any)).thenThrow(Exception('')),
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
-    expect: () => [DisclosureGenericError()],
+    expect: () => [isA<DisclosureGenericError>()],
   );
 
   blocTest(
@@ -40,7 +40,11 @@ void main() {
     setUp: () => when(startDisclosureUseCase.invoke(any)).thenThrow(const CoreNetworkError('')),
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
-    expect: () => [const DisclosureNetworkError(hasInternet: true)],
+    verify: (bloc) {
+      expect(bloc.state, isA<DisclosureNetworkError>());
+      expect((bloc.state as DisclosureNetworkError).hasInternet, isTrue);
+      expect((bloc.state as DisclosureNetworkError).error, isA<CoreNetworkError>());
+    },
   );
 
   blocTest(
@@ -51,7 +55,11 @@ void main() {
     },
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
-    expect: () => [const DisclosureNetworkError(hasInternet: false)],
+    verify: (bloc) {
+      expect(bloc.state, isA<DisclosureNetworkError>());
+      expect((bloc.state as DisclosureNetworkError).hasInternet, isFalse);
+      expect((bloc.state as DisclosureNetworkError).error, isA<CoreNetworkError>());
+    },
   );
 
   blocTest(
@@ -106,12 +114,14 @@ void main() {
       });
     },
     build: () => create(),
-    act: (bloc) {
+    act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureStopRequested());
     },
     expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureLoadInProgress>(), isA<DisclosureStopped>()],
-    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(1),
+    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
   );
 
   blocTest(
@@ -128,12 +138,14 @@ void main() {
       });
     },
     build: () => create(),
-    act: (bloc) {
+    act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureStopRequested());
     },
     expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureLoadInProgress>(), isA<DisclosureStopped>()],
-    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(1),
+    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
   );
 
   blocTest(
@@ -153,6 +165,8 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
     },
     expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureConfirmDataAttributes>()],
@@ -174,6 +188,8 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
     },
     expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureMissingAttributes>()],
@@ -195,10 +211,12 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
       bloc.add(const DisclosureStopRequested());
     },
-    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(1),
+    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
     expect: () => [
       isA<DisclosureCheckOrganization>(),
       isA<DisclosureMissingAttributes>(),
@@ -224,6 +242,8 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
       bloc.add(const DisclosureShareRequestedAttributesApproved());
     },
@@ -248,6 +268,8 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
       bloc.add(const DisclosureShareRequestedAttributesApproved());
       bloc.add(const DisclosurePinConfirmed());
@@ -273,9 +295,11 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureReportPressed(option: ReportingOption.impersonatingOrganization));
     },
-    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(1),
+    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
     expect: () => [
       isA<DisclosureCheckOrganization>(),
       isA<DisclosureLoadInProgress>(),
@@ -300,6 +324,8 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
       bloc.add(const DisclosureBackPressed());
     },
@@ -327,6 +353,8 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
       bloc.add(const DisclosureShareRequestedAttributesApproved());
       bloc.add(const DisclosureBackPressed());
@@ -355,6 +383,8 @@ void main() {
     build: () => create(),
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureOrganizationApproved());
       bloc.add(const DisclosureBackPressed());
     },

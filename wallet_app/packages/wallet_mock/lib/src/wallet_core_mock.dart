@@ -26,6 +26,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final disclosureId = jsonPayload['id'] as String;
     final request = kDisclosureRequests.firstWhere((element) => element.id == disclosureId);
+    final requestOriginBaseUrl = request.relyingParty.webUrl ?? 'http://origin.org';
 
     // Check if all attributes are available
     final containsAllRequestedAttributes =
@@ -36,7 +37,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         policy: request.policy,
         requestedCards: _wallet.getDisclosureCards(request.requestedAttributes.map((attribute) => attribute.key)),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
-        requestOriginBaseUrl: 'http://origin.org',
+        requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
       );
     } else {
@@ -49,7 +50,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       return _ongoingDisclosure = StartDisclosureResult.requestAttributesMissing(
         relyingParty: request.relyingParty,
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
-        requestOriginBaseUrl: 'http://origin.org',
+        requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
         missingAttributes: missingAttributes.toList(),
       );

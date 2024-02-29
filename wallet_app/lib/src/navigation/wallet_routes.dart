@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../data/service/navigation_service.dart';
 import '../domain/model/attribute/attribute.dart';
+import '../domain/model/consumable.dart';
 import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../feature/about/about_screen.dart';
@@ -336,17 +337,19 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createWalletPersonalizeScreenBuilder(RouteSettings settings) {
   return (context) {
-    String? argument = tryCast<String>(settings.arguments);
-
+    final argument = Consumable(tryCast<String>(settings.arguments));
     return BlocProvider<WalletPersonalizeBloc>(
-      create: (BuildContext context) => WalletPersonalizeBloc(
-        argument,
-        context.read(),
-        context.read(),
-        context.read(),
-        context.read(),
-        context.read(),
-      ),
+      create: (BuildContext context) {
+        final bloc = WalletPersonalizeBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+        if (argument.peek() != null) bloc.add(WalletPersonalizeContinuePidIssuance(argument.value!));
+        return bloc;
+      },
       child: const WalletPersonalizeScreen(),
     );
   };
