@@ -43,7 +43,7 @@
     "kvk": "98765432",
     "privacyPolicyUrl": "https://www.marktplek.nl/privacy"
   },
-  "returnUrlPrefix": "http://${SERVICES_HOST}:3004/",
+  "returnUrlPrefix": "${RP_RETURN_URL}",
   "requestOriginBaseUrl": "https://www.marktplek.nl",
   "attributes": {
     "com.example.pid": {
