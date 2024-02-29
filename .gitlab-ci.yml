@@ -282,12 +282,13 @@ dependency-check-rust:
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
-    # todo: perhaps in the future we may want a warning or even failure in case of found vulnerabilities.
-    - cargo audit --file wallet_core/Cargo.lock --json > audit.json || true
+    # Note: RUSTSEC-2023-0071 is currently unfixable, a false positive and irrelevant for us, therefore we ignore it
+    - cargo audit --ignore RUSTSEC-2023-0071 --file wallet_core/Cargo.lock --json | tee audit.json | jq
   artifacts:
     when: always
     paths:
       - audit.json
+  allow_failure: true
 
 sonar-rust:
   extends: .default-sonar
@@ -685,7 +686,6 @@ upload-browserstack-android-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
-
 #deploy-ios-app:
 #  resource_group: deploy-ios
 #  rules: !reference [.default-or-release, rules]
@@ -723,7 +723,6 @@ upload-browserstack-android-app-demo:
 #  script:
 #    - bundle install
 #    - bundle exec fastlane ios ci_browserstack
-
 
 dependency-check-images:
   rules: !reference [.default-branch, rules]
@@ -918,11 +917,11 @@ check-gitlab-ci-changed:
     - cd uiautomation
   script:
     - gradle wrapper --gradle-version=7.3.3
-    - ./gradlew --debug --stacktrace test 
-        --tests "feature.appstart.*" 
-        --tests "feature.introduction.*" 
-        --tests "feature.security.*" 
-        --tests "feature.lock.*"
+    - ./gradlew --debug --stacktrace test
+      --tests "feature.appstart.*"
+      --tests "feature.introduction.*"
+      --tests "feature.security.*"
+      --tests "feature.lock.*"
 
 run-automation-tests-12:
   extends: [.run-automation-tests]
