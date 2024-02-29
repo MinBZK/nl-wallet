@@ -263,7 +263,7 @@ dependency-check:
     key: dependency-check-${CI_JOB_NAME_SLUG}-${CI_DEFAULT_BRANCH}
     paths:
       - $CI_PROJECT_DIR/dependency_check_data
-    policy: ${CACHE_POLICY}
+    policy: $CACHE_POLICY
 
 osv-scanner:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -482,15 +482,14 @@ build-ws-migrations-image:
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
-    when: always
     paths:
       - "*.aab"
       - "*.apk"
-      - wallet_app/android/app/src/main/AndroidManifest.xml
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
+    UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.key-properties}' | base64 --decode > wallet_app/android/key.properties
@@ -498,12 +497,12 @@ build-ws-migrations-image:
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
-        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
-        app_name:"${APP_NAME}"
-        file_format:"${APP_FILE_FORMAT}"
-        build_mode:"${APP_BUILD_MODE}"
-        mock:"${APP_MOCK}"
-        ul_hostname:"${UL_HOSTNAME}"
+      package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+      app_name:"${APP_NAME}"
+      file_format:"${APP_FILE_FORMAT}"
+      build_mode:"${APP_BUILD_MODE}"
+      mock:"${APP_MOCK}"
+      ul_hostname:"${UL_HOSTNAME}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -514,7 +513,7 @@ build-ws-migrations-image:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
-    UL_HOSTNAME: $EXTERNAL_HOSTNAME_ONT
+    UL_HOSTNAME: "${EXTERNAL_HOSTNAME_ONT}"
 
 build-android-app-latest-release:
   extends: .build-android-app-latest
@@ -549,7 +548,7 @@ build-android-app-mock-release:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
     APP_MOCK: "false"
-    UL_HOSTNAME: $EXTERNAL_HOSTNAME_DEMO
+    UL_HOSTNAME: "${EXTERNAL_HOSTNAME_DEMO}"
 
 build-android-app-demo-release:
   extends: .build-android-app-demo
@@ -585,13 +584,14 @@ build-android-app-demo-profile:
       - "*.ipa"
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
+    UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
     - export MATCH_PASSWORD=$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
-        bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
-        app_name:"${APP_NAME}"
+      bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+      app_name:"${APP_NAME}"
 
 build-ios-app-latest:
   extends: [.env-ont-k8s, .build-ios-app] # needs k8s secrets
@@ -616,7 +616,7 @@ build-ios-app-latest:
     - bundle install
     - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
     - bundle exec fastlane android ci_deploy
-        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+      package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
 
 deploy-android-app-latest:
   extends: [.env-ont-k8s, .deploy-android-app]
@@ -667,7 +667,7 @@ deploy-android-app-demo:
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
     - bundle install
     - bundle exec fastlane android ci_browserstack
-        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+      package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
 
 upload-browserstack-android-app-latest:
   extends: [.env-ont-k8s, .upload-browserstack-android-app]
@@ -684,6 +684,7 @@ upload-browserstack-android-app-demo:
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
 
 #deploy-ios-app:
 #  resource_group: deploy-ios
@@ -722,6 +723,7 @@ upload-browserstack-android-app-demo:
 #  script:
 #    - bundle install
 #    - bundle exec fastlane ios ci_browserstack
+
 
 dependency-check-images:
   rules: !reference [.default-branch, rules]
@@ -859,6 +861,7 @@ deploy-pid-issuer-demo:
   variables:
     MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
     MRP_WALLET_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server:${CI_COMMIT_SHORT_SHA}
+    UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
     - envsubst < kubernetes/mrp-wallet-server-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mrp-wallet-server-ingress.yaml | kubectl apply -f -
@@ -876,6 +879,7 @@ deploy-mock-relying-party-ont:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_ONT
+    UL_HOSTNAME: $EXTERNAL_HOSTNAME_ONT
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
@@ -883,6 +887,7 @@ deploy-mock-relying-party-demo:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
+    UL_HOSTNAME: $EXTERNAL_HOSTNAME_DEMO
 
 check-gitlab-ci-changed:
   rules:

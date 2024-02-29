@@ -343,6 +343,11 @@ then
     if [ "${START}" == "0" ]
     then
         cd "${BASE_DIR}"/wallet_app
-        flutter run --dart-define MOCK_REPOSITORIES=false --dart-define ALLOW_HTTP_RETURN_URL=true --dart-define DISABLE_TLS_VALIDATION=true --dart-define ENV_CONFIGURATION=true
+        flutter run \
+            --dart-define MOCK_REPOSITORIES=false \
+            --dart-define ALLOW_HTTP_RETURN_URL=true \
+            --dart-define DISABLE_TLS_VALIDATION=true \
+            --dart-define ENV_CONFIGURATION=true \
+            --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}"
     fi
 fi
