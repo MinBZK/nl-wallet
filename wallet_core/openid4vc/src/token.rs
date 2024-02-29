@@ -170,7 +170,7 @@ pub enum TokenType {
 /// and https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
-pub enum TokenErrorType {
+pub enum TokenErrorCode {
     InvalidRequest,
     InvalidClient,
     InvalidGrant,
@@ -186,18 +186,18 @@ pub enum TokenErrorType {
     ServerError,
 }
 
-impl ErrorStatusCode for TokenErrorType {
+impl ErrorStatusCode for TokenErrorCode {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
-            TokenErrorType::InvalidRequest
-            | TokenErrorType::InvalidGrant
-            | TokenErrorType::UnauthorizedClient
-            | TokenErrorType::UnsupportedGrantType
-            | TokenErrorType::InvalidScope
-            | TokenErrorType::AuthorizationPending
-            | TokenErrorType::SlowDown => StatusCode::BAD_REQUEST,
-            TokenErrorType::InvalidClient => StatusCode::UNAUTHORIZED,
-            TokenErrorType::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            TokenErrorCode::InvalidRequest
+            | TokenErrorCode::InvalidGrant
+            | TokenErrorCode::UnauthorizedClient
+            | TokenErrorCode::UnsupportedGrantType
+            | TokenErrorCode::InvalidScope
+            | TokenErrorCode::AuthorizationPending
+            | TokenErrorCode::SlowDown => StatusCode::BAD_REQUEST,
+            TokenErrorCode::InvalidClient => StatusCode::UNAUTHORIZED,
+            TokenErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

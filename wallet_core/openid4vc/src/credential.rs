@@ -70,7 +70,7 @@ pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-pub enum CredentialErrorType {
+pub enum CredentialErrorCode {
     InvalidCredentialRequest,
     UnsupportedCredentialType,
     UnsupportedCredentialFormat,
@@ -88,18 +88,18 @@ pub enum CredentialErrorType {
     ServerError,
 }
 
-impl ErrorStatusCode for CredentialErrorType {
+impl ErrorStatusCode for CredentialErrorCode {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
-            CredentialErrorType::InvalidCredentialRequest
-            | CredentialErrorType::UnsupportedCredentialType
-            | CredentialErrorType::UnsupportedCredentialFormat
-            | CredentialErrorType::InvalidProof
-            | CredentialErrorType::InvalidEncryptionParameters
-            | CredentialErrorType::InvalidRequest => StatusCode::BAD_REQUEST,
-            CredentialErrorType::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            CredentialErrorType::InvalidToken => StatusCode::UNAUTHORIZED,
-            CredentialErrorType::InsufficientScope => StatusCode::FORBIDDEN,
+            CredentialErrorCode::InvalidCredentialRequest
+            | CredentialErrorCode::UnsupportedCredentialType
+            | CredentialErrorCode::UnsupportedCredentialFormat
+            | CredentialErrorCode::InvalidProof
+            | CredentialErrorCode::InvalidEncryptionParameters
+            | CredentialErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+            CredentialErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            CredentialErrorCode::InvalidToken => StatusCode::UNAUTHORIZED,
+            CredentialErrorCode::InsufficientScope => StatusCode::FORBIDDEN,
         }
     }
 }

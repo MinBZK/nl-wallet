@@ -81,7 +81,7 @@ pub struct AuthorizationResponse {
 /// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
-pub enum AuthorizationErrorType {
+pub enum AuthorizationErrorCode {
     InvalidRequest,
     UnauthorizedClient,
     AccessDenied,

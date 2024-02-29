@@ -24,12 +24,12 @@ use wallet_common::{generator::TimeGenerator, jwt::JwtError};
 
 use crate::{
     credential::{
-        CredentialErrorType, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
+        CredentialErrorCode, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
         CredentialResponses,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,
-    token::{AccessToken, AttestationPreview, TokenErrorType, TokenRequest, TokenResponseWithPreviews},
+    token::{AccessToken, AttestationPreview, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
 
@@ -56,9 +56,9 @@ pub enum IssuanceSessionError {
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
-    TokenRequest(Box<ErrorResponse<TokenErrorType>>),
+    TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
     #[error("error requesting credentials: {0:?}")]
-    CredentialRequest(Box<ErrorResponse<CredentialErrorType>>),
+    CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
     #[error("generating attestation private keys failed: {0}")]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("public key contained in mdoc not equal to expected value")]
@@ -143,7 +143,7 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<TokenErrorType>>().await?;
+                    let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
                     Err(IssuanceSessionError::TokenRequest(error.into()))
                 } else {
                     let dpop_nonce = response
@@ -177,7 +177,7 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
+                    let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
                     Err(IssuanceSessionError::CredentialRequest(error.into()))
                 } else {
                     let credential_responses = response.json().await?;
@@ -203,7 +203,7 @@ impl OpenidMessageClient for HttpOpenidMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<CredentialErrorType>>().await?;
+                    let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
                     Err(IssuanceSessionError::CredentialRequest(error.into()))
                 } else {
                     Ok(())

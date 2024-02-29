@@ -4,9 +4,9 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::{
-    credential::CredentialErrorType,
+    credential::CredentialErrorCode,
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
-    token::TokenErrorType,
+    token::TokenErrorCode,
 };
 
 #[skip_serializing_none]
@@ -21,8 +21,8 @@ pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
 }
 
-impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
-    fn from(err: CredentialRequestError) -> ErrorResponse<CredentialErrorType> {
+impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
+    fn from(err: CredentialRequestError) -> ErrorResponse<CredentialErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
@@ -31,24 +31,24 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
                 | CredentialRequestError::MissingPrivateKey(_)
                 | CredentialRequestError::AttestationSigning(_)
                 | CredentialRequestError::CborSerialization(_)
-                | CredentialRequestError::JsonSerialization(_) => CredentialErrorType::ServerError,
+                | CredentialRequestError::JsonSerialization(_) => CredentialErrorCode::ServerError,
                 CredentialRequestError::IssuanceError(_) | CredentialRequestError::UseBatchIssuance => {
-                    CredentialErrorType::InvalidRequest
+                    CredentialErrorCode::InvalidRequest
                 }
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
-                    CredentialErrorType::InvalidToken
+                    CredentialErrorCode::InvalidToken
                 }
                 CredentialRequestError::UnsupportedJwtAlgorithm { .. }
                 | CredentialRequestError::MissingJwk
                 | CredentialRequestError::IncorrectNonce
                 | CredentialRequestError::JwtDecodingFailed(_)
                 | CredentialRequestError::JwkConversion(_)
-                | CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorType::InvalidProof,
+                | CredentialRequestError::MissingCredentialRequestPoP => CredentialErrorCode::InvalidProof,
                 CredentialRequestError::DoctypeMismatch | CredentialRequestError::DoctypeNotOffered(_) => {
-                    CredentialErrorType::InvalidCredentialRequest
+                    CredentialErrorCode::InvalidCredentialRequest
                 }
                 CredentialRequestError::UnsupportedCredentialFormat(_) => {
-                    CredentialErrorType::UnsupportedCredentialFormat
+                    CredentialErrorCode::UnsupportedCredentialFormat
                 }
             },
             error_description: Some(description),
@@ -57,16 +57,16 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorType> {
     }
 }
 
-impl From<TokenRequestError> for ErrorResponse<TokenErrorType> {
+impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
     fn from(err: TokenRequestError) -> Self {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | TokenRequestError::AttributeService(_)
-                | TokenRequestError::NoAttributes => TokenErrorType::ServerError,
-                TokenRequestError::IssuanceError(_) => TokenErrorType::InvalidRequest,
-                TokenRequestError::UnsupportedTokenRequestType => TokenErrorType::UnsupportedGrantType,
+                | TokenRequestError::NoAttributes => TokenErrorCode::ServerError,
+                TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+                TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
             },
             error_description: Some(description),
             error_uri: None,

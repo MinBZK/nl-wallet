@@ -1,7 +1,7 @@
 use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
 use openid4vc::{
     issuer::{AttributeService, Created},
-    token::{TokenErrorType, TokenRequest, TokenRequestGrantType},
+    token::{TokenErrorCode, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
 use url::Url;
@@ -18,7 +18,7 @@ pub enum Error {
     #[error("networking error: {0}")]
     TransportError(#[from] reqwest::Error),
     #[error("error requesting token: {0:?}")]
-    TokenRequest(ErrorResponse<TokenErrorType>),
+    TokenRequest(ErrorResponse<TokenErrorCode>),
     #[error("DigiD error: {0}")]
     Digid(#[from] digid::Error),
     #[error("JSON error: {0}")]

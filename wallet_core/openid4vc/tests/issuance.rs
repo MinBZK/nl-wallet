@@ -14,7 +14,7 @@ use nl_wallet_mdoc::{
     Tdate,
 };
 use openid4vc::{
-    credential::{CredentialErrorType, CredentialRequestProof, CredentialRequests, CredentialResponses},
+    credential::{CredentialErrorCode, CredentialRequestProof, CredentialRequests, CredentialResponses},
     dpop::Dpop,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, OpenidMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
@@ -97,7 +97,7 @@ async fn wrong_access_token() {
 
     assert!(matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidToken)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
     ));
 }
 
@@ -120,7 +120,7 @@ async fn invalid_dpop() {
 
     assert!(matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidRequest)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidRequest)
     ));
 }
 
@@ -143,7 +143,7 @@ async fn invalid_pop() {
 
     assert!(matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorType::InvalidProof)
+        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
     ));
 }
 

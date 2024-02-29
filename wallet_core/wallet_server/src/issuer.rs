@@ -16,9 +16,9 @@ use nl_wallet_mdoc::{
     server_state::{SessionState, SessionStore},
 };
 use openid4vc::{
-    credential::{CredentialErrorType, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
+    credential::{CredentialErrorCode, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    token::{AccessToken, TokenErrorType, TokenRequest, TokenResponseWithPreviews},
+    token::{AccessToken, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
 };
 use tracing::warn;
@@ -83,7 +83,7 @@ async fn token<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
-) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorType>>
+) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorCode>>
 where
     A: AttributeService,
     K: KeyRing,
@@ -106,7 +106,7 @@ async fn credential<A, K, S>(
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
-) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorType>>
+) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
     A: AttributeService,
     K: KeyRing,
@@ -126,7 +126,7 @@ async fn batch_credential<A, K, S>(
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
-) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorType>>
+) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorCode>>
 where
     A: AttributeService,
     K: KeyRing,
@@ -146,7 +146,7 @@ async fn reject_issuance<A, K, S>(
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
-) -> Result<StatusCode, ErrorResponse<CredentialErrorType>>
+) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
 where
     A: AttributeService,
     K: KeyRing,
