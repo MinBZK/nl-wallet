@@ -184,6 +184,8 @@ if [ ! -f "${TARGET_DIR}/mock_relying_party/ca.key.pem" ]; then
     generate_mock_relying_party_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/mock_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
+    openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
 fi
 
 # Generate CA for RPs
