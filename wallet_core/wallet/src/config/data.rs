@@ -1,14 +1,15 @@
 use std::{str::FromStr, time::Duration};
 
 use base64::prelude::*;
+use once_cell::sync::Lazy;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 use reqwest::Certificate;
 use url::Url;
 
 use wallet_common::{
     config::wallet_config::{
-        AccountServerConfiguration, DisclosureConfiguration, LockTimeoutConfiguration, PidIssuanceConfiguration,
-        WalletConfiguration,
+        AccountServerConfiguration, BaseUrl, DisclosureConfiguration, LockTimeoutConfiguration,
+        PidIssuanceConfiguration, WalletConfiguration, DEFAULT_UNIVERSAL_LINK_BASE,
     },
     trust_anchor::DerTrustAnchor,
 };
@@ -56,6 +57,8 @@ const RP_TRUST_ANCHORS: &str = "MIIBlDCCATqgAwIBAgIUMmfPjx+jkrbY6twjDTCNHtnoPB4w
                                 Af8EBTADAQH/MAsGA1UdDwQEAwIBBjAKBggqhkjOPQQDAgNIADBFAiBpJ/sEsPeTm8A2XYwRmu6NOkoL\
                                 NqhPN569XKLTR6rVdwIhANOMtj2LwDUG2YcLkSBPSdhh/i/iCgTeuZQpOI8y+kBw";
 
+const UNIVERSAL_LINK_BASE: &str = DEFAULT_UNIVERSAL_LINK_BASE;
+
 macro_rules! config_default {
     ($name:ident) => {
         if cfg!(feature = "env_config") {
@@ -66,6 +69,16 @@ macro_rules! config_default {
             $name
         }
     };
+}
+
+pub static UNIVERSAL_LINK_BASE_URL: Lazy<BaseUrl> = Lazy::new(|| {
+    config_default!(UNIVERSAL_LINK_BASE)
+        .parse::<BaseUrl>()
+        .expect("Could not parse universal link base url")
+});
+
+pub fn init_universal_link_base_url() {
+    Lazy::force(&UNIVERSAL_LINK_BASE_URL);
 }
 
 #[derive(Debug, Clone)]

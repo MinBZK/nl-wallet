@@ -4,6 +4,7 @@ use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use url::Url;
+use wallet_common::config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE};
 
 use wallet_common::trust_anchor::DerTrustAnchor;
 
@@ -19,6 +20,7 @@ pub struct Settings {
     pub public_url: Url,
     // used by the application
     pub internal_url: Url,
+    pub universal_link_base_url: BaseUrl,
     // supported schemes are: memory:// (default) and postgres://
     pub store_url: Url,
 }
@@ -51,6 +53,7 @@ impl Settings {
             .set_default("requester_server.port", 3002)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("internal_url", "http://localhost:3002/")?
+            .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("store_url", "memory://")?
             .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
             .add_source(
