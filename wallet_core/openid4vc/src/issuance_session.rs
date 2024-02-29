@@ -81,7 +81,7 @@ pub trait IssuanceSession<H = HttpOpenidMessageClient> {
         Self: Sized;
 
     async fn accept_issuance<K: MdocEcdsaKey>(
-        self,
+        &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: Url,
@@ -256,7 +256,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn accept_issuance<K: MdocEcdsaKey>(
-        self,
+        &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
         credential_issuer_identifier: Url,

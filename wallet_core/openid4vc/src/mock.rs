@@ -20,7 +20,7 @@ mockall::mock! {
             Self: Sized;
 
         pub fn accept(
-            self,
+            &self,
         ) -> Result<Vec<MdocCopies>, IssuanceSessionError>;
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
@@ -40,7 +40,7 @@ impl IssuanceSession for MockIssuanceSession {
     }
 
     async fn accept_issuance<K: MdocEcdsaKey>(
-        self,
+        &self,
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
         _: Url,

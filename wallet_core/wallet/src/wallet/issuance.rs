@@ -262,7 +262,7 @@ where
         }
 
         info!("Checking if we have an active issuance session");
-        let pid_issuer = match self.issuance_session.take().ok_or(PidIssuanceError::SessionState)? {
+        let pid_issuer = match self.issuance_session.as_ref().ok_or(PidIssuanceError::SessionState)? {
             PidIssuanceSession::Digid(_) => Err(PidIssuanceError::SessionState)?,
             PidIssuanceSession::Openid4vci(pid_issuer) => pid_issuer,
         };
@@ -307,6 +307,9 @@ where
                     _ => PidIssuanceError::PidIssuer(error),
                 }
             })?;
+
+        info!("Isuance succeeded; removing issuance session state");
+        self.issuance_session.take();
 
         // TODO: Wipe the wallet when receiving a PIN timeout from the WP or when it is blocked.
 
