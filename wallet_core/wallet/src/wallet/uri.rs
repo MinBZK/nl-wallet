@@ -1,8 +1,13 @@
 use tracing::info;
 use url::Url;
-use wallet_common::config::wallet_config::DISCLOSURE_BASE_URI;
 
-use crate::{config::ConfigurationRepository, digid::DigidSession, wallet::PidIssuanceSession};
+use wallet_common::config::wallet_config::WalletConfiguration;
+
+use crate::{
+    config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
+    digid::DigidSession,
+    wallet::PidIssuanceSession,
+};
 
 use super::Wallet;
 
@@ -42,7 +47,10 @@ where
             return Ok(UriType::PidIssuance(uri));
         }
 
-        if uri.as_str().starts_with(DISCLOSURE_BASE_URI.as_str()) {
+        if uri
+            .as_str()
+            .starts_with(WalletConfiguration::disclosure_base_uri(UNIVERSAL_LINK_BASE_URL.to_owned()).as_str())
+        {
             return Ok(UriType::Disclosure(uri));
         }
 
@@ -54,7 +62,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::{digid::MockDigidSession, wallet::PidIssuanceSession};
+    use crate::{config::UNIVERSAL_LINK_BASE_URL, digid::MockDigidSession, wallet::PidIssuanceSession};
 
     use super::{super::test::WalletWithMocks, *};
 
@@ -67,7 +75,8 @@ mod tests {
         let example_uri = "https://example.com";
         let digid_uri = "redirect://here";
 
-        let mut disclosure_uri_base = DISCLOSURE_BASE_URI.to_owned();
+        let mut disclosure_uri_base =
+            WalletConfiguration::disclosure_base_uri(UNIVERSAL_LINK_BASE_URL.to_owned()).to_owned();
 
         // Add a trailing slash to the base path, if needed.
         if !disclosure_uri_base.path().ends_with('/') {

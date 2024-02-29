@@ -11,7 +11,7 @@ use wallet::{
     wallet_deps::{DigidSession, HttpDigidSession, HttpOpenIdClient},
     WalletConfiguration,
 };
-use wallet_common::config::wallet_config::ISSUANCE_REDIRECT_URI;
+use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
 use wallet_server::pid::attributes::MockPidAttributeService;
 
 use crate::common::*;
@@ -34,7 +34,7 @@ async fn test_pid_issuance_digid_bridge() {
     let digid_session = HttpDigidSession::<HttpOpenIdClient, S256PkcePair>::start(
         settings.issuer.digid.issuer_url.clone(),
         settings.issuer.digid.client_id.clone(),
-        ISSUANCE_REDIRECT_URI.to_owned(),
+        WalletConfiguration::issuance_redirect_uri(DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()),
     )
     .await
     .unwrap();

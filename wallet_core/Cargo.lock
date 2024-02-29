@@ -5041,6 +5041,7 @@ dependencies = [
  "futures",
  "http",
  "jsonwebtoken",
+ "nutype",
  "once_cell",
  "p256",
  "rand 0.8.5",

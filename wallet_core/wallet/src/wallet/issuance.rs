@@ -9,11 +9,11 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError};
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{config::wallet_config::ISSUANCE_REDIRECT_URI, jwt::JwtError};
+use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
 
 use crate::{
     account_provider::AccountProviderClient,
-    config::ConfigurationRepository,
+    config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     digid::{DigidError, DigidSession, HttpDigidSession},
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
@@ -126,7 +126,7 @@ where
         let session = DGS::start(
             pid_issuance_config.digid_url.clone(),
             pid_issuance_config.digid_client_id.to_string(),
-            ISSUANCE_REDIRECT_URI.to_owned(),
+            WalletConfiguration::issuance_redirect_uri(UNIVERSAL_LINK_BASE_URL.to_owned()),
         )
         .await
         .map_err(PidIssuanceError::DigidSessionStart)?;

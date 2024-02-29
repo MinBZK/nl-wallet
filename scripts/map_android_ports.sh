@@ -13,6 +13,7 @@ then
         adb reverse tcp:3002 tcp:3002
         adb reverse tcp:3003 tcp:3003
         adb reverse tcp:3004 tcp:3004
+        adb reverse tcp:3005 tcp:3005
         adb reverse tcp:8006 tcp:8006
     else
         echo -e "Please start the Android emulator, and run ${BLUE}$0 $@${NC} again"

@@ -14,7 +14,7 @@ use url::ParseError;
 use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
 
 pub use self::{
-    data::{default_configuration, ConfigServerConfiguration},
+    data::{default_configuration, init_universal_link_base_url, ConfigServerConfiguration, UNIVERSAL_LINK_BASE_URL},
     file_repository::FileStorageConfigurationRepository,
     http_repository::HttpConfigurationRepository,
     updating_repository::UpdatingConfigurationRepository,

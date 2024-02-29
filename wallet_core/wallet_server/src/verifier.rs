@@ -26,7 +26,6 @@ use tower_http::{
 use tracing::log::{error, warn};
 use url::Url;
 
-use crate::{cbor::Cbor, settings::Settings};
 use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken},
@@ -36,7 +35,9 @@ use nl_wallet_mdoc::{
     },
     SessionData,
 };
-use wallet_common::config::wallet_config::DISCLOSURE_BASE_URI;
+use wallet_common::config::wallet_config::{BaseUrl, WalletConfiguration};
+
+use crate::{cbor::Cbor, settings::Settings};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -86,6 +87,7 @@ struct ApplicationState<S> {
     verifier: Verifier<RelyingPartyKeyRing, S>,
     internal_url: Url,
     public_url: Url,
+    universal_link_base_url: BaseUrl,
 }
 
 pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
@@ -121,6 +123,7 @@ where
         ),
         internal_url: settings.internal_url,
         public_url: settings.public_url,
+        universal_link_base_url: settings.universal_link_base_url,
     });
 
     let wallet_router = Router::new()
@@ -252,7 +255,7 @@ where
         .expect("should always be a valid URL");
 
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here
-    let engagement_url = DISCLOSURE_BASE_URI
+    let engagement_url = WalletConfiguration::disclosure_base_uri(state.universal_link_base_url.to_owned())
         .join(
             &BASE64_URL_SAFE_NO_PAD
                 .encode(cbor_serialize(&engagement).expect("serializing an engagement should never fail")),

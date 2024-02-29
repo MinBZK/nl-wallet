@@ -43,7 +43,7 @@
     "kvk": "12345678",
     "privacyPolicyUrl": "https://www.xyzbank.nl/privacy"
   },
-  "returnUrlPrefix": "http://${SERVICES_HOST}:3004/",
+  "returnUrlPrefix": "${RP_RETURN_URL}",
   "requestOriginBaseUrl": "https://www.xyzbank.nl",
   "attributes": {
     "com.example.pid": {

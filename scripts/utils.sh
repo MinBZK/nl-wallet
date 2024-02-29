@@ -165,7 +165,7 @@ function generate_wp_random_key {
 function generate_pid_issuer_root_ca {
     echo -e "${INFO}Generating PID CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "ca.example.com" \
+        --common-name "ca.pid.example.com" \
         --file-prefix "${TARGET_DIR}/pid_issuer/ca" \
         --force
 
@@ -196,7 +196,7 @@ function generate_pid_issuer_key_pair {
 # Generate an EC root CA for the mock_relying_party
 function generate_mock_relying_party_root_ca {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "ca.example.com" \
+        --common-name "ca.rp.example.com" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/ca" \
         --force
 

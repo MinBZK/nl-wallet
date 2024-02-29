@@ -8,8 +8,8 @@ use platform_support::{
 use crate::{
     account_provider::HttpAccountProviderClient,
     config::{
-        default_configuration, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository,
-        UpdatingConfigurationRepository,
+        default_configuration, init_universal_link_base_url, ConfigServerConfiguration, ConfigurationError,
+        ConfigurationRepository, UpdatingConfigurationRepository,
     },
     lock::WalletLock,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
@@ -33,6 +33,8 @@ impl Wallet {
     pub async fn init_all() -> Result<Self, WalletInitError> {
         #[cfg(feature = "disable_tls_validation")]
         tracing::warn!("TLS validation disabled");
+
+        init_universal_link_base_url();
 
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::init(storage_path.clone());
