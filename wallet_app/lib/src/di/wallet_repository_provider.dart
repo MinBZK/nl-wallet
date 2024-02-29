@@ -34,7 +34,7 @@ import '../data/repository/wallet/wallet_repository.dart';
 class WalletRepositoryProvider extends StatelessWidget {
   final Widget child;
 
-  const WalletRepositoryProvider({required this.child, Key? key}) : super(key: key);
+  const WalletRepositoryProvider({required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {

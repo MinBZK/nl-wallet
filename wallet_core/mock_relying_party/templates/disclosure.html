@@ -51,8 +51,6 @@
                 disclosedAttributesUrl += window.location.search.substring(0, end)
             }
         }
-
-        console.log('Results URL: ', disclosedAttributesUrl);
     </script>
 </head>
 
@@ -92,10 +90,11 @@
             <dd>{{ selected.as_ref().unwrap().usecase }}</dd>
 
             <dt>Type</dt>
-            {% if selected.as_ref().unwrap().session_type == MrpSessionType::SameDevice %}
-            <dd>same_device</dd>
+            {% if (selected.as_ref().unwrap().session_type == MrpSessionType::SameDevice) ||
+            (selected.as_ref().unwrap().session_type == MrpSessionType::SameDeviceNoReturn) %}
+            <dd>{{ selected.as_ref().unwrap().session_type }}</dd>
         </dl>
-        <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;">
+        <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;" rel="noopener">
             Open NL Wallet
         </a>
         {% else %}
@@ -108,7 +107,7 @@
             document.getElementById("status").innerText = 'CREATED'
 
             qrcodegen.init().then(function (api) {
-                let matrix = api.encodeText('{{ urls.0 }}', qrcodegen.Ecc.LOW)
+                let matrix = api.encodeText('{{ urls.0|safe }}', qrcodegen.Ecc.LOW)
                 let canvas = document.getElementById('canvas')
                 qrcodegen.drawCanvas(canvas, matrix)
             })
@@ -123,6 +122,8 @@
         {% endmatch -%}
     </main>
     <script>
+        console.log('Results URL: ', disclosedAttributesUrl);
+
         let sessionDiv = document.getElementById('session')
         let statusSpan = document.getElementById('status')
         let resultList = document.getElementById('result')

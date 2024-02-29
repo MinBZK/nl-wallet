@@ -16,8 +16,8 @@ class IntroductionProgressStepper extends StatelessWidget {
   const IntroductionProgressStepper({
     required this.currentStep,
     required this.totalSteps,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,10 +36,16 @@ class IntroductionProgressStepper extends StatelessWidget {
       },
     );
 
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 8,
-      children: steps,
+    final currentSemanticsStep = currentStep.toInt() + 1;
+    return Semantics(
+      label: context.l10n.pageIndicatorSemanticsLabel(currentSemanticsStep, totalSteps),
+      currentValueLength: currentSemanticsStep,
+      maxValueLength: totalSteps,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        children: steps,
+      ),
     );
   }
 

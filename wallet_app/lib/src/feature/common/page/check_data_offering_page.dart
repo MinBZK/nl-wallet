@@ -28,8 +28,8 @@ class CheckDataOfferingPage extends StatelessWidget {
     this.footerCta,
     required this.bottomSection,
     required this.attributes,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

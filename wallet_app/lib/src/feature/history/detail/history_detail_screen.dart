@@ -41,7 +41,7 @@ class HistoryDetailScreen extends StatelessWidget {
     }
   }
 
-  const HistoryDetailScreen({Key? key}) : super(key: key);
+  const HistoryDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +197,7 @@ class HistoryDetailScreen extends StatelessWidget {
         ),
       );
       slivers.add(const SliverDivider());
+      slivers.add(const SliverSizedBox(height: 24));
     }
 
     return Column(

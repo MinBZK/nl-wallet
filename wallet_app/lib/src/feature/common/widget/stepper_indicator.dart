@@ -5,7 +5,7 @@ import 'animated_linear_progress_indicator.dart';
 class StepperIndicator extends StatelessWidget {
   final double progress;
 
-  const StepperIndicator({required this.progress, Key? key}) : super(key: key);
+  const StepperIndicator({required this.progress, super.key});
 
   @override
   Widget build(BuildContext context) {

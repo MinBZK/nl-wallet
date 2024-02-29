@@ -5,12 +5,13 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/numbered_list.dart';
+import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   final VoidCallback onDataRejected;
 
-  const WalletPersonalizeDataIncorrectScreen({required this.onDataRejected, Key? key}) : super(key: key);
+  const WalletPersonalizeDataIncorrectScreen({required this.onDataRejected, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +31,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: _buildContent(context),
                     ),
+                    const SliverSizedBox(height: 24),
                   ],
                 ),
               ),

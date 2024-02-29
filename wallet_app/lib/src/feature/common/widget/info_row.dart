@@ -17,10 +17,9 @@ class InfoRow extends StatelessWidget {
     this.icon,
     this.onTap,
     this.padding,
-    Key? key,
+    super.key,
   })  : assert(leading == null || icon == null, 'You cannot provide a leading widget and an icon'),
-        assert(leading != null || icon != null, 'Provide a leading widget or icon'),
-        super(key: key);
+        assert(leading != null || icon != null, 'Provide a leading widget or icon');
 
   @override
   Widget build(BuildContext context) {

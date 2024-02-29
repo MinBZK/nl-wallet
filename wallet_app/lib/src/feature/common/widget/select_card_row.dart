@@ -18,8 +18,8 @@ class SelectCardRow extends StatelessWidget {
     required this.card,
     required this.isSelected,
     this.showError = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

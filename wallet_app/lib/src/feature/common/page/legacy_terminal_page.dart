@@ -32,8 +32,8 @@ class LegacyTerminalPage extends StatelessWidget {
     this.content,
     required this.primaryButtonCta,
     required this.onPrimaryPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

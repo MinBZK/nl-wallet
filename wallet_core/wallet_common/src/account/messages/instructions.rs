@@ -1,5 +1,4 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::collections::HashMap;
 
 use crate::{
     account::{
@@ -39,7 +38,7 @@ pub struct Sign {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SignResult {
-    pub signatures_by_identifier: HashMap<String, DerSignature>,
+    pub signatures: Vec<Vec<DerSignature>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

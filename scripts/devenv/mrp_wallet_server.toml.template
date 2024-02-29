@@ -17,13 +17,21 @@ trust_anchors = [
     "${PID_CA_CRT}",
 ]
 
-[verifier.usecases.driving_license]
-certificate = "${MOCK_RELYING_PARTY_CRT_DL}"
-private_key = "${MOCK_RELYING_PARTY_KEY_DL}"
+[verifier.usecases.mijn_amsterdam]
+certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
+private_key = "${MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 
-[verifier.usecases.parking_permit]
-certificate = "${MOCK_RELYING_PARTY_CRT_PP}"
-private_key = "${MOCK_RELYING_PARTY_KEY_PP}"
+[verifier.usecases.xyz_bank]
+certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
+
+[verifier.usecases.online_marketplace]
+certificate = "${MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
+private_key = "${MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
+
+[verifier.usecases.monkey_bike]
+certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
+private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
 
 [issuer.private_keys."com.example.pid"]
 private_key = "${PID_ISSUER_KEY}"
@@ -73,4 +81,3 @@ street = "Turfmarkt"
 house_number = "147"
 postal_code = "2511 DP"
 city = "Den Haag"
-

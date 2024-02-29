@@ -1,0 +1,55 @@
+{
+  "purposeStatement": {
+    "nl": "Inloggen",
+    "en": "Login"
+  },
+  "retentionPolicy": {
+    "intentToRetain": true,
+    "maxDurationInMinutes": 525600
+  },
+  "sharingPolicy": {
+    "intentToShare": false
+  },
+  "deletionPolicy": {
+    "deleteable": false
+  },
+  "organization": {
+    "displayName": {
+      "nl": "Gemeente Amsterdam",
+      "en": "City of Amsterdam"
+    },
+    "legalName": {
+      "nl": "Gemeente Amsterdam",
+      "en": "City of Amsterdam"
+    },
+    "description": {
+      "nl": "Alles wat we doen, doen we voor de stad en de Amsterdammers.",
+      "en": "Everything we do, we do for the city and the people of Amsterdam."
+    },
+    "webUrl": "https://www.amsterdam.nl",
+    "city": {
+      "nl": "Amsterdam",
+      "en": "Amsterdam"
+    },
+    "category": {
+      "nl": "Gemeente",
+      "en": "Municipality"
+    },
+    "logo": {
+      "mimeType": "image/svg+xml",
+      "imageData": "<svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#FF0000\"/><path d=\"M25 53.1823L29.1985 48.9481L25 44.7139L27.8015 41.8886L32 46.1228L36.1985 41.8886L39 44.7139L34.8015 48.9481L39 53.1823L36.191 56L31.9925 51.7658L27.794 56L25 53.1823ZM25 19.2861L29.1985 15.0519L25 10.8253L27.8015 8L32 12.2342L36.191 8L38.9925 10.8253L34.794 15.0595L38.9925 19.2937L36.191 22.1114L31.9925 17.8772L27.794 22.1114L25 19.2861ZM25 36.2455L29.1985 32.0114L25 27.7848L27.8015 24.9594L32 29.1936L36.1985 24.9594L39 27.7848L34.8015 32.0189L39 36.2531L36.191 39.0709L31.9925 34.8367L27.794 39.0709L25 36.2455Z\" fill=\"white\"/></svg>"
+    },
+    "countryCode": "nl",
+    "kvk": "34366966",
+    "privacyPolicyUrl": "https://www.amsterdam.nl/privacy"
+  },
+  "returnUrlPrefix": "http://${SERVICES_HOST}:3004/",
+  "requestOriginBaseUrl": "https://www.amsterdam.nl",
+  "attributes": {
+    "com.example.pid": {
+      "com.example.pid": {
+        "bsn": {}
+      }
+    }
+  }
+}

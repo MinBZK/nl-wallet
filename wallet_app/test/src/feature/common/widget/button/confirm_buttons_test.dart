@@ -14,10 +14,10 @@ void main() {
       (tester) async {
         await tester.pumpWidgetBuilder(
           ConfirmButtons(
-            acceptText: 'accept',
-            declineText: 'decline',
-            onAcceptPressed: () {},
-            onDeclinePressed: () {},
+            primaryText: 'accept',
+            secondaryText: 'decline',
+            onPrimaryPressed: () {},
+            onSecondaryPressed: () {},
           ),
           wrapper: walletAppWrapper(),
           surfaceSize: kGoldenSize,
@@ -30,12 +30,12 @@ void main() {
       (tester) async {
         await tester.pumpWidgetBuilder(
           ConfirmButtons(
-            acceptText: 'accept',
-            declineText: 'decline',
-            onAcceptPressed: () {},
-            onDeclinePressed: () {},
-            acceptIcon: Icons.language_outlined,
-            declineIcon: Icons.add_card_outlined,
+            primaryText: 'accept',
+            secondaryText: 'decline',
+            onPrimaryPressed: () {},
+            onSecondaryPressed: () {},
+            primaryIcon: Icons.language_outlined,
+            secondaryIcon: Icons.add_card_outlined,
           ),
           wrapper: walletAppWrapper(),
           surfaceSize: kGoldenSize,
@@ -48,10 +48,10 @@ void main() {
       (tester) async {
         await tester.pumpWidgetBuilder(
           ConfirmButtons(
-            acceptText: 'accept',
-            declineText: 'decline',
-            onAcceptPressed: () {},
-            onDeclinePressed: () {},
+            primaryText: 'accept',
+            secondaryText: 'decline',
+            onPrimaryPressed: () {},
+            onSecondaryPressed: () {},
           ),
           wrapper: walletAppWrapper(brightness: Brightness.dark),
           surfaceSize: kGoldenSize,
@@ -64,10 +64,10 @@ void main() {
       (tester) async {
         await tester.pumpWidgetBuilder(
           ConfirmButtons(
-            acceptText: 'accept',
-            declineText: 'decline',
-            onAcceptPressed: () {},
-            onDeclinePressed: () {},
+            primaryText: 'accept',
+            secondaryText: 'decline',
+            onPrimaryPressed: () {},
+            onSecondaryPressed: () {},
             forceVertical: true,
           ),
           wrapper: walletAppWrapper(brightness: Brightness.light),
@@ -81,10 +81,10 @@ void main() {
       (tester) async {
         await tester.pumpWidgetBuilder(
           ConfirmButtons(
-            acceptText: 'accept',
-            declineText: 'decline',
-            onAcceptPressed: () {},
-            onDeclinePressed: () {},
+            primaryText: 'accept',
+            secondaryText: 'decline',
+            onPrimaryPressed: () {},
+            onSecondaryPressed: () {},
           ),
           wrapper: walletAppWrapper(brightness: Brightness.light),
           surfaceSize: const Size(156, 156),
@@ -98,10 +98,10 @@ void main() {
     testWidgets('buttons are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         ConfirmButtons(
-          acceptText: 'A',
-          declineText: 'D',
-          onAcceptPressed: () {},
-          onDeclinePressed: () {},
+          primaryText: 'A',
+          secondaryText: 'D',
+          onPrimaryPressed: () {},
+          onSecondaryPressed: () {},
         ),
       );
 
@@ -117,10 +117,10 @@ void main() {
       // on a very narrow screen led to negative numbers, causing the app to crash.
       await tester.pumpWidgetWithAppWrapper(
         ConfirmButtons(
-          acceptText: 'A',
-          declineText: 'D',
-          onAcceptPressed: () {},
-          onDeclinePressed: () {},
+          primaryText: 'A',
+          secondaryText: 'D',
+          onPrimaryPressed: () {},
+          onSecondaryPressed: () {},
         ),
         surfaceSize: const Size(120, 300),
       );

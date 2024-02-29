@@ -15,8 +15,8 @@ class TimelineSectionSliver extends StatelessWidget {
     required this.section,
     required this.onRowPressed,
     this.showOperationTitle = true,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

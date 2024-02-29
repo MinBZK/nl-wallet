@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
@@ -41,20 +40,14 @@ class DashboardScreen extends StatelessWidget {
     }
   }
 
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return VisibilityDetector(
-      key: const Key('dashboardVisibilityDetector'),
-      onVisibilityChanged: (VisibilityInfo info) {
-        if (info.visibleFraction > 0.0) context.read<DashboardBloc>().add(const DashboardLoadTriggered());
-      },
-      child: Scaffold(
-        key: const Key('dashboardScreen'),
-        appBar: _buildAppBar(context),
-        body: _buildBody(context),
-      ),
+    return Scaffold(
+      key: const Key('dashboardScreen'),
+      appBar: _buildAppBar(context),
+      body: _buildBody(context),
     );
   }
 
@@ -95,15 +88,19 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context) {
-    return BlocBuilder<DashboardBloc, DashboardState>(
-      builder: (context, state) {
-        return switch (state) {
-          DashboardStateInitial() => _buildLoading(),
-          DashboardLoadInProgress() => _buildLoading(),
-          DashboardLoadSuccess() => _buildContent(context, state),
-          DashboardLoadFailure() => _buildError(context),
-        };
-      },
+    return SafeArea(
+      bottom: false,
+      top: false,
+      child: BlocBuilder<DashboardBloc, DashboardState>(
+        builder: (context, state) {
+          return switch (state) {
+            DashboardStateInitial() => _buildLoading(),
+            DashboardLoadInProgress() => _buildLoading(),
+            DashboardLoadSuccess() => _buildContent(context, state),
+            DashboardLoadFailure() => _buildError(context),
+          };
+        },
+      ),
     );
   }
 
@@ -215,8 +212,8 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildError(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return SafeArea(
+      minimum: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,

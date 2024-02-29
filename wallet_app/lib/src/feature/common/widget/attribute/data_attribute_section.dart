@@ -11,8 +11,8 @@ class DataAttributeSection extends StatelessWidget {
   const DataAttributeSection({
     required this.sourceCardTitle,
     required this.attributes,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

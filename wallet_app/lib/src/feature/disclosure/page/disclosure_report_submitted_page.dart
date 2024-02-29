@@ -8,8 +8,8 @@ class DisclosureReportSubmittedPage extends StatelessWidget {
 
   const DisclosureReportSubmittedPage({
     required this.onClosePressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -4,8 +4,6 @@
 //!   such as an ECDSA public key.
 //! - Bulk signing of JWTs.
 
-use std::collections::HashMap;
-
 use base64::prelude::*;
 use itertools::Itertools;
 use jsonwebtoken::{
@@ -105,20 +103,13 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
         })
         .collect::<Result<Vec<_>, JwtError>>()?;
 
-    // Associate the messages to the keys with which they are to be signed, for below
-    let mut keys_messages_map: HashMap<_, _> = keys
-        .iter()
-        .zip(&messages)
-        .map(|(key, msg)| (key.identifier().to_string(), msg.clone()))
-        .collect();
-
-    // Have the WP sign our messages. It returns key-signature pairs in a random order.
-    let keys_and_sigs = key_factory
-        .sign_with_existing_keys(
+    // Have the WP sign our messages.
+    let signatures = key_factory
+        .sign_multiple_with_existing_keys(
             messages
-                .into_iter()
-                .map(String::into_bytes)
-                .zip(keys.into_iter().map(|key| vec![key]))
+                .iter()
+                .map(|msg| msg.clone().into_bytes())
+                .zip(keys.iter().map(|key| vec![key]))
                 .collect_vec(),
         )
         .await
@@ -126,12 +117,15 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
 
     // For each received key-signature pair, we use the key to lookup the appropriate message
     // from the map constructed above and create the JWT.
-    let jwts = keys_and_sigs
+    let jwts = signatures
         .into_iter()
-        .map(|(key, sig)| {
+        .zip(keys)
+        .zip(messages)
+        .map(|((sigs, key), msg)| {
             // The WP will respond only with the keys we fed it above, so we can unwrap
-            let msg = keys_messages_map.remove(key.identifier()).unwrap();
-            let jwt = [msg, BASE64_URL_SAFE_NO_PAD.encode(sig.to_vec())].join(".").into();
+            let jwt = [msg, BASE64_URL_SAFE_NO_PAD.encode(sigs.first().unwrap().to_vec())]
+                .join(".")
+                .into();
             (key, jwt)
         })
         .collect();

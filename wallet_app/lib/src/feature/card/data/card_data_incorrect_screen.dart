@@ -6,11 +6,12 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 
 class CardDataIncorrectScreen extends StatelessWidget {
-  const CardDataIncorrectScreen({Key? key}) : super(key: key);
+  const CardDataIncorrectScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: const Key('cardDataIncorrectScreen'),
       body: SafeArea(
         child: Column(
           children: [

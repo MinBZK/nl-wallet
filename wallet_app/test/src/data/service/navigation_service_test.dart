@@ -11,10 +11,13 @@ void main() {
   late MockCheckNavigationPrerequisitesUseCase mockCheckNavigationPrerequisitesUseCase;
   late MockPerformPreNavigationActionsUseCase mockPerformPreNavigationActionsUseCase;
   late MockNavigatorKey navigatorKey;
+  late MockNavigatorState navigatorState;
 
   setUp(() {
     provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
     navigatorKey = MockNavigatorKey();
+    navigatorState = MockNavigatorState();
+    when(navigatorKey.currentState).thenReturn(navigatorState);
     // Usecases
     mockCheckNavigationPrerequisitesUseCase = MockCheckNavigationPrerequisitesUseCase();
     mockPerformPreNavigationActionsUseCase = MockPerformPreNavigationActionsUseCase();
@@ -31,13 +34,77 @@ void main() {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
-      await service.handleNavigationRequest(const GenericNavigationRequest('/mock'));
+      const navigationRequest = GenericNavigationRequest('/mock');
+      await service.handleNavigationRequest(navigationRequest);
 
-      // Make sure navigation was triggered (note: currently only shallow validation by checking interaction with the navigator)
-      verify(navigatorKey.currentState);
+      verify(navigatorState.pushNamed(navigationRequest.destination));
     });
 
-    test('Verify preNavigationActions are executed before the navigation occures', () async {
+    test('Verify PidIssuanceNavigationRequest triggers navigation', () async {
+      // Allow navigation
+      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
+
+      final navigationRequest = PidIssuanceNavigationRequest('/mock');
+      await service.handleNavigationRequest(navigationRequest);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          navigationRequest.destination,
+          any,
+          arguments: anyNamed('arguments'),
+        ),
+      );
+    });
+
+    test('Verify DisclosureNavigationRequest triggers navigation', () async {
+      // Allow navigation
+      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
+
+      final navigationRequest = DisclosureNavigationRequest('/mock');
+      await service.handleNavigationRequest(navigationRequest);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          navigationRequest.destination,
+          any,
+          arguments: anyNamed('arguments'),
+        ),
+      );
+    });
+
+    test('Verify IssuanceNavigationRequest triggers navigation', () async {
+      // Allow navigation
+      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
+
+      final navigationRequest = IssuanceNavigationRequest('/mock');
+      await service.handleNavigationRequest(navigationRequest);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          navigationRequest.destination,
+          any,
+          arguments: anyNamed('arguments'),
+        ),
+      );
+    });
+
+    test('Verify SignNavigationRequest triggers navigation', () async {
+      // Allow navigation
+      when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
+
+      final navigationRequest = SignNavigationRequest('/mock');
+      await service.handleNavigationRequest(navigationRequest);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          navigationRequest.destination,
+          any,
+          arguments: anyNamed('arguments'),
+        ),
+      );
+    });
+
+    test('Verify preNavigationActions are executed before the navigation occurs', () async {
       // Allow navigation
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 

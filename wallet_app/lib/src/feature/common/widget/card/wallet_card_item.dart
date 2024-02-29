@@ -8,12 +8,10 @@ import '../../../../util/extension/build_context_extension.dart';
 import '../animated_fade_in.dart';
 import '../animated_fade_out.dart';
 import '../svg_or_image.dart';
-import '../utility/limit_font_scaling.dart';
 import 'card_holograph.dart';
 import 'card_logo.dart';
 import 'show_details_cta.dart';
 
-const _kMaxCardTextScale = 2.5;
 const _kCardRenderSize = Size(328, 192);
 const _kCardBorderRadius = BorderRadius.all(Radius.circular(12));
 const _kCardContentPadding = 24.0;
@@ -57,7 +55,7 @@ class WalletCardItem extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const WalletCardItem({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle1,
     this.subtitle2,
@@ -67,7 +65,7 @@ class WalletCardItem extends StatelessWidget {
     required this.brightness,
     this.onPressed,
     this.ctaAnimation,
-  }) : super(key: key);
+  });
 
   WalletCardItem.fromCardFront(
       {required BuildContext context, required CardFront front, this.onPressed, this.ctaAnimation, super.key})
@@ -85,25 +83,22 @@ class WalletCardItem extends StatelessWidget {
       data: _resolveTheme(context),
       child: Builder(
         builder: (context) {
-          return LimitFontScaling(
-            maxScaleFactor: _kMaxCardTextScale,
-            child: FittedBox(
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: _kCardRenderSize.width,
-                  minHeight: _kCardRenderSize.height,
-                ),
-                child: ClipRRect(
-                  borderRadius: _kCardBorderRadius,
-                  child: Stack(
-                    children: [
-                      _buildBackground(context),
-                      _buildHolograph(context, _kCardRenderSize.height),
-                      _buildContent(context),
-                      _buildShowDetailsCta(context),
-                      _buildRippleAndFocus(context),
-                    ],
-                  ),
+          return FittedBox(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: _kCardRenderSize.width,
+                minHeight: _kCardRenderSize.height,
+              ),
+              child: ClipRRect(
+                borderRadius: _kCardBorderRadius,
+                child: Stack(
+                  children: [
+                    _buildBackground(context),
+                    _buildHolograph(context, _kCardRenderSize.height),
+                    _buildContent(context),
+                    _buildShowDetailsCta(context),
+                    _buildRippleAndFocus(context),
+                  ],
                 ),
               ),
             ),

@@ -82,7 +82,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureGenericError(),
+              const DisclosureGenericError(error: anything),
             ),
             name: 'generic_error',
           ),

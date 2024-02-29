@@ -36,20 +36,19 @@ This framework is for automating the Android and iOS NL-Wallet app in a single c
 
 ## Run Automation Tests
 
+### Preconditions
+
+1. Make sure that you are in the correct directory: `uiautomation` where the Gradle project is located.
+2. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it by running: `gradle wrapper`.
+3. See "[Customizing the test run](#customizing-test-runs)" for more info on how to customize & run test locally or remote.
+
 ### Local run
 
-#### Precondition
+#### Preconditions
 
-- Run Android emulator with API level 33. Emulator or devices needs to be started and should be unlocked.
+- Run Android emulator with API level 34. Emulator or devices needs to be started and should be unlocked.
 - First, fetch the dependencies by running `flutter pub get`, and then create an APK by executing `flutter build apk --profile`
 - For iOS use `bundle exec fastlane ios build build_mode:profile bundle_id:nl.ictu.edi.wallet.latest` to create a `.ipa` file
-
-1. Open `device.conf.json` file in the resource directory
-2. Replace the value of `device` with one of the devices listed under localDevices, such as `emulator-5554`
-3. Set `remoteOrLocal` to `Local`
-4. Make sure that you are in the correct directory: `uiautomation` where the Gradle project is located.
-5. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it by running: `gradle wrapper`.
-6. After generating the Gradle Wrapper script, you can run the test suite using the following command: `./gradlew test --tests suite.RunTests`
 
 The Appium Server will start automatically. Appium Server will handle the process of running the tests and displaying the results on the console.
 
@@ -65,14 +64,39 @@ The Appium Server will start automatically. Appium Server will handle the proces
     - iOS: `bundle exec fastlane ios build build_mode:profile bundle_id:nl.ictu.edi.wallet.latest` to create an IPA file.
 - Manually upload the app(s) to BrowserStack, see [upload app from filesystem](https://www.browserstack.com/docs/app-automate/appium/upload-app-from-filesystem). By default, running tests will retrieve the latest uploaded app.
 
-1. Open `device.conf.json` file in the resource directory
-2. Replace the value of `device` with one of the devices listed under browserstackDevices, such as `Google Pixel 7 Pro`
-3. Set `remoteOrLocal` to `Remote`
-4. Make sure you are in the correct directory: `uiautomation`, where the Gradle project is located.
-5. Check if you have the Gradle Wrapper script; if the Gradle Wrapper script does not exist, you can generate it by running: `gradle wrapper`.
-6. After generating the Gradle Wrapper script, you can run the test suite using the following command: `./gradlew test --tests suite.RunTests`
-
 This will run the all the tests and output the test execution results on [App Automate dashboard](https://app-automate.browserstack.com/dashboard).
+
+### Customizing test runs
+
+The following parameters can be used to customize the test run:
+
+1. `test.config.app.identifier`; The identifier of the app to be tested, being the package name for Android or the bundle ID for iOS.
+2. `test.config.device.name`; The name of the device to be used for testing, use `emulator-5554` for local Android testing or `Google Pixel 8` for BrowserStack Android testing.
+3. `test.config.platform.name`; The name of the platform to be used for testing, use `android` for local Android testing.
+4. `test.config.platform.version`; The version of the platform to be used for testing, for example `14.0`.
+5. `test.config.remote`; The value of this parameter should be set to `false` to run the tests locally, else `true` for BrowserStack test runs.
+
+Local test run example:
+
+````bash
+./gradlew test --tests suite.FeatureTestSuite
+    -Ptest.config.app.identifier="nl.ictu.edi.wallet.latest"
+    -Ptest.config.device.name="emulator-5554"
+    -Ptest.config.platform.name=android
+    -Ptest.config.platform.version=14.0
+    -Ptest.config.remote=false
+````
+
+Remote test run example:
+
+````bash
+./gradlew test --tests suite.FeatureTestSuite
+    -Ptest.config.app.identifier="nl.ictu.edi.wallet.latest"
+    -Ptest.config.device.name="Google Pixel 8"
+    -Ptest.config.platform.name=android
+    -Ptest.config.platform.version=14.0
+    -Ptest.config.remote=true
+````
 
 ## Test Annotations
 

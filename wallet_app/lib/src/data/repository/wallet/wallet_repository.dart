@@ -25,7 +25,7 @@ abstract class WalletRepository {
   Future<WalletInstructionResult> unlockWallet(String pin);
 
   /// Lock the wallet, updates [isLockedStream]
-  void lockWallet();
+  Future<void> lockWallet();
 
   /// Confirm a transaction
   Future<CheckPinResult> confirmTransaction(String pin);

@@ -12,31 +12,63 @@ import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
+import 'package:wallet_core/core.dart';
 
+import '../../../../mocks/core_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
   late TypedWalletCore core;
   late PidRepository pidRepository;
+  late CardMapper cardMapper;
 
   setUp(() {
     core = Mocks.create();
     //FIXME: Mock mappers
-    pidRepository = CorePidRepository(
-      core,
-      CardMapper(
-        CardFrontMapper(CardSubtitleMapper(CardAttributeValueMapper())),
-        CardConfigMapper(),
-        CardAttributeMapper(CardAttributeValueMapper(), LocalizedLabelsMapper()),
-        OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
-      ),
+    cardMapper = CardMapper(
+      CardFrontMapper(CardSubtitleMapper(CardAttributeValueMapper())),
+      CardConfigMapper(),
+      CardAttributeMapper(CardAttributeValueMapper(), LocalizedLabelsMapper()),
+      OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
     );
+    pidRepository = CorePidRepository(core, cardMapper);
   });
 
-  group('DigiD Auth Url', () {
+  group('Pid issuance', () {
     test('auth url should be fetched through the wallet_core', () async {
       expect(await pidRepository.getPidIssuanceUrl(), kMockPidIssuanceUrl);
       verify(core.createPidIssuanceRedirectUri());
+    });
+
+    test('continue pid issuance should be propagated to the core', () async {
+      var mockContinueUri = 'mock_continue_issuance_url';
+      final testCard = Card(
+        issuer: CoreMockData.card.issuer,
+        persistence: CoreMockData.card.persistence,
+        docType: kPidDocType,
+        attributes: CoreMockData.card.attributes,
+      );
+      final expectedAttributes = cardMapper.map(testCard).attributes;
+
+      when(core.continuePidIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testCard]);
+      expect(await pidRepository.continuePidIssuance(mockContinueUri), expectedAttributes);
+      verify(core.continuePidIssuance(mockContinueUri));
+    });
+
+    test('cancel pid issuance should be propagated to the core', () async {
+      await pidRepository.cancelPidIssuance();
+      verify(core.cancelPidIssuance());
+    });
+
+    test('accept offered pid should be propagated to the core', () async {
+      const samplePin = '000000';
+      await pidRepository.acceptOfferedPid(samplePin);
+      verify(core.acceptOfferedPid(samplePin));
+    });
+
+    test('reject offered pid should be propagated to the core', () async {
+      await pidRepository.rejectOfferedPid();
+      verify(core.rejectOfferedPid());
     });
   });
 }

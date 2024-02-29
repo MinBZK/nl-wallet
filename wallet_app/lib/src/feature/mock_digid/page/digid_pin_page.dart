@@ -18,8 +18,8 @@ class DigidPinPage extends StatelessWidget {
     required this.selectedIndex,
     required this.onKeyPressed,
     required this.onBackspacePressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

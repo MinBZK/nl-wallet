@@ -10,7 +10,8 @@ class MockAssets {
   static const logo_rijksoverheid = 'assets/non-free/logos/rijksoverheid.png';
   static const logo_housing_corp = 'assets/non-free/logos/housing_corp.png';
   static const logo_monkeybike = 'assets/non-free/logos/monkeybike.png';
-  static const logo_den_haag = 'assets/non-free/logos/den_haag.png';
+  static const logo_municipality_amsterdam = 'assets/non-free/logos/amsterdam.png';
+  static const logo_municipality_den_haag = 'assets/non-free/logos/den_haag.png';
   static const logo_nl_driving_license = 'assets/non-free/logos/nl_driving_license.png';
   static const logo_nl_health_insurance = 'assets/non-free/logos/nl_health_insurance.png';
   static const logo_digid = 'assets/non-free/logos/digid.png';
@@ -20,7 +21,6 @@ class MockAssets {
   static const logo_rijksoverheid_label = 'assets/non-free/logos/rijksoverheid_label.png';
   static const logo_bar = 'assets/non-free/logos/bar.png';
   static const logo_zorgverzekeraar_z = 'assets/non-free/logos/zorgverzekeraar_z.png';
-  static const logo_delft = 'assets/non-free/logos/delft.png';
   static const logo_rdw = 'assets/non-free/logos/rdw.png';
   static const logo_rp_placeholder = 'assets/non-free/logos/rp_placeholder.png';
 }

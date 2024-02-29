@@ -22,6 +22,7 @@ import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../digid_help/digid_help_screen.dart';
+import '../../error/error_page.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
@@ -32,7 +33,7 @@ import 'page/wallet_personalize_success_page.dart';
 import 'wallet_personalize_no_digid_screen.dart';
 
 class WalletPersonalizeScreen extends StatelessWidget {
-  const WalletPersonalizeScreen({Key? key}) : super(key: key);
+  const WalletPersonalizeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +89,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeFailure() => _buildErrorPage(context),
           WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
           WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
+          WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
+          WalletPersonalizeGenericError() => _buildGenericError(context),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -294,6 +297,37 @@ class WalletPersonalizeScreen extends StatelessWidget {
       ),
       body: WalletPersonalizeConfirmPinPage(
         onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
+        onAcceptPidFailed: (context, error) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: error)),
+      ),
+    );
+  }
+
+  Widget _buildNetworkError(BuildContext context, WalletPersonalizeNetworkError state) {
+    if (state.hasInternet) {
+      return Scaffold(
+        appBar: WalletAppBar(progress: state.stepperProgress),
+        body: ErrorPage.network(
+          context,
+          onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+        ),
+      );
+    } else {
+      return Scaffold(
+        appBar: WalletAppBar(progress: state.stepperProgress),
+        body: ErrorPage.noInternet(
+          context,
+          onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+        ),
+      );
+    }
+  }
+
+  Widget _buildGenericError(BuildContext context) {
+    return Scaffold(
+      appBar: const WalletAppBar(progress: 0),
+      body: ErrorPage.generic(
+        context,
+        onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       ),
     );
   }

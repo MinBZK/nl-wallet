@@ -1,0 +1,65 @@
+{
+  "purposeStatement": {
+    "nl": "Bankrekening openen",
+    "en": "Opening bank account"
+  },
+  "retentionPolicy": {
+    "intentToRetain": true,
+    "maxDurationInMinutes": 525600
+  },
+  "sharingPolicy": {
+    "intentToShare": false
+  },
+  "deletionPolicy": {
+    "deleteable": true
+  },
+  "organization": {
+    "displayName": {
+      "nl": "XYZ Bank",
+      "en": "XYZ Bank"
+    },
+    "legalName": {
+      "nl": "XYZ Bank N.V.",
+      "en": "XYZ Bank N.V."
+    },
+    "description": {
+      "nl": "De toegankelijke bank voor betalen, sparen en beleggen.",
+      "en": "The accessible bank for paying, saving and investing."
+    },
+    "webUrl": "https://www.xyzbank.nl",
+    "city": {
+      "nl": "Utrecht",
+      "en": "Utrecht"
+    },
+    "category": {
+      "nl": "Bank",
+      "en": "Bank"
+    },
+    "logo": {
+      "mimeType": "image/svg+xml",
+      "imageData": "<svg width=\"64\" height=\"64\" viewBox=\"0 0 64 64\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"white\"/><rect width=\"64\" height=\"64\" rx=\"12\" fill=\"#FFE9F1\"/><path d=\"M38.3636 27.0636C38.3636 33.2587 33.1647 38.3363 26.6818 38.3363C20.199 38.3363 15 33.2587 15 27.0636C15 20.8685 20.199 15.7909 26.6818 15.7909C33.1647 15.7909 38.3636 20.8685 38.3636 27.0636Z\" stroke=\"#AB0065\" stroke-width=\"2\"/><circle cx=\"37.7272\" cy=\"27.0636\" r=\"11.2727\" stroke=\"#AB0065\" stroke-width=\"2\"/><path d=\"M48.9999 36.9363C48.9999 43.1314 43.8009 48.209 37.318 48.209C30.8352 48.209 25.6362 43.1314 25.6362 36.9363C25.6362 30.7412 30.8352 25.6635 37.318 25.6635C43.8009 25.6635 48.9999 30.7412 48.9999 36.9363Z\" stroke=\"#AB0065\" stroke-width=\"2\"/><path d=\"M38.3636 36.9364C38.3636 43.1315 33.1647 48.2091 26.6818 48.2091C20.199 48.2091 15 43.1315 15 36.9364C15 30.7413 20.199 25.6636 26.6818 25.6636C33.1647 25.6636 38.3636 30.7413 38.3636 36.9364Z\" stroke=\"#AB0065\" stroke-width=\"2\"/></svg>"
+    },
+    "countryCode": "nl",
+    "kvk": "12345678",
+    "privacyPolicyUrl": "https://www.xyzbank.nl/privacy"
+  },
+  "returnUrlPrefix": "http://${SERVICES_HOST}:3004/",
+  "requestOriginBaseUrl": "https://www.xyzbank.nl",
+  "attributes": {
+    "com.example.pid": {
+      "com.example.pid": {
+        "given_name": {},
+        "family_name": {},
+        "birth_date": {},
+        "bsn": {}
+      }
+    },
+    "com.example.address": {
+      "com.example.address": {
+        "resident_street": {},
+        "resident_house_number": {},
+        "resident_postal_code": {}
+      }
+    }
+  }
+}

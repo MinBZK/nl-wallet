@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
+import screen.history.HistoryOverviewScreen
 import screen.menu.MenuScreen
 import screen.settings.SettingsScreen
 
@@ -55,20 +56,26 @@ class MenuTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("5. All items opened from the menu offer a back button returning the user to the main menu.")
     fun verifyBackButtons() {
+        // Navigate to help and back
         menuScreen.clickHelpButton()
-        menuScreen.clickBackButton()
+        menuScreen.clickBottomBackButton()
 
+        // Navigate to history overview and back
         menuScreen.clickHistoryButton()
-        menuScreen.clickBackButton()
+        val historyOverviewScreen = HistoryOverviewScreen()
+        historyOverviewScreen.clickBottomBackButton()
 
+        // Navigate to settings and back
         menuScreen.clickSettingsButton()
-        menuScreen.clickBackButton()
+        menuScreen.clickBottomBackButton()
 
+        // Navigate to feedback and back
         menuScreen.clickFeedbackButton()
-        menuScreen.clickBackButton()
+        menuScreen.clickBottomBackButton()
 
+        // Navigate to about and back
         menuScreen.clickAboutButton()
-        menuScreen.clickBackButton()
+        menuScreen.clickBottomBackButton()
 
         assertTrue(menuScreen.visible(), "menu screen is not visible")
     }

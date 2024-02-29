@@ -125,7 +125,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   echo -e "${SECTION}Configure and start digid-connector${NC}"
 
   cd "${DIGID_CONNECTOR_PATH}"
-  make setup-secrets setup-config
+  make setup-secrets setup-saml setup-config
 
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
   render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
@@ -191,18 +191,32 @@ RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
 export RP_CA_CRT
 
 # Generate relying party key and cert
-generate_mock_relying_party_key_pair dl
-MOCK_RELYING_PARTY_KEY_DL=$(< "${TARGET_DIR}/mock_relying_party/dl.key.der" ${BASE64})
-export MOCK_RELYING_PARTY_KEY_DL
-MOCK_RELYING_PARTY_CRT_DL=$(< "${TARGET_DIR}/mock_relying_party/dl.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT_DL
+generate_mock_relying_party_key_pair mijn_amsterdam
+MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/mock_relying_party/mijn_amsterdam.key.der" ${BASE64})
+export MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM
+MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/mock_relying_party/mijn_amsterdam.crt.der" ${BASE64})
+export MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM
 
 # Generate relying party key and cert
-generate_mock_relying_party_key_pair pp
-MOCK_RELYING_PARTY_KEY_PP=$(< "${TARGET_DIR}/mock_relying_party/pp.key.der" ${BASE64})
-export MOCK_RELYING_PARTY_KEY_PP
-MOCK_RELYING_PARTY_CRT_PP=$(< "${TARGET_DIR}/mock_relying_party/pp.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT_PP
+generate_mock_relying_party_key_pair xyz_bank
+MOCK_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.key.der" ${BASE64})
+export MOCK_RELYING_PARTY_KEY_XYZ_BANK
+MOCK_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.crt.der" ${BASE64})
+export MOCK_RELYING_PARTY_CRT_XYZ_BANK
+
+# Generate relying party key and cert
+generate_mock_relying_party_key_pair online_marketplace
+MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/mock_relying_party/online_marketplace.key.der" ${BASE64})
+export MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE
+MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/mock_relying_party/online_marketplace.crt.der" ${BASE64})
+export MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
+
+# Generate relying party key and cert
+generate_mock_relying_party_key_pair monkey_bike
+MOCK_RELYING_PARTY_KEY_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_bike.key.der" ${BASE64})
+export MOCK_RELYING_PARTY_KEY_MONKEY_BIKE
+MOCK_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_bike.crt.der" ${BASE64})
+export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 
 render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
 render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"

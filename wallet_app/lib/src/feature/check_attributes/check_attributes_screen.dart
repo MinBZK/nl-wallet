@@ -21,8 +21,8 @@ class CheckAttributesScreen extends StatelessWidget {
 
   const CheckAttributesScreen({
     this.onDataIncorrectPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

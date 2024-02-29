@@ -8,8 +8,8 @@ class IssuanceGenericErrorPage extends StatelessWidget {
 
   const IssuanceGenericErrorPage({
     required this.onClosePressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -27,8 +27,8 @@ class ConfirmAgreementPage extends StatelessWidget {
     required this.policy,
     required this.trustProvider,
     required this.requestedAttributes,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +50,10 @@ class ConfirmAgreementPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onAcceptPressed: onAcceptPressed,
-                acceptText: context.l10n.confirmAgreementPageConfirmCta,
-                onDeclinePressed: onDeclinePressed,
-                declineText: context.l10n.confirmAgreementPageCancelCta,
+                onPrimaryPressed: onAcceptPressed,
+                primaryText: context.l10n.confirmAgreementPageConfirmCta,
+                onSecondaryPressed: onDeclinePressed,
+                secondaryText: context.l10n.confirmAgreementPageCancelCta,
               ),
             ),
           ),

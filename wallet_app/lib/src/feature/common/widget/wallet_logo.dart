@@ -5,7 +5,7 @@ import '../../../wallet_assets.dart';
 class WalletLogo extends StatelessWidget {
   final double size;
 
-  const WalletLogo({required this.size, Key? key}) : super(key: key);
+  const WalletLogo({required this.size, super.key});
 
   @override
   Widget build(BuildContext context) {

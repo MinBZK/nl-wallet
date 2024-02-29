@@ -15,8 +15,8 @@ class TextIconButton extends StatelessWidget {
     this.icon = Icons.arrow_forward,
     this.iconPosition = IconPosition.end,
     this.centerChild = true,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

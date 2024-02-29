@@ -10,6 +10,40 @@ void main() {
     version: 0,
   );
 
+  group('hashCode', () {
+    test('hashCode matches', () {
+      const sameAsDefaultConfig = FlutterAppConfiguration(
+        idleLockTimeout: Duration(seconds: 10),
+        backgroundLockTimeout: Duration(seconds: 20),
+        version: 0,
+      );
+
+      expect(defaultMockConfig.hashCode, sameAsDefaultConfig.hashCode);
+    });
+
+    test('hashCode !matches', () {
+      const otherIdle = FlutterAppConfiguration(
+        idleLockTimeout: Duration(seconds: 1337),
+        backgroundLockTimeout: Duration(seconds: 20),
+        version: 0,
+      );
+      const otherBackground = FlutterAppConfiguration(
+        idleLockTimeout: Duration(seconds: 10),
+        backgroundLockTimeout: Duration(seconds: 1337),
+        version: 0,
+      );
+      const otherVersion = FlutterAppConfiguration(
+        idleLockTimeout: Duration(seconds: 10),
+        backgroundLockTimeout: Duration(seconds: 20),
+        version: 1,
+      );
+
+      expect(defaultMockConfig.hashCode == otherIdle.hashCode, isFalse);
+      expect(defaultMockConfig.hashCode == otherBackground.hashCode, isFalse);
+      expect(defaultMockConfig.hashCode == otherVersion.hashCode, isFalse);
+    });
+  });
+
   testWidgets(
     'verify builder is called when a config is available',
     (tester) async {

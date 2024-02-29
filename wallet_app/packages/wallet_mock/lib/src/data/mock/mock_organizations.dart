@@ -15,6 +15,7 @@ final Map<String, Organization> kOrganizations = {
   kHousingCorpId: _kHousingCorporationOrganization,
   kCarRentalId: _kCarRentalOrganization,
   kFirstAidId: _kFirstAidOrganization,
+  kMunicipalityAmsterdamId: _kMunicipalityAmsterdamOrganization,
   kMunicipalityTheHagueId: _kMunicipalityTheHagueOrganization,
   kBankId: _kBankOrganization,
   kMonkeyBikeId: _kMonkeyBikeOrganization,
@@ -32,6 +33,7 @@ const kHealthInsuranceId = 'health_insurer_1';
 const kHousingCorpId = 'housing_corp_1';
 const kCarRentalId = 'car_rental';
 const kFirstAidId = 'first_aid';
+const kMunicipalityAmsterdamId = 'municipality_amsterdam';
 const kMunicipalityTheHagueId = 'municipality_the_hague';
 const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
@@ -158,6 +160,20 @@ final _kFirstAidOrganization = Organization(
   image: Image.asset(path: MockAssets.logo_first_aid),
 );
 
+final _kMunicipalityAmsterdamOrganization = Organization(
+  //id: kMunicipalityAmsterdamId,
+  legalName: 'Gemeente Amsterdam'.untranslated,
+  displayName: 'Gemeente Amsterdam'.untranslated,
+  category: 'Gemeente'.untranslated,
+  description: 'Alles wat we doen, doen we voor de stad en de Amsterdammers.'.untranslated,
+  image: Image.asset(path: MockAssets.logo_municipality_amsterdam),
+  city: 'Amsterdam'.untranslated,
+  countryCode: 'nl',
+  kvk: '34366966',
+  webUrl: 'https://www.amsterdam.nl',
+  privacyPolicyUrl: 'https://www.amsterdam.nl/privacy',
+);
+
 final _kMunicipalityTheHagueOrganization = Organization(
   //id: kMunicipalityTheHagueId,
   legalName: 'Gemeente Den Haag'.untranslated,
@@ -166,7 +182,7 @@ final _kMunicipalityTheHagueOrganization = Organization(
   description:
       'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_den_haag),
+  image: Image.asset(path: MockAssets.logo_municipality_den_haag),
   department: 'Parkeren'.untranslated,
   city: 'Den Haag'.untranslated,
   countryCode: 'nl',

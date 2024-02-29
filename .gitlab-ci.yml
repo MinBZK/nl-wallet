@@ -5,22 +5,18 @@ variables:
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
-  RENEW_ON_LETSENCRYPT_STAGING:
-    value: "false"
-    description: "Try to renew the server certificates from the Let's encrypt staging environment."
-  RENEW_ON_LETSENCRYPT_LIVE:
-    value: "false"
-    description: "Try to renew the server certificates from the Let's encrypt live environment."
 
 .env-ont:
   environment:
     name: ${K8S_CLUSTER}
-    action: prepare
+    deployment_tier: development
+    action: access
 
 .env-demo:
   environment:
     name: ${K8S_DEMO_CLUSTER}
-    action: prepare
+    deployment_tier: staging
+    action: access
 
 .env-ont-k8s:
   extends: .env-ont
@@ -32,7 +28,6 @@ variables:
 .env-demo-k8s:
   extends: .env-demo
   environment:
-    action: start
     kubernetes:
       namespace: ${K8S_DEMO_NAMESPACE}
 
@@ -86,7 +81,15 @@ default:
       - "wallet_core/uniffi-bindgen/target"
     policy: ${CACHE_POLICY}
 
-# Working directory is 'wallet_app' directory
+.ruby-cache:
+  cache:
+    key: ruby-${CI_COMMIT_REF_SLUG}
+    paths:
+      - "vendor/ruby"
+  before_script:
+    - ruby -v
+    - bundle config set --local path "vendor/ruby"
+
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
@@ -184,7 +187,7 @@ test-rust-integration:
 test-rust-compilation-android-linux:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:4741f165006262ce25cb8306ca50060e7e6d49786ae34c1ae24827e245b22298"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:665e612c052edd39797e5859e1fb582aedc91f97f2c002154b96199ce7d1db6c"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
@@ -206,6 +209,7 @@ test-rust-compilation-ios:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --target aarch64-apple-ios --release
 
 test-ios:
+  extends: .ruby-cache
   rules: !reference [.default-or-release-or-merge-request, rules]
   when: manual
   tags:
@@ -462,9 +466,8 @@ build-ws-migrations-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migration:$CI_COMMIT_SHORT_SHA
       --cache=true
 
-build-android-app:
-  extends: .env-ont-k8s # needs k8s secrets
-  rules: !reference [.default-or-release, rules]
+.build-android-app:
+  extends: .ruby-cache
   needs:
     - job: test-flutter
       artifacts: false
@@ -475,24 +478,92 @@ build-android-app:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:4741f165006262ce25cb8306ca50060e7e6d49786ae34c1ae24827e245b22298"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:665e612c052edd39797e5859e1fb582aedc91f97f2c002154b96199ce7d1db6c"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
+    when: always
     paths:
       - "*.aab"
       - "*.apk"
+      - wallet_app/android/app/src/main/AndroidManifest.xml
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
+    - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
+    - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.key-properties}' | base64 --decode > wallet_app/android/key.properties
+    - kubectl get secret nl-wallet-core-env-file -o jsonpath='{.data.env}' | base64 --decode > wallet_core/wallet/.env
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane android ci_build
+        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+        app_name:"${APP_NAME}"
+        file_format:"${APP_FILE_FORMAT}"
+        build_mode:"${APP_BUILD_MODE}"
+        mock:"${APP_MOCK}"
+        ul_hostname:"${UL_HOSTNAME}"
+  after_script:
+    - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
-build-ios-app:
-  extends: .env-ont-k8s # needs k8s secrets
+.build-android-app-latest:
+  extends: [.env-ont-k8s, .build-android-app]
+  rules: !reference [.default-or-release, rules]
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+    APP_NAME: "NL Wallet (latest)"
+    APP_MOCK: "false"
+    UL_HOSTNAME: $EXTERNAL_HOSTNAME_ONT
+
+build-android-app-latest-release:
+  extends: .build-android-app-latest
+  variables:
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+
+build-android-app-latest-profile:
+  extends: .build-android-app-latest
+  variables:
+    APP_FILE_FORMAT: "apk"
+    APP_BUILD_MODE: "profile"
+
+.build-android-app-mock:
+  extends: [.env-ont-k8s, .build-android-app]
+  rules: !reference [.default-or-release, rules]
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+    APP_NAME: "NL Wallet (mock)"
+    APP_MOCK: "true"
+
+build-android-app-mock-release:
+  extends: .build-android-app-mock
+  variables:
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+
+.build-android-app-demo:
+  extends: [.env-demo-k8s, .build-android-app]
+  rules: !reference [.default-or-release, rules]
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+    APP_NAME: "NL Wallet (demo)"
+    APP_MOCK: "false"
+    UL_HOSTNAME: $EXTERNAL_HOSTNAME_DEMO
+
+build-android-app-demo-release:
+  extends: .build-android-app-demo
+  variables:
+    APP_FILE_FORMAT: "aab"
+    APP_BUILD_MODE: "release"
+
+build-android-app-demo-profile:
+  extends: .build-android-app-demo
+  variables:
+    APP_FILE_FORMAT: "apk"
+    APP_BUILD_MODE: "profile"
+
+.build-ios-app:
   rules: !reference [.default-or-release, rules]
   when: manual
   needs:
@@ -515,17 +586,23 @@ build-ios-app:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
+    - export MATCH_PASSWORD=$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios ci_build
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+        app_name:"${APP_NAME}"
 
-deploy-android-app:
-  resource_group: deploy-android
-  extends: .env-ont-k8s # needs k8s secrets
+build-ios-app-latest:
+  extends: [.env-ont-k8s, .build-ios-app] # needs k8s secrets
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+    APP_NAME: "NL Wallet (latest)"
+    APP_MOCK: "false"
+
+.deploy-android-app:
+  extends: .ruby-cache
   rules: !reference [.default-or-release, rules]
-  needs:
-    - job: build-android-app
-      artifacts: true
   # needs:
   #   - job: build-ios-app # only deploy apps when both apps have been built successfully
   #     artifacts: false
@@ -537,7 +614,114 @@ deploy-android-app:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - bundle install
+    - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
     - bundle exec fastlane android ci_deploy
+        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+
+deploy-android-app-latest:
+  extends: [.env-ont-k8s, .deploy-android-app]
+  needs:
+    - job: build-android-app-latest-release
+      artifacts: true
+  environment:
+    action: start
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+
+deploy-android-app-mock:
+  when: manual
+  extends: [.env-ont-k8s, .deploy-android-app]
+  needs:
+    - job: build-android-app-mock-release
+      artifacts: true
+  environment:
+    action: start
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+
+deploy-android-app-demo:
+  when: manual
+  extends: [.env-demo-k8s, .deploy-android-app]
+  needs:
+    - job: build-android-app-demo-release
+      artifacts: true
+  environment:
+    action: start
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+.upload-browserstack-android-app:
+  extends: .ruby-cache
+  rules: !reference [.default-branch, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+  # needs:
+  #   - job: build-ios-app # only deploy apps when both apps have been built successfully
+  #     artifacts: false
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    FASTLANE_OPT_OUT_USAGE: "YES"
+  script:
+    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - bundle install
+    - bundle exec fastlane android ci_browserstack
+        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+
+upload-browserstack-android-app-latest:
+  extends: [.env-ont-k8s, .upload-browserstack-android-app]
+  needs:
+    - job: build-android-app-latest-profile
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+
+upload-browserstack-android-app-demo:
+  extends: [.env-demo-k8s, .upload-browserstack-android-app]
+  needs:
+    - job: build-android-app-demo-profile
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+#deploy-ios-app:
+#  resource_group: deploy-ios
+#  rules: !reference [.default-or-release, rules]
+#  needs:
+#    - job: build-ios-app
+#      artifacts: true
+#    - job: build-android-app # only deploy apps when both apps have been built successfully
+#      artifacts: false
+#  environment:
+#    name: deploy-ios
+#    action: start
+#  tags:
+#    - macos
+#  variables:
+#    FASTLANE_OPT_OUT_USAGE: "YES"
+#  script:
+#    - bundle install
+#    - bundle exec fastlane disable_flutter_analytics
+#    - bundle exec fastlane ios ci_deploy
+#
+#upload-browserstack-ios-app:
+#  resource_group: deploy-ios
+#  rules: !reference [.default-branch, rules]
+#  needs:
+#    - job: build-ios-app
+#      artifacts: true
+#    - job: build-android-app # only deploy apps when both apps have been built successfully
+#      artifacts: false
+#  image:
+#    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+#  variables:
+#    LC_ALL: "C.UTF-8"
+#    LANG: "C.UTF-8"
+#    FASTLANE_OPT_OUT_USAGE: "YES"
+#  script:
+#    - bundle install
+#    - bundle exec fastlane ios ci_browserstack
 
 dependency-check-images:
   rules: !reference [.default-branch, rules]
@@ -585,61 +769,6 @@ dependency-check-images:
   artifacts:
     paths:
       - trivy
-
-upload-browserstack-android-app:
-  resource_group: deploy-android
-  extends: .env-ont-k8s # needs k8s secrets
-  rules: !reference [.default-branch, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
-  needs:
-    - job: build-android-app
-      artifacts: true
-  # needs:
-  #   - job: build-ios-app # only deploy apps when both apps have been built successfully
-  #     artifacts: false
-  variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
-    FASTLANE_OPT_OUT_USAGE: "YES"
-  script:
-    - bundle install
-    - bundle exec fastlane android ci_browserstack
-
-deploy-ios-app:
-  resource_group: deploy-ios
-  rules: !reference [.default-or-release, rules]
-  needs:
-    - job: build-ios-app
-      artifacts: true
-    - job: build-android-app # only deploy apps when both apps have been built successfully
-      artifacts: false
-  tags:
-    - macos
-  variables:
-    FASTLANE_OPT_OUT_USAGE: "YES"
-  script:
-    - bundle install
-    - bundle exec fastlane disable_flutter_analytics
-    - bundle exec fastlane ios ci_deploy
-
-upload-browserstack-ios-app:
-  resource_group: deploy-ios
-  rules: !reference [.default-branch, rules]
-  needs:
-    - job: build-ios-app
-      artifacts: true
-    - job: build-android-app # only deploy apps when both apps have been built successfully
-      artifacts: false
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
-  variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
-    FASTLANE_OPT_OUT_USAGE: "YES"
-  script:
-    - bundle install
-    - bundle exec fastlane ios ci_browserstack
 
 .run-wp-migrations:
   rules: !reference [.default-branch, rules]
@@ -755,14 +884,18 @@ deploy-mock-relying-party-demo:
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
 
-run-automation-tests:
-  resource_group: automation-tests
+check-gitlab-ci-changed:
   rules:
-    - if: $RUN_AUTOMATION_TESTS == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
-      allow_failure: true
+  script:
+    - git fetch origin
+    # fails if .gitlab-ci.yml is different on CI_DEFAULT_BRANCH
+    - git diff --exit-code origin/$CI_DEFAULT_BRANCH -- .gitlab-ci.yml
+
+.run-automation-tests:
+  resource_group: automation-tests
+  extends: .env-ont-k8s
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-jdk11@sha256:1b0d6c2f6fe1e66d5f72e3d76648c973c9d0c0fa1bf57c3d94da30f6e8c97414"
   artifacts:
@@ -770,60 +903,55 @@ run-automation-tests:
     paths:
       - uiautomation/build/test-results
       - uiautomation/build/reports
-  script:
+  before_script:
     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
     - set -euxo pipefail
     - java -version
+    - git fetch origin
+    - git checkout $CI_DEFAULT_BRANCH
     - cd uiautomation
-    - gradle wrapper --gradle-version=7.3.3
-    - ./gradlew --debug --stacktrace test --tests suite.FeatureTestSuite
-
-.deploy-certs:
   script:
-    - envsubst < kubernetes/certificates/$CERT_ENV/static-cert.yaml | kubectl apply -f -
-    - envsubst < kubernetes/certificates/$CERT_ENV/wp-cert.yaml | kubectl apply -f -
-    - kubectl wait --for condition="ready" --timeout=180s -f kubernetes/certificates/$CERT_ENV/static-cert.yaml -f kubernetes/certificates/$CERT_ENV/wp-cert.yaml
+    - gradle wrapper --gradle-version=7.3.3
+    - ./gradlew --debug --stacktrace test 
+        --tests "feature.appstart.*" 
+        --tests "feature.introduction.*" 
+        --tests "feature.security.*" 
+        --tests "feature.lock.*"
 
-.deploy-certs-ont:
-  extends: [.env-ont-k8s, .deploy-certs]
-  variables:
-    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
-    STATIC_EXTERNAL_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ONT
-
-deploy-staging-certs-ont:
-  extends: .deploy-certs-ont
+run-automation-tests-12:
+  extends: [.run-automation-tests]
   rules:
-    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
+  needs:
+    - job: run-automation-tests-13
+      artifacts: false
+    - job: run-automation-tests-14
+      artifacts: false
   variables:
-    CERT_ENV: "staging"
+    BROWSERSTACK_DEVICE: "Google Pixel 6"
 
-deploy-live-certs-ont:
-  extends: .deploy-certs-ont
+run-automation-tests-13:
+  extends: [.run-automation-tests]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
+  needs:
+    - job: run-automation-tests-14
+      artifacts: false
   variables:
-    CERT_ENV: "live"
+    BROWSERSTACK_DEVICE: "Google Pixel Pro 7"
 
-.deploy-certs-demo:
-  extends: [.env-demo-k8s, .deploy-certs]
-  variables:
-    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
-    STATIC_EXTERNAL_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_DEMO
-
-deploy-staging-certs-demo:
-  extends: .deploy-certs-demo
+run-automation-tests-14:
+  extends: [.run-automation-tests]
   rules:
-    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_PIPELINE_SOURCE == "schedule") && $RENEW_ON_LETSENCRYPT_STAGING == "true"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: manual
   variables:
-    CERT_ENV: "staging"
-
-deploy-live-certs-demo:
-  extends: .deploy-certs-demo
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $RENEW_ON_LETSENCRYPT_LIVE == "true"
-  variables:
-    CERT_ENV: "live"
+    BROWSERSTACK_DEVICE: "Google Pixel 8"
 
 build-sbom:
   rules: !reference [.default-or-release, rules]

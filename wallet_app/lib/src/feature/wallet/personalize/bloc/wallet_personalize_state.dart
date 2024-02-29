@@ -28,9 +28,6 @@ class WalletPersonalizeLoadingIssuanceUrl extends WalletPersonalizeState {
 
   @override
   double get stepperProgress => 0.64;
-
-  @override
-  List<Object?> get props => [...super.props];
 }
 
 class WalletPersonalizeConnectDigid extends WalletPersonalizeState {
@@ -99,9 +96,14 @@ class WalletPersonalizeFailure extends WalletPersonalizeState {
   double get stepperProgress => 0;
 }
 
-class WalletPersonalizeDigidFailure extends WalletPersonalizeState {
+class WalletPersonalizeDigidFailure extends WalletPersonalizeState implements ErrorState {
   @override
-  double get stepperProgress => 0;
+  final Object error;
+
+  const WalletPersonalizeDigidFailure({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
 }
 
 class WalletPersonalizeDigidCancelled extends WalletPersonalizeState {
@@ -119,4 +121,30 @@ class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {
 
   @override
   List<Object?> get props => [progress, ...super.props];
+}
+
+class WalletPersonalizeNetworkError extends WalletPersonalizeState implements NetworkErrorState {
+  @override
+  final Object error;
+
+  @override
+  final int? statusCode;
+
+  @override
+  final bool hasInternet;
+
+  const WalletPersonalizeNetworkError({required this.error, required this.hasInternet, this.statusCode});
+
+  @override
+  List<Object?> get props => [error, hasInternet, statusCode, ...super.props];
+}
+
+class WalletPersonalizeGenericError extends WalletPersonalizeState implements ErrorState {
+  @override
+  final Object error;
+
+  const WalletPersonalizeGenericError({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
 }

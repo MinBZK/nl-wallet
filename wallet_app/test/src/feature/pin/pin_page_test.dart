@@ -14,7 +14,7 @@ void main() {
   group('goldens', () {
     testGoldens('PinEntryInProgress - 0 - Initial', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PinPage().withState<PinBloc, PinState>(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinEntryInProgress(0),
         ),
@@ -24,7 +24,7 @@ void main() {
 
     testGoldens('PinEntryInProgress - 3', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PinPage().withState<PinBloc, PinState>(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinEntryInProgress(3),
         ),
@@ -34,7 +34,7 @@ void main() {
 
     testGoldens('PinValidateInProgress', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PinPage().withState<PinBloc, PinState>(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateInProgress(),
         ),
@@ -44,7 +44,7 @@ void main() {
 
     testGoldens('PinValidateFailure', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PinPage().withState<PinBloc, PinState>(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false),
         ),
@@ -54,7 +54,7 @@ void main() {
 
     testGoldens('PinValidateFailure - final attempt', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PinPage().withState<PinBloc, PinState>(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateFailure(leftoverAttempts: 1, isFinalAttempt: true),
         ),
@@ -64,9 +64,9 @@ void main() {
 
     testGoldens('PinValidateGenericError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PinPage().withState<PinBloc, PinState>(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateGenericError(),
+          const PinValidateGenericError(error: 'error'),
         ),
       );
       await tester.pumpAndSettle();
@@ -75,9 +75,9 @@ void main() {
 
     testGoldens('PinValidateNetworkError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const PinPage().withState<PinBloc, PinState>(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateNetworkError(hasInternet: true),
+          const PinValidateNetworkError(error: 'error', hasInternet: true),
         ),
       );
       await tester.pumpAndSettle();
@@ -90,7 +90,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidget(
         WalletAppTestWidget(
-          child: const PinPage().withState<PinBloc, PinState>(
+          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
             const PinEntryInProgress(3),
           ),
@@ -111,7 +111,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidget(
         WalletAppTestWidget(
-          child: const PinPage().withState<PinBloc, PinState>(
+          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
             const PinEntryInProgress(3),
           ),
@@ -129,7 +129,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidget(
         WalletAppTestWidget(
-          child: const PinPage().withState<PinBloc, PinState>(
+          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
             const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false),
           ),
@@ -148,7 +148,7 @@ void main() {
     testWidgets('PinPage executes navigation when blocked', (tester) async {
       await tester.pumpWidget(
         WalletAppTestWidget(
-          child: const PinPage().withState<PinBloc, PinState>(
+          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
             const PinValidateBlocked(),
           ),
@@ -162,7 +162,7 @@ void main() {
     testWidgets('PinPage executes navigation when timeout is triggered', (tester) async {
       await tester.pumpWidget(
         WalletAppTestWidget(
-          child: const PinPage().withState<PinBloc, PinState>(
+          child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
             PinValidateTimeout(DateTime.now().add(const Duration(hours: 3))),
           ),

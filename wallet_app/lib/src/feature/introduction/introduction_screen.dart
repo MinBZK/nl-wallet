@@ -1,6 +1,8 @@
+import 'dart:math';
+
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../environment.dart';
@@ -9,23 +11,20 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
-import '../common/widget/button/primary_button.dart';
-import '../common/widget/button/rounded_back_button.dart';
-import '../common/widget/button/text_icon_button.dart';
-import 'page/introduction_page.dart';
+import '../common/screen/placeholder_screen.dart';
+import '../common/widget/button/confirm_buttons.dart';
+import '../common/widget/button/wallet_app_bar_back_button.dart';
+import '../common/widget/fade_in_at_offset.dart';
+import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/svg_or_image.dart';
+import '../common/widget/wallet_app_bar.dart';
 import 'widget/introduction_progress_stepper.dart';
 
 // Nr of introduction pages to be shown
-const _kNrOfPages = 4;
-
-// Strength of the parallax effect, used to translate the page indicator
-const _kParallaxStrength = 0.4;
-
-// Semantic constants
-const _kBackButtonSortKey = -1.0;
+const _kNrOfPages = 3;
 
 class IntroductionScreen extends StatefulWidget {
-  const IntroductionScreen({Key? key}) : super(key: key);
+  const IntroductionScreen({super.key});
 
   @override
   State<IntroductionScreen> createState() => _IntroductionScreenState();
@@ -34,14 +33,10 @@ class IntroductionScreen extends StatefulWidget {
 class _IntroductionScreenState extends State<IntroductionScreen> {
   final PageController _pageController = PageController();
 
-  /// This key is assigned to a widget who's location will be used to place the page indicator
-  final GlobalKey _pageIndicatorPositionPlaceholderKey = GlobalKey();
-
   final List<ScrollController> _scrollControllers = [
     ScrollController(debugLabel: 'intro_page_1'),
     ScrollController(debugLabel: 'intro_page_2'),
     ScrollController(debugLabel: 'intro_page_3'),
-    ScrollController(debugLabel: 'intro_page_4')
   ];
 
   /// The currently visible page
@@ -59,30 +54,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     return (scrollController?.hasClients == true) ? scrollController!.position.pixels : 0;
   }
 
-  /// Internally used cache position, rely on [_pageIndicatorYPosition] instead.
-  double? _pageIndicatorYPosCache;
-
-  /// The base y position of the page indicator, determined by finding the position of the
-  /// widget referenced by the [_pageIndicatorPositionPlaceholderKey], as the page indicator should sit right
-  /// above it.
-  double? get _pageIndicatorYPosition {
-    /// If we already know where to position the stepper, simply return it!
-    if (_pageIndicatorYPosCache != null) return _pageIndicatorYPosCache;
-
-    /// Hide indicator when the screen or placeholder isn't mounted
-    if (!mounted || _pageIndicatorPositionPlaceholderKey.currentContext?.mounted == false) return null;
-
-    /// Hide indicator when we can't determine the position of the placeholder
-    RenderObject? renderBox = _pageIndicatorPositionPlaceholderKey.currentContext?.findRenderObject();
-    if (renderBox == null || renderBox is! RenderBox) return null;
-
-    /// Make sure we consider any scrollOffset that happened before caching
-    final scrollOffset = _currentScrollControllerPixelOffset;
-
-    /// Set the yCache for future rebuilds
-    _pageIndicatorYPosCache = renderBox.localToGlobal(Offset.zero).dy + scrollOffset;
-    return _pageIndicatorYPosCache;
-  }
+  bool get showSkipSetupButton => kDebugMode && !Environment.isTest && Environment.mockRepositories;
 
   @override
   void initState() {
@@ -108,246 +80,247 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      restorationId: 'introduction_scaffold',
-      body: PopScope(
-        canPop: _currentPage == 0,
-        onPopInvoked: (didPop) => didPop ? null : _onPreviousPagePressed(context),
-        child: _buildPager(context),
-      ),
-    );
-  }
-
-  Widget _buildPager(BuildContext context) {
     return Stack(
       children: [
-        PageView(
-          physics: const ClampingScrollPhysics(parent: RangeMaintainingScrollPhysics()),
-          controller: _pageController,
-          children: [
-            _buildAppIntroPage1(context),
-            _buildAppIntroPage2(context),
-            _buildAppIntroPage3(context),
-            _buildAppIntroPage4(context),
-          ],
+        Scaffold(
+          restorationId: 'introduction_scaffold',
+          appBar: WalletAppBar(
+            leading: _buildBackButton(),
+            automaticallyImplyLeading: false,
+            actions: [_buildInfoButton(), _buildSkipSetupButton()],
+            title: FadeInAtOffset(
+              scrollController: _currentScrollController,
+              appearOffset: 38,
+              visibleOffset: 58,
+              child: Text(_resolveTitle()),
+            ),
+          ),
+          body: PopScope(
+            canPop: _currentPage == 0,
+            onPopInvoked: (didPop) => didPop ? null : _onPreviousPagePressed(context),
+            child: _buildContent(context),
+          ),
         ),
-        _buildPositionedPageIndicator(),
-        Semantics(
-          sortKey: const OrdinalSortKey(_kBackButtonSortKey),
-          explicitChildNodes: true,
-          child: _buildBackButton(),
-        ),
+        _buildGovernmentLabel(context),
       ],
     );
   }
 
-  Widget _buildAppIntroPage1(BuildContext context) {
-    const pageIndex = 0;
-    return IntroductionPage(
-      key: const Key('introductionPage1'),
-      image: const AssetImage(WalletAssets.image_intro_page_1),
-      title: context.l10n.introductionPage1Title,
-      subtitle: context.l10n.introductionPage1Description,
-      header: _buildPageIndicatorPlaceholder(
-        step: pageIndex + 1,
-        key: _currentPageInt == pageIndex ? _pageIndicatorPositionPlaceholderKey : null,
-      ),
-      footer: _buildBottomSection(context),
-      scrollController: _scrollControllers[pageIndex],
-    );
-  }
-
-  Widget _buildAppIntroPage2(BuildContext context) {
-    const pageIndex = 1;
-    return IntroductionPage(
-      key: const Key('introductionPage2'),
-      image: const AssetImage(WalletAssets.image_intro_page_2),
-      title: context.l10n.introductionPage2Title,
-      subtitle: context.l10n.introductionPage2Description,
-      bulletPoints: context.l10n.introductionPage2BulletPoints.split('\n'),
-      header: _buildPageIndicatorPlaceholder(
-        step: pageIndex + 1,
-        key: _currentPageInt == pageIndex ? _pageIndicatorPositionPlaceholderKey : null,
-      ),
-      footer: _buildBottomSection(context),
-      scrollController: _scrollControllers[pageIndex],
-    );
-  }
-
-  Widget _buildAppIntroPage3(BuildContext context) {
-    const pageIndex = 2;
-    return IntroductionPage(
-      key: const Key('introductionPage3'),
-      image: const AssetImage(WalletAssets.image_intro_page_3),
-      title: context.l10n.introductionPage3Title,
-      subtitle: context.l10n.introductionPage3Description,
-      header: _buildPageIndicatorPlaceholder(
-        step: pageIndex + 1,
-        key: _currentPageInt == pageIndex ? _pageIndicatorPositionPlaceholderKey : null,
-      ),
-      footer: _buildBottomSection(context),
-      scrollController: _scrollControllers[pageIndex],
-    );
-  }
-
-  Widget _buildAppIntroPage4(BuildContext context) {
-    const pageIndex = 3;
-    return IntroductionPage(
-      key: const Key('introductionPage4'),
-      image: const AssetImage(WalletAssets.image_intro_page_4),
-      title: context.l10n.introductionPage4Title,
-      bulletPoints: context.l10n.introductionPage4BulletPoints.split('\n'),
-      header: _buildPageIndicatorPlaceholder(
-        step: pageIndex + 1,
-        key: _currentPageInt == pageIndex ? _pageIndicatorPositionPlaceholderKey : null,
-      ),
-      footer: _buildBottomSection(context),
-      scrollController: _scrollControllers[pageIndex],
-    );
-  }
-
-  Widget _buildPositionedPageIndicator() {
-    /// Hide the page indicator in landscape layout
-    if (context.isLandscape) return const SizedBox.shrink();
-
-    /// Figure out where to place the pageIndicator (y position)
-    var yPos = _pageIndicatorYPosition;
-    if (yPos == null) {
-      /// y could not be resolved yet, this happens on the first build, when the position determining
-      /// widget has not been laid out yet. Trigger a rebuild to get its position on the next frame.
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) => setState(() {}));
-      return const SizedBox.shrink();
-    }
-    yPos -= (_currentScrollControllerPixelOffset * _kParallaxStrength);
-
-    /// Next to translating it, also fade it out when it moves up
-    const offsetUntilFade = 40.0;
-    final normalized = _currentScrollControllerPixelOffset / offsetUntilFade;
-    double scrollBasedOpacity = (1 - normalized).clamp(0, 1);
-
-    /// Finally position the indicator with the calculated position [yPos] and opacity [scrollBasedOpacity]
+  Widget _buildGovernmentLabel(BuildContext context) {
+    final labelOffset = -2 * _currentScrollControllerPixelOffset;
+    final normalizedOffset = min(labelOffset, 0).toDouble();
     return Positioned(
+      top: normalizedOffset,
       left: 0,
-      top: yPos,
-      child: Opacity(
-        opacity: scrollBasedOpacity,
-        child: _buildPageIndicator(_currentPage),
-      ),
-    );
-  }
-
-  Widget _buildPageIndicator(double currentStep) {
-    return ExcludeSemantics(
-      child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
-        child: IntroductionProgressStepper(
-          currentStep: currentStep,
-          totalSteps: _kNrOfPages,
-        ),
-      ),
-    );
-  }
-
-  /// Builds a widget that:
-  /// - Makes sure the correct space is reserved to actually draw the rendered stepper (which is done in an Overlay)
-  /// - Announces the current page number when a screen reader is enabled
-  /// - Positions the [SizedBox] used to draw the accessibility indicator
-  Widget _buildPageIndicatorPlaceholder({required int step, Key? key}) {
-    const indicatorPadding = 8.0;
-    const indicatorWidth = _kNrOfPages * 16 + 8.0;
-    // This [Container] construction is only there to make sure the accessibility rectangle is drawn correctly.
-    return Container(
-      key: key,
-      margin: const EdgeInsets.only(left: indicatorPadding),
-      alignment: Alignment.centerLeft,
-      child: Transform.translate(
-        offset: const Offset(0, indicatorPadding),
+      right: 0,
+      child: Center(
         child: Semantics(
-          container: true,
-          label: context.l10n.introductionWCAGCurrentPageAnnouncement(step, _kNrOfPages),
-          child: const SizedBox(
-            height: 22,
-            width: indicatorWidth,
+          label: context.l10n.introductionWCAGDutchGovernmentLogoLabel,
+          child: Image.asset(
+            WalletAssets.logo_rijksoverheid_label,
+            height: context.isLandscape ? 64 : 88,
+            fit: BoxFit.contain,
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: PageView(
+            physics: const ClampingScrollPhysics(parent: RangeMaintainingScrollPhysics()),
+            controller: _pageController,
+            children: [
+              _buildPage1(context),
+              _buildPage2(context),
+              _buildPage3(context),
+            ],
+          ),
+        ),
+        _buildControls(context),
+      ],
+    );
+  }
+
+  Widget _buildPage({
+    required Key key,
+    required BuildContext context,
+    required String title,
+    required String description,
+    required String illustration,
+    ScrollController? controller,
+  }) {
+    return SafeArea(
+      key: key,
+      top: false,
+      bottom: false,
+      child: Scrollbar(
+        controller: controller,
+        child: CustomScrollView(
+          controller: controller,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            const SliverSizedBox(height: 24),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: context.textTheme.displayMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        description,
+                        style: context.textTheme.bodyLarge,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SliverSizedBox(height: 32),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: false,
+              child: Container(
+                alignment: Alignment.center,
+                color: context.colorScheme.primaryContainer,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                child: SvgOrImage(
+                  asset: illustration,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPage1(BuildContext context) {
+    return _buildPage(
+      key: const Key('introductionPage1'),
+      context: context,
+      title: context.l10n.introductionPage1Title,
+      description: context.l10n.introductionPage1Description,
+      illustration: WalletAssets.svg_intro_placeholder_1,
+      controller: _scrollControllers[0],
+    );
+  }
+
+  Widget _buildPage2(BuildContext context) {
+    return _buildPage(
+      key: const Key('introductionPage2'),
+      context: context,
+      title: context.l10n.introductionPage2Title,
+      description: context.l10n.introductionPage2Description,
+      illustration: WalletAssets.svg_intro_placeholder_2,
+      controller: _scrollControllers[1],
+    );
+  }
+
+  Widget _buildPage3(BuildContext context) {
+    return _buildPage(
+      key: const Key('introductionPage3'),
+      context: context,
+      title: context.l10n.introductionPage3Title,
+      description: context.l10n.introductionPage3Description,
+      illustration: WalletAssets.svg_intro_placeholder_3,
+      controller: _scrollControllers[2],
+    );
+  }
+
+  Widget _buildInfoButton() {
+    return IconButton(
+      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      icon: Icon(
+        Icons.help_outline_rounded,
+        semanticLabel: context.l10n.generalHelpCta,
+      ),
+    );
+  }
+
+  Widget _buildSkipSetupButton() {
+    if (!showSkipSetupButton) return const SizedBox.shrink();
+    return IconButton(
+      onPressed: () async {
+        final navigator = Navigator.of(context);
+        await context.read<SetupMockedWalletUseCase>().invoke();
+        navigator.pushReplacementNamed(WalletRoutes.dashboardRoute);
+      },
+      icon: const Icon(
+        Icons.skip_next_outlined,
+        semanticLabel: 'Skip Setup',
+      ),
+    );
+  }
+
+  Widget _buildControls(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(height: context.isLandscape ? 8 : 16),
+        IntroductionProgressStepper(
+          currentStep: _currentPage,
+          totalSteps: _kNrOfPages,
+        ),
+        ConfirmButtons(
+          primaryText: context.l10n.introductionNextPageCta,
+          onPrimaryPressed: () => _onNextPressed(context),
+          primaryIcon: Icons.arrow_forward,
+          primaryButtonKey: const Key('introductionNextPageCta'),
+          secondaryText: context.l10n.introductionSkipCta,
+          onSecondaryPressed: () => _onSkipPressed(context),
+          secondaryIcon: Icons.arrow_forward,
+          secondaryButtonKey: const Key('introductionSkipCta'),
+          secondaryButtonStyle: ConfirmButtonType.text,
+        ),
+      ],
     );
   }
 
   void _onNextPressed(BuildContext context) {
     final isOnLastPage = (_currentPage + 0.5).toInt() == _kNrOfPages - 1;
     if (isOnLastPage) {
-      Navigator.restorablePushNamed(context, WalletRoutes.introductionExpectationsRoute);
+      Navigator.of(context).restorablePushNamed(WalletRoutes.introductionPrivacyRoute);
     } else {
       _pageController.nextPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
     }
   }
 
   void _onSkipPressed(BuildContext context) =>
-      Navigator.restorablePushNamed(context, WalletRoutes.introductionExpectationsRoute);
+      Navigator.of(context).restorablePushNamed(WalletRoutes.introductionPrivacyRoute);
 
   void _onPreviousPagePressed(BuildContext context) {
     _pageController.previousPage(duration: kDefaultAnimationDuration, curve: Curves.easeOutCubic);
   }
 
-  Widget _buildBottomSection(BuildContext context) {
-    Widget skipButton = TextIconButton(
-      key: const Key('introductionSkipCta'),
-      iconPosition: IconPosition.start,
-      centerChild: false,
-      onPressed: () => _onSkipPressed(context),
-      child: Text(context.l10n.introductionSkipCta),
-    );
-
-    //FIXME: This kDebugMode & isTest check is to be replaced a more elaborate deeplink
-    //FIXME: setup that allows us to configure the app with (custom) mock data.
-    if (kDebugMode && !Environment.isTest && Environment.mockRepositories) {
-      // Inject the skip setup button
-      skipButton = Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          skipButton,
-          TextIconButton(
-            iconPosition: IconPosition.start,
-            centerChild: false,
-            onPressed: () async {
-              final navigator = Navigator.of(context);
-              await context.read<SetupMockedWalletUseCase>().invoke();
-              navigator.pushReplacementNamed(WalletRoutes.dashboardRoute);
-            },
-            child: const Text('Skip Setup'),
-          ),
-        ],
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildNextButton(),
-          const SizedBox(height: 16),
-          skipButton,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNextButton() {
-    return PrimaryButton(
-      key: const Key('introductionNextPageCta'),
-      onPressed: () => _onNextPressed(context),
-      text: context.l10n.introductionNextPageCta,
-    );
-  }
-
-  Widget _buildBackButton() {
+  Widget? _buildBackButton() {
+    if (_currentPage < 0.5) return null;
     return Opacity(
       opacity: (_currentPage).clamp(0.0, 1.0),
-      child: const SafeArea(
-        child: RoundedBackButton(),
+      child: WalletAppBarBackButton(
+        onPressed: () => _onPreviousPagePressed(context),
       ),
     );
+  }
+
+  String _resolveTitle() {
+    switch (_currentPageInt) {
+      case 0:
+        return context.l10n.introductionPage1Title;
+      case 1:
+        return context.l10n.introductionPage2Title;
+      case 2:
+        return context.l10n.introductionPage3Title;
+    }
+    throw UnsupportedError('Unknown page: $_currentPageInt');
   }
 }

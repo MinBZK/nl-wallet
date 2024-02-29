@@ -4,7 +4,8 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/error/network_error.dart';
+import '../../../domain/model/bloc/error_state.dart';
+import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/usecase/pin/check_pin_usecase.dart';
 import '../../../util/extension/bloc_extension.dart';
 import '../../../util/extension/string_extension.dart';
@@ -58,8 +59,8 @@ class PinBloc extends Bloc<PinEvent, PinState> {
       Fimber.e('Pin validation error', ex: ex);
       await handleError(
         ex,
-        onNetworkError: (ex, hasInternet) => emit(PinValidateNetworkError(hasInternet: hasInternet)),
-        onUnhandledError: (ex) => emit(const PinValidateGenericError()),
+        onNetworkError: (ex, hasInternet) => emit(PinValidateNetworkError(error: ex, hasInternet: hasInternet)),
+        onUnhandledError: (ex) => emit(PinValidateGenericError(error: ex)),
       );
       _currentPin = '';
     }

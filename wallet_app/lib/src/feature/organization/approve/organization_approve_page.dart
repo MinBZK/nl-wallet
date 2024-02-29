@@ -40,8 +40,8 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.purpose,
     this.onReportIssuePressed,
     this.sharedDataWithOrganizationBefore = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -66,11 +66,11 @@ class OrganizationApprovePage extends StatelessWidget {
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
                 forceVertical: true,
-                onAcceptPressed: onAcceptPressed,
-                acceptIcon: Icons.arrow_forward,
-                acceptText: _approveButtonText(context),
-                onDeclinePressed: onDeclinePressed,
-                declineText: _declineButtonText(context),
+                onPrimaryPressed: onAcceptPressed,
+                primaryIcon: Icons.arrow_forward,
+                primaryText: _approveButtonText(context),
+                onSecondaryPressed: onDeclinePressed,
+                secondaryText: _declineButtonText(context),
               ),
             ),
           ),

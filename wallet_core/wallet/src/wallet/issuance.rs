@@ -21,7 +21,7 @@ use crate::{
     utils::reqwest::default_reqwest_client_builder,
 };
 
-use super::{documents::DocumentsError, Wallet};
+use super::{documents::DocumentsError, HistoryError, Wallet};
 
 pub(crate) enum PidIssuanceSession<DGS = HttpDigidSession, IS = HttpIssuanceSession> {
     Digid(DGS),
@@ -46,12 +46,14 @@ pub enum PidIssuanceError {
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
+    #[error("no signature received from Wallet Provider")]
+    MissingSignature,
     #[error("could not interpret mdoc attributes: {0}")]
     MdocDocument(#[from] DocumentMdocError),
     #[error("could not insert mdocs in database: {0}")]
     MdocStorage(#[source] StorageError),
     #[error("could not store history in database: {0}")]
-    HistoryStorage(#[source] StorageError),
+    HistoryStorage(#[source] HistoryError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
     #[error("invalid issuer certificate: {0}")]
@@ -299,6 +301,7 @@ where
                             RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
                             RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
                             RemoteEcdsaKeyError::KeyNotFound(identifier) => PidIssuanceError::KeyNotFound(identifier),
+                            RemoteEcdsaKeyError::MissingSignature => PidIssuanceError::MissingSignature,
                         }
                     }
                     _ => PidIssuanceError::PidIssuer(error),
@@ -349,8 +352,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
-
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
@@ -367,9 +368,13 @@ mod tests {
         digid::{MockDigidSession, OpenIdError},
         document::{self, DocumentPersistence},
         wallet::{test, PidIssuanceSession},
+        HistoryEvent,
     };
 
-    use super::{super::test::WalletWithMocks, *};
+    use super::{
+        super::test::{setup_mock_documents_callback, setup_mock_recent_history_callback, WalletWithMocks},
+        *,
+    };
 
     #[tokio::test]
     #[serial]
@@ -819,17 +824,11 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        // Wrap a `Vec<Document>` in both a `Mutex` and `Arc`,
-        // so we can write to it from the closure.
-        let documents = Arc::new(Mutex::new(Vec::<Vec<Document>>::with_capacity(2)));
-        let callback_documents = Arc::clone(&documents);
+        // Register mock document_callback
+        let documents = setup_mock_documents_callback(&mut wallet).await.unwrap();
 
-        // Set the documents callback on the `Wallet`, which should
-        // immediately be called with an empty `Vec`.
-        wallet
-            .set_documents_callback(move |documents| callback_documents.lock().unwrap().push(documents.clone()))
-            .await
-            .expect("Could not set documents callback");
+        // Register mock recent_history_callback
+        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         // Have the `PidIssuerClient` accept the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
@@ -847,11 +846,6 @@ mod tests {
             .await
             .expect("Could not accept PID issuance");
 
-        // Test that one successful issuance event is logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
-        assert_eq!(events.len(), 1);
-        assert_matches!(events.first().unwrap(), WalletEvent::Issuance { .. });
-
         // Test which `Document` instances we have received through the callback.
         let documents = documents.lock().unwrap();
 
@@ -864,6 +858,13 @@ mod tests {
         let document = &documents[1][0];
         assert_matches!(document.persistence, DocumentPersistence::Stored(_));
         assert_eq!(document.doc_type, "com.example.pid");
+
+        // Test that one successful issuance event is logged
+        let events = events.lock().unwrap();
+        assert_eq!(events.len(), 2);
+        assert!(events[0].is_empty());
+        assert_eq!(events[1].len(), 1);
+        assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
     }
 
     #[tokio::test]

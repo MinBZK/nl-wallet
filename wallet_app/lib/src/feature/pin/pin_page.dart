@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
@@ -25,6 +26,9 @@ typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, 
 /// by the [PinPage] to trigger potential (navigation) events.
 typedef PinStateInterceptor = bool Function(BuildContext context, PinState state);
 
+/// Signature for a function that is called when the [PinBloc] exposes an [ErrorState]
+typedef OnPinErrorCallback = void Function(BuildContext context, ErrorState state);
+
 /// Signature for a function that is called when the user has entered the correct pin.
 /// [returnUrl] is the url that the user should be redirected to (if not null).
 typedef OnPinValidatedCallback = void Function(String? returnUrl);
@@ -34,16 +38,27 @@ const _kHeaderHeightLogoCutOff = 180;
 
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
-  final OnPinValidatedCallback? onPinValidated;
+  /// Called when pin entry was successful
+  final OnPinValidatedCallback onPinValidated;
+
+  /// Called for every state change exposed by the [PinBloc]. When [onStateChanged] is
+  /// provided and it returns true, the event is not processed by this [PinPage].
   final PinStateInterceptor? onStateChanged;
+
+  /// Called when the [PinBloc] exposes an [ErrorState]. When [onPinError] is provided
+  /// the [ErrorState]s are no longer handled by this [PinPage].
+  final OnPinErrorCallback? onPinError;
+
+  /// Build a custom header, when null it defaults to [_defaultHeaderBuilder].
   final PinHeaderBuilder? headerBuilder;
 
   const PinPage({
-    this.onPinValidated,
+    required this.onPinValidated,
     this.onStateChanged,
+    this.onPinError,
     this.headerBuilder,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,24 +71,37 @@ class PinPage extends StatelessWidget {
             announceEnteredDigits(context, state.enteredDigits);
           }
         }
-        if (onStateChanged != null) {
-          bool consumed = onStateChanged!(context, state);
-          if (consumed) return;
+
+        /// Check for state interceptions
+        if (onStateChanged?.call(context, state) == true) return;
+        if (onPinError != null && state is ErrorState) {
+          onPinError!(context, state as ErrorState);
+          return;
         }
-        if (state is PinValidateSuccess) {
-          onPinValidated?.call(state.returnUrl);
-        }
-        if (state is PinValidateGenericError) {
-          ErrorScreen.showGeneric(context, secured: false);
-        }
-        if (state is PinValidateNetworkError) {
-          ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
-        }
-        if (state is PinValidateTimeout) {
-          PinTimeoutScreen.show(context, state.expiryTime);
-        }
-        if (state is PinValidateBlocked) {
-          PinBlockedScreen.show(context);
+
+        /// Process the state change
+        switch (state) {
+          case PinValidateSuccess():
+            onPinValidated.call(state.returnUrl);
+            break;
+          case PinValidateTimeout():
+            PinTimeoutScreen.show(context, state.expiryTime);
+            break;
+          case PinValidateBlocked():
+            PinBlockedScreen.show(context);
+            break;
+          case PinValidateNetworkError():
+            ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
+            break;
+          case PinValidateGenericError():
+            ErrorScreen.showGeneric(context, secured: false);
+            break;
+
+          /// No need to handle these explicitly as events for now.
+          case PinEntryInProgress():
+          case PinValidateInProgress():
+          case PinValidateFailure():
+            break;
         }
       },
       child: OrientationBuilder(

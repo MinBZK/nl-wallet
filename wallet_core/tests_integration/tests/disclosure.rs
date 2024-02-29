@@ -73,7 +73,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
     let client = reqwest::Client::new();
 
     let start_request = StartDisclosureRequest {
-        usecase: "driving_license".to_owned(),
+        usecase: "xyz_bank".to_owned(),
         session_type,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
@@ -206,7 +206,7 @@ async fn test_disclosure_without_pid() {
     let client = reqwest::Client::new();
 
     let start_request = StartDisclosureRequest {
-        usecase: "driving_license".to_owned(),
+        usecase: "xyz_bank".to_owned(),
         session_type: SessionType::SameDevice,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),

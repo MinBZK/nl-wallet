@@ -21,9 +21,9 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
-def overrideFlutterMinSdkVersion = 23
-def overrideFlutterTargetSdkVersion = 33
-def overrideFlutterCompileSdkVersion = 33
+def overrideFlutterMinSdkVersion = 24
+def overrideFlutterTargetSdkVersion = 34
+def overrideFlutterCompileSdkVersion = 34
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
@@ -38,12 +38,23 @@ if (keystorePropertiesFile.exists()) {
 def dartEnvironmentVariables = []
 if (project.hasProperty('dart-defines')) {
     dartEnvironmentVariables = project.property('dart-defines')
-        .split(',')
-        .collectEntries { entry ->
-            def pair = new String(entry.decodeBase64(), 'UTF-8').split('=')
-            [(pair.first()): pair.last()]
-        }
+            .split(',')
+            .collectEntries { entry ->
+                def pair = new String(entry.decodeBase64(), 'UTF-8').split('=')
+
+                // Check if the pair actually contains 2 values, else return empty string as value.
+                [(pair.first()): pair.size() == 2 ? pair.last() : '']
+            }
 }
+
+// Universal / deep links config
+def ulHostname = dartEnvironmentVariables['UL_HOSTNAME']
+def ulHostnameIsSet = ulHostname != null && !ulHostname.isEmpty()
+
+def ulIntentFilterAutoVerify = ulHostnameIsSet
+def ulIntentFilterHost = ulHostnameIsSet ? ulHostname : '*'
+def ulIntentFilterPathPrefix = ulHostnameIsSet ? '/deeplink' : ''
+def ulIntentFilterScheme = ulHostnameIsSet ? 'https' : 'walletdebuginteraction'
 
 android {
     compileSdkVersion overrideFlutterCompileSdkVersion
@@ -58,7 +69,7 @@ android {
         jvmTarget = '1.8'
     }
 
-    ndkVersion "25.2.9519653"
+    ndkVersion "26.2.11394342"
 
     sourceSets {
         main {
@@ -83,6 +94,12 @@ android {
         targetSdkVersion overrideFlutterTargetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
+        // Set universal & deep links intent-filter placeholders
+        manifestPlaceholders['ulIntentFilterAutoVerify'] = ulIntentFilterAutoVerify
+        manifestPlaceholders['ulIntentFilterHost'] = ulIntentFilterHost
+        manifestPlaceholders['ulIntentFilterPathPrefix'] = ulIntentFilterPathPrefix
+        manifestPlaceholders['ulIntentFilterScheme'] = ulIntentFilterScheme
     }
 
     signingConfigs {
@@ -96,6 +113,9 @@ android {
 
     buildTypes {
         debug {
+            signingConfig signingConfigs.common
+        }
+        profile {
             signingConfig signingConfigs.common
         }
         release {
@@ -150,7 +170,7 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
             args '--no-strip'
         }
         args 'build',
-             '-p', 'flutter_api'
+                '-p', 'flutter_api'
         if (profileMode != null) {
             args profileMode
         }

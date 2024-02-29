@@ -6,9 +6,9 @@ import '../common/widget/wallet_app_bar.dart';
 import 'pin_page.dart';
 
 class PinScreen extends StatelessWidget {
-  final OnPinValidatedCallback? onUnlock;
+  final OnPinValidatedCallback onUnlock;
 
-  const PinScreen({this.onUnlock, Key? key}) : super(key: key);
+  const PinScreen({required this.onUnlock, super.key});
 
   @override
   Widget build(BuildContext context) {

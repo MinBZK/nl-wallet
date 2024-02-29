@@ -6,7 +6,7 @@ import '../../../util/extension/build_context_extension.dart';
 class VersionText extends StatelessWidget {
   final TextStyle? textStyle;
 
-  const VersionText({this.textStyle, Key? key}) : super(key: key);
+  const VersionText({this.textStyle, super.key});
 
   @override
   Widget build(BuildContext context) {

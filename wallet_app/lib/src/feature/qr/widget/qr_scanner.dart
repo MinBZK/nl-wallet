@@ -8,7 +8,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../bloc/qr_bloc.dart';
 
 class QrScanner extends StatefulWidget {
-  const QrScanner({Key? key}) : super(key: key);
+  const QrScanner({super.key});
 
   @override
   State<QrScanner> createState() => _QrScannerState();

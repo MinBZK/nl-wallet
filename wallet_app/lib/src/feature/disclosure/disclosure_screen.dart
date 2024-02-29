@@ -42,7 +42,7 @@ class DisclosureScreen extends StatelessWidget {
     }
   }
 
-  const DisclosureScreen({Key? key}) : super(key: key);
+  const DisclosureScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +66,7 @@ class DisclosureScreen extends StatelessWidget {
             if (didPop) {
               return;
             }
-            final bloc = context.read<DisclosureBloc>();
+            final bloc = context.bloc;
             if (bloc.state.canGoBack) {
               bloc.add(const DisclosureBackPressed());
             } else {
@@ -86,7 +86,7 @@ class DisclosureScreen extends StatelessWidget {
       builder: (context, state) {
         return AnimatedVisibilityBackButton(
           visible: state.canGoBack,
-          onPressed: () => context.read<DisclosureBloc>().add(const DisclosureBackPressed()),
+          onPressed: () => context.bloc.add(const DisclosureBackPressed()),
         );
       },
     );
@@ -142,7 +142,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildCheckOrganizationPage(BuildContext context, DisclosureCheckOrganization state) {
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopDisclosure(context),
-      onAcceptPressed: () => context.read<DisclosureBloc>().add(const DisclosureOrganizationApproved()),
+      onAcceptPressed: () => context.bloc.add(const DisclosureOrganizationApproved()),
       organization: state.relyingParty,
       originUrl: state.originUrl,
       sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
@@ -153,7 +153,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildMissingAttributesPage(BuildContext context, DisclosureMissingAttributes state) {
     return DisclosureMissingAttributesPage(
-      onDecline: () => context.read<DisclosureBloc>().add(const DisclosureStopRequested()),
+      onDecline: () => context.bloc.add(const DisclosureStopRequested()),
       missingAttributes: state.missingAttributes,
       organization: state.relyingParty,
     );
@@ -162,7 +162,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildConfirmDataAttributesPage(BuildContext context, DisclosureConfirmDataAttributes state) {
     return DisclosureConfirmDataAttributesPage(
       onDeclinePressed: () => _stopDisclosure(context),
-      onAcceptPressed: () => context.read<DisclosureBloc>().add(const DisclosureShareRequestedAttributesApproved()),
+      onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedAttributesApproved()),
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
       relyingParty: state.relyingParty,
       requestedAttributes: state.requestedAttributes,
@@ -174,7 +174,8 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
     return DisclosureConfirmPinPage(
       bloc: PinBloc(context.read<AcceptDisclosureUseCase>()),
-      onPinValidated: (returnUrl) => context.read<DisclosureBloc>().add(DisclosurePinConfirmed(returnUrl: returnUrl)),
+      onPinValidated: (returnUrl) => context.bloc.add(DisclosurePinConfirmed(returnUrl: returnUrl)),
+      onConfirmWithPinFailed: (context, state) => context.bloc.add(DisclosureConfirmPinFailed(error: state.error)),
     );
   }
 
@@ -220,7 +221,7 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   void _stopDisclosure(BuildContext context) async {
-    final bloc = context.read<DisclosureBloc>();
+    final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
       final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName ?? '-'.untranslated;
@@ -241,7 +242,7 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   void _onReportIssuePressed(BuildContext context, List<ReportingOption> optionsToShow) async {
-    final bloc = context.read<DisclosureBloc>();
+    final bloc = context.bloc;
     final selectedOption = await ReportIssueScreen.show(context, optionsToShow);
     if (selectedOption != null) {
       bloc.add(DisclosureReportPressed(option: selectedOption));
@@ -323,4 +324,8 @@ class DisclosureScreen extends StatelessWidget {
       },
     );
   }
+}
+
+extension _DisclosureScreenExtensions on BuildContext {
+  DisclosureBloc get bloc => read<DisclosureBloc>();
 }

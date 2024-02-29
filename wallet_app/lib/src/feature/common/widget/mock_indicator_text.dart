@@ -6,7 +6,7 @@ import '../../../util/extension/build_context_extension.dart';
 class MockIndicatorText extends StatelessWidget {
   final TextStyle? textStyle;
 
-  const MockIndicatorText({this.textStyle, Key? key}) : super(key: key);
+  const MockIndicatorText({this.textStyle, super.key});
 
   @override
   Widget build(BuildContext context) {

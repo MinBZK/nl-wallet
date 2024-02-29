@@ -11,32 +11,34 @@ import '../common/widget/sliver_wallet_app_bar.dart';
 import 'bloc/change_language_bloc.dart';
 
 class ChangeLanguageScreen extends StatelessWidget {
-  const ChangeLanguageScreen({Key? key}) : super(key: key);
+  const ChangeLanguageScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('changeLanguageScreen'),
-      body: Column(
-        children: [
-          Expanded(
-            child: Scrollbar(
-              child: CustomScrollView(
-                slivers: [
-                  SliverWalletAppBar(
-                    title: context.l10n.changeLanguageScreenTitle,
-                    leading: const WalletAppBarBackButton(
-                      key: Key('changeLanguageScreenBackCta'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Scrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: context.l10n.changeLanguageScreenTitle,
+                      leading: const WalletAppBarBackButton(
+                        key: Key('changeLanguageScreenBackCta'),
+                      ),
                     ),
-                  ),
-                  const SliverSizedBox(height: 12),
-                  _buildContentSliver(context),
-                ],
+                    const SliverSizedBox(height: 12),
+                    _buildContentSliver(context),
+                  ],
+                ),
               ),
             ),
-          ),
-          const BottomBackButton(),
-        ],
+            const BottomBackButton(),
+          ],
+        ),
       ),
     );
   }

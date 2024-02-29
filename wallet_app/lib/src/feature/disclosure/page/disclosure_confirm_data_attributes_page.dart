@@ -39,8 +39,8 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     required this.requestedAttributes,
     required this.policy,
     required this.requestPurpose,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -148,11 +148,11 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
       children: [
         const Divider(height: 1),
         ConfirmButtons(
-          onAcceptPressed: onAcceptPressed,
-          acceptText: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
-          onDeclinePressed: onDeclinePressed,
-          acceptIcon: Icons.arrow_forward,
-          declineText: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
+          onPrimaryPressed: onAcceptPressed,
+          primaryText: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
+          onSecondaryPressed: onDeclinePressed,
+          primaryIcon: Icons.arrow_forward,
+          secondaryText: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
         ),
       ],
     );

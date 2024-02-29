@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/model/error/network_error.dart';
+import '../../domain/model/bloc/network_error_state.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
@@ -27,8 +27,8 @@ class ErrorScreen extends StatelessWidget {
     this.illustration,
     this.secondaryActionText,
     this.onSecondaryActionPressed,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -113,10 +113,10 @@ class ErrorScreen extends StatelessWidget {
 
   /// Shows the [ErrorScreen] focussed on communicating
   /// a network related error. The error displayed to the user is
-  /// based on the provided [NetworkError], and defaults to
+  /// based on the provided [NetworkErrorState], and defaults to
   /// 'something went wrong, check the internet and try again'
-  /// when no [NetworkError] is provided.
-  static void showNetwork(BuildContext context, {String? title, bool secured = true, NetworkError? networkError}) {
+  /// when no [NetworkErrorState] is provided.
+  static void showNetwork(BuildContext context, {String? title, bool secured = true, NetworkErrorState? networkError}) {
     if (networkError?.hasInternet == false) {
       showNoInternet(context, title: title, secured: secured);
     } else {

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter};
+use std::iter;
 
 use p256::ecdsa::{signature, signature::Verifier, Signature, VerifyingKey};
 
@@ -20,6 +20,8 @@ pub enum RemoteEcdsaKeyError {
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
     Signature(#[from] signature::Error),
+    #[error("no signature received from Wallet Provider")]
+    MissingSignature,
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
 }
@@ -80,43 +82,48 @@ where
         number_of_keys: u64,
     ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
         let keys = self.generate_new_multiple(number_of_keys).await?;
-        self.sign_with_existing_keys(vec![(msg, keys)]).await
-    }
 
-    async fn sign_with_existing_keys(
-        &self,
-        messages_and_keys: Vec<(Vec<u8>, Vec<Self::Key>)>,
-    ) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-        let (messages, keys): (Vec<_>, Vec<Vec<_>>) = messages_and_keys.into_iter().unzip();
+        let signatures = self
+            .sign_multiple_with_existing_keys(vec![(msg, keys.iter().collect())])
+            .await?;
 
-        let identifiers = keys
-            .iter()
-            .map(|keys| keys.iter().map(|key| key.identifier.clone()).collect::<Vec<String>>())
+        let result = keys
+            .into_iter()
+            .zip(
+                signatures
+                    .first()
+                    .cloned()
+                    .ok_or_else(|| RemoteEcdsaKeyError::MissingSignature)?,
+            )
             .collect::<Vec<_>>();
 
-        let result = self
+        Ok(result)
+    }
+
+    async fn sign_multiple_with_existing_keys(
+        &self,
+        messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
+    ) -> Result<Vec<Vec<Signature>>, Self::Error> {
+        let sign_result = self
             .instruction_client
             .send(Sign {
-                messages_with_identifiers: messages.into_iter().zip(identifiers).collect(),
+                messages_with_identifiers: messages_and_keys
+                    .into_iter()
+                    .map(|(message, keys)| {
+                        let identifiers = keys.into_iter().map(|key| key.identifier.clone()).collect();
+                        (message, identifiers)
+                    })
+                    .collect(),
             })
             .await?;
 
-        let mut keys_by_identifier: HashMap<String, Self::Key> = keys
+        let signatures = sign_result
+            .signatures
             .into_iter()
-            .flat_map(|keys| {
-                keys.into_iter()
-                    .map(|key| (key.identifier.clone(), key))
-                    .collect::<Vec<_>>()
-            })
+            .map(|signatures| signatures.into_iter().map(|signature| signature.0).collect())
             .collect();
 
-        let keys_and_signatures = result
-            .signatures_by_identifier
-            .into_iter()
-            .map(|(key, value)| (keys_by_identifier.remove(&key).unwrap(), value.0))
-            .collect();
-
-        Ok(keys_and_signatures)
+        Ok(signatures)
     }
 }
 
@@ -148,8 +155,9 @@ where
             .await?;
 
         let signature = result
-            .signatures_by_identifier
-            .get(&self.identifier)
+            .signatures
+            .first()
+            .and_then(|r| r.first())
             .ok_or(RemoteEcdsaKeyError::KeyNotFound(self.identifier.clone()))?;
 
         self.public_key.verify(msg, &signature.0)?;

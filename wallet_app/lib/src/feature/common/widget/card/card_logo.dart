@@ -8,8 +8,8 @@ class CardLogo extends StatelessWidget {
 
   const CardLogo({
     required this.logo,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

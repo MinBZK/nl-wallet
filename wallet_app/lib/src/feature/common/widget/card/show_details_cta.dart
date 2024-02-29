@@ -4,8 +4,8 @@ import '../../../../util/extension/build_context_extension.dart';
 
 class ShowDetailsCta extends StatelessWidget {
   const ShowDetailsCta({
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -26,8 +26,8 @@ class ConfirmActionSheet extends StatelessWidget {
     required this.confirmButtonText,
     this.confirmIcon,
     this.extraContent,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,12 +72,12 @@ class ConfirmActionSheet extends StatelessWidget {
             const SizedBox(height: 16),
             const Divider(height: 1),
             ConfirmButtons(
-              onDeclinePressed: () => onCancelPressed?.call(),
-              onAcceptPressed: () => onConfirmPressed?.call(),
-              acceptText: confirmButtonText,
-              acceptIcon: confirmIcon,
-              declineText: cancelButtonText,
-              declineIcon: cancelIcon,
+              onSecondaryPressed: () => onCancelPressed?.call(),
+              onPrimaryPressed: () => onConfirmPressed?.call(),
+              primaryText: confirmButtonText,
+              primaryIcon: confirmIcon,
+              secondaryText: cancelButtonText,
+              secondaryIcon: cancelIcon,
             ),
           ],
         ),

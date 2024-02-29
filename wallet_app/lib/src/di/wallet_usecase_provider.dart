@@ -29,6 +29,8 @@ import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import '../domain/usecase/history/impl/get_wallet_timeline_attributes_usecase_impl.dart';
+import '../domain/usecase/history/impl/observe_recent_history_usecase_impl.dart';
+import '../domain/usecase/history/observe_recent_history_usecase.dart';
 import '../domain/usecase/issuance/accept_issuance_usecase.dart';
 import '../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../domain/usecase/issuance/continue_issuance_usecase.dart';
@@ -94,7 +96,7 @@ import '../util/extension/bloc_extension.dart';
 class WalletUseCaseProvider extends StatelessWidget {
   final Widget child;
 
-  const WalletUseCaseProvider({required this.child, Key? key}) : super(key: key);
+  const WalletUseCaseProvider({required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -233,6 +235,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<RejectSignAgreementUseCase>(
           create: (context) => RejectSignAgreementUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObserveRecentHistoryUseCase>(
+          create: (context) => ObserveRecentHistoryUseCaseImpl(context.read()),
         ),
       ],
       child: child,

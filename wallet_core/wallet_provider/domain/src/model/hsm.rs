@@ -9,12 +9,6 @@ pub fn key_identifier(prefix: &str, identifier: &str) -> String {
     format!("{prefix}_{identifier}")
 }
 
-pub struct WrappedKeySigningPayload {
-    pub identifier: String,
-    pub wrapped_key: WrappedKey,
-    pub data: Arc<Vec<u8>>,
-}
-
 pub trait WalletUserHsm {
     type Error: Error + Send + Sync;
 
@@ -46,18 +40,6 @@ pub trait WalletUserHsm {
     }
 
     async fn sign_wrapped(&self, wrapped_key: WrappedKey, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error>;
-
-    async fn sign_multiple_wrapped(
-        &self,
-        payloads: Vec<WrappedKeySigningPayload>,
-    ) -> Result<Vec<(String, Signature)>, Self::Error> {
-        future::try_join_all(payloads.into_iter().map(|payload| async {
-            self.sign_wrapped(payload.wrapped_key, payload.data)
-                .await
-                .map(|signature| (payload.identifier, signature))
-        }))
-        .await
-    }
 
     async fn sign(&self, wallet_id: &WalletId, identifier: &str, data: Arc<Vec<u8>>) -> Result<Signature, Self::Error>;
 

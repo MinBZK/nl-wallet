@@ -26,6 +26,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final disclosureId = jsonPayload['id'] as String;
     final request = kDisclosureRequests.firstWhere((element) => element.id == disclosureId);
+    final requestOriginBaseUrl = request.relyingParty.webUrl ?? 'http://origin.org';
 
     // Check if all attributes are available
     final containsAllRequestedAttributes =
@@ -36,7 +37,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         policy: request.policy,
         requestedCards: _wallet.getDisclosureCards(request.requestedAttributes.map((attribute) => attribute.key)),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
-        requestOriginBaseUrl: 'http://origin.org',
+        requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
       );
     } else {
@@ -49,7 +50,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       return _ongoingDisclosure = StartDisclosureResult.requestAttributesMissing(
         relyingParty: request.relyingParty,
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
-        requestOriginBaseUrl: 'http://origin.org',
+        requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
         missingAttributes: missingAttributes.toList(),
       );
@@ -116,6 +117,11 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
 
   @override
   Future<void> clearLockStream({hint}) async {
+    // Stub only, no need to clear it on the mock
+  }
+
+  @override
+  Future<void> clearRecentHistoryStream({hint}) async {
     // Stub only, no need to clear it on the mock
   }
 
@@ -209,6 +215,9 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   @override
   Future<List<WalletEvent>> getHistoryForCard({required String docType, hint}) async =>
       _eventLog.logForDocType(docType);
+
+  @override
+  Stream<List<WalletEvent>> setRecentHistoryStream({hint}) => _eventLog.logStream;
 }
 
 /// Helper class to make [WalletCoreMock] satisfy [WalletCore]
@@ -263,4 +272,8 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kGetHistoryConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kGetHistoryForCardConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => throw UnimplementedError();
 }

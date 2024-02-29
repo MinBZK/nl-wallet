@@ -26,8 +26,8 @@ class IssuanceProofIdentityPage extends StatelessWidget {
     required this.attributes,
     required this.policy,
     required this.isRefreshFlow,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,11 +51,11 @@ class IssuanceProofIdentityPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onAcceptPressed: onAcceptPressed,
-                acceptText: context.l10n.issuanceProofIdentityPagePositiveCta,
-                onDeclinePressed: onDeclinePressed,
-                declineText: context.l10n.issuanceProofIdentityPageNegativeCta,
-                acceptIcon: Icons.arrow_forward,
+                onPrimaryPressed: onAcceptPressed,
+                primaryText: context.l10n.issuanceProofIdentityPagePositiveCta,
+                onSecondaryPressed: onDeclinePressed,
+                secondaryText: context.l10n.issuanceProofIdentityPageNegativeCta,
+                primaryIcon: Icons.arrow_forward,
               ),
             ),
           ),

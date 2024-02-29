@@ -1,7 +1,6 @@
 package feature.appstart
 
 import helper.TestBase
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -37,21 +36,21 @@ class AppStartTests : TestBase() {
         @Tags(Tag("dutch"))
         @DisplayName("2.1. If the device language is set to Dutch, then the app starts in Dutch")
         fun verifyDutchLanguage() {
-            assertEquals(introductionScreen.readNextButtonText(), "Volgende")
+            assertTrue(introductionScreen.nextButtonTextVisible("Volgende"))
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
         @DisplayName("2.2. If the device language is set to English, then the app starts in English")
         fun verifyEnglishLanguage() {
-            assertEquals(introductionScreen.readNextButtonText(), "Next")
+            assertTrue(introductionScreen.nextButtonTextVisible("Next"))
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("france"))
         @DisplayName("2.3. If the device language is set to France, then the app starts in English")
         fun verifyOtherLanguage() {
-            assertEquals(introductionScreen.readNextButtonText(), "Next")
+            assertTrue(introductionScreen.nextButtonTextVisible("Next"))
         }
     }
 

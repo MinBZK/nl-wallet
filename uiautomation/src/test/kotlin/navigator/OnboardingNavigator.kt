@@ -4,7 +4,6 @@ import navigator.screen.OnboardingScreen
 import screen.digid.DigidLoginMockWebPage
 import screen.digid.DigidLoginStartWebPage
 import screen.introduction.IntroductionConditionsScreen
-import screen.introduction.IntroductionExpectationsScreen
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
 import screen.personalize.PersonalizeInformScreen
@@ -21,7 +20,6 @@ class OnboardingNavigator {
 
     fun toScreen(screen: OnboardingScreen) {
         if (screen > OnboardingScreen.Introduction) IntroductionScreen().clickSkipButton()
-        if (screen > OnboardingScreen.IntroductionExpectations) IntroductionExpectationsScreen().clickNextButton()
         if (screen > OnboardingScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()
         if (screen > OnboardingScreen.IntroductionConditions) IntroductionConditionsScreen().clickNextButton()
         if (screen > OnboardingScreen.SecurityChoosePin) PinScreen().choosePin(PIN)

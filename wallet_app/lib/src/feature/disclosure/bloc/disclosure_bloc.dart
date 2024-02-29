@@ -6,6 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../domain/model/bloc/error_state.dart';
+import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
@@ -37,6 +39,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     on<DisclosureShareRequestedAttributesApproved>(_onShareRequestedAttributesApproved);
     on<DisclosurePinConfirmed>(_onPinConfirmed);
     on<DisclosureReportPressed>(_onReportPressed);
+    on<DisclosureConfirmPinFailed>(_onConfirmPinFailed);
   }
 
   void _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
@@ -53,8 +56,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       Fimber.e('Failed to start disclosure', ex: ex);
       await handleError(
         ex,
-        onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(hasInternet: hasInternet)),
-        onUnhandledError: (error) => emit(DisclosureGenericError()),
+        onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(hasInternet: hasInternet, error: error)),
+        onUnhandledError: (error) => emit(DisclosureGenericError(error: error)),
       );
     }
   }
@@ -68,7 +71,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     } finally {
       final relyingParty = _startDisclosureResult?.relyingParty;
       if (relyingParty == null) {
-        emit(DisclosureGenericError());
+        emit(const DisclosureGenericError(error: 'Invalid state, no relying party to render stopped'));
       } else {
         emit(DisclosureStopped(organization: _startDisclosureResult!.relyingParty));
       }
@@ -156,6 +159,20 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
     } finally {
       emit(const DisclosureLeftFeedback());
+    }
+  }
+
+  void _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
+    try {
+      // await _cancelDisclosureUseCase.invoke(); //TODO: Decide which errors require cancellation
+    } catch (ex) {
+      Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
+    } finally {
+      handleError(
+        event.error,
+        onNetworkError: (ex, hasInternet) => emit(DisclosureNetworkError(error: ex, hasInternet: hasInternet)),
+        onUnhandledError: (ex) => emit(DisclosureGenericError(error: ex)),
+      );
     }
   }
 
