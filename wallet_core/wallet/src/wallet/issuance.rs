@@ -293,7 +293,8 @@ where
                 match error {
                     // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
                     // that it is the error type of the `RemoteEcdsaKeyFactory` we provide above.
-                    IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
+                    IssuanceSessionError::PrivateKeyGeneration(error)
+                    | IssuanceSessionError::Jwt(JwtError::Signing(error)) => {
                         match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                             RemoteEcdsaKeyError::Instruction(error) => PidIssuanceError::Instruction(error),
                             RemoteEcdsaKeyError::Signature(error) => PidIssuanceError::Signature(error),
