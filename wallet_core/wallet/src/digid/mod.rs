@@ -4,9 +4,12 @@ mod openid_pkce;
 
 use url::Url;
 
-pub use self::openid_client::OpenIdError;
+use openid4vc::token::TokenRequest;
 
-pub use self::client::HttpDigidSession;
+pub use self::{client::HttpDigidSession, openid_client::OpenIdError};
+
+#[cfg(feature = "wallet_deps")]
+pub use self::openid_client::HttpOpenIdClient;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DigidError {
@@ -39,7 +42,7 @@ pub trait DigidSession {
     /// Check if the DigiD session matches the provided redirect URI.
     fn matches_received_redirect_uri(&self, received_redirect_uri: &Url) -> bool;
 
-    /// Retrieve the access token from DigiD, based on the contents
+    /// Create an OpenID Token Request based on the contents
     /// of the redirect URI received.
     ///
     /// Note that this consumes the [`DigidSession`], either on success or failure.
@@ -47,5 +50,5 @@ pub trait DigidSession {
     /// that the UI will present to the user, instead they will have to start a new session.
     /// For the purpose of simplification, that means that this operation is transactional
     /// here as well.
-    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError>;
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, DigidError>;
 }

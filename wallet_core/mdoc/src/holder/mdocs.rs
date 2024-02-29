@@ -2,13 +2,15 @@ use std::result::Result;
 
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use webpki::TrustAnchor;
 
 use wallet_common::generator::Generator;
 
 use crate::{
-    basic_sa_ext::Entry,
+    basic_sa_ext::{Entry, UnsignedMdoc},
+    identifiers::AttributeIdentifier,
     iso::*,
     utils::{
         cose::CoseError,
@@ -102,4 +104,68 @@ impl Mdoc {
     pub fn issuer_certificate(&self) -> Result<Certificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
     }
+
+    /// Check that the namespaces, attribute names and attribute values of this instance are equal to to the
+    /// provided unsigned value.
+    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedAttributesMismatch> {
+        let our_attrs = self.attributes();
+        let our_attrs = flatten_map(&self.doc_type, &our_attrs);
+        let expected_attrs = flatten_map(&unsigned.doc_type, &unsigned.attributes);
+
+        let missing = expected_attrs
+            .iter()
+            .filter_map(|(id, expected)| {
+                if !our_attrs.contains_key(id) || our_attrs[id] != *expected {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect_vec();
+
+        let unexpected = our_attrs
+            .iter()
+            .filter_map(|(id, received)| {
+                if !expected_attrs.contains_key(id) || expected_attrs[id] != *received {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect_vec();
+
+        if !missing.is_empty() || !unexpected.is_empty() {
+            return Err(IssuedAttributesMismatch { missing, unexpected });
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("missing attributes: {missing:?}; unexpected attributes: {unexpected:?}")]
+pub struct IssuedAttributesMismatch {
+    pub missing: Vec<AttributeIdentifier>,
+    pub unexpected: Vec<AttributeIdentifier>,
+}
+
+fn flatten_map<'a>(
+    doctype: &'a DocType,
+    attrs: &'a IndexMap<NameSpace, Vec<Entry>>,
+) -> IndexMap<AttributeIdentifier, &'a ciborium::Value> {
+    attrs
+        .iter()
+        .flat_map(|(namespace, entries)| {
+            entries.iter().map(|entry| {
+                (
+                    AttributeIdentifier {
+                        doc_type: doctype.clone(),
+                        namespace: namespace.clone(),
+                        attribute: entry.name.clone(),
+                    },
+                    &entry.value,
+                )
+            })
+        })
+        .collect()
 }

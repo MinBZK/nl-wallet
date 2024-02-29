@@ -33,7 +33,7 @@ impl UpdatingFileHttpConfigurationRepository {
             storage_path,
             config.base_url,
             config.trust_anchors,
-            config.signing_public_key.into(),
+            (&config.signing_public_key).into(),
             initial_config,
         )
         .await?;

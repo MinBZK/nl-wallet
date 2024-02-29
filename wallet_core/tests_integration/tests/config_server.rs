@@ -53,7 +53,7 @@ async fn test_wallet_config() {
     let http_config = HttpConfigurationRepository::new(
         config_server_config.base_url,
         config_server_config.trust_anchors,
-        config_server_config.signing_public_key.into(),
+        (&config_server_config.signing_public_key).into(),
         storage_path.clone(),
         wallet_config,
     )
@@ -102,7 +102,7 @@ async fn test_wallet_config_stale() {
     let http_config = HttpConfigurationRepository::new(
         config_server_config.base_url,
         config_server_config.trust_anchors,
-        config_server_config.signing_public_key.into(),
+        (&config_server_config.signing_public_key).into(),
         env::temp_dir(),
         wallet_config,
     )
@@ -157,7 +157,7 @@ async fn test_wallet_config_signature_verification_failed() {
     let http_config = HttpConfigurationRepository::new(
         config_server_config.base_url,
         config_server_config.trust_anchors,
-        config_server_config.signing_public_key.into(),
+        (&config_server_config.signing_public_key).into(),
         env::temp_dir(),
         wallet_config,
     )

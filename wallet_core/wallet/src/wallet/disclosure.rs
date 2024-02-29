@@ -63,7 +63,7 @@ pub enum DisclosureError {
     HistoryStorage(#[source] HistoryError),
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     CR: ConfigurationRepository,
     MDS: MdocDisclosureSession<Self>,
@@ -356,7 +356,7 @@ where
     }
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     S: Storage,
 {

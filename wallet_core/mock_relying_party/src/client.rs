@@ -30,7 +30,7 @@ impl WalletServerClient {
         // TODO check if base_url ends with '/' (possibly already on init)
         let response = self
             .client
-            .post(self.base_url.join("sessions")?)
+            .post(self.base_url.join("/disclosure/sessions")?)
             .json(&StartDisclosureRequest {
                 usecase,
                 items_requests,
@@ -52,7 +52,7 @@ impl WalletServerClient {
     pub async fn status(&self, session_id: SessionToken) -> Result<StatusResponse, anyhow::Error> {
         Ok(self
             .client
-            .get(self.base_url.join(&format!("/{session_id}/status"))?)
+            .get(self.base_url.join(&format!("/disclosure/{session_id}/status"))?)
             .send()
             .await?
             .error_for_status()?
@@ -67,7 +67,7 @@ impl WalletServerClient {
     ) -> Result<DisclosedAttributes, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
-            .join(&format!("/sessions/{session_id}/disclosed_attributes"))?;
+            .join(&format!("/disclosure/sessions/{session_id}/disclosed_attributes"))?;
         if let Some(hash) = transcript_hash {
             disclosed_attributes_url.set_query(Some(&format!("transcript_hash={}", hash)));
         }

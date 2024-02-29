@@ -1,7 +1,8 @@
 use openid::Options;
+use openid4vc::pkce::PkcePair;
 use url::Url;
 
-use crate::{pkce::PkcePair, utils::url::url_with_query_pairs};
+use crate::utils::url::url_with_query_pairs;
 
 use super::Client;
 
@@ -29,9 +30,8 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use openid::Config;
+    use openid4vc::pkce::MockPkcePair;
     use serde_json::json;
-
-    use crate::pkce::MockPkcePair;
 
     use super::*;
 

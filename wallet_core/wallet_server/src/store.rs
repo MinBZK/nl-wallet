@@ -1,3 +1,4 @@
+use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -5,61 +6,96 @@ use nl_wallet_mdoc::{
     verifier::DisclosureData,
 };
 
+#[cfg(feature = "issuance")]
+use openid4vc::issuer::IssuanceData;
+
 #[cfg(feature = "postgres")]
 use crate::store::postgres::PostgresSessionStore;
 
-/// This enum effectively switches between the different types that implement `DisclosureSessionStore`,
-/// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
-pub enum DisclosureSessionStore {
-    #[cfg(feature = "postgres")]
-    Postgres(PostgresSessionStore<DisclosureData>),
-    Memory(MemorySessionStore<DisclosureData>),
+pub trait SessionDataType {
+    const TYPE: &'static str;
 }
 
-impl DisclosureSessionStore {
-    pub async fn init(url: Url) -> anyhow::Result<Self> {
-        let session_store = match url.scheme() {
-            #[cfg(feature = "postgres")]
-            "postgres" => DisclosureSessionStore::Postgres(PostgresSessionStore::connect(url).await?),
-            "memory" => DisclosureSessionStore::Memory(MemorySessionStore::new()),
-            e => unimplemented!("{}", e),
-        };
+impl SessionDataType for DisclosureData {
+    const TYPE: &'static str = "mdoc_disclosure";
+}
 
-        Ok(session_store)
+#[cfg(feature = "issuance")]
+impl SessionDataType for openid4vc::issuer::IssuanceData {
+    const TYPE: &'static str = "openid4vci_issuance";
+}
+
+pub struct SessionStores {
+    pub disclosure: SessionStoreVariant<DisclosureData>,
+
+    #[cfg(feature = "issuance")]
+    pub issuance: SessionStoreVariant<IssuanceData>,
+}
+
+impl SessionStores {
+    pub async fn init(url: Url) -> Result<SessionStores, anyhow::Error> {
+        match url.scheme() {
+            #[cfg(feature = "postgres")]
+            "postgres" => {
+                let db = std::sync::Arc::new(postgres::connect(url).await?);
+                Ok(SessionStores {
+                    #[cfg(feature = "issuance")]
+                    issuance: SessionStoreVariant::Postgres(PostgresSessionStore::new(std::sync::Arc::clone(&db))),
+                    disclosure: SessionStoreVariant::Postgres(PostgresSessionStore::new(db)),
+                })
+            }
+            "memory" => Ok(SessionStores {
+                #[cfg(feature = "issuance")]
+                issuance: SessionStoreVariant::Memory(MemorySessionStore::new()),
+                disclosure: SessionStoreVariant::Memory(MemorySessionStore::new()),
+            }),
+            e => unimplemented!("{}", e),
+        }
     }
 }
 
-impl SessionStore for DisclosureSessionStore {
-    type Data = SessionState<DisclosureData>;
+/// This enum effectively switches between the different types that implement `DisclosureSessionStore`,
+/// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
+pub enum SessionStoreVariant<T> {
+    #[cfg(feature = "postgres")]
+    Postgres(PostgresSessionStore<T>),
+    Memory(MemorySessionStore<T>),
+}
+
+impl<T> SessionStore for SessionStoreVariant<T>
+where
+    T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
+{
+    type Data = SessionState<T>;
 
     async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            DisclosureSessionStore::Postgres(postgres) => postgres.get(id).await,
-            DisclosureSessionStore::Memory(memory) => memory.get(id).await,
+            SessionStoreVariant::Postgres(postgres) => postgres.get(id).await,
+            SessionStoreVariant::Memory(memory) => memory.get(id).await,
         }
     }
 
     async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            DisclosureSessionStore::Postgres(postgres) => postgres.write(session).await,
-            DisclosureSessionStore::Memory(memory) => memory.write(session).await,
+            SessionStoreVariant::Postgres(postgres) => postgres.write(session).await,
+            SessionStoreVariant::Memory(memory) => memory.write(session).await,
         }
     }
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            DisclosureSessionStore::Postgres(postgres) => postgres.cleanup().await,
-            DisclosureSessionStore::Memory(memory) => memory.cleanup().await,
+            SessionStoreVariant::Postgres(postgres) => postgres.cleanup().await,
+            SessionStoreVariant::Memory(memory) => memory.cleanup().await,
         }
     }
 }
 
 #[cfg(feature = "postgres")]
 pub mod postgres {
-    use std::{marker::PhantomData, time::Duration};
+    use std::{marker::PhantomData, sync::Arc, time::Duration};
 
     use chrono::Utc;
     use sea_orm::{
@@ -75,37 +111,33 @@ pub mod postgres {
         SessionState, SessionStore, SessionStoreError, SessionToken, SESSION_EXPIRY_MINUTES,
     };
 
+    use super::SessionDataType;
+
     const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
     pub struct PostgresSessionStore<T> {
-        connection: DatabaseConnection,
+        connection: Arc<DatabaseConnection>,
         _marker: PhantomData<T>,
     }
 
     impl<T> PostgresSessionStore<T> {
-        pub async fn connect(url: Url) -> anyhow::Result<Self> {
-            let mut connection_options = ConnectOptions::new(url);
-            connection_options
-                .connect_timeout(DB_CONNECT_TIMEOUT)
-                .sqlx_logging(true)
-                .sqlx_logging_level(LevelFilter::Trace);
-
-            let db = Database::connect(connection_options).await?;
-            Ok(Self {
+        pub fn new(db: Arc<DatabaseConnection>) -> Self {
+            Self {
                 connection: db,
                 _marker: PhantomData,
-            })
+            }
         }
     }
 
-    impl<T: Clone + Serialize + DeserializeOwned + Send + Sync> SessionStore for PostgresSessionStore<T> {
+    impl<T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync> SessionStore for PostgresSessionStore<T> {
         type Data = SessionState<T>;
 
         async fn get(&self, token: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
             // find value by token, deserialize from JSON if it exists
             let state = session_state::Entity::find()
                 .filter(session_state::Column::Token.eq(token.to_string()))
-                .one(&self.connection)
+                .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
+                .one(self.connection.as_ref())
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
@@ -121,6 +153,7 @@ pub mod postgres {
                 data: ActiveValue::set(
                     serde_json::to_value(session.clone()).map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
                 ),
+                r#type: ActiveValue::set(T::TYPE.to_string()),
                 token: ActiveValue::set(session.token.to_string()),
                 expiration_date_time: ActiveValue::set(
                     (session.last_active + chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64)).into(),
@@ -131,7 +164,7 @@ pub mod postgres {
                     .update_columns([session_state::Column::Data, session_state::Column::ExpirationDateTime])
                     .to_owned(),
             )
-            .exec(&self.connection)
+            .exec(self.connection.as_ref())
             .await
             .map_err(|e| SessionStoreError::Other(e.into()))?;
 
@@ -142,11 +175,61 @@ pub mod postgres {
             // delete expired sessions
             session_state::Entity::delete_many()
                 .filter(session_state::Column::ExpirationDateTime.lt(Utc::now()))
-                .exec(&self.connection)
+                .exec(self.connection.as_ref())
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
             Ok(())
+        }
+    }
+
+    pub async fn connect(url: Url) -> Result<DatabaseConnection, anyhow::Error> {
+        let mut connection_options = ConnectOptions::new(url);
+        connection_options
+            .connect_timeout(DB_CONNECT_TIMEOUT)
+            .sqlx_logging(true)
+            .sqlx_logging_level(LevelFilter::Trace);
+
+        let db = Database::connect(connection_options).await?;
+        Ok(db)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::settings::Settings;
+
+        use super::*;
+        use serde::Deserialize;
+
+        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+        struct TestData {
+            id: String,
+            data: Vec<u8>,
+        }
+
+        impl SessionDataType for TestData {
+            const TYPE: &'static str = "testdata";
+        }
+
+        #[cfg_attr(not(feature = "db_test"), ignore)]
+        #[tokio::test]
+        async fn test_write() {
+            let settings = Settings::new().unwrap();
+            let db = Arc::new(connect(settings.store_url).await.unwrap());
+            let store = PostgresSessionStore::<TestData>::new(db);
+
+            let expected = SessionState::<TestData>::new(
+                SessionToken::new(),
+                TestData {
+                    id: "hello".to_owned(),
+                    data: vec![1, 2, 3],
+                },
+            );
+
+            store.write(&expected).await.unwrap();
+
+            let actual = store.get(&expected.token).await.unwrap().unwrap();
+            assert_eq!(actual.session_data, expected.session_data);
         }
     }
 }

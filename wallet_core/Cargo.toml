@@ -5,6 +5,7 @@ members = [
     "flutter_api/flutter_api_macros",
     "mdoc",
     "mock_relying_party",
+    "openid4vc",
     "pid_issuer",
     "platform_support",
     "tests_integration",
@@ -58,6 +59,7 @@ cstr = "0.2.11"
 ctor = "0.2.5"
 dashmap = "5.4.0"
 der = "0.7.7"
+derive_more = "0.99.17"
 dotenvy = "0.15.7"
 etag = "4.0.0"
 flutter_rust_bridge = "1.70.0"

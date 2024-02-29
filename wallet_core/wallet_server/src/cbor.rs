@@ -2,7 +2,7 @@ use axum::{
     headers::HeaderValue,
     response::{IntoResponse, Response},
 };
-use reqwest::{header, StatusCode};
+use http::{header, StatusCode};
 use serde::Serialize;
 
 use nl_wallet_mdoc::utils::serialization::cbor_serialize;

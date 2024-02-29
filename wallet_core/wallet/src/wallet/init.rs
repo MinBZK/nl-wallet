@@ -12,7 +12,6 @@ use crate::{
         ConfigurationRepository, UpdatingConfigurationRepository,
     },
     lock::WalletLock,
-    pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
 };
 
@@ -46,17 +45,11 @@ impl Wallet {
         )
         .await?;
 
-        Self::init_registration(
-            config_repository,
-            storage,
-            HttpAccountProviderClient::default(),
-            HttpPidIssuerClient::default(),
-        )
-        .await
+        Self::init_registration(config_repository, storage, HttpAccountProviderClient::default()).await
     }
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     CR: ConfigurationRepository,
     S: Storage,
@@ -66,7 +59,6 @@ where
         config_repository: CR,
         storage: S,
         account_provider_client: APC,
-        pid_issuer: PIC,
         registration: Option<RegistrationData>,
     ) -> Self {
         Wallet {
@@ -74,8 +66,7 @@ where
             storage: RwLock::new(storage),
             hw_privkey: PEK::new(WALLET_KEY_ID),
             account_provider_client,
-            digid_session: None,
-            pid_issuer,
+            issuance_session: None,
             disclosure_session: None,
             lock: WalletLock::new(true),
             registration,
@@ -89,17 +80,10 @@ where
         config_repository: CR,
         mut storage: S,
         account_provider_client: APC,
-        pid_issuer: PIC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
 
-        let wallet = Self::new(
-            config_repository,
-            storage,
-            account_provider_client,
-            pid_issuer,
-            registration,
-        );
+        let wallet = Self::new(config_repository, storage, account_provider_client, registration);
 
         Ok(wallet)
     }

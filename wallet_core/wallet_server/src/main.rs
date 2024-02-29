@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use wallet_server::{server, settings::Settings, store::DisclosureSessionStore};
+use wallet_server::{server, settings::Settings, store::SessionStores};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -9,9 +9,24 @@ async fn main() -> Result<()> {
 
     let settings = Settings::new()?;
 
-    let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await?;
+    let sessions = SessionStores::init(settings.store_url.clone()).await?;
+
     // This will block until the server shuts down.
-    server::serve(&settings, sessions).await?;
+    #[cfg(feature = "issuance")]
+    server::serve_full(
+        // TODO: `MockPidAttributeService` issues a configured set of mock attributes. Replace with BRP query.
+        wallet_server::pid::attributes::MockPidAttributeService::new(
+            settings.issuer.digid.issuer_url.clone(),
+            settings.issuer.digid.bsn_privkey.clone(),
+            settings.issuer.digid.client_id.clone(),
+            settings.issuer.mock_data.clone(),
+        )?,
+        settings,
+        sessions,
+    )
+    .await?;
+    #[cfg(not(feature = "issuance"))]
+    server::serve_disclosure(settings, sessions).await?;
 
     Ok(())
 }

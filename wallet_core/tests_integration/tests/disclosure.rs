@@ -11,7 +11,9 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };
+use openid4vc::token::TokenRequest;
 use wallet::{errors::DisclosureError, mock::MockDigidSession};
+use wallet_common::utils;
 use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
 use crate::common::*;
@@ -42,10 +44,16 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
             .expect_auth_url()
             .return_const(Url::parse("http://localhost/").unwrap());
 
-        // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
-        session
-            .expect_get_access_token()
-            .returning(|_| Ok("mock_token".to_string()));
+        session.expect_into_token_request().return_once(|_url| {
+            Ok(TokenRequest {
+                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: utils::random_string(32).into(),
+                },
+                code_verifier: Some("my_code_verifier".to_string()),
+                client_id: Some("my_client_id".to_string()),
+                redirect_uri: Some("redirect://here".parse().unwrap()),
+            })
+        });
 
         Ok(session)
     });
@@ -57,7 +65,6 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         config_server_settings(),
         wallet_provider_settings(),
         ws_settings.clone(),
-        pid_issuer_settings(),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -89,7 +96,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         .post(
             ws_settings
                 .internal_url
-                .join("sessions")
+                .join("disclosure/sessions")
                 .expect("could not join url with endpoint"),
         )
         .json(&start_request)
@@ -182,11 +189,6 @@ async fn test_disclosure_without_pid() {
             .expect_auth_url()
             .return_const(Url::parse("http://localhost/").unwrap());
 
-        // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
-        session
-            .expect_get_access_token()
-            .returning(|_| Ok("mock_token".to_string()));
-
         Ok(session)
     });
 
@@ -197,7 +199,6 @@ async fn test_disclosure_without_pid() {
         config_server_settings(),
         wallet_provider_settings(),
         ws_settings.clone(),
-        pid_issuer_settings(),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -226,7 +227,7 @@ async fn test_disclosure_without_pid() {
         .post(
             ws_settings
                 .internal_url
-                .join("sessions")
+                .join("disclosure/sessions")
                 .expect("could not join url with endpoint"),
         )
         .json(&start_request)
@@ -295,7 +296,7 @@ async fn test_disclosure_without_pid() {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let settings = wallet_server_settings();
-    start_wallet_server(settings.clone()).await;
+    start_wallet_server(settings.clone(), MockAttributeService).await;
 
     let client = reqwest::Client::new();
     // check if a freshly generated token returns a 404 on the status URL

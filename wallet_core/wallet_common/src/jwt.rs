@@ -6,12 +6,22 @@ use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::{account::serialization::DerVerifyingKey, keys::SecureEcdsaKey};
+use crate::{
+    account::serialization::DerVerifyingKey,
+    keys::{EcdsaKey, SecureEcdsaKey},
+};
 
 // TODO implement keyring and use kid header item for key rollover
 
-// JWT type, using `<T>` and `Phantomdata<T>` in the same way and for the same reason as `SignedDouble<T>`; see the
-// comment there.
+/// JWT type, generic over its contents.
+///
+/// This wrapper of the `jsonwebtoken` crate echoes the following aspect of `jsonwebtoken`:
+/// Validating one of the a standard fields during verification of the JWT using [`Validation`] does NOT automatically
+/// result in enforcement that the field is present. For example, if validation of `exp` is turned on then JWTs without
+/// an `exp` fields are still accepted (but not JWTs having an `exp` from the past).
+///
+/// Presence of the field may be enforced using [`Validation::required_spec_claims`] and/or by including it
+/// explicitly as a field in the (de)serialized type.
 #[derive(Debug, Clone)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
 impl<T, S: Into<String>> From<S> for Jwt<T> {
@@ -68,12 +78,12 @@ impl From<DecodingKey> for EcdsaDecodingKey {
 
 impl From<DerVerifyingKey> for EcdsaDecodingKey {
     fn from(value: DerVerifyingKey) -> Self {
-        value.0.into()
+        (&value.0).into()
     }
 }
 
-impl From<VerifyingKey> for EcdsaDecodingKey {
-    fn from(value: VerifyingKey) -> Self {
+impl From<&VerifyingKey> for EcdsaDecodingKey {
+    fn from(value: &VerifyingKey) -> Self {
         EcdsaDecodingKey::from_sec1(value.to_encoded_point(false).as_bytes())
     }
 }
@@ -102,7 +112,7 @@ impl<T> Jwt<T>
 where
     T: Serialize,
 {
-    pub async fn sign(payload: &T, header: &Header, privkey: &impl SecureEcdsaKey) -> Result<Jwt<T>> {
+    pub async fn sign(payload: &T, header: &Header, privkey: &impl EcdsaKey) -> Result<Jwt<T>> {
         let encoded_header = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(header)?);
         let encoded_claims = BASE64_URL_SAFE_NO_PAD.encode(serde_json::to_vec(payload)?);
         let message = [encoded_header, encoded_claims].join(".");
@@ -222,7 +232,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let parsed = jwt
-            .parse_and_verify_with_sub(&(*private_key.verifying_key()).into())
+            .parse_and_verify_with_sub(&private_key.verifying_key().into())
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -238,7 +248,7 @@ mod tests {
 
         // the JWT can be verified and parsed back into an identical value
         let parsed = jwt
-            .parse_and_verify(&(*private_key.verifying_key()).into(), &validations())
+            .parse_and_verify(&private_key.verifying_key().into(), &validations())
             .unwrap();
 
         assert_eq!(t, parsed);
@@ -256,12 +266,12 @@ mod tests {
         assert!(jwt_message.get("sub").is_none());
 
         // verification fails because `sub` is required
-        jwt.parse_and_verify_with_sub(&(*private_key.verifying_key()).into())
+        jwt.parse_and_verify_with_sub(&private_key.verifying_key().into())
             .unwrap_err();
 
         // we can parse and verify the JWT if we don't require the `sub` field to be present
         let parsed = jwt
-            .parse_and_verify(&(*private_key.verifying_key()).into(), &validations())
+            .parse_and_verify(&private_key.verifying_key().into(), &validations())
             .unwrap();
 
         assert_eq!(t, parsed);

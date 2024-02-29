@@ -14,6 +14,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(SessionState::Token).string().not_null().primary_key())
                     .col(ColumnDef::new(SessionState::Data).json().not_null())
+                    .col(ColumnDef::new(SessionState::Type).text().not_null())
                     .col(
                         ColumnDef::new(SessionState::ExpirationDateTime)
                             .timestamp_with_time_zone()
@@ -35,4 +36,5 @@ enum SessionState {
     Token,
     Data,
     ExpirationDateTime,
+    Type,
 }

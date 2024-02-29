@@ -274,8 +274,13 @@ where
             return Err(VerificationError::NoItemsRequests.into());
         }
 
-        let (session_token, reader_engagement, session_state) =
-            Session::<Created>::new(items_requests, session_type, usecase_id, return_url_used, &self.url)?;
+        let (session_token, reader_engagement, session_state) = Session::<Created>::new(
+            items_requests,
+            session_type,
+            usecase_id,
+            return_url_used,
+            &self.url.join("disclosure/").unwrap(),
+        )?;
         self.sessions
             .write(&session_state.state.into())
             .await

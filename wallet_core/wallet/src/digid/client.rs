@@ -1,12 +1,13 @@
 use base64::prelude::*;
 use url::Url;
 
+use openid4vc::{
+    pkce::{PkcePair, S256PkcePair},
+    token::{AuthorizationCode, TokenRequest, TokenRequestGrantType},
+};
 use wallet_common::utils;
 
-use crate::{
-    pkce::{PkcePair, S256PkcePair},
-    utils::url::url_find_first_query_value,
-};
+use crate::utils::url::url_find_first_query_value;
 
 use super::{
     openid_client::{HttpOpenIdClient, OpenIdClient},
@@ -30,6 +31,8 @@ pub struct HttpDigidSession<C = HttpOpenIdClient, P = S256PkcePair> {
     nonce: String,
     /// The PKCE pair used.
     pkce_pair: P,
+    /// Client ID at the OpenID issuer.
+    client_id: String,
 }
 
 impl<C, P> DigidSession for HttpDigidSession<C, P>
@@ -44,7 +47,7 @@ where
         redirect_uri_base.set_query(None);
 
         // Perform OpenID discovery at the issuer.
-        let openid_client = C::discover(issuer_url, client_id, redirect_uri).await?;
+        let openid_client = C::discover(issuer_url, client_id.clone(), redirect_uri).await?;
 
         // Generate a random CSRF token and nonce.
         let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
@@ -58,6 +61,7 @@ where
             csrf_token,
             nonce,
             pkce_pair,
+            client_id,
         };
 
         Ok(session)
@@ -74,7 +78,24 @@ where
             .starts_with(self.redirect_uri_base.as_str())
     }
 
-    async fn get_access_token(self, received_redirect_uri: &Url) -> Result<String, DigidError> {
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, DigidError> {
+        let pre_authorized_code = self.get_authorization_code(received_redirect_uri)?;
+        let token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            code_verifier: Some(self.pkce_pair.into_code_verifier()),
+            client_id: Some(self.client_id),
+            redirect_uri: Some(self.redirect_uri_base),
+        };
+        Ok(token_request)
+    }
+}
+
+impl<C, P> HttpDigidSession<C, P>
+where
+    P: PkcePair + 'static,
+    C: OpenIdClient,
+{
+    fn get_authorization_code(&self, received_redirect_uri: &Url) -> Result<AuthorizationCode, DigidError> {
         // Check if the redirect URL received actually belongs to us.
         if !self.matches_received_redirect_uri(received_redirect_uri) {
             return Err(DigidError::RedirectUriMismatch);
@@ -105,14 +126,7 @@ where
         let authorization_code =
             url_find_first_query_value(received_redirect_uri, PARAM_CODE).ok_or(DigidError::NoAuthCode)?;
 
-        // Use the authorization code and the PKCE verifier to request the
-        // access token and verify the result.
-        let access_token = self
-            .openid_client
-            .authenticate(&authorization_code, &self.nonce, &self.pkce_pair)
-            .await?;
-
-        Ok(access_token)
+        Ok(authorization_code.into_owned().into())
     }
 }
 
@@ -120,9 +134,10 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
+    use openid4vc::pkce::MockPkcePair;
     use serial_test::serial;
 
-    use crate::{digid::openid_client::MockOpenIdClient, pkce::MockPkcePair, utils::url::url_with_query_pairs};
+    use crate::{digid::openid_client::MockOpenIdClient, utils::url::url_with_query_pairs};
 
     use super::*;
 
@@ -133,8 +148,6 @@ mod tests {
     const CSRF_TOKEN: &str = "csrf_token";
     const NONCE: &str = "random_characters_nonce";
     const AUTH_URL: &str = "http://example.com/auth";
-    const AUTH_CODE: &str = "the_authentication_code";
-    const ACCESS_CODE: &str = "the_access_code";
 
     // Helper function for creating a `HttpDigidSession` with hardcoded state.
     fn create_digid_session() -> HttpDigidSession<MockOpenIdClient, MockPkcePair> {
@@ -144,6 +157,7 @@ mod tests {
             csrf_token: CSRF_TOKEN.to_string(),
             nonce: NONCE.to_string(),
             pkce_pair: MockPkcePair::new(),
+            client_id: CLIENT_ID.to_string(),
         }
     }
 
@@ -247,14 +261,49 @@ mod tests {
         assert!(!session.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
     }
 
+    #[test]
+    fn test_into_token_request() {
+        let mut session = create_digid_session();
+
+        session
+            .pkce_pair
+            .expect_into_code_verifier()
+            .return_const("code_verifier".to_string());
+
+        let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
+        let received_redirect_uri =
+            url_with_query_pairs(redirect_uri.clone(), &[("state", &session.csrf_token), ("code", "123")]);
+
+        let token_request = session.into_token_request(&received_redirect_uri).unwrap();
+
+        assert_eq!(token_request.client_id, Some(CLIENT_ID.to_string()));
+        assert_eq!(token_request.code_verifier, Some("code_verifier".to_string()));
+        assert_eq!(token_request.redirect_uri, Some(redirect_uri));
+        assert_matches!(
+            token_request.grant_type,
+            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code } if pre_authorized_code.as_ref() == "123"
+        );
+    }
+
+    #[test]
+    fn test_get_authorization_url() {
+        let session = create_digid_session();
+
+        let redirect_uri = url_with_query_pairs(
+            Url::parse(REDIRECT_URI).unwrap(),
+            &[("state", &session.csrf_token), ("code", "123")],
+        );
+
+        assert_eq!(session.get_authorization_code(&redirect_uri).unwrap().as_ref(), "123");
+    }
+
     // Helper function for testing `HttpDigidSession.get_access_token()`
     // calls that should result in an error.
-    async fn create_session_and_get_access_token_error(uri: &Url) -> DigidError {
+    fn create_session_and_get_access_token_error(uri: &Url) -> DigidError {
         let session = create_digid_session();
 
         session
-            .get_access_token(uri)
-            .await
+            .get_authorization_code(uri)
             .expect_err("Getting access token should have failed")
     }
 
@@ -262,7 +311,7 @@ mod tests {
     async fn test_http_digid_session_get_access_token_redirect_uri_mismatch() {
         // This URI does not match the `redirect_uri_base`.
         let uri = Url::parse("http://not-the-redirect-uri.com").unwrap();
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::RedirectUriMismatch);
     }
@@ -278,7 +327,7 @@ mod tests {
             ],
         );
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::RedirectUriError {
             ref error,
@@ -291,7 +340,7 @@ mod tests {
         // This URI contains an `error` query parameter, without an `error_description`.
         let uri = url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_ERROR, "foobar")]);
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::RedirectUriError {
             ref error,
@@ -304,7 +353,7 @@ mod tests {
         // This URI contains an incorrect `state` query parameter.
         let uri = url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_STATE, "foobar")]);
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::StateTokenMismatch);
     }
@@ -314,69 +363,8 @@ mod tests {
         // This URI is missing the `code` query parameter.
         let uri = url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[(PARAM_STATE, CSRF_TOKEN)]);
 
-        let error = create_session_and_get_access_token_error(&uri).await;
+        let error = create_session_and_get_access_token_error(&uri);
 
         assert_matches!(error, DigidError::NoAuthCode);
-    }
-
-    #[tokio::test]
-    async fn test_http_digid_session_get_access_openid_error() {
-        // Create session and set up expectation to have `OpenIdClient.authenticate()`
-        // return an error.
-        let session = {
-            let mut session = create_digid_session();
-
-            session
-                .openid_client
-                .expect_authenticate()
-                .return_once(|_, _, _: &MockPkcePair| Err(openid::error::Error::MissingOpenidScope.into()));
-
-            session
-        };
-
-        // Create a valid redirect URI.
-        let uri = url_with_query_pairs(
-            Url::parse(REDIRECT_URI).unwrap(),
-            &[(PARAM_STATE, CSRF_TOKEN), (PARAM_CODE, AUTH_CODE)],
-        );
-
-        // Get the access token and test the resulting error.
-        let error = session
-            .get_access_token(&uri)
-            .await
-            .expect_err("Getting access token should have failed");
-
-        assert_matches!(error, DigidError::OpenId(_));
-    }
-
-    #[tokio::test]
-    async fn test_http_digid_session_get_access() {
-        // Create session and set up expectation to have `OpenIdClient.authenticate()`
-        // return an access token.
-        let session = {
-            let mut session = create_digid_session();
-
-            session
-                .openid_client
-                .expect_authenticate()
-                .with(eq(AUTH_CODE), eq(NONCE), always())
-                .return_once(|_, _, _: &MockPkcePair| Ok(ACCESS_CODE.to_string()));
-
-            session
-        };
-
-        // Create a valid redirect URI.
-        let uri = url_with_query_pairs(
-            Url::parse(REDIRECT_URI).unwrap(),
-            &[(PARAM_STATE, CSRF_TOKEN), (PARAM_CODE, AUTH_CODE)],
-        );
-
-        // Get the access token and test the result.
-        let access_token = session
-            .get_access_token(&uri)
-            .await
-            .expect("Could not get access token");
-
-        assert_eq!(access_token, ACCESS_CODE);
     }
 }

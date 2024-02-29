@@ -9,9 +9,9 @@ use axum::{
     Json, Router,
 };
 use base64::prelude::*;
+use http::Method;
 use nutype::nutype;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
-use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_with::{
     base64::{Base64, UrlSafe},
@@ -99,6 +99,7 @@ where
             settings.public_url.clone(),
             RelyingPartyKeyRing(
                 settings
+                    .verifier
                     .usecases
                     .into_iter()
                     .map(|(usecase, keypair)| {
@@ -114,6 +115,7 @@ where
             ),
             sessions,
             settings
+                .verifier
                 .trust_anchors
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
@@ -245,11 +247,11 @@ where
 
     let session_url = state
         .public_url
-        .join(&format!("{session_id}/status"))
+        .join(&format!("disclosure/{session_id}/status"))
         .expect("should always be a valid URL");
     let disclosed_attributes_url = state
         .internal_url
-        .join(&format!("sessions/{session_id}/disclosed_attributes"))
+        .join(&format!("disclosure/sessions/{session_id}/disclosed_attributes"))
         .expect("should always be a valid URL");
 
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here

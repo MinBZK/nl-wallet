@@ -5,9 +5,7 @@ mod disclosure;
 mod document;
 mod instruction;
 mod lock;
-mod pid_issuer;
 mod pin;
-mod pkce;
 mod storage;
 mod utils;
 mod wallet;
@@ -42,11 +40,10 @@ pub mod wallet_deps {
             FileStorageConfigurationRepository, HttpConfigurationRepository, UpdateableConfigurationRepository,
             UpdatingFileHttpConfigurationRepository,
         },
-        digid::{DigidSession, HttpDigidSession},
+        digid::{DigidSession, HttpDigidSession, HttpOpenIdClient},
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },
-        pid_issuer::{HttpPidIssuerClient, PidIssuerClient},
         storage::Storage,
     };
 }
@@ -58,7 +55,6 @@ pub mod mock {
         config::{default_configuration, LocalConfigurationRepository},
         digid::MockDigidSession,
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
-        pid_issuer::MockPidIssuerClient,
         storage::MockStorage,
     };
 }

@@ -156,7 +156,7 @@ mod tests {
         let config_dir = tempfile::tempdir().unwrap();
         let path = config_dir.into_path();
         let verifying_key = *SigningKey::random(&mut OsRng).verifying_key();
-        let config_decoding_key: EcdsaDecodingKey = verifying_key.into();
+        let config_decoding_key: EcdsaDecodingKey = (&verifying_key).into();
 
         let mut initially_stored_wallet_config = default_configuration();
         initially_stored_wallet_config.version = 10;

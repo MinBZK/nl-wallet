@@ -6,6 +6,7 @@ use wallet_common::config::wallet_config::WalletConfiguration;
 use crate::{
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     digid::DigidSession,
+    wallet::PidIssuanceSession,
 };
 
 use super::Wallet;
@@ -24,7 +25,7 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     CR: ConfigurationRepository,
     DGS: DigidSession,
@@ -35,9 +36,12 @@ where
         let uri = Url::parse(uri_str)?;
 
         if self
-            .digid_session
+            .issuance_session
             .as_ref()
-            .map(|session| session.matches_received_redirect_uri(&uri))
+            .map(|session| match session {
+                PidIssuanceSession::Digid(session) => session.matches_received_redirect_uri(&uri),
+                PidIssuanceSession::Openid4vci(_) => false,
+            })
             .unwrap_or_default()
         {
             return Ok(UriType::PidIssuance(uri));
@@ -58,7 +62,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::{config::UNIVERSAL_LINK_BASE_URL, digid::MockDigidSession};
+    use crate::{config::UNIVERSAL_LINK_BASE_URL, digid::MockDigidSession, wallet::PidIssuanceSession};
 
     use super::{super::test::WalletWithMocks, *};
 
@@ -103,13 +107,13 @@ mod tests {
 
             digid_session
         };
-        wallet.digid_session = digid_session.into();
+        wallet.issuance_session = Some(PidIssuanceSession::Digid(digid_session));
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance(_));
 
         // After clearing the `DigidSession`, the URI should not be recognised again.
-        wallet.digid_session = None;
+        wallet.issuance_session = None;
 
         assert_matches!(
             wallet.identify_uri(digid_uri).unwrap_err(),

@@ -1,8 +1,16 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::server_state::{SessionState, SessionStore, SessionToken};
 
-use wallet_server::{settings::Settings, store::postgres::PostgresSessionStore};
+use wallet_server::{
+    settings::Settings,
+    store::{
+        postgres::{self, PostgresSessionStore},
+        SessionDataType,
+    },
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct TestData {
@@ -10,12 +18,14 @@ struct TestData {
     data: Vec<u8>,
 }
 
+impl SessionDataType for TestData {
+    const TYPE: &'static str = "testdata";
+}
+
 #[tokio::test]
 async fn test_write() {
     let settings = Settings::new().unwrap();
-    let store = PostgresSessionStore::<TestData>::connect(settings.store_url)
-        .await
-        .unwrap();
+    let store = PostgresSessionStore::<TestData>::new(Arc::new(postgres::connect(settings.store_url).await.unwrap()));
 
     let expected = SessionState::<TestData>::new(
         SessionToken::new(),

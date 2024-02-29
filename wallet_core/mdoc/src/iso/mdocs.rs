@@ -180,7 +180,7 @@ pub struct ValidityInfo {
 }
 
 /// A date-time, serialized as a string value as specified in RFC 3339, e.g. `"2020-10-01T13:30:02Z"`.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tdate(pub tag::Required<String, 0>);
 impl From<chrono::DateTime<Utc>> for Tdate {
     fn from(t: chrono::DateTime<Utc>) -> Self {
