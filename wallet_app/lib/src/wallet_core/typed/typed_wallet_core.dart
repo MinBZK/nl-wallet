@@ -106,13 +106,15 @@ class TypedWalletCore {
 
   Future<WalletInstructionResult> acceptOfferedPid(String pin) => call((core) => core.acceptPidIssuance(pin: pin));
 
-  Future<void> rejectOfferedPid() => call((core) => core.rejectPidIssuance());
+  Future<bool> hasActivePidIssuanceSession() => call((core) => core.hasActivePidIssuanceSession());
 
   Future<StartDisclosureResult> startDisclosure(String uri) => call((core) => core.startDisclosure(uri: uri));
 
   Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());
 
   Future<AcceptDisclosureResult> acceptDisclosure(String pin) => call((core) => core.acceptDisclosure(pin: pin));
+
+  Future<bool> hasActiveDisclosureSession() => call((core) => core.hasActiveDisclosureSession());
 
   Stream<List<Card>> observeCards() => _cards.stream;
 
@@ -142,8 +144,11 @@ class TypedWalletCore {
       String coreErrorJson = _extractErrorJson(ex)!;
       final error = _errorMapper.map(coreErrorJson);
       if (error is CoreStateError) {
-        Fimber.e('StateError detected, this indicates a programming error. Crashing...',
-            ex: error, stacktrace: stackTrace);
+        Fimber.e(
+          'StateError detected, this indicates a programming error. Crashing...',
+          ex: error,
+          stacktrace: stackTrace,
+        );
         exit(0);
       }
       return error;

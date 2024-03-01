@@ -169,11 +169,6 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<void> rejectPidIssuance({hint}) async {
-    // Stub only, no need to reject it on the mock
-  }
-
-  @override
   Future<void> resetWallet({hint}) async {
     _pinManager.resetPin();
     _wallet.reset();
@@ -218,6 +213,12 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
 
   @override
   Stream<List<WalletEvent>> setRecentHistoryStream({hint}) => _eventLog.logStream;
+
+  @override
+  Future<bool> hasActiveDisclosureSession({hint}) async => false;
+
+  @override
+  Future<bool> hasActivePidIssuanceSession({hint}) async => false;
 }
 
 /// Helper class to make [WalletCoreMock] satisfy [WalletCore]
@@ -276,4 +277,8 @@ class _FlutterRustBridgeTasksMeta {
   FlutterRustBridgeTaskConstMeta get kClearRecentHistoryStreamConstMeta => throw UnimplementedError();
 
   FlutterRustBridgeTaskConstMeta get kSetRecentHistoryStreamConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta => throw UnimplementedError();
+
+  FlutterRustBridgeTaskConstMeta get kHasActivePidIssuanceSessionConstMeta => throw UnimplementedError();
 }

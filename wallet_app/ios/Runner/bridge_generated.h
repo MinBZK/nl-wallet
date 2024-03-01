@@ -66,13 +66,15 @@ void wire_continue_pid_issuance(int64_t port_, struct wire_uint_8_list *uri);
 
 void wire_accept_pid_issuance(int64_t port_, struct wire_uint_8_list *pin);
 
-void wire_reject_pid_issuance(int64_t port_);
+void wire_has_active_pid_issuance_session(int64_t port_);
 
 void wire_start_disclosure(int64_t port_, struct wire_uint_8_list *uri);
 
 void wire_cancel_disclosure(int64_t port_);
 
 void wire_accept_disclosure(int64_t port_, struct wire_uint_8_list *pin);
+
+void wire_has_active_disclosure_session(int64_t port_);
 
 void wire_get_history(int64_t port_);
 
@@ -106,10 +108,11 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) wire_cancel_pid_issuance);
     dummy_var ^= ((int64_t) (void*) wire_continue_pid_issuance);
     dummy_var ^= ((int64_t) (void*) wire_accept_pid_issuance);
-    dummy_var ^= ((int64_t) (void*) wire_reject_pid_issuance);
+    dummy_var ^= ((int64_t) (void*) wire_has_active_pid_issuance_session);
     dummy_var ^= ((int64_t) (void*) wire_start_disclosure);
     dummy_var ^= ((int64_t) (void*) wire_cancel_disclosure);
     dummy_var ^= ((int64_t) (void*) wire_accept_disclosure);
+    dummy_var ^= ((int64_t) (void*) wire_has_active_disclosure_session);
     dummy_var ^= ((int64_t) (void*) wire_get_history);
     dummy_var ^= ((int64_t) (void*) wire_get_history_for_card);
     dummy_var ^= ((int64_t) (void*) wire_reset_wallet);

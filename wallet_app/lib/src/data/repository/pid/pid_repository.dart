@@ -12,7 +12,7 @@ abstract class PidRepository {
 
   Future<void> cancelPidIssuance();
 
-  Future<WalletInstructionResult> acceptOfferedPid(String pin);
+  Future<bool> hasActivePidIssuanceSession();
 
-  Future<void> rejectOfferedPid();
+  Future<WalletInstructionResult> acceptOfferedPid(String pin);
 }

@@ -13,7 +13,6 @@ import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
-import '../../../../domain/usecase/pid/reject_offered_pid_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
@@ -24,14 +23,12 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final GetWalletCardsUseCase getWalletCardsUseCase;
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
   final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
-  final RejectOfferedPidUseCase rejectOfferedPidUseCase;
   final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
 
   WalletPersonalizeBloc(
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
     this.cancelPidIssuanceUseCase,
-    this.rejectOfferedPidUseCase,
     this.continuePidIssuanceUseCase,
   ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
@@ -75,6 +72,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onLoginWithDigidClicked(event, emit) async {
     try {
       emit(const WalletPersonalizeLoadingIssuanceUrl());
+      // Fixes PVW-2171 (lock during WalletPersonalizeCheckData)
+      await cancelPidIssuanceUseCase.invoke();
       String url = await getPidIssuanceUrlUseCase.invoke();
       emit(WalletPersonalizeConnectDigid(url));
     } catch (ex, stack) {
@@ -92,26 +91,33 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
-    if (event.cancelledByUser) {
-      try {
-        await cancelPidIssuanceUseCase.invoke();
-      } catch (ex, stack) {
-        Fimber.e('Failed to cancel PID issuance', ex: ex, stacktrace: stack);
-      } finally {
+    Object error = event.error ?? 'unknown';
+    try {
+      await cancelPidIssuanceUseCase.invoke();
+    } catch (cancellationError) {
+      Fimber.e('Failed to cancel PID issuance', ex: cancellationError);
+      // Prefer exposing the original event error if it exists, otherwise expose the cancellation error.
+      error = event.error ?? cancellationError;
+    } finally {
+      if (event.cancelledByUser) {
         emit(WalletPersonalizeDigidCancelled());
+      } else {
+        emit(WalletPersonalizeDigidFailure(error: error));
       }
-    } else {
-      emit(WalletPersonalizeDigidFailure(error: event.error ?? 'unknown'));
     }
   }
 
   void _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, emit) async {
-    // await cancelPidIssuanceUseCase.invoke(); //TODO: Discuss which errors require cancellation (related to PVW-2239)
-    if (event.error == null) {
-      emit(const WalletPersonalizeGenericError(error: 'unknown'));
-    } else {
+    Object error = event.error ?? 'unknown';
+    try {
+      await cancelPidIssuanceUseCase.invoke();
+    } catch (cancellationError) {
+      Fimber.e('Failed to cancel pid issuance', ex: cancellationError);
+      // Prefer exposing the original event error if it exists, otherwise expose the cancellation error.
+      error = event.error ?? cancellationError;
+    } finally {
       await handleError(
-        event.error!,
+        error,
         onNetworkError: (ex, hasInternet) => emit(WalletPersonalizeNetworkError(error: ex, hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(WalletPersonalizeGenericError(error: ex)),
       );
@@ -125,7 +131,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onOfferingRejected(event, emit) async {
     emit(const WalletPersonalizeLoadInProgress(0));
     try {
-      await rejectOfferedPidUseCase.invoke();
+      await cancelPidIssuanceUseCase.invoke();
     } catch (ex) {
       Fimber.e('Failed to explicitly reject pid', ex: ex);
     } finally {

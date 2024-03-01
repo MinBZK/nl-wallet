@@ -44,6 +44,7 @@ export 'wallet_mocks.mocks.dart';
 
 /// Mock repositories
 @GenerateNiceMocks([MockSpec<PidRepository>()])
+@GenerateNiceMocks([MockSpec<DisclosureRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
 @GenerateNiceMocks([MockSpec<WalletCardRepository>()])
 @GenerateNiceMocks([MockSpec<TimelineAttributeRepository>()])

@@ -205,7 +205,7 @@ pub async fn create_pid_issuance_redirect_uri() -> Result<String> {
 pub async fn cancel_pid_issuance() -> Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_pid_issuance()?;
+    wallet.cancel_pid_issuance().await?;
 
     Ok(())
 }
@@ -236,12 +236,12 @@ pub async fn accept_pid_issuance(pin: String) -> Result<WalletInstructionResult>
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn reject_pid_issuance() -> Result<()> {
-    let mut wallet = wallet().write().await;
+pub async fn has_active_pid_issuance_session() -> Result<bool> {
+    let wallet = wallet().read().await;
 
-    wallet.reject_pid_issuance().await?;
+    let has_active_session = wallet.has_active_pid_issuance_session()?;
 
-    Ok(())
+    Ok(has_active_session)
 }
 
 #[async_runtime]
@@ -274,6 +274,16 @@ pub async fn accept_disclosure(pin: String) -> Result<AcceptDisclosureResult> {
     let result = wallet.accept_disclosure(pin).await.try_into()?;
 
     Ok(result)
+}
+
+#[async_runtime]
+#[flutter_api_error]
+pub async fn has_active_disclosure_session() -> Result<bool> {
+    let wallet = wallet().read().await;
+
+    let has_active_session = wallet.has_active_disclosure_session()?;
+
+    Ok(has_active_session)
 }
 
 #[async_runtime]

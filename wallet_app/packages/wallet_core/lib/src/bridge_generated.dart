@@ -94,9 +94,9 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kAcceptPidIssuanceConstMeta;
 
-  Future<void> rejectPidIssuance({dynamic hint});
+  Future<bool> hasActivePidIssuanceSession({dynamic hint});
 
-  FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta;
+  FlutterRustBridgeTaskConstMeta get kHasActivePidIssuanceSessionConstMeta;
 
   Future<StartDisclosureResult> startDisclosure({required String uri, dynamic hint});
 
@@ -109,6 +109,10 @@ abstract class WalletCore {
   Future<AcceptDisclosureResult> acceptDisclosure({required String pin, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta;
+
+  Future<bool> hasActiveDisclosureSession({dynamic hint});
+
+  FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta;
 
   Future<List<WalletEvent>> getHistory({dynamic hint});
 
@@ -696,19 +700,19 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["pin"],
       );
 
-  Future<void> rejectPidIssuance({dynamic hint}) {
+  Future<bool> hasActivePidIssuanceSession({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_reject_pid_issuance(port_),
-      parseSuccessData: _wire2api_unit,
+      callFfi: (port_) => _platform.inner.wire_has_active_pid_issuance_session(port_),
+      parseSuccessData: _wire2api_bool,
       parseErrorData: _wire2api_FrbAnyhowException,
-      constMeta: kRejectPidIssuanceConstMeta,
+      constMeta: kHasActivePidIssuanceSessionConstMeta,
       argValues: [],
       hint: hint,
     ));
   }
 
-  FlutterRustBridgeTaskConstMeta get kRejectPidIssuanceConstMeta => const FlutterRustBridgeTaskConstMeta(
-        debugName: "reject_pid_issuance",
+  FlutterRustBridgeTaskConstMeta get kHasActivePidIssuanceSessionConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "has_active_pid_issuance_session",
         argNames: [],
       );
 
@@ -760,6 +764,22 @@ class WalletCoreImpl implements WalletCore {
   FlutterRustBridgeTaskConstMeta get kAcceptDisclosureConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "accept_disclosure",
         argNames: ["pin"],
+      );
+
+  Future<bool> hasActiveDisclosureSession({dynamic hint}) {
+    return _platform.executeNormal(FlutterRustBridgeTask(
+      callFfi: (port_) => _platform.inner.wire_has_active_disclosure_session(port_),
+      parseSuccessData: _wire2api_bool,
+      parseErrorData: _wire2api_FrbAnyhowException,
+      constMeta: kHasActiveDisclosureSessionConstMeta,
+      argValues: [],
+      hint: hint,
+    ));
+  }
+
+  FlutterRustBridgeTaskConstMeta get kHasActiveDisclosureSessionConstMeta => const FlutterRustBridgeTaskConstMeta(
+        debugName: "has_active_disclosure_session",
+        argNames: [],
       );
 
   Future<List<WalletEvent>> getHistory({dynamic hint}) {
@@ -1538,17 +1558,18 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   late final _wire_accept_pid_issuance =
       _wire_accept_pid_issuancePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
 
-  void wire_reject_pid_issuance(
+  void wire_has_active_pid_issuance_session(
     int port_,
   ) {
-    return _wire_reject_pid_issuance(
+    return _wire_has_active_pid_issuance_session(
       port_,
     );
   }
 
-  late final _wire_reject_pid_issuancePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_reject_pid_issuance');
-  late final _wire_reject_pid_issuance = _wire_reject_pid_issuancePtr.asFunction<void Function(int)>();
+  late final _wire_has_active_pid_issuance_sessionPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_has_active_pid_issuance_session');
+  late final _wire_has_active_pid_issuance_session =
+      _wire_has_active_pid_issuance_sessionPtr.asFunction<void Function(int)>();
 
   void wire_start_disclosure(
     int port_,
@@ -1592,6 +1613,19 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
           'wire_accept_disclosure');
   late final _wire_accept_disclosure =
       _wire_accept_disclosurePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+
+  void wire_has_active_disclosure_session(
+    int port_,
+  ) {
+    return _wire_has_active_disclosure_session(
+      port_,
+    );
+  }
+
+  late final _wire_has_active_disclosure_sessionPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>('wire_has_active_disclosure_session');
+  late final _wire_has_active_disclosure_session =
+      _wire_has_active_disclosure_sessionPtr.asFunction<void Function(int)>();
 
   void wire_get_history(
     int port_,

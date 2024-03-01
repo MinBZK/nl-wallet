@@ -44,6 +44,10 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   void _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
     try {
+      // Cancel any potential ongoing disclosure, this can happen when a second disclosure
+      // deeplink is pressed while the disclosure flow is currently open. This opens a second
+      // disclosure bloc before the original one is closed, thus we need to cancel it here.
+      await _cancelDisclosureUseCase.invoke();
       _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri);
       emit(
         DisclosureCheckOrganization(
