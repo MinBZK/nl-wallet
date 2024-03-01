@@ -8,11 +8,10 @@ use platform_support::{
 use crate::{
     account_provider::HttpAccountProviderClient,
     config::{
-        default_configuration, ConfigServerConfiguration, ConfigurationError, ConfigurationRepository,
-        UpdatingConfigurationRepository,
+        default_configuration, init_universal_link_base_url, ConfigServerConfiguration, ConfigurationError,
+        ConfigurationRepository, UpdatingConfigurationRepository,
     },
     lock::WalletLock,
-    pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData, Storage, StorageError, StorageState},
 };
 
@@ -33,6 +32,8 @@ impl Wallet {
         #[cfg(feature = "disable_tls_validation")]
         tracing::warn!("TLS validation disabled");
 
+        init_universal_link_base_url();
+
         let storage_path = HardwareUtilities::storage_path().await?;
         let storage = DatabaseStorage::<HardwareEncryptionKey>::new(storage_path.clone());
         let config_repository = UpdatingConfigurationRepository::init(
@@ -42,17 +43,11 @@ impl Wallet {
         )
         .await?;
 
-        Self::init_registration(
-            config_repository,
-            storage,
-            HttpAccountProviderClient::default(),
-            HttpPidIssuerClient::default(),
-        )
-        .await
+        Self::init_registration(config_repository, storage, HttpAccountProviderClient::default()).await
     }
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     CR: ConfigurationRepository,
     S: Storage,
@@ -62,7 +57,6 @@ where
         config_repository: CR,
         storage: S,
         account_provider_client: APC,
-        pid_issuer: PIC,
         registration_data: Option<RegistrationData>,
     ) -> Self {
         let registration = registration_data.map(|data| WalletRegistration {
@@ -74,8 +68,7 @@ where
             config_repository,
             storage: RwLock::new(storage),
             account_provider_client,
-            digid_session: None,
-            pid_issuer,
+            issuance_session: None,
             disclosure_session: None,
             lock: WalletLock::new(true),
             registration,
@@ -89,17 +82,10 @@ where
         config_repository: CR,
         mut storage: S,
         account_provider_client: APC,
-        pid_issuer: PIC,
     ) -> Result<Self, WalletInitError> {
         let registration = Self::fetch_registration(&mut storage).await?;
 
-        let wallet = Self::new(
-            config_repository,
-            storage,
-            account_provider_client,
-            pid_issuer,
-            registration,
-        );
+        let wallet = Self::new(config_repository, storage, account_provider_client, registration);
 
         Ok(wallet)
     }

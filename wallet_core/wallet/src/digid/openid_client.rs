@@ -1,7 +1,9 @@
 use openid::Options;
 use url::Url;
 
-use crate::{pkce::PkcePair, utils::reqwest::default_reqwest_client_builder};
+use openid4vc::pkce::PkcePair;
+
+use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::openid_pkce::Client;
 
@@ -25,13 +27,6 @@ pub trait OpenIdClient {
     /// Generate an authentication URL for the configured issuer This takes two
     /// generated tokens and a generated PKCE pair as parameters.
     fn auth_url<P>(&self, csrf_token: String, nonce: String, pkce_pair: &P) -> Url
-    where
-        P: PkcePair + 'static;
-
-    /// Use an authentication code received in the redirect URI to fetch and validate an access token
-    /// from the issuer. This requires both the nonce provided when generating the authentication URL
-    /// and the PKCE verifier string that matches the PKCE challenge provided in the authentication URL.
-    async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
     where
         P: PkcePair + 'static;
 }
@@ -80,28 +75,6 @@ impl OpenIdClient for HttpOpenIdClient {
 
         self.openid_client.auth_url(&options, pkce_pair)
     }
-
-    async fn authenticate<P>(&self, auth_code: &str, nonce: &str, pkce_pair: &P) -> Result<String, OpenIdError>
-    where
-        P: PkcePair,
-    {
-        // Forward the received method parameters to our `Client` instance.
-        let token = self
-            .openid_client
-            .authenticate_pkce(auth_code, pkce_pair, nonce, None)
-            .await?;
-
-        // Double check if the received token had an ID token, otherwise
-        // validation of the token will not actually have taken place.
-        if token.id_token.is_none() {
-            return Err(OpenIdError::NoIdToken);
-        }
-
-        // Extract the resulting access token and return it.
-        let access_token = token.bearer.access_token;
-
-        Ok(access_token)
-    }
 }
 
 /// This is actually an integration test over the [`openid`] crate and our own code.
@@ -114,7 +87,7 @@ mod tests {
         Mock, MockServer, ResponseTemplate,
     };
 
-    use crate::pkce::MockPkcePair;
+    use openid4vc::pkce::MockPkcePair;
 
     use super::*;
 
@@ -180,8 +153,5 @@ mod tests {
                 )
                 .unwrap(),
         );
-
-        // TODO: Add test for the authenticate() method by mocking an authentication
-        //       response that can actually be verified by the client.
     }
 }

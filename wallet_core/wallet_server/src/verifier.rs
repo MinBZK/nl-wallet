@@ -9,9 +9,9 @@ use axum::{
     Json, Router,
 };
 use base64::prelude::*;
+use http::Method;
 use nutype::nutype;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
-use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use serde_with::{
     base64::{Base64, UrlSafe},
@@ -26,7 +26,6 @@ use tower_http::{
 use tracing::log::{error, warn};
 use url::Url;
 
-use crate::{cbor::Cbor, settings::Settings};
 use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken},
@@ -36,7 +35,9 @@ use nl_wallet_mdoc::{
     },
     SessionData,
 };
-use wallet_common::config::wallet_config::DISCLOSURE_BASE_URI;
+use wallet_common::config::wallet_config::{BaseUrl, WalletConfiguration};
+
+use crate::{cbor::Cbor, settings::Settings};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -86,6 +87,7 @@ struct ApplicationState<S> {
     verifier: Verifier<RelyingPartyKeyRing, S>,
     internal_url: Url,
     public_url: Url,
+    universal_link_base_url: BaseUrl,
 }
 
 pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
@@ -97,6 +99,7 @@ where
             settings.public_url.clone(),
             RelyingPartyKeyRing(
                 settings
+                    .verifier
                     .usecases
                     .into_iter()
                     .map(|(usecase, keypair)| {
@@ -112,6 +115,7 @@ where
             ),
             sessions,
             settings
+                .verifier
                 .trust_anchors
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
@@ -119,6 +123,7 @@ where
         ),
         internal_url: settings.internal_url,
         public_url: settings.public_url,
+        universal_link_base_url: settings.universal_link_base_url,
     });
 
     let wallet_router = Router::new()
@@ -242,15 +247,15 @@ where
 
     let session_url = state
         .public_url
-        .join(&format!("{session_id}/status"))
+        .join(&format!("disclosure/{session_id}/status"))
         .expect("should always be a valid URL");
     let disclosed_attributes_url = state
         .internal_url
-        .join(&format!("sessions/{session_id}/disclosed_attributes"))
+        .join(&format!("disclosure/sessions/{session_id}/disclosed_attributes"))
         .expect("should always be a valid URL");
 
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here
-    let engagement_url = DISCLOSURE_BASE_URI
+    let engagement_url = WalletConfiguration::disclosure_base_uri(state.universal_link_base_url.to_owned())
         .join(
             &BASE64_URL_SAFE_NO_PAD
                 .encode(cbor_serialize(&engagement).expect("serializing an engagement should never fail")),

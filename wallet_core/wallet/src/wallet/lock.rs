@@ -25,7 +25,7 @@ pub enum WalletUnlockError {
     Instruction(#[from] InstructionError),
 }
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS> {
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS> {
     pub fn is_locked(&self) -> bool {
         self.lock.is_locked()
     }
@@ -165,7 +165,7 @@ mod tests {
 
                 let claims = challenge_request
                     .message
-                    .parse_and_verify_with_sub(&hw_pubkey.into())
+                    .parse_and_verify_with_sub(&(&hw_pubkey).into())
                     .expect("Could not verify check pin challenge request");
 
                 assert_eq!(claims.sequence_number, 1);

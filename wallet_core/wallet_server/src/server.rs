@@ -2,37 +2,99 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{routing::get, Router};
-use tracing::debug;
-
 use nl_wallet_mdoc::{
     server_state::{SessionState, SessionStore},
     verifier::DisclosureData,
 };
+use tracing::debug;
 
-use crate::{settings::Settings, verifier::create_routers};
+#[cfg(feature = "issuance")]
+use openid4vc::issuer::AttributeService;
+
+use crate::{
+    settings::Settings,
+    store::SessionStores,
+    verifier::{self},
+};
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-pub async fn serve<S>(settings: &Settings, sessions: S) -> Result<()>
+fn decorate_router(prefix: &str, router: Router) -> Router {
+    let router = Router::new().nest(prefix, router).nest(prefix, health_router());
+
+    #[cfg(feature = "log_requests")]
+    let router = router.layer(axum::middleware::from_fn(crate::log_requests::log_request_response));
+
+    #[allow(clippy::let_and_return)] // See https://github.com/rust-lang/rust-clippy/issues/9150
+    router
+}
+
+fn setup_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<(SocketAddr, SocketAddr, Router, Router)>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let requester_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
+    let (wallet_disclosure_router, requester_router) = verifier::create_routers(settings, disclosure_sessions)?;
 
-    let (wallet_router, requester_router) = create_routers(settings.clone(), sessions)?;
+    Ok((
+        wallet_socket,
+        requester_socket,
+        wallet_disclosure_router,
+        requester_router,
+    ))
+}
 
+pub async fn serve_disclosure(settings: Settings, sessions: SessionStores) -> Result<()> {
+    let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
+        setup_disclosure(settings, sessions.disclosure)?;
+
+    listen(
+        wallet_socket,
+        requester_socket,
+        decorate_router("/disclosure/", wallet_disclosure_router),
+        decorate_router("/disclosure/sessions", requester_router),
+    )
+    .await?;
+
+    Ok(())
+}
+
+#[cfg(feature = "issuance")]
+pub async fn serve_full<A>(attr_service: A, settings: Settings, sessions: SessionStores) -> Result<()>
+where
+    A: AttributeService + Send + Sync + 'static,
+{
+    let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
+        setup_disclosure(settings.clone(), sessions.disclosure)?;
+
+    let wallet_issuance_router =
+        crate::issuer::create_issuance_router(settings, sessions.issuance, attr_service).await?;
+
+    listen(
+        wallet_socket,
+        requester_socket,
+        decorate_router("/issuance/", wallet_issuance_router)
+            .merge(decorate_router("/disclosure/", wallet_disclosure_router)),
+        decorate_router("/disclosure/sessions", requester_router),
+    )
+    .await?;
+
+    Ok(())
+}
+
+async fn listen(
+    wallet_socket: SocketAddr,
+    requester_socket: SocketAddr,
+    wallet_router: Router,
+    requester_router: Router,
+) -> anyhow::Result<()> {
     debug!("listening for requester on {}", requester_socket);
     let requester_server = tokio::spawn(async move {
         axum::Server::bind(&requester_socket)
-            .serve(
-                Router::new()
-                    .nest("/sessions", requester_router)
-                    .nest("/sessions", health_router())
-                    .into_make_service(),
-            )
+            .serve(requester_router.into_make_service())
             .await
             .expect("requester server should be started")
     });
@@ -40,12 +102,7 @@ where
     debug!("listening for wallet on {}", wallet_socket);
     let wallet_server = tokio::spawn(async move {
         axum::Server::bind(&wallet_socket)
-            .serve(
-                Router::new()
-                    .nest("/", wallet_router)
-                    .nest("/", health_router())
-                    .into_make_service(),
-            )
+            .serve(wallet_router.into_make_service())
             .await
             .expect("wallet server should be started")
     });

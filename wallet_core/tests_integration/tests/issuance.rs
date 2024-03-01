@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
+use openid4vc::token::TokenRequest;
 use url::Url;
 
 use wallet::{mock::MockDigidSession, AttributeValue, Document};
+use wallet_common::utils;
 
 use crate::common::*;
 
@@ -18,10 +20,16 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             .expect_auth_url()
             .return_const(Url::parse("http://localhost/").unwrap());
 
-        // Return a mock access token from the mock DigiD client that the `MockBsnLookup` always accepts.
-        session
-            .expect_get_access_token()
-            .returning(|_| Ok("mock_token".to_string()));
+        session.expect_into_token_request().return_once(|_url| {
+            Ok(TokenRequest {
+                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
+                    pre_authorized_code: utils::random_string(32).into(),
+                },
+                code_verifier: Some("my_code_verifier".to_string()),
+                client_id: Some("my_client_id".to_string()),
+                redirect_uri: Some("redirect://here".parse().unwrap()),
+            })
+        });
 
         Ok(session)
     });

@@ -16,6 +16,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
+use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
 use crate::{
@@ -23,7 +24,6 @@ use crate::{
     config::UpdatingFileHttpConfigurationRepository,
     digid::HttpDigidSession,
     lock::WalletLock,
-    pid_issuer::HttpPidIssuerClient,
     storage::{DatabaseStorage, RegistrationData},
 };
 
@@ -43,6 +43,8 @@ pub use self::{
 #[cfg(test)]
 pub(crate) use self::issuance::rvig_registration;
 
+use self::issuance::PidIssuanceSession;
+
 struct WalletRegistration<K> {
     hw_privkey: K,
     data: RegistrationData,
@@ -54,14 +56,13 @@ pub struct Wallet<
     PEK = HardwareEcdsaKey,                        // PlatformEcdsaKey
     APC = HttpAccountProviderClient,               // AccountProviderClient
     DGS = HttpDigidSession,                        // DigidSession
-    PIC = HttpPidIssuerClient,                     // PidIssuerClient
+    IS = HttpIssuanceSession,                      // IssuanceSession
     MDS = DisclosureSession<CborHttpClient, Uuid>, // MdocDisclosureSession
 > {
     config_repository: CR,
     storage: RwLock<S>,
     account_provider_client: APC,
-    digid_session: Option<DGS>,
-    pid_issuer: PIC,
+    issuance_session: Option<PidIssuanceSession<DGS, IS>>,
     disclosure_session: Option<MDS>,
     lock: WalletLock,
     registration: Option<WalletRegistration<PEK>>,

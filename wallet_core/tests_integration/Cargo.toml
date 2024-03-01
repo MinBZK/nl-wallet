@@ -37,6 +37,11 @@ required-features = ["db_test"]
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["allow_http_return_url"]
+digid_test = ["disable_tls_validation"]
+disable_tls_validation = [
+    "wallet_server/disable_tls_validation",
+    "wallet/disable_tls_validation",
+]
 
 [dependencies]
 
@@ -74,7 +79,7 @@ nl_wallet_mdoc = { path = "../mdoc", features = [
     "test",
     "mock",
 ] } # Enable the features necessary to run all integration tests
-pid_issuer = { path = "../pid_issuer", features = ["mock"] }
+openid4vc = { path = "../openid4vc" }
 platform_support = { path = "../platform_support", features = ["software"] }
 wallet = { path = "../wallet", features = [
     "mock",

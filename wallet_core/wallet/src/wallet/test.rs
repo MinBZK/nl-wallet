@@ -9,6 +9,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
     IssuerSigned,
 };
+use openid4vc::mock::MockIssuanceSession;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
@@ -25,7 +26,6 @@ use crate::{
     digid::MockDigidSession,
     disclosure::MockMdocDisclosureSession,
     document,
-    pid_issuer::MockPidIssuerClient,
     pin::key as pin_key,
     storage::{KeyedData, MockStorage, RegistrationData, StorageState},
     Document, HistoryEvent,
@@ -68,7 +68,7 @@ pub type WalletWithMocks = Wallet<
     FallibleSoftwareEcdsaKey,
     MockAccountProviderClient,
     MockDigidSession,
-    MockPidIssuerClient,
+    MockIssuanceSession,
     MockMdocDisclosureSession,
 >;
 
@@ -257,7 +257,6 @@ impl WalletWithMocks {
             config_repository,
             MockStorage::default(),
             MockAccountProviderClient::default(),
-            MockPidIssuerClient::default(),
             None,
         )
     }
@@ -322,13 +321,7 @@ impl WalletWithMocks {
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), Duration::from_secs(300))
                 .await;
 
-        Wallet::init_registration(
-            config_repository,
-            storage,
-            MockAccountProviderClient::default(),
-            MockPidIssuerClient::default(),
-        )
-        .await
+        Wallet::init_registration(config_repository, storage, MockAccountProviderClient::default()).await
     }
 }
 

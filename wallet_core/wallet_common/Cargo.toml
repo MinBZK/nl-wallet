@@ -27,6 +27,7 @@ etag.workspace = true
 futures.workspace = true
 http.workspace = true
 jsonwebtoken.workspace = true
+nutype = { workspace = true, features = ["serde"] }
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 parking_lot = { workspace = true, optional = true }

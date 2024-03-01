@@ -27,6 +27,19 @@ pub trait EphemeralEcdsaKey: EcdsaKey {}
 /// e.g., a HSM, Android's TEE/StrongBox, or Apple's SE.
 pub trait SecureEcdsaKey: EcdsaKey {}
 
+// The `SigningKey` is an `EcdsaKey` but not a `SecureEcdsaKey` (except in mock/tests).
+impl EcdsaKey for p256::ecdsa::SigningKey {
+    type Error = p256::ecdsa::Error;
+
+    async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
+        Ok(*self.verifying_key())
+    }
+
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
+        p256::ecdsa::signature::Signer::try_sign(self, msg)
+    }
+}
+
 /// Contract for encryption keys suitable for use in the wallet, e.g. for securely storing the database key.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
@@ -71,24 +84,11 @@ pub trait StoredByIdentifier: WithIdentifier {
 #[cfg(any(test, feature = "mock_secure_keys"))]
 mod mock {
     use aes_gcm::{aead::Aead, Aes256Gcm, Nonce};
-    use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
+    use p256::ecdsa::SigningKey;
 
     use crate::utils;
 
-    use super::{EcdsaKey, EphemeralEcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
-
-    // make sure we can substitute a SigningKey instead in tests
-    impl EcdsaKey for SigningKey {
-        type Error = p256::ecdsa::Error;
-
-        async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-            Ok(*self.verifying_key())
-        }
-
-        async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-            p256::ecdsa::signature::Signer::try_sign(self, msg)
-        }
-    }
+    use super::{EphemeralEcdsaKey, SecureEcdsaKey, SecureEncryptionKey};
 
     impl EphemeralEcdsaKey for SigningKey {}
     impl SecureEcdsaKey for SigningKey {}

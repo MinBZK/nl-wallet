@@ -40,3 +40,5 @@ export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 
 # export WALLET_CLIENT_ID=$(uuidgen)
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
+
+export RP_RETURN_URL="${RP_RETURN_URL:-http://${SERVICES_HOST}:3004/}" # default: http://${SERVICES_HOST}:3004/

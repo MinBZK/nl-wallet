@@ -2,7 +2,7 @@ use tracing::{info, instrument, warn};
 
 use wallet_common::keys::StoredByIdentifier;
 
-use crate::{pid_issuer::PidIssuerClient, storage::Storage};
+use crate::storage::Storage;
 
 use super::Wallet;
 
@@ -14,11 +14,10 @@ pub enum ResetError {
 
 type ResetResult<T> = std::result::Result<T, ResetError>;
 
-impl<CR, S, PEK, APC, DGS, PIC, MDS> Wallet<CR, S, PEK, APC, DGS, PIC, MDS>
+impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     S: Storage,
     PEK: StoredByIdentifier,
-    PIC: PidIssuerClient,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
         // Only reset if we actually have a registration.
@@ -33,16 +32,8 @@ where
                 warn!("Could not delete hardware private key: {0}", error);
             };
 
-            self.digid_session.take();
+            self.issuance_session.take();
             self.disclosure_session.take();
-
-            if self.pid_issuer.has_session() {
-                // Clear the PID issuer state by rejecting the PID.
-                // Do not propagate if this results in an error.
-                if let Err(error) = self.pid_issuer.reject_pid().await {
-                    warn!("Could not reject PID issuance: {0}", error);
-                }
-            }
 
             // The wallet should be locked in its initial state.
             self.lock.lock();
@@ -72,16 +63,13 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use nl_wallet_mdoc::issuer_shared::IssuanceError;
+    use openid4vc::mock::MockIssuanceSession;
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::{
-        digid::MockDigidSession, disclosure::MockMdocDisclosureSession, pid_issuer::PidIssuerError,
-        storage::StorageState,
-    };
+    use crate::{disclosure::MockMdocDisclosureSession, storage::StorageState};
 
     use super::{
-        super::{registration, test::WalletWithMocks},
+        super::{issuance::PidIssuanceSession, registration, test::WalletWithMocks},
         *,
     };
 
@@ -117,11 +105,8 @@ mod tests {
     async fn test_wallet_reset_full() {
         // Create the impossible Wallet that is doing everything at once and reset it.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-        wallet.digid_session = MockDigidSession::new().into();
+        wallet.issuance_session = PidIssuanceSession::Openid4vci(MockIssuanceSession::default()).into();
         wallet.disclosure_session = MockMdocDisclosureSession::default().into();
-        wallet.pid_issuer.has_session = true;
-        wallet.pid_issuer.next_error =
-            PidIssuerError::MdocError(nl_wallet_mdoc::Error::Issuance(IssuanceError::SessionEnded)).into();
 
         // Check that the hardware key exists.
         assert!(SoftwareEcdsaKey::identifier_exists(
@@ -142,7 +127,7 @@ mod tests {
         assert!(!SoftwareEcdsaKey::identifier_exists(
             registration::wallet_key_id().as_ref()
         ));
-        assert!(wallet.digid_session.is_none());
+        assert!(wallet.issuance_session.is_none());
         assert!(wallet.disclosure_session.is_none());
         assert!(wallet.is_locked());
     }

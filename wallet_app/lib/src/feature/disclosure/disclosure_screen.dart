@@ -10,6 +10,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
+import '../common/page/generic_loading_page.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -114,7 +115,7 @@ class DisclosureScreen extends StatelessWidget {
       listener: (context, state) => context.read<ScrollOffset>().offset = 0,
       builder: (context, state) {
         Widget result = switch (state) {
-          DisclosureInitial() => _buildLoading(),
+          DisclosureInitial() => _buildInitialLoading(context),
           DisclosureLoadInProgress() => _buildLoading(),
           DisclosureCheckOrganization() => _buildCheckOrganizationPage(context, state),
           DisclosureMissingAttributes() => _buildMissingAttributesPage(context, state),
@@ -136,6 +137,11 @@ class DisclosureScreen extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildInitialLoading(BuildContext context) => GenericLoadingPage(
+        title: context.l10n.disclosureLoadingTitle,
+        description: context.l10n.disclosureLoadingSubtitle,
+      );
 
   Widget _buildLoading() => const CenteredLoadingIndicator();
 

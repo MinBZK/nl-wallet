@@ -1,6 +1,4 @@
 mod auth_url;
-mod authenticate;
-mod validate_fix;
 
 use openid::{error::Error, Config};
 use url::Url;

@@ -13,19 +13,17 @@ use tokio::time;
 use url::Url;
 
 use configuration_server::settings::Settings as CsSettings;
-use nl_wallet_mdoc::holder::{CborHttpClient, Wallet as MdocWallet};
-use pid_issuer::{
-    app::{AttributesLookup, BsnLookup},
-    mock::MockBsnLookup,
-    mock_attributes::MockAttributesLookup,
-    server as PidServer,
-    settings::Settings as PidSettings,
+use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
+use openid4vc::{
+    issuance_session::HttpIssuanceSession,
+    issuer::{AttributeService, Created},
+    token::TokenRequest,
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
     mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
-        ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository, HttpPidIssuerClient,
+        ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository,
         UpdateableConfigurationRepository,
     },
     Wallet,
@@ -34,8 +32,9 @@ use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::{
+    pid::mock::MockAttributesLookup,
     settings::{Server, Settings as WsSettings},
-    store::DisclosureSessionStore,
+    store::SessionStores,
 };
 
 #[ctor]
@@ -57,7 +56,7 @@ pub fn local_config_base_url(port: &u16) -> Url {
 }
 
 pub fn local_pid_base_url(port: &u16) -> Url {
-    Url::parse(&format!("http://localhost:{}/", port)).expect("Could not create url")
+    Url::parse(&format!("http://localhost:{}/issuance/", port)).expect("Could not create url")
 }
 
 pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
@@ -72,7 +71,7 @@ pub type WalletWithMocks = Wallet<
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
     MockDigidSession,
-    HttpPidIssuerClient,
+    HttpIssuanceSession,
 >;
 
 pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
@@ -80,7 +79,6 @@ pub async fn setup_wallet_and_default_env() -> WalletWithMocks {
         config_server_settings(),
         wallet_provider_settings(),
         wallet_server_settings(),
-        pid_issuer_settings(),
     )
     .await
 }
@@ -90,7 +88,6 @@ pub async fn setup_wallet_and_env(
     mut cs_settings: CsSettings,
     wp_settings: WpSettings,
     ws_settings: WsSettings,
-    pid_settings: PidSettings,
 ) -> WalletWithMocks {
     let config_server_config = ConfigServerConfiguration {
         base_url: local_config_base_url(&cs_settings.port),
@@ -98,27 +95,24 @@ pub async fn setup_wallet_and_env(
     };
 
     let mut wallet_config = default_configuration();
-    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&pid_settings.webserver.port);
+    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     wallet_config.account_server.base_url = local_wp_base_url(&wp_settings.webserver.port);
 
     let config_bytes = configuration_server::read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&pid_settings.webserver.port);
+    served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&ws_settings.wallet_server.port);
     served_wallet_config.account_server.base_url = local_wp_base_url(&wp_settings.webserver.port);
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
     start_config_server(cs_settings).await;
     start_wallet_provider(wp_settings).await;
-    start_wallet_server(ws_settings).await;
-    start_pid_issuer(pid_settings, MockAttributesLookup::default(), MockBsnLookup::default()).await;
-
-    let pid_issuer_client = HttpPidIssuerClient::new(MdocWallet::new(CborHttpClient(reqwest::Client::new())));
+    start_wallet_server(ws_settings, MockAttributeService).await;
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.base_url,
         config_server_config.trust_anchors,
-        config_server_config.signing_public_key.into(),
+        (&config_server_config.signing_public_key).into(),
         SoftwareUtilities::storage_path().await.unwrap(),
         wallet_config,
     )
@@ -130,7 +124,6 @@ pub async fn setup_wallet_and_env(
         config_repository,
         MockStorage::default(),
         HttpAccountProviderClient::default(),
-        pid_issuer_client,
     )
     .await
     .expect("Could not create test wallet")
@@ -211,37 +204,10 @@ pub async fn start_wallet_provider(settings: WpSettings) {
     wait_for_server(base_url, vec![]).await;
 }
 
-pub fn pid_issuer_settings() -> PidSettings {
-    let port = find_listener_port();
-
-    let mut settings = PidSettings::new().expect("Could not read settings");
-    settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.webserver.port = port;
-    settings.public_url = format!("http://localhost:{}/", port).parse().unwrap();
-    settings
-}
-
-pub async fn start_pid_issuer<A, B>(settings: PidSettings, attributes_lookup: A, bsn_lookup: B)
-where
-    A: AttributesLookup + Send + Sync + 'static,
-    B: BsnLookup + Send + Sync + 'static,
-{
-    let base_url = local_pid_base_url(&settings.webserver.port);
-
-    tokio::spawn(async {
-        if let Err(error) = PidServer::serve::<A, B>(settings, attributes_lookup, bsn_lookup).await {
-            println!("Could not start pid_issuer: {:?}", error);
-
-            process::exit(1);
-        }
-    });
-
-    wait_for_server(base_url, vec![]).await;
-}
-
 pub fn wallet_server_settings() -> WsSettings {
     let mut settings = WsSettings::new().expect("Could not read settings");
     let ws_port = find_listener_port();
+
     settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.wallet_server.port = ws_port;
 
@@ -256,18 +222,18 @@ pub fn wallet_server_settings() -> WsSettings {
     settings
 }
 
-pub async fn start_wallet_server(settings: WsSettings) {
+pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(settings: WsSettings, attr_service: A) {
     let public_url = settings.public_url.clone();
-    let sessions = DisclosureSessionStore::init(settings.store_url.clone()).await.unwrap();
+    let sessions = SessionStores::init(settings.store_url.clone()).await.unwrap();
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve(&settings, sessions).await {
+        if let Err(error) = wallet_server::server::serve_full(attr_service, settings, sessions).await {
             println!("Could not start wallet_server: {:?}", error);
 
             process::exit(1);
         }
     });
 
-    wait_for_server(public_url, vec![]).await;
+    wait_for_server(public_url.join("disclosure/").unwrap(), vec![]).await;
 }
 
 async fn wait_for_server(base_url: Url, trust_anchors: Vec<Certificate>) {
@@ -325,4 +291,18 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
         .await
         .expect("Could not accept pid issuance");
     wallet
+}
+
+pub struct MockAttributeService;
+
+impl AttributeService for MockAttributeService {
+    type Error = std::convert::Infallible;
+
+    async fn attributes(
+        &self,
+        _session: &SessionState<Created>,
+        _token_request: TokenRequest,
+    ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
+        Ok(MockAttributesLookup::default().attributes("999991772").unwrap())
+    }
 }

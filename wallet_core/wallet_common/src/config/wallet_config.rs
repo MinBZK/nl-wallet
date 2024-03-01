@@ -5,31 +5,22 @@ use std::{
 };
 
 use etag::EntityTag;
-use once_cell::sync::Lazy;
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
 
 use crate::{account::serialization::DerVerifyingKey, trust_anchor::DerTrustAnchor};
 
-// This should always equal the deep/universal link configured for the app.
-static UNIVERSAL_LINK_BASE: Lazy<Url> = Lazy::new(|| {
-    Url::parse("https://example.com/deeplink/")
-        .expect("hardcoded values should always result in a valid URL")
-});
+#[nutype(
+    validate(predicate = |u| !u.cannot_be_a_base()),
+    derive(FromStr, Clone, Deserialize),
+)]
+pub struct BaseUrl(Url);
+
+pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";
 const DIGID_REDIRECT_PATH: &str = "authentication/";
 const DISCLOSURE_BASE_PATH: &str = "disclosure/";
-
-pub static ISSUANCE_REDIRECT_URI: Lazy<Url> = Lazy::new(|| {
-    UNIVERSAL_LINK_BASE
-        .join(DIGID_REDIRECT_PATH)
-        .expect("hardcoded values should always result in a valid URL")
-});
-pub static DISCLOSURE_BASE_URI: Lazy<Url> = Lazy::new(|| {
-    UNIVERSAL_LINK_BASE
-        .join(DISCLOSURE_BASE_PATH)
-        .expect("hardcoded values should always result in a valid URL")
-});
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct WalletConfiguration {
@@ -53,6 +44,16 @@ impl WalletConfiguration {
         let mut hasher = DefaultHasher::new();
         self.hash(&mut hasher);
         hasher.finish()
+    }
+
+    #[inline]
+    pub fn issuance_redirect_uri(universal_link_base: BaseUrl) -> Url {
+        universal_link_base.into_inner().join(DIGID_REDIRECT_PATH).unwrap()
+    }
+
+    #[inline]
+    pub fn disclosure_base_uri(universal_link_base: BaseUrl) -> Url {
+        universal_link_base.into_inner().join(DISCLOSURE_BASE_PATH).unwrap()
     }
 }
 
