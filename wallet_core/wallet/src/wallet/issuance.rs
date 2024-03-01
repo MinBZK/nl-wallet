@@ -21,7 +21,7 @@ use crate::{
     utils::reqwest::default_reqwest_client_builder,
 };
 
-use super::{documents::DocumentsError, HistoryError, Wallet};
+use super::{documents::DocumentsError, history::EventStorageError, Wallet};
 
 pub(crate) enum PidIssuanceSession<DGS = HttpDigidSession, IS = HttpIssuanceSession> {
     Digid(DGS),
@@ -52,8 +52,8 @@ pub enum PidIssuanceError {
     MdocDocument(#[from] DocumentMdocError),
     #[error("could not insert mdocs in database: {0}")]
     MdocStorage(#[source] StorageError),
-    #[error("could not store history in database: {0}")]
-    HistoryStorage(#[source] HistoryError),
+    #[error("could not store event in history database: {0}")]
+    EventStorage(#[source] EventStorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     KeyNotFound(String),
     #[error("invalid issuer certificate: {0}")]
@@ -345,7 +345,7 @@ where
 
         self.store_history_event(event)
             .await
-            .map_err(PidIssuanceError::HistoryStorage)?;
+            .map_err(PidIssuanceError::EventStorage)?;
 
         self.emit_documents().await.map_err(PidIssuanceError::Document)?;
 
