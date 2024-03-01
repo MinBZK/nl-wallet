@@ -267,14 +267,14 @@ fn wire_accept_pid_issuance_impl(port_: MessagePort, pin: impl Wire2Api<String> 
         },
     )
 }
-fn wire_reject_pid_issuance_impl(port_: MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+fn wire_has_active_pid_issuance_session_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, bool, _>(
         WrapInfo {
-            debug_name: "reject_pid_issuance",
+            debug_name: "has_active_pid_issuance_session",
             port: Some(port_),
             mode: FfiCallMode::Normal,
         },
-        move || move |task_callback| reject_pid_issuance(),
+        move || move |task_callback| has_active_pid_issuance_session(),
     )
 }
 fn wire_start_disclosure_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
@@ -311,6 +311,16 @@ fn wire_accept_disclosure_impl(port_: MessagePort, pin: impl Wire2Api<String> + 
             let api_pin = pin.wire2api();
             move |task_callback| accept_disclosure(api_pin)
         },
+    )
+}
+fn wire_has_active_disclosure_session_impl(port_: MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, bool, _>(
+        WrapInfo {
+            debug_name: "has_active_disclosure_session",
+            port: Some(port_),
+            mode: FfiCallMode::Normal,
+        },
+        move || move |task_callback| has_active_disclosure_session(),
     )
 }
 fn wire_get_history_impl(port_: MessagePort) {

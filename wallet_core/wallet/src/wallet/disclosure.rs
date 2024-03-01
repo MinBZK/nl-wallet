@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
-use platform_support::hw_keystore::PlatformEcdsaKey;
 use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
@@ -11,6 +10,7 @@ use nl_wallet_mdoc::{
     server_keys::KeysError,
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
 };
+use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
 use crate::{
@@ -182,6 +182,26 @@ where
         Ok(())
     }
 
+    #[instrument(skip_all)]
+    pub fn has_active_disclosure_session(&self) -> Result<bool, DisclosureError> {
+        info!("Checking for active disclosure session");
+
+        info!("Checking if registered");
+        if self.registration.is_none() {
+            return Err(DisclosureError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(DisclosureError::Locked);
+        }
+
+        let has_active_session = self.disclosure_session.is_some();
+
+        Ok(has_active_session)
+    }
+
+    #[instrument(skip_all)]
     pub async fn cancel_disclosure(&mut self) -> Result<(), DisclosureError> {
         info!("Cancelling disclosure");
 
@@ -217,6 +237,7 @@ where
             .map_err(DisclosureError::EventStorage)
     }
 
+    #[instrument(skip_all)]
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
@@ -337,21 +358,21 @@ where
             return Err(error);
         }
 
-        // Clone the return URL if present, so we can return it from this method.
+        // Get some data from the session that we need for both an event and to return,
+        // then remove the disclosure session, as disclosure is now successful. Any
+        // errors that occur after this point will result in the `Wallet` not having
+        // an active disclosure session anymore.
+        let proposed_attributes = session_proposal.proposed_attributes();
+        let rp_certificate = session.rp_certificate().clone();
         let return_url = session_proposal.return_url().cloned();
 
+        self.disclosure_session.take();
+
         // Save data for disclosure in event log.
-        let event = WalletEvent::new_disclosure(
-            Some(session_proposal.proposed_attributes().into()),
-            session.rp_certificate().clone(),
-            EventStatus::Success,
-        );
+        let event = WalletEvent::new_disclosure(Some(proposed_attributes.into()), rp_certificate, EventStatus::Success);
         self.store_history_event(event)
             .await
             .map_err(DisclosureError::EventStorage)?;
-
-        // When disclosure is successful, we can remove the session.
-        self.disclosure_session.take();
 
         Ok(return_url)
     }
@@ -408,6 +429,7 @@ mod tests {
     use once_cell::sync::Lazy;
     use rstest::rstest;
     use serial_test::serial;
+    use uuid::uuid;
 
     use nl_wallet_mdoc::{
         basic_sa_ext::Entry,
@@ -416,7 +438,6 @@ mod tests {
         verifier::SessionType,
         DataElementValue,
     };
-    use uuid::uuid;
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,

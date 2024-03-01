@@ -139,8 +139,9 @@ where
         Ok(auth_url)
     }
 
-    pub fn cancel_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
-        info!("PID issuance cancelled");
+    #[instrument(skip_all)]
+    pub fn has_active_pid_issuance_session(&self) -> Result<bool, PidIssuanceError> {
+        info!("Checking for active PID issuance session");
 
         info!("Checking if registered");
         if self.registration.is_none() {
@@ -152,13 +153,32 @@ where
             return Err(PidIssuanceError::Locked);
         }
 
-        if self.issuance_session.is_none() {
-            return Err(PidIssuanceError::SessionState);
+        let has_active_session = self.issuance_session.is_some();
+
+        Ok(has_active_session)
+    }
+
+    #[instrument(skip_all)]
+    pub async fn cancel_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
+        info!("PID issuance cancelled / rejected");
+
+        info!("Checking if registered");
+        if self.registration.is_none() {
+            return Err(PidIssuanceError::NotRegistered);
         }
 
-        info!("Removing issuance session");
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(PidIssuanceError::Locked);
+        }
 
-        self.issuance_session.take();
+        info!("Checking if there is an active issuance session");
+        let issuance_session = self.issuance_session.take().ok_or(PidIssuanceError::SessionState)?;
+
+        if let PidIssuanceSession::Openid4vci(pid_issuer) = issuance_session {
+            info!("Rejecting PID");
+            pid_issuer.reject_issuance().await?;
+        }
 
         Ok(())
     }
@@ -177,10 +197,15 @@ where
             return Err(PidIssuanceError::Locked);
         }
 
-        // Try to take ownership of any active session.
-        let session = match self.issuance_session.take().ok_or(PidIssuanceError::SessionState)? {
+        info!("Checking if there is an active DigiD issuance session");
+        if !matches!(self.issuance_session, Some(PidIssuanceSession::Digid(_))) {
+            return Err(PidIssuanceError::SessionState);
+        }
+
+        // Take ownership of the active session, now that we now that it exists.
+        let session = match self.issuance_session.take().unwrap() {
             PidIssuanceSession::Digid(session) => session,
-            PidIssuanceSession::Openid4vci(_) => Err(PidIssuanceError::SessionState)?,
+            PidIssuanceSession::Openid4vci(_) => panic!(),
         };
 
         let token_request = session
@@ -218,30 +243,6 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn reject_pid_issuance(&mut self) -> Result<(), PidIssuanceError> {
-        info!("Checking if registered");
-        if self.registration.is_none() {
-            return Err(PidIssuanceError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(PidIssuanceError::Locked);
-        }
-
-        info!("Checking if we have an active issuance session");
-        let pid_issuer = match self.issuance_session.take().ok_or(PidIssuanceError::SessionState)? {
-            PidIssuanceSession::Digid(_) => Err(PidIssuanceError::SessionState)?,
-            PidIssuanceSession::Openid4vci(pid_issuer) => pid_issuer,
-        };
-
-        info!("Rejecting any PID held in memory");
-        pid_issuer.reject_issuance().await?;
-
-        Ok(())
-    }
-
-    #[instrument(skip_all)]
     pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
         S: Storage,
@@ -261,7 +262,7 @@ where
             return Err(PidIssuanceError::Locked);
         }
 
-        info!("Checking if we have an active issuance session");
+        info!("Checking if there is an active PID issuance session");
         let pid_issuer = match self.issuance_session.as_ref().ok_or(PidIssuanceError::SessionState)? {
             PidIssuanceSession::Digid(_) => Err(PidIssuanceError::SessionState)?,
             PidIssuanceSession::Openid4vci(pid_issuer) => pid_issuer,
@@ -492,7 +493,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_cancel_pid_issuance() {
+    async fn test_cancel_pid_issuance_digid() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an active `DigidSession`.
@@ -501,7 +502,32 @@ mod tests {
         assert!(wallet.issuance_session.is_some());
 
         // Cancelling PID issuance should clear this session.
-        wallet.cancel_pid_issuance().expect("Could not cancel PID issuance");
+        wallet
+            .cancel_pid_issuance()
+            .await
+            .expect("Could not cancel PID issuance");
+
+        assert!(wallet.issuance_session.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_pid_issuance_pid() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Set up the `PidIssuerClient`
+        let pid_issuer = {
+            let mut client = MockIssuanceSession::new();
+            client.expect_reject().return_once(|| Ok(()));
+            client
+        };
+        wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
+
+        // Cancelling PID issuance should not fail.
+        wallet
+            .cancel_pid_issuance()
+            .await
+            .expect("Could not cancel PID issuance");
 
         assert!(wallet.issuance_session.is_none());
     }
@@ -516,6 +542,7 @@ mod tests {
         // Cancelling PID issuance on a locked wallet should result in an error.
         let error = wallet
             .cancel_pid_issuance()
+            .await
             .expect_err("Cancelling PID issuance should have resulted in an error");
 
         assert_matches!(error, PidIssuanceError::Locked);
@@ -529,6 +556,7 @@ mod tests {
         // Cancelling PID issuance on an unregistered wallet should result in an error.
         let error = wallet
             .cancel_pid_issuance()
+            .await
             .expect_err("Cancelling PID issuance should have resulted in an error");
 
         assert_matches!(error, PidIssuanceError::NotRegistered);
@@ -543,6 +571,7 @@ mod tests {
         // active DigiD session should result in an error.
         let error = wallet
             .cancel_pid_issuance()
+            .await
             .expect_err("Cancelling PID issuance should have resulted in an error");
 
         assert_matches!(error, PidIssuanceError::SessionState);
@@ -729,95 +758,6 @@ mod tests {
             .expect_err("Continuing PID issuance should have resulted in error");
 
         assert_matches!(error, PidIssuanceError::MdocDocument(_));
-    }
-
-    #[tokio::test]
-    async fn test_reject_pid_issuance() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Set up the `PidIssuerClient`
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client.expect_reject().return_once(|| Ok(()));
-            client
-        };
-        wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
-
-        // Cancelling PID issuance should not fail.
-        wallet
-            .reject_pid_issuance()
-            .await
-            .expect("Could not reject PID issuance");
-    }
-
-    #[tokio::test]
-    async fn test_reject_pid_issuance_error_locked() {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        wallet.lock();
-
-        // Rejecting PID issuance on a locked wallet should result in an error.
-        let error = wallet
-            .reject_pid_issuance()
-            .await
-            .expect_err("Rejecting PID issuance should have resulted in an error");
-
-        assert_matches!(error, PidIssuanceError::Locked);
-    }
-
-    #[tokio::test]
-    async fn test_reject_pid_issuance_error_not_registered() {
-        // Prepare an unregistered wallet.
-        let mut wallet = WalletWithMocks::new_unregistered().await;
-
-        // Rejecting PID issuance on an unregistered wallet should result in an error.
-        let error = wallet
-            .reject_pid_issuance()
-            .await
-            .expect_err("Rejecting PID issuance should have resulted in an error");
-
-        assert_matches!(error, PidIssuanceError::NotRegistered);
-    }
-
-    #[tokio::test]
-    async fn test_reject_pid_issuance_error_session_state() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Rejecting PID issuance on a `Wallet` that has a
-        // `PidIssuerClient` with no session should return an error.
-        let error = wallet
-            .reject_pid_issuance()
-            .await
-            .expect_err("Rejecting PID issuance should have resulted in an error");
-
-        assert_matches!(error, PidIssuanceError::SessionState);
-    }
-
-    #[tokio::test]
-    async fn test_reject_pid_issuance_error_pid_issuer() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Set up the `PidIssuerClient` to return an error
-        let pid_issuer = {
-            let mut client = MockIssuanceSession::new();
-            client
-                .expect_reject()
-                .return_once(|| Err(IssuanceSessionError::MissingNonce));
-            client
-        };
-        wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
-
-        // Rejecting PID issuance on a wallet should forward this error.
-        let error = wallet
-            .reject_pid_issuance()
-            .await
-            .expect_err("Rejecting PID issuance should have resulted in an error");
-
-        assert_matches!(error, PidIssuanceError::PidIssuer(_));
     }
 
     const PIN: &str = "051097";

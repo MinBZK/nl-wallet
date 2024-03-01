@@ -31,8 +31,8 @@ class CorePidRepository extends PidRepository {
   Future<void> cancelPidIssuance() => _walletCore.cancelPidIssuance();
 
   @override
-  Future<WalletInstructionResult> acceptOfferedPid(String pin) => _walletCore.acceptOfferedPid(pin);
+  Future<bool> hasActivePidIssuanceSession() => _walletCore.hasActivePidIssuanceSession();
 
   @override
-  Future<void> rejectOfferedPid() => _walletCore.rejectOfferedPid();
+  Future<WalletInstructionResult> acceptOfferedPid(String pin) => _walletCore.acceptOfferedPid(pin);
 }

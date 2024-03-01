@@ -9,5 +9,7 @@ abstract class DisclosureRepository {
 
   Future<void> cancelDisclosure();
 
+  Future<bool> hasActiveDisclosureSession();
+
   Future<AcceptDisclosureResult> acceptDisclosure(String pin);
 }
