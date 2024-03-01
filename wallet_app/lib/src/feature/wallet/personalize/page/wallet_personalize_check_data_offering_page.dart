@@ -57,7 +57,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         context.l10n.walletPersonalizeCheckDataOfferingPageSubtitle,
-        style: context.textTheme.bodyMedium,
+        style: context.textTheme.bodyLarge,
       ),
     );
   }
