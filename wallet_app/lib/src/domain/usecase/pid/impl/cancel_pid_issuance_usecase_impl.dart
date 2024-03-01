@@ -11,6 +11,11 @@ class CancelPidIssuanceUseCaseImpl implements CancelPidIssuanceUseCase {
   @override
   Future<void> invoke() async {
     Fimber.d('Cancelling active pid issuance');
-    await _pidRepository.cancelPidIssuance();
+    final hasActiveSession = await _pidRepository.hasActivePidIssuanceSession();
+    if (hasActiveSession) {
+      await _pidRepository.cancelPidIssuance();
+    } else {
+      Fimber.e('No active pid issuance session to cancel!');
+    }
   }
 }

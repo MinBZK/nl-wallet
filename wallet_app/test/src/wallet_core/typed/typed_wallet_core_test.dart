@@ -121,13 +121,6 @@ void main() {
     });
   });
 
-  group('rejectOfferedPid', () {
-    test('reject offered pid is passed on to core', () async {
-      await typedWalletCore.rejectOfferedPid();
-      verify(core.rejectPidIssuance()).called(1);
-    });
-  });
-
   group('resetWallet', () {
     test('reset wallet pid is passed on to core', () async {
       await typedWalletCore.resetWallet();
@@ -271,11 +264,6 @@ void main() {
     test('acceptOfferedPid', () async {
       when(core.acceptPidIssuance(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
       expect(() async => await typedWalletCore.acceptOfferedPid(_kSamplePin), throwsA(isA<CoreError>()));
-    });
-
-    test('rejectOfferedPid', () async {
-      when(core.rejectPidIssuance()).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.rejectOfferedPid(), throwsA(isA<CoreError>()));
     });
 
     test('resetWallet', () async {

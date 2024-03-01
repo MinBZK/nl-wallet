@@ -31,7 +31,9 @@ pub use self::{
     config::ConfigCallback,
     disclosure::{DisclosureError, DisclosureProposal},
     documents::DocumentsCallback,
-    history::{EventStatus, HistoryError, HistoryEvent, RecentHistoryCallback},
+    history::{
+        EventConversionError, EventStatus, EventStorageError, HistoryError, HistoryEvent, RecentHistoryCallback,
+    },
     init::WalletInitError,
     issuance::PidIssuanceError,
     lock::{LockCallback, WalletUnlockError},

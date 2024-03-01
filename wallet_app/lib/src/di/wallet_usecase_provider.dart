@@ -53,8 +53,6 @@ import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
-import '../domain/usecase/pid/impl/reject_offered_pid_usecase_impl.dart';
-import '../domain/usecase/pid/reject_offered_pid_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/disclose_for_issuance_usecase.dart';
@@ -193,9 +191,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<AcceptOfferedPidUseCase>(
           create: (context) => AcceptOfferedPidUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<RejectOfferedPidUseCase>(
-          create: (context) => RejectOfferedPidUseCaseImpl(context.read()),
         ),
         RepositoryProvider<ResetWalletUseCase>(
           create: (context) => ResetWalletUseCaseImpl(context.read()),

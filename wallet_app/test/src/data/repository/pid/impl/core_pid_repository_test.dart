@@ -65,10 +65,5 @@ void main() {
       await pidRepository.acceptOfferedPid(samplePin);
       verify(core.acceptOfferedPid(samplePin));
     });
-
-    test('reject offered pid should be propagated to the core', () async {
-      await pidRepository.rejectOfferedPid();
-      verify(core.rejectOfferedPid());
-    });
   });
 }

@@ -27,8 +27,20 @@ pub enum HistoryError {
     #[error("wallet is locked")]
     Locked,
     #[error("could not access history database: {0}")]
+    EventStorage(#[from] EventStorageError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum EventStorageError {
+    #[error("could not access event in history database: {0}")]
     Storage(#[from] StorageError),
-    #[error("could not prepare history event for UI: {0}")]
+    #[error("could not convert event items for display: {0}")]
+    Conversion(#[from] EventConversionError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum EventConversionError {
+    #[error("could not prepare event for UI: {0}")]
     Mapping(#[from] DocumentMdocError),
     #[error("could not read organization info from certificate: {0}")]
     Certificate(#[from] CertificateError),
@@ -36,6 +48,18 @@ pub enum HistoryError {
     NoReaderRegistrationFound,
     #[error("certificate does not contain issuer registration")]
     NoIssuerRegistrationFound,
+}
+
+impl From<StorageError> for HistoryError {
+    fn from(value: StorageError) -> Self {
+        EventStorageError::Storage(value).into()
+    }
+}
+
+impl From<EventConversionError> for HistoryError {
+    fn from(value: EventConversionError) -> Self {
+        EventStorageError::Conversion(value).into()
+    }
 }
 
 type HistoryResult<T> = Result<T, HistoryError>;
@@ -46,7 +70,7 @@ impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
 where
     S: Storage,
 {
-    pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> HistoryResult<()> {
+    pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), EventStorageError> {
         info!("Storing history event");
         self.storage.get_mut().log_wallet_event(event).await?;
 
@@ -96,7 +120,7 @@ where
         Ok(result)
     }
 
-    async fn emit_recent_history(&mut self) -> HistoryResult<()> {
+    async fn emit_recent_history(&mut self) -> Result<(), EventStorageError> {
         info!("Emit recent history from storage");
 
         let storage = self.storage.read().await;
@@ -105,7 +129,7 @@ where
             .await?
             .into_iter()
             .map(HistoryEvent::try_from)
-            .collect::<HistoryResult<_>>()?;
+            .collect::<Result<_, _>>()?;
 
         if let Some(ref mut recent_history_callback) = self.recent_history_callback {
             recent_history_callback(events);
@@ -149,7 +173,7 @@ pub enum HistoryEvent {
 }
 
 impl TryFrom<WalletEvent> for HistoryEvent {
-    type Error = HistoryError;
+    type Error = EventConversionError;
 
     fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
         let result = match source {
@@ -164,7 +188,7 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                     .into_iter()
                     .map(|(doc_type, proposed_card)| {
                         let issuer_registration = IssuerRegistration::from_certificate(&proposed_card.issuer)?
-                            .ok_or(HistoryError::NoIssuerRegistrationFound)?;
+                            .ok_or(EventConversionError::NoIssuerRegistrationFound)?;
 
                         // TODO: Refer to persisted mdoc from the mdoc table, or not?
                         let document = Document::from_mdoc_attributes(
@@ -175,7 +199,7 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                         )?;
                         Ok(document)
                     })
-                    .collect::<Result<_, HistoryError>>()?,
+                    .collect::<Result<_, EventConversionError>>()?,
             },
             WalletEvent::Disclosure {
                 id: _,
@@ -204,7 +228,7 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                     .transpose()?,
                 reader_registration: {
                     let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)?
-                        .ok_or(HistoryError::NoReaderRegistrationFound)?;
+                        .ok_or(EventConversionError::NoReaderRegistrationFound)?;
                     Box::new(reader_registration)
                 },
             },
@@ -230,7 +254,7 @@ mod tests {
         HistoryEvent,
     };
 
-    use super::HistoryError;
+    use super::{EventStorageError, HistoryError};
 
     const PID_DOCTYPE: &str = "com.example.pid";
     const ADDRESS_DOCTYPE: &str = "com.example.address";
@@ -417,6 +441,6 @@ mod tests {
             .map(|_| ())
             .expect_err("Setting recent_history callback should have resulted in an error");
 
-        assert_matches!(error, HistoryError::Storage(_));
+        assert_matches!(error, HistoryError::EventStorage(EventStorageError::Storage(_)));
     }
 }

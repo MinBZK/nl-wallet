@@ -10,6 +10,11 @@ class CancelDisclosureUseCaseImpl extends CancelDisclosureUseCase {
   @override
   Future<void> invoke() async {
     Fimber.d('Cancelling active disclosure session');
-    await _disclosureRepository.cancelDisclosure();
+    final hasActiveSession = await _disclosureRepository.hasActiveDisclosureSession();
+    if (hasActiveSession) {
+      await _disclosureRepository.cancelDisclosure();
+    } else {
+      Fimber.e('No active disclosure session to cancel!');
+    }
   }
 }

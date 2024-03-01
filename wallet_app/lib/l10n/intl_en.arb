@@ -398,7 +398,7 @@
     "disclosureStoppedPageFeedbackCta": "Give Feedback",
     "disclosureStoppedPageTitle": "Stopped",
     "disclosureSuccessPageCloseCta": "Close",
-    "disclosureSuccessPageDescription": " Your information is shared with {organization}. Close this screen and continue on the website of {organization}.",
+    "disclosureSuccessPageDescription": "Your information is shared with {organization}. Close this screen and continue on the website of {organization}.",
     "@disclosureSuccessPageDescription": {
         "placeholders": {
             "organization": {

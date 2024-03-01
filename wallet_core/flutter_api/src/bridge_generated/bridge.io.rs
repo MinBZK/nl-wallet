@@ -102,8 +102,8 @@ pub extern "C" fn wire_accept_pid_issuance(port_: i64, pin: *mut wire_uint_8_lis
 }
 
 #[no_mangle]
-pub extern "C" fn wire_reject_pid_issuance(port_: i64) {
-    wire_reject_pid_issuance_impl(port_)
+pub extern "C" fn wire_has_active_pid_issuance_session(port_: i64) {
+    wire_has_active_pid_issuance_session_impl(port_)
 }
 
 #[no_mangle]
@@ -119,6 +119,11 @@ pub extern "C" fn wire_cancel_disclosure(port_: i64) {
 #[no_mangle]
 pub extern "C" fn wire_accept_disclosure(port_: i64, pin: *mut wire_uint_8_list) {
     wire_accept_disclosure_impl(port_, pin)
+}
+
+#[no_mangle]
+pub extern "C" fn wire_has_active_disclosure_session(port_: i64) {
+    wire_has_active_disclosure_session_impl(port_)
 }
 
 #[no_mangle]
