@@ -71,7 +71,7 @@ pub trait WithIdentifier {
 pub trait StoredByIdentifier: WithIdentifier {
     type Error: Error + Send + Sync + 'static;
 
-    // Creates a unique instance of the specified identifier. If an instance
+    // Creates a unique instance with the specified identifier. If an instance
     // already exist with this identifier, `Ok(None)` will be returned.
     fn new_unique(identifier: &str) -> Option<Self>
     where

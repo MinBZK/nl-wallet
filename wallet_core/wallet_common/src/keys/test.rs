@@ -14,10 +14,10 @@ pub async fn sign_and_verify_signature<K: StoredByIdentifier + SecureEcdsaKey>(
     // Creating another signing key for the identifier should return `None`.
     assert!(K::new_unique(key_identifier).is_none());
 
-    // Get the public key from the first key
+    // Get the public key from the key.
     let public_key1 = key1.verifying_key().await.expect("Could not get public key");
 
-    // Apply a signature to the payload using the first key.
+    // Apply a signature to the payload using the key.
     let signature = key1.try_sign(payload).await.expect("Could not sign payload");
 
     // Delete the key, as well as the private key in the backing store.
@@ -28,7 +28,7 @@ pub async fn sign_and_verify_signature<K: StoredByIdentifier + SecureEcdsaKey>(
     let public_key2 = key2.verifying_key().await.expect("Could not get public key");
     assert_ne!(public_key1, public_key2);
 
-    // Then verify the signature, which should work if they indeed use the same private key
+    // Finally verify the signature against the public key.
     public_key1.verify(payload, &signature).is_ok()
 }
 
@@ -39,10 +39,10 @@ pub async fn encrypt_and_decrypt_message<K: StoredByIdentifier + SecureEncryptio
     // Create a unique encryption key for the identifier.
     let key1 = K::new_unique(key_identifier).expect("key is not unique for identifier");
 
-    // Encrypt the payload with the first key.
+    // Encrypt the payload with the key.
     let encrypted_payload = key1.encrypt(payload).await.expect("Could not encrypt message");
 
-    // Decrypt the encrypted message with the first key
+    // Decrypt the encrypted message with the key.
     let decrypted_payload = key1
         .decrypt(&encrypted_payload)
         .await
@@ -53,11 +53,12 @@ pub async fn encrypt_and_decrypt_message<K: StoredByIdentifier + SecureEncryptio
 
     // Creating a second encryption key with the same identifier should result in a new key.
     let key2 = K::new_unique(key_identifier).expect("key is not unique for identifier");
-    // Decrypting the payload encrypted with the previous key should not work
+    // Decrypting the payload encrypted with the previous key should not work.
     key2.decrypt(&encrypted_payload)
         .await
         .expect_err("Decrypting the payload with a new key should result in an error");
 
-    // Verify payload is indeed encrypted and decrypted payload matches the original
+    // Verify that the payload is indeed encrypted and
+    // that the decrypted payload matches the original.
     payload != encrypted_payload && payload == decrypted_payload
 }
