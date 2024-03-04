@@ -32,7 +32,7 @@ variables:
       namespace: ${K8S_DEMO_NAMESPACE}
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:a9fe57c25ab826a5a8a333902a2c63016361cc1961d0cb4a02790aa586fc7382"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:sha256:70d5ce192b2c6bf46d67e3f7d6d10c502bf1412bf57b8f43f04f3e1799ec3c66"
 
 .kaniko:
   extends: .env-ont
