@@ -249,6 +249,7 @@ dependency-check:
   script:
     - dependency-check.sh
       --data $CI_PROJECT_DIR/dependency_check_data
+      --disableDart
       --enableExperimental
       --format "HTML" --format "JSON" --format "XML"
       --scan "."
