@@ -26,12 +26,12 @@ pub enum KeyStoreError {
 /// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
 pub trait PlatformEcdsaKey: StoredByIdentifier + SecureEcdsaKey {
     // from StoredByIdentifier: new_unique(), delete(), identifier()
-    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
+    // from EcdsaKey: verifying_key(), try_sign(), sign()
 }
 
 pub trait PlatformEncryptionKey: StoredByIdentifier + SecureEncryptionKey {
     // from StoredByIdentifier: new_unique(), delete(), identifier()
-    // from SecureEncryptionKey: encrypt(), decrypt()
+    // from EncryptionKey: encrypt(), decrypt()
 }
 
 #[cfg(feature = "software")]

@@ -34,14 +34,14 @@ fn claim_unique_identifier(identifiers: &mut HashSet<String>, identifier: &str) 
 }
 
 impl From<KeyStoreError> for p256::ecdsa::Error {
-    // Wrap KeyStoreError in `p256::ecdsa::signature::error`,
+    // Wrap KeyStoreError in `p256::ecdsa::Error`,
     // as try_sign() has the latter as error type.
     fn from(value: KeyStoreError) -> Self {
         p256::ecdsa::Error::from_source(value)
     }
 }
 
-// HardwareSigningKey wraps SigningKeyBridge from native
+// HardwareSigningKey wraps SigningKeyBridge from native.
 #[derive(Clone)]
 pub struct HardwareEcdsaKey {
     identifier: String,
@@ -75,7 +75,7 @@ impl EcdsaKey for HardwareEcdsaKey {
 
         let signature_bytes = spawn::blocking(|| get_signing_key_bridge().sign(identifier, payload)).await?;
 
-        // decode the DER encoded signature
+        // Decode the DER encoded signature.
         Ok(Signature::from_der(&signature_bytes)?)
     }
 }
@@ -109,7 +109,7 @@ impl StoredByIdentifier for HardwareEcdsaKey {
 
 impl PlatformEcdsaKey for HardwareEcdsaKey {}
 
-// HardwareEncryptionKey wraps EncryptionKeyBridge from native
+// HardwareEncryptionKey wraps EncryptionKeyBridge from native.
 #[derive(Clone)]
 pub struct HardwareEncryptionKey {
     identifier: String,
