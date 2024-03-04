@@ -16,16 +16,16 @@ doctest = false
 [[test]]
 name = "hsm"
 path = "tests/hsm.rs"
-required-features = ["db_test"]
+required-features = ["hsm_test"]
 
 [[test]]
 name = "settings"
 path = "tests/settings.rs"
-required-features = ["db_test"]
+required-features = ["hsm_test"]
 
 [features]
-# Include and run test that depend on an external PostgreSQL database
-db_test = []
+# Include and run test that depend on a configured
+hsm_test = []
 
 [dependencies]
 axum = { workspace = true, features = [
