@@ -17,11 +17,13 @@ mock = ["dep:mockall"]
 
 [dependencies]
 base64.workspace = true
+biscuit.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 derive_more.workspace = true
 futures.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
+josekit.workspace = true
 jsonwebtoken.workspace = true
 mime.workspace = true
 mockall = { workspace = true, optional = true }
@@ -40,8 +42,10 @@ wallet_common.path = "../wallet_common"
 nl_wallet_mdoc.path = "../mdoc"
 
 [dev-dependencies]
+assert_matches.workspace = true
 ciborium.workspace = true
-tokio = { workspace = true, features = ["macros"] }
-rstest.workspace = true
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate"]}
 mockall.workspace = true
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate"] }
+rstest.workspace = true
+tokio = { workspace = true, features = ["macros"] }
+wiremock.workspace = true

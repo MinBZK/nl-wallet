@@ -86,6 +86,7 @@ class AboutScreen extends StatelessWidget {
     final endIndexOfUrl = startIndexOfUrl + url.length;
 
     return RichText(
+      textScaler: MediaQuery.textScalerOf(context),
       text: TextSpan(
         style: textStyle,
         children: [

@@ -17,11 +17,12 @@ use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
 use openid4vc::{
     issuance_session::HttpIssuanceSession,
     issuer::{AttributeService, Created},
+    oidc::MockOidcClient,
     token::TokenRequest,
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
-    mock::{default_configuration, MockDigidSession, MockStorage},
+    mock::{default_configuration, MockStorage},
     wallet_deps::{
         ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository,
         UpdateableConfigurationRepository,
@@ -70,7 +71,7 @@ pub type WalletWithMocks = Wallet<
     MockStorage,
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
-    MockDigidSession,
+    MockOidcClient,
     HttpIssuanceSession,
 >;
 

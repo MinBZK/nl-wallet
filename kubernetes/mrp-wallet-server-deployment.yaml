@@ -56,10 +56,19 @@ spec:
                 secretKeyRef:
                   name: nl-pid-issuer-secrets
                   key: ca_cert
-            - name: WALLET_SERVER_TRUST_ANCHORS
+            - name: WALLET_SERVER_VERIFIER__TRUST_ANCHORS
               value: "$(PID_CA_CRT)"
             - name: WALLET_SERVER_WALLET_SERVER_INTERNAL_URL
               value: "https://${MRP_WALLET_SERVER_INTERNAL_HOSTNAME}/"
+            - name: WALLET_SERVER_ISSUER__DIGID__BSN_PRIVKEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-pid-issuer-secrets
+                  key: bsn_privkey
+            - name: WALLET_SERVER_ISSUER__DIGID__ISSUER_URL
+              value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
+            - name: WALLET_SERVER_ISSUER__DIGID__CLIENT_ID
+              value: "SSSS"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:

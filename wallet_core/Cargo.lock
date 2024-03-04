@@ -565,6 +565,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "biscuit"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e28fc7c56c61743a01d0d1b73e4fed68b8a4f032ea3a2d4bb8c6520a33fc05a"
+dependencies = [
+ "chrono",
+ "data-encoding",
+ "num-bigint",
+ "num-traits",
+ "once_cell",
+ "ring 0.17.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2608,7 +2624,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbe1792e10fb9ec5a27aad80a8471a2f5cf013dfac32db439b024d66cf97e7be"
 dependencies = [
  "base64 0.21.4",
- "biscuit",
+ "biscuit 0.6.0",
  "chrono",
  "lazy_static",
  "mime",
@@ -2624,13 +2640,16 @@ dependencies = [
 name = "openid4vc"
 version = "0.1.0"
 dependencies = [
+ "assert_matches",
  "base64 0.21.4",
+ "biscuit 0.7.0",
  "chrono",
  "ciborium",
  "derive_more",
  "futures",
  "indexmap 2.0.2",
  "itertools 0.11.0",
+ "josekit",
  "jsonwebtoken",
  "mime",
  "mockall",
@@ -2647,6 +2666,7 @@ dependencies = [
  "trait-variant",
  "url",
  "wallet_common",
+ "wiremock",
 ]
 
 [[package]]
@@ -4987,7 +5007,6 @@ dependencies = [
  "mockall",
  "nl_wallet_mdoc",
  "once_cell",
- "openid",
  "openid4vc",
  "p256",
  "parking_lot",
@@ -5192,11 +5211,9 @@ dependencies = [
  "http",
  "hyper",
  "indexmap 2.0.2",
- "josekit",
  "mime",
  "nl_wallet_mdoc",
  "nutype",
- "openid",
  "openid4vc",
  "openssl",
  "p256",

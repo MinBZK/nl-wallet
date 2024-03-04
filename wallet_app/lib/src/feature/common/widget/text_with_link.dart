@@ -26,14 +26,16 @@ class TextWithLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textStyle = style ?? context.textTheme.bodyLarge;
     final parts = fullText.split(ctaText);
 
     /// Fallback for production, so we don't crash for an ill formatted text.
-    if (parts.length != 2) return Text(fullText, style: style ?? context.textTheme.bodyLarge);
+    if (parts.length != 2) return Text(fullText, style: textStyle);
     return RichText(
       textAlign: textAlign,
+      textScaler: MediaQuery.textScalerOf(context),
       text: TextSpan(
-        style: style ?? context.textTheme.bodyLarge,
+        style: textStyle,
         children: [
           TextSpan(text: parts.first),
           TextSpan(

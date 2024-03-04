@@ -11,8 +11,8 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };
-use openid4vc::token::TokenRequest;
-use wallet::{errors::DisclosureError, mock::MockDigidSession};
+use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
+use wallet::errors::DisclosureError;
 use wallet_common::utils;
 use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
@@ -36,13 +36,9 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 #[tokio::test]
 #[serial]
 async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<ReturnUrlTemplate>) {
-    let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _, _| {
-        let mut session = MockDigidSession::default();
-
-        session
-            .expect_auth_url()
-            .return_const(Url::parse("http://localhost/").unwrap());
+    let digid_context = MockOidcClient::start_context();
+    digid_context.expect().return_once(|_, _, _, _| {
+        let mut session = MockOidcClient::default();
 
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
@@ -55,7 +51,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
             })
         });
 
-        Ok(session)
+        Ok((session, Url::parse("http://localhost/").unwrap()))
     });
 
     let ws_settings = wallet_server_settings();
@@ -181,15 +177,10 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
 #[tokio::test]
 #[serial]
 async fn test_disclosure_without_pid() {
-    let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _, _| {
-        let mut session = MockDigidSession::default();
-
-        session
-            .expect_auth_url()
-            .return_const(Url::parse("http://localhost/").unwrap());
-
-        Ok(session)
+    let digid_context = MockOidcClient::start_context();
+    digid_context.expect().return_once(|_, _, _, _| {
+        let session = MockOidcClient::default();
+        Ok((session, Url::parse("http://localhost/").unwrap()))
     });
 
     let ws_settings = wallet_server_settings();

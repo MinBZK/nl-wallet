@@ -25,10 +25,11 @@ export SERVICES_HOST=localhost
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.
 # Set these properties before executing this script
-export DB_HOST="${DB_HOST:-localhost}" # default: localhost
-export DB_USERNAME="${DB_USERNAME:-postgres}" # default: postgres
-export DB_PASSWORD="${DB_PASSWORD:-postgres}" # default: postgres
-export DB_NAME="${DB_NAME:-wallet_provider}" # default: wallet_provider
+export DB_HOST="${DB_HOST:-localhost}"
+export DB_USERNAME="${DB_USERNAME:-postgres}"
+export DB_PASSWORD="${DB_PASSWORD:-postgres}"
+export DB_NAME="${DB_NAME:-wallet_provider}"
+export PGADMIN_DEFAULT_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-admin}}"
 
 # HSM properties, with defaults
 HSM_LIBRARY_PATH=$(detect_softhsm)

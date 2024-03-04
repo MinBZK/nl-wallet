@@ -22,7 +22,7 @@ services:
     image: "dpage/pgadmin4"
     environment:
       PGADMIN_DEFAULT_EMAIL: "admin@wallet.com"
-      PGADMIN_DEFAULT_PASSWORD: "admin"
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "9090:80"
     depends_on:

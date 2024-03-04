@@ -16,13 +16,12 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use nl_wallet_mdoc::holder::{CborHttpClient, DisclosureSession};
-use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::{issuance_session::HttpIssuanceSession, oidc::HttpOidcClient};
 use platform_support::hw_keystore::hardware::{HardwareEcdsaKey, HardwareEncryptionKey};
 
 use crate::{
     account_provider::HttpAccountProviderClient,
     config::UpdatingFileHttpConfigurationRepository,
-    digid::HttpDigidSession,
     lock::WalletLock,
     storage::{DatabaseStorage, RegistrationData},
 };
@@ -57,14 +56,14 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>,    // Storage
     PEK = HardwareEcdsaKey,                        // PlatformEcdsaKey
     APC = HttpAccountProviderClient,               // AccountProviderClient
-    DGS = HttpDigidSession,                        // DigidSession
-    IS = HttpIssuanceSession,                      // IssuanceSession
+    OIC = HttpOidcClient,                          // OidcClient
+    IC = HttpIssuanceSession,                      // IssuanceSession
     MDS = DisclosureSession<CborHttpClient, Uuid>, // MdocDisclosureSession
 > {
     config_repository: CR,
     storage: RwLock<S>,
     account_provider_client: APC,
-    issuance_session: Option<PidIssuanceSession<DGS, IS>>,
+    issuance_session: Option<PidIssuanceSession<OIC, IC>>,
     disclosure_session: Option<MDS>,
     lock: WalletLock,
     registration: Option<WalletRegistration<PEK>>,

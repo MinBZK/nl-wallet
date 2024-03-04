@@ -1,6 +1,5 @@
 mod account_provider;
 mod config;
-mod digid;
 mod disclosure;
 mod document;
 mod instruction;
@@ -31,6 +30,7 @@ pub mod mdoc {
     };
 }
 
+pub use openid4vc::oidc::OidcError;
 pub use wallet_common::config::wallet_config::{LockTimeoutConfiguration, WalletConfiguration};
 
 #[cfg(feature = "wallet_deps")]
@@ -42,7 +42,6 @@ pub mod wallet_deps {
             FileStorageConfigurationRepository, HttpConfigurationRepository, UpdateableConfigurationRepository,
             UpdatingFileHttpConfigurationRepository,
         },
-        digid::{DigidSession, HttpDigidSession, HttpOpenIdClient},
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },
@@ -55,8 +54,8 @@ pub mod mock {
     pub use crate::{
         account_provider::MockAccountProviderClient,
         config::{default_configuration, LocalConfigurationRepository},
-        digid::MockDigidSession,
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
         storage::MockStorage,
+        utils::reqwest::default_reqwest_client_builder,
     };
 }

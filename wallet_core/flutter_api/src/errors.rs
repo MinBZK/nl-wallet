@@ -3,9 +3,12 @@ use std::{error::Error, fmt::Display};
 use anyhow::Chain;
 use serde::Serialize;
 
-use wallet::errors::{
-    openid, reqwest, AccountProviderError, DigidError, DisclosureError, HistoryError, InstructionError,
-    PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
+use wallet::{
+    errors::{
+        reqwest, AccountProviderError, DisclosureError, HistoryError, InstructionError, PidIssuanceError, ResetError,
+        UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
+    },
+    OidcError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -126,15 +129,6 @@ impl FlutterApiErrorFields for PidIssuanceError {
         // within the error tree, just look for it with some help
         // from the `anyhow::Chain` iterator.
         for source in Chain::new(self) {
-            // Unfortunately `openid::error::Error` is a special case, because one of its
-            // variants holds a `reqwest::Error` with the `transparent` error attribute.
-            // This means that the `.source()` method will be forwarded directly to the contained
-            // error and the reqwest error itself will be skipped in the source chain!
-            // For this reason we need to extract it manually.
-            if let Some(openid::Error::Http(_)) = source.downcast_ref::<openid::Error>() {
-                return FlutterApiErrorType::Networking;
-            }
-
             if source.is::<reqwest::Error>() {
                 return FlutterApiErrorType::Networking;
             }
@@ -144,23 +138,20 @@ impl FlutterApiErrorFields for PidIssuanceError {
             PidIssuanceError::NotRegistered | PidIssuanceError::Locked | PidIssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            PidIssuanceError::DigidSessionFinish(DigidError::RedirectUriError {
-                error: _,
-                error_description: _,
-            }) => FlutterApiErrorType::RedirectUri,
+            PidIssuanceError::DigidSessionFinish(OidcError::RedirectUriError(_)) => FlutterApiErrorType::RedirectUri,
+
             _ => FlutterApiErrorType::Generic,
         }
     }
 
     fn data(&self) -> Option<serde_json::Value> {
         match self {
-            Self::DigidSessionFinish(DigidError::RedirectUriError {
-                error,
-                error_description: _,
-            }) => [("redirect_error", error.clone())]
-                .into_iter()
-                .collect::<serde_json::Value>()
-                .into(),
+            Self::DigidSessionFinish(OidcError::RedirectUriError(err)) => {
+                [("redirect_error", format!("{:?}", &err.error))]
+                    .into_iter()
+                    .collect::<serde_json::Value>()
+                    .into()
+            }
             _ => None,
         }
     }
