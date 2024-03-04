@@ -58,7 +58,6 @@ pub struct KeyPair {
 pub struct Digid {
     pub issuer_url: Url,
     pub bsn_privkey: String,
-    pub client_id: String,
 }
 
 #[cfg(feature = "mock")]

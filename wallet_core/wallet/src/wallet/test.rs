@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
     IssuerSigned,
 };
-use openid4vc::mock::MockIssuanceSession;
+use openid4vc::{mock::MockIssuanceSession, oidc::MockOidcClient};
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
@@ -25,7 +25,6 @@ use wallet_common::{
 use crate::{
     account_provider::MockAccountProviderClient,
     config::{default_configuration, LocalConfigurationRepository, UpdatingConfigurationRepository},
-    digid::MockDigidSession,
     disclosure::MockMdocDisclosureSession,
     document,
     pin::key as pin_key,
@@ -62,7 +61,7 @@ pub type WalletWithMocks = Wallet<
     MockStorage,
     FallibleSoftwareEcdsaKey,
     MockAccountProviderClient,
-    MockDigidSession,
+    MockOidcClient,
     MockIssuanceSession,
     MockMdocDisclosureSession,
 >;

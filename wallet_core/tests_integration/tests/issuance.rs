@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use openid4vc::token::TokenRequest;
 use url::Url;
 
-use wallet::{mock::MockDigidSession, AttributeValue, Document};
+use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
+use wallet::{AttributeValue, Document};
 use wallet_common::utils;
 
 use crate::common::*;
@@ -12,13 +12,9 @@ pub mod common;
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _, _| {
-        let mut session = MockDigidSession::default();
-
-        session
-            .expect_auth_url()
-            .return_const(Url::parse("http://localhost/").unwrap());
+    let digid_context = MockOidcClient::start_context();
+    digid_context.expect().return_once(|_, _, _, _| {
+        let mut session = MockOidcClient::default();
 
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
@@ -31,7 +27,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             })
         });
 
-        Ok(session)
+        Ok((session, Url::parse("http://localhost/").unwrap()))
     });
 
     let pin = "112233".to_string();
