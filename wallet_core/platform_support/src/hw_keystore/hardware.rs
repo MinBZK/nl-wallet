@@ -8,7 +8,7 @@ use p256::{
 use parking_lot::Mutex;
 
 use wallet_common::{
-    keys::{EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier, WithIdentifier},
+    keys::{EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier, WithIdentifier},
     spawn,
 };
 
@@ -149,7 +149,7 @@ impl StoredByIdentifier for HardwareEncryptionKey {
     }
 }
 
-impl SecureEncryptionKey for HardwareEncryptionKey {
+impl EncryptionKey for HardwareEncryptionKey {
     type Error = HardwareKeyStoreError;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
@@ -166,5 +166,7 @@ impl SecureEncryptionKey for HardwareEncryptionKey {
         Ok(decrypted)
     }
 }
+
+impl SecureEncryptionKey for HardwareEncryptionKey {}
 
 impl PlatformEncryptionKey for HardwareEncryptionKey {}

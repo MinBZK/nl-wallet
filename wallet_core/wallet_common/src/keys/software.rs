@@ -13,7 +13,7 @@ use rand_core::OsRng;
 
 use crate::keys::WithIdentifier;
 
-use super::{EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
+use super::{EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
 // Static for storing identifier to signing key mapping.
 static SIGNING_KEYS: Lazy<Mutex<HashMap<String, Arc<SigningKey>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
@@ -147,17 +147,19 @@ impl Debug for SoftwareEncryptionKey {
     }
 }
 
-impl SecureEncryptionKey for SoftwareEncryptionKey {
-    type Error = <Aes256Gcm as SecureEncryptionKey>::Error;
+impl EncryptionKey for SoftwareEncryptionKey {
+    type Error = <Aes256Gcm as EncryptionKey>::Error;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
-        <Aes256Gcm as SecureEncryptionKey>::encrypt(&self.cipher, msg).await
+        <Aes256Gcm as EncryptionKey>::encrypt(&self.cipher, msg).await
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, Self::Error> {
-        <Aes256Gcm as SecureEncryptionKey>::decrypt(&self.cipher, msg).await
+        <Aes256Gcm as EncryptionKey>::decrypt(&self.cipher, msg).await
     }
 }
+
+impl SecureEncryptionKey for SoftwareEncryptionKey {}
 
 impl WithIdentifier for SoftwareEncryptionKey {
     fn identifier(&self) -> &str {

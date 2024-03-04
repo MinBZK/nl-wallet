@@ -13,7 +13,7 @@ doctest = false
 [features]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 # and implement SecureEncryptionKey on aes-gcm cipher.
-mock_secure_keys = ["dep:aes-gcm"]
+mock_secure_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = [
     "mock_secure_keys",
@@ -25,6 +25,7 @@ software_keys = [
 integration_test = []
 
 [dependencies]
+aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 config.workspace = true
@@ -45,7 +46,6 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
-aes-gcm = { workspace = true, optional = true, features = ["std"] }
 once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
