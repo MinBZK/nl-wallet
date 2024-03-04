@@ -6,5 +6,10 @@
         <packageUrl regex="true">^pkg:cocoapods/Flutter@.*$</packageUrl>
         <cpe>cpe:/a:flutter:flutter</cpe>
     </suppress>
+    <suppress>
+        <notes><![CDATA[file name: flutter_native_splash:0.0.1]]></notes>
+        <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
+        <cve>CVE-2022-3095</cve>
+    </suppress>
     <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
 </suppressions>
