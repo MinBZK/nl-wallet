@@ -35,14 +35,9 @@ pub struct MockPidAttributeService {
 }
 
 impl MockPidAttributeService {
-    pub fn new(
-        issuer_url: Url,
-        bsn_privkey: String,
-        client_id: String,
-        mock_data: Option<Vec<MockAttributes>>,
-    ) -> Result<Self, Error> {
+    pub fn new(issuer_url: Url, bsn_privkey: String, mock_data: Option<Vec<MockAttributes>>) -> Result<Self, Error> {
         Ok(MockPidAttributeService {
-            openid_client: OpenIdClient::new(issuer_url, bsn_privkey, client_id)?,
+            openid_client: OpenIdClient::new(issuer_url, bsn_privkey)?,
             attrs_lookup: MockAttributesLookup::from(mock_data.unwrap_or_default()),
         })
     }
@@ -63,8 +58,7 @@ impl AttributeService for MockPidAttributeService {
             ..token_request
         };
 
-        let access_token = self.openid_client.request_token(openid_token_request).await?;
-        let bsn = self.openid_client.bsn(&access_token).await?;
+        let bsn = self.openid_client.bsn(openid_token_request).await?;
         let unsigned_mdocs = self.attrs_lookup.attributes(&bsn).ok_or(Error::NoAttributesFound)?;
 
         Ok(unsigned_mdocs)

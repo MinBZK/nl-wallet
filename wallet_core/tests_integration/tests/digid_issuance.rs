@@ -1,5 +1,6 @@
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, HttpOpenidMessageClient, IssuanceSession},
+    oidc::{HttpOidcClient, OidcClient},
     pkce::S256PkcePair,
 };
 use reqwest::Client;
@@ -7,8 +8,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
 use wallet::{
-    mock::default_configuration,
-    wallet_deps::{DigidSession, HttpDigidSession, HttpOpenIdClient},
+    mock::{default_configuration, default_reqwest_client_builder},
     WalletConfiguration,
 };
 use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -18,6 +18,18 @@ use crate::common::*;
 
 pub mod common;
 
+/// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max.
+/// This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max is updated.
+///
+/// Before running this, ensure that you have nl-rdo-max properly configured and running locally:
+/// - Run `setup-devenv.sh` if not recently done,
+/// - Run `start-devenv.sh digid`, or else `docker compose up` in your nl-rdo-max checkout.
+///
+/// Run the test itself with `cargo test --package tests_integration --features=digid_test`.
+///
+/// See also
+/// - `test_pid_ok()`, which uses the WP but mocks the OIDC part,
+/// - `accept_issuance()` in the `openid4vc` integration tests, which also mocks the HTTP server and client.
 #[tokio::test]
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
@@ -25,25 +37,25 @@ async fn test_pid_issuance_digid_bridge() {
     let attr_service = MockPidAttributeService::new(
         settings.issuer.digid.issuer_url.clone(),
         settings.issuer.digid.bsn_privkey.clone(),
-        settings.issuer.digid.client_id.clone(),
         settings.issuer.mock_data.clone(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
 
-    let digid_session = HttpDigidSession::<HttpOpenIdClient, S256PkcePair>::start(
+    let wallet_config = default_configuration();
+
+    // Prepare DigiD flow
+    let (digid_session, authorization_url) = HttpOidcClient::<S256PkcePair>::start(
+        default_reqwest_client_builder().build().unwrap(),
         settings.issuer.digid.issuer_url.clone(),
-        settings.issuer.digid.client_id.clone(),
+        wallet_config.pid_issuance.digid_client_id,
         WalletConfiguration::issuance_redirect_uri(DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()),
     )
     .await
     .unwrap();
 
-    // Prepare DigiD flow
-    let authorization_url = digid_session.auth_url();
-
     // Do fake DigiD authentication and parse the access token out of the redirect URL
-    let redirect_url = fake_digid_auth(&authorization_url, &default_configuration().pid_issuance.digid_url).await;
+    let redirect_url = fake_digid_auth(&authorization_url, &wallet_config.pid_issuance.digid_url).await;
     let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
     let server_url = local_base_url(settings.public_url.port().unwrap())

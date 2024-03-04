@@ -36,7 +36,6 @@ libsqlite3-sys = { workspace = true, features = [
 ] }
 mime.workspace = true
 once_cell.workspace = true
-openid = { workspace = true, features = ["rustls"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring = { workspace = true, features = ["std"] }

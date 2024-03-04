@@ -18,7 +18,6 @@ async fn main() -> Result<()> {
         wallet_server::pid::attributes::MockPidAttributeService::new(
             settings.issuer.digid.issuer_url.clone(),
             settings.issuer.digid.bsn_privkey.clone(),
-            settings.issuer.digid.client_id.clone(),
             settings.issuer.mock_data.clone(),
         )?,
         settings,

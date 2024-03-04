@@ -49,7 +49,7 @@ impl Wallet {
     }
 }
 
-impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
+impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
 where
     CR: ConfigurationRepository,
     S: Storage,

@@ -65,7 +65,7 @@ pub enum DisclosureError {
     EventStorage(#[source] EventStorageError),
 }
 
-impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
+impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
 where
     CR: ConfigurationRepository,
     MDS: MdocDisclosureSession<Self>,
@@ -378,7 +378,7 @@ where
     }
 }
 
-impl<CR, S, PEK, APC, DGS, IS, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, DGS, IS, MDS>
+impl<CR, S, PEK, APC, OIC, IS, MDS> MdocDataSource for Wallet<CR, S, PEK, APC, OIC, IS, MDS>
 where
     S: Storage,
 {

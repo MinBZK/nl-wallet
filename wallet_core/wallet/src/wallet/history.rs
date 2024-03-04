@@ -66,7 +66,7 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<HistoryEvent>) + Send + Sync>;
 
-impl<CR, S, PEK, APC, DGS, IS, MDS> Wallet<CR, S, PEK, APC, DGS, IS, MDS>
+impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
 where
     S: Storage,
 {

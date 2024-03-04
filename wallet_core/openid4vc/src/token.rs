@@ -202,6 +202,15 @@ impl ErrorStatusCode for TokenErrorCode {
     }
 }
 
+/// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthBearerErrorCode {
+    InvalidRequest,
+    InvalidToken,
+    InsufficientScope,
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
