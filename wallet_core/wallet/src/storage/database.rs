@@ -177,7 +177,9 @@ mod tests {
         down(&db).await.expect("Could not undo the migrations");
 
         // Finally, delete the test database.
-        db.close_and_delete().await.unwrap();
+        db.close_and_delete()
+            .await
+            .expect("Could not close and delete database");
     }
 
     #[tokio::test]
@@ -234,6 +236,8 @@ mod tests {
         down(&db).await.expect("Could not undo the migrations");
 
         // Finally, delete the test database.
-        db.close_and_delete().await.unwrap();
+        db.close_and_delete()
+            .await
+            .expect("Could not close and delete database");
     }
 }

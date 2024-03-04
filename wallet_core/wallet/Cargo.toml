@@ -18,7 +18,12 @@ disable_tls_validation = []
 # Read an .env file with configuration overrides when compiling
 env_config = ["dep:dotenvy"]
 # Include mock implementations and constructors for testing
-mock = ["dep:mockall", "nl_wallet_mdoc/mdocs_map", "nl_wallet_mdoc/mock", "openid4vc/mock"]
+mock = [
+    "dep:mockall",
+    "nl_wallet_mdoc/mdocs_map",
+    "nl_wallet_mdoc/mock",
+    "openid4vc/mock",
+]
 # Export the traits and actual implementations of the Wallet dependencies
 wallet_deps = []
 
@@ -27,7 +32,6 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 futures.workspace = true
-jsonwebtoken.workspace = true
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
