@@ -28,9 +28,12 @@ class TextIconButton extends StatelessWidget {
     ];
     return TextButton(
       onPressed: onPressed,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: iconPosition == IconPosition.end ? children : children.reversed.toList(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: iconPosition == IconPosition.end ? children : children.reversed.toList(),
+        ),
       ),
     );
   }

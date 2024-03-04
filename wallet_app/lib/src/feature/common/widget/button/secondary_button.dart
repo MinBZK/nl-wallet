@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'text_icon_button.dart';
 
-const _kButtonHeight = 48.0;
+const _kButtonMinHeight = 48.0;
 
 class SecondaryButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -18,9 +18,11 @@ class SecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _kButtonHeight,
-      width: double.infinity,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: _kButtonMinHeight,
+        minWidth: double.infinity,
+      ),
       child: TextIconButton(
         onPressed: onPressed,
         icon: icon,
