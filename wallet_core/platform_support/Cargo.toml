@@ -13,7 +13,7 @@ doctest = false
 
 [features]
 # Implement the PlatformEcdsaKey trait on SoftwareEcdsaKey
-software = ["wallet_common/software_keys"]
+software = ["wallet_common/software_keys", "dep:tokio"]
 # Enable helper code for integration tests
 integration_test = [
     "wallet_common/integration_test",
@@ -21,17 +21,17 @@ integration_test = [
     "tokio/io-util",
 ]
 # Enable helper code for iOS and Android integration tests
-hardware_integration_test = ["integration_test", "dep:jni"]
+hardware_integration_test = ["integration_test", "dep:jni", "tokio/rt"]
 
 [dependencies]
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 parking_lot.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt", "parking_lot"] }
 uniffi.workspace = true
 
 jni = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 
 wallet_common.path = "../wallet_common"
 
