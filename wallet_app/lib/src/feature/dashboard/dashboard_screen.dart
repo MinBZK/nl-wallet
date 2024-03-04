@@ -64,9 +64,8 @@ class DashboardScreen extends StatelessWidget {
           onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
           child: Text(
             context.l10n.dashboardScreenTitle,
-            style: context.textTheme.titleMedium!.copyWith(
+            style: context.textTheme.displayMedium!.copyWith(
               color: context.colorScheme.primary,
-              fontWeight: FontWeight.bold,
             ),
           ),
         ),
