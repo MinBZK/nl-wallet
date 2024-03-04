@@ -6,69 +6,10 @@
         <packageUrl regex="true">^pkg:cocoapods/Flutter@.*$</packageUrl>
         <cpe>cpe:/a:flutter:flutter</cpe>
     </suppress>
-    <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
-    <!-- Start group: [CRITICAL] https://nvd.nist.gov/vuln/detail/CVE-2022-3095 -->
     <suppress>
-        <notes><![CDATA[file name: flutter_lints:2.0.1]]></notes>
-        <packageUrl regex="true">^pkg:pub/flutter_lints@.*$</packageUrl>
+        <notes><![CDATA[file name: flutter_native_splash:0.0.1]]></notes>
+        <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
         <cve>CVE-2022-3095</cve>
     </suppress>
-    <suppress>
-        <notes><![CDATA[file name: flutter_rust_bridge:1.78.0]]></notes>
-        <packageUrl regex="true">^pkg:pub/flutter_rust_bridge@.*$</packageUrl>
-        <cpe>cpe:/a:flutter:flutter</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: flutter_staggered_grid_view:0.6.2]]></notes>
-        <packageUrl regex="true">^pkg:pub/flutter_staggered_grid_view@.*$</packageUrl>
-        <cpe>cpe:/a:flutter:flutter</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: flutter_sticky_header:0.6.5]]></notes>
-        <packageUrl regex="true">^pkg:pub/flutter_sticky_header@.*$</packageUrl>
-        <cpe>cpe:/a:flutter:flutter</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: flutter_svg:2.0.7]]></notes>
-        <packageUrl regex="true">^pkg:pub/flutter_svg@.*$</packageUrl>
-        <cpe>cpe:/a:flutter:flutter</cpe>
-    </suppress>
-    <!-- End group: [CRITICAL] https://nvd.nist.gov/vuln/detail/CVE-2022-3095 -->
-    <!-- Start group: [HIGH] -->
-    <suppress>
-        <notes><![CDATA[file name: fake_async:1.3.1]]></notes>
-        <packageUrl regex="true">^pkg:pub/fake_async@.*$</packageUrl>
-        <cpe>cpe:/a:async_project:async</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: yaml_edit:2.1.1]]></notes>
-        <packageUrl regex="true">^pkg:pub/yaml_edit@.*$</packageUrl>
-        <cpe>cpe:/a:yaml_project:yaml</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: webkit_inspection_protocol:1.2.0]]></notes>
-        <packageUrl regex="true">^pkg:pub/webkit_inspection_protocol@.*$</packageUrl>
-        <cpe>cpe:/a:webkit:webkit</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: string_scanner:1.2.0]]></notes>
-        <packageUrl regex="true">^pkg:pub/string_scanner@.*$</packageUrl>
-        <cpe>cpe:/a:string_project:string</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: mime:1.0.4]]></notes>
-        <packageUrl regex="true">^pkg:pub/mime@.*$</packageUrl>
-        <cpe>cpe:/a:mime_project:mime</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: material_color_utilities:0.2.0]]></notes>
-        <packageUrl regex="true">^pkg:pub/material_color_utilities@.*$</packageUrl>
-        <cpe>cpe:/a:utilities_project:utilities</cpe>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[file name: checked_yaml:2.0.3]]></notes>
-        <packageUrl regex="true">^pkg:pub/checked_yaml@.*$</packageUrl>
-        <cpe>cpe:/a:yaml_project:yaml</cpe>
-    </suppress>
-    <!-- End group: [HIGH] -->
+    <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
 </suppressions>
