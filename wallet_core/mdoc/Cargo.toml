@@ -41,9 +41,7 @@ futures.workspace = true
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
-parking_lot = { workspace = true, optional = true }
 rand_core.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 ring.workspace = true
@@ -64,6 +62,8 @@ x509-parser = { workspace = true, features = ["verify", "validate"] }
 
 anyhow = { workspace = true, optional = true }
 hex-literal = { workspace = true, optional = true }
+once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
+parking_lot = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
 regex = { workspace = true, optional = true }
 
@@ -74,6 +74,8 @@ anyhow.workspace = true
 assert_matches.workspace = true
 hex-literal.workspace = true
 http.workspace = true
+once_cell = { workspace = true, features = ["parking_lot"] }
+parking_lot.workspace = true
 rcgen = { workspace = true, features = ["x509-parser"] }
 regex.workspace = true
 tokio = { workspace = true, features = ["macros"] }

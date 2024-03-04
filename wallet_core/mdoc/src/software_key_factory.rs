@@ -12,8 +12,8 @@ use wallet_common::{
 use crate::utils::keys::KeyFactory;
 
 /// The [`SoftwareKeyFactory`] type implements [`KeyFactory`] and has the option
-/// of returning [`SoftwareKeyFactoryError::Generating`] when generating keys, as well as generating
-/// [`FactorySoftwareEcdsaKey`] that return [`SoftwareKeyFactoryError::Signing`] when signing.
+/// of returning [`SoftwareKeyFactoryError::Generating`] when generating multiple
+/// keys and [`SoftwareKeyFactoryError::Signing`] when signing multiple.
 #[derive(Debug)]
 pub struct SoftwareKeyFactory {
     software_keys: Mutex<HashMap<String, SoftwareEcdsaKey>>,
@@ -122,9 +122,7 @@ impl KeyFactory for SoftwareKeyFactory {
                 })
                 .collect::<Vec<_>>(),
         )
-        .await?
-        .into_iter()
-        .collect::<Vec<_>>();
+        .await?;
 
         Ok(result)
     }
