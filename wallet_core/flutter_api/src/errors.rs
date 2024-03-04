@@ -8,7 +8,7 @@ use wallet::{
         reqwest, AccountProviderError, DisclosureError, HistoryError, InstructionError, PidIssuanceError, ResetError,
         UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
     },
-    OidcError,
+    openid4vc::OidcError,
 };
 
 /// A type encapsulating data about a Flutter error that
