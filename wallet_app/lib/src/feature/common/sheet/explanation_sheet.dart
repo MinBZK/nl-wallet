@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../widget/button/text_icon_button.dart';
+import '../widget/button/secondary_button.dart';
 
 class ExplanationSheet extends StatelessWidget {
   final String title;
@@ -18,7 +18,7 @@ class ExplanationSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      minimum: const EdgeInsets.only(bottom: 16),
+      minimum: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -50,12 +50,13 @@ class ExplanationSheet extends StatelessWidget {
           const SizedBox(height: 24),
           const Divider(height: 1),
           const SizedBox(height: 16),
-          Center(
-            child: TextIconButton(
-              icon: Icons.close,
-              iconPosition: IconPosition.start,
-              child: Text(closeButtonText),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SecondaryButton(
               onPressed: () => Navigator.pop(context),
+              text: closeButtonText,
+              centerText: true,
+              icon: Icons.close,
             ),
           ),
         ],

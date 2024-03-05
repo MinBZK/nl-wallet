@@ -44,6 +44,7 @@ import '../../common/widget/version_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
+import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../theme_screen.dart';
 
 final _kSampleCardFront = CardFront(
@@ -195,6 +196,16 @@ class OtherStylesTab extends StatelessWidget {
             );
           },
           child: const Text('(Error) Help Sheet'),
+        ),
+        const ThemeSectionSubHeader(title: 'Disclosure Stop Sheet'),
+        TextButton(
+          onPressed: () {
+            DisclosureStopSheet.show(
+              context,
+              organizationName: 'Organization name'.untranslated,
+            );
+          },
+          child: const Text('Disclosure Stop Sheet'),
         ),
       ],
     );

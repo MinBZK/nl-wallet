@@ -23,11 +23,9 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
       content: Padding(
         padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
         child: Center(
-          child: ExcludeSemantics(
-            child: StackedWalletCards(
-              cards: cards,
-              onCardPressed: (card) => onContinuePressed(),
-            ),
+          child: StackedWalletCards(
+            cards: cards,
+            onCardPressed: (card) => onContinuePressed(),
           ),
         ),
       ),

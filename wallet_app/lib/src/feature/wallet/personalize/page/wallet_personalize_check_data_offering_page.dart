@@ -32,12 +32,12 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
             progress: progress,
           ),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverSizedBox(height: 32),
+          const SliverSizedBox(height: 24),
           const SliverToBoxAdapter(child: Divider(height: 1)),
           const SliverSizedBox(height: 12),
           SliverList(delegate: _getDataAttributesDelegate()),
-          const SliverSizedBox(height: 16),
-          const SliverToBoxAdapter(child: Divider(height: 24)),
+          const SliverSizedBox(height: 12),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
           SliverFillRemaining(
             hasScrollBody: false,
             fillOverscroll: true,
@@ -65,7 +65,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: AttributeRow(attribute: attributes[index]),
       ),
       childCount: attributes.length,

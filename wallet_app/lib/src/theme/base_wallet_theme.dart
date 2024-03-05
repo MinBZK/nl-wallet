@@ -86,7 +86,6 @@ class BaseWalletTheme {
 
   static const baseBottomSheetTheme = BottomSheetThemeData(
     shape: ContinuousRectangleBorder(),
-    showDragHandle: true,
   );
 
   static const baseBottomNavigationBarThemeData = BottomNavigationBarThemeData(

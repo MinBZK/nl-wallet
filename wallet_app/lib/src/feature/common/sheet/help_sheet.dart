@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../screen/placeholder_screen.dart';
 import '../widget/button/link_button.dart';
-import '../widget/button/text_icon_button.dart';
+import '../widget/button/secondary_button.dart';
 import '../widget/os_version_text.dart';
 import '../widget/version_text.dart';
 
@@ -23,47 +23,45 @@ class HelpSheet extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         MergeSemantics(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
                   context.l10n.helpSheetTitle,
                   style: context.textTheme.displayMedium,
                   textAlign: TextAlign.start,
                 ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
+                const SizedBox(height: 16),
+                Text(
                   context.l10n.helpSheetDescription,
                   style: context.textTheme.bodyLarge,
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                _buildInfoSection(context),
+              ],
+            ),
           ),
         ),
+        const Divider(height: 1),
         const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _buildInfoSection(context),
-        ),
-        const Divider(height: 32),
         LinkButton(
           onPressed: () => PlaceholderScreen.show(context, secured: false),
           customPadding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(context.l10n.helpSheetHelpdeskCta),
         ),
-        const Divider(height: 32),
-        Center(
-          child: TextIconButton(
-            icon: Icons.close,
-            iconPosition: IconPosition.start,
-            child: Text(context.l10n.helpSheetCloseCta),
+        const SizedBox(height: 16),
+        const Divider(height: 1),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SecondaryButton(
             onPressed: () => Navigator.pop(context),
+            text: context.l10n.helpSheetCloseCta,
+            centerText: true,
+            icon: Icons.close,
           ),
         ),
       ],
