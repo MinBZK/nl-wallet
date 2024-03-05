@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:rxdart/rxdart.dart';
 
+import '../../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'bloc/pin_bloc.dart';
 import 'pin_screen.dart';
@@ -27,7 +27,10 @@ class PinOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<bool>(
-      stream: isLockedStream.debounce((locked) => Rx.timer(null, Duration(milliseconds: locked ? 150 : 1))),
+      stream: isLockedStream.asyncMap((locked) async {
+        /// Make sure we only lock when the app has an active registration
+        return locked && await context.read<IsWalletInitializedUseCase>().invoke();
+      }),
       initialData: _lockedStreamCache,
       builder: (context, snapshot) {
         final isLocked = _lockedStreamCache = snapshot.data!;
