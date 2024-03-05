@@ -33,7 +33,7 @@ variables:
       namespace: ${K8S_DEMO_NAMESPACE}
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:70d5ce192b2c6bf46d67e3f7d6d10c502bf1412bf57b8f43f04f3e1799ec3c66"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:529d9b3c3ea0b58a71e522837230b6ed473f24b8ec91ea8bc311ea6fa3e7d806"
 
 .kaniko:
   extends: .env-ont
@@ -137,7 +137,7 @@ test-flutter-ui:
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -150,7 +150,7 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   cache: !reference [.rust-cache, cache]
   script:
     # Run tests, generate code coverage reports
@@ -167,7 +167,7 @@ test-rust:
 test-rust-integration:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
@@ -201,7 +201,7 @@ test-rust-integration:
 test-rust-compilation-android-linux:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:665e612c052edd39797e5859e1fb582aedc91f97f2c002154b96199ce7d1db6c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a79e22d5328c157ed85d2701f4f53d1c9f8d7efe8b0b38a5e4b6ed534110dbd6"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
@@ -243,7 +243,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:5bf9c226415cf1e010732a7a21a234549a5adec1e808e2cf18e35478ec6bd914"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:ac003e628b6967357fbd447e230cb5d0b5d40af769213908be57a97545b1e839"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -293,7 +293,7 @@ osv-scanner:
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
@@ -500,7 +500,7 @@ build-ws-migrations-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:665e612c052edd39797e5859e1fb582aedc91f97f2c002154b96199ce7d1db6c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a79e22d5328c157ed85d2701f4f53d1c9f8d7efe8b0b38a5e4b6ed534110dbd6"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -582,7 +582,7 @@ build-android-app-demo-release:
     APP_BUILD_MODE: "release"
 
 build-android-app-demo-profile:
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.release-tag, rules]
   extends: .build-android-app-demo
   variables:
     APP_FILE_FORMAT: "apk"
