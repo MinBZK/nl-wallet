@@ -172,18 +172,23 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildQrLogo(BuildContext context) {
     onTapQr() => Navigator.pushNamed(context, WalletRoutes.qrRoute);
-    return GestureDetector(
-      onTap: onTapQr,
-      child: MergeSemantics(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(WalletAssets.svg_qr_button),
-            TextButton(
-              onPressed: onTapQr,
-              child: Text(context.l10n.dashboardScreenQrCta),
-            )
-          ],
+    return Semantics(
+      label: context.l10n.dashboardScreenQrCta,
+      button: true,
+      child: GestureDetector(
+        onTap: onTapQr,
+        child: ExcludeSemantics(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(WalletAssets.svg_qr_button),
+              TextButton(
+                onPressed: onTapQr,
+                child: Text(context.l10n.dashboardScreenQrCta),
+              )
+            ],
+          ),
         ),
       ),
     );

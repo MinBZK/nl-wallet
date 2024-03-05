@@ -34,7 +34,7 @@ class ConfirmActionSheet extends StatelessWidget {
     return Theme(
       data: context.theme.copyWith(elevatedButtonTheme: buttonTheme(context)),
       child: SafeArea(
-        minimum: const EdgeInsets.symmetric(vertical: 16),
+        minimum: const EdgeInsets.symmetric(vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

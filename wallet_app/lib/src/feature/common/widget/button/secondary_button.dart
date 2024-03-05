@@ -7,11 +7,13 @@ const _kButtonMinHeight = 48.0;
 class SecondaryButton extends StatelessWidget {
   final VoidCallback onPressed;
   final String text;
+  final bool centerText;
   final IconData icon;
 
   const SecondaryButton({
     required this.onPressed,
     required this.text,
+    this.centerText = false,
     this.icon = Icons.arrow_forward,
     super.key,
   });
@@ -27,7 +29,7 @@ class SecondaryButton extends StatelessWidget {
         onPressed: onPressed,
         icon: icon,
         iconPosition: IconPosition.start,
-        centerChild: false,
+        centerChild: centerText,
         child: Text(text),
       ),
     );

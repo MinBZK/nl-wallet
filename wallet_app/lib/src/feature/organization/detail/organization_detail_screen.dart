@@ -121,7 +121,7 @@ class OrganizationDetailScreen extends StatelessWidget {
         ],
         const Divider(height: 1),
         const SizedBox(height: 16),
-        _buildInfoSection(context, state.organization),
+        ..._buildInfoSectionItems(context, state.organization),
         const SizedBox(height: 16),
         onReportIssuePressed == null
             ? const SizedBox()
@@ -156,21 +156,17 @@ class OrganizationDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoSection(BuildContext context, Organization organization) {
+  List<Widget> _buildInfoSectionItems(BuildContext context, Organization organization) {
     final country = CountryCodeFormatter.format(organization.countryCode);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildLegalNameRow(context, organization),
-        _buildCategoryRow(context, organization),
-        if (organization.department != null) _buildDepartmentRow(context, organization),
-        if (country != null || organization.city != null) _buildLocationRow(context, country, organization),
-        if (organization.webUrl != null) _buildWebUrlRow(context, organization.webUrl!),
-        if (organization.privacyPolicyUrl != null) _buildPrivacyRow(context, organization.privacyPolicyUrl!),
-        if (organization.kvk != null) _buildKvkRow(context, organization),
-      ],
-    );
+    return [
+      _buildLegalNameRow(context, organization),
+      _buildCategoryRow(context, organization),
+      if (organization.department != null) _buildDepartmentRow(context, organization),
+      if (country != null || organization.city != null) _buildLocationRow(context, country, organization),
+      if (organization.webUrl != null) _buildWebUrlRow(context, organization.webUrl!),
+      if (organization.privacyPolicyUrl != null) _buildPrivacyRow(context, organization.privacyPolicyUrl!),
+      if (organization.kvk != null) _buildKvkRow(context, organization),
+    ];
   }
 
   Widget _buildLegalNameRow(BuildContext context, Organization organization) {
