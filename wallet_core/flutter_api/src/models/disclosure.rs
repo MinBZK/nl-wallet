@@ -1,8 +1,9 @@
 use url::Url;
 
 use wallet::{
-    errors::DisclosureError, mdoc::ReaderRegistration, DisclosureDocument, DisclosureProposal,
-    MissingDisclosureAttributes,
+    errors::DisclosureError,
+    mdoc::{ReaderRegistration, SessionType},
+    DisclosureDocument, DisclosureProposal, MissingDisclosureAttributes,
 };
 
 use super::{
@@ -50,12 +51,27 @@ pub struct DisclosureCard {
     pub attributes: Vec<CardAttribute>,
 }
 
+pub enum DisclosureSessionType {
+    SameDevice,
+    CrossDevice,
+}
+
+impl From<SessionType> for DisclosureSessionType {
+    fn from(source: SessionType) -> Self {
+        match source {
+            SessionType::SameDevice => Self::SameDevice,
+            SessionType::CrossDevice => Self::CrossDevice,
+        }
+    }
+}
+
 pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
         policy: RequestPolicy,
         requested_cards: Vec<DisclosureCard>,
         shared_data_with_relying_party_before: bool,
+        session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
         request_origin_base_url: String,
     },
@@ -63,6 +79,7 @@ pub enum StartDisclosureResult {
         relying_party: Organization,
         missing_attributes: Vec<MissingAttribute>,
         shared_data_with_relying_party_before: bool,
+        session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
         request_origin_base_url: String,
     },
@@ -191,6 +208,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     policy,
                     requested_cards: DisclosureCard::from_disclosure_documents(proposal.documents),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
+                    session_type: proposal.session_type.into(),
                     request_purpose,
                     request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
                 };
@@ -202,6 +220,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     reader_registration,
                     missing_attributes,
                     shared_data_with_relying_party_before,
+                    session_type,
                 } => {
                     let request_purpose: Vec<LocalizedString> =
                         RPLocalizedStrings(reader_registration.purpose_statement).into();
@@ -210,6 +229,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                         relying_party: reader_registration.organization.into(),
                         missing_attributes,
                         shared_data_with_relying_party_before,
+                        session_type: session_type.into(),
                         request_purpose,
                         request_origin_base_url: reader_registration.request_origin_base_url.into(),
                     };

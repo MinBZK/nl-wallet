@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
+import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/report_issue/report_issue_screen.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
@@ -68,11 +69,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -87,9 +89,10 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           [],
         );
       });
@@ -105,11 +108,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -130,9 +134,10 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           [],
         );
       });
@@ -154,11 +159,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -178,9 +184,10 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           [],
         );
       });
@@ -201,9 +208,10 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           [],
         );
       });
@@ -231,11 +239,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -257,11 +266,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -284,11 +294,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -313,11 +324,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -342,11 +354,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
-          WalletMockData.policy,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           {},
+          WalletMockData.policy,
         );
       });
     },
@@ -373,9 +386,10 @@ void main() {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
-          'requestPurpose'.untranslated,
           'http://origin.org',
+          'requestPurpose'.untranslated,
           false,
+          DisclosureSessionType.crossDevice,
           [],
         );
       });

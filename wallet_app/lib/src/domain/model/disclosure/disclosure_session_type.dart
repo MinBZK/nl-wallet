@@ -1,0 +1,4 @@
+enum DisclosureSessionType {
+  sameDevice,
+  crossDevice,
+}

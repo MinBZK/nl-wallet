@@ -59,8 +59,9 @@ class DisclosureNetworkError extends DisclosureState implements NetworkErrorStat
 
 class DisclosureCheckOrganization extends DisclosureState {
   final Organization relyingParty;
-  final bool sharedDataWithOrganizationBefore;
   final String originUrl;
+  final bool sharedDataWithOrganizationBefore;
+  final DisclosureSessionType sessionType;
   final bool afterBackPressed;
 
   @override
@@ -71,8 +72,9 @@ class DisclosureCheckOrganization extends DisclosureState {
 
   const DisclosureCheckOrganization({
     required this.relyingParty,
-    required this.sharedDataWithOrganizationBefore,
     required this.originUrl,
+    required this.sharedDataWithOrganizationBefore,
+    required this.sessionType,
     this.afterBackPressed = false,
   });
 

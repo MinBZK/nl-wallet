@@ -8,6 +8,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
+import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
@@ -54,6 +55,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           relyingParty: _startDisclosureResult!.relyingParty,
           originUrl: _startDisclosureResult!.originUrl,
           sharedDataWithOrganizationBefore: _startDisclosureResult!.sharedDataWithOrganizationBefore,
+          sessionType: _startDisclosureResult!.sessionType,
         ),
       );
     } catch (ex) {
@@ -89,8 +91,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
-          originUrl: _startDisclosureResult!.originUrl,
           sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
+          sessionType: _startDisclosureResult!.sessionType,
+          originUrl: _startDisclosureResult!.originUrl,
           afterBackPressed: true,
         ),
       );
@@ -101,6 +104,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           relyingParty: state.relyingParty,
           originUrl: _startDisclosureResult!.originUrl,
           sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
+          sessionType: _startDisclosureResult!.sessionType,
           afterBackPressed: true,
         ),
       );

@@ -29,6 +29,7 @@ use crate::models::card::LocalizedString;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::DisclosureCard;
+use crate::models::disclosure::DisclosureSessionType;
 use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::Organization;
@@ -489,6 +490,22 @@ impl rust2dart::IntoIntoDart<DisclosureCard> for DisclosureCard {
     }
 }
 
+impl support::IntoDart for DisclosureSessionType {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::SameDevice => 0,
+            Self::CrossDevice => 1,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DisclosureSessionType {}
+impl rust2dart::IntoIntoDart<DisclosureSessionType> for DisclosureSessionType {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for DisclosureStatus {
     fn into_dart(self) -> support::DartAbi {
         match self {
@@ -672,6 +689,7 @@ impl support::IntoDart for StartDisclosureResult {
                 policy,
                 requested_cards,
                 shared_data_with_relying_party_before,
+                session_type,
                 request_purpose,
                 request_origin_base_url,
             } => vec![
@@ -680,6 +698,7 @@ impl support::IntoDart for StartDisclosureResult {
                 policy.into_into_dart().into_dart(),
                 requested_cards.into_into_dart().into_dart(),
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
+                session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
                 request_origin_base_url.into_into_dart().into_dart(),
             ],
@@ -687,6 +706,7 @@ impl support::IntoDart for StartDisclosureResult {
                 relying_party,
                 missing_attributes,
                 shared_data_with_relying_party_before,
+                session_type,
                 request_purpose,
                 request_origin_base_url,
             } => vec![
@@ -694,6 +714,7 @@ impl support::IntoDart for StartDisclosureResult {
                 relying_party.into_into_dart().into_dart(),
                 missing_attributes.into_into_dart().into_dart(),
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
+                session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
                 request_origin_base_url.into_into_dart().into_dart(),
             ],

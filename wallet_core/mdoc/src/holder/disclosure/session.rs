@@ -79,6 +79,7 @@ struct CommonDisclosureData<H> {
     verifier_url: Url,
     certificate: Certificate,
     reader_registration: ReaderRegistration,
+    session_type: SessionType,
 }
 
 enum VerifierSessionDataCheckResult<I> {
@@ -163,6 +164,7 @@ where
             verifier_url: verifier_url.clone(),
             certificate,
             reader_registration,
+            session_type,
         };
 
         // Create the appropriate `DisclosureSession` invariant, which contains
@@ -311,6 +313,10 @@ where
         _ = self.data().terminate().await?;
 
         Ok(())
+    }
+
+    pub fn session_type(&self) -> SessionType {
+        self.data().session_type
     }
 }
 
@@ -1227,6 +1233,7 @@ mod tests {
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: vec![].into(),
                 reader_registration: ReaderRegistration::new_mock(),
+                session_type: SessionType::SameDevice,
             },
             device_key,
             proposed_documents: vec![create_example_proposed_document()],
@@ -1307,6 +1314,7 @@ mod tests {
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
+                session_type: SessionType::SameDevice,
             },
             missing_attributes: Default::default(),
         });
@@ -1329,6 +1337,7 @@ mod tests {
                 verifier_url: SESSION_URL.parse().unwrap(),
                 certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
+                session_type: SessionType::SameDevice,
             },
             missing_attributes: Default::default(),
         });
