@@ -5,6 +5,7 @@ variables:
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
+  APP_BUILD_OFFSET: 861
 
 .env-ont:
   environment:
@@ -43,7 +44,7 @@ default:
     entrypoint: [""]
 
 .default-sonar:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   image:
     name: "$HARBOR_REGISTRY/docker-hub-proxy/sonarsource/sonar-scanner-cli:4.8.1"
 
@@ -55,19 +56,32 @@ default:
       variables:
         CACHE_POLICY: pull-push
 
+.release-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      variables:
+        CACHE_POLICY: pull
+
+.merge-request:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      variables:
+        CACHE_POLICY: pull
+
 .default-or-release:
   rules:
     - !reference [.default-branch, rules]
-    - if: $CI_COMMIT_BRANCH =~ /^(alpha|beta|release)\/\d+\.\d+\.\d+$/
-      variables:
-        CACHE_POLICY: pull
+    - !reference [.release-tag, rules]
+
+.default-or-merge-request:
+  rules:
+    - !reference [.default-branch, rules]
+    - !reference [.merge-request, rules]
 
 .default-or-release-or-merge-request:
   rules:
     - !reference [.default-or-release, rules]
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      variables:
-        CACHE_POLICY: pull
+    - !reference [.merge-request, rules]
 
 .rust-cache:
   cache:
@@ -310,7 +324,7 @@ sonar-rust:
       -Dcommunity.rust.lcov.reportPaths="lcov.info,lcov_integration.info"
 
 sonar-flutter:
-  rules: !reference [.default-or-release-or-merge-request, rules]
+  rules: !reference [.default-or-merge-request, rules]
   needs:
     - job: test-flutter
       artifacts: true
@@ -381,7 +395,7 @@ build-wp-image:
 
 build-wp-migrations-image:
   extends: .kaniko
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -498,19 +512,22 @@ build-ws-migrations-image:
     - kubectl get secret nl-wallet-core-env-file -o jsonpath='{.data.env}' | base64 --decode > wallet_core/wallet/.env
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
-    - bundle exec fastlane android ci_build
-      package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
-      app_name:"${APP_NAME}"
-      file_format:"${APP_FILE_FORMAT}"
-      build_mode:"${APP_BUILD_MODE}"
-      mock:"${APP_MOCK}"
-      ul_hostname:"${UL_HOSTNAME}"
+    - |
+      bundle exec fastlane android build \
+        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        app_name:"${APP_NAME}" \
+        file_format:"${APP_FILE_FORMAT}" \
+        build_mode:"${APP_BUILD_MODE}" \
+        mock:"${APP_MOCK}" \
+        universal_link_base:"${UL_HOSTNAME}" \
+        build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
+        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed 's/^v//')"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
 .build-android-app-latest:
   extends: [.env-ont-k8s, .build-android-app]
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-branch, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
@@ -531,7 +548,7 @@ build-android-app-latest-profile:
 
 .build-android-app-mock:
   extends: [.env-ont-k8s, .build-android-app]
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
@@ -545,7 +562,6 @@ build-android-app-mock-release:
 
 .build-android-app-demo:
   extends: [.env-demo-k8s, .build-android-app]
-  rules: !reference [.default-or-release, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -553,12 +569,14 @@ build-android-app-mock-release:
     UL_HOSTNAME: "${EXTERNAL_HOSTNAME_DEMO}"
 
 build-android-app-demo-release:
+  rules: !reference [.release-tag, rules]
   extends: .build-android-app-demo
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
 
 build-android-app-demo-profile:
+  rules: !reference [.default-branch, rules]
   extends: .build-android-app-demo
   variables:
     APP_FILE_FORMAT: "apk"
@@ -591,9 +609,12 @@ build-android-app-demo-profile:
     - export MATCH_PASSWORD=$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)
     - bundle install
     - bundle exec fastlane disable_flutter_analytics
-    - bundle exec fastlane ios ci_build
-      bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
-      app_name:"${APP_NAME}"
+    - |
+      bundle exec fastlane ios build \
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        app_name:"${APP_NAME}" \
+        build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
+        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
 
 build-ios-app-latest:
   extends: [.env-ont-k8s, .build-ios-app] # needs k8s secrets
@@ -604,7 +625,6 @@ build-ios-app-latest:
 
 .deploy-android-app:
   extends: .ruby-cache
-  rules: !reference [.default-or-release, rules]
   # needs:
   #   - job: build-ios-app # only deploy apps when both apps have been built successfully
   #     artifacts: false
@@ -617,11 +637,14 @@ build-ios-app-latest:
   script:
     - bundle install
     - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
-    - bundle exec fastlane android ci_deploy
-      package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+    - |
+      bundle exec fastlane android ci_deploy \
+        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
 
 deploy-android-app-latest:
   extends: [.env-ont-k8s, .deploy-android-app]
+  rules: !reference [.default-branch, rules]
   needs:
     - job: build-android-app-latest-release
       artifacts: true
@@ -631,8 +654,9 @@ deploy-android-app-latest:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
 
 deploy-android-app-mock:
-  when: manual
   extends: [.env-ont-k8s, .deploy-android-app]
+  when: manual
+  rules: !reference [.release-tag, rules]
   needs:
     - job: build-android-app-mock-release
       artifacts: true
@@ -642,8 +666,8 @@ deploy-android-app-mock:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
 deploy-android-app-demo:
-  when: manual
   extends: [.env-demo-k8s, .deploy-android-app]
+  rules: !reference [.release-tag, rules]
   needs:
     - job: build-android-app-demo-release
       artifacts: true
@@ -654,7 +678,6 @@ deploy-android-app-demo:
 
 .upload-browserstack-android-app:
   extends: .ruby-cache
-  rules: !reference [.default-branch, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
   # needs:
@@ -668,11 +691,14 @@ deploy-android-app-demo:
     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
     - bundle install
-    - bundle exec fastlane android ci_browserstack
-      package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
+    - |
+      bundle exec fastlane android ci_browserstack \
+        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
 
 upload-browserstack-android-app-latest:
   extends: [.env-ont-k8s, .upload-browserstack-android-app]
+  rules: !reference [.default-branch, rules]
   needs:
     - job: build-android-app-latest-profile
       artifacts: true
@@ -681,6 +707,7 @@ upload-browserstack-android-app-latest:
 
 upload-browserstack-android-app-demo:
   extends: [.env-demo-k8s, .upload-browserstack-android-app]
+  rules: !reference [.release-tag, rules]
   needs:
     - job: build-android-app-demo-profile
       artifacts: true
@@ -726,7 +753,7 @@ upload-browserstack-android-app-demo:
 #    - bundle exec fastlane ios ci_browserstack
 
 dependency-check-images:
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-release, rules]
   needs:
     - job: build-wp-image
       artifacts: false
@@ -773,8 +800,6 @@ dependency-check-images:
       - trivy
 
 .run-wp-migrations:
-  rules: !reference [.default-branch, rules]
-  when: manual
   needs:
     - job: build-wp-migrations-image
       artifacts: false
@@ -786,12 +811,13 @@ dependency-check-images:
 
 run-wp-migrations-ont:
   extends: [.env-ont-k8s, .run-wp-migrations]
+  rules: !reference [.default-branch, rules]
 
 run-wp-migrations-demo:
   extends: [.env-demo-k8s, .run-wp-migrations]
+  rules: !reference [.release-tag, rules]
 
 .deploy-wallet-provider:
-  rules: !reference [.default-branch, rules]
   needs:
     - job: build-wp-image
       artifacts: false
@@ -808,6 +834,7 @@ run-wp-migrations-demo:
 
 deploy-wallet-provider-ont:
   extends: [.env-ont-k8s, .deploy-wallet-provider]
+  rules: !reference [.default-branch, rules]
   needs:
     - job: run-wp-migrations-ont
       artifacts: false
@@ -817,6 +844,7 @@ deploy-wallet-provider-ont:
 
 deploy-wallet-provider-demo:
   extends: [.env-demo-k8s, .deploy-wallet-provider]
+  rules: !reference [.release-tag, rules]
   needs:
     - job: run-wp-migrations-demo
       artifacts: false
@@ -825,8 +853,6 @@ deploy-wallet-provider-demo:
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
 
 .deploy-pid-issuer:
-  rules: !reference [.default-branch, rules]
-  when: manual
   needs:
     - job: build-pid-issuer-image
       artifacts: false
@@ -840,19 +866,19 @@ deploy-wallet-provider-demo:
 
 deploy-pid-issuer-ont:
   extends: [.env-ont-k8s, .deploy-pid-issuer]
+  rules: !reference [.default-branch, rules]
   variables:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_ONT
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
 
 deploy-pid-issuer-demo:
   extends: [.env-demo-k8s, .deploy-pid-issuer]
+  rules: !reference [.release-tag, rules]
   variables:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
 
 .deploy-mock-relying-party:
-  rules: !reference [.default-branch, rules]
-  when: manual
   needs:
     - job: build-mock-relying-party-image
       artifacts: false
@@ -875,6 +901,7 @@ deploy-pid-issuer-demo:
 
 deploy-mock-relying-party-ont:
   extends: [.env-ont-k8s, .deploy-mock-relying-party]
+  rules: !reference [.default-branch, rules]
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
@@ -883,6 +910,7 @@ deploy-mock-relying-party-ont:
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
+  rules: !reference [.release-tag, rules]
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
@@ -959,7 +987,7 @@ run-automation-tests-14:
     BROWSERSTACK_DEVICE: "Google Pixel 8"
 
 build-sbom:
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-branch, rules]
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:fde8c80553826d9bb81d6ef165fccf896391258c7e6d5e4c10e184f9dff829bd"
   script:
