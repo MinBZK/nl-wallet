@@ -889,7 +889,7 @@ deploy-pid-issuer-demo:
     - job: build-ws-migrations-image
       artifacts: false
   variables:
-    WALLET_PROVIDER_MIGRATIONS_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
+    WALLET_SERVER_MIGRATION_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
   script:
     - envsubst < kubernetes/mrp-wallet-server-migration-job.yaml | kubectl apply -f -
     - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-wallet-server-migrations
