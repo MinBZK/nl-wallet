@@ -10,33 +10,34 @@ workspace = true
 [[test]]
 name = "config_server"
 path = "tests/config_server.rs"
-required-features = ["db_test"]
+required-features = ["db_test", "hsm_test"]
 
 [[test]]
 name = "disclosure"
 path = "tests/disclosure.rs"
-required-features = ["db_test"]
+required-features = ["db_test", "hsm_test"]
 
 [[test]]
 name = "issuance"
 path = "tests/issuance.rs"
-required-features = ["db_test"]
+required-features = ["db_test", "hsm_test"]
 
 [[test]]
 name = "locking"
 path = "tests/locking.rs"
-required-features = ["db_test"]
+required-features = ["db_test", "hsm_test"]
 
 [[test]]
 name = "registration"
 path = "tests/registration.rs"
-required-features = ["db_test"]
+required-features = ["db_test", "hsm_test"]
 
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["allow_http_return_url"]
+hsm_test = []
 digid_test = ["disable_tls_validation"]
 disable_tls_validation = [
     "wallet_server/disable_tls_validation",
@@ -92,5 +93,5 @@ wallet_provider_persistence = { path = "../wallet_provider/persistence" }
 wallet_provider_service = { path = "../wallet_provider/service", features = [
     "software_keys",
     "mock",
-] } # Enable the features necessary to run all integration tests, minus "db_test"
+] } # Enable the features necessary to run all integration tests, minus "db_test" and "hsm_test"
 wallet_server = { path = "../wallet_server" }

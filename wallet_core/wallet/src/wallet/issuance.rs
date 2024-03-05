@@ -394,7 +394,7 @@ mod tests {
     };
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockOidcClient)]
     async fn test_create_pid_issuance_auth_url() {
         const AUTH_URL: &str = "http://example.com/auth";
 
@@ -485,7 +485,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockOidcClient)]
     async fn test_create_pid_issuance_auth_url_error_digid_session_start() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -592,7 +592,7 @@ mod tests {
     const REDIRECT_URI: &str = "redirect://here";
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -682,7 +682,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance_error_pid_issuer() {
         // Prepare a registered wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -722,7 +722,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance_error_document() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;

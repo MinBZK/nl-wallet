@@ -188,7 +188,7 @@ test-rust-integration:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
-    - cargo llvm-cov test --features db_test --test '*' --locked --lcov --output-path lcov_integration.info
+    - cargo llvm-cov test --features db_test,hsm_test --test '*' --locked --lcov --output-path lcov_integration.info
     - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
   artifacts:
     reports:
