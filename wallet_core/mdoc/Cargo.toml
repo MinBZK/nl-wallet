@@ -58,6 +58,7 @@ strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 time.workspace = true
 tokio = { workspace = true, features = ["rt", "time", "parking_lot"] }
+tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser = { workspace = true, features = ["verify", "validate"] }
 

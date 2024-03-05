@@ -13,24 +13,21 @@ nameSpaces = { "com.example.pid" = { bsn = true } }
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, bsn = true } }
 
-# TODO: uncomment once multiple cards bug is fixed
-# [[usecases.xyz_bank]]
-# docType = "com.example.address"
-# nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
+[[usecases.xyz_bank]]
+docType = "com.example.address"
+nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
 
-# TODO: uncomment once multiple cards bug is fixed
-# [[usecases.online_marketplace]]
-# docType = "com.example.pid"
-# nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true } }
+[[usecases.online_marketplace]]
+docType = "com.example.pid"
+nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true } }
 
 [[usecases.online_marketplace]]
 docType = "com.example.address"
 nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
 
-# TODO: uncomment once multiple cards bug is fixed
-# [[usecases.monkey_bike]]
-# docType = "com.example.pid"
-# nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, gender = true, nationality = true } }
+[[usecases.monkey_bike]]
+docType = "com.example.pid"
+nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, gender = true, nationality = true } }
 
 [[usecases.monkey_bike]]
 docType = "com.example.address"
