@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/confirm_buttons.dart';
@@ -32,6 +33,9 @@ class OrganizationApprovePage extends StatelessWidget {
   /// If true, the 'first interaction' banner will be shown. //FIXME: This should eventually be a interactionCount
   final bool sharedDataWithOrganizationBefore;
 
+  /// If `crossDevice`, the 'fraud warning' (including `originUrl`) will be shown.
+  final DisclosureSessionType? sessionType;
+
   const OrganizationApprovePage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
@@ -40,6 +44,7 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.purpose,
     this.onReportIssuePressed,
     this.sharedDataWithOrganizationBefore = false,
+    this.sessionType,
     super.key,
   });
 
@@ -94,8 +99,10 @@ class OrganizationApprovePage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             _buildHeaderTitleText(context),
-            const SizedBox(height: 8),
-            _buildFraudInfoText(context),
+            if (sessionType == DisclosureSessionType.crossDevice) ...[
+              const SizedBox(height: 8),
+              _buildFraudInfoText(context),
+            ],
           ],
         ),
       ),

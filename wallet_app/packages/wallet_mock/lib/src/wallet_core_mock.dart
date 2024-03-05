@@ -37,6 +37,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         policy: request.policy,
         requestedCards: _wallet.getDisclosureCards(request.requestedAttributes.map((attribute) => attribute.key)),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
+        sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
       );
@@ -50,6 +51,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
       return _ongoingDisclosure = StartDisclosureResult.requestAttributesMissing(
         relyingParty: request.relyingParty,
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
+        sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
         missingAttributes: missingAttributes.toList(),

@@ -7,6 +7,7 @@ import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
+import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
@@ -43,11 +44,12 @@ void _setupMockitoDummies() {
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
   provideDummy<StartDisclosureResult>(StartDisclosureReadyToDisclose(
     WalletMockData.organization,
-    WalletMockData.policy,
-    'requestPurpose'.untranslated,
     'http://origin.org',
+    'requestPurpose'.untranslated,
     false,
+    DisclosureSessionType.crossDevice,
     {},
+    WalletMockData.policy,
   ));
 }
 
