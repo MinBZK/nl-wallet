@@ -23,7 +23,7 @@ use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,
 };
-use tracing::log::{error, warn};
+use tracing::{error, info, warn};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -155,11 +155,14 @@ async fn session<S>(
 where
     S: SessionStore<Data = SessionState<DisclosureData>>,
 {
-    let response = state
-        .verifier
-        .process_message(&msg, session_id)
-        .await
-        .map_err(Error::ProcessMdoc)?;
+    info!("process received message");
+
+    let response = state.verifier.process_message(&msg, session_id).await.map_err(|e| {
+        warn!("processing message failed, returning ProcessMdoc error");
+        Error::ProcessMdoc(e)
+    })?;
+
+    info!("message processed successfully, returning response");
 
     Ok(Cbor(response))
 }

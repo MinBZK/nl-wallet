@@ -26,6 +26,9 @@ spec:
     spec:
       imagePullSecrets:
         - name: harbor-puller
+      serviceAccountName: sp-nonroot
+      securityContext:
+        runAsUser: 65532
       containers:
         - name: wallet-provider
           image: $WALLET_PROVIDER_IMAGE

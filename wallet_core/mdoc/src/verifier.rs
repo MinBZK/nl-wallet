@@ -10,6 +10,7 @@ use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use strum;
 use tokio::task::JoinHandle;
+use tracing::{debug, info, warn};
 use url::Url;
 use webpki::TrustAnchor;
 
@@ -266,6 +267,8 @@ where
         usecase_id: String,
         return_url_used: bool,
     ) -> Result<(SessionToken, ReaderEngagement)> {
+        info!("create verifier session: {usecase_id}");
+
         if !self.keys.contains_key(&usecase_id) {
             return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
         }
@@ -285,6 +288,7 @@ where
             .write(&session_state.state.into())
             .await
             .map_err(VerificationError::SessionStore)?;
+        info!("Session({session_token}): session created");
         Ok((session_token, reader_engagement))
     }
 
@@ -299,6 +303,8 @@ where
             .await
             .map_err(VerificationError::SessionStore)?
             .ok_or_else(|| Error::from(VerificationError::UnknownSessionId(token.clone())))?;
+
+        info!("Session({token}): process message");
 
         let (response, next) = match state.session_data {
             DisclosureData::Created(session_data) => {
@@ -482,12 +488,19 @@ impl Session<Created> {
         SessionData,
         std::result::Result<Session<WaitingForResponse>, Session<Done>>,
     ) {
+        info!("Session({}): process device engagement", self.state.token);
         let (response, next) = match self.process_device_engagement_inner(&device_engagement, keys).await {
             Ok((response, items_requests, their_key, ephemeral_privkey, session_transcript)) => (
                 response,
                 Ok(self.transition_wait_for_response(items_requests, their_key, ephemeral_privkey, session_transcript)),
             ),
-            Err(e) => (SessionData::new_decoding_error(), Err(self.transition_fail(e))),
+            Err(e) => {
+                warn!(
+                    "Session({}): process device engagement failed, returning decoding error",
+                    self.state.token
+                );
+                (SessionData::new_decoding_error(), Err(self.transition_fail(e)))
+            }
         };
 
         (response, next)
@@ -629,6 +642,8 @@ impl Session<WaitingForResponse> {
         session_data: SessionData,
         trust_anchors: &[TrustAnchor],
     ) -> (SessionData, Session<Done>) {
+        info!("Session({}): process response", self.state.token);
+
         // Abort if user wants to abort
         if let Some(status) = session_data.status {
             return (SessionData::new_termination(), self.transition_abort(status));
@@ -638,7 +653,13 @@ impl Session<WaitingForResponse> {
             Ok((response, disclosed_attributes, transcript_hash)) => {
                 (response, self.transition_finish(disclosed_attributes, transcript_hash))
             }
-            Err(e) => (SessionData::new_decoding_error(), self.transition_fail(e)),
+            Err(e) => {
+                warn!(
+                    "Session({}): process response failed, returning decoding error",
+                    self.state.token
+                );
+                (SessionData::new_decoding_error(), self.transition_fail(e))
+            }
         };
 
         (response, next)
@@ -650,7 +671,14 @@ impl Session<WaitingForResponse> {
         session_data: &SessionData,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(SessionData, DisclosedAttributes, Option<Vec<u8>>)> {
+        debug!(
+            "Session({}): decrypting and deserializing device response",
+            self.state.token
+        );
+
         let device_response: DeviceResponse = session_data.decrypt_and_deserialize(&self.state().their_key)?;
+
+        debug!("Session({}): verify device response", self.state.token);
 
         let disclosed_attributes = device_response.verify(
             Some(&self.state().ephemeral_privkey.0),
@@ -658,6 +686,12 @@ impl Session<WaitingForResponse> {
             &TimeGenerator,
             trust_anchors,
         )?;
+
+        debug!(
+            "Session({}): check whether all requested attributes are received",
+            self.state.token
+        );
+
         self.state().items_requests.match_against_response(&device_response)?;
 
         let response = SessionData {
@@ -734,12 +768,11 @@ impl ItemsRequests {
         let not_found: Vec<_> = self
             .0
             .iter()
-            .enumerate()
-            .flat_map(|(i, items_request)| {
+            .flat_map(|items_request| {
                 device_response
                     .documents
                     .as_ref()
-                    .and_then(|docs| docs.get(i))
+                    .and_then(|docs| docs.iter().find(|doc| doc.doc_type == items_request.doc_type))
                     .map_or_else(
                         // If the entire document is missing then all requested attributes are missing
                         || items_request.attribute_identifiers().into_iter().collect(),
@@ -785,15 +818,15 @@ impl DeviceResponse {
 
         let mut attrs = IndexMap::new();
         for doc in self.documents.as_ref().unwrap() {
-            let (doc_type, doc_attrs) = doc.verify(eph_reader_key, session_transcript, time, trust_anchors)?;
-            if doc_type != doc.doc_type {
-                return Err(VerificationError::WrongDocType {
-                    document: doc.doc_type.clone(),
-                    mso: doc_type,
-                }
-                .into());
-            }
+            debug!("verifying document with doc_type: {}", doc.doc_type);
+            let (doc_type, doc_attrs) = doc
+                .verify(eph_reader_key, session_transcript, time, trust_anchors)
+                .map_err(|e| {
+                    warn!("document verification failed: {e}");
+                    e
+                })?;
             attrs.insert(doc_type, doc_attrs);
+            debug!("document OK");
         }
 
         Ok(attrs)
@@ -902,21 +935,37 @@ impl Document {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(DocType, DocumentDisclosedAttributes)> {
+        debug!("verifying document with doc_type: {:?}", &self.doc_type);
+        debug!("verify issuer_signed");
         let (attrs, mso) = self
             .issuer_signed
             .verify(ValidityRequirement::Valid, time, trust_anchors)?;
 
+        debug!("verifying mso.doc_type matches document doc_type");
+        if self.doc_type != mso.doc_type {
+            return Err(VerificationError::WrongDocType {
+                document: self.doc_type.clone(),
+                mso: mso.doc_type,
+            }
+            .into());
+        }
+
+        debug!("serializing session transcript");
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
         let device_authentication = DeviceAuthenticationKeyed::new(&self.doc_type, session_transcript);
+        debug!("serializing device_authentication");
         let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
 
+        debug!("extracting device_key");
         let device_key = (&mso.device_key_info.device_key).try_into()?;
         match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(sig) => {
+                debug!("verifying DeviceSignature");
                 sig.clone_with_payload(device_authentication_bts.to_vec())
                     .verify(&device_key)?;
             }
             DeviceAuth::DeviceMac(mac) => {
+                debug!("verifying DeviceMac");
                 let mac_key = dh_hmac_key(
                     eph_reader_key.ok_or_else(|| VerificationError::EphemeralKeyMissing)?,
                     &device_key.into(),
@@ -928,6 +977,7 @@ impl Document {
                     .verify(&mac_key)?;
             }
         }
+        debug!("signature valid");
 
         Ok((mso.doc_type, attrs))
     }
@@ -973,8 +1023,8 @@ mod tests {
             ValidityRequirement::{AllowNotYetValid, Valid},
             VerificationError, Verifier,
         },
-        DeviceAuthenticationBytes, DeviceEngagement, DeviceRequest, DeviceResponse, Error, ItemsRequest, SessionData,
-        SessionStatus, SessionTranscript, ValidityInfo,
+        DeviceAuthenticationBytes, DeviceEngagement, DeviceRequest, DeviceResponse, Document, Error, ItemsRequest,
+        SessionData, SessionStatus, SessionTranscript, ValidityInfo,
     };
 
     use super::{AttributeIdentifier, ItemsRequests};
@@ -1176,6 +1226,7 @@ mod tests {
     #[case(remove_namespace())]
     #[case(change_namespace())]
     #[case(remove_attribute())]
+    #[case(multiple_doc_types_swapped())]
     fn match_disclosed_attributes(
         #[case] testcase: (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>),
     ) {
@@ -1304,5 +1355,23 @@ mod tests {
         let items_requests = example_items_requests();
         let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];
         (device_response, items_requests, Err(missing))
+    }
+
+    // Add one extra document with doc_type "a", and swap the order in the items_requests
+    fn multiple_doc_types_swapped() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
+        let mut device_response = DeviceResponse::example();
+        let mut cloned_doc: Document = device_response.documents.as_ref().unwrap()[0].clone();
+        cloned_doc.doc_type = "a".to_string();
+        device_response.documents.as_mut().unwrap().push(cloned_doc);
+
+        let mut items_requests = example_items_requests();
+        let mut cloned_items_request = items_requests.0[0].clone();
+        cloned_items_request.doc_type = "a".to_string();
+        items_requests.0.push(cloned_items_request);
+
+        // swap the document order in items_requests
+        items_requests.0.reverse();
+
+        (device_response, items_requests, Ok(()))
     }
 }
