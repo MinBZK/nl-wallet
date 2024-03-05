@@ -14,6 +14,7 @@ use nl_wallet_mdoc::{
         reader_auth::ReaderRegistration,
         x509::Certificate,
     },
+    verifier::SessionType,
 };
 
 use crate::utils;
@@ -44,6 +45,7 @@ pub trait MdocDisclosureSession<D> {
     fn rp_certificate(&self) -> &Certificate;
     fn reader_registration(&self) -> &ReaderRegistration;
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
+    fn session_type(&self) -> SessionType;
 
     async fn terminate(self) -> nl_wallet_mdoc::Result<()>;
 }
@@ -114,6 +116,10 @@ where
     async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
         self.terminate().await
     }
+
+    fn session_type(&self) -> SessionType {
+        self.session_type()
+    }
 }
 
 impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpClient> {
@@ -180,7 +186,7 @@ mod mock {
         }
     }
 
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     pub struct MockMdocDisclosureProposal {
         pub return_url: Option<Url>,
         pub proposed_source_identifiers: Vec<Uuid>,
@@ -188,6 +194,21 @@ mod mock {
         pub disclosure_count: Arc<AtomicUsize>,
         pub next_error: Mutex<Option<nl_wallet_mdoc::Error>>,
         pub attributes_shared: bool,
+        pub session_type: SessionType,
+    }
+
+    impl Default for MockMdocDisclosureProposal {
+        fn default() -> Self {
+            Self {
+                return_url: Default::default(),
+                proposed_source_identifiers: Default::default(),
+                proposed_attributes: Default::default(),
+                disclosure_count: Default::default(),
+                next_error: Default::default(),
+                attributes_shared: Default::default(),
+                session_type: SessionType::SameDevice,
+            }
+        }
     }
 
     impl MdocDisclosureProposal for MockMdocDisclosureProposal {
@@ -226,6 +247,7 @@ mod mock {
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
         pub was_terminated: Arc<AtomicBool>,
+        pub session_type: SessionType,
     }
 
     impl MockMdocDisclosureSession {
@@ -257,6 +279,7 @@ mod mock {
                 reader_registration: ReaderRegistration::new_mock(),
                 session_state: Default::default(),
                 was_terminated: Default::default(),
+                session_type: SessionType::SameDevice,
             }
         }
     }
@@ -311,6 +334,10 @@ mod mock {
 
         fn rp_certificate(&self) -> &Certificate {
             &self.certificate
+        }
+
+        fn session_type(&self) -> SessionType {
+            self.session_type
         }
     }
 }

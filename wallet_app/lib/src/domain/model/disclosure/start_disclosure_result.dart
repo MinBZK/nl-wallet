@@ -4,18 +4,21 @@ import '../attribute/missing_attribute.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
 import '../wallet_card.dart';
+import 'disclosure_session_type.dart';
 
 sealed class StartDisclosureResult {
   final Organization relyingParty;
   final String originUrl;
   final LocalizedText requestPurpose;
   final bool sharedDataWithOrganizationBefore;
+  final DisclosureSessionType sessionType;
 
   StartDisclosureResult(
     this.relyingParty,
-    this.requestPurpose,
     this.originUrl,
+    this.requestPurpose,
     this.sharedDataWithOrganizationBefore,
+    this.sessionType,
   );
 }
 
@@ -25,11 +28,12 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
 
   StartDisclosureReadyToDisclose(
     super.relyingParty,
-    this.policy,
     super.originUrl,
     super.requestPurpose,
     super.sharedDataWithOrganizationBefore,
+    super.sessionType,
     this.requestedAttributes,
+    this.policy,
   );
 }
 
@@ -41,6 +45,7 @@ class StartDisclosureMissingAttributes extends StartDisclosureResult {
     super.requestPurpose,
     super.originUrl,
     super.sharedDataWithOrganizationBefore,
+    super.sessionType,
     this.missingAttributes,
   );
 }

@@ -2,6 +2,7 @@ import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/missing_attribute.dart';
+import '../../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
@@ -17,6 +18,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<List<core.LocalizedString>, LocalizedText> _localizedStringMapper;
+  final Mapper<core.DisclosureSessionType, DisclosureSessionType> _disclosureSessionTypeMapper;
 
   CoreDisclosureRepository(
     this._walletCore,
@@ -25,6 +27,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
     this._missingAttributeMapper,
     this._requestPolicyMapper,
     this._localizedStringMapper,
+    this._disclosureSessionTypeMapper,
   );
 
   @override
@@ -38,11 +41,12 @@ class CoreDisclosureRepository implements DisclosureRepository {
         final policy = _requestPolicyMapper.map(value.policy);
         return StartDisclosureReadyToDisclose(
           relyingParty,
-          policy,
-          _localizedStringMapper.map(value.requestPurpose),
           value.requestOriginBaseUrl,
+          _localizedStringMapper.map(value.requestPurpose),
           value.sharedDataWithRelyingPartyBefore,
+          _disclosureSessionTypeMapper.map(value.sessionType),
           requestedAttributes,
+          policy,
         );
       },
       requestAttributesMissing: (value) {
@@ -50,9 +54,10 @@ class CoreDisclosureRepository implements DisclosureRepository {
         final missingAttributes = _missingAttributeMapper.mapList(value.missingAttributes);
         return StartDisclosureMissingAttributes(
           relyingParty,
-          _localizedStringMapper.map(value.requestPurpose),
           value.requestOriginBaseUrl,
+          _localizedStringMapper.map(value.requestPurpose),
           value.sharedDataWithRelyingPartyBefore,
+          _disclosureSessionTypeMapper.map(value.sessionType),
           missingAttributes,
         );
       },

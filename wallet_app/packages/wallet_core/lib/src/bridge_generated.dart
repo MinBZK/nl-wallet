@@ -199,6 +199,11 @@ class DisclosureCard {
   });
 }
 
+enum DisclosureSessionType {
+  SameDevice,
+  CrossDevice,
+}
+
 enum DisclosureStatus {
   Success,
   Cancelled,
@@ -319,6 +324,7 @@ class StartDisclosureResult with _$StartDisclosureResult {
     required RequestPolicy policy,
     required List<DisclosureCard> requestedCards,
     required bool sharedDataWithRelyingPartyBefore,
+    required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,
     required String requestOriginBaseUrl,
   }) = StartDisclosureResult_Request;
@@ -326,6 +332,7 @@ class StartDisclosureResult with _$StartDisclosureResult {
     required Organization relyingParty,
     required List<MissingAttribute> missingAttributes,
     required bool sharedDataWithRelyingPartyBefore,
+    required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,
     required String requestOriginBaseUrl,
   }) = StartDisclosureResult_RequestAttributesMissing;
@@ -954,6 +961,10 @@ class WalletCoreImpl implements WalletCore {
     );
   }
 
+  DisclosureSessionType _wire2api_disclosure_session_type(dynamic raw) {
+    return DisclosureSessionType.values[raw as int];
+  }
+
   DisclosureStatus _wire2api_disclosure_status(dynamic raw) {
     return DisclosureStatus.values[raw as int];
   }
@@ -1105,16 +1116,18 @@ class WalletCoreImpl implements WalletCore {
           policy: _wire2api_box_autoadd_request_policy(raw[2]),
           requestedCards: _wire2api_list_disclosure_card(raw[3]),
           sharedDataWithRelyingPartyBefore: _wire2api_bool(raw[4]),
-          requestPurpose: _wire2api_list_localized_string(raw[5]),
-          requestOriginBaseUrl: _wire2api_String(raw[6]),
+          sessionType: _wire2api_disclosure_session_type(raw[5]),
+          requestPurpose: _wire2api_list_localized_string(raw[6]),
+          requestOriginBaseUrl: _wire2api_String(raw[7]),
         );
       case 1:
         return StartDisclosureResult_RequestAttributesMissing(
           relyingParty: _wire2api_box_autoadd_organization(raw[1]),
           missingAttributes: _wire2api_list_missing_attribute(raw[2]),
           sharedDataWithRelyingPartyBefore: _wire2api_bool(raw[3]),
-          requestPurpose: _wire2api_list_localized_string(raw[4]),
-          requestOriginBaseUrl: _wire2api_String(raw[5]),
+          sessionType: _wire2api_disclosure_session_type(raw[4]),
+          requestPurpose: _wire2api_list_localized_string(raw[5]),
+          requestOriginBaseUrl: _wire2api_String(raw[6]),
         );
       default:
         throw Exception("unreachable");

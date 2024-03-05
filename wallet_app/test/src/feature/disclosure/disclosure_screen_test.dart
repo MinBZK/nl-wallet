@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
+import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
@@ -67,6 +68,7 @@ void main() {
                 relyingParty: WalletMockData.organization,
                 originUrl: 'http://origin.org',
                 sharedDataWithOrganizationBefore: true,
+                sessionType: DisclosureSessionType.crossDevice,
               ),
             ),
             name: 'check_organization',
@@ -208,6 +210,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             originUrl: 'http://origin.org',
             sharedDataWithOrganizationBefore: true,
+            sessionType: DisclosureSessionType.crossDevice,
           ),
         ),
       );
@@ -221,7 +224,44 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('show history button is shown on the success page', (tester) async {
+    //TODO: Enable when Flutter version in CI is updated (3.19.2 at time of writing)
+    /*testWidgets('when cross-device session; fraud warning is shown on organization approve page', (tester) async {
+      const originUrl = 'http://origin.org';
+
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureCheckOrganization(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            sharedDataWithOrganizationBefore: true,
+            sessionType: DisclosureSessionType.crossDevice,
+          ),
+        ),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.organizationApprovePageFraudInfo(originUrl), findRichText: true), findsOneWidget);
+    });*/
+
+    testWidgets('when same-device session; fraud warning is NOT shown on organization approve page', (tester) async {
+      const originUrl = 'http://origin.org';
+
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureCheckOrganization(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            sharedDataWithOrganizationBefore: true,
+            sessionType: DisclosureSessionType.sameDevice,
+          ),
+        ),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.organizationApprovePageFraudInfo(originUrl), findRichText: true), findsNothing);
+    });
+
+    testWidgets('history button is shown on the success page', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),

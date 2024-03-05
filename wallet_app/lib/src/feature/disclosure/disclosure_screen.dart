@@ -152,6 +152,7 @@ class DisclosureScreen extends StatelessWidget {
       organization: state.relyingParty,
       originUrl: state.originUrl,
       sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
+      sessionType: state.sessionType,
       purpose: ApprovalPurpose.disclosure,
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
     );

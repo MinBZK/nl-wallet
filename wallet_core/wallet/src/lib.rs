@@ -22,9 +22,12 @@ pub use crate::{
 };
 
 pub mod mdoc {
-    pub use nl_wallet_mdoc::utils::{
-        auth::{Image, ImageType, LocalizedStrings, Organization},
-        reader_auth::{DeletionPolicy, ReaderRegistration, RetentionPolicy, SharingPolicy},
+    pub use nl_wallet_mdoc::{
+        utils::{
+            auth::{Image, ImageType, LocalizedStrings, Organization},
+            reader_auth::{DeletionPolicy, ReaderRegistration, RetentionPolicy, SharingPolicy},
+        },
+        verifier::SessionType,
     };
 }
 

@@ -11,6 +11,7 @@ import '../domain/model/attribute/data_attribute.dart';
 import '../domain/model/attribute/missing_attribute.dart';
 import '../domain/model/card_config.dart';
 import '../domain/model/card_front.dart';
+import '../domain/model/disclosure/disclosure_session_type.dart';
 import '../domain/model/document.dart';
 import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
@@ -26,6 +27,7 @@ import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
 import '../util/mapper/card/disclosure_card_mapper.dart';
+import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
 import '../util/mapper/document/document_mapper.dart';
 import '../util/mapper/history/wallet_event_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';
@@ -98,7 +100,7 @@ class WalletMapperProvider extends StatelessWidget {
           create: (context) => RequestPolicyMapper(),
         ),
 
-        /// Policy
+        /// Document
         RepositoryProvider<Mapper<core.Document, Document>>(
           create: (context) => DocumentMapper(),
         ),
@@ -122,6 +124,11 @@ class WalletMapperProvider extends StatelessWidget {
             context.read(),
             context.read(),
           ),
+        ),
+
+        /// Disclosure mappers
+        RepositoryProvider<Mapper<core.DisclosureSessionType, DisclosureSessionType>>(
+          create: (context) => DisclosureSessionTypeMapper(),
         ),
       ],
       child: child,
