@@ -20,22 +20,6 @@ private_lane :get_local_version_and_build do
   end
 end
 
-private_lane :ci_get_build do
-  pipeline_id = ENV["CI_PIPELINE_IID"]
-  UI.user_error!("No CI_PIPELINE_IID environment variable set") unless pipeline_id
-
-  pipeline_id.to_i + BUILD_OFFSET
-end
-
-private_lane :ci_get_version do |options|
-  ref_name = ENV["CI_COMMIT_REF_NAME"]
-  UI.user_error!("No CI_COMMIT_REF_NAME environment variable set") unless ref_name
-
-  release, version = ref_name.match(/([^\/]+)(?:\/(\d+\.\d+\.\d+))?$/)&.captures
-
-  version
-end
-
 private_lane :ci_get_basic_auth do
   registry_user = ENV["CI_REGISTRY_USER"]
   UI.user_error!("No CI_REGISTRY_USER environment variable set") unless registry_user
@@ -92,15 +76,6 @@ lane :disable_flutter_analytics do
 end
 
 platform :android do
-  desc "Build release and profile versions of Android app from GitLab CI"
-  lane :ci_build do |options|
-    options[:build] = ci_get_build
-    options[:version] = ci_get_version
-    options[:universal_link_base] = ENV["UL_HOSTNAME"]
-
-    build(options)
-  end
-
   desc "Build and sign Android app"
   lane :build do |options|
     package_name = options[:package_name] || get_app_identifier
@@ -114,11 +89,10 @@ platform :android do
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
     version = options[:version] || local_version
-
     file_format = options[:file_format] || "aab"
     build_mode = options[:build_mode] || "release"
     mock_repositories = options[:mock] || false
-    
+
     # always `true`, but ignored when `mock_repositories == true`, this flag is used in local development only
     env_configuration = true
 
@@ -158,10 +132,10 @@ platform :android do
 
     # retrieve local version
     local_version, _ = get_local_version_and_build
+    version = options[:version] || local_version
 
     # upload non-mock app
-    version = ci_get_version
-    upload_to_play_store_internal_track(package_name: package_name, version: version || local_version, json_key_data: json_key_data)
+    upload_to_play_store_internal_track(package_name: package_name, version: version, json_key_data: json_key_data)
   end
 
   desc "Upload Android app to BrowserStack from GitLab CI"
@@ -169,8 +143,8 @@ platform :android do
     package_name = options[:package_name]
     UI.user_error!("No package_name or package_name option set") unless package_name
 
-    version = ci_get_version
-    local_version, local_build = get_local_version_and_build
+    local_version, _ = get_local_version_and_build
+    version = options[:version] || local_version
 
     browserstack_user = ENV["BROWSERSTACK_USER"]
     browserstack_key = ENV["BROWSERSTACK_KEY"]
@@ -197,13 +171,9 @@ end
 platform :ios do
   desc "Build iOS app from GitLab CI"
   lane :ci_build do |options|
-    build = ci_get_build
-    version = ci_get_version
     match_basic_auth = ci_get_basic_auth
     match_keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
 
-    options[:build] = build
-    options[:version] = version
     options[:app_store] = true
     options[:match_basic_auth] = match_basic_auth
     options[:keychain_password] = match_keychain_password

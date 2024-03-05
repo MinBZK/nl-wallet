@@ -1,8 +1,6 @@
-use std::collections::HashMap;
-
 use chrono::{DateTime, Utc};
 
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use wallet_common::generator::Generator;
 use webpki::TrustAnchor;
 
@@ -25,7 +23,7 @@ use super::{proposed_document::ProposedDocument, MdocDataSource};
 
 #[derive(Debug)]
 pub(super) enum DeviceRequestMatch<I> {
-    Candidates(HashMap<DocType, Vec<ProposedDocument<I>>>),
+    Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
     MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate.
 }
 
@@ -121,7 +119,7 @@ impl DeviceRequest {
         // than once in a `DeviceRequest`, so we combine all attributes and then split
         // them out by `doc_type`.
         let mut requested_attributes_by_doc_type = self.attribute_identifiers().into_iter().fold(
-            HashMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
+            IndexMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
             |mut requested_attributes, attribute_identifier| {
                 // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
                 let doc_type = *doc_types.get(attribute_identifier.doc_type.as_str()).unwrap();
@@ -148,7 +146,7 @@ impl DeviceRequest {
         //   `doc_type` later on during actual disclosure.
         // * Convert all `Mdoc`s that satisfy the requirement to `ProposedDocument`,
         //   while collecting any missing attributes separately.
-        // * Collect the candidates in a `HashMap` per `doc_type`.
+        // * Collect the candidates in a `IndexMap` per `doc_type`.
         //
         // Note that we consume the requested attributes from
         // `requested_attributes_by_doc_type` for the following reasons:
@@ -206,7 +204,7 @@ impl DeviceRequest {
 
                 Ok((doc_type.to_string(), candidates))
             })
-            .collect::<Result<HashMap<_, _>>>()?;
+            .collect::<Result<IndexMap<_, _>>>()?;
 
         // If we cannot find a suitable candidate for any of the doc types
         // or one of the doc types is missing entirely, collect all of the
