@@ -6,6 +6,7 @@ import 'package:wallet/src/feature/policy/policy_screen.dart';
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -47,7 +48,8 @@ void main() {
         surfaceSize: const Size(350, 1000), //Extra high so button is immediately visible
       );
 
-      final issueButtonFinder = find.text('Report an issue');
+      final l10n = await TestUtils.englishLocalizations;
+      final issueButtonFinder = find.text(l10n.policyScreenReportIssueCta);
       expect(issueButtonFinder, findsOneWidget);
       await tester.tap(issueButtonFinder);
       expect(isCalled, isTrue);
