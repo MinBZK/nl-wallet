@@ -298,7 +298,13 @@ dependency-check-rust:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
     # Note: RUSTSEC-2023-0071 is currently unfixable, a false positive and irrelevant for us, therefore we ignore it
-    - cargo audit --ignore RUSTSEC-2023-0071 --file wallet_core/Cargo.lock --json | tee audit.json | jq
+    # Note: RUSTSEC-2024-0019 is Windows-specific and can be safely ignored
+    - |
+      cargo audit \
+        --ignore RUSTSEC-2023-0071 \
+        --ignore RUSTSEC-2024-0019 \
+        --file wallet_core/Cargo.lock \
+        --json | tee audit.json | jq
   artifacts:
     when: always
     paths:
@@ -479,7 +485,7 @@ build-ws-migrations-image:
       --dockerfile wallet_core/wallet_server/migration/Dockerfile
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migration:$CI_COMMIT_SHORT_SHA
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migrations:$CI_COMMIT_SHORT_SHA
       --cache=true
 
 .build-android-app:
@@ -877,6 +883,24 @@ deploy-pid-issuer-demo:
   variables:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
+
+.run-ws-migrations:
+  needs:
+    - job: build-ws-migrations-image
+      artifacts: false
+  variables:
+    WALLET_PROVIDER_MIGRATIONS_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
+  script:
+    - envsubst < kubernetes/mrp-wallet-server-migration-job.yaml | kubectl apply -f -
+    - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-wallet-server-migrations
+
+run-ws-migrations-ont:
+  extends: [.env-ont-k8s, .run-ws-migrations]
+  rules: !reference [.default-branch, rules]
+
+run-ws-migrations-demo:
+  extends: [.env-demo-k8s, .run-ws-migrations]
+  rules: !reference [.release-tag, rules]
 
 .deploy-mock-relying-party:
   needs:

@@ -1,9 +1,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: mrp-wallet-server-migration-$CI_COMMIT_SHORT_SHA
+  name: mrp-wallet-server-migrations-$CI_COMMIT_SHORT_SHA
   labels:
-    app: mrp-wallet-server-migration
+    app: mrp-wallet-server-migrations
 spec:
   backoffLimit: 1
   template:
@@ -14,7 +14,7 @@ spec:
       imagePullSecrets:
         - name: harbor-puller
       containers:
-        - name: mrp-wallet-server-migration
+        - name: mrp-wallet-server-migrations
           image: $WALLET_SERVER_MIGRATION_IMAGE
           args: ["fresh"]
           env:
