@@ -460,7 +460,7 @@ mod tests {
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -589,7 +589,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_disclosure_session() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -607,7 +607,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_attributes_not_available() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -643,7 +643,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_mdoc_attributes_not_available() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -679,7 +679,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_mdoc_attributes() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -726,6 +726,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_cancel_disclosure() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -798,7 +799,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial]
+    #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_cancel_disclosure_missing_attributes() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
