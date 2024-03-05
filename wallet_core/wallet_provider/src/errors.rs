@@ -7,7 +7,7 @@ use axum::{
 use http::{header, HeaderValue};
 use mime::Mime;
 use once_cell::sync::Lazy;
-use tracing::log::debug;
+use tracing::debug;
 
 use wallet_common::account::messages::errors::{ErrorData, ErrorType};
 use wallet_provider_service::{
