@@ -23,7 +23,7 @@ pub struct OwnedTrustAnchor {
 #[derive(Clone, Eq, PartialEq)]
 pub struct DerTrustAnchor {
     pub owned_trust_anchor: OwnedTrustAnchor,
-    der_bytes: Vec<u8>,
+    pub der_bytes: Vec<u8>,
 }
 
 impl Debug for DerTrustAnchor {

@@ -13,11 +13,12 @@ use reqwest::{
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
     holder::{IssuedAttributesMismatch, Mdoc, MdocCopies, TrustAnchor},
     utils::{
+        cose::CoseError,
         keys::{KeyFactory, MdocEcdsaKey},
         serialization::CborError,
+        x509::{Certificate, CertificateError, CertificateUsage},
     },
 };
 use wallet_common::{generator::TimeGenerator, jwt::JwtError};
@@ -69,6 +70,12 @@ pub enum IssuanceSessionError {
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
     #[error("error reading HTTP error: {0}")]
     HeaderToStr(#[from] ToStrError),
+    #[error("error verifying certificate of attestation preview: {0}")]
+    Certificate(#[from] CertificateError),
+    #[error("issuer certificate contained in mdoc not equal to expected value")]
+    IssuerCertificateMismatch,
+    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
+    Cose(#[from] CoseError),
 }
 
 pub trait IssuanceSession<H = HttpOpenidMessageClient> {
@@ -76,6 +83,7 @@ pub trait IssuanceSession<H = HttpOpenidMessageClient> {
         message_client: H,
         base_url: Url,
         token_request: TokenRequest,
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
     where
         Self: Sized;
@@ -228,6 +236,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         message_client: H,
         base_url: Url,
         token_request: TokenRequest,
+        trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError> {
         let url = base_url.join("token").unwrap(); // TODO discover token endpoint instead
 
@@ -235,6 +244,19 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
 
         let (token_response, dpop_nonce) = message_client.request_token(&url, &token_request, &dpop_header).await?;
+
+        // Verify the issuer certificates that the issuer presents for each attestation to be issued.
+        // NB: this only proves the authenticity of the data inside the certificates (the [`IssuerRegistration`]s),
+        // but does not authenticate the issuer that presents them.
+        // Anyone that has ever seen these certificates (such as other wallets that received them during issuance)
+        // could present them here in the protocol without needing the corresponding issuer private key.
+        // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
+        // corresponding certificate in the attestation preview, which implicitly authenticates the issuer because
+        // only it could have produced an mdoc against that certificate.
+        token_response.attestation_previews.iter().try_for_each(|preview| {
+            let issuer: &Certificate = preview.as_ref();
+            issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+        })?;
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -272,7 +294,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .flat_map(|preview| {
                 itertools::repeat_n(
                     match preview {
-                        AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.doc_type.clone(),
+                        AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.doc_type.clone(),
                     },
                     preview.copy_count().try_into().unwrap(),
                 )
@@ -352,7 +374,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     .map(|(cred_response, (pubkey, key_id))| {
                         // Convert the response into an `Mdoc`, verifying it against both the
                         // trust anchors and the `UnsignedMdoc` we received in the preview.
-                        cred_response.into_mdoc::<K>(key_id, pubkey, preview.as_ref(), trust_anchors)
+                        cred_response.into_mdoc::<K>(key_id, pubkey, preview, trust_anchors)
                     })
                     .collect::<Result<_, _>>()?;
 
@@ -382,7 +404,7 @@ impl CredentialResponse {
         self,
         key_id: String,
         verifying_key: VerifyingKey,
-        unsigned: &UnsignedMdoc,
+        preview: &AttestationPreview,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Mdoc, IssuanceSessionError> {
         let issuer_signed = match self {
@@ -397,12 +419,19 @@ impl CredentialResponse {
             return Err(IssuanceSessionError::PublicKeyMismatch);
         }
 
+        // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
+        // in the attestation preview.
+        let AttestationPreview::MsoMdoc { unsigned_mdoc, issuer } = preview;
+        if issuer_signed.issuer_auth.signing_cert()? != *issuer {
+            return Err(IssuanceSessionError::IssuerCertificateMismatch);
+        }
+
         // Construct the new mdoc; this also verifies it against the trust anchors.
         let mdoc = Mdoc::new::<K>(key_id, issuer_signed, &TimeGenerator, trust_anchors)
             .map_err(IssuanceSessionError::MdocVerification)?;
 
         // Check that our mdoc contains exactly the attributes the issuer said it would have
-        mdoc.compare_unsigned(unsigned)
+        mdoc.compare_unsigned(unsigned_mdoc)
             .map_err(IssuanceSessionError::IssuedAttributesMismatch)?;
 
         Ok(mdoc)

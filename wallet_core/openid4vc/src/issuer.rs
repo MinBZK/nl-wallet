@@ -169,7 +169,7 @@ pub trait LocalAttributeService {
         &self,
         session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Self::Error>;
+    ) -> Result<Vec<AttestationPreview>, Self::Error>;
 }
 
 pub struct Issuer<A, K, S> {
@@ -460,11 +460,11 @@ impl Session<Created> {
 
         let code = token_request.code().clone();
 
-        let unsigned_mdocs = attr_service
+        let previews = attr_service
             .attributes(&self.state, token_request)
             .await
             .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
-        if unsigned_mdocs.is_empty() {
+        if previews.is_empty() {
             return Err(TokenRequestError::NoAttributes);
         }
 
@@ -483,12 +483,7 @@ impl Session<Created> {
                 c_nonce_expires_in: None,
                 authorization_details: None,
             },
-            attestation_previews: unsigned_mdocs
-                .into_iter()
-                .map(|unsigned| AttestationPreview::MsoMdoc {
-                    unsigned_mdoc: unsigned,
-                })
-                .collect(),
+            attestation_previews: previews,
         };
 
         Ok((response, dpop_public_key, dpop_nonce))

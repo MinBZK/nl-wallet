@@ -94,8 +94,6 @@ impl Document {
 
 #[cfg(test)]
 mod tests {
-    use crate::wallet::rvig_registration;
-
     use super::*;
 
     fn empty_document(doc_type: &'static str) -> Document {
@@ -103,7 +101,7 @@ mod tests {
             persistence: DocumentPersistence::InMemory,
             doc_type,
             attributes: Default::default(),
-            issuer_registration: rvig_registration(),
+            issuer_registration: IssuerRegistration::new_mock(),
         }
     }
 

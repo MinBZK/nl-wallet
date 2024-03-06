@@ -35,9 +35,6 @@ pub use self::{
     uri::{UriIdentificationError, UriType},
 };
 
-#[cfg(test)]
-pub(crate) use self::issuance::rvig_registration;
-
 use self::{documents::DocumentsCallback, history::RecentHistoryCallback, issuance::PidIssuanceSession};
 
 pub struct Wallet<

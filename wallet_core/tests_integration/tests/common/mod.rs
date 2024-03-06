@@ -6,6 +6,7 @@ use std::{
 };
 
 use ctor::ctor;
+use indexmap::IndexMap;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
 use reqwest::Certificate;
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
@@ -13,12 +14,12 @@ use tokio::time;
 use url::Url;
 
 use configuration_server::settings::Settings as CsSettings;
-use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
+use nl_wallet_mdoc::{server_state::SessionState, utils::x509};
 use openid4vc::{
     issuance_session::HttpIssuanceSession,
     issuer::{AttributeService, Created},
     oidc::MockOidcClient,
-    token::TokenRequest,
+    token::{AttestationPreview, TokenRequest},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
@@ -106,9 +107,11 @@ pub async fn setup_wallet_and_env(
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
+    let certificates = ws_settings.issuer.certificates();
+
     start_config_server(cs_settings).await;
     start_wallet_provider(wp_settings).await;
-    start_wallet_server(ws_settings, MockAttributeService).await;
+    start_wallet_server(ws_settings, MockAttributeService(certificates)).await;
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.base_url,
@@ -294,7 +297,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
     wallet
 }
 
-pub struct MockAttributeService;
+pub struct MockAttributeService(pub IndexMap<String, x509::Certificate>);
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
@@ -303,7 +306,15 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
-        Ok(MockAttributesLookup::default().attributes("999991772").unwrap())
+    ) -> Result<Vec<AttestationPreview>, Self::Error> {
+        Ok(MockAttributesLookup::default()
+            .attributes("999991772")
+            .unwrap()
+            .into_iter()
+            .map(|unsigned_mdoc| AttestationPreview::MsoMdoc {
+                issuer: self.0[&unsigned_mdoc.doc_type].clone(),
+                unsigned_mdoc,
+            })
+            .collect())
     }
 }

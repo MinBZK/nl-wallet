@@ -19,6 +19,7 @@ async fn main() -> Result<()> {
             settings.issuer.digid.issuer_url.clone(),
             settings.issuer.digid.bsn_privkey.clone(),
             settings.issuer.mock_data.clone(),
+            settings.issuer.certificates(),
         )?,
         settings,
         sessions,
