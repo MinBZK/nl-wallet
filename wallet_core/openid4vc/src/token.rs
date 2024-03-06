@@ -2,13 +2,17 @@ use std::time::Duration;
 
 use derive_more::From;
 use indexmap::IndexSet;
-use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
-use nl_wallet_mdoc::server_state::SessionToken;
+use nl_wallet_mdoc::{
+    basic_sa_ext::UnsignedMdoc,
+    server_state::SessionToken,
+    utils::{
+        issuer_auth::IssuerRegistration,
+        x509::{Certificate, CertificateError, CertificateType},
+    },
+};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use serde_with::formats::SpaceSeparator;
-use serde_with::{serde_as, skip_serializing_none};
-use serde_with::{DurationSeconds, StringWithSeparator};
+use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
 use url::Url;
 use wallet_common::utils::{random_string, sha256};
 
@@ -133,30 +137,60 @@ pub struct TokenResponseWithPreviews {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum AttestationPreview {
-    MsoMdoc { unsigned_mdoc: UnsignedMdoc },
+    MsoMdoc {
+        unsigned_mdoc: UnsignedMdoc,
+        issuer: Certificate,
+    },
 }
 
 impl AttestationPreview {
     pub fn copy_count(&self) -> u64 {
         match self {
-            AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc.copy_count,
+            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count,
         }
     }
 }
 
 // Shorthands to convert the preview to the currently only supported format
+impl AsRef<Certificate> for AttestationPreview {
+    fn as_ref(&self) -> &Certificate {
+        match self {
+            AttestationPreview::MsoMdoc { issuer, .. } => issuer,
+        }
+    }
+}
 impl AsRef<UnsignedMdoc> for AttestationPreview {
     fn as_ref(&self) -> &UnsignedMdoc {
         match self {
-            AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
         }
     }
 }
 impl From<AttestationPreview> for UnsignedMdoc {
     fn from(value: AttestationPreview) -> Self {
         match value {
-            AttestationPreview::MsoMdoc { unsigned_mdoc } => unsigned_mdoc,
+            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
         }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AttestationPreviewError {
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
+    #[error("issuer registration not found in certificate")]
+    NoIssuerRegistration,
+}
+
+impl TryFrom<AttestationPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
+    type Error = AttestationPreviewError;
+
+    fn try_from(value: AttestationPreview) -> Result<Self, Self::Error> {
+        let AttestationPreview::MsoMdoc { unsigned_mdoc, issuer } = value;
+        let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&issuer)? else {
+            Err(AttestationPreviewError::NoIssuerRegistration)?
+        };
+        Ok((unsigned_mdoc, issuer))
     }
 }
 

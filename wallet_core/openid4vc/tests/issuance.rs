@@ -18,20 +18,22 @@ use openid4vc::{
     dpop::Dpop,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, OpenidMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
-    token::{AccessToken, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
+    token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
 fn setup() -> (MockIssuer, Certificate, Url) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let privkey = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
     let server_url = "https://example.com/".parse().unwrap();
 
     let issuer = MockIssuer::new(
         MemorySessionStore::new(),
-        MockAttributeService,
-        SingleKeyRing(privkey),
+        MockAttributeService {
+            issuer_cert: keypair.certificate().clone(),
+        },
+        SingleKeyRing(keypair),
         &server_url,
         vec!["https://example.com".to_string()],
     );
@@ -44,9 +46,14 @@ async fn accept_issuance() {
     let (issuer, ca, server_url) = setup();
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
-        .await
-        .unwrap();
+    let (session, previews) = HttpIssuanceSession::start_issuance(
+        message_client,
+        server_url.clone(),
+        token_request(),
+        &[(&ca).try_into().unwrap()],
+    )
+    .await
+    .unwrap();
 
     let mdoc_copies = session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
@@ -68,12 +75,17 @@ async fn accept_issuance() {
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, _, server_url) = setup();
+    let (issuer, ca, server_url) = setup();
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url, token_request())
-        .await
-        .unwrap();
+    let (session, _previews) = HttpIssuanceSession::start_issuance(
+        message_client,
+        server_url,
+        token_request(),
+        &[(&ca).try_into().unwrap()],
+    )
+    .await
+    .unwrap();
 
     session.reject_issuance().await.unwrap();
 }
@@ -86,9 +98,14 @@ async fn wrong_access_token() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
-        .await
-        .unwrap();
+    let (session, _previews) = HttpIssuanceSession::start_issuance(
+        message_client,
+        server_url.clone(),
+        token_request(),
+        &[(&ca).try_into().unwrap()],
+    )
+    .await
+    .unwrap();
 
     let result = session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
@@ -109,9 +126,14 @@ async fn invalid_dpop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
-        .await
-        .unwrap();
+    let (session, _previews) = HttpIssuanceSession::start_issuance(
+        message_client,
+        server_url.clone(),
+        token_request(),
+        &[(&ca).try_into().unwrap()],
+    )
+    .await
+    .unwrap();
 
     let result = session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
@@ -132,9 +154,14 @@ async fn invalid_pop() {
         ..MockOpenidMessageClient::new(issuer)
     };
 
-    let (session, _previews) = HttpIssuanceSession::start_issuance(message_client, server_url.clone(), token_request())
-        .await
-        .unwrap();
+    let (session, _previews) = HttpIssuanceSession::start_issuance(
+        message_client,
+        server_url.clone(),
+        token_request(),
+        &[(&ca).try_into().unwrap()],
+    )
+    .await
+    .unwrap();
 
     let result = session
         .accept_issuance(&[(&ca).try_into().unwrap()], SoftwareKeyFactory::default(), server_url)
@@ -287,7 +314,9 @@ const MOCK_PID_DOCTYPE: &str = "com.example.pid";
 const MOCK_ADDRESS_DOCTYPE: &str = "com.example.address";
 const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-struct MockAttributeService;
+struct MockAttributeService {
+    issuer_cert: Certificate,
+}
 
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
@@ -296,39 +325,45 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Self::Error> {
+    ) -> Result<Vec<AttestationPreview>, Self::Error> {
         Ok(vec![
-            UnsignedMdoc {
-                doc_type: MOCK_PID_DOCTYPE.to_string(),
-                copy_count: 2,
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    MOCK_PID_DOCTYPE.to_string(),
-                    MOCK_ATTRS
-                        .iter()
-                        .map(|(key, val)| Entry {
-                            name: key.to_string(),
-                            value: Value::Text(val.to_string()),
-                        })
-                        .collect(),
-                )]),
+            AttestationPreview::MsoMdoc {
+                unsigned_mdoc: UnsignedMdoc {
+                    doc_type: MOCK_PID_DOCTYPE.to_string(),
+                    copy_count: 2,
+                    valid_from: Tdate::now(),
+                    valid_until: Utc::now().add(Days::new(365)).into(),
+                    attributes: IndexMap::from([(
+                        MOCK_PID_DOCTYPE.to_string(),
+                        MOCK_ATTRS
+                            .iter()
+                            .map(|(key, val)| Entry {
+                                name: key.to_string(),
+                                value: Value::Text(val.to_string()),
+                            })
+                            .collect(),
+                    )]),
+                },
+                issuer: self.issuer_cert.clone(),
             },
-            UnsignedMdoc {
-                doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                copy_count: 2,
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    MOCK_ADDRESS_DOCTYPE.to_string(),
-                    MOCK_ATTRS
-                        .iter()
-                        .map(|(key, val)| Entry {
-                            name: key.to_string(),
-                            value: Value::Text(val.to_string()),
-                        })
-                        .collect(),
-                )]),
+            AttestationPreview::MsoMdoc {
+                unsigned_mdoc: UnsignedMdoc {
+                    doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                    copy_count: 2,
+                    valid_from: Tdate::now(),
+                    valid_until: Utc::now().add(Days::new(365)).into(),
+                    attributes: IndexMap::from([(
+                        MOCK_ADDRESS_DOCTYPE.to_string(),
+                        MOCK_ATTRS
+                            .iter()
+                            .map(|(key, val)| Entry {
+                                name: key.to_string(),
+                                value: Value::Text(val.to_string()),
+                            })
+                            .collect(),
+                    )]),
+                },
+                issuer: self.issuer_cert.clone(),
             },
         ])
     }

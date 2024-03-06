@@ -323,8 +323,6 @@ pub mod tests {
 
     use nl_wallet_mdoc::{server_keys::KeyPair, Tdate};
 
-    use crate::wallet::rvig_registration;
-
     use super::{
         super::{ADDRESS_DOCTYPE, PID_DOCTYPE},
         *,
@@ -465,7 +463,7 @@ pub mod tests {
     fn test_minimal_unsigned_mdoc_to_document_mapping() {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
-        let document = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+        let document = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock())
             .expect("Could not convert minimal mdoc to document");
 
         assert_matches!(document.persistence, DocumentPersistence::InMemory);
@@ -516,7 +514,7 @@ pub mod tests {
     fn test_full_unsigned_mdoc_to_document_mapping() {
         let unsigned_mdoc = create_full_unsigned_pid_mdoc();
 
-        let document = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+        let document = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock())
             .expect("Could not convert full mdoc to document");
 
         assert_matches!(
@@ -534,7 +532,7 @@ pub mod tests {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.doc_type = "com.example.foobar".to_string();
 
-        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
 
         assert_matches!(
             result,
@@ -548,7 +546,7 @@ pub mod tests {
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
         unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
-        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
 
         assert_matches!(
             result,
@@ -563,7 +561,7 @@ pub mod tests {
         unsigned_mdoc = create_full_unsigned_pid_mdoc();
         unsigned_mdoc.attributes.get_mut(PID_DOCTYPE).unwrap().pop();
 
-        _ = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration())
+        _ = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock())
             .expect("Could not convert full mdoc to document");
     }
 
@@ -579,7 +577,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
 
         assert_matches!(
             result,
@@ -603,7 +601,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
 
         assert_matches!(
             result,
@@ -632,7 +630,7 @@ pub mod tests {
             },
         );
 
-        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
 
         assert_matches!(
             result,
@@ -656,7 +654,7 @@ pub mod tests {
             value: DataElementValue::Text("Foo Bar".to_string()),
         });
 
-        let result = Document::from_unsigned_mdoc(unsigned_mdoc, rvig_registration());
+        let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
 
         assert_matches!(
             result,

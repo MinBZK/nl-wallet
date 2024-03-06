@@ -7,7 +7,7 @@ use p256::{
     elliptic_curve::pkcs8::DecodePublicKey,
     pkcs8::der::{asn1::Utf8StringRef, Decode, SliceReader},
 };
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
@@ -59,8 +59,34 @@ pub const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
 /// - parsing data: `x509_parser`
 /// - verification of certificate chains: `webpki`
 /// - signing and generating: `rcgen`
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Certificate(ByteBuf);
+
+use base64::prelude::*;
+
+// Use base64 when we (de)serialize to JSON
+impl Serialize for Certificate {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if serializer.is_human_readable() {
+            BASE64_STANDARD.encode(&self.0).serialize(serializer)
+        } else {
+            self.0.serialize(serializer)
+        }
+    }
+}
+impl<'de> Deserialize<'de> for Certificate {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        if deserializer.is_human_readable() {
+            Ok(Certificate(ByteBuf::from(
+                BASE64_STANDARD
+                    .decode(String::deserialize(deserializer).map_err(serde::de::Error::custom)?)
+                    .map_err(serde::de::Error::custom)?,
+            )))
+        } else {
+            Ok(Certificate(ByteBuf::deserialize(deserializer)?))
+        }
+    }
+}
 
 impl<'a> TryInto<TrustAnchor<'a>> for &'a Certificate {
     type Error = CertificateError;
