@@ -56,9 +56,19 @@ default:
       variables:
         CACHE_POLICY: pull-push
 
-.release-tag:
+.demo-release-tag:
+  before_script:
+    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^demo-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^demo-v//')
   rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^demo-v\d+\.\d+\.\d+$/
+      variables:
+        CACHE_POLICY: pull
+
+.mock-release-tag:
+  before_script:
+    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^mock-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^mock-v//')
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^mock-v\d+\.\d+\.\d+$/
       variables:
         CACHE_POLICY: pull
 
@@ -71,7 +81,13 @@ default:
 .default-or-release:
   rules:
     - !reference [.default-branch, rules]
-    - !reference [.release-tag, rules]
+    - !reference [.demo-release-tag, rules]
+    - !reference [.mock-release-tag, rules]
+
+.default-or-demo-release:
+  rules:
+    - !reference [.default-branch, rules]
+    - !reference [.demo-release-tag, rules]
 
 .default-or-merge-request:
   rules:
@@ -382,7 +398,7 @@ sonar-android:
 
 build-wp-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -401,7 +417,7 @@ build-wp-image:
 
 build-wp-migrations-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -420,7 +436,7 @@ build-wp-migrations-image:
 
 build-pid-issuer-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -437,7 +453,7 @@ build-pid-issuer-image:
 
 build-mock-relying-party-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -454,7 +470,7 @@ build-mock-relying-party-image:
 
 build-wallet-server-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -471,7 +487,7 @@ build-wallet-server-image:
 
 build-ws-migrations-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -527,7 +543,7 @@ build-ws-migrations-image:
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed 's/^v//')"
+        version:"${RELEASE_VERSION}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -554,7 +570,7 @@ build-android-app-latest-profile:
 
 .build-android-app-mock:
   extends: [.env-ont-k8s, .build-android-app]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.mock-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
@@ -568,6 +584,7 @@ build-android-app-mock-release:
 
 .build-android-app-demo:
   extends: [.env-demo-k8s, .build-android-app]
+  rules: !reference [.demo-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -575,14 +592,12 @@ build-android-app-mock-release:
     UL_HOSTNAME: "${EXTERNAL_HOSTNAME_DEMO}"
 
 build-android-app-demo-release:
-  rules: !reference [.release-tag, rules]
   extends: .build-android-app-demo
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
 
 build-android-app-demo-profile:
-  rules: !reference [.release-tag, rules]
   extends: .build-android-app-demo
   variables:
     APP_FILE_FORMAT: "apk"
@@ -620,7 +635,7 @@ build-android-app-demo-profile:
         bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         app_name:"${APP_NAME}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
+        version:"${RELEASE_VERSION}"
 
 build-ios-app-latest:
   extends: [.env-ont-k8s, .build-ios-app] # needs k8s secrets
@@ -646,7 +661,7 @@ build-ios-app-latest:
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
+        version:"${RELEASE_VERSION}"
 
 deploy-android-app-latest:
   extends: [.env-ont-k8s, .deploy-android-app]
@@ -661,8 +676,7 @@ deploy-android-app-latest:
 
 deploy-android-app-mock:
   extends: [.env-ont-k8s, .deploy-android-app]
-  when: manual
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.mock-release-tag, rules]
   needs:
     - job: build-android-app-mock-release
       artifacts: true
@@ -673,7 +687,7 @@ deploy-android-app-mock:
 
 deploy-android-app-demo:
   extends: [.env-demo-k8s, .deploy-android-app]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   needs:
     - job: build-android-app-demo-release
       artifacts: true
@@ -700,7 +714,7 @@ deploy-android-app-demo:
     - |
       bundle exec fastlane android ci_browserstack \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
+        version:"${RELEASE_VERSION}"
 
 upload-browserstack-android-app-latest:
   extends: [.env-ont-k8s, .upload-browserstack-android-app]
@@ -713,7 +727,7 @@ upload-browserstack-android-app-latest:
 
 upload-browserstack-android-app-demo:
   extends: [.env-demo-k8s, .upload-browserstack-android-app]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   needs:
     - job: build-android-app-demo-profile
       artifacts: true
@@ -759,7 +773,7 @@ upload-browserstack-android-app-demo:
 #    - bundle exec fastlane ios ci_browserstack
 
 dependency-check-images:
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: build-wp-image
       artifacts: false
@@ -821,7 +835,7 @@ run-wp-migrations-ont:
 
 run-wp-migrations-demo:
   extends: [.env-demo-k8s, .run-wp-migrations]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
 
 .deploy-wallet-provider:
   needs:
@@ -850,7 +864,7 @@ deploy-wallet-provider-ont:
 
 deploy-wallet-provider-demo:
   extends: [.env-demo-k8s, .deploy-wallet-provider]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   needs:
     - job: run-wp-migrations-demo
       artifacts: false
@@ -879,7 +893,7 @@ deploy-pid-issuer-ont:
 
 deploy-pid-issuer-demo:
   extends: [.env-demo-k8s, .deploy-pid-issuer]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   variables:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
@@ -900,7 +914,7 @@ run-ws-migrations-ont:
 
 run-ws-migrations-demo:
   extends: [.env-demo-k8s, .run-ws-migrations]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
 
 .deploy-mock-relying-party:
   needs:
@@ -934,7 +948,7 @@ deploy-mock-relying-party-ont:
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
