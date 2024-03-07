@@ -47,7 +47,6 @@ Where:
     wp, wallet_provider:        Start the wallet_provider.
                                 This requires a PostgreSQL database to be running, which can be provided by the
                                 'docker' service.
-    pi, pid_issuer:             Start the pid_issuer.
     mrp, mock_relying_party:    Start the mock_relying_party (this also starts a wallet_server).
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
@@ -72,7 +71,6 @@ expect_command flutter "Missing binary 'flutter', please install Flutter"
 ########################################################################
 # Commandline arguments
 
-PID_ISSUER=1
 MOCK_RELYING_PARTY=1
 WALLET_PROVIDER=1
 WALLET=1
@@ -101,10 +99,6 @@ do
             WALLET_PROVIDER=0
             shift # past argument
             ;;
-        pi|pid_issuer)
-            PID_ISSUER=0
-            shift # past argument
-            ;;
         mrp|mock_relying_party)
             MOCK_RELYING_PARTY=0
             shift # past argument
@@ -123,7 +117,6 @@ do
             ;;
         --default)
             DIGID_CONNECTOR=0
-            PID_ISSUER=0
             MOCK_RELYING_PARTY=0
             WALLET_PROVIDER=0
             WALLET=0
@@ -134,7 +127,6 @@ do
             DIGID_CONNECTOR=0
             DOCKER=0
             MOCK_RELYING_PARTY=0
-            PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
             CONFIG_SERVER=0
@@ -205,30 +197,6 @@ then
     then
         echo -e "${INFO}Starting docker services${NC}"
         docker compose up -d
-    fi
-fi
-
-########################################################################
-# Manage pid_issuer
-
-if [ "${PID_ISSUER}" == "0" ]
-then
-    echo
-    echo -e "${SECTION}Manage pid_issuer${NC}"
-
-    cd "${PID_ISSUER_DIR}"
-
-    if [ "${STOP}" == "0" ]
-    then
-        echo -e "${INFO}Kill any running ${ORANGE}pid_issuer${NC}"
-        killall pid_issuer || true
-    fi
-    if [ "${START}" == "0" ]
-    then
-        echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --bin pid_issuer --features disable_tls_validation > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
-
-        echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
 fi
 

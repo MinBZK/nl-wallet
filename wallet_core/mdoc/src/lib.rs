@@ -7,9 +7,6 @@ pub mod holder;
 pub mod issuer;
 pub mod verifier;
 
-// Issuer data types shared between agents
-pub mod issuer_shared;
-
 // Data types shared between servers
 pub mod server_keys;
 pub mod server_state;

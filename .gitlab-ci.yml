@@ -224,7 +224,6 @@ test-rust-compilation-android-linux:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider_migrations --bin wallet_provider_migrations
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package configuration_server --bin configuration_server
-    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package pid_issuer --bin pid_issuer
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
@@ -432,23 +431,6 @@ build-wp-migrations-image:
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider-migrations:$CI_COMMIT_SHORT_SHA
-      --cache=true
-
-build-pid-issuer-image:
-  extends: .kaniko
-  rules: !reference [.default-or-demo-release, rules]
-  needs:
-    - job: test-rust
-      artifacts: false
-    - job: test-rust-compilation-android-linux
-      artifacts: false
-  script:
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile wallet_core/pid_issuer/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-pid-issuer:$CI_COMMIT_SHORT_SHA
       --cache=true
 
 build-mock-relying-party-image:
@@ -781,8 +763,6 @@ dependency-check-images:
       artifacts: false
     - job: build-ws-migrations-image
       artifacts: false
-    - job: build-pid-issuer-image
-      artifacts: false
     - job: build-mock-relying-party-image
       artifacts: false
     - job: build-wallet-server-image
@@ -801,7 +781,6 @@ dependency-check-images:
       "nl-wallet-mock-relying-party"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
-      "nl-wallet-pid-issuer"
       "nl-wallet-server-migration"
       "nl-wallet-server"
       )
@@ -871,32 +850,6 @@ deploy-wallet-provider-demo:
   variables:
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
-
-.deploy-pid-issuer:
-  needs:
-    - job: build-pid-issuer-image
-      artifacts: false
-  variables:
-    PID_ISSUER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-pid-issuer:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < kubernetes/pid-issuer-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/pid-issuer-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f kubernetes/pid-issuer-service.yaml
-    - kubectl rollout status deployment/pid-issuer
-
-deploy-pid-issuer-ont:
-  extends: [.env-ont-k8s, .deploy-pid-issuer]
-  rules: !reference [.default-branch, rules]
-  variables:
-    PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_ONT
-    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
-
-deploy-pid-issuer-demo:
-  extends: [.env-demo-k8s, .deploy-pid-issuer]
-  rules: !reference [.demo-release-tag, rules]
-  variables:
-    PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
-    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
 
 .run-ws-migrations:
   needs:

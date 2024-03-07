@@ -1,7 +1,8 @@
-//! Holder software, containing a [`Wallet`] that can store, receive, and disclose mdocs.
-//! See [`MdocRetriever`], [`Wallet::start_issuance()`], and [`Wallet::disclose()`] respectively.
+//! Holder software to store and disclose mdocs.
 
 use url::Url;
+
+pub use webpki::TrustAnchor;
 
 use crate::{
     errors::Error,
@@ -18,9 +19,6 @@ pub use disclosure::*;
 
 pub mod http_client;
 pub use http_client::*;
-
-pub mod issuance;
-pub use issuance::*;
 
 pub mod mdocs;
 pub use mdocs::*;

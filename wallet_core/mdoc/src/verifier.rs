@@ -22,11 +22,11 @@ use wallet_common::{
 };
 
 use crate::{
-    basic_sa_ext::Entry,
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
     server_keys::{KeyPair, KeyRing},
     server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS},
+    unsigned::Entry,
     utils::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},

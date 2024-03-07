@@ -9,9 +9,9 @@ use webpki::TrustAnchor;
 use wallet_common::generator::Generator;
 
 use crate::{
+    basic_sa_ext::{Entry, UnsignedMdoc},
     identifiers::AttributeIdentifier,
     iso::*,
-    unsigned::{Entry, UnsignedMdoc},
     utils::{
         cose::CoseError,
         keys::{MdocEcdsaKey, MdocKeyType},
@@ -19,6 +19,22 @@ use crate::{
     },
     verifier::ValidityRequirement,
 };
+
+use super::{CborHttpClient, HttpClient, IssuanceSessionState};
+
+pub struct Wallet<H = CborHttpClient> {
+    pub(crate) session_state: Option<IssuanceSessionState>,
+    pub(crate) client: H,
+}
+
+impl<H: HttpClient> Wallet<H> {
+    pub fn new(client: H) -> Self {
+        Self {
+            session_state: None,
+            client,
+        }
+    }
+}
 
 /// Stores multiple copies of mdocs that have identical attributes.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]

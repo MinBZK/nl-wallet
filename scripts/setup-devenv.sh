@@ -5,9 +5,10 @@
 # - nl-rdo-max-private (digid-connector)
 #   This script requires this repo to exist in the same directory that contains the NL Wallet repo. Otherwise, customize
 #   the DIGID_CONNECTOR_PATH environment variable in `scripts/.env`
-# - pid_issuer
 # - wallet_provider
 # - wallet
+# - wallet_server
+# - mock_relying_party
 # - softhsm2
 #
 # User specific variables can be supplied in the `.env` files.
@@ -38,7 +39,6 @@
 #
 #     adb reverse tcp:3000 tcp:3000
 #     adb reverse tcp:3001 tcp:3001
-#     adb reverse tcp:3003 tcp:3003
 #     adb reverse tcp:3004 tcp:3004
 #     adb reverse tcp:8006 tcp:8006
 #
@@ -144,10 +144,10 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
 fi
 
 ########################################################################
-# Configure pid_issuer
+# Configure wallet_server and mock_relying_party
 
 echo
-echo -e "${SECTION}Configure pid_issuer${NC}"
+echo -e "${SECTION}Configure wallet_server and mock_relying_party${NC}"
 
 cd "${BASE_DIR}"
 
@@ -167,17 +167,6 @@ PID_ISSUER_KEY=$(< "${TARGET_DIR}/pid_issuer/issuer_key.der" ${BASE64})
 export PID_ISSUER_KEY
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer_crt.der" ${BASE64})
 export PID_ISSUER_CRT
-
-render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
-render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
-
-########################################################################
-# Configure mock_relying_party
-
-echo
-echo -e "${SECTION}Configure relying_party${NC}"
-
-cd "${BASE_DIR}"
 
 # Generate MRP root CA
 if [ ! -f "${TARGET_DIR}/mock_relying_party/ca.key.pem" ]; then

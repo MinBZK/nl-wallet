@@ -4,7 +4,6 @@ source "${SCRIPTS_DIR}/utils.sh"
 
 WALLET_CORE_DIR="${BASE_DIR}/wallet_core"
 WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
-PID_ISSUER_DIR="${WALLET_CORE_DIR}/pid_issuer"
 MRP_WALLET_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server"
 MOCK_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/mock_relying_party"
 CS_DIR="${WALLET_CORE_DIR}/configuration_server"
