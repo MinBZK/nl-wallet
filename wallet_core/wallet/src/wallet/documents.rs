@@ -77,7 +77,8 @@ where
         // If the `Wallet` is not registered, the database will not be open.
         // In that case send an empty vec, so the UI has something to work with.
         //
-        // TODO: have the UI not call this until after registration.
+        // TODO: Have the UI not call this until after registration or have it
+        //       handle not receiving a result immediately when unregistered. (PVW-2355)
         if self.registration.is_some() {
             self.emit_documents().await?;
         } else {

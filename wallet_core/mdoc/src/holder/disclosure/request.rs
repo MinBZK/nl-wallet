@@ -24,7 +24,7 @@ use super::{proposed_document::ProposedDocument, MdocDataSource};
 #[derive(Debug)]
 pub(super) enum DeviceRequestMatch<I> {
     Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
-    MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate.
+    MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
 }
 
 impl DeviceRequest {
@@ -197,7 +197,7 @@ impl DeviceRequest {
                     )?;
 
                 // If we have multiple `Mdoc`s with missing attributes, just record the first one.
-                // TODO: Report on missing attributes for multiple `Mdoc` candidates.
+                // TODO: Report on missing attributes for multiple `Mdoc` candidates. (PVW-1392)
                 if let Some(missing_attributes) = missing_attributes.into_iter().next() {
                     all_missing_attributes.push(missing_attributes);
                 }
@@ -348,7 +348,7 @@ mod tests {
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
     }
 
-    // TODO: Add more complex test cases for `DeviceRequest.match_stored_documents()`.
+    // TODO: Add more complex test cases for `DeviceRequest.match_stored_documents()`. (PVW-2354)
 
     #[tokio::test]
     async fn test_device_request_match_stored_documents() {
