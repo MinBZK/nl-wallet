@@ -10,23 +10,30 @@ import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import 'policy_entries_builder.dart';
+import 'policy_screen_arguments.dart';
 import 'widget/policy_entry_row.dart';
 
 class PolicyScreen extends StatelessWidget {
-  static Policy getArguments(RouteSettings settings) {
+  static PolicyScreenArguments getArguments(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as Policy;
+      return args as PolicyScreenArguments;
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args (type: ${args.runtimeType})', ex: exception, stacktrace: stacktrace);
-      throw UnsupportedError('Make sure to pass in an policy.');
+      throw UnsupportedError('Make sure to pass in a PolicyScreenArguments object');
     }
   }
 
   final Policy policy;
+  final bool showSignatureRow;
   final VoidCallback? onReportIssuePressed;
 
-  const PolicyScreen({required this.policy, this.onReportIssuePressed, super.key});
+  const PolicyScreen({
+    required this.policy,
+    this.showSignatureRow = false,
+    this.onReportIssuePressed,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +57,11 @@ class PolicyScreen extends StatelessWidget {
       color: context.colorScheme.primary,
       decoration: TextDecoration.underline,
     );
-    final policyBuilder = PolicyEntriesBuilder(context, urlTheme);
+    final policyBuilder = PolicyEntriesBuilder(
+      context,
+      urlTheme,
+      addSignatureEntry: showSignatureRow,
+    );
     final entries = policyBuilder.build(policy);
     return Scrollbar(
       child: CustomScrollView(

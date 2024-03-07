@@ -66,7 +66,7 @@ class CardFrontMapper extends Mapper<Card, CardFront> {
       .any((value) => value.value.contains('C1'));
 }
 
-// region CardFronts. FIXME: Hardcoded for now.
+// region CardFronts
 
 final _kMockDiplomaCardFront = CardFront(
   title: 'BSc. Diploma'.untranslated,

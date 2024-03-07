@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/service/navigation_service.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
-import '../domain/model/policy/policy.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../feature/about/about_screen.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
@@ -40,11 +39,11 @@ import '../feature/organization/detail/argument/organization_detail_screen_argum
 import '../feature/organization/detail/bloc/organization_detail_bloc.dart';
 import '../feature/organization/detail/organization_detail_screen.dart';
 import '../feature/pin/bloc/pin_bloc.dart';
-import '../feature/pin/pin_prompt.dart';
 import '../feature/pin/pin_screen.dart';
 import '../feature/pin_blocked/pin_blocked_screen.dart';
 import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
+import '../feature/policy/policy_screen_arguments.dart';
 import '../feature/qr/bloc/qr_bloc.dart';
 import '../feature/qr/qr_screen.dart';
 import '../feature/settings/settings_screen.dart';
@@ -90,7 +89,6 @@ class WalletRoutes {
   static const pinRoute = '/pin';
   static const pinTimeoutRoute = '/pin/timeout';
   static const pinBlockedRoute = '/pin/blocked';
-  static const confirmRoute = '/confirm';
   static const walletPersonalizeRoute = '/wallet/personalize';
   static const walletHistoryRoute = '/wallet/history';
   static const dashboardRoute = '/dashboard';
@@ -148,8 +146,6 @@ class WalletRoutes {
         return _createPinScreenBuilder;
       case WalletRoutes.setupSecurityRoute:
         return _createSetupSecurityScreenBuilder;
-      case WalletRoutes.confirmRoute:
-        return _createConfirmScreenBuilder;
       case WalletRoutes.menuRoute:
         return _createMenuScreenBuilder;
       case WalletRoutes.dashboardRoute:
@@ -211,8 +207,6 @@ Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const In
 Widget _createIntroductionConditionsScreenBuilder(BuildContext context) => const IntroductionConditionsScreen();
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
-
-Widget _createConfirmScreenBuilder(BuildContext context) => const PinPrompt();
 
 Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
       create: (BuildContext context) => PinBloc(context.read<UnlockWalletWithPinUseCase>()),
@@ -295,8 +289,11 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
   return (context) {
-    Policy policy = PolicyScreen.getArguments(settings);
-    return PolicyScreen(policy: policy);
+    PolicyScreenArguments args = PolicyScreen.getArguments(settings);
+    return PolicyScreen(
+      policy: args.policy,
+      showSignatureRow: args.showSignatureRow,
+    );
   };
 }
 

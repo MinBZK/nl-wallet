@@ -6,11 +6,9 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
 import '../domain/usecase/card/get_wallet_card_timeline_attributes_usecase.dart';
-import '../domain/usecase/card/get_wallet_card_update_request_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/impl/get_wallet_card_timeline_attributes_usecase_impl.dart';
-import '../domain/usecase/card/impl/get_wallet_card_update_request_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_card_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_cards_usecase_impl.dart';
 import '../domain/usecase/card/impl/lock_wallet_usecase_impl.dart';
@@ -54,10 +52,8 @@ import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
-import '../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import '../domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
-import '../domain/usecase/pin/impl/confirm_transaction_usecase_impl.dart';
 import '../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../domain/usecase/pin/impl/unlock_wallet_with_pin_usecase_impl.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
@@ -112,9 +108,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<CheckIsValidPinUseCase>(
           create: (context) => CheckIsValidPinUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<ConfirmTransactionUseCase>(
-          create: (context) => ConfirmTransactionUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<GetRequestedAttributesFromWalletUseCase>(
           create: (context) => GetRequestedAttributesFromWalletUseCaseImpl(context.read()),
         ),
@@ -159,9 +152,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<StartSignUseCase>(
           create: (context) => StartSignUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<GetWalletCardUpdateRequestUseCase>(
-          create: (context) => GetWalletCardUpdateRequestUseCaseImpl(),
         ),
         RepositoryProvider<DecodeUriUseCase>(
           create: (context) => DecodeUriUseCaseImpl(context.read()),

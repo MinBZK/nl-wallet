@@ -72,8 +72,6 @@ abstract class WalletMockData {
     storageDuration: Duration(days: 90),
     dataPurpose: 'Data Purpose',
     dataIsShared: false,
-    dataIsSignature: false,
-    dataContainsSingleViewProfilePhoto: false,
     deletionCanBeRequested: true,
     privacyPolicyUrl: 'https://www.example.org',
   );

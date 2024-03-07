@@ -52,7 +52,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         case PidIssuanceSuccess():
           add(WalletPersonalizeLoginWithDigidSucceeded(result.previews));
         case PidIssuanceError():
-          //TODO: Currently seeing 'accessDenied' when pressing cancel in the digid connector. To be verified on PROD.
+
+          /// Currently seeing 'accessDenied' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)
           final cancelledByUser = result.error == RedirectError.accessDenied;
           add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelledByUser, error: result.error));
       }

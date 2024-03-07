@@ -165,11 +165,4 @@ void main() {
       expect(result, isFalse);
     });
   });
-
-  group('unimplemented', () {
-    // This group makes sure that, once features are implemented, we are reminded to update the tests.
-    test('confirmTransaction', () async {
-      expect(() => repo.confirmTransaction(_kValidPin), throwsUnimplementedError);
-    });
-  });
 }

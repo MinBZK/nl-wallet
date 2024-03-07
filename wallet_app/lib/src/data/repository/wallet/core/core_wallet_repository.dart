@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
-import '../../../../domain/usecase/pin/confirm_transaction_usecase.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../wallet_repository.dart';
@@ -35,10 +34,6 @@ class CoreWalletRepository implements WalletRepository {
   Future<void> createWallet(String pin) async {
     await _walletCore.register(pin);
   }
-
-  @override
-  // TODO: implement confirmTransaction
-  Future<CheckPinResult> confirmTransaction(String pin) => throw UnimplementedError();
 
   @override
   Future<void> resetWallet() => _walletCore.resetWallet();

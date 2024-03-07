@@ -6,7 +6,6 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/missing_attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
-import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/disclosure/disclosure_screen.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
@@ -20,11 +19,6 @@ import '../../util/test_utils.dart';
 import '../pin/pin_page_test.dart';
 
 class MockDisclosureBloc extends MockBloc<DisclosureEvent, DisclosureState> implements DisclosureBloc {}
-
-class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
-  @override
-  Future<CheckPinResult> invoke(String pin) => throw UnimplementedError();
-}
 
 void main() {
   group('goldens', () {

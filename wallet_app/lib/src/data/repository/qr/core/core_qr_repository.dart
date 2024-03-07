@@ -39,7 +39,7 @@ class CoreQrRepository implements QrRepository {
 
   Future<NavigationRequest> _processRawValue(String rawValue) async {
     if (Environment.mockRepositories) {
-      //FIXME: Move this logic behind identifyUri? (hard because core doesn't support these types)
+      // When wallet_core supports issue/sign requests, this logic should be removed.
       if (rawValue.contains('issue')) return IssuanceNavigationRequest(rawValue);
       if (rawValue.contains('sign')) return SignNavigationRequest(rawValue);
     }
