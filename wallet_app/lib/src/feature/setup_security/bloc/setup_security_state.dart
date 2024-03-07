@@ -37,7 +37,7 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
 }
 
 class SetupSecuritySelectPinFailed extends SetupSecurityState {
-  final PinValidationError? reason;
+  final PinValidationError reason;
 
   const SetupSecuritySelectPinFailed({required this.reason});
 

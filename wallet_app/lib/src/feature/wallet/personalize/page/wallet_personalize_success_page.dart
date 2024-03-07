@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/extension/build_context_extension.dart';
-import '../../../common/page/legacy_terminal_page.dart';
+import '../../../common/page/terminal_page.dart';
 import '../../../common/widget/stacked_wallet_cards.dart';
 
 class WalletPersonalizeSuccessPage extends StatelessWidget {
@@ -17,10 +17,9 @@ class WalletPersonalizeSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LegacyTerminalPage(
-      icon: Icons.check,
+    return TerminalPage(
       title: context.l10n.walletPersonalizeSuccessPageTitle,
-      content: Padding(
+      illustration: Padding(
         padding: const EdgeInsets.only(top: 32, left: 16, right: 16),
         child: Center(
           child: StackedWalletCards(

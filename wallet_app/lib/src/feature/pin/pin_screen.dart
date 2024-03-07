@@ -15,17 +15,20 @@ class PinScreen extends StatelessWidget {
     return Scaffold(
       key: const Key('pinScreen'),
       appBar: WalletAppBar(
-        title: Text(context.l10n.pinScreenTitle),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
-            icon: const Icon(Icons.info_outline),
+            icon: const Icon(Icons.help_outline_rounded),
             tooltip: context.l10n.pinScreenAboutAppTooltip,
           ),
         ],
       ),
-      body: PinPage(onPinValidated: onUnlock),
+      body: PinPage(
+        onPinValidated: onUnlock,
+        keyboardColor: context.colorScheme.primary,
+        showTopDivider: true,
+      ),
     );
   }
 }

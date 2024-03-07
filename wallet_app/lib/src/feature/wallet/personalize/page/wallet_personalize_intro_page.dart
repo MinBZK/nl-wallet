@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
@@ -20,39 +22,43 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      child: CustomScrollView(
-        slivers: [
-          SliverWalletAppBar(
-            title: context.l10n.walletPersonalizeIntroPageTitle,
-            progress: progress,
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList(
+    return SafeArea(
+      bottom: false, //handled in _buildBottomSection,
+      child: Scrollbar(
+        child: CustomScrollView(
+          slivers: [
+            SliverWalletAppBar(
+              title: context.l10n.walletPersonalizeIntroPageTitle,
+              progress: progress,
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList(
                 delegate: SliverChildListDelegate([
-              Text(
-                context.l10n.walletPersonalizeIntroPageDescription,
-                textAlign: TextAlign.start,
-                style: context.textTheme.bodyLarge,
+                  Text(
+                    context.l10n.walletPersonalizeIntroPageDescription,
+                    textAlign: TextAlign.start,
+                    style: context.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Image.asset(
+                      WalletAssets.illustration_personalize_wallet_intro,
+                      fit: BoxFit.fitWidth,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ]),
               ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: Image.asset(
-                  WalletAssets.illustration_personalize_wallet_intro,
-                  fit: BoxFit.fitWidth,
-                ),
-              ),
-              const SizedBox(height: 32),
-            ])),
-          ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            fillOverscroll: true,
-            child: _buildBottomSection(context),
-          ),
-        ],
+            ),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: _buildBottomSection(context),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -62,11 +68,12 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Divider(height: 1),
+        const Divider(),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
+              SizedBox(height: context.isLandscape ? 8 : 24),
               PrimaryButton(
                 key: const Key('loginWithDigidCta'),
                 onPressed: onLoginWithDigidPressed,
@@ -76,8 +83,10 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
               SecondaryButton(
                 key: const Key('noDigidCta'),
                 onPressed: onNoDigidPressed,
+                icon: Icons.help_outline_rounded,
                 text: context.l10n.walletPersonalizeIntroPageNoDigidCta,
               ),
+              SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom))
             ],
           ),
         ),

@@ -8,6 +8,7 @@ import '../common/widget/bullet_list.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/secondary_button.dart';
 import '../common/widget/button/wallet_app_bar_back_button.dart';
+import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
@@ -61,6 +62,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SliverSizedBox(height: 24),
           SliverFillRemaining(
             hasScrollBody: false,
             fillOverscroll: true,

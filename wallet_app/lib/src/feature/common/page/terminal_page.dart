@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
@@ -28,13 +30,16 @@ class TerminalPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildScrollableSection(context),
-        const SizedBox(height: 16),
-        _buildBottomSection(context),
-      ],
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildScrollableSection(context),
+          const SizedBox(height: 16),
+          _buildBottomSection(context),
+        ],
+      ),
     );
   }
 
@@ -91,7 +96,7 @@ class TerminalPage extends StatelessWidget {
         _buildPrimaryButton(),
         SizedBox(height: hasSecondaryButton ? 16 : 0),
         if (hasSecondaryButton) _buildSecondaryButton(),
-        const SizedBox(height: 16),
+        SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
       ],
     );
   }
