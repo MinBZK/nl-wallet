@@ -74,15 +74,8 @@ where
     {
         self.documents_callback.replace(Box::new(callback));
 
-        // If the `Wallet` is not registered, the database will not be open.
-        // In that case send an empty vec, so the UI has something to work with.
-        //
-        // TODO: Have the UI not call this until after registration or have it
-        //       handle not receiving a result immediately when unregistered. (PVW-2355)
         if self.registration.is_some() {
             self.emit_documents().await?;
-        } else {
-            self.documents_callback.as_mut().unwrap()(Default::default());
         }
 
         Ok(())
@@ -118,12 +111,11 @@ mod tests {
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&documents), 2);
 
-        // Confirm that we received an empty `Vec` in the callback.
+        // Confirm that the callback was not called.
         {
             let documents = documents.lock().unwrap();
 
-            assert_eq!(documents.len(), 1);
-            assert!(documents.first().unwrap().is_empty());
+            assert!(documents.is_empty());
         }
 
         // Clear the documents callback on the `Wallet.`
