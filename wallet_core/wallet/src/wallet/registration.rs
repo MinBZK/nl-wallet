@@ -62,7 +62,7 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
         info!("Validating PIN");
 
         // Make sure the PIN adheres to the requirements.
-        validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight
+        validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
 
         info!("Requesting challenge from account server");
 
