@@ -259,7 +259,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:ac003e628b6967357fbd447e230cb5d0b5d40af769213908be57a97545b1e839"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:45485e91cbd1a3c1b61faf496a8d9ea69dd7f2022f1f95f5326050a4f17c58c6"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
