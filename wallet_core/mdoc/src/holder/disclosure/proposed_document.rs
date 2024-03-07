@@ -1,13 +1,13 @@
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
-    basic_sa_ext::Entry,
     errors::Result,
     identifiers::AttributeIdentifier,
     iso::{
         disclosure::{DeviceSigned, Document, IssuerSigned},
         mdocs::DocType,
     },
+    unsigned::Entry,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         x509::Certificate,

@@ -6,8 +6,8 @@ use serial_test::serial;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::Entry,
     server_state::SessionToken,
+    unsigned::Entry,
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };

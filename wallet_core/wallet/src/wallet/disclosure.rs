@@ -440,9 +440,9 @@ mod tests {
     use uuid::uuid;
 
     use nl_wallet_mdoc::{
-        basic_sa_ext::Entry,
         holder::{HolderError, Mdoc, ProposedDocumentAttributes},
         iso::disclosure::SessionStatus,
+        unsigned::Entry,
         verifier::SessionType,
         DataElementValue,
     };

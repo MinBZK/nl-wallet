@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 pub use entity::{disclosure_history_event, issuance_history_event};
 use nl_wallet_mdoc::{
-    basic_sa_ext::Entry,
     holder::{Mdoc, ProposedAttributes, ProposedDocumentAttributes},
+    unsigned::Entry,
     utils::{cose::CoseError, x509::Certificate},
     DataElementIdentifier, DataElementValue, DocType, NameSpace,
 };
@@ -251,7 +251,7 @@ impl From<ProposedAttributes> for EventDocuments {
 
 #[cfg(test)]
 mod test {
-    use nl_wallet_mdoc::basic_sa_ext::UnsignedMdoc;
+    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 
     use crate::document::{
         create_full_unsigned_address_mdoc, create_full_unsigned_pid_mdoc, create_minimal_unsigned_address_mdoc,

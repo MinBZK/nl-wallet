@@ -513,7 +513,6 @@ pub mod cbor_hex {
 mod tests {
     use ciborium::value::Value;
     use hex_literal::hex;
-    use serde_bytes::ByteBuf;
 
     use super::*;
 
@@ -525,25 +524,6 @@ mod tests {
 
         let decoded: TaggedBytes<Vec<u8>> = cbor_deserialize(encoded.as_slice()).unwrap();
         assert_eq!(original.0, decoded.0);
-    }
-
-    #[test]
-    fn message_type() {
-        use Value::*;
-
-        // Use `RequestEndSessionMessage` as an example of a message that should have a `messageType` field
-        let msg = RequestEndSessionMessage {
-            e_session_id: ByteBuf::from("session_id").into(),
-        };
-
-        // Explicitly assert CBOR structure of the serialized data
-        assert_eq!(
-            Value::serialized(&msg).unwrap(),
-            Map(vec![
-                (Text("messageType".into()), Text(REQUEST_END_SESSION_MSG_TYPE.into()),),
-                (Text("eSessionId".into()), Bytes(b"session_id".to_vec())),
-            ])
-        );
     }
 
     #[test]

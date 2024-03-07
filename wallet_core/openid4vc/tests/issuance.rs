@@ -6,10 +6,10 @@ use indexmap::IndexMap;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, UnsignedMdoc},
     server_keys::{KeyPair, SingleKeyRing},
     server_state::{MemorySessionStore, SessionState},
     software_key_factory::SoftwareKeyFactory,
+    unsigned::{Entry, UnsignedMdoc},
     utils::{issuer_auth::IssuerRegistration, x509::Certificate},
     Tdate,
 };

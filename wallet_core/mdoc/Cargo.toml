@@ -10,7 +10,7 @@ workspace = true
 [[test]]
 name = "test"
 path = "tests/tests.rs"
-required-features = ["generate", "software_key_factory", "test", "mock"]
+required-features = ["generate", "software_key_factory", "software_keys", "test", "mock"]
 
 [features]
 # Allow the disclosure return URL and its prefix to use http://
