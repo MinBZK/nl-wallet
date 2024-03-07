@@ -43,6 +43,8 @@ disable_tls_validation = [
     "wallet_server/disable_tls_validation",
     "wallet/disable_tls_validation",
 ]
+# Run performance test against external servers
+performance_test = ["disable_tls_validation"]
 
 [dependencies]
 
@@ -50,6 +52,7 @@ disable_tls_validation = [
 assert_matches.workspace = true
 base64.workspace = true
 ctor.workspace = true
+dotenvy.workspace = true
 indexmap.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
@@ -72,6 +75,7 @@ tokio = { workspace = true, features = ["rt", "macros", "sync"] }
 tracing.workspace = true
 tracing-subscriber.workspace = true
 url.workspace = true
+uuid.workspace = true
 
 configuration_server = { path = "../configuration_server" }
 nl_wallet_mdoc = { path = "../mdoc", features = [
