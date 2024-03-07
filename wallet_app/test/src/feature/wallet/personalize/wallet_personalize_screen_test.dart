@@ -8,7 +8,6 @@ import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
-import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
@@ -24,11 +23,6 @@ import '../../pin/pin_page_test.dart';
 
 class MockWalletPersonalizeBloc extends MockBloc<WalletPersonalizeEvent, WalletPersonalizeState>
     implements WalletPersonalizeBloc {}
-
-class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
-  @override
-  Future<CheckPinResult> invoke(String pin) => throw UnimplementedError();
-}
 
 void main() {
   const kPidId = 'id';

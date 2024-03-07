@@ -62,7 +62,7 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
       ),
       UiAttribute.untranslated(
         value: StringValue(getGender(context, input)),
-        icon: Icons.sentiment_satisfied, //FIXME: This icon should probably become dynamic in the future
+        icon: Icons.sentiment_satisfied,
         label: l10n.walletPersonalizeCheckDataOfferingPageGenderLabel,
       ),
       UiAttribute.untranslated(

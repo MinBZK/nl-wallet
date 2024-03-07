@@ -13,7 +13,7 @@ class CoreUriRepository implements UriRepository {
   @override
   Future<NavigationRequest> processUri(Uri uri) async {
     if (Environment.mockRepositories) {
-      //FIXME: Move this logic behind identifyUri ? (hard because core doesn't support these types)
+      // When wallet_core supports issue/sign requests, this logic should be removed.
       if (uri.toString().contains('issue')) return IssuanceNavigationRequest(uri.toString());
       if (uri.toString().contains('sign')) return SignNavigationRequest(uri.toString());
     }

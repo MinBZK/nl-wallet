@@ -11,8 +11,9 @@ import 'model/policy_entry.dart';
 class PolicyEntriesBuilder {
   final BuildContext context;
   final TextStyle urlTheme;
+  final bool addSignatureEntry;
 
-  PolicyEntriesBuilder(this.context, this.urlTheme);
+  PolicyEntriesBuilder(this.context, this.urlTheme, {this.addSignatureEntry = false});
 
   List<PolicyEntry> build(Policy interactionPolicy) {
     final results = <PolicyEntry>[];
@@ -30,7 +31,7 @@ class PolicyEntriesBuilder {
     } else {
       results.add(_buildDataNotStoredPolicy());
     }
-    if (interactionPolicy.dataIsSignature) {
+    if (addSignatureEntry) {
       results.add(_buildSignaturePolicy());
     }
     if (storageDuration != null && storageDuration.inDays > 0) {

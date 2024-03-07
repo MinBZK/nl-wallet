@@ -12,19 +12,11 @@ class Policy extends Equatable {
   final bool deletionCanBeRequested;
   final String? privacyPolicyUrl;
 
-  /// FIXME: Remove [dataIsSignature] at some point, only relevant for mock build.
-  final bool dataIsSignature;
-
-  /// FIXME: Remove [dataContainsSingleViewProfilePhoto] at some point, only relevant for mock build.
-  final bool dataContainsSingleViewProfilePhoto;
-
   const Policy({
     this.storageDuration,
     this.dataPurpose,
     this.dataPurposeDescription,
     required this.dataIsShared,
-    required this.dataIsSignature,
-    required this.dataContainsSingleViewProfilePhoto,
     required this.deletionCanBeRequested,
     required this.privacyPolicyUrl,
   });
@@ -35,8 +27,6 @@ class Policy extends Equatable {
         dataPurpose,
         dataPurposeDescription,
         dataIsShared,
-        dataIsSignature,
-        dataContainsSingleViewProfilePhoto,
         deletionCanBeRequested,
         privacyPolicyUrl,
       ];

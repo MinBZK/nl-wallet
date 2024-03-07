@@ -62,7 +62,9 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     try {
       _startIssuanceResult = await startIssuanceUseCase.invoke(issuanceUri);
       if (isRefreshFlow) {
-        //FIXME: Is there a usecase where we refresh and do not have all the attributes? I.e. this cast fails?
+        /// We assume all the app is in [StartIssuanceReadyToDisclose] state for ALL refresh flows, as the
+        /// requested attributes were available for the initial issuance. If that's somehow not the case the
+        /// user will always be presented with the [IssuanceGenericError] state.
         final attributes = (_startIssuanceResult as StartIssuanceReadyToDisclose).requestedAttributes;
         add(
           IssuanceUpdateState(

@@ -120,7 +120,7 @@ class ErrorScreen extends StatelessWidget {
     if (networkError?.hasInternet == false) {
       showNoInternet(context, title: title, secured: secured);
     } else {
-      //TODO: We eventually want to select different copy based on the provided [NetworkError]s statusCode.
+      /// [networkError.statusCode] can eventually be used to show more specific errors
       show(
         context,
         secured: secured,
