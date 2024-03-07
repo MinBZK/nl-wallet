@@ -1,10 +1,12 @@
-use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, server_state::SessionState};
+use indexmap::IndexMap;
+use url::Url;
+
+use nl_wallet_mdoc::{server_state::SessionState, utils::x509::Certificate};
 use openid4vc::{
     issuer::{AttributeService, Created},
-    token::{TokenErrorCode, TokenRequest, TokenRequestGrantType},
+    token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
-use url::Url;
 
 use crate::settings::MockAttributes;
 
@@ -27,18 +29,27 @@ pub enum Error {
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
+    #[error("missing certificate for issuance of doctype {0}")]
+    MissingCertificate(String),
 }
 
 pub struct MockPidAttributeService {
     openid_client: OpenIdClient,
     attrs_lookup: MockAttributesLookup,
+    certificates: IndexMap<String, Certificate>,
 }
 
 impl MockPidAttributeService {
-    pub fn new(issuer_url: Url, bsn_privkey: String, mock_data: Option<Vec<MockAttributes>>) -> Result<Self, Error> {
+    pub fn new(
+        issuer_url: Url,
+        bsn_privkey: String,
+        mock_data: Option<Vec<MockAttributes>>,
+        certificates: IndexMap<String, Certificate>,
+    ) -> Result<Self, Error> {
         Ok(MockPidAttributeService {
             openid_client: OpenIdClient::new(issuer_url, bsn_privkey)?,
             attrs_lookup: MockAttributesLookup::from(mock_data.unwrap_or_default()),
+            certificates,
         })
     }
 }
@@ -50,7 +61,7 @@ impl AttributeService for MockPidAttributeService {
         &self,
         _session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<Vec<UnsignedMdoc>, Error> {
+    ) -> Result<Vec<AttestationPreview>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -59,8 +70,22 @@ impl AttributeService for MockPidAttributeService {
         };
 
         let bsn = self.openid_client.bsn(openid_token_request).await?;
-        let unsigned_mdocs = self.attrs_lookup.attributes(&bsn).ok_or(Error::NoAttributesFound)?;
 
-        Ok(unsigned_mdocs)
+        self.attrs_lookup
+            .attributes(&bsn)
+            .ok_or(Error::NoAttributesFound)?
+            .into_iter()
+            .map(|unsigned| {
+                let preview = AttestationPreview::MsoMdoc {
+                    issuer: self
+                        .certificates
+                        .get(&unsigned.doc_type)
+                        .ok_or(Error::MissingCertificate(unsigned.doc_type.clone()))?
+                        .clone(),
+                    unsigned_mdoc: unsigned,
+                };
+                Ok(preview)
+            })
+            .collect::<Result<_, _>>()
     }
 }

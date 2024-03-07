@@ -4,7 +4,7 @@ import '../../../../util/extension/build_context_extension.dart';
 
 const _kHorizontalPadding = 16.0;
 const _kVerticalPadding = 24.0;
-const _kVerticalLandscapePadding = 8.0;
+const _kVerticalLandscapePadding = 12.0;
 
 const _kButtonHeight = 48.0;
 const _kButtonSpacing = 12.0;

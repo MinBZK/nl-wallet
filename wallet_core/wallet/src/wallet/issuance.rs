@@ -3,13 +3,11 @@ use p256::ecdsa::signature;
 use tracing::{info, instrument};
 use url::Url;
 
-use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
-    utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension},
-};
+use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
     oidc::{HttpOidcClient, OidcClient, OidcError},
+    token::AttestationPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
@@ -64,38 +62,8 @@ pub enum PidIssuanceError {
     MissingIssuerRegistration,
     #[error("could not read documents from storage: {0}")]
     Document(#[source] DocumentsError),
-}
-
-// TODO: Remove this once issuer certificate can be known early in the issuance protocol
-pub fn rvig_registration() -> IssuerRegistration {
-    serde_json::from_str(r#"
-        {
-          "organization": {
-            "displayName": {
-              "nl": "Rijksdienst voor Identiteitsgegevens"
-            },
-            "legalName": {
-              "nl": "RvIG"
-            },
-            "description": {
-                "nl": "Opvragen van PID (Person Identification Data)"
-            },
-            "webUrl": "https://www.rvig.nl",
-            "city": {
-              "nl": "'s-Gravenhage"
-            },
-            "category": {
-              "nl": "Overheid"
-            },
-            "logo": {
-              "mimeType": "image/png",
-              "imageData": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAR6SURBVHgB7ZtNbFRVHMXPffUDByNtnCIktlMXMqELWtNCIoYiAaUmIAQ0uiGRhcHIRraYiBBjTFyIGyPBBBMw0UQabUlEAlGmESPSMGWB0g2dYiKlQ2ZMYCofncv/3M59vGlo6DwYCL3vlzTzvnJnzrn//7kvnXkKExjJXXtRe94arbEW0E2YFqi0Ujo9VqzZPrdODZadsRtnc7p2plfcprV+D9MYT6mdl4re9mfqVJ77xgCKj6niLzLjrXAClS5obxlN8LjLmXdHPNGtjxvNYsW/Od3kqbGzcBBP62VejTe2DY4yBqwVE5RDpV+OUmqNGs5f13AYD44TGQDHiQyA40QGwHEiA+A4kQFwnMgAOE5kABzHeQMeQgj2d6fQ1dNrtr/Z/T4eZKIWwD1g5GLe/E3lukLhyl0bbyqEaoGpsl/a5OfDx3G58L/Zr39yFta92oGOxQv8ayh473eH0Jce8K+Lx2v981vefQ1NDU+Z7YNHjqOru9e/bmZsBlauWIT1q5cgLFUz4Ms9B9B7rN9sx+OzMCpCRy7+h117enB59ApeWb7QnNv1dTdOnBxAQkSulGNZuSZ17BRiIq699Vn/uzua2SXZQyic0Agey2bz2LRxNcJQFQMowIp/Z+MqLFncYsTvk5mmWH7opc8vELF5s0+2bH7dVAgpiLATUhHzk03GGJpixXO2WUWEx2gM349VNT+ZQKVUJQP6Tp4xr23PJY14QnGdyxeZbQq8IOIvBVrDiifx0vZIdrzPj/7WX7qu1hdPOqX8bTUMnhtGGKpiQLYUUImnZ5cdT5R6mYyKePY2BbA6fjrypwm202cy6Osfr4r6UhbwPInHnygbj20Siz1qtgslMyulqiE4MdGzJSEWCtj01irJgQPY9+0h82dhtQTDcny8q5O+R6xUCZVSFQMaGuZISV5A6vdTWC8la2cpFShl26+nB4ZMmAVDrDnZKG1wcyVgpfC2K3PuvDHRtghXBbsitEu7heGODWCqB9nwxstYKjPXK8HEsty6YzfaWpPI/DOMv6S8SeeKhf71fenxvOA5K+yo9D7Lv1lM4jFWAu88KfajT/f65jH8zHhSLcEMqYRQ3w0Gb4UnsvOTzWaGbUIHYb+vkxRneN0cS5a3ntQtx6Kojz9421RQRkLusy++94PRQvEb3nwJYQllAD9MZpLUbZfZtiXP8BoaOm8SmjMaPGfH2brjKynfef4KQVg5zAXTGpIRHS+0+Oe4wnA8mslQDbP0BQnVAnzjYKJPhl3e2ibpT5sJscdmlAlhsNEoGlAfuCskHKstZL/fiqquArcj0TjHvLKXWS02yf+WPKD4sDc3lXBfDbDL3MHDf/gBydJubJiN5nmJspueahH9QAKOExkAx4kMgONEBsBxIgPgOJEBcJzIADhOZAAcJzJA/icyCEdRUGlP6+KPcBWlxQDgBzgKH6X15tY9/KvW+nM4BjXzOWLz+4NcTtdedfnR2TrZeEQOuFAJ1GjFc19NvMA8SotrH0LVtEyfilCDDHvmHVs+eOYGfAbtBPsp8XkAAAAASUVORK5CYII="
-            },
-            "countryCode": "nl",
-            "kvk": "27373207",
-            "privacyPolicyUrl": "https://www.rvig.nl/privacy"
-          }
-        }"#).unwrap()
+    #[error("failed to read issuer registration from issuer certificate: {0}")]
+    AttestationPreview(#[from] AttestationPreviewError),
 }
 
 impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
@@ -227,15 +195,18 @@ where
             http_client.into(),
             config.pid_issuance.pid_issuer_url.clone(),
             token_request,
+            &config.mdoc_trust_anchors(),
         )
         .await?;
 
         info!("PID received successfully from issuer, returning preview documents");
-        // TODO: obtain IssuerRegistration via some Issuer Authentication mechanism
         let mut documents = attestation_previews
             .into_iter()
-            .map(|preview| Document::from_unsigned_mdoc(UnsignedMdoc::from(preview), rvig_registration()))
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|preview| {
+                let (unsigned_mdoc, issuer) = preview.try_into()?;
+                Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer)?)
+            })
+            .collect::<Result<Vec<_>, PidIssuanceError>>()?;
         documents.sort_by_key(Document::priority);
 
         self.issuance_session
@@ -385,11 +356,11 @@ mod tests {
     use crate::{
         document::{self, DocumentPersistence},
         storage::StorageState,
-        HistoryEvent,
+        wallet::history::HistoryEvent,
     };
 
     use super::{
-        super::test::{self, WalletWithMocks},
+        super::test::{self, WalletWithMocks, ISSUER_KEY},
         *,
     };
 
@@ -623,6 +594,7 @@ mod tests {
                 MockIssuanceSession::new(),
                 vec![AttestationPreview::MsoMdoc {
                     unsigned_mdoc: document::create_full_unsigned_pid_mdoc(),
+                    issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
             ))
         });
@@ -759,6 +731,7 @@ mod tests {
                         attributes: Default::default(),
                         copy_count: 1,
                     },
+                    issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
             ))
         });

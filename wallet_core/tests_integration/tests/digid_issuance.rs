@@ -38,6 +38,7 @@ async fn test_pid_issuance_digid_bridge() {
         settings.issuer.digid.issuer_url.clone(),
         settings.issuer.digid.bsn_privkey.clone(),
         settings.issuer.mock_data.clone(),
+        settings.issuer.certificates(),
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
@@ -48,7 +49,7 @@ async fn test_pid_issuance_digid_bridge() {
     let (digid_session, authorization_url) = HttpOidcClient::<S256PkcePair>::start(
         default_reqwest_client_builder().build().unwrap(),
         settings.issuer.digid.issuer_url.clone(),
-        wallet_config.pid_issuance.digid_client_id,
+        wallet_config.pid_issuance.digid_client_id.clone(),
         WalletConfiguration::issuance_redirect_uri(DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()),
     )
     .await
@@ -67,6 +68,7 @@ async fn test_pid_issuance_digid_bridge() {
         HttpOpenidMessageClient::from(reqwest::Client::new()),
         server_url.clone(),
         token_request,
+        &wallet_config.mdoc_trust_anchors(),
     )
     .await
     .unwrap();

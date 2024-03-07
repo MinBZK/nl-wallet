@@ -33,7 +33,7 @@ variables:
       namespace: ${K8S_DEMO_NAMESPACE}
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:70d5ce192b2c6bf46d67e3f7d6d10c502bf1412bf57b8f43f04f3e1799ec3c66"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:529d9b3c3ea0b58a71e522837230b6ed473f24b8ec91ea8bc311ea6fa3e7d806"
 
 .kaniko:
   extends: .env-ont
@@ -56,9 +56,19 @@ default:
       variables:
         CACHE_POLICY: pull-push
 
-.release-tag:
+.demo-release-tag:
+  before_script:
+    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^demo-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^demo-v//')
   rules:
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+    - if: $CI_COMMIT_TAG =~ /^demo-v\d+\.\d+\.\d+$/
+      variables:
+        CACHE_POLICY: pull
+
+.mock-release-tag:
+  before_script:
+    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^mock-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^mock-v//')
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^mock-v\d+\.\d+\.\d+$/
       variables:
         CACHE_POLICY: pull
 
@@ -71,7 +81,13 @@ default:
 .default-or-release:
   rules:
     - !reference [.default-branch, rules]
-    - !reference [.release-tag, rules]
+    - !reference [.demo-release-tag, rules]
+    - !reference [.mock-release-tag, rules]
+
+.default-or-demo-release:
+  rules:
+    - !reference [.default-branch, rules]
+    - !reference [.demo-release-tag, rules]
 
 .default-or-merge-request:
   rules:
@@ -137,7 +153,7 @@ test-flutter-ui:
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -150,7 +166,7 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   cache: !reference [.rust-cache, cache]
   script:
     # Run tests, generate code coverage reports
@@ -167,7 +183,7 @@ test-rust:
 test-rust-integration:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
@@ -201,7 +217,7 @@ test-rust-integration:
 test-rust-compilation-android-linux:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:665e612c052edd39797e5859e1fb582aedc91f97f2c002154b96199ce7d1db6c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a79e22d5328c157ed85d2701f4f53d1c9f8d7efe8b0b38a5e4b6ed534110dbd6"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
@@ -243,7 +259,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:5bf9c226415cf1e010732a7a21a234549a5adec1e808e2cf18e35478ec6bd914"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:ac003e628b6967357fbd447e230cb5d0b5d40af769213908be57a97545b1e839"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -293,7 +309,7 @@ osv-scanner:
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:cfa7e4a056304ebcfaae54d0b40916c884cd7fea839b447314aa89095c7dde4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
@@ -382,7 +398,7 @@ sonar-android:
 
 build-wp-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -401,7 +417,7 @@ build-wp-image:
 
 build-wp-migrations-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -420,7 +436,7 @@ build-wp-migrations-image:
 
 build-pid-issuer-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -437,7 +453,7 @@ build-pid-issuer-image:
 
 build-mock-relying-party-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -454,7 +470,7 @@ build-mock-relying-party-image:
 
 build-wallet-server-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -471,7 +487,7 @@ build-wallet-server-image:
 
 build-ws-migrations-image:
   extends: .kaniko
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -500,7 +516,7 @@ build-ws-migrations-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:665e612c052edd39797e5859e1fb582aedc91f97f2c002154b96199ce7d1db6c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a79e22d5328c157ed85d2701f4f53d1c9f8d7efe8b0b38a5e4b6ed534110dbd6"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -527,7 +543,7 @@ build-ws-migrations-image:
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed 's/^v//')"
+        version:"${RELEASE_VERSION}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -554,7 +570,7 @@ build-android-app-latest-profile:
 
 .build-android-app-mock:
   extends: [.env-ont-k8s, .build-android-app]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.mock-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
@@ -568,6 +584,7 @@ build-android-app-mock-release:
 
 .build-android-app-demo:
   extends: [.env-demo-k8s, .build-android-app]
+  rules: !reference [.demo-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -575,14 +592,12 @@ build-android-app-mock-release:
     UL_HOSTNAME: "${EXTERNAL_HOSTNAME_DEMO}"
 
 build-android-app-demo-release:
-  rules: !reference [.release-tag, rules]
   extends: .build-android-app-demo
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
 
 build-android-app-demo-profile:
-  rules: !reference [.default-branch, rules]
   extends: .build-android-app-demo
   variables:
     APP_FILE_FORMAT: "apk"
@@ -620,7 +635,7 @@ build-android-app-demo-profile:
         bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         app_name:"${APP_NAME}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
+        version:"${RELEASE_VERSION}"
 
 build-ios-app-latest:
   extends: [.env-ont-k8s, .build-ios-app] # needs k8s secrets
@@ -646,7 +661,7 @@ build-ios-app-latest:
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
+        version:"${RELEASE_VERSION}"
 
 deploy-android-app-latest:
   extends: [.env-ont-k8s, .deploy-android-app]
@@ -661,8 +676,7 @@ deploy-android-app-latest:
 
 deploy-android-app-mock:
   extends: [.env-ont-k8s, .deploy-android-app]
-  when: manual
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.mock-release-tag, rules]
   needs:
     - job: build-android-app-mock-release
       artifacts: true
@@ -673,7 +687,7 @@ deploy-android-app-mock:
 
 deploy-android-app-demo:
   extends: [.env-demo-k8s, .deploy-android-app]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   needs:
     - job: build-android-app-demo-release
       artifacts: true
@@ -700,7 +714,7 @@ deploy-android-app-demo:
     - |
       bundle exec fastlane android ci_browserstack \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"$(echo $CI_COMMIT_REF_NAME | grep -E '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$')"
+        version:"${RELEASE_VERSION}"
 
 upload-browserstack-android-app-latest:
   extends: [.env-ont-k8s, .upload-browserstack-android-app]
@@ -713,7 +727,7 @@ upload-browserstack-android-app-latest:
 
 upload-browserstack-android-app-demo:
   extends: [.env-demo-k8s, .upload-browserstack-android-app]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   needs:
     - job: build-android-app-demo-profile
       artifacts: true
@@ -759,7 +773,7 @@ upload-browserstack-android-app-demo:
 #    - bundle exec fastlane ios ci_browserstack
 
 dependency-check-images:
-  rules: !reference [.default-or-release, rules]
+  rules: !reference [.default-or-demo-release, rules]
   needs:
     - job: build-wp-image
       artifacts: false
@@ -821,7 +835,7 @@ run-wp-migrations-ont:
 
 run-wp-migrations-demo:
   extends: [.env-demo-k8s, .run-wp-migrations]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
 
 .deploy-wallet-provider:
   needs:
@@ -850,7 +864,7 @@ deploy-wallet-provider-ont:
 
 deploy-wallet-provider-demo:
   extends: [.env-demo-k8s, .deploy-wallet-provider]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   needs:
     - job: run-wp-migrations-demo
       artifacts: false
@@ -879,7 +893,7 @@ deploy-pid-issuer-ont:
 
 deploy-pid-issuer-demo:
   extends: [.env-demo-k8s, .deploy-pid-issuer]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   variables:
     PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
@@ -889,7 +903,7 @@ deploy-pid-issuer-demo:
     - job: build-ws-migrations-image
       artifacts: false
   variables:
-    WALLET_PROVIDER_MIGRATIONS_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
+    WALLET_SERVER_MIGRATION_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
   script:
     - envsubst < kubernetes/mrp-wallet-server-migration-job.yaml | kubectl apply -f -
     - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-wallet-server-migrations
@@ -900,7 +914,7 @@ run-ws-migrations-ont:
 
 run-ws-migrations-demo:
   extends: [.env-demo-k8s, .run-ws-migrations]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
 
 .deploy-mock-relying-party:
   needs:
@@ -930,15 +944,17 @@ deploy-mock-relying-party-ont:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_ONT
+    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
     UL_HOSTNAME: $EXTERNAL_HOSTNAME_ONT
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.demo-release-tag, rules]
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
+    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $EXTERNAL_HOSTNAME_DEMO
 
 check-gitlab-ci-changed:

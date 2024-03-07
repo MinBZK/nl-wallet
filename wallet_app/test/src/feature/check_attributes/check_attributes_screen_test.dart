@@ -8,6 +8,7 @@ import 'package:wallet/src/feature/check_attributes/check_attributes_screen.dart
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 class MockCheckAttributesBloc extends MockBloc<CheckAttributesEvent, CheckAttributesState>
     implements CheckAttributesBloc {}
@@ -61,7 +62,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.textContaining('Something not right'));
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.tap(find.text(l10n.checkAttributesScreenDataIncorrectCta));
       expect(isCalled, isTrue);
     });
   });

@@ -1,12 +1,16 @@
-use serde_with::{base64::Base64, serde_as};
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
+use indexmap::IndexMap;
 use serde::Deserialize;
+use serde_with::{base64::Base64, serde_as};
 use url::Url;
-use wallet_common::config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE};
 
-use wallet_common::trust_anchor::DerTrustAnchor;
+use nl_wallet_mdoc::utils::x509::Certificate;
+use wallet_common::{
+    config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
+    trust_anchor::DerTrustAnchor,
+};
 
 #[cfg(feature = "mock")]
 use crate::pid::mock::{PersonAttributes, ResidentAttributes};
@@ -83,6 +87,15 @@ pub struct Issuer {
 
     #[cfg(feature = "mock")]
     pub mock_data: Option<Vec<MockAttributes>>,
+}
+
+impl Issuer {
+    pub fn certificates(&self) -> IndexMap<String, Certificate> {
+        self.private_keys
+            .iter()
+            .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone().into()))
+            .collect()
+    }
 }
 
 impl Settings {

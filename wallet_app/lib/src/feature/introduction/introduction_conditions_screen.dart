@@ -40,15 +40,13 @@ class IntroductionConditionsScreen extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverToBoxAdapter(
-              child: MergeSemantics(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BulletList(
-                      items: context.l10n.introductionConditionsScreenBulletPoints.split('\n'),
-                    ),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BulletList(
+                    items: context.l10n.introductionConditionsScreenBulletPoints.split('\n'),
+                  ),
+                ],
               ),
             ),
           ),

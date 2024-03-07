@@ -32,6 +32,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: HttpOpenidMessageClient,
         _: Url,
         _: TokenRequest,
+        _: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
     where
         Self: Sized,
