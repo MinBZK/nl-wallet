@@ -6,8 +6,7 @@ use parking_lot::Mutex;
 use rand_core::OsRng;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc, holder::Mdoc, server_keys::KeyPair, utils::issuer_auth::IssuerRegistration,
-    IssuerSigned,
+    holder::Mdoc, server_keys::KeyPair, unsigned::UnsignedMdoc, utils::issuer_auth::IssuerRegistration, IssuerSigned,
 };
 use openid4vc::{mock::MockIssuanceSession, oidc::MockOidcClient};
 use platform_support::hw_keystore::PlatformEcdsaKey;

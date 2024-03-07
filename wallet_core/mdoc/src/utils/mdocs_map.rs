@@ -2,8 +2,8 @@ use indexmap::IndexMap;
 use wallet_common::utils::sha256;
 
 use crate::{
-    basic_sa_ext::Entry,
     holder::{Mdoc, MdocCopies},
+    unsigned::Entry,
     DocType, Error, NameSpace,
 };
 

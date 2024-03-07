@@ -140,9 +140,11 @@ where
                             session_type,
                         }
                     }
-                    // TODO: What to do when the missing attributes could not be translated?
-                    //       In that case there is no way we can terminate the session with
-                    //       user interaction, since the missing attributes cannot be presented.
+                    // NB: It is a known limitation that, if the missing attributes cannot be
+                    //     translated, the missing attributes cannot be presented to the user,
+                    //     thus user interaction cannot terminate the disclosure session. As
+                    //     a precaution to prevent gleaning of missing attributes we will
+                    //     simply never respond to the verifier in this case.
                     Err(error) => DisclosureError::MdocAttributes(error),
                 };
 
@@ -439,9 +441,9 @@ mod tests {
     use uuid::uuid;
 
     use nl_wallet_mdoc::{
-        basic_sa_ext::Entry,
         holder::{HolderError, Mdoc, ProposedDocumentAttributes},
         iso::disclosure::SessionStatus,
+        unsigned::Entry,
         verifier::SessionType,
         DataElementValue,
     };

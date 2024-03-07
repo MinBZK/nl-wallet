@@ -2,18 +2,20 @@ use std::time::Duration;
 
 use derive_more::From;
 use indexmap::IndexSet;
+
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
+use url::Url;
+
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
     server_state::SessionToken,
+    unsigned::UnsignedMdoc,
     utils::{
         issuer_auth::IssuerRegistration,
         x509::{Certificate, CertificateError, CertificateType},
     },
 };
-use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
-use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
-use url::Url;
 use wallet_common::utils::{random_string, sha256};
 
 use crate::{authorization::AuthorizationDetails, ErrorStatusCode};

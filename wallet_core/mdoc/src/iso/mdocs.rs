@@ -17,7 +17,7 @@ use serde_with::skip_serializing_none;
 use wallet_common::utils::random_bytes;
 
 use crate::{
-    basic_sa_ext::Entry,
+    unsigned::Entry,
     utils::{
         cose::CoseKey,
         crypto::{cbor_digest, CryptoError},

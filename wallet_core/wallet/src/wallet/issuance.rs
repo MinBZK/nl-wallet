@@ -351,7 +351,7 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
-    use nl_wallet_mdoc::{basic_sa_ext::UnsignedMdoc, Tdate};
+    use nl_wallet_mdoc::{unsigned::UnsignedMdoc, Tdate};
 
     use crate::{
         document::{self, DocumentPersistence},

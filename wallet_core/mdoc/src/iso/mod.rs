@@ -3,7 +3,7 @@
 
 // We keep this under its own name by not using `pub use` on this, since it's not part of the ISO standards,
 // unlike the contents of the other modules.
-pub mod basic_sa_ext;
+pub mod unsigned;
 
 pub mod mdocs;
 pub use mdocs::*;
@@ -16,6 +16,3 @@ pub use disclosure::*;
 
 pub mod engagement;
 pub use engagement::*;
-
-pub mod issuance;
-pub use issuance::*;

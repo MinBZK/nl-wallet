@@ -10,9 +10,9 @@ use tokio::task::JoinHandle;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::UnsignedMdoc,
     server_keys::KeyRing,
     server_state::{SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS},
+    unsigned::UnsignedMdoc,
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };

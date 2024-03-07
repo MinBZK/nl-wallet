@@ -3,9 +3,9 @@ use ciborium::value::Integer;
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, UnsignedMdoc},
     holder::ProposedDocumentAttributes,
     identifiers::AttributeIdentifier,
+    unsigned::{Entry, UnsignedMdoc},
     utils::{
         issuer_auth::IssuerRegistration,
         x509::{CertificateError, MdocCertificateExtension},

@@ -6,7 +6,7 @@ use ciborium::Value;
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, UnsignedMdoc},
+    unsigned::{Entry, UnsignedMdoc},
     Tdate,
 };
 use serde::Deserialize;

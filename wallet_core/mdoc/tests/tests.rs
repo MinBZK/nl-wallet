@@ -5,9 +5,8 @@ use std::{
     sync::Arc,
 };
 
-use chrono::{DateTime, Duration, Utc};
 use ciborium::value::Value;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use rstest::rstest;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_with::{
@@ -18,19 +17,22 @@ use serde_with::{
 use url::Url;
 
 use nl_wallet_mdoc::{
-    basic_sa_ext::{Entry, UnsignedMdoc},
-    holder::{DisclosureSession, HttpClient, HttpClientResult, MdocCopies, MdocDataSource, StoredMdoc, Wallet},
-    identifiers::AttributeIdentifier,
+    holder::{DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, StoredMdoc},
     iso::{device_retrieval::ItemsRequest, mdocs::DocType},
-    issuer::{IssuanceData, Issuer},
     server_keys::{KeyPair, KeyRing},
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
+    unsigned::{Entry, UnsignedMdoc},
     utils::{
         issuer_auth::IssuerRegistration, keys::KeyFactory, reader_auth::ReaderRegistration, serialization,
         x509::Certificate,
     },
     verifier::{DisclosureData, SessionType, Verifier},
+    IssuerSigned,
+};
+use wallet_common::{
+    generator::TimeGenerator,
+    keys::{EcdsaKey, WithIdentifier},
 };
 use webpki::TrustAnchor;
 
@@ -38,7 +40,6 @@ const ISSUANCE_DOC_TYPE: &str = "example_doctype";
 const ISSUANCE_NAME_SPACE: &str = "example_namespace";
 const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-type MockIssuanceServer = Issuer<MockKeyring, MemorySessionStore<IssuanceData>>;
 type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
 
 struct MockKeyring {
@@ -54,34 +55,6 @@ impl MockKeyring {
 impl KeyRing for MockKeyring {
     fn private_key(&self, _: &str) -> Option<&KeyPair> {
         Some(&self.private_key)
-    }
-}
-
-struct MockIssuanceHttpClient {
-    issuance_server: Arc<MockIssuanceServer>,
-}
-
-impl MockIssuanceHttpClient {
-    pub fn new(issuance_server: Arc<MockIssuanceServer>) -> Self {
-        MockIssuanceHttpClient { issuance_server }
-    }
-}
-
-impl HttpClient for MockIssuanceHttpClient {
-    async fn post<R, V>(&self, url: &Url, val: &V) -> HttpClientResult<R>
-    where
-        V: Serialize,
-        R: DeserializeOwned,
-    {
-        let session_token = url.path_segments().unwrap().last().unwrap().to_string();
-        let val = serialization::cbor_serialize(val).unwrap();
-        let response = self
-            .issuance_server
-            .process_message(session_token.into(), &val)
-            .await
-            .unwrap();
-        let response = serialization::cbor_deserialize(response.as_slice()).unwrap();
-        Ok(response)
     }
 }
 
@@ -111,31 +84,6 @@ impl HttpClient for MockDisclosureHttpClient {
 
         Ok(response)
     }
-}
-
-fn setup_issuance_test() -> (
-    Wallet<MockIssuanceHttpClient>,
-    Arc<MockIssuanceServer>,
-    SoftwareKeyFactory,
-    Certificate,
-) {
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-
-    // Setup issuer
-    let issuance_server = MockIssuanceServer::new(
-        "http://example.com".parse().unwrap(),
-        MockKeyring::new(issuance_key),
-        MemorySessionStore::new(),
-    )
-    .into();
-
-    let client = MockIssuanceHttpClient::new(Arc::clone(&issuance_server));
-    let wallet = Wallet::new(client);
-
-    let key_factory = SoftwareKeyFactory::default();
-
-    (wallet, issuance_server, key_factory, ca.into())
 }
 
 fn setup_verifier_test(
@@ -205,12 +153,42 @@ impl MdocDataSource for MockMdocDataSource {
     }
 }
 
-fn new_issuance_request() -> Vec<UnsignedMdoc> {
-    let now = chrono::Utc::now();
-    vec![UnsignedMdoc {
+/// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and key identifier.
+pub async fn mdoc_from_unsigned<KF>(unsigned_mdoc: UnsignedMdoc, key_factory: &KF) -> (Mdoc, Certificate)
+where
+    KF: KeyFactory,
+{
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+
+    let mdoc_key = key_factory.generate_new().await.unwrap();
+    let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
+    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuance_key)
+        .await
+        .unwrap();
+
+    let mdoc = Mdoc::new::<KF::Key>(
+        mdoc_key.identifier().to_string(),
+        issuer_signed,
+        &TimeGenerator,
+        &[(ca.certificate().try_into().unwrap())],
+    )
+    .unwrap();
+
+    (mdoc, ca.certificate().clone())
+}
+
+#[rstest]
+#[case(SessionType::SameDevice, None)]
+#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()))]
+#[case(SessionType::CrossDevice, None)]
+#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()))]
+#[tokio::test]
+async fn test_disclosure(#[case] session_type: SessionType, #[case] return_url: Option<Url>) {
+    let unsigned = UnsignedMdoc {
         doc_type: ISSUANCE_DOC_TYPE.to_string(),
         copy_count: 2,
-        valid_from: now.into(),
+        valid_from: chrono::Utc::now().into(),
         valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
         attributes: IndexMap::from([(
             ISSUANCE_NAME_SPACE.to_string(),
@@ -222,148 +200,14 @@ fn new_issuance_request() -> Vec<UnsignedMdoc> {
                 })
                 .collect(),
         )]),
-    }]
-}
+    };
 
-async fn issuance_using_consent<H, KF>(
-    user_consent: bool,
-    request: Vec<UnsignedMdoc>,
-    wallet: &mut Wallet<H>,
-    issuance_server: &MockIssuanceServer,
-    key_factory: &KF,
-    ca: &Certificate,
-) -> Option<Vec<MdocCopies>>
-where
-    H: HttpClient,
-    KF: KeyFactory,
-{
-    let service_engagement = issuance_server
-        .new_session(request)
-        .await
-        .expect("starting a new issuance session on the server should succeed");
+    let key_factory = SoftwareKeyFactory::default();
+    let (mdoc, mdoc_ca) = mdoc_from_unsigned(unsigned, &key_factory).await;
 
-    wallet
-        .start_issuance(service_engagement)
-        .await
-        .expect("starting issuance on the Wallet should succeed");
-
-    if !user_consent {
-        wallet
-            .stop_issuance()
-            .await
-            .expect("stopping issuance on the Wallet should succeed");
-
-        return None;
-    }
-
-    let mdocs = wallet
-        .finish_issuance(&[ca.try_into().unwrap()], key_factory)
-        .await
-        .expect("finishing issuance on the Wallet should succeed");
-
-    mdocs.into()
-}
-
-#[tokio::test]
-async fn test_issuance() {
-    let expected_identifiers = ISSUANCE_ATTRS
-        .iter()
-        .map(|(key, _)| AttributeIdentifier {
-            doc_type: ISSUANCE_DOC_TYPE.to_string(),
-            namespace: ISSUANCE_NAME_SPACE.to_string(),
-            attribute: key.to_string(),
-        })
-        .collect::<IndexSet<_>>();
-
-    // Agree with issuance
-    let (mut wallet, server, key_factory, ca) = setup_issuance_test();
-    let mdocs = issuance_using_consent(
-        true,
-        new_issuance_request(),
-        &mut wallet,
-        server.as_ref(),
-        &key_factory,
-        &ca,
-    )
-    .await
-    .unwrap();
-    assert_eq!(1, mdocs.len());
-    let mdoc_copies = mdocs.first().unwrap();
-    assert_eq!(mdoc_copies.cred_copies.len(), 2);
-    assert_eq!(
-        mdoc_copies
-            .cred_copies
-            .first()
-            .unwrap()
-            .issuer_signed_attribute_identifiers(),
-        expected_identifiers,
-    );
-
-    // Decline issuance
-    let (mut wallet, server, key_factory, ca) = setup_issuance_test();
-    let mdocs = issuance_using_consent(
-        false,
-        new_issuance_request(),
-        &mut wallet,
-        server.as_ref(),
-        &key_factory,
-        &ca,
-    )
-    .await;
-    assert!(mdocs.is_none());
-
-    // Issue not-yet-valid mdocs
-    let now = Utc::now();
-    let mut request = new_issuance_request();
-    request
-        .iter_mut()
-        .for_each(|r| r.valid_from = now.add(Duration::days(132)).into());
-    assert!(request[0].valid_from.0 .0.parse::<DateTime<Utc>>().unwrap() > now);
-
-    let (mut wallet, server, key_factory, ca) = setup_issuance_test();
-    let mdocs = issuance_using_consent(
-        true,
-        new_issuance_request(),
-        &mut wallet,
-        server.as_ref(),
-        &key_factory,
-        &ca,
-    )
-    .await
-    .unwrap();
-    assert_eq!(1, mdocs.len());
-    let mdoc_copies = mdocs.first().unwrap();
-    assert_eq!(mdoc_copies.cred_copies.len(), 2);
-    assert_eq!(
-        mdoc_copies
-            .cred_copies
-            .first()
-            .unwrap()
-            .issuer_signed_attribute_identifiers(),
-        expected_identifiers,
-    );
-}
-
-#[rstest]
-#[case(SessionType::SameDevice, None)]
-#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()))]
-#[case(SessionType::CrossDevice, None)]
-#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()))]
-#[tokio::test]
-async fn test_issuance_and_disclosure(#[case] session_type: SessionType, #[case] return_url: Option<Url>) {
-    // Perform issuance and save result in `MockMdocDataSource`.
-    let (mut wallet, issuance_server, key_factory, mdoc_ca) = setup_issuance_test();
-    let mdoc_data_source: MockMdocDataSource = issuance_using_consent(
-        true,
-        new_issuance_request(),
-        &mut wallet,
-        issuance_server.as_ref(),
-        &key_factory,
-        &mdoc_ca,
-    )
-    .await
-    .unwrap()
-    .into();
+    let mdoc_data_source = MockMdocDataSource::from(vec![MdocCopies {
+        cred_copies: vec![mdoc],
+    }]);
 
     // Prepare a request and start issuance on the verifier side.
     let (verifier_client, verifier, verifier_ca) = setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()]);
