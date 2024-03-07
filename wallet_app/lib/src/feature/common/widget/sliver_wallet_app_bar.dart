@@ -117,7 +117,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
   @override
   void didUpdateWidget(covariant SliverWalletAppBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.title != widget.title) _textHeightCache = null;
+    _textHeightCache = null;
   }
 
   Widget _buildPositionedProgressBar() {

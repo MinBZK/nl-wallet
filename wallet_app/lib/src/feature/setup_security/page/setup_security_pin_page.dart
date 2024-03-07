@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
-import '../../common/widget/wallet_logo.dart';
 import '../../pin/widget/pin_field.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
-const _requiredHeightToShowLogo = 230.0;
-
 class SetupSecurityPinPage extends StatelessWidget {
-  final Widget content;
+  final String title;
   final Function(int)? onKeyPressed;
   final VoidCallback? onBackspacePressed;
   final int enteredDigits;
@@ -17,7 +14,7 @@ class SetupSecurityPinPage extends StatelessWidget {
   final bool isShowingError;
 
   const SetupSecurityPinPage({
-    required this.content,
+    required this.title,
     required this.onKeyPressed,
     required this.onBackspacePressed,
     required this.enteredDigits,
@@ -31,42 +28,36 @@ class SetupSecurityPinPage extends StatelessWidget {
     return OrientationBuilder(builder: (context, orientation) {
       switch (orientation) {
         case Orientation.portrait:
-          return _buildPortrait();
+          return _buildPortrait(context);
         case Orientation.landscape:
-          return _buildLandscape();
+          return _buildLandscape(context);
       }
     });
   }
 
-  Widget _buildPortrait() {
+  Widget _buildPortrait(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Expanded(
-          child: LayoutBuilder(builder: (context, constraints) {
-            final textScaler = context.textScaler;
-            //TODO: Remove (and refactor + test) deprecated_member_use once Flutter supports non-linear font scaling
-            // ignore: deprecated_member_use
-            final fitsLogoAndText = constraints.maxHeight > (_requiredHeightToShowLogo * textScaler.textScaleFactor);
-            return Column(
-              children: [
-                const SizedBox(height: 48),
-                if (fitsLogoAndText) const WalletLogo(size: 80),
-                if (fitsLogoAndText) const SizedBox(height: 24),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: content,
-                  ),
+          child: Scrollbar(
+            thumbVisibility: true,
+            trackVisibility: true,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Text(
+                  title,
+                  style: context.textTheme.displayMedium,
                 ),
-                if (showInput) _buildPinField(),
-                if (showInput) const Spacer(),
-              ],
-            );
-          }),
+              ),
+            ),
+          ),
         ),
+        _buildPinField(),
+        const SizedBox(height: 16),
         Visibility(
           visible: showInput,
           maintainSize: true,
@@ -81,30 +72,42 @@ class SetupSecurityPinPage extends StatelessWidget {
     );
   }
 
-  Widget _buildLandscape() {
+  Widget _buildLandscape(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: content,
+          child: Scrollbar(
+            trackVisibility: true,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 38),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  title,
+                  style: context.textTheme.displayMedium,
+                  textAlign: TextAlign.start,
+                ),
               ),
-              if (showInput) const SizedBox(height: 16),
-              if (showInput) _buildPinField(),
-            ],
+            ),
           ),
         ),
         if (showInput)
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: PinKeyboard(
-                onKeyPressed: onKeyPressed,
-                onBackspacePressed: onBackspacePressed,
-              ),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _buildPinField(),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: PinKeyboard(
+                      onKeyPressed: onKeyPressed,
+                      onBackspacePressed: onBackspacePressed,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
       ],

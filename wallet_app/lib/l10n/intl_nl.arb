@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-03-05T15:32:22+01:00",
+    "@@last_modified": "2024-03-06T14:30:50+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -289,7 +289,7 @@
         }
     },
     "disclosureConfirmPinPageErrorTitle": "Ongeldige pincode",
-    "disclosureConfirmPinPageTitle": "Vul je pincode in",
+    "disclosureConfirmPinPageTitle": "Gegevens versturen met je pincode",
     "disclosureGenericErrorPageCloseCta": "Stoppen",
     "disclosureGenericErrorPageDescription": "Er ging iets mis. Probeer het later opnieuw.",
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
@@ -926,7 +926,7 @@
     "pinScreenErrorHeader": "Ongeldige pincode",
     "pinScreenFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app geblokkeerd.",
     "pinScreenForgotPinCta": "Pincode vergeten?",
-    "pinScreenHeader": "Vul je pincode in",
+    "pinScreenHeader": "Open met je pincode",
     "pinScreenTitle": "Inloggen",
     "pinTimeoutScreenForgotPinCta": "Pincode vergeten?",
     "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",

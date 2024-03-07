@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
@@ -20,50 +22,53 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: CustomScrollView(
-          slivers: [
-            const SliverSizedBox(height: 36),
-            SliverToBoxAdapter(
-              child: ExcludeSemantics(
-                child: Image.asset(
-                  WalletAssets.illustration_digid_failure,
-                  fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
-                  height: context.isLandscape ? 160 : null,
-                  width: double.infinity,
+    return SafeArea(
+      bottom: false, //handled by _buildBottomSection
+      child: Scrollbar(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: CustomScrollView(
+            slivers: [
+              const SliverSizedBox(height: 36),
+              SliverToBoxAdapter(
+                child: ExcludeSemantics(
+                  child: Image.asset(
+                    WalletAssets.illustration_digid_failure,
+                    fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
+                    height: context.isLandscape ? 160 : null,
+                    width: double.infinity,
+                  ),
                 ),
               ),
-            ),
-            const SliverSizedBox(height: 24),
-            SliverToBoxAdapter(
-              child: MergeSemantics(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.start,
-                      style: context.textTheme.displaySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      textAlign: TextAlign.start,
-                      style: context.textTheme.bodyLarge,
-                    ),
-                  ],
+              const SliverSizedBox(height: 24),
+              SliverToBoxAdapter(
+                child: MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        textAlign: TextAlign.start,
+                        style: context.textTheme.displaySmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        description,
+                        textAlign: TextAlign.start,
+                        style: context.textTheme.bodyLarge,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SliverSizedBox(height: 32),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              fillOverscroll: true,
-              child: _buildBottomSection(context),
-            ),
-          ],
+              const SliverSizedBox(height: 32),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                fillOverscroll: true,
+                child: _buildBottomSection(context),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -98,7 +103,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 24),
+        SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
       ],
     );
   }

@@ -28,7 +28,7 @@ void main() {
     testWidgets('should display a backspace key', (WidgetTester tester) async {
       await tester.pumpWidget(const WalletAppTestWidget(child: PinKeyboard()));
 
-      expect(find.byIcon(Icons.backspace), findsOneWidget);
+      expect(find.byIcon(Icons.keyboard_backspace_rounded), findsOneWidget);
     });
 
     testWidgets('should meet text contrast guidelines', (WidgetTester tester) async {
@@ -60,7 +60,7 @@ void main() {
       );
 
       await tester.pumpWidget(WalletAppTestWidget(child: pinKeyboard));
-      final widgetFinder = find.byIcon(Icons.backspace);
+      final widgetFinder = find.byIcon(Icons.keyboard_backspace_rounded);
       await tester.tap(widgetFinder);
 
       expect(onBackspaceWasPressed, isTrue);

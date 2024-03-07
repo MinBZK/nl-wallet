@@ -31,20 +31,7 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
       child: PinPage(
         key: const Key('personalizeConfirmPinPage'),
         headerBuilder: (context, attempts, isFinalAttempt) {
-          final hasError = attempts != null;
-          final String title, description;
-          if (!hasError) {
-            title = context.l10n.walletPersonalizeConfirmPinPageTitle;
-            description = context.l10n.walletPersonalizeConfirmPinPageDescription;
-          } else {
-            title = context.l10n.walletPersonalizeConfirmPinPageErrorTitle;
-            description = context.l10n.walletPersonalizeConfirmPinPageErrorDescription(attempts);
-          }
-          return PinHeader(
-            hasError: hasError,
-            title: title,
-            description: description,
-          );
+          return PinHeader(title: context.l10n.walletPersonalizeConfirmPinPageTitle);
         },
         onPinValidated: onPidAccepted,
         onPinError: onAcceptPidFailed,

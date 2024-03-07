@@ -37,13 +37,15 @@ class LegacyTerminalPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildScrollableSection(context),
-        const SizedBox(height: 16),
-        _buildBottomSection(context),
-      ],
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildScrollableSection(context),
+          const SizedBox(height: 16),
+          _buildBottomSection(context),
+        ],
+      ),
     );
   }
 

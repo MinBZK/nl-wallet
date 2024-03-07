@@ -20,40 +20,42 @@ class PinBlockedScreen extends StatelessWidget {
         title: Text(context.l10n.pinBlockedScreenTitle),
         automaticallyImplyLeading: false,
       ),
-      body: PrimaryScrollController(
-        controller: ScrollController(),
-        child: Scrollbar(
-          thumbVisibility: true,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: CustomScrollView(
-              slivers: [
-                const SliverSizedBox(height: 24),
-                SliverToBoxAdapter(
-                  child: Image.asset(
-                    WalletAssets.illustration_pin_timeout,
-                    width: double.infinity,
-                    fit: BoxFit.fitWidth,
+      body: SafeArea(
+        child: PrimaryScrollController(
+          controller: ScrollController(),
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: CustomScrollView(
+                slivers: [
+                  const SliverSizedBox(height: 24),
+                  SliverToBoxAdapter(
+                    child: Image.asset(
+                      WalletAssets.illustration_pin_timeout,
+                      width: double.infinity,
+                      fit: BoxFit.fitWidth,
+                    ),
                   ),
-                ),
-                const SliverSizedBox(height: 24),
-                SliverToBoxAdapter(
-                  child: Text(
-                    context.l10n.pinBlockedScreenHeadline,
-                    textAlign: TextAlign.start,
-                    style: context.textTheme.displayMedium,
+                  const SliverSizedBox(height: 24),
+                  SliverToBoxAdapter(
+                    child: Text(
+                      context.l10n.pinBlockedScreenHeadline,
+                      textAlign: TextAlign.start,
+                      style: context.textTheme.displayMedium,
+                    ),
                   ),
-                ),
-                const SliverSizedBox(height: 8),
-                SliverToBoxAdapter(
-                  child: Text(context.l10n.pinBlockedScreenDescription),
-                ),
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  fillOverscroll: true,
-                  child: _buildBottomSection(context),
-                )
-              ],
+                  const SliverSizedBox(height: 8),
+                  SliverToBoxAdapter(
+                    child: Text(context.l10n.pinBlockedScreenDescription),
+                  ),
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    fillOverscroll: true,
+                    child: _buildBottomSection(context),
+                  )
+                ],
+              ),
             ),
           ),
         ),

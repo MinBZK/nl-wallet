@@ -74,9 +74,7 @@ class DisclosureScreen extends StatelessWidget {
               _stopDisclosure(context);
             }
           },
-          child: SafeArea(
-            child: _buildPage(),
-          ),
+          child: _buildPage(),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
@@ -88,39 +90,43 @@ class ErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      thumbVisibility: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: CustomScrollView(
-          slivers: [
-            const SliverSizedBox(height: 24),
-            SliverToBoxAdapter(
-              child: Text(
-                headline,
-                textAlign: TextAlign.start,
-                style: context.textTheme.displayMedium,
+    return SafeArea(
+      bottom: false, // handled by _buildBottomSection
+      child: Scrollbar(
+        thumbVisibility: true,
+        trackVisibility: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: CustomScrollView(
+            slivers: [
+              const SliverSizedBox(height: 24),
+              SliverToBoxAdapter(
+                child: Text(
+                  headline,
+                  textAlign: TextAlign.start,
+                  style: context.textTheme.displayMedium,
+                ),
               ),
-            ),
-            const SliverSizedBox(height: 8),
-            SliverToBoxAdapter(
-              child: Text(
-                description,
-                textAlign: TextAlign.start,
-                style: context.textTheme.bodyLarge,
+              const SliverSizedBox(height: 8),
+              SliverToBoxAdapter(
+                child: Text(
+                  description,
+                  textAlign: TextAlign.start,
+                  style: context.textTheme.bodyLarge,
+                ),
               ),
-            ),
-            const SliverSizedBox(height: 24),
-            SliverToBoxAdapter(
-              child: _buildIllustration(),
-            ),
-            const SliverSizedBox(height: 24),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              fillOverscroll: true,
-              child: _buildBottomSection(context),
-            ),
-          ],
+              const SliverSizedBox(height: 24),
+              SliverToBoxAdapter(
+                child: _buildIllustration(),
+              ),
+              const SliverSizedBox(height: 24),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                fillOverscroll: true,
+                child: _buildBottomSection(context),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -160,7 +166,7 @@ class ErrorPage extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 24),
+        SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
       ],
     );
   }

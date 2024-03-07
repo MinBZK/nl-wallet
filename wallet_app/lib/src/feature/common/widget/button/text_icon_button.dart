@@ -5,6 +5,7 @@ class TextIconButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconPosition iconPosition;
   final IconData icon;
+  final Alignment contentAlignment;
 
   /// Centers [child] inside full width of the [TextIconButton] widget.
   final bool centerChild;
@@ -15,6 +16,7 @@ class TextIconButton extends StatelessWidget {
     this.icon = Icons.arrow_forward,
     this.iconPosition = IconPosition.end,
     this.centerChild = true,
+    this.contentAlignment = Alignment.center,
     super.key,
   });
 
@@ -30,9 +32,12 @@ class TextIconButton extends StatelessWidget {
       onPressed: onPressed,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: iconPosition == IconPosition.end ? children : children.reversed.toList(),
+        child: Align(
+          alignment: contentAlignment,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: iconPosition == IconPosition.end ? children : children.reversed.toList(),
+          ),
         ),
       ),
     );

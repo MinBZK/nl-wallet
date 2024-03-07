@@ -43,7 +43,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('DisclosureConfirmPinPage renders the correct title & subtitle', (tester) async {
+    testWidgets('DisclosureConfirmPinPage renders the correct title', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidget(
         WalletAppTestWidget(
@@ -57,11 +57,9 @@ void main() {
 
       // Setup finders
       final titleFinder = find.text(l10n.disclosureConfirmPinPageTitle);
-      final descriptionFinder = find.text(l10n.disclosureConfirmPinPageDescription);
 
       // Verify all expected widgets show up once
       expect(titleFinder, findsOneWidget);
-      expect(descriptionFinder, findsOneWidget);
     });
   });
 }

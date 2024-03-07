@@ -44,32 +44,34 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      thumbVisibility: true,
-      trackVisibility: true,
-      child: CustomScrollView(
-        restorationId: 'confirm_data_attributes_scrollview',
-        slivers: <Widget>[
-          const SliverSizedBox(height: 8),
-          SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverDivider(height: 1),
-          SliverToBoxAdapter(child: _buildReasonSection(context)),
-          const SliverDivider(height: 1),
-          const SliverSizedBox(height: 32),
-          SliverToBoxAdapter(child: _buildCardsSectionHeader(context)),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            sliver: _buildSharedAttributeCardsSliver(),
-          ),
-          const SliverSizedBox(height: 8),
-          const SliverDivider(height: 1),
-          SliverToBoxAdapter(child: _buildPrivacySection(context)),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            fillOverscroll: true,
-            child: _buildBottomSection(context),
-          ),
-        ],
+    return SafeArea(
+      child: Scrollbar(
+        thumbVisibility: true,
+        trackVisibility: true,
+        child: CustomScrollView(
+          restorationId: 'confirm_data_attributes_scrollview',
+          slivers: <Widget>[
+            const SliverSizedBox(height: 8),
+            SliverToBoxAdapter(child: _buildHeaderSection(context)),
+            const SliverDivider(height: 1),
+            SliverToBoxAdapter(child: _buildReasonSection(context)),
+            const SliverDivider(height: 1),
+            const SliverSizedBox(height: 32),
+            SliverToBoxAdapter(child: _buildCardsSectionHeader(context)),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              sliver: _buildSharedAttributeCardsSliver(),
+            ),
+            const SliverSizedBox(height: 8),
+            const SliverDivider(height: 1),
+            SliverToBoxAdapter(child: _buildPrivacySection(context)),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: _buildBottomSection(context),
+            ),
+          ],
+        ),
       ),
     );
   }

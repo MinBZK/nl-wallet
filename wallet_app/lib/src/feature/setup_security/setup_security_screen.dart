@@ -10,7 +10,6 @@ import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
-import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_screen.dart';
@@ -69,14 +68,23 @@ class SetupSecurityScreen extends StatelessWidget {
         if (state is SetupSecurityNetworkError) {
           ErrorScreen.showNetwork(context, title: errorScreenTitle, networkError: tryCast(state), secured: false);
         }
+        if (state is SetupSecuritySelectPinFailed) {
+          _showErrorDialog(context, state.reason).then((_) => context.bloc.add(PinBackspacePressed()));
+        }
+        if (state is SetupSecurityPinConfirmationFailed) {
+          _showConfirmationErrorDialog(context, state.retryAllowed).then((_) {
+            context.bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
+          });
+        }
         _runAnnouncements(context, state);
       },
       builder: (context, state) {
         Widget result = switch (state) {
-          SetupSecuritySelectPinInProgress() => _buildSelectPinPage(context, state),
-          SetupSecuritySelectPinFailed() => _buildSelectPinErrorPage(context, state),
-          SetupSecurityPinConfirmationInProgress() => _buildPinConfirmationPage(context, state),
-          SetupSecurityPinConfirmationFailed() => _buildPinConfirmationErrorPage(context, state),
+          SetupSecuritySelectPinInProgress() => _buildSelectPinPage(context, enteredDigits: state.enteredDigits),
+          SetupSecuritySelectPinFailed() => _buildSelectPinPage(context, enteredDigits: kPinDigits),
+          SetupSecurityPinConfirmationInProgress() =>
+            _buildPinConfirmationPage(context, enteredDigits: state.enteredDigits),
+          SetupSecurityPinConfirmationFailed() => _buildPinConfirmationPage(context, enteredDigits: kPinDigits),
           SetupSecurityCreatingWallet() => _buildCreatingWallet(context, state),
           SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
           SetupSecurityGenericError() => _buildSetupFailed(context),
@@ -139,122 +147,23 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSelectPinPage(BuildContext context, SetupSecuritySelectPinInProgress state) {
+  Widget _buildSelectPinPage(BuildContext context, {required int enteredDigits}) {
     return SetupSecurityPinPage(
       key: _kSelectPinScreenKey,
-      content: Text(
-        context.l10n.setupSecuritySelectPinPageTitle,
-        style: context.textTheme.displaySmall,
-        textAlign: TextAlign.center,
-      ),
-      enteredDigits: state.enteredDigits,
+      title: context.l10n.setupSecuritySelectPinPageTitle,
+      enteredDigits: enteredDigits,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
       onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
     );
   }
 
-  Widget _buildSelectPinErrorPage(BuildContext context, SetupSecuritySelectPinFailed state) {
-    String errorTitle = context.l10n.setupSecuritySelectPinErrorPageTitle;
-    String errorDescription;
-    switch (state.reason) {
-      case PinValidationError.tooFewUniqueDigits:
-        errorDescription = context.l10n.setupSecuritySelectPinErrorPageTooFewUniqueDigitsError;
-        break;
-      case PinValidationError.sequentialDigits:
-        errorDescription = context.l10n.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError;
-        break;
-      default:
-        errorDescription = context.l10n.setupSecuritySelectPinErrorPageDefaultError;
-    }
-    return SetupSecurityPinPage(
-      key: _kSelectPinScreenKey,
-      content: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          children: [
-            Text(
-              errorTitle,
-              style: context.textTheme.displaySmall?.copyWith(color: context.colorScheme.error),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              errorDescription,
-              style: context.textTheme.bodyLarge?.copyWith(color: context.colorScheme.error),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-      enteredDigits: 0,
-      onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
-      onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
-      isShowingError: true,
-    );
-  }
-
-  Widget _buildPinConfirmationPage(BuildContext context, SetupSecurityPinConfirmationInProgress state) {
+  Widget _buildPinConfirmationPage(BuildContext context, {required int enteredDigits}) {
     return SetupSecurityPinPage(
       key: _kConfirmPinScreenKey,
-      content: Text(
-        context.l10n.setupSecurityConfirmationPageTitle,
-        style: context.textTheme.displaySmall,
-        textAlign: TextAlign.center,
-      ),
-      enteredDigits: state.enteredDigits,
+      title: context.l10n.setupSecurityConfirmationPageTitle,
+      enteredDigits: enteredDigits,
       onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
       onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
-    );
-  }
-
-  Widget _buildPinConfirmationErrorPage(BuildContext context, SetupSecurityPinConfirmationFailed state) {
-    final titleStyle = context.textTheme.displaySmall?.copyWith(color: context.colorScheme.error);
-    final descriptionStyle = context.textTheme.bodyLarge?.copyWith(color: context.colorScheme.error);
-    Widget content;
-    if (state.retryAllowed) {
-      content = Column(
-        children: [
-          Text(
-            context.l10n.setupSecurityConfirmationErrorPageTitle,
-            style: titleStyle,
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            context.l10n.setupSecurityConfirmationErrorPageDescription,
-            style: descriptionStyle,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      );
-    } else {
-      content = Column(
-        children: [
-          Text(
-            context.l10n.setupSecurityConfirmationErrorPageFatalTitle,
-            style: titleStyle,
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            context.l10n.setupSecurityConfirmationErrorPageFatalDescription,
-            style: descriptionStyle,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          TextIconButton(
-            key: const Key('setupSecurityConfirmationErrorPageFatalCta'),
-            child: Text(context.l10n.setupSecurityConfirmationErrorPageFatalCta),
-            onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityBackPressed()),
-          ),
-        ],
-      );
-    }
-    return SetupSecurityPinPage(
-      key: _kConfirmPinScreenKey,
-      showInput: state.retryAllowed,
-      content: content,
-      enteredDigits: 0,
-      onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
-      onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
-      isShowingError: true,
     );
   }
 
@@ -300,6 +209,77 @@ class SetupSecurityScreen extends StatelessWidget {
     SemanticsService.announce(
       context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
       TextDirection.ltr,
+    );
+  }
+
+  Future<void> _showErrorDialog(BuildContext context, PinValidationError reason) async {
+    final title = switch (reason) {
+      PinValidationError.tooFewUniqueDigits => context.l10n.setupSecuritySelectPinErrorPageTitle,
+      PinValidationError.sequentialDigits => context.l10n.setupSecuritySelectPinErrorPageTitle,
+      PinValidationError.other => context.l10n.setupSecuritySelectPinErrorPageTitle,
+    };
+    final body = switch (reason) {
+      PinValidationError.tooFewUniqueDigits => context.l10n.setupSecuritySelectPinErrorPageTooFewUniqueDigitsError,
+      PinValidationError.sequentialDigits =>
+        context.l10n.setupSecuritySelectPinErrorPageAscendingOrDescendingDigitsError,
+      PinValidationError.other => context.l10n.setupSecuritySelectPinErrorPageDefaultError,
+    };
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(title, style: context.textTheme.displayMedium),
+          content: SingleChildScrollView(
+            child: Text(body, style: context.textTheme.bodyLarge),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(context.l10n.generalOkCta),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showConfirmationErrorDialog(BuildContext context, bool retryAllowed) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: retryAllowed,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            retryAllowed
+                ? context.l10n.setupSecurityConfirmationErrorPageTitle
+                : context.l10n.setupSecurityConfirmationErrorPageFatalTitle,
+            style: context.textTheme.displayMedium,
+          ),
+          content: SingleChildScrollView(
+            child: Text(
+              retryAllowed
+                  ? context.l10n.setupSecurityConfirmationErrorPageDescription
+                  : context.l10n.setupSecurityConfirmationErrorPageFatalDescription,
+              style: context.textTheme.bodyLarge,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                retryAllowed ? context.l10n.generalOkCta : context.l10n.setupSecurityConfirmationErrorPageFatalCta,
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -41,7 +41,7 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('WalletPersonalizeConfirmPinPage renders the correct title & subtitle', (tester) async {
+    testWidgets('WalletPersonalizeConfirmPinPage renders the correct title', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
       await tester.pumpWidget(
         WalletAppTestWidget(
@@ -55,11 +55,9 @@ void main() {
 
       // Setup finders
       final titleFinder = find.text(l10n.walletPersonalizeConfirmPinPageTitle);
-      final descriptionFinder = find.text(l10n.walletPersonalizeConfirmPinPageDescription);
 
       // Verify all expected widgets show up once
       expect(titleFinder, findsOneWidget);
-      expect(descriptionFinder, findsOneWidget);
     });
   });
 }
