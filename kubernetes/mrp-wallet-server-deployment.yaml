@@ -77,4 +77,4 @@ spec:
       volumes:
         - name: config-volume
           secret:
-            secretName: nl-mrp-wallet-server-secrets
+            secretName: nl-mrp-wallet-server-config
