@@ -1,3 +1,4 @@
+.env
 /pid_issuer.toml
 /wallet.toml
 /wallet_provider.toml
