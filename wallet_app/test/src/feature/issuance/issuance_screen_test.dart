@@ -4,23 +4,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/multiple_cards_flow.dart';
-import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
+import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
+import '../../mocks/wallet_mocks.mocks.dart';
 import '../../util/device_utils.dart';
 import '../../util/test_utils.dart';
 import '../pin/pin_page_test.dart';
 
 class MockIssuanceBloc extends MockBloc<IssuanceEvent, IssuanceState> implements IssuanceBloc {}
-
-class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
-  @override
-  Future<CheckPinResult> invoke(String pin) => throw UnimplementedError();
-}
 
 void main() {
   MultipleCardsFlow mockMultipleCardsFlow = MultipleCardsFlow(
@@ -105,8 +101,8 @@ void main() {
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
-            widget: RepositoryProvider<ConfirmTransactionUseCase>.value(
-              value: MockConfirmTransactionUseCase(),
+            widget: RepositoryProvider<AcceptIssuanceUseCase>.value(
+              value: MockAcceptIssuanceUseCase(),
               child: const IssuanceScreen()
                   .withState<IssuanceBloc, IssuanceState>(
                     MockIssuanceBloc(),

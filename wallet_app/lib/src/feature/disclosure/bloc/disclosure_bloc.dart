@@ -172,7 +172,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   void _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
     try {
-      // await _cancelDisclosureUseCase.invoke(); //TODO: Decide which errors require cancellation
+      await _cancelDisclosureUseCase.invoke();
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
     } finally {

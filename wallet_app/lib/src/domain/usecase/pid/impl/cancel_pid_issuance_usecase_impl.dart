@@ -15,7 +15,7 @@ class CancelPidIssuanceUseCaseImpl implements CancelPidIssuanceUseCase {
     if (hasActiveSession) {
       await _pidRepository.cancelPidIssuance();
     } else {
-      Fimber.e('No active pid issuance session to cancel!');
+      Fimber.e('No active pid issuance session to cancel');
     }
   }
 }

@@ -11,8 +11,6 @@ class RequestPolicyMapper extends Mapper<RequestPolicy, Policy> {
         storageDuration:
             input.dataStorageDurationInMinutes == null ? null : Duration(minutes: input.dataStorageDurationInMinutes!),
         dataIsShared: input.dataSharedWithThirdParties,
-        dataIsSignature: false,
-        dataContainsSingleViewProfilePhoto: false,
         deletionCanBeRequested: input.dataDeletionPossible,
         privacyPolicyUrl: input.policyUrl,
       );

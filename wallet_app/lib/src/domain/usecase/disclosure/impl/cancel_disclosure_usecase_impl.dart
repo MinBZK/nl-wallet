@@ -14,7 +14,7 @@ class CancelDisclosureUseCaseImpl extends CancelDisclosureUseCase {
     if (hasActiveSession) {
       await _disclosureRepository.cancelDisclosure();
     } else {
-      Fimber.e('No active disclosure session to cancel!');
+      Fimber.e('No active disclosure session to cancel');
     }
   }
 }

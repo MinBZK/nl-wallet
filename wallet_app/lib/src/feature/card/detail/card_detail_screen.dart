@@ -2,13 +2,11 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../data/service/navigation_service.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
 import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
-import '../../../domain/usecase/card/get_wallet_card_update_request_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -284,18 +282,8 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Temporary async logic inside [CardDetailScreen] class;
-  /// This async flow isn't designed (happy & unhappy paths); it's to do for after demo day.
   void _onCardUpdatePressed(BuildContext context, WalletCard card) {
-    GetWalletCardUpdateRequestUseCase useCase = context.read();
-    useCase.invoke(card).then((navRequest) {
-      if (navRequest != null) {
-        NavigationService service = context.read();
-        service.handleNavigationRequest(navRequest);
-      } else {
-        _showNoUpdateAvailableSheet(context);
-      }
-    });
+    _showNoUpdateAvailableSheet(context);
   }
 
   void _onCardDeletePressed(BuildContext context) {

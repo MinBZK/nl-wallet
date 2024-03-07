@@ -4,7 +4,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/domain/usecase/pin/confirm_transaction_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/sign/bloc/sign_bloc.dart';
@@ -18,11 +17,6 @@ import '../../util/test_utils.dart';
 import '../pin/pin_page_test.dart';
 
 class MockSignBloc extends MockBloc<SignEvent, SignState> implements SignBloc {}
-
-class MockConfirmTransactionUseCase implements ConfirmTransactionUseCase {
-  @override
-  Future<CheckPinResult> invoke(String pin) => throw UnimplementedError();
-}
 
 void main() {
   group('goldens', () {

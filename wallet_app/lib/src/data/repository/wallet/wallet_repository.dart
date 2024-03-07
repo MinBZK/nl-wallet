@@ -1,7 +1,5 @@
 import 'package:wallet_core/core.dart';
 
-import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
-
 abstract class WalletRepository {
   /// Stream that indicates whether the wallet is currently locked,
   /// meaning the pin should be provided to interact with the wallet.
@@ -26,9 +24,6 @@ abstract class WalletRepository {
 
   /// Lock the wallet, updates [isLockedStream]
   Future<void> lockWallet();
-
-  /// Confirm a transaction
-  Future<CheckPinResult> confirmTransaction(String pin);
 
   /// Check if the wallet contains the PID card
   Future<bool> containsPid();

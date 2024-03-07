@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wallet_mock/mock.dart';
@@ -198,9 +201,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
     }
   }
 
-  /// Initiate the mock digid login and notify the bloc about the result
-  /// FIXME: The wallet_app is still quite aware of the mock here, room for improvement.
+  /// Initiate the mock digid login and notify the BLoC about the result.
+  ///
+  /// Since this is only used for the mock builds, and the flow itself differs quite
+  /// a bit from the final flow (which opens an external link and deep links back into
+  /// the app) we take some shortcuts with knowledge about the mock here to continue
+  /// to the next step of the personalization flow.
   Future<void> _performMockDigidLogin(BuildContext context) async {
+    assert(Environment.mockRepositories, 'This flow is only intended for mock builds');
     final bloc = context.bloc;
     final walletCore = context.read<TypedWalletCore>();
     final Mapper<CardAttributeWithDocType, DataAttribute> attributeMapper = context.read();
@@ -209,7 +217,6 @@ class WalletPersonalizeScreen extends StatelessWidget {
     final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
     await Future.delayed(kDefaultMockDelay);
     if (loginSucceeded) {
-      // FIXME: Still taking some shortcuts here that require knowledge about the mock
       final cards = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
       final mockPidCardAttributes =
           cards.map((card) => card.attributes.map((e) => CardAttributeWithDocType(card.docType, e))).flattened.toList();
@@ -276,8 +283,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  ///FIXME: Temporary solution to make sure the user doesn't accidentally cancel the creation flow but can still exit.
   void _showExitSheet(BuildContext context) async {
+    assert(Platform.isAndroid, 'This should only be reachable through the back button on Android');
     final confirmed = await ConfirmActionSheet.show(
       context,
       title: context.l10n.walletPersonalizeScreenExitSheetTitle,
@@ -286,7 +293,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
       confirmButtonText: context.l10n.walletPersonalizeScreenExitSheetConfirmCta,
       confirmButtonColor: context.colorScheme.error,
     );
-    if (confirmed && context.mounted) Navigator.pop(context);
+    if (confirmed && context.mounted) {
+      if (Platform.isAndroid) {
+        SystemNavigator.pop();
+      } else {
+        // If we somehow reach this state on non-android platforms, kill the app the hard way
+        exit(0);
+      }
+    }
   }
 
   Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {

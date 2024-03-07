@@ -53,9 +53,9 @@ void main() {
       },
     );
 
-    // FIXME: The max 50 char limit is not enforced in code. It's simply
-    // FIXME: the maximum length we are currently using to verify the UI
-    // FIXME: and is thus the max length we currently guarantee to support.
+    /// The max 50 char limit is not enforced in code. It's simply
+    /// the maximum length we are currently using to verify the UI
+    /// and is thus the max length we currently guarantee to support.
     testGoldens(
       'Card scales vertically with content',
       (tester) async {
