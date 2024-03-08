@@ -12,6 +12,7 @@ import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import 'src/mocks/wallet_mock_data.dart';
 import 'src/mocks/wallet_mocks.dart';
@@ -51,6 +52,7 @@ void _setupMockitoDummies() {
     {},
     WalletMockData.policy,
   ));
+  provideDummy<CoreError>(const CoreGenericError('dummy'));
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has
