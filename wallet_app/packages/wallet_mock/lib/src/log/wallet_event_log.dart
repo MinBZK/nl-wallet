@@ -39,11 +39,12 @@ class WalletEventLog {
       requestPolicy: disclosure.map(
         request: (request) => request.policy,
         requestAttributesMissing: (requestAttributesMissing) {
-          // FIXME: Make nullable or resolve from RequestedAttributesMissing model
+          /// We invent a policy here, mainly because it's only for the mock and not used in the current setup.
+          final relyingParty = requestAttributesMissing.relyingParty;
           return RequestPolicy(
             dataSharedWithThirdParties: false,
             dataDeletionPossible: false,
-            policyUrl: 'https://example.org',
+            policyUrl: relyingParty.privacyPolicyUrl ?? relyingParty.webUrl ?? '',
           );
         },
       ),
