@@ -50,36 +50,38 @@ class OrganizationApprovePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      child: CustomScrollView(
-        restorationId: 'approve_organization_scrollview',
-        slivers: <Widget>[
-          const SliverSizedBox(height: 16),
-          SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverSizedBox(height: 32),
-          SliverToBoxAdapter(
-            child: LinkTileButton(
-              child: Text(context.l10n.organizationApprovePageMoreInfoCta),
-              onPressed: () => _openOrganizationDetails(context),
-            ),
-          ),
-          const SliverSizedBox(height: 32),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            fillOverscroll: true,
-            child: Container(
-              alignment: Alignment.bottomCenter,
-              child: ConfirmButtons(
-                forceVertical: true,
-                onPrimaryPressed: onAcceptPressed,
-                primaryIcon: Icons.arrow_forward,
-                primaryText: _approveButtonText(context),
-                onSecondaryPressed: onDeclinePressed,
-                secondaryText: _declineButtonText(context),
+    return SafeArea(
+      child: Scrollbar(
+        child: CustomScrollView(
+          restorationId: 'approve_organization_scrollview',
+          slivers: <Widget>[
+            const SliverSizedBox(height: 16),
+            SliverToBoxAdapter(child: _buildHeaderSection(context)),
+            const SliverSizedBox(height: 32),
+            SliverToBoxAdapter(
+              child: LinkTileButton(
+                child: Text(context.l10n.organizationApprovePageMoreInfoCta),
+                onPressed: () => _openOrganizationDetails(context),
               ),
             ),
-          ),
-        ],
+            const SliverSizedBox(height: 32),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: Container(
+                alignment: Alignment.bottomCenter,
+                child: ConfirmButtons(
+                  forceVertical: true,
+                  onPrimaryPressed: onAcceptPressed,
+                  primaryIcon: Icons.arrow_forward,
+                  primaryText: _approveButtonText(context),
+                  onSecondaryPressed: onDeclinePressed,
+                  secondaryText: _declineButtonText(context),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

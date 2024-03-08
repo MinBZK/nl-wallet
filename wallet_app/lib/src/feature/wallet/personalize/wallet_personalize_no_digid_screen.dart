@@ -28,13 +28,17 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
                 )
               ],
             ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Text(
-                  context.l10n.walletPersonalizeNoDigidPageDescription,
-                  textAlign: TextAlign.start,
-                  style: context.textTheme.bodyLarge,
+            SliverSafeArea(
+              top: false,
+              bottom: false,
+              sliver: SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Text(
+                    context.l10n.walletPersonalizeNoDigidPageDescription,
+                    textAlign: TextAlign.start,
+                    style: context.textTheme.bodyLarge,
+                  ),
                 ),
               ),
             ),
@@ -50,27 +54,33 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
+    final verticalPadding = context.isLandscape ? 8.0 : 24.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Divider(height: 1),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
-          child: Column(
-            children: [
-              PrimaryButton(
-                key: const Key('applyForDigidCta'),
-                onPressed: () => _openRequestDigidUrl(),
-                text: context.l10n.walletPersonalizeNoDigidPageRequestDigidCta,
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                onPressed: () => Navigator.maybePop(context),
-                text: context.l10n.generalBottomBackCta,
-                icon: Icons.arrow_back,
-              ),
-            ],
+        const Divider(),
+        SafeArea(
+          top: false,
+          minimum: EdgeInsets.only(bottom: verticalPadding),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                SizedBox(height: verticalPadding),
+                PrimaryButton(
+                  key: const Key('applyForDigidCta'),
+                  onPressed: () => _openRequestDigidUrl(),
+                  text: context.l10n.walletPersonalizeNoDigidPageRequestDigidCta,
+                ),
+                const SizedBox(height: 12),
+                SecondaryButton(
+                  onPressed: () => Navigator.maybePop(context),
+                  text: context.l10n.generalBottomBackCta,
+                  icon: Icons.arrow_back,
+                ),
+              ],
+            ),
           ),
         ),
       ],

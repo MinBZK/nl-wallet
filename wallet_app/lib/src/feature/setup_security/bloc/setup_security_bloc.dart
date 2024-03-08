@@ -65,7 +65,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
         emit(const SetupSecurityPinConfirmationInProgress(0));
       } catch (error) {
         _newPin = '';
-        emit(SetupSecuritySelectPinFailed(reason: tryCast<PinValidationError>(error)));
+        emit(SetupSecuritySelectPinFailed(reason: tryCast<PinValidationError>(error) ?? PinValidationError.other));
       }
     } else {
       emit(SetupSecuritySelectPinInProgress(_newPin.length));

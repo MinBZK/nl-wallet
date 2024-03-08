@@ -16,57 +16,62 @@ class PinKeyboard extends StatelessWidget {
   final Function(int)? onKeyPressed;
   final VoidCallback? onBackspacePressed;
 
+  /// The color used to draw the digits and backspace icon, defaults to [ColorScheme.onBackground]
+  final Color? color;
+
   const PinKeyboard({
     this.onKeyPressed,
     this.onBackspacePressed,
+    this.color,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
+    final keyColor = color ?? context.colorScheme.onBackground;
     return KeyboardListener(
       focusNode: _keyboardFocusNode,
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: _maxKeyboardHeight(context)),
-        child: SafeArea(
-          key: const Key('pinKeyboard'),
-          child: DefaultTextStyle(
-            style: context.textTheme.displayMedium!,
-            child: Column(
-              children: [
-                KeyboardRow(
-                  children: [
-                    KeyboardDigitKey(digit: 1, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#1')),
-                    KeyboardDigitKey(digit: 2, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#2')),
-                    KeyboardDigitKey(digit: 3, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#3')),
-                  ],
-                ),
-                KeyboardRow(
-                  children: [
-                    KeyboardDigitKey(digit: 4, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#4')),
-                    KeyboardDigitKey(digit: 5, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#5')),
-                    KeyboardDigitKey(digit: 6, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#6')),
-                  ],
-                ),
-                KeyboardRow(
-                  children: [
-                    KeyboardDigitKey(digit: 7, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#7')),
-                    KeyboardDigitKey(digit: 8, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#8')),
-                    KeyboardDigitKey(digit: 9, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#9')),
-                  ],
-                ),
-                KeyboardRow(
-                  children: [
-                    const Spacer(),
-                    KeyboardDigitKey(digit: 0, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#0')),
-                    KeyboardBackspaceKey(
-                        onBackspacePressed: onBackspacePressed, key: const Key('keyboardKeyBackspace')),
-                  ],
-                )
-              ],
-            ),
+        child: DefaultTextStyle(
+          style: context.textTheme.displayMedium!.copyWith(color: keyColor),
+          child: Column(
+            children: [
+              KeyboardRow(
+                children: [
+                  KeyboardDigitKey(digit: 1, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#1')),
+                  KeyboardDigitKey(digit: 2, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#2')),
+                  KeyboardDigitKey(digit: 3, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#3')),
+                ],
+              ),
+              KeyboardRow(
+                children: [
+                  KeyboardDigitKey(digit: 4, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#4')),
+                  KeyboardDigitKey(digit: 5, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#5')),
+                  KeyboardDigitKey(digit: 6, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#6')),
+                ],
+              ),
+              KeyboardRow(
+                children: [
+                  KeyboardDigitKey(digit: 7, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#7')),
+                  KeyboardDigitKey(digit: 8, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#8')),
+                  KeyboardDigitKey(digit: 9, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#9')),
+                ],
+              ),
+              KeyboardRow(
+                children: [
+                  const Spacer(),
+                  KeyboardDigitKey(digit: 0, onKeyPressed: onKeyPressed, key: const Key('keyboardDigitKey#0')),
+                  KeyboardBackspaceKey(
+                    color: keyColor,
+                    onBackspacePressed: onBackspacePressed,
+                    key: const Key('keyboardKeyBackspace'),
+                  ),
+                ],
+              )
+            ],
           ),
         ),
       ),

@@ -7,12 +7,14 @@ import '../../common/page/terminal_page.dart';
 class DisclosureSuccessPage extends StatelessWidget {
   final LocalizedText organizationDisplayName;
   final VoidCallback? onHistoryPressed;
-  final VoidCallback onClosePressed;
+  final VoidCallback onPrimaryPressed;
+  final String? primaryButtonCta;
 
   const DisclosureSuccessPage({
     required this.organizationDisplayName,
-    required this.onClosePressed,
+    required this.onPrimaryPressed,
     this.onHistoryPressed,
+    this.primaryButtonCta,
     super.key,
   });
 
@@ -21,8 +23,8 @@ class DisclosureSuccessPage extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.disclosureSuccessPageTitle,
       description: context.l10n.disclosureSuccessPageDescription(organizationDisplayName.l10nValue(context)),
-      primaryButtonCta: context.l10n.disclosureSuccessPageCloseCta,
-      onPrimaryPressed: onClosePressed,
+      primaryButtonCta: primaryButtonCta ?? context.l10n.disclosureSuccessPageCloseCta,
+      onPrimaryPressed: onPrimaryPressed,
       secondaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,
       onSecondaryButtonPressed: onHistoryPressed,
     );

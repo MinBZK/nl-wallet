@@ -17,12 +17,12 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('personalizeDataIncorrectScreen'),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: Scrollbar(
-                thumbVisibility: true,
+      body: Column(
+        children: [
+          Expanded(
+            child: Scrollbar(
+              thumbVisibility: true,
+              child: SafeArea(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(
@@ -36,9 +36,10 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
                 ),
               ),
             ),
-            _buildBottomSection(context),
-          ],
-        ),
+          ),
+          const Divider(height: 1),
+          _buildBottomSection(context),
+        ],
       ),
     );
   }
@@ -78,27 +79,29 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    return Column(
-      children: [
-        const Divider(height: 1),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
-          child: Column(
-            children: [
-              PrimaryButton(
-                onPressed: onDataRejected,
-                text: context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta,
-              ),
-              const SizedBox(height: 12),
-              SecondaryButton(
-                onPressed: () => Navigator.maybePop(context),
-                text: context.l10n.generalBottomBackCta,
-                icon: Icons.arrow_back,
-              ),
-            ],
-          ),
+    final verticalPadding = context.isLandscape ? 8.0 : 24.0;
+    return SafeArea(
+      top: false,
+      bottom: true,
+      minimum: EdgeInsets.only(bottom: verticalPadding),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            SizedBox(height: verticalPadding),
+            PrimaryButton(
+              onPressed: onDataRejected,
+              text: context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta,
+            ),
+            const SizedBox(height: 12),
+            SecondaryButton(
+              onPressed: () => Navigator.maybePop(context),
+              text: context.l10n.generalBottomBackCta,
+              icon: Icons.arrow_back,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 

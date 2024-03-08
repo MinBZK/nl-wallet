@@ -131,14 +131,17 @@ void main() {
         WalletAppTestWidget(
           child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
-            const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false),
+            const PinValidateFailure(leftoverAttempts: 2, isFinalAttempt: false),
           ),
         ),
       );
 
+      // Wait for the dialog to be shown
+      await tester.pumpAndSettle();
+
       // Setup finders
-      final headerFinder = find.text(l10n.pinScreenErrorHeader);
-      final attemptsLeftFinder = find.text(l10n.pinScreenAttemptsCount(3));
+      final headerFinder = find.text(l10n.pinErrorDialogTitle);
+      final attemptsLeftFinder = find.text(l10n.pinErrorDialogDynamicBody(2));
 
       // Verify all expected widgets show up once
       expect(headerFinder, findsOneWidget);

@@ -4,8 +4,13 @@ import '../../../util/extension/build_context_extension.dart';
 
 class KeyboardBackspaceKey extends StatelessWidget {
   final VoidCallback? onBackspacePressed;
+  final Color? color;
 
-  const KeyboardBackspaceKey({this.onBackspacePressed, super.key});
+  const KeyboardBackspaceKey({
+    this.onBackspacePressed,
+    this.color,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +20,10 @@ class KeyboardBackspaceKey extends StatelessWidget {
         label: context.l10n.pinKeyboardWCAGBackspaceLabel,
         child: InkWell(
           onTap: onBackspacePressed == null ? null : () => onBackspacePressed!(),
-          child: const Icon(Icons.backspace),
+          child: Icon(
+            Icons.keyboard_backspace_rounded,
+            color: color,
+          ),
         ),
       ),
     );

@@ -15,13 +15,15 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../../../util/mapper/mapper.dart';
 import '../../../util/mapper/pid/pid_attribute_mapper.dart';
+import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../common/page/generic_loading_page.dart';
-import '../../common/page/legacy_terminal_page.dart';
+import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
+import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../digid_help/digid_help_screen.dart';
@@ -54,9 +56,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
             _showExitSheet(context);
           }
         },
-        child: SafeArea(
-          child: _buildPage(),
-        ),
+        child: _buildPage(),
       ),
     );
   }
@@ -75,7 +75,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<WalletPersonalizeBloc, WalletPersonalizeState>(
       listener: (context, state) {
-        _closeOpenDialogs(context);
+        _closeOpenDialogs(context); // Make sure the StopDigidLoginDialog is dismissed on state changes.
         if (state is WalletPersonalizeConnectDigid) _loginWithDigid(context, state.authUrl);
       },
       builder: (context, state) {
@@ -244,9 +244,11 @@ class WalletPersonalizeScreen extends StatelessWidget {
       appBar: const WalletAppBar(
         progress: 0.0,
       ),
-      body: LegacyTerminalPage(
-        icon: Icons.not_interested,
-        iconColor: context.theme.primaryColorDark,
+      body: TerminalPage(
+        illustration: const Padding(
+          padding: EdgeInsets.all(16),
+          child: SvgOrImage(asset: WalletAssets.illustration_general_error),
+        ),
         title: context.l10n.walletPersonalizeScreenErrorTitle,
         description: context.l10n.walletPersonalizeScreenErrorDescription,
         primaryButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
@@ -311,7 +313,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       ),
       body: WalletPersonalizeConfirmPinPage(
         onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
-        onAcceptPidFailed: (context, error) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: error)),
+        onAcceptPidFailed: (context, state) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: state.error)),
       ),
     );
   }

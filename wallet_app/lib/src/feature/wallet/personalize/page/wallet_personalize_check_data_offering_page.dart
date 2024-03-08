@@ -24,29 +24,31 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      child: CustomScrollView(
-        slivers: <Widget>[
-          SliverWalletAppBar(
-            title: context.l10n.walletPersonalizeCheckDataOfferingPageTitle,
-            progress: progress,
-          ),
-          SliverToBoxAdapter(child: _buildHeaderSection(context)),
-          const SliverSizedBox(height: 24),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
-          const SliverSizedBox(height: 12),
-          SliverList(delegate: _getDataAttributesDelegate()),
-          const SliverSizedBox(height: 12),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            fillOverscroll: true,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: _buildBottomSection(context),
+    return SafeArea(
+      child: Scrollbar(
+        child: CustomScrollView(
+          slivers: <Widget>[
+            SliverWalletAppBar(
+              title: context.l10n.walletPersonalizeCheckDataOfferingPageTitle,
+              progress: progress,
             ),
-          ),
-        ],
+            SliverToBoxAdapter(child: _buildHeaderSection(context)),
+            const SliverSizedBox(height: 24),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+            const SliverSizedBox(height: 12),
+            SliverList(delegate: _getDataAttributesDelegate()),
+            const SliverSizedBox(height: 12),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: _buildBottomSection(context),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

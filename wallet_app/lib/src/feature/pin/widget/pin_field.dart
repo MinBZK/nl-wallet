@@ -10,10 +10,14 @@ class PinField extends StatefulWidget {
   final int enteredDigits;
   final PinFieldState state;
 
+  /// The color used to draw the dots, defaults to [ColorScheme.onBackground]
+  final Color? color;
+
   const PinField({
     required this.digits,
     required this.enteredDigits,
     required this.state,
+    this.color,
     super.key,
   });
 
@@ -92,7 +96,7 @@ class _PinFieldState extends State<PinField> with TickerProviderStateMixin {
               child: PinDot(
                 checked: index < widget.enteredDigits,
                 key: ValueKey('pinDot#$index'),
-                color: context.colorScheme.onBackground,
+                color: widget.color ?? context.colorScheme.onBackground,
               ),
             ),
           ),

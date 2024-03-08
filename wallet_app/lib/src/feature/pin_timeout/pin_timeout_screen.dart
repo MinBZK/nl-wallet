@@ -43,39 +43,41 @@ class PinTimeoutScreen extends StatelessWidget {
           )
         ],
       ),
-      body: PrimaryScrollController(
-        controller: ScrollController(),
-        child: Scrollbar(
-          thumbVisibility: true,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            children: [
-              Image.asset(
-                WalletAssets.illustration_pin_timeout,
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                context.l10n.pinTimeoutScreenHeadline,
-                textAlign: TextAlign.start,
-                style: context.textTheme.displayMedium,
-              ),
-              const SizedBox(height: 8),
-              PinTimeoutDescription(
-                expiryTime: expiryTime,
-                onExpire: () => _onTimeoutExpired(context),
-              ),
-              const SizedBox(height: 24),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: LinkButton(
-                  customPadding: EdgeInsets.zero,
-                  child: Text(context.l10n.pinTimeoutScreenForgotPinCta),
-                  onPressed: () => ForgotPinScreen.show(context),
+      body: SafeArea(
+        child: PrimaryScrollController(
+          controller: ScrollController(),
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              children: [
+                Image.asset(
+                  WalletAssets.illustration_pin_timeout,
+                  width: double.infinity,
+                  fit: BoxFit.fitWidth,
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                Text(
+                  context.l10n.pinTimeoutScreenHeadline,
+                  textAlign: TextAlign.start,
+                  style: context.textTheme.displayMedium,
+                ),
+                const SizedBox(height: 8),
+                PinTimeoutDescription(
+                  expiryTime: expiryTime,
+                  onExpire: () => _onTimeoutExpired(context),
+                ),
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: LinkButton(
+                    customPadding: EdgeInsets.zero,
+                    child: Text(context.l10n.pinTimeoutScreenForgotPinCta),
+                    onPressed: () => ForgotPinScreen.show(context),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

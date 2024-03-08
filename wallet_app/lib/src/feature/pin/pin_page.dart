@@ -6,8 +6,9 @@ import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
+import '../common/widget/button/bottom_button.dart';
 import '../common/widget/button/text_icon_button.dart';
-import '../common/widget/wallet_logo.dart';
+import '../common/widget/pin_header.dart';
 import '../error/error_screen.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
 import '../pin_blocked/pin_blocked_screen.dart';
@@ -15,6 +16,10 @@ import '../pin_timeout/pin_timeout_screen.dart';
 import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
+
+/// If the user has less then [kLeftoverAttemptsBeforeDynamicWarning] attempts left
+/// to enter the correct pin, we switch to showing the counter inside the warning dialog.
+const kLeftoverAttemptsBeforeDynamicWarning = 3;
 
 /// Signature for a function that creates a widget while providing the leftover pin attempts.
 /// [attempts] being null indicates that this is the first attempt.
@@ -33,9 +38,6 @@ typedef OnPinErrorCallback = void Function(BuildContext context, ErrorState stat
 /// [returnUrl] is the url that the user should be redirected to (if not null).
 typedef OnPinValidatedCallback = void Function(String? returnUrl);
 
-/// The required minimum height in the header to be able to show the logo
-const _kHeaderHeightLogoCutOff = 180;
-
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
   /// Called when pin entry was successful
@@ -52,11 +54,19 @@ class PinPage extends StatelessWidget {
   /// Build a custom header, when null it defaults to [_defaultHeaderBuilder].
   final PinHeaderBuilder? headerBuilder;
 
+  /// Draw a divider at the top of the screen when in landscape mode
+  final bool showTopDivider;
+
+  /// The color used to draw the keyboard keys & pin dots
+  final Color? keyboardColor;
+
   const PinPage({
     required this.onPinValidated,
     this.onStateChanged,
     this.onPinError,
     this.headerBuilder,
+    this.keyboardColor,
+    this.showTopDivider = false,
     super.key,
   });
 
@@ -96,11 +106,13 @@ class PinPage extends StatelessWidget {
           case PinValidateGenericError():
             ErrorScreen.showGeneric(context, secured: false);
             break;
+          case PinValidateFailure():
+            _showErrorDialog(context, state);
+            break;
 
           /// No need to handle these explicitly as events for now.
           case PinEntryInProgress():
           case PinValidateInProgress():
-          case PinValidateFailure():
             break;
         }
       },
@@ -108,52 +120,81 @@ class PinPage extends StatelessWidget {
         builder: (context, orientation) {
           switch (orientation) {
             case Orientation.portrait:
-              return _buildPortrait();
+              return _buildPortrait(context);
             case Orientation.landscape:
-              return _buildLandscape();
+              return _buildLandscape(context);
           }
         },
       ),
     );
   }
 
-  Widget _buildPortrait() {
+  Widget _buildPortrait(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder)),
         _buildPinField(),
         const SizedBox(height: 18),
-        _buildForgotCodeButton(),
-        const SizedBox(height: 18),
         _buildPinKeyboard(),
+        SafeArea(
+          child: _buildForgotCodeButton(context),
+        ),
       ],
     );
   }
 
-  Widget _buildLandscape() {
-    return Row(
-      children: [
-        Expanded(
-          child: Scrollbar(
-            child: Center(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
-                  const SizedBox(height: 24),
-                  Center(child: _buildPinField()),
-                  const SizedBox(height: 18),
-                  _buildForgotCodeButton(),
-                ],
-              ),
+  Widget _buildLandscape(BuildContext context) {
+    final leftSection = Expanded(
+      child: Column(
+        children: [
+          Expanded(
+            child: SafeArea(
+              right: false,
+              top: false,
+              bottom: false,
+              child: _buildHeader(headerBuilder ?? _defaultHeaderBuilder),
             ),
           ),
+          SafeArea(
+            top: false,
+            right: false,
+            child: _buildForgotCodeButton(context),
+          ),
+        ],
+      ),
+    );
+    final rightSection = Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16),
+        child: SafeArea(
+          left: false,
+          right: true,
+          top: false,
+          bottom: false,
+          child: Column(
+            children: [
+              _buildPinField(),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _buildPinKeyboard(),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        showTopDivider ? const Divider(height: 1) : const SizedBox.shrink(),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: _buildPinKeyboard(),
+          child: Row(
+            children: [
+              leftSection,
+              const VerticalDivider(width: 1),
+              rightSection,
+            ],
           ),
         ),
       ],
@@ -161,64 +202,33 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _buildHeader(PinHeaderBuilder builder) {
-    return BlocBuilder<PinBloc, PinState>(
-      builder: (context, state) {
-        if (state is PinValidateFailure) {
-          return builder(context, state.leftoverAttempts, state.isFinalAttempt);
-        } else {
-          return builder(context, null, false);
-        }
-      },
-    );
-  }
-
-  Widget _defaultHeaderBuilder(BuildContext context, int? attempts, bool isFinalAttempt) {
-    if (context.isLandscape) return _buildTextHeader(context, attempts, isFinalAttempt);
-    return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxHeight < _kHeaderHeightLogoCutOff) return _buildTextHeader(context, attempts, isFinalAttempt);
-      return Column(
-        children: [
-          const Spacer(),
-          const WalletLogo(size: 80),
-          const SizedBox(height: 24),
-          _buildTextHeader(context, attempts, isFinalAttempt),
-          const Spacer(),
-        ],
-      );
-    });
-  }
-
-  Widget _buildTextHeader(BuildContext context, int? attempts, bool isFinalAttempt) {
-    var headerText = context.l10n.pinScreenHeader;
-    var descriptionText = '';
-    bool useErrorColor = attempts != null || isFinalAttempt;
-
-    if (attempts != null) {
-      headerText = context.l10n.pinScreenErrorHeader;
-      descriptionText = context.l10n.pinScreenAttemptsCount(attempts);
-    }
-    if (isFinalAttempt) {
-      headerText = context.l10n.pinScreenErrorHeader;
-      descriptionText = context.l10n.pinScreenFinalAttempt;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            headerText,
-            style: context.textTheme.displaySmall?.copyWith(color: useErrorColor ? context.colorScheme.error : null),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            descriptionText,
-            style: context.textTheme.bodyLarge?.copyWith(color: useErrorColor ? context.colorScheme.error : null),
-            textAlign: TextAlign.center,
+    return Scrollbar(
+      thumbVisibility: true,
+      trackVisibility: true,
+      child: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            child: BlocBuilder<PinBloc, PinState>(
+              builder: (context, state) {
+                if (state is PinValidateFailure) {
+                  return builder(context, state.leftoverAttempts, state.isFinalAttempt);
+                } else {
+                  return builder(context, null, false);
+                }
+              },
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Builds the default pin header, as shown on the 'unlock the app' screen.
+  Widget _defaultHeaderBuilder(BuildContext context, int? attempts, bool isFinalAttempt) {
+    return PinHeader(
+      title: context.l10n.pinScreenHeader,
+      contentAlignment: context.isLandscape ? Alignment.centerLeft : Alignment.topCenter,
+      textAlign: context.isLandscape ? TextAlign.start : TextAlign.center,
     );
   }
 
@@ -226,6 +236,7 @@ class PinPage extends StatelessWidget {
     return BlocBuilder<PinBloc, PinState>(
       builder: (context, state) {
         return PinField(
+          color: keyboardColor,
           digits: kPinDigits,
           enteredDigits: _resolveEnteredDigits(state),
           state: _resolvePinFieldState(state),
@@ -234,15 +245,16 @@ class PinPage extends StatelessWidget {
     );
   }
 
-  Widget _buildForgotCodeButton() {
-    return BlocBuilder<PinBloc, PinState>(
-      builder: (context, state) {
-        final buttonEnabled = state is PinEntryInProgress || state is PinValidateFailure;
-        return TextIconButton(
-          onPressed: buttonEnabled ? () => ForgotPinScreen.show(context) : null,
-          child: Text(context.l10n.pinScreenForgotPinCta),
-        );
-      },
+  Widget _buildForgotCodeButton(BuildContext context) {
+    return BottomButton(
+      button: TextIconButton(
+        iconPosition: IconPosition.start,
+        centerChild: false,
+        contentAlignment: context.isLandscape ? Alignment.centerLeft : Alignment.center,
+        icon: Icons.help_outline_rounded,
+        onPressed: () => ForgotPinScreen.show(context),
+        child: Text(context.l10n.pinScreenForgotPinCta),
+      ),
     );
   }
 
@@ -253,6 +265,7 @@ class PinPage extends StatelessWidget {
           duration: kDefaultAnimationDuration,
           opacity: state is PinValidateInProgress ? 0.3 : 1,
           child: PinKeyboard(
+            color: keyboardColor,
             onKeyPressed:
                 _digitKeysEnabled(state) ? (digit) => context.read<PinBloc>().add(PinDigitPressed(digit)) : null,
             onBackspacePressed:
@@ -312,6 +325,43 @@ class PinPage extends StatelessWidget {
     SemanticsService.announce(
       context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
       TextDirection.ltr,
+    );
+  }
+
+  Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
+    final title = context.l10n.pinErrorDialogTitle;
+    var body = reason.leftoverAttempts >= kLeftoverAttemptsBeforeDynamicWarning
+        ? context.l10n.pinErrorDialogBody
+        : context.l10n.pinErrorDialogDynamicBody(reason.leftoverAttempts);
+    if (reason.isFinalAttempt) body = context.l10n.pinErrorDialogFinalAttemptBody;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(title, style: context.textTheme.displayMedium),
+          content: SingleChildScrollView(
+            child: Text(body, style: context.textTheme.bodyLarge),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase()),
+              onPressed: () {
+                Navigator.of(context).pop();
+                ForgotPinScreen.show(context);
+              },
+            ),
+            TextButton(
+              child: Text(context.l10n.pinErrorDialogCloseCta.toUpperCase()),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
     );
   }
 }

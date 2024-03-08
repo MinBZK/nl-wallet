@@ -74,9 +74,7 @@ class DisclosureScreen extends StatelessWidget {
               _stopDisclosure(context);
             }
           },
-          child: SafeArea(
-            child: _buildPage(),
-          ),
+          child: _buildPage(),
         ),
       ),
     );
@@ -200,14 +198,17 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessPage(BuildContext context, DisclosureSuccess state) {
+    bool hasReturnUrl = state.returnUrl != null;
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
+      primaryButtonCta:
+          hasReturnUrl ? context.l10n.disclosureSuccessPageCloseCta : context.l10n.disclosureSuccessPageToDashboardCta,
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
-      onClosePressed: () {
+      onPrimaryPressed: () {
         Navigator.pop(context);
 
         // Handle return url
-        if (state.returnUrl != null) {
+        if (hasReturnUrl) {
           launchUrlStringCatching(state.returnUrl!, mode: LaunchMode.externalApplication);
         }
       },

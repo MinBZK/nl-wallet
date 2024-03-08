@@ -27,20 +27,7 @@ class DisclosureConfirmPinPage extends StatelessWidget {
       create: (BuildContext context) => bloc ?? PinBloc(context.read<AcceptDisclosureUseCase>()),
       child: PinPage(
         headerBuilder: (context, attempts, isFinalAttempt) {
-          final hasError = attempts != null;
-          final String title, description;
-          if (!hasError) {
-            title = context.l10n.disclosureConfirmPinPageTitle;
-            description = context.l10n.disclosureConfirmPinPageDescription;
-          } else {
-            title = context.l10n.disclosureConfirmPinPageErrorTitle;
-            description = context.l10n.disclosureConfirmPinPageErrorDescription(attempts);
-          }
-          return PinHeader(
-            hasError: hasError,
-            title: title,
-            description: description,
-          );
+          return PinHeader(title: context.l10n.disclosureConfirmPinPageTitle);
         },
         onPinValidated: onPinValidated,
         onPinError: onConfirmWithPinFailed,
