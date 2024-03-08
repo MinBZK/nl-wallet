@@ -94,6 +94,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
     Object error = event.error ?? 'unknown';
     try {
+      emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
       await cancelPidIssuanceUseCase.invoke();
     } catch (cancellationError) {
       Fimber.e('Failed to cancel PID issuance', ex: cancellationError);
@@ -111,6 +112,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   void _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, emit) async {
     Object error = event.error ?? 'unknown';
     try {
+      emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
       await cancelPidIssuanceUseCase.invoke();
     } catch (cancellationError) {
       Fimber.e('Failed to cancel pid issuance', ex: cancellationError);

@@ -311,7 +311,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       ),
       body: WalletPersonalizeConfirmPinPage(
         onPidAccepted: (_) => context.bloc.add(WalletPersonalizePinConfirmed()),
-        onAcceptPidFailed: (context, error) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: error)),
+        onAcceptPidFailed: (context, state) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: state.error)),
       ),
     );
   }
