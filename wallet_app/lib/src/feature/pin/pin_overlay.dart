@@ -31,6 +31,7 @@ class PinOverlay extends StatelessWidget {
       builder: (context, snapshot) {
         final isLocked = _lockedStreamCache = snapshot.data!;
         if (isLocked) {
+          _dismissOpenDialogs(context);
           return BlocProvider<PinBloc>(
             create: (BuildContext context) => bloc ?? PinBloc(context.read<UnlockWalletWithPinUseCase>()),
             child: PinScreen(
@@ -44,5 +45,14 @@ class PinOverlay extends StatelessWidget {
         }
       },
     );
+  }
+
+  void _dismissOpenDialogs(BuildContext context) {
+    Future.microtask(() {
+      Navigator.of(context).popUntil((route) {
+        final isDialog = route is ModalBottomSheetRoute || route is DialogRoute;
+        return !isDialog;
+      });
+    });
   }
 }
