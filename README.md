@@ -162,11 +162,10 @@ easiest way to do so is:
     2. Select 'SDK Tools' Tab
     3. Check latest 'NDK (Side by side)' in the list (>= v25.2.9519653)
     4. Hit 'apply' to install
-3. Add `export ANDROID_HOME="$HOME/Library/Android/sdk"` to your `~/.bash_profile` or
-   `~/.zshrc`, this will make sure the Android SDK is available in your path and automatically
-   picks up the NDK version you installed in the previous step
+3. Add `export ANDROID_HOME="$HOME/Library/Android/sdk"` (ie `export ANDROID_HOME="/usr/lib/android-sdk/"` for Linux) to your `~/.bash_profile` or
+   `~/.zshrc`, this will make sure the Android SDK is available in your path and automatically picks up the NDK version you installed in the previous step
 4. Tell gradle where it can find the NDK by updating one of your `gradle.properties`,
-   e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties`
+   e.g. `echo "NDK_HOME=\"$HOME/Library/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties` (ie `"NDK_HOME=\"$HOME/Android/sdk/ndk/{ndk_version}\"" >> ~/.gradle/gradle.properties` for linux)
 5. Run `cargo install cargo-ndk` (>= v3.0.0) to be able to build the Rust code for Android
 6. Optional: let Android Studio use Flutter SDK installed via FVM by following
    [these steps](https://fvm.app/docs/getting_started/configuration#android-studio)
