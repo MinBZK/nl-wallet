@@ -210,11 +210,11 @@ MOCK_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_
 export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 
 render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
-render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
+render_template "${DEVENV}/mock_relying_party.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
 
 # And the mrp's wallet_server config
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${MRP_WALLET_SERVER_DIR}/wallet_server.toml"
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+render_template "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
 
 
 ########################################################################
