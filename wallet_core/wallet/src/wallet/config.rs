@@ -8,7 +8,7 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
 where
     CR: ObservableConfigurationRepository,
 {
-    pub fn set_config_callback(&self, callback: ConfigCallback) -> Option<ConfigCallback> {
+    pub fn set_config_callback(&self, mut callback: ConfigCallback) -> Option<ConfigCallback> {
         callback(self.config_repository.config());
         self.config_repository.register_callback_on_update(callback)
     }

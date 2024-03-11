@@ -26,7 +26,7 @@ pub type UpdatingFileHttpConfigurationRepository =
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::LocalConfigurationRepository;
 
-pub type ConfigCallback = Box<dyn Fn(Arc<WalletConfiguration>) + Send + Sync>;
+pub type ConfigCallback = Box<dyn FnMut(Arc<WalletConfiguration>) + Send + Sync>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigurationError {

@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
+use parking_lot::Mutex;
 use tokio::{
-    sync::watch::{channel, Receiver, Sender},
     task::JoinHandle,
     time::{self, MissedTickBehavior},
 };
@@ -17,8 +17,8 @@ use super::{
 
 pub struct UpdatingConfigurationRepository<T> {
     wrapped: Arc<T>,
+    callback: Arc<Mutex<Option<ConfigCallback>>>,
     updating_task: JoinHandle<()>,
-    callback_sender: Sender<Option<ConfigCallback>>,
 }
 
 impl UpdatingFileHttpConfigurationRepository {
@@ -45,20 +45,22 @@ where
     T: UpdateableConfigurationRepository + Send + Sync + 'static,
 {
     pub async fn new(wrapped: T, update_frequency: Duration) -> UpdatingConfigurationRepository<T> {
-        let (tx, rx) = channel(None);
         let wrapped = Arc::new(wrapped);
-        let updating_task = Self::start_update_task(Arc::clone(&wrapped), rx, update_frequency).await;
+        let callback = Arc::new(Mutex::new(None));
+        let updating_task =
+            Self::start_update_task(Arc::clone(&wrapped), Arc::clone(&callback), update_frequency).await;
+
         Self {
             wrapped,
             updating_task,
-            callback_sender: tx,
+            callback,
         }
     }
 
     // This function is marked as async to force using a Tokio runtime and to prevent runtime panics if used without.
     async fn start_update_task(
         wrapped: Arc<T>,
-        rx: Receiver<Option<ConfigCallback>>,
+        callback: Arc<Mutex<Option<ConfigCallback>>>,
         interval: Duration,
     ) -> JoinHandle<()> {
         tokio::spawn(async move {
@@ -75,8 +77,8 @@ where
                         if let ConfigurationUpdateState::Updated = state {
                             let config = wrapped.config();
 
-                            if let Some(callback) = rx.borrow().as_deref() {
-                                callback(config);
+                            if let Some(callback) = callback.lock().as_deref_mut() {
+                                callback(config)
                             }
                         }
                     }
@@ -101,11 +103,11 @@ where
     T: ConfigurationRepository,
 {
     fn register_callback_on_update(&self, callback: ConfigCallback) -> Option<ConfigCallback> {
-        self.callback_sender.send_replace(Some(callback))
+        self.callback.lock().replace(callback)
     }
 
     fn clear_callback(&self) -> Option<ConfigCallback> {
-        self.callback_sender.send_replace(None)
+        self.callback.lock().take()
     }
 }
 
