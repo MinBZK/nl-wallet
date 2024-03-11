@@ -44,7 +44,6 @@ impl From<KeyStoreError> for p256::ecdsa::Error {
 }
 
 // HardwareSigningKey wraps SigningKeyBridge from native.
-#[derive(Clone)]
 pub struct HardwareEcdsaKey {
     identifier: String,
 }
@@ -113,7 +112,6 @@ impl StoredByIdentifier for HardwareEcdsaKey {
 impl PlatformEcdsaKey for HardwareEcdsaKey {}
 
 // HardwareEncryptionKey wraps EncryptionKeyBridge from native.
-#[derive(Clone)]
 pub struct HardwareEncryptionKey {
     identifier: String,
 }

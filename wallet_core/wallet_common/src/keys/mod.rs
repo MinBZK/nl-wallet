@@ -99,6 +99,9 @@ pub trait WithIdentifier {
 /// only ever one owner of this key. If multiple instances with the same identifier
 /// could be created, this could lead to undefined behaviour when the owner of one
 /// of the types deletes the backing store key.
+///
+/// NB: Any type that implements `StoredByIdentifier` should probably not implement
+///     `Clone`, as this would circumvent the uniqueness of the instance.
 pub trait StoredByIdentifier: WithIdentifier {
     type Error: Error + Send + Sync + 'static;
 
