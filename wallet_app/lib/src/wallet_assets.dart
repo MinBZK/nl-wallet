@@ -23,6 +23,7 @@ class WalletAssets {
   static const svg_intro_placeholder_1 = 'assets/non-free/svg/intro_placeholder_1.svg';
   static const svg_intro_placeholder_2 = 'assets/non-free/svg/intro_placeholder_2.svg';
   static const svg_intro_placeholder_3 = 'assets/non-free/svg/intro_placeholder_3.svg';
+  static const svg_eye_closed = 'assets/non-free/svg/eye_closed.svg';
 
   // IMAGES
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';
