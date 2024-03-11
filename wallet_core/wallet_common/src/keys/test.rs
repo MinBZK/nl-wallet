@@ -1,3 +1,5 @@
+use std::mem;
+
 use p256::ecdsa::signature::Verifier;
 
 use super::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
@@ -17,16 +19,20 @@ pub async fn sign_and_verify_signature<K: StoredByIdentifier + SecureEcdsaKey>(
     // Get the public key from the key.
     let public_key1 = key1.verifying_key().await.expect("Could not get public key");
 
-    // Apply a signature to the payload using the key.
-    let signature = key1.try_sign(payload).await.expect("Could not sign payload");
+    // Drop the first key, then create another key using the same identifier.
+    mem::drop(key1);
+    let key2 = K::new_unique(key_identifier).expect("key is not unique for identifier");
+
+    // Apply a signature to the payload using that key.
+    let signature = key2.try_sign(payload).await.expect("Could not sign payload");
 
     // Delete the key, as well as the private key in the backing store.
-    key1.delete().await.expect("Could not delete private key");
+    key2.delete().await.expect("Could not delete private key");
 
-    // Creating a second signing key with a new private key should result in a different public key.
-    let key2 = K::new_unique(key_identifier).expect("key is not unique for identifier");
-    let public_key2 = key2.verifying_key().await.expect("Could not get public key");
-    assert_ne!(public_key1, public_key2);
+    // Creating a third signing key with a new private key should result in a different public key.
+    let key3 = K::new_unique(key_identifier).expect("key is not unique for identifier");
+    let public_key3 = key3.verifying_key().await.expect("Could not get public key");
+    assert_ne!(public_key1, public_key3);
 
     // Finally verify the signature against the public key.
     public_key1.verify(payload, &signature).is_ok()
@@ -42,19 +48,23 @@ pub async fn encrypt_and_decrypt_message<K: StoredByIdentifier + SecureEncryptio
     // Encrypt the payload with the key.
     let encrypted_payload = key1.encrypt(payload).await.expect("Could not encrypt message");
 
-    // Decrypt the encrypted message with the key.
-    let decrypted_payload = key1
+    // Drop the first key, then create another key using the same identifier.
+    mem::drop(key1);
+    let key2 = K::new_unique(key_identifier).expect("key is not unique for identifier");
+
+    // Decrypt the encrypted message with this key.
+    let decrypted_payload = key2
         .decrypt(&encrypted_payload)
         .await
         .expect("Could not decrypt message");
 
     // Delete the key, as well as the encryption key in the backing store.
-    key1.delete().await.expect("Could not delete encryption key");
+    key2.delete().await.expect("Could not delete encryption key");
 
     // Creating a second encryption key with the same identifier should result in a new key.
-    let key2 = K::new_unique(key_identifier).expect("key is not unique for identifier");
+    let key3 = K::new_unique(key_identifier).expect("key is not unique for identifier");
     // Decrypting the payload encrypted with the previous key should not work.
-    key2.decrypt(&encrypted_payload)
+    key3.decrypt(&encrypted_payload)
         .await
         .expect_err("Decrypting the payload with a new key should result in an error");
 
