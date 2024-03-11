@@ -16,9 +16,11 @@ use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_brid
 
 use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
 
-/// A static set that contains all the identifiers for `HardwareEcdsaKey` that are currently in use.
+/// A static set that contains all the identifiers for which an instance
+/// of `HardwareEcdsaKey` currently exists within the application.
 static ECDSA_KEY_IDENTIFIERS: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
-/// A static set that contains all the identifiers for `HardwareEncryptionKey` that are currently in use.
+/// A static set that contains all the identifiers for which an instance
+/// of `HardwareEncryptionKey` currently exists within the application.
 static ENCRYPTION_KEY_IDENTIFIERS: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 /// This helper function claims a particular identifier by inserting it into a `HashSet` and
