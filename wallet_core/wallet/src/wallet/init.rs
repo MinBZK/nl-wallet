@@ -199,7 +199,7 @@ mod tests {
         ));
 
         // Create a `Wallet` with `MockStorage`, then drop that `Wallet` again, while stealing
-        // stealing said `MockStorage` and getting the public key of the hardware private key.
+        // said `MockStorage` and getting the public key of the hardware private key.
         let (storage, hw_pubkey) = {
             let wallet = WalletWithMocks::init_registration_mocks_with_storage(MockStorage::new(
                 StorageState::Unopened,
