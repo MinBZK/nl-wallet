@@ -102,13 +102,13 @@ pub trait WithIdentifier {
 pub trait StoredByIdentifier: WithIdentifier {
     type Error: Error + Send + Sync + 'static;
 
-    // Creates a unique instance with the specified identifier. If an instance
-    // already exist with this identifier, `Ok(None)` will be returned.
+    /// Creates a unique instance with the specified identifier. If an instance
+    /// already exist with this identifier, `None` will be returned.
     fn new_unique(identifier: &str) -> Option<Self>
     where
         Self: Sized;
 
-    // Delete the key from the backing store and consume the type.
+    /// Delete the key from the backing store and consume the type.
     async fn delete(self) -> Result<(), Self::Error>;
 }
 
