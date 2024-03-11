@@ -102,6 +102,7 @@ impl StoredByIdentifier for HardwareEcdsaKey {
 
     async fn delete(self) -> Result<(), Self::Error> {
         // Clone the identifier, as this type implements `Drop`.
+        // Note that the `Drop` implementation will remove the identifier from `ECDSA_KEY_IDENTIFIERS`.
         let identifier = self.identifier.clone();
         spawn::blocking(|| get_signing_key_bridge().delete(identifier)).await?;
 
@@ -144,6 +145,7 @@ impl StoredByIdentifier for HardwareEncryptionKey {
 
     async fn delete(self) -> Result<(), Self::Error> {
         // Clone the identifier, as this type implements `Drop`.
+        // Note that the `Drop` implementation will remove the identifier from `ENCRYPTION_KEY_IDENTIFIERS`.
         let identifier = self.identifier.clone();
         spawn::blocking(|| get_encryption_key_bridge().delete(identifier)).await?;
 
