@@ -28,7 +28,7 @@ class SigningKeyBridgeInstrumentedTest {
         private const val KEY_2_IDENTIFIER = "key2"
 
         @JvmStatic
-        external fun hw_keystore_test_hardware_signature(): Boolean
+        external fun hw_keystore_test_hardware_signature()
     }
 
 
@@ -178,10 +178,8 @@ class SigningKeyBridgeInstrumentedTest {
         // Explicitly load platform_support since hw_keystore_test_hardware_signature() is stripped from rust_core
         System.loadLibrary("platform_support")
 
-        assertTrue(
-            "Could not complete signature round trip",
-            hw_keystore_test_hardware_signature()
-        )
+        // The Rust code will panic if this test fails.
+        hw_keystore_test_hardware_signature()
     }
 
     private fun isValidSignature(

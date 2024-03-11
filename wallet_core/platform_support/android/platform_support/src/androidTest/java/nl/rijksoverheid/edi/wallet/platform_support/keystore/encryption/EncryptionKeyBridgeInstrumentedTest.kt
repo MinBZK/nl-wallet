@@ -21,7 +21,7 @@ class EncryptionKeyBridgeInstrumentedTest {
         const val KEY_1_IDENTIFIER = "key1"
 
         @JvmStatic
-        external fun hw_keystore_test_hardware_encryption(): Boolean
+        external fun hw_keystore_test_hardware_encryption()
     }
 
     @Before
@@ -98,9 +98,7 @@ class EncryptionKeyBridgeInstrumentedTest {
         // Explicitly load platform_support since hw_keystore_test_hardware_encryption() is stripped from rust_core
         System.loadLibrary("platform_support")
 
-        assertTrue(
-            "Could not complete encryption round trip",
-            hw_keystore_test_hardware_encryption()
-        )
+        // The Rust code will panic if this test fails.
+        hw_keystore_test_hardware_encryption()
     }
 }
