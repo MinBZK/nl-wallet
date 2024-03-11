@@ -157,9 +157,10 @@ mod mock {
         Arc,
     };
 
-    use nl_wallet_mdoc::{holder::DisclosureError, server_keys::KeyPair, verifier::SessionType};
     use once_cell::sync::Lazy;
     use parking_lot::Mutex;
+
+    use nl_wallet_mdoc::{holder::DisclosureError, server_keys::KeyPair, verifier::SessionType};
 
     use super::*;
 
