@@ -680,7 +680,7 @@ pub(crate) mod tests {
         assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
 
         // Re-open the encrypted database, set it on the `DatabaseStorage`
-        // instance and then clear and consume this instance.
+        // instance and then call clear on it in order to delete the database.
         let mut storage =
             DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
         storage.open_database = storage
