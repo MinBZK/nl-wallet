@@ -217,7 +217,7 @@ test-rust-integration:
 test-rust-compilation-android-linux:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a79e22d5328c157ed85d2701f4f53d1c9f8d7efe8b0b38a5e4b6ed534110dbd6"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:6ad4382100d6e155f01c115a7a95c1c1b8bb0351a43e9ba83ce941351fb4ee67"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
@@ -498,7 +498,7 @@ build-ws-migrations-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:a79e22d5328c157ed85d2701f4f53d1c9f8d7efe8b0b38a5e4b6ed534110dbd6"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:6ad4382100d6e155f01c115a7a95c1c1b8bb0351a43e9ba83ce941351fb4ee67"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"

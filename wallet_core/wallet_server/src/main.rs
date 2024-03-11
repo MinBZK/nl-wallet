@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
     // This will block until the server shuts down.
     #[cfg(feature = "issuance")]
     server::serve_full(
-        // TODO: `MockPidAttributeService` issues a configured set of mock attributes. Replace with BRP query.
+        // TODO: `MockPidAttributeService` issues a configured set of mock attributes. Replace with BRP query. (PVW-2346)
         wallet_server::pid::attributes::MockPidAttributeService::new(
             settings.issuer.digid.issuer_url.clone(),
             settings.issuer.digid.bsn_privkey.clone(),

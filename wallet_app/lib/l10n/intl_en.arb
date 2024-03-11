@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-03-08T10:50:43+01:00",
+    "@@last_modified": "2024-03-08T14:58:18+01:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
@@ -60,13 +60,14 @@
     "cardDataIncorrectScreenSubhead": "Is the data incorrect?",
     "cardDataIncorrectScreenTitle": "Something is not correct",
     "cardDataScreenCloseCta": "Close",
+    "cardDataScreenDataPrivacyBanner": "This overview is only for you. Only share data using an invitation through the app.",
     "cardDataScreenDataPrivacyBannerReadMore": "Read more",
     "cardDataScreenDataPrivacyBannerTitle": "This overview is just for you.",
     "cardDataScreenDataPrivacySheetClose": "Close",
     "cardDataScreenDataPrivacySheetDescription": "You can check your data in this overview. Keep this overview hidden from others. That way you protect your privacy.\n\nDo you want to share data with an organization? Then use the QR code function on the main screen of this app.",
     "cardDataScreenDataPrivacySheetTitle": "View of your data",
     "cardDataScreenIncorrectCta": "Is the data incorrect?",
-    "cardDataScreenTitle": "All data",
+    "cardDataScreenTitle": "Data from {title}",
     "cardDetailScreenCardDataCta": "Data",
     "cardDetailScreenCardDataIssuedBy": "Issued by {organization}",
     "@cardDetailScreenCardDataIssuedBy": {

@@ -11,6 +11,7 @@ import 'package:wallet_core/core.dart';
 
 import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
+import '../../test_utils.dart';
 
 const _kSampleIssuer = CoreMockData.organization;
 
@@ -26,7 +27,7 @@ void main() {
   });
 
   group('map', () {
-    test('card with `com.example.pid` docType should return light localized card front', () {
+    test('card with `com.example.pid` docType should return light localized card front', () async {
       const coreCard = Card(
         persistence: CardPersistence.inMemory(),
         docType: 'com.example.pid',
@@ -36,8 +37,11 @@ void main() {
 
       when(mockSubtitleMapper.map(coreCard)).thenReturn('Subtitle'.untranslated);
 
+      final nlL10n = await TestUtils.dutchLocalizations;
+      final enL10n = await TestUtils.englishLocalizations;
+
       final expected = CardFront(
-        title: const {'en': 'Personal data', 'nl': 'Persoonsgegevens'},
+        title: {'en': enL10n.pidIdCardTitle, 'nl': nlL10n.pidIdCardTitle},
         subtitle: 'Subtitle'.untranslated,
         logoImage: WalletAssets.logo_card_rijksoverheid,
         holoImage: WalletAssets.svg_rijks_card_holo,

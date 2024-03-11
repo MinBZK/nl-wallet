@@ -123,7 +123,6 @@ impl From<PersonAttributes> for Vec<Entry> {
             }),
             value.birth_country.map(|v| Entry {
                 name: PID_BIRTH_COUNTRY.to_string(),
-                // TODO according to ISO 3166-1
                 value: Value::Text(v),
             }),
             value.birth_state.map(|v| Entry {
@@ -140,7 +139,6 @@ impl From<PersonAttributes> for Vec<Entry> {
             }),
             value.nationality.map(|v| Entry {
                 name: PID_NATIONALITY.to_string(),
-                // TODO according to ISO 3166-1
                 value: Value::Text(v),
             }),
         ]

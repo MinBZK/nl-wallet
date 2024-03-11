@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
-import '../../../../util/extension/string_extension.dart';
+import '../../../../wallet_assets.dart';
+import '../../../common/widget/svg_or_image.dart';
 
 class DataPrivacyBanner extends StatelessWidget {
   final VoidCallback? onPressed;
 
   const DataPrivacyBanner({
-    required this.onPressed,
+    this.onPressed,
     super.key,
   });
 
@@ -17,32 +18,28 @@ class DataPrivacyBanner extends StatelessWidget {
       key: const Key('dataPrivacyBanner'),
       onTap: onPressed,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        color: context.colorScheme.onSurface,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: context.colorScheme.onBackground,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Row(
           children: [
-            Icon(
-              Icons.gpp_maybe_outlined,
-              color: context.colorScheme.background,
-            ),
-            const SizedBox(width: 8),
             Expanded(
-              child: Text.rich(
-                TextSpan(
-                  text: context.l10n.cardDataScreenDataPrivacyBannerTitle.addSpaceSuffix,
-                  style: context.textTheme.bodyMedium?.copyWith(
-                    color: context.colorScheme.background,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: context.l10n.cardDataScreenDataPrivacyBannerReadMore,
-                      style: context.textTheme.bodyMedium?.copyWith(
-                        color: context.colorScheme.background,
-                        decoration: TextDecoration.underline,
-                      ),
-                    )
-                  ],
+              child: Text(
+                context.l10n.cardDataScreenDataPrivacyBanner,
+                style: context.textTheme.bodyLarge?.copyWith(
+                  color: context.colorScheme.background,
                 ),
+              ),
+            ),
+            const SizedBox(width: 20),
+            const SizedBox(
+              height: 24,
+              width: 24,
+              child: SvgOrImage(
+                asset: WalletAssets.svg_eye_closed,
+                fit: BoxFit.fitWidth,
               ),
             ),
           ],

@@ -27,7 +27,7 @@ postgres = ["dep:sea-orm"]
 db_test = []
 # Enable issuance
 issuance = [
-    "mock", # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes
+    "mock", # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes (PVW-2346)
     "axum/form",
     "dep:ciborium",
     "dep:futures",

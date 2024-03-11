@@ -11,8 +11,6 @@ use crate::{
     keys::{EcdsaKey, SecureEcdsaKey},
 };
 
-// TODO implement keyring and use kid header item for key rollover
-
 /// JWT type, generic over its contents.
 ///
 /// This wrapper of the `jsonwebtoken` crate echoes the following aspect of `jsonwebtoken`:

@@ -10,6 +10,7 @@ import 'package:wallet/src/util/formatter/attribute_value_formatter.dart';
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
 import '../../../util/device_utils.dart';
+import '../../../util/test_utils.dart';
 
 class MockCardDataBloc extends MockBloc<CardDataEvent, CardDataState> implements CardDataBloc {}
 
@@ -65,18 +66,6 @@ void main() {
       await screenMatchesGolden(tester, 'loading.light');
     });
 
-    testGoldens('Privacy Banner Sheet', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const CardDataScreen(cardTitle: 'Card Title').withState<CardDataBloc, CardDataState>(
-          MockCardDataBloc(),
-          CardDataLoadSuccess(WalletMockData.card),
-        ),
-      );
-      await tester.tap(find.byKey(kPrivacyBannerKey));
-      await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'privacy_sheet.light');
-    });
-
     testGoldens('CardDataLoadFailure state', (tester) async {
       await tester.pumpDeviceBuilderWithAppWrapper(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
@@ -100,12 +89,14 @@ void main() {
         ),
       );
 
+      final l10n = await TestUtils.englishLocalizations;
+
       // Validate that the widget exists
-      final titleFinder = find.text(WalletMockData.card.front.title.testValue);
+      final titleFinder = find.text(l10n.cardDataScreenTitle(WalletMockData.card.front.title.testValue));
       final labelFinder = find.text(WalletMockData.textDataAttribute.label.l10nValueFromLocale('en'));
       final valueFinder = find
           .text(AttributeValueFormatter.formatWithLocale(const Locale('en'), WalletMockData.textDataAttribute.value));
-      expect(titleFinder, findsOneWidget);
+      expect(titleFinder, findsAtLeastNWidgets(1));
       expect(labelFinder, findsOneWidget);
       expect(valueFinder, findsOneWidget);
     });

@@ -202,7 +202,6 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(coses.into_iter().map(|(key, cose)| (key, cose.into())).collect())
     }
 
-    // TODO deal with possible multiple certs being present here, https://datatracker.ietf.org/doc/draft-ietf-cose-x509/
     /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
     pub fn signing_cert(&self) -> Result<Certificate, CoseError>
     where
@@ -213,6 +212,9 @@ impl<T> MdocCose<CoseSign1, T> {
             .as_bytes()
             .ok_or(CoseError::CertificateUnexpectedHeaderType)?;
 
+        // The standard defining the above COSE header label (https://datatracker.ietf.org/doc/draft-ietf-cose-x509/)
+        // allows multiple certificates being present in the header, but ISO 18013-5 doesn't.
+        // So we can parse the bytes as a certificate.
         let cert = Certificate::from(cert_bts);
         Ok(cert)
     }

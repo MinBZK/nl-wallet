@@ -4,14 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
+import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../../common/widget/wallet_app_bar.dart';
+import '../../common/widget/sliver_wallet_app_bar.dart';
 import 'argument/card_data_screen_argument.dart';
 import 'bloc/card_data_bloc.dart';
 import 'card_data_incorrect_screen.dart';
@@ -39,45 +39,43 @@ class CardDataScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('cardDataScreen'),
-      appBar: _buildAppBar(context),
       body: SafeArea(
         child: _buildBody(context),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    final fallbackAppBarTitleText = Text(cardTitle);
-    return WalletAppBar(
-      title: BlocBuilder<CardDataBloc, CardDataState>(
-        builder: (context, state) {
-          return switch (state) {
-            CardDataInitial() => fallbackAppBarTitleText,
-            CardDataLoadInProgress() => fallbackAppBarTitleText,
-            CardDataLoadSuccess() => Text(state.card.front.title.l10nValue(context)),
-            CardDataLoadFailure() => fallbackAppBarTitleText,
-          };
-        },
-      ),
-    );
+  String _generateTitle(BuildContext context, CardDataState state) {
+    final title = tryCast<CardDataLoadSuccess>(state)?.card.front.title.l10nValue(context) ?? cardTitle;
+    return context.l10n.cardDataScreenTitle(title);
   }
 
   Widget _buildBody(BuildContext context) {
     return Column(
       children: [
-        DataPrivacyBanner(
-          onPressed: () => _showDataPrivacySheet(context),
-          key: kPrivacyBannerKey,
-        ),
         Expanded(
           child: BlocBuilder<CardDataBloc, CardDataState>(
             builder: (context, state) {
-              return switch (state) {
+              List<Widget> contentSlivers = switch (state) {
                 CardDataInitial() => _buildLoading(),
                 CardDataLoadInProgress() => _buildLoading(),
                 CardDataLoadSuccess() => _buildDataAttributes(context, state.card.attributes),
                 CardDataLoadFailure() => _buildError(context),
               };
+              return CustomScrollView(
+                slivers: [
+                  SliverWalletAppBar(
+                    title: _generateTitle(context, state),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: DataPrivacyBanner(key: kPrivacyBannerKey),
+                    ),
+                  ),
+                  ...contentSlivers,
+                ],
+              );
             },
           ),
         ),
@@ -86,11 +84,15 @@ class CardDataScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoading() {
-    return const CenteredLoadingIndicator();
+  List<Widget> _buildLoading() {
+    return [
+      const SliverFillRemaining(
+        child: CenteredLoadingIndicator(),
+      ),
+    ];
   }
 
-  Widget _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
+  List<Widget> _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
     final List<Widget> slivers = [];
 
     // Data attributes
@@ -109,12 +111,9 @@ class CardDataScreen extends StatelessWidget {
     slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
     slivers.add(const SliverSizedBox(height: 16));
     slivers.add(const SliverToBoxAdapter(child: Divider(height: 1)));
+    slivers.add(const SliverSizedBox(height: 24));
 
-    return Scrollbar(
-      child: CustomScrollView(
-        slivers: slivers,
-      ),
-    );
+    return slivers;
   }
 
   Widget _buildIncorrectButton(BuildContext context) {
@@ -130,42 +129,42 @@ class CardDataScreen extends StatelessWidget {
     );
   }
 
-  void _showDataPrivacySheet(BuildContext context) {
-    ExplanationSheet.show(
-      context,
-      title: context.l10n.cardDataScreenDataPrivacySheetTitle,
-      description: context.l10n.cardDataScreenDataPrivacySheetDescription,
-      closeButtonText: context.l10n.generalSheetCloseCta,
-    );
+  List<Widget> _buildError(BuildContext context) {
+    return [
+      const SliverSizedBox(height: 24),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            context.l10n.errorScreenGenericDescription,
+            style: context.textTheme.bodyLarge,
+          ),
+        ),
+      ),
+      SliverFillRemaining(
+        fillOverscroll: false,
+        hasScrollBody: false,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: ElevatedButton(
+              onPressed: () => _reloadCardData(context),
+              child: Text(context.l10n.generalRetry),
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 
-  Widget _buildError(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Spacer(),
-          Text(
-            context.l10n.errorScreenGenericDescription,
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: () {
-              final settings = ModalRoute.of(context)?.settings;
-              if (settings != null) {
-                final args = getArgument(settings);
-                context.read<CardDataBloc>().add(CardDataLoadTriggered(args.cardId));
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            child: Text(context.l10n.generalRetry),
-          ),
-        ],
-      ),
-    );
+  void _reloadCardData(BuildContext context) {
+    final settings = ModalRoute.of(context)?.settings;
+    if (settings != null) {
+      final args = getArgument(settings);
+      context.read<CardDataBloc>().add(CardDataLoadTriggered(args.cardId));
+    } else {
+      Navigator.pop(context);
+    }
   }
 }

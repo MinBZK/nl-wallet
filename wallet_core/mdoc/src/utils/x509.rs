@@ -185,20 +185,17 @@ impl Certificate {
     }
 
     pub fn subject(&self) -> Result<IndexMap<String, String>, CertificateError> {
-        let subject = self
-            .to_x509()?
+        self.to_x509()?
             .subject
             .iter_attributes()
             .map(|attr| {
-                (
+                Ok((
                     x509_parser::objects::oid2abbrev(attr.attr_type(), x509_parser::objects::oid_registry())
                         .map_or(attr.attr_type().to_id_string(), |v| v.to_string()),
-                    attr.as_str().unwrap().to_string(), // TODO handle non-stringable values?
-                )
+                    attr.as_str()?.to_string(),
+                ))
             })
-            .collect();
-
-        Ok(subject)
+            .collect::<Result<_, _>>()
     }
 
     pub(crate) fn extract_custom_ext<'a, T: Deserialize<'a>>(
