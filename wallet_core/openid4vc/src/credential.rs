@@ -28,7 +28,7 @@ pub struct CredentialRequests {
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.
 /// Sent JSON-encoded to `POST /credential`.
-// TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination`
+// TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination` (PVW-2361, PVW-2362)
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CredentialRequest {
     pub format: Format,
