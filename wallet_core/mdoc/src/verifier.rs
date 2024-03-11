@@ -116,7 +116,6 @@ pub struct Created {
 /// [`ReaderEngagement`] and contacted us at the session URL.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
-    #[allow(unused)] // TODO write function that matches this field against the disclosed attributes
     items_requests: ItemsRequests,
     return_url_used: bool,
     their_key: SessionKey,
@@ -567,7 +566,6 @@ impl Session<Created> {
         // We ignore the referrer URL contained in OriginInfoType::Website for now, since it is not always
         // possible for the wallet to reliably determine the referrer URL, so we can't enforce it here to be equal
         // to something.
-        // TODO: implement this once we have decided on a sensible thing to do with this.
         if origin_infos[0].cat != OriginInfoDirection::Received
             || !matches!(origin_infos[0].typ, OriginInfoType::Website(_))
         {
@@ -809,9 +807,9 @@ impl DeviceResponse {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
         if self.status != 0 {
-            // TODO section 8.3.2.1.2.3
             return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
+
         if self.documents.is_none() {
             return Err(VerificationError::NoDocuments.into());
         }

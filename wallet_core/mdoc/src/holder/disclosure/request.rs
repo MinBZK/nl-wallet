@@ -38,7 +38,7 @@ impl DeviceRequest {
 
     /// Verify reader authentication, if present.
     /// Note that since each DocRequest carries its own reader authentication, the spec allows the
-    /// the DocRequests to be signed by distinct readers. TODO maybe support this.
+    /// the DocRequests to be signed by distinct readers. TODO maybe support this (PVW-2368).
     /// For now, this function requires either none of the DocRequests to be signed, or all of them
     /// by the same reader.
     pub fn verify(

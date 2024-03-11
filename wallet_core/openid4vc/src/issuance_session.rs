@@ -238,7 +238,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError> {
-        let url = base_url.join("token").unwrap(); // TODO discover token endpoint instead
+        let url = base_url.join("token").unwrap(); // TODO discover token endpoint instead (PVW-2178)
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
@@ -337,7 +337,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
-        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead
+        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead (PVW-2178)
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let responses = self
@@ -387,7 +387,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
-        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead
+        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead (PVW-2178)
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
         self.message_client

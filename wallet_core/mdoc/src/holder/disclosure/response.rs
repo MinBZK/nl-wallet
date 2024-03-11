@@ -22,7 +22,7 @@ impl DeviceResponse {
         let device_response = DeviceResponse {
             version: DeviceResponseVersion::V1_0,
             documents: documents.into(),
-            document_errors: None, // TODO: Consider using this for reporting errors per mdoc
+            document_errors: None,
             status: 0,
         };
 
