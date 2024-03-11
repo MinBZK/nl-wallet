@@ -157,6 +157,8 @@ if [ ! -f "${TARGET_DIR}/pid_issuer/ca.key.pem" ]; then
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca.key.pem' already exists, not (re-)generating PID root CA"
 fi
+openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
+        -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
 
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
@@ -173,9 +175,9 @@ if [ ! -f "${TARGET_DIR}/mock_relying_party/ca.key.pem" ]; then
     generate_mock_relying_party_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/mock_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
-    openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
-        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
 fi
+openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
 
 # Generate CA for RPs
 RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
