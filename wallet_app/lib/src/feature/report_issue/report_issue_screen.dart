@@ -65,7 +65,7 @@ class ReportIssueScreen extends StatelessWidget {
       (context, index) => Column(
         children: [
           InkWell(
-            //TODO: Use selected option once "issue report" is implemented: Navigator.pop(context, options[index]),
+            // Use selected option once "issue report" is implemented: Navigator.pop(context, options[index]),
             onTap: () => PlaceholderScreen.show(context),
             child: IconRow(
               icon: Icon(
