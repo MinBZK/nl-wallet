@@ -12,13 +12,10 @@ use nl_wallet_mdoc::{
     ItemsRequest,
 };
 use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
+use tests_integration_common::*;
 use wallet::errors::DisclosureError;
 use wallet_common::utils;
 use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
-
-use crate::common::*;
-
-pub mod common;
 
 async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> StatusResponse {
     let response = client.get(session_url).send().await.unwrap();

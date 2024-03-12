@@ -1,26 +1,26 @@
-use std::time::Duration;
-
-use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use sea_orm::{Database, DatabaseConnection};
 use tracing::log::LevelFilter;
-use wallet_provider_database_settings::ConnectionString;
+use wallet_provider_database_settings::{ConnectionOptions, ConnectionString};
 
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 
-const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
-
 pub struct Db(DatabaseConnection);
 
 impl Db {
-    pub async fn new(connection_string: ConnectionString) -> Result<Db, PersistenceError> {
-        let mut connection_options = ConnectOptions::new(connection_string);
-        connection_options
-            .connect_timeout(DB_CONNECT_TIMEOUT)
+    pub async fn new(
+        connection_string: ConnectionString,
+        connection_options: ConnectionOptions,
+    ) -> Result<Db, PersistenceError> {
+        let mut connect_options = sea_orm::ConnectOptions::new(connection_string);
+        connect_options
+            .connect_timeout(connection_options.connect_timeout)
+            .max_connections(connection_options.max_connections.into())
             .sqlx_logging(true)
             .sqlx_logging_level(LevelFilter::Trace);
 
-        let db = Database::connect(connection_options)
+        let db = Database::connect(connect_options)
             .await
             .map_err(|e| PersistenceError::Connection(e.into()))?;
 

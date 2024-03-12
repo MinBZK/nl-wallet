@@ -1,6 +1,4 @@
-use crate::common::*;
-
-pub mod common;
+use tests_integration_common::*;
 
 #[tokio::test]
 async fn test_wallet_registration() {

@@ -5,16 +5,13 @@ use openid4vc::{
 };
 
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
+use tests_integration_common::*;
 use wallet::{
     mock::{default_configuration, default_reqwest_client_builder},
     wallet_common::WalletConfiguration,
 };
 use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
 use wallet_server::pid::attributes::MockPidAttributeService;
-
-use crate::common::*;
-
-pub mod common;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max.
 /// This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max is updated.
@@ -31,7 +28,7 @@ pub mod common;
 #[tokio::test]
 #[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
-    let settings = common::wallet_server_settings();
+    let settings = wallet_server_settings();
     let attr_service = MockPidAttributeService::new(
         settings.issuer.digid.issuer_url.clone(),
         settings.issuer.digid.bsn_privkey.clone(),

@@ -1,11 +1,31 @@
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, time::Duration};
 
 use config::{builder::BuilderState, Config, ConfigBuilder, ConfigError, Environment, File};
 use serde::Deserialize;
+use serde_with::{serde_as, DurationSeconds};
 
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     pub database: Database,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct ConnectionOptions {
+    #[serde(rename = "connect_timeout_in_sec")]
+    #[serde_as(as = "DurationSeconds")]
+    pub connect_timeout: Duration,
+
+    pub max_connections: u8,
+}
+
+impl Default for ConnectionOptions {
+    fn default() -> Self {
+        Self {
+            connect_timeout: Duration::from_secs(10),
+            max_connections: 10,
+        }
+    }
 }
 
 #[derive(Clone, Deserialize)]
@@ -14,6 +34,8 @@ pub struct Database {
     pub name: String,
     pub username: Option<String>,
     pub password: Option<String>,
+    #[serde(default)]
+    pub connection_options: ConnectionOptions,
 }
 
 pub type ConnectionString = String;
@@ -85,6 +107,7 @@ mod tests {
             name: db_name.to_string(),
             username: username.map(String::from),
             password: password.map(String::from),
+            connection_options: Default::default(),
         }
     }
 
