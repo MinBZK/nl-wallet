@@ -24,7 +24,6 @@ void main() {
 
   setUp(() {
     core = Mocks.create();
-    //FIXME: Mock mappers
     cardMapper = CardMapper(
       CardFrontMapper(CardSubtitleMapper(CardAttributeValueMapper())),
       CardConfigMapper(),
