@@ -190,7 +190,6 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                         let issuer_registration = IssuerRegistration::from_certificate(&proposed_card.issuer)?
                             .ok_or(EventConversionError::NoIssuerRegistrationFound)?;
 
-                        // TODO: Refer to persisted mdoc from the mdoc table, or not?
                         let document = Document::from_mdoc_attributes(
                             DocumentPersistence::InMemory,
                             &doc_type,
