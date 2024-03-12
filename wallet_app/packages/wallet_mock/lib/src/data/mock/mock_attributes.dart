@@ -48,7 +48,7 @@ final kMockPidDataAttributes = [
     key: 'mock.birthCountry',
   ),
   CardAttribute(
-    labels: [LocalizedString(language: 'nl', value: 'Burgerservicenummer (BSN)')],
+    labels: [LocalizedString(language: 'nl', value: 'Burger­service­nummer (BSN)')],
     value: CardValue.string(value: '******999'),
     key: 'mock.citizenshipNumber',
   ),

@@ -39,13 +39,14 @@ const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
 const kPharmacyId = 'pharmacy';
 
+final _kRvigOrganizationName = 'Rijksdienst voor Identiteits­gegevens';
 final _kRvigOrganization = Organization(
   //id: kRvigId,
-  legalName: 'Rijksdienst voor Identiteitsgegevens'.untranslated,
-  displayName: 'Rijksdienst voor Identiteitsgegevens'.untranslated,
+  legalName: _kRvigOrganizationName.untranslated,
+  displayName: _kRvigOrganizationName.untranslated,
   category: 'Overheid'.untranslated,
   description:
-      'Rijksdienst voor Identiteitsgegevens is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteitsgegevens.'
+      '$_kRvigOrganizationName is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteits­gegevens.'
           .untranslated,
   image: Image.asset(path: MockAssets.logo_rijksoverheid),
 );
