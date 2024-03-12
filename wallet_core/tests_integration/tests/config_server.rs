@@ -9,6 +9,7 @@ use reqwest::header::HeaderValue;
 use serial_test::serial;
 use tokio::fs;
 
+use tests_integration_common::*;
 use wallet::{
     errors::ConfigurationError,
     mock::default_configuration,
@@ -18,10 +19,6 @@ use wallet::{
     },
 };
 use wallet_common::jwt::JwtError;
-
-use crate::common::*;
-
-pub mod common;
 
 #[tokio::test]
 #[serial]

@@ -3,12 +3,9 @@ use std::sync::Arc;
 use url::Url;
 
 use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
+use tests_integration_common::*;
 use wallet::{AttributeValue, Document};
 use wallet_common::utils;
-
-use crate::common::*;
-
-pub mod common;
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
