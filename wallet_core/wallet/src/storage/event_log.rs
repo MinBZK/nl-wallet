@@ -14,25 +14,15 @@ use nl_wallet_mdoc::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EventStatus {
     Success,
-    Error(String),
+    Error,
     Cancelled,
-}
-
-impl EventStatus {
-    pub fn description(&self) -> Option<&str> {
-        if let EventStatus::Error(description) = self {
-            Some(description)
-        } else {
-            None
-        }
-    }
 }
 
 impl From<EventStatus> for disclosure_history_event::EventStatus {
     fn from(source: EventStatus) -> Self {
         match source {
             EventStatus::Success => Self::Success,
-            EventStatus::Error(_) => Self::Error,
+            EventStatus::Error => Self::Error,
             EventStatus::Cancelled => Self::Cancelled,
         }
     }
@@ -42,10 +32,7 @@ impl From<&disclosure_history_event::Model> for EventStatus {
     fn from(source: &disclosure_history_event::Model) -> Self {
         match source.status {
             disclosure_history_event::EventStatus::Success => Self::Success,
-            disclosure_history_event::EventStatus::Error => {
-                // unwrap is safe here, assuming the data has been inserted using [EventStatus]
-                Self::Error(source.status_description.as_ref().unwrap().to_owned())
-            }
+            disclosure_history_event::EventStatus::Error => Self::Error,
             disclosure_history_event::EventStatus::Cancelled => Self::Cancelled,
         }
     }
@@ -165,7 +152,6 @@ impl TryFrom<WalletEvent> for WalletEventModel {
                 id,
                 timestamp,
                 relying_party_certificate: reader_certificate.into(),
-                status_description: status.description().map(ToString::to_string),
                 status: status.into(),
             }),
         };
@@ -313,7 +299,6 @@ mod test {
             timestamp: DateTime<Utc>,
             reader_certificate: Certificate,
             issuer_certificate: &Certificate,
-            error_message: String,
         ) -> Self {
             let docs = vec![
                 create_minimal_unsigned_pid_mdoc(),
@@ -325,7 +310,7 @@ mod test {
                 documents,
                 timestamp,
                 reader_certificate,
-                status: EventStatus::Error(error_message),
+                status: EventStatus::Error,
             }
         }
 
@@ -339,17 +324,13 @@ mod test {
             }
         }
 
-        pub fn disclosure_error(
-            timestamp: DateTime<Utc>,
-            reader_certificate: Certificate,
-            error_message: String,
-        ) -> Self {
+        pub fn disclosure_error(timestamp: DateTime<Utc>, reader_certificate: Certificate) -> Self {
             Self::Disclosure {
                 id: Uuid::new_v4(),
                 documents: None,
                 timestamp,
                 reader_certificate,
-                status: EventStatus::Error(error_message),
+                status: EventStatus::Error,
             }
         }
     }

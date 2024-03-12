@@ -325,11 +325,8 @@ mod tests {
             .await
             .unwrap();
 
-        let disclosure_error_event = WalletEvent::disclosure_error(
-            timestamp_older + Duration::days(2),
-            reader_key.certificate().clone(),
-            "Some Error".to_owned(),
-        );
+        let disclosure_error_event =
+            WalletEvent::disclosure_error(timestamp_older + Duration::days(2), reader_key.certificate().clone());
         wallet
             .store_history_event(disclosure_error_event.clone())
             .await

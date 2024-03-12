@@ -37,7 +37,6 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(DisclosureHistoryEvent::Status).text().not_null())
-                    .col(ColumnDef::new(DisclosureHistoryEvent::StatusDescription).text().null())
                     .col(ColumnDef::new(DisclosureHistoryEvent::Attributes).json().null())
                     .to_owned(),
             )
@@ -141,7 +140,6 @@ enum DisclosureHistoryEvent {
     Timestamp,
     RelyingPartyCertificate,
     Status,
-    StatusDescription,
     Attributes,
 }
 

@@ -939,11 +939,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error = WalletEvent::disclosure_error(
-            timestamp,
-            READER_KEY.certificate().clone(),
-            "Something went wrong".to_string(),
-        );
+        let disclosure_error = WalletEvent::disclosure_error(timestamp, READER_KEY.certificate().clone());
 
         // No data shared with RP
         assert!(!storage
@@ -981,7 +977,6 @@ pub(crate) mod tests {
             timestamp,
             READER_KEY.certificate().clone(),
             ISSUER_KEY.certificate(),
-            "Something went wrong".to_string(),
         );
 
         // No data shared with RP
