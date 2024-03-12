@@ -110,7 +110,7 @@ final _kFirstAndLastNameRequest = [
 
 final _kCitizenshipNumberRequest = [
   RequestedAttribute(
-    label: 'Burgerservicenummer',
+    label: 'Burger­service­nummer',
     key: 'mock.citizenshipNumber',
   ),
 ];

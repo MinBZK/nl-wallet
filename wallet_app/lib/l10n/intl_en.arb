@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-03-08T14:58:18+01:00",
+    "@@last_modified": "2024-03-11T09:34:29+01:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
@@ -1220,7 +1220,7 @@
     "walletPersonalizeScreenLoadingSubtitle": "Please wait...",
     "walletPersonalizeScreenLoadingTitle": "Loading",
     "walletPersonalizeScreenStopDigidDialogNegativeCta": "Back",
-    "walletPersonalizeScreenStopDigidDialogPositiveCta": "Stop login process",
+    "walletPersonalizeScreenStopDigidDialogPositiveCta": "Stop login",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Are you sure you want to stop?",
     "walletPersonalizeScreenStopDigidDialogTitle": "Stop DigiD login?",
     "walletPersonalizeScreenTitle": "Create wallet",
