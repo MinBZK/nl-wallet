@@ -23,7 +23,7 @@ use crate::{
 
 use super::{documents::DocumentsError, history::EventStorageError, Wallet};
 
-pub(crate) enum PidIssuanceSession<OIC = HttpOidcClient, IS = HttpIssuanceSession> {
+pub(super) enum PidIssuanceSession<OIC = HttpOidcClient, IS = HttpIssuanceSession> {
     Digid(OIC),
     Openid4vci(IS),
 }
@@ -225,7 +225,7 @@ where
         info!("Accepting PID issuance");
 
         info!("Checking if registered");
-        let registration_data = self
+        let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| PidIssuanceError::NotRegistered)?;
@@ -248,9 +248,9 @@ where
         let remote_instruction = InstructionClient::new(
             pin,
             &self.storage,
-            &self.hw_privkey,
+            &registration.hw_privkey,
             &self.account_provider_client,
-            registration_data,
+            &registration.data,
             &config.account_server.base_url,
             &instruction_result_public_key,
         );
@@ -258,7 +258,7 @@ where
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
-        let mdocs = pid_issuer
+        let mdocs_result = pid_issuer
             .accept_issuance(
                 &config.mdoc_trust_anchors(),
                 &remote_key_factory,
@@ -280,12 +280,22 @@ where
                     }
                     _ => PidIssuanceError::PidIssuer(error),
                 }
-            })?;
+            });
+
+        // If the Wallet Provider returns either a PIN timeout or a permanent block,
+        // wipe the contents of the wallet and return it to its initial state.
+        if matches!(
+            mdocs_result,
+            Err(PidIssuanceError::Instruction(
+                InstructionError::Timeout { .. } | InstructionError::Blocked
+            ))
+        ) {
+            self.reset_to_initial_state().await;
+        }
+        let mdocs = mdocs_result?;
 
         info!("Isuance succeeded; removing issuance session state");
         self.issuance_session.take();
-
-        // TODO: Wipe the wallet when receiving a PIN timeout from the WP or when it is blocked.
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
@@ -337,6 +347,7 @@ mod tests {
         oidc::MockOidcClient,
         token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
     };
+    use rstest::rstest;
     use serial_test::serial;
     use url::Url;
 
@@ -344,15 +355,12 @@ mod tests {
 
     use crate::{
         document::{self, DocumentPersistence},
-        wallet::{
-            test::{self, ISSUER_KEY},
-            PidIssuanceSession,
-        },
-        HistoryEvent,
+        storage::StorageState,
+        wallet::history::HistoryEvent,
     };
 
     use super::{
-        super::test::{setup_mock_documents_callback, setup_mock_recent_history_callback, WalletWithMocks},
+        super::test::{self, WalletWithMocks, ISSUER_KEY},
         *,
     };
 
@@ -414,7 +422,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_pid_issuance_auth_url_error_session_state() {
+    async fn test_create_pid_issuance_auth_url_error_session_state_digid() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up a mock DigiD session.
@@ -428,8 +436,10 @@ mod tests {
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
         assert_matches!(error, PidIssuanceError::SessionState);
+    }
 
-        // Prepare another wallet.
+    #[tokio::test]
+    async fn test_create_pid_issuance_auth_url_error_session_state_pid_issuer() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Setup a mock OpenID4VCI session.
@@ -767,10 +777,10 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Register mock document_callback
-        let documents = setup_mock_documents_callback(&mut wallet).await.unwrap();
+        let documents = test::setup_mock_documents_callback(&mut wallet).await.unwrap();
 
         // Register mock recent_history_callback
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
@@ -789,7 +799,7 @@ mod tests {
             .expect("Could not accept PID issuance");
 
         // Test which `Document` instances we have received through the callback.
-        let documents = documents.lock().unwrap();
+        let documents = documents.lock();
 
         // The first entry should be empty, because there are no mdocs in the database.
         assert_eq!(documents.len(), 2);
@@ -802,11 +812,14 @@ mod tests {
         assert_eq!(document.doc_type, "com.example.pid");
 
         // Test that one successful issuance event is logged
-        let events = events.lock().unwrap();
+        let events = events.lock();
         assert_eq!(events.len(), 2);
         assert!(events[0].is_empty());
         assert_eq!(events[1].len(), 1);
         assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
+
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 
     #[tokio::test]
@@ -835,22 +848,9 @@ mod tests {
         // No issuance event is logged
         let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
         assert!(events.is_empty());
-    }
 
-    #[tokio::test]
-    async fn test_accept_pid_issuance_locked() {
-        // Prepare a registered and locked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        wallet.lock();
-
-        // Accepting PID issuance on a locked wallet should result in an error.
-        let error = wallet
-            .accept_pid_issuance(PIN.to_string())
-            .await
-            .expect_err("Accepting PID issuance should have resulted in an error");
-
-        assert_matches!(error, PidIssuanceError::Locked);
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 
     #[tokio::test]
@@ -868,6 +868,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_accept_pid_issuance_locked() {
+        // Prepare a registered and locked wallet.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        wallet.lock();
+
+        // Accepting PID issuance on a locked wallet should result in an error.
+        let error = wallet
+            .accept_pid_issuance(PIN.to_string())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, PidIssuanceError::Locked);
+
+        assert!(wallet.has_registration());
+        assert!(wallet.is_locked());
+    }
+
+    #[tokio::test]
     async fn test_accept_pid_issuance_session_state() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
@@ -880,9 +899,14 @@ mod tests {
             .expect_err("Accepting PID issuance should have resulted in an error");
 
         assert_matches!(error, PidIssuanceError::SessionState);
+
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 
-    async fn test_accept_pid_issuance_error_remote_key(key_error: RemoteEcdsaKeyError) -> PidIssuanceError {
+    async fn test_accept_pid_issuance_error_remote_key(
+        key_error: RemoteEcdsaKeyError,
+    ) -> (WalletWithMocks, PidIssuanceError) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -897,37 +921,67 @@ mod tests {
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Accepting PID issuance should result in an error.
-        wallet
+        let error = wallet
             .accept_pid_issuance(PIN.to_string())
             .await
-            .expect_err("Accepting PID issuance should have resulted in an error")
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        (wallet, error)
     }
 
+    #[rstest]
+    #[case(InstructionError::IncorrectPin { leftover_attempts: 1, is_final_attempt: false }, false)]
+    #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true)]
+    #[case(InstructionError::Blocked, true)]
+    #[case(InstructionError::InstructionValidation, false)]
     #[tokio::test]
-    async fn test_accept_pid_issuance_error_instruction() {
-        let error =
-            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(InstructionError::Blocked)).await;
+    async fn test_accept_pid_issuance_error_instruction(
+        #[case] instruction_error: InstructionError,
+        #[case] expect_reset: bool,
+    ) {
+        let (mut wallet, error) =
+            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(instruction_error)).await;
 
         // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
         assert_matches!(error, PidIssuanceError::Instruction(_));
+
+        // Test the state of the Wallet, based on if we expect a reset for this InstructionError.
+        if expect_reset {
+            assert!(!wallet.has_registration());
+            assert!(wallet.is_locked());
+            assert_matches!(
+                wallet.storage.get_mut().state().await.unwrap(),
+                StorageState::Uninitialized
+            );
+        } else {
+            assert!(wallet.has_registration());
+            assert!(!wallet.is_locked());
+            assert_matches!(wallet.storage.get_mut().state().await.unwrap(), StorageState::Opened);
+        }
     }
 
     #[tokio::test]
     async fn test_accept_pid_issuance_error_signature() {
-        let error =
+        let (wallet, error) =
             test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(signature::Error::default())).await;
 
         // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
         assert_matches!(error, PidIssuanceError::Signature(_));
+
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 
     #[tokio::test]
     async fn test_accept_pid_issuance_error_key_not_found() {
-        let error =
+        let (wallet, error) =
             test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::KeyNotFound("not found".to_string())).await;
 
         // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
         assert_matches!(error, PidIssuanceError::KeyNotFound(_));
+
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 
     #[tokio::test]
@@ -952,6 +1006,9 @@ mod tests {
             .expect_err("Accepting PID issuance should have resulted in an error");
 
         assert_matches!(error, PidIssuanceError::PidIssuer(_));
+
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 
     #[tokio::test]
@@ -978,5 +1035,8 @@ mod tests {
             .expect_err("Accepting PID issuance should have resulted in an error");
 
         assert_matches!(error, PidIssuanceError::MdocStorage(_));
+
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
     }
 }

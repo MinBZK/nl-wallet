@@ -255,7 +255,7 @@ where
         info!("Accepting disclosure");
 
         info!("Checking if registered");
-        let registration_data = self
+        let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| DisclosureError::NotRegistered)?;
@@ -308,9 +308,9 @@ where
         let remote_instruction = InstructionClient::new(
             pin,
             &self.storage,
-            &self.hw_privkey,
+            &registration.hw_privkey,
             &self.account_provider_client,
-            registration_data,
+            &registration.data,
             &config.account_server.base_url,
             &instruction_result_public_key,
         );
@@ -429,12 +429,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{atomic::Ordering, Arc, Mutex};
+    use std::sync::{atomic::Ordering, Arc};
 
     use assert_matches::assert_matches;
     use itertools::Itertools;
     use mockall::predicate::*;
     use once_cell::sync::Lazy;
+    use parking_lot::Mutex;
     use rstest::rstest;
     use serial_test::serial;
     use uuid::uuid;
@@ -454,7 +455,7 @@ mod tests {
     };
 
     use super::{
-        super::test::{setup_mock_recent_history_callback, WalletWithMocks, ISSUER_KEY},
+        super::test::{self, WalletWithMocks, ISSUER_KEY},
         *,
     };
 
@@ -740,7 +741,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
@@ -779,7 +780,7 @@ mod tests {
         assert!(!was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
-        let latest_events = events.lock().unwrap().pop().unwrap();
+        let latest_events = events.lock().pop().unwrap();
         // Verify no history events are yet logged
         assert!(latest_events.is_empty());
 
@@ -792,7 +793,7 @@ mod tests {
         assert!(was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
-        let events = events.lock().unwrap().pop().unwrap();
+        let events = events.lock().pop().unwrap();
         // Verify a Disclosure Cancel event is logged
         assert_eq!(events.len(), 1);
         assert_matches!(
@@ -812,7 +813,7 @@ mod tests {
     async fn test_wallet_cancel_disclosure_missing_attributes() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         // Set up an `MdocDisclosureSession` start to return that attributes are not available.
         let missing_attributes = vec![
@@ -842,7 +843,7 @@ mod tests {
         assert!(!was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
-        let latest_events = events.lock().unwrap().pop().unwrap();
+        let latest_events = events.lock().pop().unwrap();
         // Verify no history events are yet logged
         assert!(latest_events.is_empty());
 
@@ -855,7 +856,7 @@ mod tests {
         assert!(was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
-        let events = events.lock().unwrap().pop().unwrap();
+        let events = events.lock().pop().unwrap();
         // Verify a single Disclosure Error event is logged
         assert_eq!(events.len(), 1);
         assert_matches!(
@@ -924,7 +925,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         let return_url = Url::parse("https://example.com/return/here").unwrap();
 
@@ -979,7 +980,7 @@ mod tests {
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
 
         // Get latest emitted recent_history events
-        let events = events.lock().unwrap().pop().unwrap();
+        let events = events.lock().pop().unwrap();
 
         // Verify a single Disclosure Success event is logged, and documents are shared
         assert_eq!(events.len(), 1);
@@ -1066,7 +1067,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_error_session_state() {
+    async fn test_wallet_accept_disclosure_error_session_state_no_session() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -1080,7 +1081,10 @@ mod tests {
         assert_matches!(error, DisclosureError::SessionState);
         assert!(wallet.disclosure_session.is_none());
         assert!(!wallet.is_locked());
+    }
 
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_session_state_missing_attributes() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
@@ -1113,7 +1117,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
@@ -1158,7 +1162,7 @@ mod tests {
         );
 
         // Get latest emitted recent_history events
-        let events = events.lock().unwrap().pop().unwrap();
+        let events = events.lock().pop().unwrap();
         // Verify a Disclosure error event is logged, with no documents shared
         assert_eq!(events.len(), 1);
         assert_matches!(
@@ -1173,7 +1177,6 @@ mod tests {
                 proposal
                     .next_error
                     .lock()
-                    .unwrap()
                     .replace(nl_wallet_mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
                     )))
@@ -1234,7 +1237,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
@@ -1292,7 +1295,7 @@ mod tests {
         );
 
         // Get latest emitted recent_history events
-        let events = events.lock().unwrap().pop().unwrap();
+        let events = events.lock().pop().unwrap();
 
         if expect_termination {
             // Verify both a disclosure cancellation and error event are logged
@@ -1325,7 +1328,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
-        let events = setup_mock_recent_history_callback(&mut wallet).await.unwrap();
+        let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
@@ -1375,7 +1378,7 @@ mod tests {
         );
 
         // Get latest emitted recent_history events
-        let events = events.lock().unwrap().pop().unwrap();
+        let events = events.lock().pop().unwrap();
         // Verify a Disclosure error event is logged, and documents are shared
         assert_eq!(events.len(), 1);
         assert_matches!(

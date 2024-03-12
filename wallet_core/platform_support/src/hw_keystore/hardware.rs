@@ -1,36 +1,80 @@
+use std::{
+    any::TypeId,
+    collections::{HashMap, HashSet},
+};
+
+use once_cell::sync::Lazy;
 use p256::{
     ecdsa::{Signature, VerifyingKey},
     pkcs8::DecodePublicKey,
 };
+use parking_lot::Mutex;
 
 use wallet_common::{
-    keys::{ConstructibleWithIdentifier, EcdsaKey, SecureEcdsaKey, SecureEncryptionKey, WithIdentifier},
+    keys::{EcdsaKey, EncryptionKey, SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier, WithIdentifier},
     spawn,
 };
 
 use crate::bridge::hw_keystore::{get_encryption_key_bridge, get_signing_key_bridge};
 
-use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey};
+use super::{HardwareKeyStoreError, KeyStoreError, PlatformEcdsaKey, PlatformEncryptionKey};
+
+/// A static hash map of sets that contains all the identifiers for which an instance
+/// of that type currently exists within the application, keyed by the type's `TypeId`.
+static UNIQUE_IDENTIFIERS: Lazy<Mutex<HashMap<TypeId, HashSet<String>>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 impl From<KeyStoreError> for p256::ecdsa::Error {
-    // wrap KeyStoreError in p256::ecdsa::signature::error,
-    // as try_sign() has the latter as error type
+    // Wrap KeyStoreError in `p256::ecdsa::Error`,
+    // as try_sign() has the latter as error type.
     fn from(value: KeyStoreError) -> Self {
         p256::ecdsa::Error::from_source(value)
     }
 }
 
-// HardwareSigningKey wraps SigningKeyBridge from native
-#[derive(Clone)]
-pub struct HardwareEcdsaKey {
+/// Helper type that encapsulates the behaviour of a unique key
+/// with a particular identifier and `TypeId`.
+struct UniqueKey {
     identifier: String,
+    type_id: TypeId,
+}
+
+impl UniqueKey {
+    fn new(type_id: TypeId, identifier: &str) -> Option<Self> {
+        let mut key_identifiers = UNIQUE_IDENTIFIERS.lock();
+        let identifiers = key_identifiers.entry(type_id).or_default();
+
+        // If this identifier exists within the `HashSet` for the `TypeId`, return None.
+        // Otherwise, claim the identifier by inserting it into the `HashSet` and return
+        // a new `UniqueKey`.
+        (!identifiers.contains(identifier)).then(|| {
+            let identifier = identifier.to_string();
+            identifiers.insert(identifier.clone());
+
+            UniqueKey { type_id, identifier }
+        })
+    }
+}
+
+impl Drop for UniqueKey {
+    // Remove our entry from the static `HashSet`.
+    fn drop(&mut self) {
+        UNIQUE_IDENTIFIERS
+            .lock()
+            .get_mut(&self.type_id)
+            .map(|identifiers| identifiers.remove(&self.identifier));
+    }
+}
+
+// HardwareSigningKey wraps SigningKeyBridge from native.
+pub struct HardwareEcdsaKey {
+    unique_key: UniqueKey,
 }
 
 impl EcdsaKey for HardwareEcdsaKey {
     type Error = HardwareKeyStoreError;
 
     async fn verifying_key(&self) -> Result<VerifyingKey, Self::Error> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.unique_key.identifier.clone();
 
         spawn::blocking(|| {
             let public_key_bytes = get_signing_key_bridge().public_key(identifier)?;
@@ -42,68 +86,89 @@ impl EcdsaKey for HardwareEcdsaKey {
     }
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.unique_key.identifier.clone();
         let payload = msg.to_vec();
 
         let signature_bytes = spawn::blocking(|| get_signing_key_bridge().sign(identifier, payload)).await?;
 
-        // decode the DER encoded signature
+        // Decode the DER encoded signature.
         Ok(Signature::from_der(&signature_bytes)?)
     }
 }
 
 impl SecureEcdsaKey for HardwareEcdsaKey {}
 
-impl ConstructibleWithIdentifier for HardwareEcdsaKey {
-    fn new(identifier: &str) -> Self {
-        HardwareEcdsaKey {
-            identifier: identifier.to_string(),
-        }
+impl WithIdentifier for HardwareEcdsaKey {
+    fn identifier(&self) -> &str {
+        &self.unique_key.identifier
     }
 }
 
-impl WithIdentifier for HardwareEcdsaKey {
-    fn identifier(&self) -> &str {
-        &self.identifier
+impl StoredByIdentifier for HardwareEcdsaKey {
+    type Error = HardwareKeyStoreError;
+
+    fn new_unique(identifier: &str) -> Option<Self> {
+        UniqueKey::new(TypeId::of::<Self>(), identifier).map(|unique_key| HardwareEcdsaKey { unique_key })
+    }
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        // Clone the identifier, as `UniqueKey` implements `Drop`.
+        // Note that this `Drop` implementation will remove the identifier from `UNIQUE_IDENTIFIERS`.
+        let identifier = self.unique_key.identifier.clone();
+        spawn::blocking(|| get_signing_key_bridge().delete(identifier)).await?;
+
+        Ok(())
     }
 }
 
 impl PlatformEcdsaKey for HardwareEcdsaKey {}
 
-// HardwareEncryptionKey wraps EncryptionKeyBridge from native
-#[derive(Clone)]
+// HardwareEncryptionKey wraps EncryptionKeyBridge from native.
 pub struct HardwareEncryptionKey {
-    identifier: String,
-}
-
-impl ConstructibleWithIdentifier for HardwareEncryptionKey {
-    fn new(identifier: &str) -> Self {
-        HardwareEncryptionKey {
-            identifier: identifier.to_string(),
-        }
-    }
+    unique_key: UniqueKey,
 }
 
 impl WithIdentifier for HardwareEncryptionKey {
     fn identifier(&self) -> &str {
-        &self.identifier
+        &self.unique_key.identifier
     }
 }
 
-impl SecureEncryptionKey for HardwareEncryptionKey {
+impl StoredByIdentifier for HardwareEncryptionKey {
+    type Error = HardwareKeyStoreError;
+
+    fn new_unique(identifier: &str) -> Option<Self> {
+        UniqueKey::new(TypeId::of::<Self>(), identifier).map(|unique_key| HardwareEncryptionKey { unique_key })
+    }
+
+    async fn delete(self) -> Result<(), Self::Error> {
+        // Clone the identifier, as `UniqueKey` implements `Drop`.
+        // Note that this `Drop` implementation will remove the identifier from `UNIQUE_IDENTIFIERS`.
+        let identifier = self.unique_key.identifier.clone();
+        spawn::blocking(|| get_encryption_key_bridge().delete(identifier)).await?;
+
+        Ok(())
+    }
+}
+
+impl EncryptionKey for HardwareEncryptionKey {
     type Error = HardwareKeyStoreError;
 
     async fn encrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.unique_key.identifier.clone();
         let payload = msg.to_vec();
         let encrypted = spawn::blocking(|| get_encryption_key_bridge().encrypt(identifier, payload)).await?;
         Ok(encrypted)
     }
 
     async fn decrypt(&self, msg: &[u8]) -> Result<Vec<u8>, HardwareKeyStoreError> {
-        let identifier = self.identifier.to_owned();
+        let identifier = self.unique_key.identifier.clone();
         let payload = msg.to_vec();
         let decrypted = spawn::blocking(|| get_encryption_key_bridge().decrypt(identifier, payload)).await?;
         Ok(decrypted)
     }
 }
+
+impl SecureEncryptionKey for HardwareEncryptionKey {}
+
+impl PlatformEncryptionKey for HardwareEncryptionKey {}

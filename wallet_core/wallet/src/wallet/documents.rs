@@ -68,21 +68,21 @@ where
         Ok(())
     }
 
-    pub async fn set_documents_callback<F>(&mut self, callback: F) -> Result<(), DocumentsError>
-    where
-        F: FnMut(Vec<Document>) + Send + Sync + 'static,
-    {
-        self.documents_callback.replace(Box::new(callback));
+    pub async fn set_documents_callback(
+        &mut self,
+        callback: DocumentsCallback,
+    ) -> Result<Option<DocumentsCallback>, DocumentsError> {
+        let previous_callback = self.documents_callback.replace(callback);
 
         if self.registration.is_some() {
             self.emit_documents().await?;
         }
 
-        Ok(())
+        Ok(previous_callback)
     }
 
-    pub fn clear_documents_callback(&mut self) {
-        self.documents_callback.take();
+    pub fn clear_documents_callback(&mut self) -> Option<DocumentsCallback> {
+        self.documents_callback.take()
     }
 }
 
@@ -93,7 +93,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use super::{
-        super::test::{self, setup_mock_documents_callback, WalletWithMocks},
+        super::test::{self, WalletWithMocks},
         *,
     };
 
@@ -104,7 +104,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Register mock document_callback
-        let documents = setup_mock_documents_callback(&mut wallet)
+        let documents = test::setup_mock_documents_callback(&mut wallet)
             .await
             .expect("Failed to set mock documents callback");
 
@@ -113,7 +113,7 @@ mod tests {
 
         // Confirm that the callback was not called.
         {
-            let documents = documents.lock().unwrap();
+            let documents = documents.lock();
 
             assert!(documents.is_empty());
         }
@@ -136,7 +136,7 @@ mod tests {
         wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
 
         // Register mock document_callback
-        let documents = setup_mock_documents_callback(&mut wallet)
+        let documents = test::setup_mock_documents_callback(&mut wallet)
             .await
             .expect("Failed to set mock documents callback");
 
@@ -145,7 +145,7 @@ mod tests {
 
         // Confirm that we received a single `Document` on the callback.
         {
-            let documents = documents.lock().unwrap();
+            let documents = documents.lock();
 
             let document = documents
                 .first()
@@ -173,8 +173,9 @@ mod tests {
         wallet.storage.get_mut().mdocs.add([mdoc].into_iter()).unwrap();
 
         // Register mock document_callback
-        let (documents, error) = setup_mock_documents_callback(&mut wallet)
+        let (documents, error) = test::setup_mock_documents_callback(&mut wallet)
             .await
+            .map(|_| ())
             .expect_err("Expected error");
 
         assert_matches!(error, DocumentsError::MissingIssuerRegistration);
@@ -192,8 +193,9 @@ mod tests {
 
         // Confirm that setting the callback returns an error.
         let error = wallet
-            .set_documents_callback(|_| {})
+            .set_documents_callback(Box::new(|_| {}))
             .await
+            .map(|_| ())
             .expect_err("Setting documents callback should have resulted in an error");
 
         assert_matches!(error, DocumentsError::Storage(_));

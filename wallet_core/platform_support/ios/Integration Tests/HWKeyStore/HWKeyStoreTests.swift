@@ -29,10 +29,12 @@ final class HWKeyStoreTests: XCTestCase {
     }
 
     func testHardwareSignature() {
-        XCTAssert(hw_keystore_test_hardware_signature())
+        // The Rust code will panic if this test fails.
+        hw_keystore_test_hardware_signature()
     }
 
     func testHardwareEncryption() {
-        XCTAssert(hw_keystore_test_hardware_encryption())
+        // The Rust code will panic if this test fails.
+        hw_keystore_test_hardware_encryption()
     }
 }

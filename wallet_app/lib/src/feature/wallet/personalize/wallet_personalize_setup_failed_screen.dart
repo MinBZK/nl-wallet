@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/usecase/wallet/reset_wallet_usecase.dart';
-import '../../../navigation/secured_page_route.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
@@ -66,8 +63,7 @@ class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () async {
           final navigator = Navigator.of(context);
-          await context.read<ResetWalletUseCase>().invoke();
-          navigator.restorablePushNamedAndRemoveUntil(
+          navigator.pushNamedAndRemoveUntil(
             WalletRoutes.setupSecurityRoute,
             ModalRoute.withName(WalletRoutes.splashRoute),
           );
@@ -80,7 +76,7 @@ class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
   static void show(BuildContext context) {
     Navigator.pushAndRemoveUntil(
       context,
-      SecuredPageRoute(builder: (c) => const WalletPersonalizeSetupFailedScreen()),
+      MaterialPageRoute(builder: (c) => const WalletPersonalizeSetupFailedScreen()),
       ModalRoute.withName(WalletRoutes.splashRoute),
     );
   }

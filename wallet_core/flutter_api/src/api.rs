@@ -81,7 +81,10 @@ pub fn is_valid_pin(pin: String) -> Result<PinValidationResult> {
 pub async fn set_lock_stream(sink: StreamSink<bool>) {
     let sink = ClosingStreamSink::from(sink);
 
-    wallet().write().await.set_lock_callback(move |locked| sink.add(locked));
+    wallet()
+        .write()
+        .await
+        .set_lock_callback(Box::new(move |locked| sink.add(locked)));
 }
 
 #[async_runtime]
@@ -94,14 +97,14 @@ pub async fn set_configuration_stream(sink: StreamSink<FlutterConfiguration>) {
     let sink = ClosingStreamSink::from(sink);
 
     wallet()
-        .write()
+        .read()
         .await
-        .set_config_callback(move |config| sink.add(config.as_ref().into()));
+        .set_config_callback(Box::new(move |config| sink.add(config.as_ref().into())));
 }
 
 #[async_runtime]
 pub async fn clear_configuration_stream() {
-    wallet().write().await.clear_config_callback();
+    wallet().read().await.clear_config_callback();
 }
 
 #[async_runtime]
@@ -111,11 +114,11 @@ pub async fn set_cards_stream(sink: StreamSink<Vec<Card>>) -> Result<()> {
     wallet()
         .write()
         .await
-        .set_documents_callback(move |documents| {
+        .set_documents_callback(Box::new(move |documents| {
             let cards = documents.into_iter().map(|document| document.into()).collect();
 
             sink.add(cards);
-        })
+        }))
         .await?;
 
     Ok(())
@@ -133,11 +136,11 @@ pub async fn set_recent_history_stream(sink: StreamSink<Vec<WalletEvent>>) -> Re
     wallet()
         .write()
         .await
-        .set_recent_history_callback(move |events| {
+        .set_recent_history_callback(Box::new(move |events| {
             let recent_history = events.into_iter().flat_map(WalletEvents::from).collect();
 
             sink.add(recent_history);
-        })
+        }))
         .await?;
 
     Ok(())
@@ -312,8 +315,11 @@ pub async fn get_history_for_card(doc_type: String) -> Result<Vec<WalletEvent>> 
 }
 
 #[async_runtime]
-pub async fn reset_wallet() {
-    panic!("Unimplemented: UC 9.4")
+#[flutter_api_error]
+pub async fn reset_wallet() -> Result<()> {
+    wallet().write().await.reset().await?;
+
+    Ok(())
 }
 
 #[cfg(test)]

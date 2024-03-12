@@ -6,6 +6,7 @@ mod init;
 mod issuance;
 mod lock;
 mod registration;
+mod reset;
 mod uri;
 
 #[cfg(test)]
@@ -26,16 +27,26 @@ use crate::{
 };
 
 pub use self::{
+    config::ConfigCallback,
     disclosure::{DisclosureError, DisclosureProposal},
-    history::{EventConversionError, EventStatus, EventStorageError, HistoryError, HistoryEvent},
+    documents::DocumentsCallback,
+    history::{
+        EventConversionError, EventStatus, EventStorageError, HistoryError, HistoryEvent, RecentHistoryCallback,
+    },
     init::WalletInitError,
     issuance::PidIssuanceError,
-    lock::WalletUnlockError,
+    lock::{LockCallback, WalletUnlockError},
     registration::WalletRegistrationError,
+    reset::ResetError,
     uri::{UriIdentificationError, UriType},
 };
 
-use self::{documents::DocumentsCallback, history::RecentHistoryCallback, issuance::PidIssuanceSession};
+use self::issuance::PidIssuanceSession;
+
+struct WalletRegistration<K> {
+    hw_privkey: K,
+    data: RegistrationData,
+}
 
 pub struct Wallet<
     CR = UpdatingFileHttpConfigurationRepository,  // ConfigurationRepository
@@ -48,12 +59,11 @@ pub struct Wallet<
 > {
     config_repository: CR,
     storage: RwLock<S>,
-    hw_privkey: PEK,
     account_provider_client: APC,
     issuance_session: Option<PidIssuanceSession<OIC, IC>>,
     disclosure_session: Option<MDS>,
     lock: WalletLock,
-    registration: Option<RegistrationData>,
+    registration: Option<WalletRegistration<PEK>>,
     documents_callback: Option<DocumentsCallback>,
     recent_history_callback: Option<RecentHistoryCallback>,
 }

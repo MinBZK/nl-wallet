@@ -5,10 +5,10 @@ use serde::Serialize;
 
 use wallet::{
     errors::{
-        reqwest, AccountProviderError, DisclosureError, HistoryError, InstructionError, PidIssuanceError,
+        reqwest, AccountProviderError, DisclosureError, HistoryError, InstructionError, PidIssuanceError, ResetError,
         UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
     },
-    OidcError,
+    openid4vc::OidcError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -77,6 +77,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<PidIssuanceError>().map(Self::from))
             .or_else(|e| e.downcast::<DisclosureError>().map(Self::from))
             .or_else(|e| e.downcast::<HistoryError>().map(Self::from))
+            .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
     }
 }
@@ -201,6 +202,14 @@ impl FlutterApiErrorFields for HistoryError {
         match self {
             HistoryError::NotRegistered | HistoryError::Locked => FlutterApiErrorType::WalletState,
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for ResetError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            ResetError::NotRegistered => FlutterApiErrorType::WalletState,
         }
     }
 }

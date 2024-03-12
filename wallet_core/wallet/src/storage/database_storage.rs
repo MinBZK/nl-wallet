@@ -1,4 +1,4 @@
-use std::{collections::HashSet, marker::PhantomData, path::PathBuf};
+use std::{collections::HashSet, path::PathBuf};
 
 use futures::try_join;
 use migration::SimpleExpr;
@@ -9,6 +9,7 @@ use sea_orm::{
     TransactionTrait,
 };
 use tokio::fs;
+use tracing::warn;
 use uuid::Uuid;
 
 use entity::{
@@ -20,13 +21,13 @@ use nl_wallet_mdoc::{
     holder::MdocCopies,
     utils::serialization::{cbor_deserialize, cbor_serialize, CborError},
 };
-use wallet_common::keys::SecureEncryptionKey;
+use platform_support::hw_keystore::PlatformEncryptionKey;
 
 use super::{
     data::KeyedData,
     database::{Database, SqliteUrl},
     event_log::{WalletEvent, WalletEventModel},
-    key_file::{delete_key_file, get_or_create_key_file},
+    key_file,
     sql_cipher_key::SqlCipherKey,
     Storage, StorageError, StorageResult, StorageState, StoredMdocCopy,
 };
@@ -34,10 +35,15 @@ use super::{
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
 const DATABASE_FILE_EXT: &str = "db";
+const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
 
 fn key_file_alias_for_name(database_name: &str) -> String {
     // Append suffix to database name to get key file alias
     format!("{}{}", database_name, KEY_FILE_SUFFIX)
+}
+
+fn key_identifier_for_key_file(alias: &str) -> String {
+    format!("{}{}", KEY_IDENTIFIER_PREFIX, alias)
 }
 
 /// This is the implementation of [`Storage`] as used by the [`crate::Wallet`]. Its responsibilities are:
@@ -51,22 +57,28 @@ fn key_file_alias_for_name(database_name: &str) -> String {
 #[derive(Debug)]
 pub struct DatabaseStorage<K> {
     storage_path: PathBuf,
-    database: Option<Database>,
-    _key: PhantomData<K>,
+    open_database: Option<OpenDatabaseStorage<K>>,
+}
+
+#[derive(Debug)]
+struct OpenDatabaseStorage<K> {
+    database: Database,
+    key_file_key: K,
 }
 
 impl<K> DatabaseStorage<K> {
-    pub fn init(storage_path: PathBuf) -> Self {
+    pub fn new(storage_path: PathBuf) -> Self {
         DatabaseStorage {
             storage_path,
-            database: None,
-            _key: PhantomData,
+            open_database: None,
         }
     }
 
     // Helper method, should be called before accessing database.
     fn database(&self) -> StorageResult<&Database> {
-        self.database.as_ref().ok_or(StorageError::NotOpened)
+        let database = &self.open_database.as_ref().ok_or(StorageError::NotOpened)?.database;
+
+        Ok(database)
     }
 
     fn database_path_for_name(&self, name: &str) -> PathBuf {
@@ -230,35 +242,48 @@ impl<K> DatabaseStorage<K> {
 
 impl<K> DatabaseStorage<K>
 where
-    K: SecureEncryptionKey,
+    K: PlatformEncryptionKey,
 {
     /// This helper method uses [`get_or_create_key_file`] and the utilities in [`platform_support`]
     /// to construct a [`SqliteUrl`] and a [`SqlCipherKey`], which in turn are used to create a [`Database`]
     /// instance.
-    async fn open_encrypted_database(&self, name: &str) -> StorageResult<Database> {
+    async fn open_encrypted_database(&self, name: &str) -> StorageResult<OpenDatabaseStorage<K>> {
         let key_file_alias = key_file_alias_for_name(name);
+        let key_file_key_identifier = key_identifier_for_key_file(&key_file_alias);
         let database_path = self.database_path_for_name(name);
 
+        // Get or create the encryption key for the key file contents. The identifier used
+        // for this should be globally unique. If this is not the case, the same database is
+        // being opened multiple times, which is a programmer error and should result in a panic.
+        let key_file_key =
+            K::new_unique(&key_file_key_identifier).expect("database key file key identifier is already in use");
+
         // Get database key of the correct length including a salt, stored in encrypted file.
-        let key_bytes =
-            get_or_create_key_file::<K>(&self.storage_path, &key_file_alias, SqlCipherKey::size_with_salt()).await?;
+        let key_bytes = key_file::get_or_create_key_file(
+            &self.storage_path,
+            &key_file_alias,
+            &key_file_key,
+            SqlCipherKey::size_with_salt(),
+        )
+        .await?;
         let key = SqlCipherKey::try_from(key_bytes.as_slice())?;
 
         // Open database at the path, encrypted using the key
         let database = Database::open(SqliteUrl::File(database_path), key).await?;
+        let open_database = OpenDatabaseStorage { database, key_file_key };
 
-        Ok(database)
+        Ok(open_database)
     }
 }
 
 impl<K> Storage for DatabaseStorage<K>
 where
-    K: SecureEncryptionKey,
+    K: PlatformEncryptionKey,
 {
     /// Indicate whether there is no database on disk, there is one but it is unopened
     /// or the database is currently open.
     async fn state(&self) -> StorageResult<StorageState> {
-        if self.database.is_some() {
+        if self.open_database.is_some() {
             return Ok(StorageState::Opened);
         }
 
@@ -273,27 +298,33 @@ where
 
     /// Load a database, creating a new key file and database file if necessary.
     async fn open(&mut self) -> StorageResult<()> {
-        if self.database.is_some() {
+        if self.open_database.is_some() {
             return Err(StorageError::AlreadyOpened);
         }
 
-        let database = self.open_encrypted_database(DATABASE_NAME).await?;
-        self.database.replace(database);
+        let open_database = self.open_encrypted_database(DATABASE_NAME).await?;
+        self.open_database.replace(open_database);
 
         Ok(())
     }
 
     /// Clear the contents of the database by closing it and removing both database and key file.
-    async fn clear(&mut self) -> StorageResult<()> {
+    async fn clear(&mut self) {
         // Take the Database from the Option<> so that close_and_delete() can consume it.
-        let database = self.database.take().ok_or(StorageError::NotOpened)?;
-        let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
+        if let Some(open_database) = self.open_database.take() {
+            if let Err(error) = open_database.database.close_and_delete().await {
+                warn!("Could not close and delete database: {}", error);
+            }
 
-        // Close and delete the database, only if this succeeds also delete the key file.
-        database.close_and_delete().await?;
-        delete_key_file(&self.storage_path, &key_file_alias).await;
+            let key_file_alias = key_file_alias_for_name(DATABASE_NAME);
+            if let Err(error) = key_file::delete_key_file(&self.storage_path, &key_file_alias).await {
+                warn!("Could not delete database key file: {}", error);
+            }
 
-        Ok(())
+            if let Err(error) = open_database.key_file_key.delete().await {
+                warn!("Could not delete database key file key: {}", error);
+            }
+        }
     }
 
     /// Get data entry from the key-value table, if present.
@@ -562,6 +593,8 @@ where
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::mem;
+
     use chrono::{TimeZone, Utc};
     use once_cell::sync::Lazy;
     use tokio::fs;
@@ -603,41 +636,80 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_database_open_encrypted_database() {
-        let storage = DatabaseStorage::<SoftwareEncryptionKey>::init(SoftwareUtilities::storage_path().await.unwrap());
+    async fn test_database_open_encrypted_database_and_clear() {
+        let mut storage =
+            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
 
         let name = "test_open_encrypted_database";
         let key_file_alias = key_file_alias_for_name(name);
+        let key_file_identifier = key_identifier_for_key_file(&key_file_alias);
         let database_path = storage.database_path_for_name(name);
 
         // Make sure we start with a clean slate.
-        delete_key_file(&storage.storage_path, &key_file_alias).await;
+        _ = key_file::delete_key_file(&storage.storage_path, &key_file_alias).await;
         _ = fs::remove_file(database_path).await;
 
-        let database = storage
+        // The key file encryption key should be absent.
+        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+
+        // Open the encrypted database.
+        let open_database = storage
             .open_encrypted_database(name)
             .await
             .expect("Could not open encrypted database");
 
-        assert!(matches!(&database.url, SqliteUrl::File(path)
-            if path.to_str().unwrap().contains("test_open_encrypted_database.db")));
+        // The database should have opened a file at the expected path.
+        let database_path = match open_database.database.url {
+            SqliteUrl::File(ref path) => path.clone(),
+            _ => panic!("Unexpected database URL"),
+        };
+        assert!(database_path
+            .to_str()
+            .unwrap()
+            .contains("test_open_encrypted_database.db"));
+        assert!(fs::try_exists(&database_path).await.unwrap());
 
-        database
-            .close_and_delete()
+        // The key file encryption key should be present.
+        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+
+        // Set the open database on the `DatabaseStorage` instance, then drop the storage.
+        // Both the database file and the encryption key should still exist.
+        storage.open_database = open_database.into();
+        mem::drop(storage);
+        assert!(fs::try_exists(&database_path).await.unwrap());
+        assert!(SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
+
+        // Re-open the encrypted database, set it on the `DatabaseStorage`
+        // instance and then call clear on it in order to delete the database.
+        let mut storage =
+            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
+        storage.open_database = storage
+            .open_encrypted_database(name)
             .await
-            .expect("Could not close and delete database");
+            .expect("Could not open encrypted database")
+            .into();
+        storage.clear().await;
+
+        // The database file should be gone and the key file encryption key should be absent.
+        assert!(!fs::try_exists(&database_path).await.unwrap());
+        assert!(!SoftwareEncryptionKey::identifier_exists(&key_file_identifier));
     }
 
     async fn open_test_database_storage() -> DatabaseStorage<SoftwareEncryptionKey> {
         let mut storage =
-            DatabaseStorage::<SoftwareEncryptionKey>::init(SoftwareUtilities::storage_path().await.unwrap());
+            DatabaseStorage::<SoftwareEncryptionKey>::new(SoftwareUtilities::storage_path().await.unwrap());
 
         // Create a test database, override the database field on Storage.
         let key_bytes = random_bytes(SqlCipherKey::size_with_salt());
         let database = Database::open(SqliteUrl::InMemory, key_bytes.as_slice().try_into().unwrap())
             .await
             .expect("Could not open in-memory database");
-        storage.database = Some(database);
+
+        // Create an encryption key for the key file, which is not actually used,
+        // but still needs to be present.
+        let key_file_key = SoftwareEncryptionKey::new_random("open_test_database_storage".to_string());
+
+        storage.open_database = OpenDatabaseStorage { database, key_file_key }.into();
 
         storage
     }
@@ -713,7 +785,7 @@ pub(crate) mod tests {
         );
 
         // Clear database, state should be uninitialized.
-        storage.clear().await.expect("Could not clear storage");
+        storage.clear().await;
 
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Uninitialized));

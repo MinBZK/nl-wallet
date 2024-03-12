@@ -11,14 +11,21 @@ workspace = true
 doctest = false
 
 [features]
-# Implement EcdsaKey and related traits for p256::ecdsa::SigningKey
-mock_p256_keys = []
+# Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
+# and implement SecureEncryptionKey on aes-gcm cipher.
+mock_secure_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
-software_keys = ["dep:aes-gcm", "dep:rand_core"]
+software_keys = [
+    "mock_secure_keys",
+    "dep:once_cell",
+    "dep:parking_lot",
+    "dep:rand_core",
+]
 # Enable helper code for integration tests
 integration_test = []
 
 [dependencies]
+aes-gcm = { workspace = true, features = ["std"] }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 config.workspace = true
@@ -27,7 +34,6 @@ futures.workspace = true
 http.workspace = true
 jsonwebtoken.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand.workspace = true
 ring.workspace = true
@@ -37,17 +43,14 @@ serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 sha2.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["rt", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
-aes-gcm = { workspace = true, optional = true, features = ["std"] }
+once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
+parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 rand_core.workspace = true
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "macros",
-    "parking_lot",
-] }
+tokio = { workspace = true, features = ["macros"] }

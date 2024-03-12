@@ -1,9 +1,7 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Mutex,
-};
+use std::path::{Path, PathBuf};
 
 use http::{header, HeaderValue, StatusCode};
+use parking_lot::Mutex;
 use reqwest::Certificate;
 use tokio::fs;
 use url::Url;
@@ -52,7 +50,7 @@ impl HttpConfigurationClient {
     async fn read_latest_etag(storage_path: &Path) -> Result<Option<HeaderValue>, FileStorageError> {
         let path = Self::path_for_etag_file(storage_path);
 
-        if !path.try_exists()? {
+        if !fs::try_exists(&path).await? {
             return Ok(None);
         }
 
@@ -76,7 +74,7 @@ impl HttpConfigurationClient {
         let url = self.base_url.join("wallet-config")?;
         let mut request_builder = self.http_client.get(url);
 
-        if let Some(etag) = self.latest_etag.lock().unwrap().as_ref() {
+        if let Some(etag) = self.latest_etag.lock().as_ref() {
             request_builder = request_builder.header(header::IF_NONE_MATCH, etag)
         }
 
@@ -103,7 +101,7 @@ impl HttpConfigurationClient {
 
         if let Some(etag) = response.headers().get(header::ETAG) {
             Self::store_latest_etag(self.storage_path.as_path(), etag).await?;
-            *self.latest_etag.lock().unwrap() = Some(etag.to_owned());
+            *self.latest_etag.lock() = Some(etag.to_owned());
         }
 
         let body = response.text().await?;

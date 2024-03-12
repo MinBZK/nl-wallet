@@ -15,11 +15,13 @@ impl From<uniffi::UnexpectedUniFFICallbackError> for KeyStoreError {
 pub trait SigningKeyBridge: Send + Sync + Debug {
     fn public_key(&self, identifier: String) -> Result<Vec<u8>, KeyStoreError>;
     fn sign(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
+    fn delete(&self, identifier: String) -> Result<(), KeyStoreError>;
 }
 
 pub trait EncryptionKeyBridge: Send + Sync + Debug {
     fn encrypt(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
     fn decrypt(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, KeyStoreError>;
+    fn delete(&self, identifier: String) -> Result<(), KeyStoreError>;
 }
 
 pub fn get_signing_key_bridge() -> &'static dyn SigningKeyBridge {

@@ -103,6 +103,7 @@ class Mocks {
 
     // Use cases
     sl.registerFactory<DecodeUriUseCase>(() => MockDecodeUriUseCase());
+    sl.registerFactory<IsWalletInitializedUseCase>(() => MockIsWalletInitializedUseCase());
     sl.registerFactory<IsWalletInitializedWithPidUseCase>(() => MockIsWalletInitializedWithPidUseCase());
     sl.registerFactory<ObserveWalletLockedUseCase>(() => MockObserveWalletLockedUseCase());
     sl.registerFactory<CheckPinUseCase>(() => MockCheckPinUseCase());

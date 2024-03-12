@@ -826,7 +826,7 @@ class WalletCoreImpl implements WalletCore {
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_reset_wallet(port_),
       parseSuccessData: _wire2api_unit,
-      parseErrorData: null,
+      parseErrorData: _wire2api_FrbAnyhowException,
       constMeta: kResetWalletConstMeta,
       argValues: [],
       hint: hint,

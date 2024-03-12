@@ -31,4 +31,12 @@ extension EncryptionKey: EncryptionKeyBridge {
             throw KeyStoreError.from(error)
         }
     }
+
+    func delete(identifier: String) throws {
+        do {
+            return try self.secureEnclaveKey(for: identifier).delete()
+        } catch let error as SecureEnclaveKeyError {
+            throw KeyStoreError.from(error)
+        }
+    }
 }

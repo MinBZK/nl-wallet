@@ -7,7 +7,7 @@ use openid4vc::{
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
 use wallet::{
     mock::{default_configuration, default_reqwest_client_builder},
-    WalletConfiguration,
+    wallet_common::WalletConfiguration,
 };
 use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
 use wallet_server::pid::attributes::MockPidAttributeService;

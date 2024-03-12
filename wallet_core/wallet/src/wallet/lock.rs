@@ -4,6 +4,8 @@ use tracing::{info, instrument};
 
 use wallet_common::account::messages::instructions::CheckPin;
 
+pub use crate::lock::LockCallback;
+
 use crate::{
     account_provider::AccountProviderClient,
     config::ConfigurationRepository,
@@ -28,18 +30,15 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
         self.lock.is_locked()
     }
 
-    pub fn set_lock_callback<F>(&mut self, callback: F)
-    where
-        F: FnMut(bool) + Send + Sync + 'static,
-    {
-        // callback(self.lock.is_locked());
-        self.lock.set_lock_callback(callback);
+    pub fn set_lock_callback(&mut self, callback: LockCallback) -> Option<LockCallback> {
+        self.lock.set_lock_callback(callback)
     }
 
-    pub fn clear_lock_callback(&mut self) {
+    pub fn clear_lock_callback(&mut self) -> Option<LockCallback> {
         self.lock.clear_lock_callback()
     }
 
+    #[instrument(skip_all)]
     pub fn lock(&mut self) {
         self.lock.lock()
     }
@@ -55,7 +54,7 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
         info!("Validating pin");
 
         info!("Checking if registered");
-        let registration_data = self
+        let registration = self
             .registration
             .as_ref()
             .ok_or_else(|| WalletUnlockError::NotRegistered)?;
@@ -72,9 +71,9 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
         let remote_instruction = InstructionClient::new(
             pin,
             &self.storage,
-            &self.hw_privkey,
+            &registration.hw_privkey,
             &self.account_provider_client,
-            registration_data,
+            &registration.data,
             &config.account_server.base_url,
             &instruction_result_public_key,
         );
@@ -95,16 +94,14 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        ops::Deref,
-        sync::{Arc, Mutex},
-    };
+    use std::{ops::Deref, sync::Arc};
 
     use assert_matches::assert_matches;
     use http::StatusCode;
     use mockall::predicate::*;
 
     use p256::ecdsa::SigningKey;
+    use parking_lot::Mutex;
     use rand_core::OsRng;
     use wallet_common::{
         account::{
@@ -140,7 +137,7 @@ mod tests {
 
         // Set the lock callback on the `Wallet`,
         // which should immediately be called exactly once.
-        wallet.set_lock_callback(move |is_locked| callback_is_locked_vec.lock().unwrap().push(is_locked));
+        wallet.set_lock_callback(Box::new(move |is_locked| callback_is_locked_vec.lock().push(is_locked)));
 
         // Lock the `Wallet`, then lock it again.
         wallet.lock();
@@ -152,8 +149,9 @@ mod tests {
 
         // Set up the instruction challenge.
         let challenge_response = challenge.clone();
-        let wallet_cert = wallet.registration.as_ref().unwrap().wallet_certificate.clone();
-        let hw_pubkey = wallet.hw_privkey.verifying_key().await.unwrap();
+        let registration = wallet.registration.as_ref().unwrap();
+        let wallet_cert = registration.data.wallet_certificate.clone();
+        let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
 
         wallet
             .account_provider_client
@@ -177,10 +175,10 @@ mod tests {
             });
 
         // Set up the instruction.
-        let wallet_cert = wallet.registration.as_ref().unwrap().wallet_certificate.clone();
-        let hw_pubkey = wallet.hw_privkey.verifying_key().await.unwrap();
+        let wallet_cert = registration.data.wallet_certificate.clone();
+        let hw_pubkey = registration.hw_privkey.verifying_key().await.unwrap();
 
-        let pin_key = PinKey::new(PIN, &wallet.registration.as_ref().unwrap().pin_salt);
+        let pin_key = PinKey::new(PIN, &registration.data.pin_salt);
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
         let result_claims = InstructionResultClaims {
@@ -223,7 +221,7 @@ mod tests {
 
         // Test the contents of the `Vec<bool>`.
         {
-            let is_locked_vec = is_locked_vec.lock().unwrap();
+            let is_locked_vec = is_locked_vec.lock();
 
             assert_eq!(is_locked_vec.deref(), &vec![false, true, false]);
         }
@@ -238,7 +236,7 @@ mod tests {
         wallet.lock();
 
         // Test that the callback was not called.
-        assert_eq!(is_locked_vec.lock().unwrap().len(), 3);
+        assert_eq!(is_locked_vec.lock().len(), 3);
     }
 
     #[tokio::test]
@@ -407,10 +405,12 @@ mod tests {
 
         // Have the hardware key signing fail.
         wallet
+            .registration
+            .as_mut()
+            .unwrap()
             .hw_privkey
             .next_private_key_error
-            .lock()
-            .unwrap()
+            .get_mut()
             .replace(p256::ecdsa::Error::new());
 
         let error = wallet

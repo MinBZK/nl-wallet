@@ -1409,6 +1409,7 @@ dependencies = [
  "itertools 0.11.0",
  "once_cell",
  "oslog",
+ "parking_lot",
  "serde",
  "serde_json",
  "tokio",
@@ -2414,6 +2415,7 @@ dependencies = [
  "itertools 0.11.0",
  "once_cell",
  "p256",
+ "parking_lot",
  "rand_core 0.6.4",
  "rcgen",
  "regex",
@@ -2877,6 +2879,7 @@ dependencies = [
  "jni",
  "once_cell",
  "p256",
+ "parking_lot",
  "thiserror",
  "tokio",
  "uniffi",
@@ -4878,6 +4881,7 @@ dependencies = [
 name = "wallet"
 version = "0.1.0"
 dependencies = [
+ "aes-gcm",
  "assert_matches",
  "base64 0.21.4",
  "chrono",
@@ -4897,6 +4901,7 @@ dependencies = [
  "once_cell",
  "openid4vc",
  "p256",
+ "parking_lot",
  "platform_support",
  "rand_core 0.6.4",
  "reqwest",
@@ -4955,6 +4960,7 @@ dependencies = [
  "nutype",
  "once_cell",
  "p256",
+ "parking_lot",
  "rand 0.8.5",
  "rand_core 0.6.4",
  "ring 0.17.5",

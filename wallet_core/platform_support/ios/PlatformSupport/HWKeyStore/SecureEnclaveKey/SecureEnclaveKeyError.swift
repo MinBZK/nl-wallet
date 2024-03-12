@@ -22,6 +22,7 @@ enum SecureEnclaveKeyError: Error {
     case sign(keyChainError: Error?)
     case encrypt(keyChainError: Error?)
     case decrypt(keyChainError: Error?)
+    case delete(errorMessage: String?)
 
     var localizedDescription: String {
         switch self {
@@ -37,6 +38,8 @@ enum SecureEnclaveKeyError: Error {
             return Self.format(message: "Could not encrypt", with: keyChainError?.localizedDescription)
         case let .decrypt(keyChainError: keyChainError):
             return Self.format(message: "Could not decrypt", with: keyChainError?.localizedDescription)
+        case let .delete(errorMessage: errorMessage):
+            return Self.format(message: "Could not delete private key", with: errorMessage)
         }
     }
 }

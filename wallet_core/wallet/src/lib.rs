@@ -18,7 +18,9 @@ pub use crate::{
         MissingDisclosureAttributes,
     },
     pin::validation::validate_pin,
-    wallet::{DisclosureProposal, EventStatus, HistoryEvent, UriType, Wallet},
+    wallet::{
+        ConfigCallback, DisclosureProposal, DocumentsCallback, EventStatus, HistoryEvent, LockCallback, UriType, Wallet,
+    },
 };
 
 pub mod mdoc {
@@ -31,8 +33,16 @@ pub mod mdoc {
     };
 }
 
-pub use openid4vc::oidc::OidcError;
-pub use wallet_common::config::wallet_config::{LockTimeoutConfiguration, WalletConfiguration};
+pub mod openid4vc {
+    pub use openid4vc::oidc::OidcError;
+}
+
+pub mod wallet_common {
+    pub use wallet_common::config::wallet_config::{
+        AccountServerConfiguration, BaseUrl, DisclosureConfiguration, LockTimeoutConfiguration,
+        PidIssuanceConfiguration, WalletConfiguration,
+    };
+}
 
 #[cfg(feature = "wallet_deps")]
 pub mod wallet_deps {

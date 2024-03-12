@@ -74,11 +74,9 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn clear(&mut self) -> StorageResult<()> {
+    async fn clear(&mut self) {
         self.data.clear();
         self.state = StorageState::Uninitialized;
-
-        Ok(())
     }
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>> {

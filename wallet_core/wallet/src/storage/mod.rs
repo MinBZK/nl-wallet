@@ -73,7 +73,7 @@ pub trait Storage {
     async fn state(&self) -> StorageResult<StorageState>;
 
     async fn open(&mut self) -> StorageResult<()>;
-    async fn clear(&mut self) -> StorageResult<()>;
+    async fn clear(&mut self);
 
     async fn fetch_data<D: KeyedData>(&self) -> StorageResult<Option<D>>;
     async fn insert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;

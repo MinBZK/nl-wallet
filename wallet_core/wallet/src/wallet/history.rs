@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use tracing::info;
+use tracing::{info, instrument};
 
 use nl_wallet_mdoc::{
     holder::ProposedDocumentAttributes,
@@ -78,6 +78,7 @@ where
         self.emit_recent_history().await
     }
 
+    #[instrument(skip_all)]
     pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving history");
 
@@ -98,6 +99,7 @@ where
         Ok(result)
     }
 
+    #[instrument(skip_all)]
     pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<HistoryEvent>> {
         info!("Retrieving Card history");
 
@@ -136,11 +138,11 @@ where
         Ok(())
     }
 
-    pub async fn set_recent_history_callback<F>(&mut self, callback: F) -> HistoryResult<()>
-    where
-        F: FnMut(Vec<HistoryEvent>) + Send + Sync + 'static,
-    {
-        self.recent_history_callback.replace(Box::new(callback));
+    pub async fn set_recent_history_callback(
+        &mut self,
+        callback: RecentHistoryCallback,
+    ) -> HistoryResult<Option<RecentHistoryCallback>> {
+        let previous_callback = self.recent_history_callback.replace(Box::new(callback));
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case don't emit anything.
@@ -148,7 +150,7 @@ where
             self.emit_recent_history().await?;
         }
 
-        Ok(())
+        Ok(previous_callback)
     }
 
     pub fn clear_recent_history_callback(&mut self) {
@@ -248,7 +250,7 @@ mod tests {
 
     use crate::{
         storage::WalletEvent,
-        wallet::test::{setup_mock_recent_history_callback, WalletWithMocks, ISSUER_KEY},
+        wallet::test::{self, WalletWithMocks, ISSUER_KEY},
         HistoryEvent,
     };
 
@@ -371,7 +373,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_unregistered().await;
 
         // Register mock recent history callback
-        let events = setup_mock_recent_history_callback(&mut wallet)
+        let events = test::setup_mock_recent_history_callback(&mut wallet)
             .await
             .expect("Failed to set mock recent history callback");
 
@@ -380,7 +382,7 @@ mod tests {
 
         // Confirm that we received an empty `Vec` in the callback.
         {
-            let events = events.lock().unwrap();
+            let events = events.lock();
             assert!(events.is_empty());
         }
 
@@ -401,7 +403,7 @@ mod tests {
         wallet.storage.get_mut().event_log.push(event);
 
         // Register mock recent history callback
-        let events = setup_mock_recent_history_callback(&mut wallet)
+        let events = test::setup_mock_recent_history_callback(&mut wallet)
             .await
             .expect("Failed to set mock recent history callback");
 
@@ -410,7 +412,7 @@ mod tests {
 
         // Confirm that we received a single Issuance event on the callback.
         {
-            let events = events.lock().unwrap().pop().unwrap();
+            let events = events.lock().pop().unwrap();
 
             let event = events
                 .first()
@@ -434,8 +436,9 @@ mod tests {
 
         // Confirm that setting the callback returns an error.
         let error = wallet
-            .set_recent_history_callback(|_| {})
+            .set_recent_history_callback(Box::new(|_| {}))
             .await
+            .map(|_| ())
             .expect_err("Setting recent_history callback should have resulted in an error");
 
         assert_matches!(error, HistoryError::EventStorage(EventStorageError::Storage(_)));
