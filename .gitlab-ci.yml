@@ -536,7 +536,7 @@ build-ws-migrations-image:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
-    UL_HOSTNAME: "${EXTERNAL_HOSTNAME_ONT}"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
 
 build-android-app-latest-release:
   extends: .build-android-app-latest
@@ -571,7 +571,7 @@ build-android-app-mock-release:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
     APP_MOCK: "false"
-    UL_HOSTNAME: "${EXTERNAL_HOSTNAME_DEMO}"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
 
 build-android-app-demo-release:
   extends: .build-android-app-demo
@@ -898,7 +898,7 @@ deploy-mock-relying-party-ont:
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_ONT
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
-    UL_HOSTNAME: $EXTERNAL_HOSTNAME_ONT
+    UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
@@ -908,7 +908,7 @@ deploy-mock-relying-party-demo:
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
-    UL_HOSTNAME: $EXTERNAL_HOSTNAME_DEMO
+    UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
 
 check-gitlab-ci-changed:
   rules:
