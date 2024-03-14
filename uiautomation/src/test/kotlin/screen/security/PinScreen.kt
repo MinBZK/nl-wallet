@@ -12,7 +12,8 @@ class PinScreen : MobileActions() {
 
     private val aboutAppButton = find.byToolTip(l10n.getString("setupSecurityScreenAboutAppTooltip"))
     private val forgotPinButton = find.byText(l10n.getString("pinScreenForgotPinCta"))
-    private val confirmPinErrorFatalCta = find.byValueKey("setupSecurityConfirmationErrorPageFatalCta")
+    private val confirmPinErrorFatalCta = find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalCta"))
+    private val closeAlertDialogButton = find.byText(l10n.getString("generalOkCta"))
 
     private val selectPinErrorTooFewUniqueDigits =
         find.byText(l10n.getString("setupSecuritySelectPinErrorPageTooFewUniqueDigitsError"))
@@ -62,4 +63,6 @@ class PinScreen : MobileActions() {
     }
 
     fun clickConfirmPinErrorFatalCta() = clickElement(confirmPinErrorFatalCta)
+
+    fun closeAlertDialog() = clickElement(closeAlertDialogButton)
 }

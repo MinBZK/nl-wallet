@@ -80,22 +80,22 @@ Local test run example:
 
 ````bash
 ./gradlew test --tests suite.FeatureTestSuite
-    -Ptest.config.app.identifier="nl.ictu.edi.wallet.latest"
-    -Ptest.config.device.name="emulator-5554"
-    -Ptest.config.platform.name=android
-    -Ptest.config.platform.version=14.0
-    -Ptest.config.remote=false
+    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
+    -Dtest.config.device.name="emulator-5554"
+    -Dtest.config.platform.name="Android"
+    -Dtest.config.platform.version="14.0"
+    -Dtest.config.remote=false
 ````
 
 Remote test run example:
 
 ````bash
 ./gradlew test --tests suite.FeatureTestSuite
-    -Ptest.config.app.identifier="nl.ictu.edi.wallet.latest"
-    -Ptest.config.device.name="Google Pixel 8"
-    -Ptest.config.platform.name=android
-    -Ptest.config.platform.version=14.0
-    -Ptest.config.remote=true
+    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
+    -Dtest.config.device.name="Google Pixel 8"
+    -Dtest.config.platform.name="Android"
+    -Dtest.config.platform.version="14.0"
+    -Dtest.config.remote=true
 ````
 
 ## Test Annotations
