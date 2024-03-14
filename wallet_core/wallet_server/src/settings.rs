@@ -63,7 +63,7 @@ pub struct KeyPair {
 pub struct Digid {
     pub issuer_url: Url,
     pub bsn_privkey: String,
-    #[serde(deserialize_with = "deserialize_certificates")]
+    #[serde(deserialize_with = "deserialize_certificates", default)]
     pub trust_anchors: Vec<reqwest::Certificate>,
 }
 
