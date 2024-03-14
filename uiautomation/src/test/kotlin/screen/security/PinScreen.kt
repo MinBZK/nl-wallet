@@ -7,9 +7,11 @@ class PinScreen : MobileActions() {
     private val pinScreen = find.byValueKey("pinScreen")
     private val choosePinScreen = find.byValueKey("selectPinScreen")
     private val confirmPinScreen = find.byValueKey("confirmPinScreen")
+    private val personalizeConfirmPinScreen = find.byValueKey("personalizeConfirmPinPage")
 
     private val pinKeyboard = find.byValueKey("pinKeyboard")
 
+    private val backButton = find.byToolTip(l10n.getString("generalWCAGBack"))
     private val aboutAppButton = find.byToolTip(l10n.getString("setupSecurityScreenAboutAppTooltip"))
     private val forgotPinButton = find.byText(l10n.getString("pinScreenForgotPinCta"))
     private val confirmPinErrorFatalCta = find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalCta"))
@@ -33,6 +35,8 @@ class PinScreen : MobileActions() {
 
     fun confirmPinScreenVisible() = isElementVisible(confirmPinScreen)
 
+    fun personalizeConfirmPinScreenVisible() = isElementVisible(personalizeConfirmPinScreen)
+
     fun pinKeyboardVisible() = isElementVisible(pinKeyboard)
 
     fun enteredPinAbsent(pin: String) = isElementAbsent(find.byText(pin))
@@ -46,6 +50,8 @@ class PinScreen : MobileActions() {
 
     fun confirmPinErrorMismatchFatalVisible(): Boolean =
         isElementVisible(confirmPinErrorMismatchFatalTitle) && isElementVisible(confirmPinErrorMismatchFatalDescription)
+
+    fun clickBackButton() = clickElement(backButton)
 
     fun clickAboutAppButton() = clickElement(aboutAppButton)
 

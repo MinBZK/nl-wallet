@@ -7,10 +7,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junitpioneer.jupiter.RetryingTest
-import screen.digid.DigidApplyWebPage
-import screen.digid.DigidLoginStartWebPage
 import screen.personalize.PersonalizeInformScreen
 import screen.personalize.PersonalizeNoDigidScreen
+import screen.web.digid.DigidApplyWebPage
+import screen.web.digid.DigidLoginStartWebPage
 
 @DisplayName("UC 3.1 - App informs User before personalization [PVW-1034]")
 class PersonalizeInformTests : TestBase() {
