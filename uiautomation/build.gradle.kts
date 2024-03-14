@@ -33,7 +33,7 @@ tasks.test {
         "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
         "test.config.device.name" to "emulator-5554",
         "test.config.platform.name" to "Android",
-        "test.config.platform.version" to "14.0",
+        "test.config.platform.version" to 14.0,
         "test.config.remote" to false,
     )
 

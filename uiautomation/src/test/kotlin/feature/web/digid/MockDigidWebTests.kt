@@ -1,4 +1,4 @@
-package feature.digid
+package feature.web.digid
 
 import helper.TestBase
 import navigator.OnboardingNavigator
@@ -6,8 +6,8 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junitpioneer.jupiter.RetryingTest
-import screen.digid.DigidLoginMockWebPage
-import screen.digid.DigidLoginStartWebPage
+import screen.web.digid.DigidLoginMockWebPage
+import screen.web.digid.DigidLoginStartWebPage
 
 class MockDigidWebTests : TestBase() {
 

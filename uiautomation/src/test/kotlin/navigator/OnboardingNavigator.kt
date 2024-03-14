@@ -1,8 +1,6 @@
 package navigator
 
 import navigator.screen.OnboardingScreen
-import screen.digid.DigidLoginMockWebPage
-import screen.digid.DigidLoginStartWebPage
 import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
@@ -11,6 +9,8 @@ import screen.personalize.PersonalizePidPreviewScreen
 import screen.personalize.PersonalizeSuccessScreen
 import screen.security.PinScreen
 import screen.security.SecuritySetupCompletedScreen
+import screen.web.digid.DigidLoginMockWebPage
+import screen.web.digid.DigidLoginStartWebPage
 
 class OnboardingNavigator {
 
@@ -29,7 +29,7 @@ class OnboardingNavigator {
         if (screen > OnboardingScreen.DigidLoginStartWebPage) DigidLoginStartWebPage().clickMockLoginButton()
         if (screen > OnboardingScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().clickLoginButton()
         if (screen > OnboardingScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()
-        if (screen > OnboardingScreen.PersonalizePidPreview) PinScreen().enterPin(PIN)
+        if (screen > OnboardingScreen.PersonalizeConfirmIssuance) PinScreen().enterPin(PIN)
         if (screen > OnboardingScreen.PersonalizeSuccess) PersonalizeSuccessScreen().clickNextButton()
 
         // App now shows the dashboard screen.
