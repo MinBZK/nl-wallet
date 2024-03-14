@@ -1,5 +1,4 @@
-use std::time::Duration;
-
+use reqwest::Certificate;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -12,8 +11,7 @@ use openid4vc::{
     },
     token::TokenRequest,
 };
-
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
+use wallet_common::reqwest::trusted_reqwest_client_builder;
 
 #[derive(Serialize, Deserialize)]
 struct UserInfo {
@@ -38,24 +36,30 @@ pub enum Error {
 pub struct OpenIdClient {
     issuer_url: Url,
     decrypter_private_key: RsaesJweDecrypter,
+    trust_anchors: Vec<Certificate>,
 }
 
 impl OpenIdClient {
-    pub fn new(issuer_url: Url, bsn_privkey: String) -> Result<Self> {
+    pub fn new(issuer_url: Url, bsn_privkey: String, trust_anchors: Vec<Certificate>) -> Result<Self> {
         let userinfo_client = OpenIdClient {
             issuer_url,
             decrypter_private_key: OpenIdClient::decrypter(&bsn_privkey)?,
+            trust_anchors,
         };
         Ok(userinfo_client)
     }
 
     pub async fn bsn(&self, token_request: TokenRequest) -> Result<String> {
-        let access_token = &oidc::request_token(&http_client(), self.issuer_url.clone(), token_request)
+        let http_client = trusted_reqwest_client_builder(self.trust_anchors.clone())
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        let access_token = &oidc::request_token(&http_client, self.issuer_url.clone(), token_request)
             .await?
             .access_token;
 
         let userinfo_claims: JWT<UserInfo, Empty> = oidc::request_userinfo(
-            &http_client(),
+            &http_client,
             self.issuer_url.clone(),
             access_token,
             SignatureAlgorithm::RS256,
@@ -74,14 +78,4 @@ impl OpenIdClient {
 
         Ok(decrypter)
     }
-}
-
-fn http_client() -> reqwest::Client {
-    let builder = reqwest::Client::builder();
-    #[cfg(feature = "disable_tls_validation")]
-    let builder = builder.danger_accept_invalid_certs(true);
-    builder
-        .timeout(CLIENT_TIMEOUT)
-        .build()
-        .expect("Could not build reqwest HTTP client")
 }

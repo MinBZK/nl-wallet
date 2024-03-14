@@ -16,8 +16,7 @@ use nl_wallet_mdoc::{
     },
     verifier::SessionType,
 };
-
-use crate::utils;
+use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use self::uri::{DisclosureUriData, DisclosureUriError};
 
@@ -78,7 +77,7 @@ where
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> nl_wallet_mdoc::Result<Self> {
-        let http_client = utils::reqwest::default_reqwest_client_builder()
+        let http_client = default_reqwest_client_builder()
             .build()
             .expect("Could not build reqwest HTTP client");
 

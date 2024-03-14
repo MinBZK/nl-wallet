@@ -6,7 +6,6 @@ mod instruction;
 mod lock;
 mod pin;
 mod storage;
-mod utils;
 mod wallet;
 
 pub mod errors;
@@ -67,6 +66,5 @@ pub mod mock {
         config::{default_configuration, LocalConfigurationRepository},
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
         storage::MockStorage,
-        utils::reqwest::default_reqwest_client_builder,
     };
 }

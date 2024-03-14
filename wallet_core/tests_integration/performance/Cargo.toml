@@ -10,8 +10,6 @@ workspace = true
 [features]
 local = [
     "nl_wallet_mdoc/allow_http_return_url",
-    "tests_integration_common/disable_tls_validation",
-    "wallet/disable_tls_validation",
 ]
 
 [dependencies]

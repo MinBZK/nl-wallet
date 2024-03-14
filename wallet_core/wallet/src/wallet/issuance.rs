@@ -10,7 +10,9 @@ use openid4vc::{
     token::AttestationPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{config::wallet_config::WalletConfiguration, jwt::JwtError};
+use wallet_common::{
+    config::wallet_config::WalletConfiguration, jwt::JwtError, reqwest::trusted_reqwest_client_builder,
+};
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -18,7 +20,6 @@ use crate::{
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     storage::{Storage, StorageError, WalletEvent},
-    utils::reqwest::default_reqwest_client_builder,
 };
 
 use super::{documents::DocumentsError, history::EventStorageError, Wallet};
@@ -94,7 +95,9 @@ where
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
         let (session, auth_url) = OIC::start(
-            default_reqwest_client_builder().build().unwrap(),
+            trusted_reqwest_client_builder(pid_issuance_config.digid_trust_anchors())
+                .build()
+                .unwrap(),
             pid_issuance_config.digid_url.clone(),
             pid_issuance_config.digid_client_id.to_string(),
             WalletConfiguration::issuance_redirect_uri(UNIVERSAL_LINK_BASE_URL.to_owned()),
@@ -182,7 +185,8 @@ where
             .into_token_request(redirect_uri)
             .map_err(PidIssuanceError::DigidSessionFinish)?;
 
-        let http_client = default_reqwest_client_builder()
+        let pid_issuance_config = &self.config_repository.config().pid_issuance;
+        let http_client = trusted_reqwest_client_builder(pid_issuance_config.digid_trust_anchors())
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
                 HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),

@@ -4,7 +4,7 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationMilliSeconds, DurationSeconds};
 
-use wallet_provider_database_settings::{Database, DatabaseDefaults};
+use wallet_provider_database_settings::Database;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -61,7 +61,6 @@ impl Settings {
         let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
         Config::builder()
-            .database_defaults()?
             .set_default("certificate_signing_key_identifier", "certificate_signing_key")?
             .set_default(
                 "instruction_result_signing_key_identifier",

@@ -43,11 +43,12 @@ impl MockPidAttributeService {
     pub fn new(
         issuer_url: Url,
         bsn_privkey: String,
+        trust_anchors: Vec<reqwest::Certificate>,
         mock_data: Option<Vec<MockAttributes>>,
         certificates: IndexMap<String, Certificate>,
     ) -> Result<Self, Error> {
         Ok(MockPidAttributeService {
-            openid_client: OpenIdClient::new(issuer_url, bsn_privkey)?,
+            openid_client: OpenIdClient::new(issuer_url, bsn_privkey, trust_anchors)?,
             attrs_lookup: MockAttributesLookup::from(mock_data.unwrap_or_default()),
             certificates,
         })

@@ -4,6 +4,7 @@ pub mod errors;
 pub mod generator;
 pub mod jwt;
 pub mod keys;
+pub mod reqwest;
 pub mod spawn;
 pub mod trust_anchor;
 pub mod utils;

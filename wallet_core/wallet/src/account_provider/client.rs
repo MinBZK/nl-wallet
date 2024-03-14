@@ -4,19 +4,20 @@ use reqwest::{Client, Request};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
-use wallet_common::account::{
-    messages::{
-        auth::{Certificate, Challenge, Registration, WalletCertificate},
-        errors::ErrorData,
-        instructions::{
-            Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult,
-            InstructionResultMessage,
+use wallet_common::{
+    account::{
+        messages::{
+            auth::{Certificate, Challenge, Registration, WalletCertificate},
+            errors::ErrorData,
+            instructions::{
+                Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult,
+                InstructionResultMessage,
+            },
         },
+        signed::SignedDouble,
     },
-    signed::SignedDouble,
+    reqwest::default_reqwest_client_builder,
 };
-
-use crate::utils::reqwest::default_reqwest_client_builder;
 
 use super::{AccountProviderClient, AccountProviderError, AccountProviderResponseError};
 

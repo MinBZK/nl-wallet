@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 NUM="${1:-1}"
 
