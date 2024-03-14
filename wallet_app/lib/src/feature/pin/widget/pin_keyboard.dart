@@ -30,6 +30,7 @@ class PinKeyboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final keyColor = color ?? context.colorScheme.onBackground;
     return KeyboardListener(
+      key: const Key('pinKeyboard'),
       focusNode: _keyboardFocusNode,
       autofocus: true,
       onKeyEvent: _handleKeyEvent,

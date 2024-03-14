@@ -51,6 +51,7 @@ class SecurityConfirmPinTests : TestBase() {
     @DisplayName("4. The user may attempt entering their PIN in 2 attempts.")
     fun verifyIncorrectConfirmPinTwice() {
         pinScreen.enterPin(incorrectConfirmPin)
+        pinScreen.closeAlertDialog()
         pinScreen.enterPin(incorrectConfirmPin)
         assertTrue(pinScreen.confirmPinErrorMismatchFatalVisible(), "confirm pin error fatal mismatch is not visible")
     }
@@ -59,6 +60,7 @@ class SecurityConfirmPinTests : TestBase() {
     @DisplayName("5. After 2 attempts, the App offers the user to pick a new PIN.")
     fun verifyRestartChoosePin() {
         pinScreen.enterPin(incorrectConfirmPin)
+        pinScreen.closeAlertDialog()
         pinScreen.enterPin(incorrectConfirmPin)
         pinScreen.clickConfirmPinErrorFatalCta()
         assertTrue(pinScreen.choosePinScreenVisible(), "choose pin screen is not visible")
