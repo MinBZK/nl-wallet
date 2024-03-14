@@ -6,11 +6,8 @@ use openid4vc::{
 
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
 use tests_integration_common::*;
-use wallet::{
-    mock::{default_configuration, default_reqwest_client_builder},
-    wallet_common::WalletConfiguration,
-};
-use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
+use wallet::{mock::default_configuration, wallet_common::WalletConfiguration};
+use wallet_common::{config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE, reqwest::trusted_reqwest_client_builder};
 use wallet_server::pid::attributes::MockPidAttributeService;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max.
@@ -32,6 +29,7 @@ async fn test_pid_issuance_digid_bridge() {
     let attr_service = MockPidAttributeService::new(
         settings.issuer.digid.issuer_url.clone(),
         settings.issuer.digid.bsn_privkey.clone(),
+        settings.issuer.digid.trust_anchors.clone(),
         settings.issuer.mock_data.clone(),
         settings.issuer.certificates(),
     )
@@ -42,7 +40,9 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Prepare DigiD flow
     let (digid_session, authorization_url) = HttpOidcClient::<S256PkcePair>::start(
-        default_reqwest_client_builder().build().unwrap(),
+        trusted_reqwest_client_builder(wallet_config.pid_issuance.digid_trust_anchors().clone())
+            .build()
+            .unwrap(),
         settings.issuer.digid.issuer_url.clone(),
         wallet_config.pid_issuance.digid_client_id.clone(),
         WalletConfiguration::issuance_redirect_uri(DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()),
@@ -51,7 +51,12 @@ async fn test_pid_issuance_digid_bridge() {
     .unwrap();
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
-    let redirect_url = fake_digid_auth(&authorization_url, &wallet_config.pid_issuance.digid_url).await;
+    let redirect_url = fake_digid_auth(
+        &authorization_url,
+        &wallet_config.pid_issuance.digid_url,
+        wallet_config.pid_issuance.digid_trust_anchors(),
+    )
+    .await;
     let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
     let server_url = local_pid_base_url(&settings.public_url.port().unwrap());

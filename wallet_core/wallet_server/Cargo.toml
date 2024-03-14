@@ -19,8 +19,6 @@ required-features = ["postgres", "db_test"]
 default = ["postgres", "issuance"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
-# Disable TLS validations for when contacting the DigiD bridge locally
-disable_tls_validation = []
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm"]
 # Include and run test that depend on an external PostgreSQL database

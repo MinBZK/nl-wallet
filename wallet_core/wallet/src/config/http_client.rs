@@ -9,9 +9,10 @@ use url::Url;
 use wallet_common::{
     config::wallet_config::WalletConfiguration,
     jwt::{validations, EcdsaDecodingKey, Jwt},
+    reqwest::tls_pinned_client_builder,
 };
 
-use crate::{config::ConfigurationError, utils::reqwest::tls_pinned_client_builder};
+use crate::config::ConfigurationError;
 
 use super::FileStorageError;
 

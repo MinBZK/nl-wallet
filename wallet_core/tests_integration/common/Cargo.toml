@@ -7,9 +7,6 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-[features]
-disable_tls_validation = []
-
 [dependencies]
 ctor.workspace = true
 indexmap.workspace = true

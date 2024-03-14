@@ -36,6 +36,7 @@ jsonwebtoken.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand.workspace = true
+reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true
 rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }

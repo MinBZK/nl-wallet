@@ -132,6 +132,12 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
 
   generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
+  openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
+          -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
+  # shellcheck disable=SC2089
+  DIGID_CA_CRT="\"$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})\""
+  # shellcheck disable=SC2090
+  export DIGID_CA_CRT
 
   # Build max docker container
   docker compose build max

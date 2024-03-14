@@ -35,6 +35,7 @@ const CERTIFICATE_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW2zhAd
 
 const DIGID_CLIENT_ID: &str = "";
 const DIGID_URL: &str = "https://localhost:8006/";
+const DIGID_TRUST_ANCHORS: &str = "";
 
 const INSTRUCTION_RESULT_PUBLIC_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpQqynmHM6Iey1gqLPtTi4T9PflzCDpttyk\
                                              oP/iW47jE1Ra6txPJEPq4FVQdqQJEXcJ7i8TErVQ3KNB823StXnA==";
@@ -117,6 +118,14 @@ fn parse_trust_anchors(source: &str) -> Vec<DerTrustAnchor> {
         .collect()
 }
 
+fn parse_optional_trust_anchors(source: &str) -> Vec<DerTrustAnchor> {
+    if source.is_empty() {
+        vec![]
+    } else {
+        parse_trust_anchors(source)
+    }
+}
+
 pub fn default_configuration() -> WalletConfiguration {
     WalletConfiguration {
         version: u64::from_str(config_default!(WALLET_CONFIG_VERSION)).unwrap(),
@@ -140,6 +149,7 @@ pub fn default_configuration() -> WalletConfiguration {
             pid_issuer_url: Url::parse(config_default!(PID_ISSUER_URL)).unwrap(),
             digid_url: Url::parse(config_default!(DIGID_URL)).unwrap(),
             digid_client_id: String::from(config_default!(DIGID_CLIENT_ID)),
+            digid_trust_anchors: parse_optional_trust_anchors(config_default!(DIGID_TRUST_ANCHORS)),
         },
         disclosure: DisclosureConfiguration {
             rp_trust_anchors: parse_trust_anchors(config_default!(RP_TRUST_ANCHORS)),

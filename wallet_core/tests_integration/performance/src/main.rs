@@ -48,7 +48,7 @@ async fn main() {
     .await
     .unwrap();
     config_repository.fetch().await.unwrap();
-    let digid_base_url = &config_repository.config().pid_issuance.digid_url;
+    let pid_issuance_config = &config_repository.config().pid_issuance;
 
     let mut wallet: Wallet<
         HttpConfigurationRepository,
@@ -75,7 +75,12 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(&authorization_url, digid_base_url).await;
+    let redirect_url = fake_digid_auth(
+        &authorization_url,
+        &pid_issuance_config.digid_url,
+        pid_issuance_config.digid_trust_anchors(),
+    )
+    .await;
 
     let _unsigned_mdocs = wallet
         .continue_pid_issuance(&redirect_url)

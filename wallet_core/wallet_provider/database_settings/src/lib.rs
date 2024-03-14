@@ -1,6 +1,6 @@
 use std::{env, path::PathBuf, time::Duration};
 
-use config::{builder::BuilderState, Config, ConfigBuilder, ConfigError, Environment, File};
+use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationSeconds};
 
@@ -29,6 +29,7 @@ impl Default for ConnectionOptions {
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(default)]
 pub struct Database {
     pub host: String,
     pub name: String,
@@ -38,23 +39,19 @@ pub struct Database {
     pub connection_options: ConnectionOptions,
 }
 
-pub type ConnectionString = String;
-
-pub trait DatabaseDefaults<T: BuilderState> {
-    fn database_defaults(self) -> Result<ConfigBuilder<T>, ConfigError>;
-}
-
-impl<T> DatabaseDefaults<T> for ConfigBuilder<T>
-where
-    T: BuilderState,
-{
-    fn database_defaults(self) -> Result<ConfigBuilder<T>, ConfigError> {
-        self.set_default("database.host", "localhost")?
-            .set_default("database.name", "wallet_provider")?
-            .set_default("database.username", "postgres")?
-            .set_default("database.password", "postgres")
+impl Default for Database {
+    fn default() -> Self {
+        Self {
+            host: String::from("localhost"),
+            name: String::from("wallet_provider"),
+            username: Some(String::from("postgres")),
+            password: Some(String::from("postgres")),
+            connection_options: Default::default(),
+        }
     }
 }
+
+pub type ConnectionString = String;
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
@@ -67,7 +64,6 @@ impl Settings {
             .unwrap_or_default();
 
         Config::builder()
-            .database_defaults()?
             .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")

@@ -8,7 +8,7 @@ use std::{
 use ctor::ctor;
 use indexmap::IndexMap;
 use jsonwebtoken::{Algorithm, EncodingKey, Header};
-use reqwest::{Certificate, Client};
+use reqwest::Certificate;
 use sea_orm::{Database, DatabaseConnection, EntityTrait, PaginatorTrait};
 use tokio::time;
 use url::Url;
@@ -30,7 +30,10 @@ use wallet::{
     },
     Wallet,
 };
-use wallet_common::{config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey};
+use wallet_common::{
+    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey,
+    reqwest::trusted_reqwest_client_builder,
+};
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::{
@@ -241,13 +244,7 @@ pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(se
 }
 
 async fn wait_for_server(base_url: Url, trust_anchors: Vec<Certificate>) {
-    let client = trust_anchors
-        .into_iter()
-        .fold(reqwest::Client::builder(), |builder, anchor| {
-            builder.add_root_certificate(anchor)
-        })
-        .build()
-        .unwrap();
+    let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(10));
@@ -270,11 +267,12 @@ async fn wait_for_server(base_url: Url, trust_anchors: Vec<Certificate>) {
 // flow of the DigiD bridge.
 // Note that this depends of part of the internal API of the DigiD bridge, so it may break when the bridge
 // is updated.
-pub async fn fake_digid_auth(authorization_url: &Url, digid_base_url: &Url) -> Url {
-    let client_builder = Client::builder();
-    #[cfg(feature = "disable_tls_validation")]
-    let client_builder = client_builder.danger_accept_invalid_certs(true);
-    let client = client_builder.build().unwrap();
+pub async fn fake_digid_auth(
+    authorization_url: &Url,
+    digid_base_url: &Url,
+    trust_anchors: Vec<reqwest::Certificate>,
+) -> Url {
+    let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     // Avoid the DigiD/mock DigiD landing page of the DigiD bridge by preselecting the latter
     let authorization_url = authorization_url.to_string() + "&login_hint=digid_mock";

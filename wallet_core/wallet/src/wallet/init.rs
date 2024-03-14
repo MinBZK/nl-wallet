@@ -29,9 +29,6 @@ pub enum WalletInitError {
 
 impl Wallet {
     pub async fn init_all() -> Result<Self, WalletInitError> {
-        #[cfg(feature = "disable_tls_validation")]
-        tracing::warn!("TLS validation disabled");
-
         init_universal_link_base_url();
 
         let storage_path = HardwareUtilities::storage_path().await?;
