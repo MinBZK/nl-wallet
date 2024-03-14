@@ -92,6 +92,53 @@ impl From<Vec<ItemsRequest>> for ItemsRequests {
     }
 }
 
+/// Convenience converter for [`ItemsRequests`] for tests.
+#[cfg(any(test, feature = "mock"))]
+impl From<IndexMap<&str, IndexMap<&str, Vec<&str>>>> for ItemsRequests {
+    fn from(value: IndexMap<&str, IndexMap<&str, Vec<&str>>>) -> Self {
+        value
+            .into_iter()
+            .map(|(doc_type, namespaces)| ItemsRequest {
+                doc_type: doc_type.to_string(),
+                name_spaces: namespaces
+                    .into_iter()
+                    .map(|(namespace, attributes)| {
+                        (
+                            namespace.to_string(),
+                            attributes
+                                .into_iter()
+                                .map(|attribute| (attribute.to_string(), true))
+                                .collect(),
+                        )
+                    })
+                    .collect(),
+                request_info: None,
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
+/// Convenience converter for [`ItemsRequests`] for tests.
+/// This variant will create a single [`ItemsRequest`] per attribute.
+#[cfg(any(test, feature = "mock"))]
+impl From<Vec<(&str, &str, &str)>> for ItemsRequests {
+    fn from(value: Vec<(&str, &str, &str)>) -> Self {
+        value
+            .iter()
+            .map(move |(doc_type, namespace, attribute)| ItemsRequest {
+                doc_type: doc_type.to_string(),
+                name_spaces: IndexMap::from_iter(vec![(
+                    namespace.to_string(),
+                    IndexMap::from_iter(vec![(attribute.to_string(), true)]),
+                )]),
+                request_info: None,
+            })
+            .collect::<Vec<_>>()
+            .into()
+    }
+}
+
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
 /// The session progresses through the possible states using a state engine that uses the typestate pattern:
 /// for each state `S`, `Session<S>` has its own state transition method that consume the previous state.

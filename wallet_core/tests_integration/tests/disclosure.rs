@@ -9,7 +9,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     server_state::SessionToken,
     unsigned::Entry,
-    verifier::{DisclosedAttributes, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, ItemsRequests, SessionType, StatusResponse},
     ItemsRequest,
 };
 use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
@@ -40,7 +40,7 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 #[case(duplicate_attributes(SessionType::SameDevice, None))]
 #[tokio::test]
 #[serial]
-async fn test_disclosure_usecases_ok(#[case] testcase: (StartDisclosureRequest, Vec<ExpectedAttribute>)) {
+async fn test_disclosure_usecases_ok(#[case] testcase: (StartDisclosureRequest, Vec<ExpectedAttributes>)) {
     let (start_request, expected_documents) = testcase;
 
     let digid_context = MockOidcClient::start_context();
@@ -143,7 +143,11 @@ async fn test_disclosure_usecases_ok(#[case] testcase: (StartDisclosureRequest, 
     for (doc_type, namespace, expected_entries) in expected_documents.into_iter() {
         // verify the disclosed attributes
         assert_eq!(
-            disclosed_attributes.get(doc_type).unwrap().get(namespace).unwrap(),
+            disclosed_attributes
+                .get(doc_type)
+                .expect("expected doc_type not received")
+                .get(namespace)
+                .expect("expected namespace not received"),
             &expected_entries
         );
     }
@@ -181,8 +185,8 @@ async fn test_disclosure_without_pid() {
                 "com.example.pid".to_owned(),
                 IndexMap::from_iter(
                     [("given_name", true), ("family_name", false)]
-                        .iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+                        .into_iter()
+                        .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
                 ),
             )]),
         }]
@@ -320,7 +324,7 @@ trait StartDisclosure {
     ) -> StartDisclosureRequest;
 }
 
-impl StartDisclosure for Vec<(&str, &str, &str)> {
+impl<T: Into<ItemsRequests>> StartDisclosure for T {
     /// Generate StartDisclosureRequest, with a single [`ItemsRequest`] per attribute
     fn start_disclosure_request(
         self,
@@ -331,18 +335,7 @@ impl StartDisclosure for Vec<(&str, &str, &str)> {
         StartDisclosureRequest {
             usecase: usecase.to_string(),
             session_type,
-            items_requests: self
-                .iter()
-                .map(move |(doc_type, namespace, attribute)| ItemsRequest {
-                    doc_type: doc_type.to_string(),
-                    name_spaces: IndexMap::from_iter(vec![(
-                        namespace.to_string(),
-                        IndexMap::from_iter(vec![(attribute.to_string(), true)].into_iter()),
-                    )]),
-                    request_info: None,
-                })
-                .collect::<Vec<_>>()
-                .into(),
+            items_requests: self.into(),
             // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
             // contained in the certificate, so we have to specify a return URL prefixed with that.
             return_url_template: return_url,
@@ -353,14 +346,7 @@ impl StartDisclosure for Vec<(&str, &str, &str)> {
 const PID: &str = "com.example.pid";
 const ADDR: &str = "com.example.address";
 
-fn requested_attribute(card: &'static str, name: &'static str) -> (&'static str, &'static str, &'static str) {
-    (card, card, name)
-}
-
-fn expected_attributes(
-    card: &'static str,
-    attributes: Vec<(&'static str, impl Into<Value>)>,
-) -> (&'static str, &'static str, Vec<Entry>) {
+fn expected_attributes(card: &'static str, attributes: Vec<(&'static str, Value)>) -> ExpectedAttributes {
     (
         card,
         card,
@@ -368,26 +354,29 @@ fn expected_attributes(
             .into_iter()
             .map(|(name, value)| Entry {
                 name: name.into(),
-                value: value.into(),
+                value,
             })
             .collect(),
     )
 }
 
-type ExpectedAttribute = (&'static str, &'static str, Vec<Entry>);
+type ExpectedAttributes = (&'static str, &'static str, Vec<Entry>);
 
 fn full_name(
     session_type: SessionType,
     return_url: Option<ReturnUrlTemplate>,
-) -> (StartDisclosureRequest, Vec<ExpectedAttribute>) {
-    let requested_attributes = vec![
-        requested_attribute(PID, "given_name"),
-        requested_attribute(PID, "family_name"),
-    ];
+) -> (StartDisclosureRequest, Vec<ExpectedAttributes>) {
+    let requested_attributes = IndexMap::from_iter(vec![(
+        PID,
+        IndexMap::from_iter(vec![(PID, vec!["given_name", "family_name"])]),
+    )]);
 
     let expected_attributes = vec![expected_attributes(
         PID,
-        vec![("family_name", "De Bruijn"), ("given_name", "Willeke Liselotte")],
+        vec![
+            ("family_name", "De Bruijn".into()),
+            ("given_name", "Willeke Liselotte".into()),
+        ],
     )];
 
     (
@@ -399,27 +388,27 @@ fn full_name(
 fn bsn(
     session_type: SessionType,
     return_url: Option<ReturnUrlTemplate>,
-) -> (StartDisclosureRequest, Vec<ExpectedAttribute>) {
-    let requested_attributes = vec![requested_attribute(PID, "bsn")];
+) -> (StartDisclosureRequest, Vec<ExpectedAttributes>) {
+    let requested_attributes = IndexMap::from_iter(vec![(PID, IndexMap::from_iter(vec![(PID, vec!["bsn"])]))]);
     (
         requested_attributes.start_disclosure_request("bsn", return_url, session_type),
-        vec![expected_attributes(PID, vec![("bsn", "999991772")])],
+        vec![expected_attributes(PID, vec![("bsn", "999991772".into())])],
     )
 }
 
 fn multiple_cards(
     session_type: SessionType,
     return_url: Option<ReturnUrlTemplate>,
-) -> (StartDisclosureRequest, Vec<ExpectedAttribute>) {
-    let requested_attributes = vec![
-        requested_attribute(PID, "given_name"),
-        requested_attribute(ADDR, "resident_street"),
-    ];
+) -> (StartDisclosureRequest, Vec<ExpectedAttributes>) {
+    let requested_attributes = IndexMap::from_iter(vec![
+        (PID, IndexMap::from_iter(vec![(PID, vec!["given_name"])])),
+        (ADDR, IndexMap::from_iter(vec![(ADDR, vec!["resident_street"])])),
+    ]);
     (
         requested_attributes.start_disclosure_request("multiple_cards", return_url, session_type),
         vec![
-            expected_attributes(PID, vec![("given_name", "Willeke Liselotte")]),
-            expected_attributes(ADDR, vec![("resident_street", "Turfmarkt")]),
+            expected_attributes(PID, vec![("given_name", "Willeke Liselotte".into())]),
+            expected_attributes(ADDR, vec![("resident_street", "Turfmarkt".into())]),
         ],
     )
 }
@@ -427,16 +416,16 @@ fn multiple_cards(
 fn duplicate_cards(
     session_type: SessionType,
     return_url: Option<ReturnUrlTemplate>,
-) -> (StartDisclosureRequest, Vec<ExpectedAttribute>) {
-    let requested_attributes = vec![
-        requested_attribute(ADDR, "resident_street"),
-        requested_attribute(ADDR, "resident_house_number"),
-    ];
+) -> (StartDisclosureRequest, Vec<ExpectedAttributes>) {
+    let requested_attributes = vec![(ADDR, ADDR, "resident_street"), (ADDR, ADDR, "resident_house_number")];
     (
         requested_attributes.start_disclosure_request("duplicate_cards", return_url, session_type),
         vec![expected_attributes(
             ADDR,
-            vec![("resident_street", "Turfmarkt"), ("resident_house_number", "147")],
+            vec![
+                ("resident_street", "Turfmarkt".into()),
+                ("resident_house_number", "147".into()),
+            ],
         )],
     )
 }
@@ -444,13 +433,13 @@ fn duplicate_cards(
 fn duplicate_attributes(
     session_type: SessionType,
     return_url: Option<ReturnUrlTemplate>,
-) -> (StartDisclosureRequest, Vec<ExpectedAttribute>) {
-    let requested_attributes = vec![
-        requested_attribute(PID, "given_name"),
-        requested_attribute(PID, "given_name"),
-    ];
+) -> (StartDisclosureRequest, Vec<ExpectedAttributes>) {
+    let requested_attributes = vec![(PID, PID, "given_name"), (PID, PID, "given_name")];
     (
         requested_attributes.start_disclosure_request("duplicate_attributes", return_url, session_type),
-        vec![expected_attributes(PID, vec![("given_name", "Willeke Liselotte")])],
+        vec![expected_attributes(
+            PID,
+            vec![("given_name", "Willeke Liselotte".into())],
+        )],
     )
 }
