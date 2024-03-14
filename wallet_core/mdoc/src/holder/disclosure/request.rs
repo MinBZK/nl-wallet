@@ -21,6 +21,28 @@ use crate::{
 
 use super::{proposed_document::ProposedDocument, MdocDataSource};
 
+/// This type represents the result of matching a `DeviceRequest` against
+/// all locally stored document. This result is one of two options:
+/// * `DeviceRequestMatch::Candidates` means that all of the attributes
+///   in the request can be satisfied. For each `DocType` in the request,
+///   a list of matching documents is provided in an `IndexMap`.
+/// * `DeviceRequestMatch::MissingAttributes` when at least one of the
+///   attributes requested is not present in any of the stored documents.
+///
+/// Please note the following:
+/// * A `DeviceRequest` may contain multiple `ItemsRequest` entries with
+///   the same `DocType`. The matching result coalesces all attributes
+///   that are requested for a particular `DocType`, which will result in
+///   a `DeviceResponse` with only one `Document` per `DocType`. This
+///   assumes that the verifier can match this response against its original
+///   request.
+/// * The order of the `IndexMap` provided with `DeviceRequestMatch::Candidates`
+///   tries to match the order of the request as best as possible. However,
+///   considering the previous point the order is not an exact match when the
+///   request contains the same `DocType` multiple times.
+/// * It is a known limitation that `DeviceRequestMatch::MissingAttributes`
+///   only contains the missing attributes for one of the `Mdoc`s for a
+///   particular `DocType`. Which one it chooses is undefined.
 #[derive(Debug)]
 pub(super) enum DeviceRequestMatch<I> {
     Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
