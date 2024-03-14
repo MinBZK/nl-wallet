@@ -190,7 +190,6 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                         let issuer_registration = IssuerRegistration::from_certificate(&proposed_card.issuer)?
                             .ok_or(EventConversionError::NoIssuerRegistrationFound)?;
 
-                        // TODO: Refer to persisted mdoc from the mdoc table, or not?
                         let document = Document::from_mdoc_attributes(
                             DocumentPersistence::InMemory,
                             &doc_type,
@@ -325,11 +324,8 @@ mod tests {
             .await
             .unwrap();
 
-        let disclosure_error_event = WalletEvent::disclosure_error(
-            timestamp_older + Duration::days(2),
-            reader_key.certificate().clone(),
-            "Some Error".to_owned(),
-        );
+        let disclosure_error_event =
+            WalletEvent::disclosure_error(timestamp_older + Duration::days(2), reader_key.certificate().clone());
         wallet
             .store_history_event(disclosure_error_event.clone())
             .await

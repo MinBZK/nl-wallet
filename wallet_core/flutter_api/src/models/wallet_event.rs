@@ -74,7 +74,7 @@ impl From<EventStatus> for DisclosureStatus {
         match source {
             EventStatus::Success => DisclosureStatus::Success,
             EventStatus::Cancelled => DisclosureStatus::Cancelled,
-            EventStatus::Error(_) => DisclosureStatus::Error,
+            EventStatus::Error => DisclosureStatus::Error,
         }
     }
 }

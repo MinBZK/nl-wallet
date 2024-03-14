@@ -233,12 +233,11 @@ where
         &mut self,
         session_proposal: Option<ProposedAttributes>,
         remote_party_certificate: Certificate,
-        message: String,
     ) -> Result<(), DisclosureError> {
         let event = WalletEvent::new_disclosure(
             session_proposal.map(Into::into),
             remote_party_certificate,
-            EventStatus::Error(message),
+            EventStatus::Error,
         );
         self.store_history_event(event)
             .await
@@ -292,7 +291,6 @@ where
                 .log_disclosure_error(
                     None, // No data was shared yet
                     session.rp_certificate().clone(),
-                    "Failed to register shared mdoc copy".to_string(),
                 )
                 .await
             {
@@ -323,7 +321,6 @@ where
                 .log_disclosure_error(
                     error.data_shared.then(|| session_proposal.proposed_attributes()),
                     session.rp_certificate().clone(),
-                    "Error occurred while disclosing attributes".to_owned(),
                 )
                 .await
             {
@@ -1167,8 +1164,11 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            HistoryEvent::Disclosure { status: EventStatus::Error(error), attributes: None, .. }
-            if error == "Error occurred while disclosing attributes"
+            HistoryEvent::Disclosure {
+                status: EventStatus::Error,
+                attributes: None,
+                ..
+            }
         );
 
         // Set up the disclosure session to return a different error.
@@ -1219,8 +1219,11 @@ mod tests {
         assert_eq!(events.len(), 2);
         assert_matches!(
             &events[1],
-            WalletEvent::Disclosure { status: EventStatus::Error(error), documents: None, .. }
-            if error == "Error occurred while disclosing attributes"
+            WalletEvent::Disclosure {
+                status: EventStatus::Error,
+                documents: None,
+                ..
+            }
         );
     }
 
@@ -1309,16 +1312,22 @@ mod tests {
             );
             assert_matches!(
                 &events[1],
-                HistoryEvent::Disclosure { status: EventStatus::Error(error), attributes: None, .. }
-                if error == "Error occurred while disclosing attributes"
+                HistoryEvent::Disclosure {
+                    status: EventStatus::Error,
+                    attributes: None,
+                    ..
+                }
             );
         } else {
             // Verify a disclosure error event is logged
             assert_eq!(events.len(), 1);
             assert_matches!(
                 &events[0],
-                HistoryEvent::Disclosure { status: EventStatus::Error(error), attributes: None, .. }
-                if error == "Error occurred while disclosing attributes"
+                HistoryEvent::Disclosure {
+                    status: EventStatus::Error,
+                    attributes: None,
+                    ..
+                }
             );
         }
     }
@@ -1384,10 +1393,10 @@ mod tests {
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
-                status: EventStatus::Error(error),
+                status: EventStatus::Error,
                 attributes: Some(_),
                 ..
-            } if error == "Error occurred while disclosing attributes"
+            }
         );
         assert!(wallet
             .storage
