@@ -1,5 +1,6 @@
 use sea_orm::{DatabaseTransaction, TransactionTrait};
 use tokio::task;
+use tracing::error;
 
 use wallet_provider_domain::repository::{Committable, PersistenceError, TransactionStarter};
 
@@ -52,8 +53,9 @@ impl Drop for Transaction {
 
         transaction.map(|t| {
             task::spawn(async move {
-                // TODO: log any errors resulting from rollback
-                let _ = t.rollback().await;
+                if let Err(e) = t.rollback().await {
+                    error!("error while rolling back database transaction: {}", e)
+                }
             })
         });
     }
