@@ -49,7 +49,7 @@ See [pin_validation.md](./flows/pin_validation.md)
 
 Details what happens after registering with `wallet_provider`, when it's time to fetch and add some attestations.
 
-See [wallet_personalisation.md](./flows/wallet_personalisation.md)
+See [openid.md](./flows/openid.md)
 
 ## 5. Disclosure flow (verification)
 
