@@ -1,8 +1,6 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-};
+use std::{path::PathBuf, sync::Arc};
 
+use parking_lot::RwLock;
 use reqwest::Certificate;
 use tracing::info;
 use url::Url;
@@ -36,7 +34,7 @@ impl HttpConfigurationRepository {
 
 impl ConfigurationRepository for HttpConfigurationRepository {
     fn config(&self) -> Arc<WalletConfiguration> {
-        Arc::clone(&self.config.read().unwrap())
+        Arc::clone(&self.config.read())
     }
 }
 
@@ -46,7 +44,7 @@ impl UpdateableConfigurationRepository for HttpConfigurationRepository {
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
         if let Some(new_config) = self.client.get_wallet_config().await? {
             {
-                let current_config = self.config.read().unwrap();
+                let current_config = self.config.read();
                 if new_config.version <= current_config.version {
                     info!(
                         "Received wallet configuration with version: {}, but we have version: {}",
@@ -56,7 +54,7 @@ impl UpdateableConfigurationRepository for HttpConfigurationRepository {
                 }
             }
 
-            let mut config = self.config.write().unwrap();
+            let mut config = self.config.write();
             *config = Arc::new(new_config);
             Ok(ConfigurationUpdateState::Updated)
         } else {

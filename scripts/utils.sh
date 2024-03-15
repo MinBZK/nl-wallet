@@ -168,9 +168,6 @@ function generate_pid_issuer_root_ca {
         --common-name "ca.pid.example.com" \
         --file-prefix "${TARGET_DIR}/pid_issuer/ca" \
         --force
-
-    openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
-            -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
 }
 
 # Generate an EC key pair for the pid_issuer
@@ -199,9 +196,6 @@ function generate_mock_relying_party_root_ca {
         --common-name "ca.rp.example.com" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/ca" \
         --force
-
-    openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
-        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
 }
 
 # Generate an EC key pair for the mock_relying_party

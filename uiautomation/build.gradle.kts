@@ -32,14 +32,14 @@ tasks.test {
     val testConfigMap = mapOf<String, Any>(
         "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
         "test.config.device.name" to "emulator-5554",
-        "test.config.platform.name" to "android",
-        "test.config.platform.version" to "14.0",
+        "test.config.platform.name" to "Android",
+        "test.config.platform.version" to 14.0,
         "test.config.remote" to false,
     )
 
     // Set system properties for test config
     testConfigMap.forEach { (key, value) ->
-        systemProperty(key, System.getProperty(key) ?: value.toString())
+        systemProperty(key, System.getProperty(key) ?: value)
     }
 
     useJUnitPlatform()

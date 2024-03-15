@@ -132,6 +132,12 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
 
   generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
+  openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
+          -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
+  # shellcheck disable=SC2089
+  DIGID_CA_CRT="\"$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})\""
+  # shellcheck disable=SC2090
+  export DIGID_CA_CRT
 
   # Build max docker container
   docker compose build max
@@ -157,6 +163,8 @@ if [ ! -f "${TARGET_DIR}/pid_issuer/ca.key.pem" ]; then
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca.key.pem' already exists, not (re-)generating PID root CA"
 fi
+openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
+        -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
 
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
@@ -173,9 +181,9 @@ if [ ! -f "${TARGET_DIR}/mock_relying_party/ca.key.pem" ]; then
     generate_mock_relying_party_root_ca
 else
     echo -e "${INFO}Target file '${TARGET_DIR}/mock_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
-    openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
-        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
 fi
+openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
 
 # Generate CA for RPs
 RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
@@ -216,6 +224,7 @@ render_template "${DEVENV}/mock_relying_party.it.toml.template" "${BASE_DIR}/wal
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${MRP_WALLET_SERVER_DIR}/wallet_server.toml"
 render_template "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
 
+render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/performance/.env"
 
 ########################################################################
 # Configure wallet_provider

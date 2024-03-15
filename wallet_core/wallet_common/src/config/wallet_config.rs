@@ -94,6 +94,8 @@ pub struct PidIssuanceConfiguration {
     pub pid_issuer_url: Url,
     pub digid_url: Url,
     pub digid_client_id: String,
+    #[serde(default)]
+    pub digid_trust_anchors: Vec<DerTrustAnchor>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
@@ -106,6 +108,18 @@ impl Debug for AccountServerConfiguration {
         f.debug_struct("AccountServerConfiguration")
             .field("base_url", &self.base_url)
             .finish_non_exhaustive()
+    }
+}
+
+impl PidIssuanceConfiguration {
+    pub fn digid_trust_anchors(&self) -> Vec<reqwest::Certificate> {
+        self.digid_trust_anchors
+            .iter()
+            .map(|anchor| {
+                reqwest::Certificate::from_der(&anchor.der_bytes)
+                    .expect("DerTrustAnchor should be able to be converted to reqwest::Certificate")
+            })
+            .collect()
     }
 }
 

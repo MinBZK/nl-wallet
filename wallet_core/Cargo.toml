@@ -8,6 +8,8 @@ members = [
     "openid4vc",
     "platform_support",
     "tests_integration",
+    "tests_integration/common",
+    "tests_integration/performance",
     "wallet",
     "wallet/entity",
     "wallet/migration",
@@ -82,6 +84,7 @@ once_cell = "1.17.1"
 openssl = "0.10.6"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
+parking_lot = "0.12.1"
 pem = "3.0.2"
 predicates = "3.0.4"
 proc-macro2 = "1.0.66"

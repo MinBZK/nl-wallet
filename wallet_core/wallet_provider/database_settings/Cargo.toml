@@ -13,3 +13,4 @@ doctest = false
 [dependencies]
 config = { workspace = true, features = ["toml"] }
 serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["chrono"] }

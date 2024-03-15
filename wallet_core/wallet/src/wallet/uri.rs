@@ -1,5 +1,5 @@
 use openid4vc::oidc::OidcClient;
-use tracing::info;
+use tracing::{info, instrument};
 use url::Url;
 
 use wallet_common::config::wallet_config::WalletConfiguration;
@@ -30,6 +30,7 @@ where
     CR: ConfigurationRepository,
     OIC: OidcClient,
 {
+    #[instrument(skip_all)]
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
         info!("Identifying type of URI: {}", uri_str);
 

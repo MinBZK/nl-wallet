@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 import '../extension/build_context_extension.dart';
 
-//FIXME: Remove static method + extend Formatter abstract class
 class TimeAgoFormatter {
   static String format(BuildContext context, DateTime dateTime) {
     final difference = DateTime.now().difference(dateTime);

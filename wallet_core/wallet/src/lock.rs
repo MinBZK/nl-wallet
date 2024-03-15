@@ -1,12 +1,14 @@
 use std::fmt::Debug;
 
+pub type LockCallback = Box<dyn FnMut(bool) + Send + Sync>;
+
 /// This models the locked state of the wallet. Locking and unlocking
 /// is restricted to the [`Self::lock()`] and [`Self::unlock()`] methods.
 /// Optionally, a callback can be set to get notified whenever the locked
 /// state changes.
 pub struct WalletLock {
     is_locked: bool,
-    update_callback: Option<Box<dyn FnMut(bool) + Send + Sync>>,
+    update_callback: Option<LockCallback>,
 }
 
 impl WalletLock {
@@ -45,16 +47,13 @@ impl WalletLock {
         self.call_update_callback();
     }
 
-    pub fn set_lock_callback<F>(&mut self, mut callback: F)
-    where
-        F: FnMut(bool) + Send + Sync + 'static,
-    {
+    pub fn set_lock_callback(&mut self, mut callback: LockCallback) -> Option<LockCallback> {
         callback(self.is_locked);
-        self.update_callback.replace(Box::new(callback));
+        self.update_callback.replace(Box::new(callback))
     }
 
-    pub fn clear_lock_callback(&mut self) {
-        self.update_callback.take();
+    pub fn clear_lock_callback(&mut self) -> Option<LockCallback> {
+        self.update_callback.take()
     }
 }
 
@@ -68,7 +67,9 @@ impl Debug for WalletLock {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
+
+    use parking_lot::Mutex;
 
     use super::*;
 
@@ -89,26 +90,28 @@ mod tests {
         assert!(lock.is_locked());
 
         let callback_is_locked_clone = Arc::clone(&callback_is_locked);
-        lock.set_lock_callback(move |is_locked| *callback_is_locked_clone.lock().unwrap() = Some(is_locked));
+        lock.set_lock_callback(Box::new(move |is_locked| {
+            *callback_is_locked_clone.lock() = Some(is_locked)
+        }));
 
         assert!(lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
 
         lock.lock();
         assert!(lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
 
         lock.unlock();
         assert!(!lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(false)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(false)));
 
         lock.lock();
         assert!(lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
 
         lock.clear_lock_callback();
         lock.unlock();
         assert!(!lock.is_locked());
-        assert!(matches!(callback_is_locked.lock().unwrap().as_ref(), Some(true)));
+        assert!(matches!(callback_is_locked.lock().as_ref(), Some(true)));
     }
 }

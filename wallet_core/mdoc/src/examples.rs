@@ -144,6 +144,8 @@ fn ecdsa_pubkey(x: &str, y: &str) -> Result<VerifyingKey> {
     .context("failed to instantiate public key")
 }
 
+pub const EXAMPLE_KEY_IDENTIFIER: &str = "example_static_device_key";
+
 #[cfg(any(test, all(feature = "mock", feature = "software_keys")))]
 pub mod mock {
     use wallet_common::keys::software::SoftwareEcdsaKey;
@@ -163,16 +165,12 @@ pub mod mock {
         /// Using tests should not rely on all attributes being present.
         pub fn new_example_mock() -> Self {
             let trust_anchors = Examples::iaca_trust_anchors();
-            // Prepare the mdoc's private key
-            let static_device_key = Examples::static_device_key();
-            SoftwareEcdsaKey::insert("example_static_device_key", static_device_key);
-
             let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
                 .issuer_signed
                 .clone();
 
             Mdoc::new::<SoftwareEcdsaKey>(
-                "example_static_device_key".to_string(),
+                EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,
                 trust_anchors,

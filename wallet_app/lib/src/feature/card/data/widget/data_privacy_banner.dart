@@ -5,45 +5,36 @@ import '../../../../wallet_assets.dart';
 import '../../../common/widget/svg_or_image.dart';
 
 class DataPrivacyBanner extends StatelessWidget {
-  final VoidCallback? onPressed;
-
-  const DataPrivacyBanner({
-    this.onPressed,
-    super.key,
-  });
+  const DataPrivacyBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      key: const Key('dataPrivacyBanner'),
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: context.colorScheme.onBackground,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                context.l10n.cardDataScreenDataPrivacyBanner,
-                style: context.textTheme.bodyLarge?.copyWith(
-                  color: context.colorScheme.background,
-                ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: context.colorScheme.onBackground,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              context.l10n.cardDataScreenDataPrivacyBanner,
+              style: context.textTheme.bodyLarge?.copyWith(
+                color: context.colorScheme.background,
               ),
             ),
-            const SizedBox(width: 20),
-            const SizedBox(
-              height: 24,
-              width: 24,
-              child: SvgOrImage(
-                asset: WalletAssets.svg_eye_closed,
-                fit: BoxFit.fitWidth,
-              ),
+          ),
+          const SizedBox(width: 20),
+          const SizedBox(
+            height: 24,
+            width: 24,
+            child: SvgOrImage(
+              asset: WalletAssets.svg_eye_closed,
+              fit: BoxFit.fitWidth,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

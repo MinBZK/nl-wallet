@@ -37,7 +37,7 @@ fn init_logging() {
 
 pub async fn db_from_env() -> Result<Db, PersistenceError> {
     let settings = Settings::new().unwrap();
-    Db::new(settings.database.connection_string()).await
+    Db::new(settings.database.connection_string(), Default::default()).await
 }
 
 #[derive(Debug, thiserror::Error)]

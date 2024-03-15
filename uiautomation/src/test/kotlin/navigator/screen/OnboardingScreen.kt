@@ -11,6 +11,7 @@ enum class OnboardingScreen {
     DigidLoginStartWebPage,
     DigidLoginMockWebPage,
     PersonalizePidPreview,
+    PersonalizeConfirmIssuance,
     PersonalizeSuccess,
     Dashboard,
 }

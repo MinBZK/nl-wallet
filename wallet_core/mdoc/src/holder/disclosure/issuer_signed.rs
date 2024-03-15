@@ -16,9 +16,7 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey};
-
-    use crate::holder::Mdoc;
+    use crate::{examples::Examples, holder::Mdoc};
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {
@@ -29,11 +27,9 @@ mod tests {
             .public_key()
             .expect("Could not get public key from from IssuerSigned");
 
-        let expected_public_key = SoftwareEcdsaKey::new(&mdoc.private_key_id)
-            .verifying_key()
-            .await
-            .unwrap();
+        let expected_public_key = *Examples::static_device_key().verifying_key();
 
+        // The example mdoc should contain the example static device key.
         assert_eq!(public_key, expected_public_key);
     }
 }

@@ -198,10 +198,7 @@ All these applications will need to be configured correctly. A local development
 #### Configuring the development environment
 
 The `setup-devenv.sh` script will configure the digid-connector to listen on https://localhost:8006/ . Note the https
-in the URL, which is provided using self-signed certificates, therefore we have to disable TLS validation in the wallet
-and the `pid_issuer`. Also when using the browser for the first time, a security exception must be added to allow
-connecting to localhost. Disabling TLS validation is gated behind the feature `disable_tls_validation` on the `wallet`
-and the `pid_issuer` crates.
+in the URL, which is provided using self-signed certificates.
 
 Besides that, the development setup runs without using TLS. Therefore, the feature `allow_http_return_url` enables the
 possibility to use a return URL with the scheme `http` (while normally `https` is only allowed).

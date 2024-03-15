@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 
 use sea_orm::{ConnectOptions, ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 use tokio::fs;
@@ -64,13 +64,15 @@ impl Database {
         Ok(Self::new(url, connection))
     }
 
-    pub async fn close_and_delete(self) -> Result<(), DbErr> {
-        // Close the database connection
-        self.connection.close().await?;
+    pub async fn close_and_delete(self) -> Result<(), io::Error> {
+        // Close the database connection and ignore any errors.
+        let _ = self.connection.close().await;
 
-        // Remove the database file (if there is one) and ignore any errors.
+        // Remove the database file if there is one. Note that this should be safe
+        // even if closing the database failed, as the only failure possible is
+        // that the connection is already closed.
         if let SqliteUrl::File(path) = self.url {
-            _ = fs::remove_file(path).await;
+            return fs::remove_file(path).await;
         }
 
         Ok(())

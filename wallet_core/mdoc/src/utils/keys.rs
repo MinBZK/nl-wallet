@@ -25,7 +25,7 @@ pub trait KeyFactory {
     type Error: Error + Send + Sync + 'static;
 
     async fn generate_new(&self) -> Result<Self::Key, Self::Error> {
-        self.generate_new_multiple(1).await.map(|mut keys| keys.remove(1))
+        self.generate_new_multiple(1).await.map(|mut keys| keys.pop().unwrap())
     }
 
     async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error>;

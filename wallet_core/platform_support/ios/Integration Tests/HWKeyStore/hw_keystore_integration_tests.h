@@ -8,7 +8,7 @@
 #ifndef hw_keystore_integration_tests_h
 #define hw_keystore_integration_tests_h
 
-bool hw_keystore_test_hardware_signature();
-bool hw_keystore_test_hardware_encryption();
+void hw_keystore_test_hardware_signature();
+void hw_keystore_test_hardware_encryption();
 
 #endif /* hw_keystore_integration_tests_h */

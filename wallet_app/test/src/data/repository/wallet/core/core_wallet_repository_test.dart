@@ -38,7 +38,7 @@ void main() {
       );
     });
     when(core.lockWallet()).thenAnswer((realInvocation) async => mockLockedStream.add(true));
-    repo = CoreWalletRepository(core, PinValidationErrorMapper()); //FIXME: Mock mapper
+    repo = CoreWalletRepository(core, PinValidationErrorMapper());
   });
 
   group('locked state', () {

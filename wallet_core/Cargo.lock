@@ -1409,6 +1409,7 @@ dependencies = [
  "itertools 0.11.0",
  "once_cell",
  "oslog",
+ "parking_lot",
  "serde",
  "serde_json",
  "tokio",
@@ -2414,6 +2415,7 @@ dependencies = [
  "itertools 0.11.0",
  "once_cell",
  "p256",
+ "parking_lot",
  "rand_core 0.6.4",
  "rcgen",
  "regex",
@@ -2877,6 +2879,7 @@ dependencies = [
  "jni",
  "once_cell",
  "p256",
+ "parking_lot",
  "thiserror",
  "tokio",
  "uniffi",
@@ -4281,7 +4284,6 @@ dependencies = [
  "assert_matches",
  "base64 0.21.4",
  "ciborium",
- "configuration_server",
  "ctor",
  "dotenvy",
  "indexmap 2.0.2",
@@ -4289,25 +4291,64 @@ dependencies = [
  "nl_wallet_mdoc",
  "openid4vc",
  "p256",
- "platform_support",
  "rand_core 0.6.4",
  "regex",
  "reqwest",
  "rstest",
- "sea-orm",
- "serde",
- "serde_json",
  "serial_test",
+ "tests_integration_common",
  "tokio",
  "tracing",
  "tracing-subscriber",
  "url",
- "uuid",
+ "wallet",
+ "wallet_common",
+ "wallet_provider_service",
+ "wallet_server",
+]
+
+[[package]]
+name = "tests_integration_common"
+version = "0.1.0"
+dependencies = [
+ "configuration_server",
+ "ctor",
+ "indexmap 2.0.2",
+ "jsonwebtoken",
+ "nl_wallet_mdoc",
+ "openid4vc",
+ "platform_support",
+ "reqwest",
+ "sea-orm",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "url",
  "wallet",
  "wallet_common",
  "wallet_provider",
  "wallet_provider_persistence",
- "wallet_provider_service",
+ "wallet_server",
+]
+
+[[package]]
+name = "tests_integration_performance"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "indexmap 2.0.2",
+ "nl_wallet_mdoc",
+ "openid4vc",
+ "platform_support",
+ "reqwest",
+ "tests_integration_common",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+ "wallet",
+ "wallet_common",
  "wallet_server",
 ]
 
@@ -4879,6 +4920,7 @@ dependencies = [
 name = "wallet"
 version = "0.1.0"
 dependencies = [
+ "aes-gcm",
  "assert_matches",
  "base64 0.21.4",
  "chrono",
@@ -4898,6 +4940,7 @@ dependencies = [
  "once_cell",
  "openid4vc",
  "p256",
+ "parking_lot",
  "platform_support",
  "rand_core 0.6.4",
  "reqwest",
@@ -4956,8 +4999,10 @@ dependencies = [
  "nutype",
  "once_cell",
  "p256",
+ "parking_lot",
  "rand 0.8.5",
  "rand_core 0.6.4",
+ "reqwest",
  "ring 0.17.5",
  "rustls-webpki",
  "serde",
@@ -5003,6 +5048,7 @@ version = "0.1.0"
 dependencies = [
  "config",
  "serde",
+ "serde_with",
 ]
 
 [[package]]

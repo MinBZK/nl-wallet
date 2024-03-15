@@ -33,6 +33,11 @@ class SigningKeyBridge(context: Context) : KeyBridge(context), RustSigningBridge
         return key.sign(payload)
     }
 
+    override fun delete(identifier: String) {
+        val keyAlias = SIGN_KEY_PREFIX + identifier
+        keyStore.deleteEntry(keyAlias)
+    }
+
     override fun clean() =
         keyStore.aliases().asSequence().filter { it.startsWith(SIGN_KEY_PREFIX) }
             .forEach(::deleteEntry)

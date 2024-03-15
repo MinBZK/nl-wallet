@@ -8,7 +8,7 @@
 import Foundation
 import Security
 
-final class SecureEnclaveKey {
+struct SecureEnclaveKey: ~Copyable {
     // MARK: - Static properties
 
     // We want to return a key in PKIX, ASN.1 DER form, but SecKeyCopyExternalRepresentation
@@ -22,9 +22,10 @@ final class SecureEnclaveKey {
         0x42, 0x00
     ])
 
+    private static let signingAlgorithm: SecKeyAlgorithm = .ecdsaSignatureMessageX962SHA256
     private static let encryptionAlgorithm: SecKeyAlgorithm = .eciesEncryptionCofactorVariableIVX963SHA256AESGCM
 
-    private static let queue = DispatchQueue(label: String(describing: SecureEnclaveKey.self), qos: .userInitiated)
+    private static let queue = DispatchQueue(label: "SecureEnclaveKey-init", qos: .userInitiated)
 
     // MARK: - Static methods
 
@@ -40,6 +41,15 @@ final class SecureEnclaveKey {
         let error = unmanagedError.takeRetainedValue()
 
         return error
+    }
+
+    private static func errorMessage(for status: OSStatus) -> String? {
+        guard #available(iOS 11.3, *),
+              let errorMessage = SecCopyErrorMessageString(status, nil) else {
+            return nil
+        }
+
+        return errorMessage as String
     }
 
     private static func fetchKey(with identifier: String) throws -> SecKey? {
@@ -60,16 +70,7 @@ final class SecureEnclaveKey {
         case errSecItemNotFound:
             return nil
         default:
-            let errorMessage: String? = {
-                guard #available(iOS 11.3, *),
-                      let errorMessage = SecCopyErrorMessageString(status, nil) else {
-                    return nil
-                }
-
-                return errorMessage as String
-            }()
-
-            throw SecureEnclaveKeyError.fetch(errorMessage: errorMessage)
+            throw SecureEnclaveKeyError.fetch(errorMessage: self.errorMessage(for: status))
         }
 
         // swiftformat:disable redundantParens
@@ -95,9 +96,9 @@ final class SecureEnclaveKey {
             kSecAttrAccessControl as String: access
         ]
         let attributes: [String: Any] = [
+            kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
             kSecAttrKeyType as String: kSecAttrKeyTypeEC,
             kSecAttrKeySizeInBits as String: 256,
-            kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
             kSecPrivateKeyAttrs as String: keyAttributes
         ]
 
@@ -154,7 +155,7 @@ final class SecureEnclaveKey {
     func sign(payload: Data) throws -> Data {
         var error: Unmanaged<CFError>?
         guard let signature = SecKeyCreateSignature(self.privateKey,
-                                                    .ecdsaSignatureMessageX962SHA256,
+                                                    Self.signingAlgorithm,
                                                     payload as CFData,
                                                     &error) else {
             throw SecureEnclaveKeyError.sign(keyChainError: Self.error(for: error))
@@ -185,5 +186,18 @@ final class SecureEnclaveKey {
         }
 
         return decrypted as Data
+    }
+
+    consuming func delete() throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: Self.tag(from: self.identifier)
+        ]
+
+        let status = SecItemDelete(query as CFDictionary)
+
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw SecureEnclaveKeyError.delete(errorMessage: Self.errorMessage(for: status))
+        }
     }
 }

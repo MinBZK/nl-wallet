@@ -61,6 +61,7 @@ class SecurityChoosePinTests : TestBase() {
             "choose pin error sequential digits is not visible"
         )
 
+        pinScreen.closeAlertDialog()
         pinScreen.enterPin("987654")
         assertTrue(
             pinScreen.choosePinErrorSequentialDigitsVisible(),

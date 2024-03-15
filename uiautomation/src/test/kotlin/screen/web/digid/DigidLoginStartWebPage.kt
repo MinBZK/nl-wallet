@@ -1,4 +1,4 @@
-package screen.digid
+package screen.web.digid
 
 import org.openqa.selenium.By
 import util.MobileActions

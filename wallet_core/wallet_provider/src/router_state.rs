@@ -60,7 +60,11 @@ impl RouterState {
         )
         .await?;
 
-        let db = Db::new(settings.database.connection_string()).await?;
+        let db = Db::new(
+            settings.database.connection_string(),
+            settings.database.connection_options,
+        )
+        .await?;
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,

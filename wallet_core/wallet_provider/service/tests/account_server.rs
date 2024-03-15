@@ -8,7 +8,7 @@ use wallet_common::{
         instructions::{InstructionChallengeRequest, InstructionChallengeRequestMessage},
     },
     generator::Generator,
-    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey},
+    keys::{software::SoftwareEcdsaKey, EcdsaKey},
 };
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::{
@@ -39,7 +39,7 @@ async fn db_from_env() -> Result<Db, PersistenceError> {
     );
 
     let settings = Settings::new().unwrap();
-    Db::new(settings.database.connection_string()).await
+    Db::new(settings.database.connection_string(), Default::default()).await
 }
 
 async fn do_registration(
@@ -101,7 +101,7 @@ async fn test_instruction_challenge() {
     let db = db_from_env().await.expect("Could not connect to database");
     let repos = Repositories::new(db);
 
-    let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+    let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
     let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
     let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;

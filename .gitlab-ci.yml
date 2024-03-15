@@ -536,7 +536,7 @@ build-ws-migrations-image:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
-    UL_HOSTNAME: "${EXTERNAL_HOSTNAME_ONT}"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
 
 build-android-app-latest-release:
   extends: .build-android-app-latest
@@ -571,7 +571,7 @@ build-android-app-mock-release:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
     APP_MOCK: "false"
-    UL_HOSTNAME: "${EXTERNAL_HOSTNAME_DEMO}"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
 
 build-android-app-demo-release:
   extends: .build-android-app-demo
@@ -898,7 +898,7 @@ deploy-mock-relying-party-ont:
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_ONT
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
-    UL_HOSTNAME: $EXTERNAL_HOSTNAME_ONT
+    UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
@@ -908,7 +908,7 @@ deploy-mock-relying-party-demo:
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
-    UL_HOSTNAME: $EXTERNAL_HOSTNAME_DEMO
+    UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
 
 check-gitlab-ci-changed:
   rules:
@@ -943,7 +943,11 @@ check-gitlab-ci-changed:
       --tests "feature.appstart.*"
       --tests "feature.introduction.*"
       --tests "feature.security.*"
-      --tests "feature.lock.*"
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
+      -Dtest.config.device.name=$DEVICE_NAME
+      -Dtest.config.platform.name=$PLATFORM_NAME
+      -Dtest.config.platform.version=$PLATFORM_VERSION
+      -Dtest.config.remote=true
 
 run-automation-tests-12:
   extends: [.run-automation-tests]
@@ -956,7 +960,9 @@ run-automation-tests-12:
     - job: run-automation-tests-14
       artifacts: false
   variables:
-    BROWSERSTACK_DEVICE: "Google Pixel 6"
+    DEVICE_NAME: "Google Pixel 6"
+    PLATFORM_NAME: "Android"
+    PLATFORM_VERSION: "12.0"
 
 run-automation-tests-13:
   extends: [.run-automation-tests]
@@ -967,7 +973,9 @@ run-automation-tests-13:
     - job: run-automation-tests-14
       artifacts: false
   variables:
-    BROWSERSTACK_DEVICE: "Google Pixel Pro 7"
+    DEVICE_NAME: "Google Pixel 7"
+    PLATFORM_NAME: "Android"
+    PLATFORM_VERSION: "13.0"
 
 run-automation-tests-14:
   extends: [.run-automation-tests]
@@ -977,7 +985,9 @@ run-automation-tests-14:
     - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: manual
   variables:
-    BROWSERSTACK_DEVICE: "Google Pixel 8"
+    DEVICE_NAME: "Google Pixel 8"
+    PLATFORM_NAME: "Android"
+    PLATFORM_VERSION: "14.0"
 
 build-sbom:
   rules: !reference [.default-branch, rules]

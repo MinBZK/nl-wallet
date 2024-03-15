@@ -9,6 +9,7 @@ use url::Url;
 use nl_wallet_mdoc::utils::x509::Certificate;
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
+    reqwest::deserialize_certificates,
     trust_anchor::DerTrustAnchor,
 };
 
@@ -62,6 +63,8 @@ pub struct KeyPair {
 pub struct Digid {
     pub issuer_url: Url,
     pub bsn_privkey: String,
+    #[serde(deserialize_with = "deserialize_certificates", default)]
+    pub trust_anchors: Vec<reqwest::Certificate>,
 }
 
 #[cfg(feature = "mock")]
@@ -112,7 +115,8 @@ impl Settings {
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("internal_url", "http://localhost:3002/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
-            .set_default("store_url", "memory://")?;
+            .set_default("store_url", "memory://")?
+            .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
 
         #[cfg(feature = "issuance")]
         let config_builder = config_builder.set_default(

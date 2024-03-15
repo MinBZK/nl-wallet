@@ -5,8 +5,8 @@ use wallet_common::config::wallet_config::WalletConfiguration;
 use crate::config::data::default_configuration;
 
 use super::{
-    ConfigurationError, ConfigurationRepository, ConfigurationUpdateState, ObservableConfigurationRepository,
-    UpdateableConfigurationRepository,
+    ConfigCallback, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
+    ObservableConfigurationRepository, UpdateableConfigurationRepository,
 };
 
 pub struct LocalConfigurationRepository {
@@ -40,11 +40,11 @@ impl UpdateableConfigurationRepository for LocalConfigurationRepository {
 }
 
 impl ObservableConfigurationRepository for LocalConfigurationRepository {
-    fn register_callback_on_update<F>(&self, _callback: F)
-    where
-        F: Fn(Arc<WalletConfiguration>) + Send + Sync,
-    {
+    fn register_callback_on_update(&self, _callback: ConfigCallback) -> Option<ConfigCallback> {
+        None
     }
 
-    fn clear_callback(&self) {}
+    fn clear_callback(&self) -> Option<ConfigCallback> {
+        None
+    }
 }

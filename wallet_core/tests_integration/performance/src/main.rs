@@ -1,8 +1,7 @@
-use std::env;
-
 use indexmap::IndexMap;
 use reqwest::StatusCode;
 use tokio::fs;
+use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
@@ -13,6 +12,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{issuance_session::HttpIssuanceSession, oidc::HttpOidcClient};
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
+use tests_integration_common::*;
 use wallet::{
     mock::{default_configuration, MockStorage},
     wallet_deps::{
@@ -24,29 +24,16 @@ use wallet::{
 use wallet_common::keys::software::SoftwareEcdsaKey;
 use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
 
-use crate::common::fake_digid_auth;
-
-pub mod common;
-
-/// This test is meant to be run against an already running (external) environment. It uses the wallet default
-/// configuration determined by `wallet/.env` (or by using environment variables).
-///
-/// In addition, it requires an `test_integration/.env` file containing two keys:
-/// - PERF_RELYING_PART_URL; The external URL from where the disclosure flow is started. Is used as return_url.
-/// - PERF_WALLET_SERVER_REQUESTER_URL; The internal URL where the disclosure session is started. Normally used by the relying party server.
-///
-#[cfg_attr(not(feature = "performance_test"), ignore)]
-#[tokio::test]
-async fn test_complete_flow() {
+#[instrument(name = "", fields(pid = std::process::id()))]
+#[tokio::main]
+async fn main() {
     let storage_path = SoftwareUtilities::storage_path().await.unwrap();
     let etag_file = storage_path.join("latest-configuration-etag.txt");
     // make sure there are no storage files from previous test runs
     let _ = fs::remove_file(etag_file.as_path()).await;
 
-    dotenvy::dotenv().unwrap();
-    let relying_party_url = env::var("PERF_RELYING_PART_URL").expect("should set PERF_RELYING_PART_URL env var");
-    let wallet_server_requester_url =
-        env::var("PERF_WALLET_SERVER_REQUESTER_URL").expect("should set PERF_WALLET_SERVER_REQUESTER_URL env var");
+    let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
+    let wallet_server_requester_url = option_env!("WALLET_SERVER_REQUESTER_URL").unwrap_or("http://localhost:3002/");
 
     let config_server_config = ConfigServerConfiguration::default();
     let wallet_config = default_configuration();
@@ -61,7 +48,7 @@ async fn test_complete_flow() {
     .await
     .unwrap();
     config_repository.fetch().await.unwrap();
-    let digid_base_url = &config_repository.config().pid_issuance.digid_url;
+    let pid_issuance_config = &config_repository.config().pid_issuance;
 
     let mut wallet: Wallet<
         HttpConfigurationRepository,
@@ -88,7 +75,12 @@ async fn test_complete_flow() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(&authorization_url, digid_base_url).await;
+    let redirect_url = fake_digid_auth(
+        &authorization_url,
+        &pid_issuance_config.digid_url,
+        pid_issuance_config.digid_trust_anchors(),
+    )
+    .await;
 
     let _unsigned_mdocs = wallet
         .continue_pid_issuance(&redirect_url)
@@ -152,5 +144,5 @@ async fn test_complete_flow() {
         .await
         .expect("Could not accept disclosure");
 
-    assert!(return_url.unwrap().to_string().starts_with(&relying_party_url));
+    assert!(return_url.unwrap().to_string().starts_with(relying_party_url));
 }

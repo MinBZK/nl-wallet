@@ -1,6 +1,6 @@
 pub mod hardware;
 
-use wallet_common::keys::{ConstructibleWithIdentifier, SecureEcdsaKey};
+use wallet_common::keys::{SecureEcdsaKey, SecureEncryptionKey, StoredByIdentifier};
 
 #[derive(Debug, thiserror::Error)]
 pub enum HardwareKeyStoreError {
@@ -24,10 +24,23 @@ pub enum KeyStoreError {
 /// Contract for ECDSA private keys suitable for use in the wallet, e.g. as the authentication key for the WP.
 /// Should be sufficiently secured e.g. through Android's TEE/StrongBox or Apple's SE.
 /// Handles to private keys are requested through [`ConstructibleWithIdentifier::new()`].
-pub trait PlatformEcdsaKey: ConstructibleWithIdentifier + SecureEcdsaKey {
-    // from ConstructibleWithIdentifier: new(), identifier()
-    // from SecureSigningKey: verifying_key(), try_sign() and sign() methods
+pub trait PlatformEcdsaKey: StoredByIdentifier + SecureEcdsaKey {
+    // from StoredByIdentifier: new_unique(), delete(), identifier()
+    // from EcdsaKey: verifying_key(), try_sign(), sign()
+}
+
+pub trait PlatformEncryptionKey: StoredByIdentifier + SecureEncryptionKey {
+    // from StoredByIdentifier: new_unique(), delete(), identifier()
+    // from EncryptionKey: encrypt(), decrypt()
 }
 
 #[cfg(feature = "software")]
-impl PlatformEcdsaKey for wallet_common::keys::software::SoftwareEcdsaKey {}
+mod software {
+    use wallet_common::keys::software::{SoftwareEcdsaKey, SoftwareEncryptionKey};
+
+    use super::{PlatformEcdsaKey, PlatformEncryptionKey};
+
+    impl PlatformEcdsaKey for SoftwareEcdsaKey {}
+
+    impl PlatformEncryptionKey for SoftwareEncryptionKey {}
+}

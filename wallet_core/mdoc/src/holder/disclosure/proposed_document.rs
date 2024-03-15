@@ -201,11 +201,10 @@ impl<I> ProposedDocument<I> {
 mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
-    use wallet_common::keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier};
 
     use crate::{
         errors::Error,
-        examples::EXAMPLE_NAMESPACE,
+        examples::{Examples, EXAMPLE_NAMESPACE},
         holder::Mdoc,
         iso::disclosure::DeviceAuth,
         software_key_factory::SoftwareKeyFactory,
@@ -368,7 +367,8 @@ mod tests {
         let expected_doc_type = proposed_document.doc_type.clone();
         let expected_issuer_signed = proposed_document.issuer_signed.clone();
 
-        let key = SoftwareEcdsaKey::new(&proposed_document.private_key_id);
+        // The example proposed document should be signed with the example static key.
+        let key = Examples::static_device_key();
         let expected_cose = cose::sign_cose(
             &proposed_document.device_signed_challenge,
             Header::default(),
@@ -398,9 +398,11 @@ mod tests {
     async fn test_proposed_document_sign_error() {
         // Set up a `KeyFactory` that returns keys that fail at signing.
         let proposed_document = create_example_proposed_document();
-        let key_factory = SoftwareKeyFactory {
-            has_generating_error: false,
-            has_key_signing_error: true,
+        let key_factory = {
+            let mut key_factory = SoftwareKeyFactory::default();
+            key_factory.has_multi_key_signing_error = true;
+
+            key_factory
         };
 
         // Conversion to `Document` should simply forward the signing error.

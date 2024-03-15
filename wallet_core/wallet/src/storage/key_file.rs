@@ -5,37 +5,34 @@ use std::{
 
 use tokio::fs;
 
-use wallet_common::{keys::SecureEncryptionKey, utils::random_bytes};
-
-const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
+use wallet_common::{keys::SecureEncryptionKey, utils};
 
 #[derive(Debug, thiserror::Error)]
 pub enum KeyFileError {
     #[error("key file I/O error: {0}")]
     Io(#[from] io::Error),
     #[error("key file platform key store error: {0}")]
-    Encryption(#[from] Box<dyn std::error::Error + Send + Sync>),
+    Encryption(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
-pub async fn get_or_create_key_file<K: SecureEncryptionKey>(
+pub async fn get_or_create_key_file(
     storage_path: &Path,
     alias: &str,
+    encryption_key: &impl SecureEncryptionKey,
     byte_length: usize,
 ) -> Result<Vec<u8>, KeyFileError> {
-    // Path to key file will be "<storage_path>/<alias>.key",
-    // it will be encrypted with a key named "keyfile_<alias>".
+    // Path to key file will be "<storage_path>/<alias>.key".
     let path = path_for_key_file(storage_path, alias);
-    let encryption_key = K::new(&format!("{}{}", KEY_IDENTIFIER_PREFIX, alias));
 
     // Decrypt file at path, create key and write to file if needed.
-    get_or_create_encrypted_file_contents(path.as_path(), &encryption_key, || random_bytes(byte_length)).await
+    get_or_create_encrypted_file_contents(path.as_path(), encryption_key, || utils::random_bytes(byte_length)).await
 }
 
-pub async fn delete_key_file(storage_path: &Path, alias: &str) {
+pub async fn delete_key_file(storage_path: &Path, alias: &str) -> Result<(), KeyFileError> {
     let path = path_for_key_file(storage_path, alias);
-    // Ignore any errors when removing the file,
-    // as we do not want this to propagate.
-    let _ = fs::remove_file(&path).await;
+    fs::remove_file(&path).await?;
+
+    Ok(())
 }
 
 fn path_for_key_file(storage_path: &Path, alias: &str) -> PathBuf {
@@ -91,8 +88,9 @@ async fn read_encrypted_file(path: &Path, encryption_key: &impl SecureEncryption
 mod tests {
     use std::{cell::RefCell, env};
 
+    use aes_gcm::{Aes256Gcm, KeyInit};
+    use rand_core::OsRng;
     use tempfile::{NamedTempFile, TempPath};
-    use wallet_common::keys::{software::SoftwareEncryptionKey, ConstructibleWithIdentifier};
 
     use super::*;
 
@@ -110,7 +108,7 @@ mod tests {
     async fn test_read_and_write_encrypted_file() {
         let path = create_temporary_file_path();
         let contents = "This will be encrypted in a file.";
-        let encryption_key = SoftwareEncryptionKey::new("test_read_and_write_encrypted_file");
+        let encryption_key = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
 
         // encrypt and decrypt a file, read encrypted file manually.
         write_encrypted_file(&path, contents.as_bytes(), &encryption_key)
@@ -132,7 +130,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_or_create_encrypted_file_contents() {
         let path = create_temporary_file_path();
-        let encryption_key = SoftwareEncryptionKey::new("get_or_create_encrypted_file_contents");
+        let encryption_key = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
 
         let contents = "This will be encrypted in a file.";
         let default_counter = RefCell::new(0);
@@ -167,18 +165,27 @@ mod tests {
 
         let storage_path = env::temp_dir();
 
+        let path1 = path_for_key_file(&storage_path, &alias1);
+        let path2 = path_for_key_file(&storage_path, &alias2);
+
         // Make sure we start with a clean slate.
-        delete_key_file(&storage_path, &alias1).await;
-        delete_key_file(&storage_path, &alias2).await;
+        _ = delete_key_file(&storage_path, &alias1).await;
+        _ = delete_key_file(&storage_path, &alias2).await;
+
+        // Double check that neither key file exists on disk.
+        assert!(!fs::try_exists(&path1).await.unwrap());
+        assert!(!fs::try_exists(&path2).await.unwrap());
 
         // Create three keys, two of them with the same alias.
-        let key1 = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1, byte_length)
+        let encryption_key1 = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
+        let encryption_key2 = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng));
+        let key1 = get_or_create_key_file(&storage_path, &alias1, &encryption_key1, byte_length)
             .await
             .expect("Could not create key file");
-        let key2 = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias2, byte_length)
+        let key2 = get_or_create_key_file(&storage_path, &alias2, &encryption_key2, byte_length)
             .await
             .expect("Could not create key file");
-        let key1_again = get_or_create_key_file::<SoftwareEncryptionKey>(&storage_path, &alias1, byte_length)
+        let key1_again = get_or_create_key_file(&storage_path, &alias1, &encryption_key1, byte_length)
             .await
             .expect("Could not get key file");
 
@@ -187,8 +194,16 @@ mod tests {
         assert_ne!(key1, key2);
         assert_eq!(key1, key1_again);
 
+        // Both key files should exist on disk.
+        assert!(fs::try_exists(&path1).await.unwrap());
+        assert!(fs::try_exists(&path2).await.unwrap());
+
         // Cleanup after ourselves.
-        delete_key_file(&storage_path, &alias1).await;
-        delete_key_file(&storage_path, &alias2).await;
+        delete_key_file(&storage_path, &alias1).await.unwrap();
+        delete_key_file(&storage_path, &alias2).await.unwrap();
+
+        // Both key files should be deleted from disk.
+        assert!(!fs::try_exists(&path1).await.unwrap());
+        assert!(!fs::try_exists(&path2).await.unwrap());
     }
 }

@@ -712,7 +712,7 @@ mod tests {
             messages::instructions::{CheckPin, InstructionChallengeRequest},
             serialization::DerVerifyingKey,
         },
-        keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey},
+        keys::{software::SoftwareEcdsaKey, EcdsaKey},
     };
     use wallet_provider_domain::{
         generator::mock::MockGenerators,
@@ -763,7 +763,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_register() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
@@ -904,9 +904,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_pin() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
-        let instruction_result_signing_key = SoftwareEcdsaKey::new("instruction_result_signing_key");
+        let instruction_result_signing_key = SoftwareEcdsaKey::new_random("instruction_result_signing_key".to_string());
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
         let hw_privkey = SigningKey::random(&mut OsRng);
@@ -1018,7 +1018,7 @@ mod tests {
 
     #[tokio::test]
     async fn valid_wallet_certificate_should_verify() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
@@ -1076,7 +1076,7 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_hw_key_should_not_validate() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
@@ -1111,7 +1111,7 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_pin_key_should_not_validate() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
@@ -1145,7 +1145,7 @@ mod tests {
 
     #[tokio::test]
     async fn valid_challenge_should_verify() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
@@ -1207,7 +1207,7 @@ mod tests {
 
     #[tokio::test]
     async fn wrong_challenge_should_not_verify() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;
@@ -1279,7 +1279,7 @@ mod tests {
 
     #[tokio::test]
     async fn expired_challenge_should_not_verify() {
-        let certificate_signing_key = SoftwareEcdsaKey::new("certificate_signing_key");
+        let certificate_signing_key = SoftwareEcdsaKey::new_random("certificate_signing_key".to_string());
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await.unwrap();
 
         let (account_server, hsm) = mock::account_server_and_hsm((&certificate_signing_pubkey).into()).await;

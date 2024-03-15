@@ -66,7 +66,6 @@ As an example, to run the app in 'implementation' mode use: `flutter run --dart-
 
 During local development, two additional variables should be set:
 
-* Setting `DISABLE_TLS_VALIDATION=true` will disable TLS validation during PID issuance, so a self-signed certificate may be used.
 * Setting `ENV_CONFIGURATION=true` will allow overriding of hardcoded configuration values in the Rust core from the environment during compilation.
 
 

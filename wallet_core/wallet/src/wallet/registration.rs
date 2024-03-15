@@ -1,9 +1,9 @@
-use std::error::Error;
+use std::{borrow::Cow, error::Error};
 
 use tracing::{info, instrument};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::{account::messages::auth::Registration, jwt::JwtError};
+use wallet_common::{account::messages::auth::Registration, jwt::JwtError, keys::StoredByIdentifier};
 
 use crate::{
     account_provider::{AccountProviderClient, AccountProviderError},
@@ -15,7 +15,34 @@ use crate::{
     storage::{RegistrationData, Storage, StorageError, StorageState},
 };
 
-use super::Wallet;
+use super::{Wallet, WalletRegistration};
+
+const WALLET_KEY_ID: &str = "wallet";
+
+/// This helper function normally simply returns `WALLET_KEY_ID`, but
+/// returns `WALLET_KEY_ID` suffixed with a unique thread local identifier
+/// when running tests. This allows multiple `Wallet` instances to be
+/// created in parallel.
+pub(super) fn wallet_key_id() -> Cow<'static, str> {
+    #[cfg(not(test))]
+    return Cow::from(WALLET_KEY_ID);
+
+    #[cfg(test)]
+    {
+        use std::{
+            cell::Cell,
+            sync::atomic::{AtomicUsize, Ordering},
+        };
+
+        static WALLET_TEST_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+        thread_local! {
+            pub static WALLET_TEST_ID: Cell<usize> = WALLET_TEST_ID_COUNTER.fetch_add(1, Ordering::Relaxed).into();
+        }
+
+        Cow::from(format!("{}_{}", WALLET_KEY_ID, WALLET_TEST_ID.get()))
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum WalletRegistrationError {
@@ -40,6 +67,17 @@ pub enum WalletRegistrationError {
 }
 
 impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
+    pub(super) fn hw_privkey() -> PEK
+    where
+        PEK: StoredByIdentifier,
+    {
+        // Get or create the hardware ECDSA key for communication with the account server.
+        // The identifier used for this should be globally unique. If this is not the case,
+        // the `Wallet` has multiple instances, which is programmer error and should result
+        // in a panic.
+        PEK::new_unique(wallet_key_id().as_ref()).expect("wallet hardware key identifier is already in use")
+    }
+
     pub fn has_registration(&self) -> bool {
         self.registration.is_some()
     }
@@ -64,6 +102,10 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
         // Make sure the PIN adheres to the requirements.
         validate_pin(&pin)?; // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
 
+        info!("Creating hardware private key");
+
+        let hw_privkey = Self::hw_privkey();
+
         info!("Requesting challenge from account server");
 
         let config = &self.config_repository.config().account_server;
@@ -85,12 +127,11 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
         let pin_key = PinKey::new(&pin, &pin_salt);
 
         // Retrieve the public key and sign the registration message.
-        let hw_pubkey = self
-            .hw_privkey
+        let hw_pubkey = hw_privkey
             .verifying_key()
             .await
             .map_err(|e| WalletRegistrationError::HardwarePublicKey(e.into()))?;
-        let registration_message = Registration::new_signed(&self.hw_privkey, &pin_key, &challenge)
+        let registration_message = Registration::new_signed(&hw_privkey, &pin_key, &challenge)
             .await
             .map_err(WalletRegistrationError::Signing)?;
 
@@ -122,14 +163,14 @@ impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS> {
         }
 
         // Save the registration data in storage.
-        let registration_data = RegistrationData {
+        let data = RegistrationData {
             pin_salt,
             wallet_certificate,
         };
-        storage.insert_data(&registration_data).await?;
+        storage.insert_data(&data).await?;
 
         // Keep the registration data in memory.
-        self.registration = Some(registration_data);
+        self.registration = WalletRegistration { hw_privkey, data }.into();
 
         // Unlock the wallet after successful registration
         self.lock.unlock();
@@ -146,7 +187,10 @@ mod tests {
     use rand_core::OsRng;
     use wallet_common::{account::signed::SequenceNumberComparison, jwt::Jwt, utils};
 
-    use crate::{account_provider::AccountProviderResponseError, wallet::test::ACCOUNT_SERVER_KEYS};
+    use crate::{
+        account_provider::AccountProviderResponseError,
+        wallet::test::{FallibleSoftwareEcdsaKey, ACCOUNT_SERVER_KEYS},
+    };
 
     use super::{super::test::WalletWithMocks, *};
 
@@ -174,7 +218,7 @@ mod tests {
 
         // Have the account server respond with a valid
         // certificate when the wallet sends a request for it.
-        let cert = wallet.valid_certificate().await;
+        let cert = WalletWithMocks::valid_certificate().await;
         let cert_response = cert.clone();
         let challenge_expected = challenge.clone();
 
@@ -279,12 +323,10 @@ mod tests {
             .return_once(|_| Ok(utils::random_bytes(32)));
 
         // Have the hardware public key fetching fail.
-        wallet
-            .hw_privkey
-            .next_public_key_error
-            .lock()
-            .unwrap()
-            .replace(p256::ecdsa::Error::new());
+        FallibleSoftwareEcdsaKey::next_public_key_error_for_identifier(
+            wallet_key_id().as_ref().to_string(),
+            p256::ecdsa::Error::new(),
+        );
 
         let error = wallet
             .register(PIN.to_string())
@@ -306,12 +348,10 @@ mod tests {
             .return_once(|_| Ok(utils::random_bytes(32)));
 
         // Have the hardware key signing fail.
-        wallet
-            .hw_privkey
-            .next_private_key_error
-            .lock()
-            .unwrap()
-            .replace(p256::ecdsa::Error::new());
+        FallibleSoftwareEcdsaKey::next_private_key_error_for_identifier(
+            wallet_key_id().as_ref().to_string(),
+            p256::ecdsa::Error::new(),
+        );
 
         let error = wallet
             .register(PIN.to_string())
@@ -360,7 +400,7 @@ mod tests {
         // Have the account server sign the wallet certificate with
         // a key to which the certificate public key does not belong.
         let other_key = SigningKey::random(&mut OsRng);
-        let cert = Jwt::sign_with_sub(&wallet.valid_certificate_claims().await, &other_key)
+        let cert = Jwt::sign_with_sub(&WalletWithMocks::valid_certificate_claims().await, &other_key)
             .await
             .unwrap();
 
@@ -391,7 +431,7 @@ mod tests {
         // Have the account server include a hardware public key
         // in the wallet certificate that the wallet did not send.
         let other_key = SigningKey::random(&mut OsRng);
-        let mut cert_claims = wallet.valid_certificate_claims().await;
+        let mut cert_claims = WalletWithMocks::valid_certificate_claims().await;
         cert_claims.hw_pubkey = (*other_key.verifying_key()).into();
         let cert = Jwt::sign_with_sub(&cert_claims, &ACCOUNT_SERVER_KEYS.certificate_signing_key)
             .await
@@ -421,7 +461,7 @@ mod tests {
             .expect_registration_challenge()
             .return_once(|_| Ok(utils::random_bytes(32)));
 
-        let cert = wallet.valid_certificate().await;
+        let cert = WalletWithMocks::valid_certificate().await;
 
         wallet
             .account_provider_client

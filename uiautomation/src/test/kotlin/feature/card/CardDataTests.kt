@@ -47,13 +47,14 @@ class CardDataTests : TestBase() {
         assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "data privacy banner not visible")
     }
 
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    //This test is commented out because of a missing UI element and click behaviour, bug ticket link: https://SSSS/browse/PVW-2401
+    /*@RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("4. Clicking the warning provides: A motivation why it is important to keep data to yourself AND An explanation how the User can share this data (with QR).")
     fun verifyDataPrivacySheet() {
         cardDataScreen.clickDataPrivacyBanner()
 
         assertTrue(cardDataScreen.dataPrivacySheetVisible(), "data privacy sheet not visible")
-    }
+    }*/
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))

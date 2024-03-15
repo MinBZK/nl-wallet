@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
+import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/wallet_app_bar.dart';
 
@@ -68,14 +67,7 @@ class PinBlockedScreen extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: ElevatedButton(
-        onPressed: () async {
-          final navigator = Navigator.of(context);
-          await context.read<ResetWalletUseCase>().invoke();
-          navigator.restorablePushNamedAndRemoveUntil(
-            WalletRoutes.setupSecurityRoute,
-            ModalRoute.withName(WalletRoutes.splashRoute),
-          );
-        },
+        onPressed: () => ResetWalletDialog.show(context),
         child: Text(context.l10n.pinBlockedScreenResetWalletCta),
       ),
     );

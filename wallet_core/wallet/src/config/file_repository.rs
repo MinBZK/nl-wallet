@@ -84,9 +84,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, RwLock};
+    use std::sync::Arc;
 
     use p256::ecdsa::SigningKey;
+    use parking_lot::RwLock;
     use rand_core::OsRng;
     use url::Url;
 
@@ -101,13 +102,13 @@ mod tests {
 
     impl ConfigurationRepository for TestConfigRepo {
         fn config(&self) -> Arc<WalletConfiguration> {
-            Arc::new(self.0.read().unwrap().clone())
+            Arc::new(self.0.read().clone())
         }
     }
 
     impl UpdateableConfigurationRepository for TestConfigRepo {
         async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError> {
-            let mut config = self.0.write().unwrap();
+            let mut config = self.0.write();
             config.lock_timeouts.background_timeout = 700;
             Ok(ConfigurationUpdateState::Updated)
         }

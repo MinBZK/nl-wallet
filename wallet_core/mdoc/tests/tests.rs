@@ -25,6 +25,7 @@ use nl_wallet_mdoc::{
     unsigned::{Entry, UnsignedMdoc},
     utils::{
         issuer_auth::IssuerRegistration,
+        keys::KeyFactory,
         reader_auth::{AuthorizedAttribute, AuthorizedMdoc, AuthorizedNamespace, ReaderRegistration},
         serialization,
         x509::Certificate,
@@ -34,7 +35,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{
     generator::TimeGenerator,
-    keys::{software::SoftwareEcdsaKey, ConstructibleWithIdentifier, EcdsaKey},
+    keys::{EcdsaKey, WithIdentifier},
 };
 use webpki::TrustAnchor;
 
@@ -173,18 +174,20 @@ impl MdocDataSource for MockMdocDataSource {
 }
 
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and key identifier.
-pub async fn mdoc_from_unsigned(ca: &KeyPair, unsigned_mdoc: UnsignedMdoc, private_key_id: String) -> Mdoc {
+pub async fn mdoc_from_unsigned<KF>(ca: &KeyPair, unsigned_mdoc: UnsignedMdoc, key_factory: &KF) -> Mdoc
+where
+    KF: KeyFactory,
+{
     let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
-    let mdoc_public_key = (&SoftwareEcdsaKey::new(&private_key_id).verifying_key().await.unwrap())
-        .try_into()
-        .unwrap();
+    let mdoc_key = key_factory.generate_new().await.unwrap();
+    let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
     let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuance_key)
         .await
         .unwrap();
 
-    Mdoc::new::<SoftwareEcdsaKey>(
-        private_key_id,
+    Mdoc::new::<KF::Key>(
+        mdoc_key.identifier().to_string(),
         issuer_signed,
         &TimeGenerator,
         &[(ca.certificate().try_into().unwrap())],
@@ -318,13 +321,14 @@ async fn test_issuance_and_disclosure(
     #[case] expected_attributes: Vec<AttributesWithValue>,
 ) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let key_factory = SoftwareKeyFactory::default();
 
     let mdocs = {
         let mut mdocs = vec![];
 
         for doc in stored_attributes {
             let unsigned = UnsignedMdoc::from(doc);
-            let mdoc = mdoc_from_unsigned(&ca, unsigned, "private_key_id".to_string()).await;
+            let mdoc = mdoc_from_unsigned(&ca, unsigned, &key_factory).await;
             mdocs.push(mdoc);
         }
 
@@ -371,7 +375,7 @@ async fn test_issuance_and_disclosure(
 
     // Get the disclosed attributes from the verifier session.
     disclosure_session_proposal
-        .disclose(&SoftwareKeyFactory::default())
+        .disclose(&key_factory)
         .await
         .expect("disclosure of proposed attributes should succeed");
 
