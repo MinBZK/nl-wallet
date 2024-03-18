@@ -240,20 +240,23 @@ test-rust-compilation-ios:
 test-ios:
   extends: .ruby-cache
   rules: !reference [.default-or-release-or-merge-request, rules]
-  when: manual
   tags:
     - macos
+  image: sonoma-wallet:latest
   artifacts:
-    name: "test_output"
-    when: on_failure
+    when: always
+    reports:
+      coverage_report:
+        path: wallet_core/platform_support/ios/cobertura.xml
+        coverage_format: cobertura
     paths:
-      - "**/fastlane/test_output/*"
+      - "fastlane/test_output/*"
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - bundle install
-    - bundle exec fastlane disable_flutter_analytics
     - bundle exec fastlane ios test
+    - cp fastlane/test_output/cobertura.xml wallet_core/platform_support/ios/
 
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -369,6 +372,9 @@ sonar-flutter:
 
 sonar-ios:
   extends: .default-sonar
+  needs:
+    - job: test-ios
+      artifacts: true
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -381,6 +387,7 @@ sonar-ios:
       -Dsonar.c.file.suffixes=-
       -Dsonar.cpp.file.suffixes=-
       -Dsonar.objc.file.suffixes=-
+      -Dsonar.coverageReportPaths=../../../fastlane/test_output/sonarqube-generic-coverage.xml
 
 sonar-android:
   extends: .default-sonar
