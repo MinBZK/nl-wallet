@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-03-12T15:32:28+01:00",
+    "@@last_modified": "2024-03-18T10:30:24+01:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
@@ -68,7 +68,7 @@
     "cardDataScreenDataPrivacySheetTitle": "View of your data",
     "cardDataScreenIncorrectCta": "Is the data incorrect?",
     "cardDataScreenTitle": "Data from {title}",
-    "cardDetailScreenCardDataCta": "Data",
+    "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDataIssuedBy": "Issued by {organization}",
     "@cardDetailScreenCardDataIssuedBy": {
         "placeholders": {
@@ -91,7 +91,7 @@
             }
         }
     },
-    "cardDetailScreenDataAttributesTitle": "Data",
+    "cardDetailScreenDataAttributesTitle": "Details in this card",
     "cardDetailScreenLatestIssuedOperation": "Latest update {dateTime}",
     "@cardDetailScreenLatestIssuedOperation": {
         "placeholders": {
@@ -186,7 +186,7 @@
     "confirmAgreementPageTitle": "Do you want to sign with this data?",
     "dashboardScreenFooter": "The government is developing this app for your convenience, privacy and security. Learn more at {cta}.",
     "dashboardScreenFooterCta": "About this app",
-    "dashboardScreenQrCta": "QR code",
+    "dashboardScreenQrCta": "Scan QR code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",
     "@dataAttributeSectionTitle": {
@@ -263,7 +263,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, =1 {Only this data is shared. Nothing more.} other {Only these {count} data are shared. Nothing more.}}",
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, =1 {Only the following data is shared. Nothing more.} other {Only these following {count} pieces of data are shared. Nothing more.}}",
     "@disclosureConfirmDataAttributesSharedAttributesInfo": {
         "placeholders": {
             "count": {
@@ -272,7 +272,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSubtitleData": "Data",
+    "disclosureConfirmDataAttributesSubtitleData": "Data in this card",
     "disclosureConfirmDataAttributesSubtitlePurpose": "Reason",
     "disclosureConfirmDataAttributesSubtitleTerms": "Agreements",
     "disclosureConfirmPinPageDescription": "By entering your PIN code you agree to share your data.",
@@ -616,7 +616,7 @@
     "historyDetailScreenTitle": "Details",
     "historyOverviewScreenTitle": "Activities",
     "introductionAppDisclaimerPageTitle": "Welcome to the Demo version of the NL Wallet.",
-    "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can stop at any time.\nYou keep your PIN code to yourself.\nYou always consider whether sharing is wise.",
+    "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can stop at any time.\nYou keep your PIN code to yourself.\nYou share your data at your own risk.",
     "introductionConditionsScreenConditionsCta": "Read the terms and conditions",
     "introductionConditionsScreenHeadline": "We agree on this",
     "introductionConditionsScreenNextCta": "Accept",
@@ -827,7 +827,7 @@
         }
     },
     "organizationApprovePageIncorrectCta": "Is something not right?",
-    "organizationApprovePageMoreInfoCta": "More info",
+    "organizationApprovePageMoreInfoCta": "See details",
     "organizationApprovePagePurpose": "Reason: {purpose}",
     "@organizationApprovePagePurpose": {
         "placeholders": {
@@ -1014,7 +1014,7 @@
     "qrScreenScanTabErrorButton": "Try again",
     "qrScreenScanTabGrantPermissionButton": "Grant access to camera",
     "qrScreenScanTabTitle": "Scan",
-    "qrScreenTitle": "QR code",
+    "qrScreenTitle": "Scan QR code",
     "reportIssueScreenHeaderTitle": "Which problem would you like to report? Your report will be sent anonymously.",
     "reportIssueScreenTitle": "Would you like to report a problem?",
     "reportOptionImpersonatingOrganization": "This organization pretends to be someone else.",
@@ -1024,10 +1024,10 @@
     "reportOptionUnknownOrganization": "I do not know this organization",
     "reportOptionUnreasonableTerms": "I disagree with the terms",
     "reportOptionUntrusted": "I do not trust this",
-    "resetWalletDialogBody": "When you delete the Wallet, all data is removed, and you return to the home screen.",
-    "resetWalletDialogCancelCta": "Cancel",
-    "resetWalletDialogConfirmCta": "Remove NL Wallet",
-    "resetWalletDialogTitle": "Do you want to remove the NL Wallet?",
+    "resetWalletDialogBody": "This will delete all your data in the app. You will return to the app introduction, and then you could create your wallet again.",
+    "resetWalletDialogCancelCta": "CANCEL",
+    "resetWalletDialogConfirmCta": "YES, DELETE",
+    "resetWalletDialogTitle": "Do you want to delete all data?",
     "settingsScreenChangeLanguageCta": "Change language",
     "settingsScreenChangePinCta": "Change PIN code",
     "settingsScreenClearDataCta": "Remove data",
@@ -1069,7 +1069,7 @@
     "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Choose a PIN code with different digits.",
     "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN code",
     "sharedAttributesCardTitle": "{count} from {cardTitle}",
-    "showDetailsCta": "Show details",
+    "showDetailsCta": "View",
     "signConfirmPinPageDescription": "By entering your PIN code you agree to exchange your data.",
     "signConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
     "@signConfirmPinPageErrorDescription": {
@@ -1189,10 +1189,10 @@
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login again",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Need help with DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Login failed",
-    "walletPersonalizeIntroPageDescription": "You create your wallet by adding your personal details once using the DigiD app.\n\nNote: You'll also need your driver's license or ID card.",
+    "walletPersonalizeIntroPageDescription": "You create your wallet by adding your personal details once using the DigiD app.",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open the DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "No DigiD?",
-    "walletPersonalizeIntroPageTitle": "Log in with DigiD to retrieve your data",
+    "walletPersonalizeIntroPageTitle": "Retrieve your data once via DigiD",
     "walletPersonalizeLoadingPhotoPageSubtitle": "Please wait...",
     "walletPersonalizeLoadingPhotoPageTitle": "Scanning",
     "walletPersonalizeNoDigidPageDescription": "At the moment you can only create a Wallet with the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch identity document? Then you can apply for a DigiD.",
@@ -1228,6 +1228,6 @@
     "walletPersonalizeSetupFailedScreenHeadline": "Setup failed",
     "walletPersonalizeSetupFailedScreenTitle": "Setup failed",
     "walletPersonalizeSuccessPageContinueCta": "To my overview",
-    "walletPersonalizeSuccessPageDescription": "Your data is stored as cards.",
+    "walletPersonalizeSuccessPageDescription": "Your data is stored in the following cards. These are always available in your wallet overview.",
     "walletPersonalizeSuccessPageTitle": "Success!"
 }

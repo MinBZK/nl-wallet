@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-03-12T15:32:28+01:00",
+    "@@last_modified": "2024-03-18T10:30:24+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -68,7 +68,7 @@
     "cardDataScreenDataPrivacySheetTitle": "Zicht op jouw gegevens",
     "cardDataScreenIncorrectCta": "Kloppen de gegevens niet?",
     "cardDataScreenTitle": "Gegevens uit {title}",
-    "cardDetailScreenCardDataCta": "Gegevens",
+    "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
     "cardDetailScreenCardDataIssuedBy": "Uitgegeven door {organization}",
     "@cardDetailScreenCardDataIssuedBy": {
         "placeholders": {
@@ -91,7 +91,7 @@
             }
         }
     },
-    "cardDetailScreenDataAttributesTitle": "Gegevens",
+    "cardDetailScreenDataAttributesTitle": "Gegevens in deze kaart",
     "cardDetailScreenLatestIssuedOperation": "Laatste update {dateTime}",
     "@cardDetailScreenLatestIssuedOperation": {
         "placeholders": {
@@ -186,7 +186,7 @@
     "confirmAgreementPageTitle": "Wil je ondertekenen met deze gegevens?",
     "dashboardScreenFooter": "De overheid ontwikkelt deze app voor jouw gemak, privacy en veiligheid. Lees meer in {cta}.",
     "dashboardScreenFooterCta": "Over de app",
-    "dashboardScreenQrCta": "QR-code",
+    "dashboardScreenQrCta": "Scan QR-code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "Uit {source}",
     "@dataAttributeSectionTitle": {
@@ -263,7 +263,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, =1 {Alleen dit gegeven wordt gedeeld. Niet meer.} other {Alleen deze {count} gegevens worden gedeeld. Niet meer.}}",
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, =1 {Alleen de volgende gegeven wordt gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens worden gedeeld. Niet meer.}}",
     "@disclosureConfirmDataAttributesSharedAttributesInfo": {
         "placeholders": {
             "count": {
@@ -272,7 +272,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSubtitleData": "Gegevens",
+    "disclosureConfirmDataAttributesSubtitleData": "Gegevens in deze kaart",
     "disclosureConfirmDataAttributesSubtitlePurpose": "Reden",
     "disclosureConfirmDataAttributesSubtitleTerms": "Afspraken",
     "disclosureConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
@@ -616,7 +616,7 @@
     "historyDetailScreenTitle": "Details",
     "historyOverviewScreenTitle": "Activiteiten",
     "introductionAppDisclaimerPageTitle": "Welkom in de Demo versie van de NL Wallet",
-    "introductionConditionsScreenBulletPoints": "Je kunt je gegevens online gebruiken.\nJe kunt op elk moment stoppen.\nJij houdt je pincode voor jezelf.\nJij bedenkt altijd of delen verstandig is.",
+    "introductionConditionsScreenBulletPoints": "Je kunt je gegevens online gebruiken.\nJe kunt op elk moment stoppen.\nJe houdt je pincode voor jezelf.\nJe deelt je gegevens op eigen risico.",
     "introductionConditionsScreenConditionsCta": "Lees de voorwaarden",
     "introductionConditionsScreenHeadline": "Dit spreken we af",
     "introductionConditionsScreenNextCta": "Akkoord",
@@ -827,7 +827,7 @@
         }
     },
     "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
-    "organizationApprovePageMoreInfoCta": "Meer info",
+    "organizationApprovePageMoreInfoCta": "Bekijk details",
     "organizationApprovePagePurpose": "Reden: {purpose}",
     "@organizationApprovePagePurpose": {
         "placeholders": {
@@ -1014,7 +1014,7 @@
     "qrScreenScanTabErrorButton": "Probeer opnieuw",
     "qrScreenScanTabGrantPermissionButton": "Toegang geven tot camera",
     "qrScreenScanTabTitle": "Scannen",
-    "qrScreenTitle": "QR-code",
+    "qrScreenTitle": "Scan QR-code",
     "reportIssueScreenHeaderTitle": "Welk probleem wil je melden? Je melding wordt anoniem verstuurd.",
     "reportIssueScreenTitle": "Wil je een probleem melden?",
     "reportOptionImpersonatingOrganization": "Deze organisatie doet zich voor als een ander",
@@ -1024,10 +1024,10 @@
     "reportOptionUnknownOrganization": "Ik ken deze organisatie niet",
     "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
     "reportOptionUntrusted": "Ik vertrouw het niet",
-    "resetWalletDialogBody": "Wanneer je de Wallet verwijdert, worden alle gegevens verwijderd en keer je terug naar het startscherm.",
-    "resetWalletDialogCancelCta": "Annuleren",
-    "resetWalletDialogConfirmCta": "Verwijder NL Wallet",
-    "resetWalletDialogTitle": "Wil je de NL Wallet verwijderen?",
+    "resetWalletDialogBody": "Hiermee verwijder je alle gegevens in de app. Vervolgens begin je opnieuw met de app-inleiding en kun je opnieuw je wallet aanmaken.",
+    "resetWalletDialogCancelCta": "ANNULEREN",
+    "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
+    "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
     "settingsScreenChangeLanguageCta": "Taal veranderen",
     "settingsScreenChangePinCta": "Pincode veranderen",
     "settingsScreenClearDataCta": "Gegevens verwijderen",
@@ -1069,7 +1069,7 @@
     "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Kies een pincode met verschillende cijfers.",
     "setupSecuritySelectPinPageTitle": "Kies een 6-cijferige pincode",
     "sharedAttributesCardTitle": "{count} uit {cardTitle}",
-    "showDetailsCta": "Details",
+    "showDetailsCta": "Bekijk",
     "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",
     "signConfirmPinPageErrorDescription": "{count, plural, one {Je kunt het nog {count} keer proberen} other {Je kunt het nog {count} keer proberen}}",
     "@signConfirmPinPageErrorDescription": {
@@ -1189,10 +1189,10 @@
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Hulp nodig met DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Inloggen niet gelukt",
-    "walletPersonalizeIntroPageDescription": "Je maakt je wallet aan door één keer je persoonsgegevens toe te voegen via de DigiD app.\n\nLet op: Je hebt ook je rijbewijs of identiteitsbewijs nodig.",
+    "walletPersonalizeIntroPageDescription": "Je maakt je wallet aan door één keer je gegevens toe te voegen via de DigiD app.",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open de DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "Geen DigiD?",
-    "walletPersonalizeIntroPageTitle": "Log in met DigiD om je gegevens op te halen",
+    "walletPersonalizeIntroPageTitle": "Haal één keer je gegevens op via DigiD",
     "walletPersonalizeLoadingPhotoPageSubtitle": "Momentje...",
     "walletPersonalizeLoadingPhotoPageTitle": "Aan het scannen",
     "walletPersonalizeNoDigidPageDescription": "Op dit moment kun je alleen een Wallet aanmaken met de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
@@ -1228,6 +1228,6 @@
     "walletPersonalizeSetupFailedScreenHeadline": "Aanmaken mislukt",
     "walletPersonalizeSetupFailedScreenTitle": "Aanmaken mislukt",
     "walletPersonalizeSuccessPageContinueCta": "Naar mijn overzicht",
-    "walletPersonalizeSuccessPageDescription": "Je gegevens zijn opgeslagen als kaarten.",
+    "walletPersonalizeSuccessPageDescription": "Je gegevens zijn opgeslagen op de volgende kaarten. Deze zijn altijd beschikbaar in je wallet overzicht.",
     "walletPersonalizeSuccessPageTitle": "Gelukt!"
 }

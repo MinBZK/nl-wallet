@@ -131,7 +131,7 @@ class SharedAttributesCard extends StatelessWidget {
     return BoxDecoration(
       borderRadius: _kBorderRadius,
       border: Border.all(
-        color: context.colorScheme.primaryContainer,
+        color: context.colorScheme.outlineVariant,
         width: 1,
       ),
     );
