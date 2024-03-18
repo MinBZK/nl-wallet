@@ -208,8 +208,32 @@ platform :ios do
     run_tests(
       project: "wallet_core/platform_support/ios/PlatformSupport.xcodeproj",
       scheme: "PlatformSupport",
-      device: "iPhone SE (3rd generation)"
     )
+
+    # This adjust the working directory so that the "wallet_core/platform_support/ios/"
+    # path prefix is not present in the coverage output file. Note that we need to be one
+    # directory higher, because of how Fastlane determines the current working directory.
+    Dir.chdir("../wallet_core/platform_support/ios/PlatformSupport") do
+      slather(
+        output_directory: "../../../fastlane/test_output",
+        proj: "PlatformSupport.xcodeproj",
+        scheme: "PlatformSupport",
+        binary_basename: "libPlatformSupport",
+        ignore: "../**", # ignore files outside of the project dir
+        arch: "arm64", # pick an architecture because of universal binary
+        sonarqube_xml: true,
+      )
+
+      slather(
+        output_directory: "../../../fastlane/test_output",
+        proj: "PlatformSupport.xcodeproj",
+        scheme: "PlatformSupport",
+        binary_basename: "libPlatformSupport",
+        ignore: "../**", # ignore files outside of the project dir
+        arch: "arm64", # pick an architecture because of universal binary
+        cobertura_xml: true,
+      )
+    end
   end
 
   desc "Build and sign iOS app"
