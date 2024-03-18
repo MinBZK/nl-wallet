@@ -5,7 +5,8 @@ import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
-import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/link_tile_button.dart';
+import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
 class DisclosureMissingAttributesPage extends StatelessWidget {
@@ -29,11 +30,12 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
           slivers: <Widget>[
             const SliverSizedBox(height: 32),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
-            const SliverSizedBox(height: 20),
+            const SliverSizedBox(height: 32),
+            const SliverDivider(height: 1),
+            const SliverSizedBox(height: 24),
             SliverList(delegate: _getDataAttributesDelegate()),
-            const SliverSizedBox(height: 20),
+            const SliverSizedBox(height: 24),
             SliverToBoxAdapter(child: _buildHowToProceedButton(context)),
-            const SliverToBoxAdapter(child: Divider(height: 48)),
             SliverFillRemaining(
               hasScrollBody: false,
               fillOverscroll: true,
@@ -78,15 +80,9 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
   }
 
   Widget _buildHowToProceedButton(BuildContext context) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: LinkButton(
-        onPressed: () => PlaceholderScreen.show(context),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 10),
-          child: Text(context.l10n.disclosureMissingAttributesPageHowToProceedCta),
-        ),
-      ),
+    return LinkTileButton(
+      onPressed: () => PlaceholderScreen.show(context),
+      child: Text(context.l10n.disclosureMissingAttributesPageHowToProceedCta),
     );
   }
 
