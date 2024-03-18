@@ -219,6 +219,7 @@ GEM
       base64
     mini_magick (4.12.0)
     mini_mime (1.1.5)
+    mini_portile2 (2.8.5)
     minitest (5.22.3)
     molinillo (0.8.0)
     multi_json (1.15.0)
@@ -229,9 +230,8 @@ GEM
     naturally (2.2.1)
     netrc (0.11.0)
     nkf (0.2.0)
-    nokogiri (1.16.3-arm64-darwin)
-      racc (~> 1.4)
-    nokogiri (1.16.3-x86_64-linux)
+    nokogiri (1.15.6)
+      mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     optparse (0.4.0)
     os (1.1.4)
@@ -299,6 +299,7 @@ PLATFORMS
 DEPENDENCIES
   cocoapods
   fastlane
+  nokogiri (~> 1.15.6)
   slather
 
 BUNDLED WITH
