@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
 gem "fastlane"
-gem "activesupport", "~> 7.0.8"
+gem "nokogiri", "~>1.15.6"
 gem "cocoapods"
 gem "slather"
