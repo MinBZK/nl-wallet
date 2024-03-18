@@ -88,6 +88,10 @@ graph
             Relying Party Server
             _[Container: Rust (wallet_server)]_
         `"]
+        relying_party_migrations["`
+            Relying Party Migrations
+            _[Container: Rust]_
+        `"]
         cache_rp[("`
             Cache
             _[Container: Postgres]_
@@ -96,6 +100,10 @@ graph
             Stores session
             _[SQL/TCP]_
         `"--> cache_rp
+        relying_party_migrations -- "`
+            Manages schema
+            _[SQL/TCP]_
+        `" --> cache_rp
     end
 
     wallet_app -- "`
