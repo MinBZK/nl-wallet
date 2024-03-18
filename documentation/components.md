@@ -72,11 +72,19 @@ graph
             Cache
             _[Container: Postgres]_
         `")]
+        issuer_migrations["`
+            Issuer Migrations
+            _[Container: Rust]_
+        `"]
 
         pid_issuer -- "`
             Gets BSN
             _[JSON/HTTPS]_
         `" --> digid_connector
+        issuer_migrations -- "`
+            Manages schema
+            _[SQL/TCP]_
+        `" --> cache
         pid_issuer -- "`
             Stores session
             _[SQL/TCP]_
