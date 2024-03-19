@@ -45,7 +45,7 @@ async fn test_pid_issuance_digid_bridge() {
             .unwrap(),
         settings.issuer.digid.issuer_url.clone(),
         wallet_config.pid_issuance.digid_client_id.clone(),
-        WalletConfiguration::issuance_redirect_uri(DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()),
+        WalletConfiguration::issuance_redirect_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()),
     )
     .await
     .unwrap();

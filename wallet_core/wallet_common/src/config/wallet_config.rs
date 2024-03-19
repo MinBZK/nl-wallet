@@ -13,10 +13,17 @@ use webpki::TrustAnchor;
 use crate::{account::serialization::DerVerifyingKey, trust_anchor::DerTrustAnchor};
 
 #[nutype(
-    validate(predicate = |u| !u.cannot_be_a_base()),
-    derive(FromStr, Clone, Deserialize),
+    validate(predicate = |u| !u.cannot_be_a_base() && u.path().ends_with('/')),
+    derive(FromStr, Clone, Deserialize, Display, AsRef),
 )]
 pub struct BaseUrl(Url);
+
+impl BaseUrl {
+    pub fn join(&self, input: &str) -> Url {
+        // safe to unwrap because we know the URL is a valid base URL
+        self.as_ref().join(input).unwrap()
+    }
+}
 
 pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";
 const DIGID_REDIRECT_PATH: &str = "authentication/";
@@ -47,13 +54,13 @@ impl WalletConfiguration {
     }
 
     #[inline]
-    pub fn issuance_redirect_uri(universal_link_base: BaseUrl) -> Url {
-        universal_link_base.into_inner().join(DIGID_REDIRECT_PATH).unwrap()
+    pub fn issuance_redirect_uri(universal_link_base: &BaseUrl) -> Url {
+        universal_link_base.join(DIGID_REDIRECT_PATH)
     }
 
     #[inline]
-    pub fn disclosure_base_uri(universal_link_base: BaseUrl) -> Url {
-        universal_link_base.into_inner().join(DISCLOSURE_BASE_PATH).unwrap()
+    pub fn disclosure_base_uri(universal_link_base: &BaseUrl) -> Url {
+        universal_link_base.join(DISCLOSURE_BASE_PATH)
     }
 }
 

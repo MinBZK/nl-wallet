@@ -36,7 +36,7 @@ where
 
         let uri = Url::parse(uri_str)?;
 
-        let redirect_uri = WalletConfiguration::issuance_redirect_uri(UNIVERSAL_LINK_BASE_URL.to_owned()).to_owned();
+        let redirect_uri = WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL).to_owned();
 
         if matches!(self.issuance_session, Some(PidIssuanceSession::Digid(_)))
             && uri.as_str().starts_with(redirect_uri.as_str())
@@ -46,7 +46,7 @@ where
 
         if uri
             .as_str()
-            .starts_with(WalletConfiguration::disclosure_base_uri(UNIVERSAL_LINK_BASE_URL.to_owned()).as_str())
+            .starts_with(WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_str())
         {
             return Ok(UriType::Disclosure(uri));
         }
@@ -73,10 +73,9 @@ mod tests {
         // Set up some URLs to work with.
         let example_uri = "https://example.com";
 
-        let mut disclosure_uri_base =
-            WalletConfiguration::disclosure_base_uri(UNIVERSAL_LINK_BASE_URL.to_owned()).to_owned();
+        let mut disclosure_uri_base = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).to_owned();
 
-        let digid_uri = WalletConfiguration::issuance_redirect_uri(UNIVERSAL_LINK_BASE_URL.to_owned());
+        let digid_uri = WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL);
         let digid_uri = digid_uri.as_str();
 
         // Add a trailing slash to the base path, if needed.
