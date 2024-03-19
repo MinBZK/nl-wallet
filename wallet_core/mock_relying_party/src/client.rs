@@ -5,15 +5,16 @@ use nl_wallet_mdoc::{
     server_state::SessionToken,
     verifier::{DisclosedAttributes, ItemsRequests, SessionType, StatusResponse},
 };
+use wallet_common::config::wallet_config::BaseUrl;
 use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
 
 pub struct WalletServerClient {
     client: Client,
-    base_url: Url,
+    base_url: BaseUrl,
 }
 
 impl WalletServerClient {
-    pub fn new(base_url: Url) -> Self {
+    pub fn new(base_url: BaseUrl) -> Self {
         Self {
             client: reqwest::Client::new(),
             base_url,
@@ -27,10 +28,9 @@ impl WalletServerClient {
         session_type: SessionType,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<(Url, Url, Url), anyhow::Error> {
-        // TODO check if base_url ends with '/' (possibly already on init)
         let response = self
             .client
-            .post(self.base_url.join("/disclosure/sessions")?)
+            .post(self.base_url.join("/disclosure/sessions"))
             .json(&StartDisclosureRequest {
                 usecase,
                 items_requests,
@@ -52,7 +52,7 @@ impl WalletServerClient {
     pub async fn status(&self, session_id: SessionToken) -> Result<StatusResponse, anyhow::Error> {
         Ok(self
             .client
-            .get(self.base_url.join(&format!("/disclosure/{session_id}/status"))?)
+            .get(self.base_url.join(&format!("/disclosure/{session_id}/status")))
             .send()
             .await?
             .error_for_status()?
@@ -67,7 +67,8 @@ impl WalletServerClient {
     ) -> Result<DisclosedAttributes, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
-            .join(&format!("/disclosure/sessions/{session_id}/disclosed_attributes"))?;
+            .clone()
+            .join(&format!("/disclosure/sessions/{session_id}/disclosed_attributes"));
         if let Some(hash) = transcript_hash {
             disclosed_attributes_url.set_query(Some(&format!("transcript_hash={}", hash)));
         }
