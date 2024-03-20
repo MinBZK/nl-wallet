@@ -28,6 +28,7 @@ pub struct FlutterApiError {
 enum FlutterApiErrorType {
     Generic,
     Networking,
+    Server,
     WalletState,
     RedirectUri,
 }
@@ -123,15 +124,26 @@ impl FlutterApiErrorFields for WalletUnlockError {
 
 impl FlutterApiErrorFields for UriIdentificationError {}
 
+fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiErrorType> {
+    // Since a `reqwest::Error` can occur in multiple locations
+    // within the error tree, just look for it with some help
+    // from the `anyhow::Chain` iterator.
+    for source in Chain::new(error) {
+        if source.is::<reqwest::Error>() {
+            let err: &reqwest::Error = source.downcast_ref().unwrap();
+            if err.is_timeout() || err.is_request() || err.is_connect() {
+                return Some(FlutterApiErrorType::Networking);
+            }
+        }
+    }
+
+    None
+}
+
 impl FlutterApiErrorFields for PidIssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
-        // Since a `reqwest::Error` can occur in multiple locations
-        // within the error tree, just look for it with some help
-        // from the `anyhow::Chain` iterator.
-        for source in Chain::new(self) {
-            if source.is::<reqwest::Error>() {
-                return FlutterApiErrorType::Networking;
-            }
+        if let Some(network_error) = detect_networking_error(self) {
+            return network_error;
         }
 
         match self {
@@ -164,8 +176,8 @@ impl FlutterApiErrorFields for DisclosureError {
                 FlutterApiErrorType::WalletState
             }
             DisclosureError::DisclosureSession(error) => {
-                if Chain::new(error).any(|source| source.is::<reqwest::Error>()) {
-                    return FlutterApiErrorType::Networking;
+                if let Some(network_error) = detect_networking_error(error) {
+                    return network_error;
                 }
 
                 FlutterApiErrorType::Generic
@@ -182,8 +194,14 @@ impl FlutterApiErrorFields for url::ParseError {
 }
 
 impl From<&AccountProviderError> for FlutterApiErrorType {
-    fn from(_value: &AccountProviderError) -> Self {
-        Self::Networking
+    fn from(value: &AccountProviderError) -> Self {
+        match value {
+            AccountProviderError::Response(_) => FlutterApiErrorType::Server,
+            AccountProviderError::Networking(e) if e.is_request() || e.is_connect() || e.is_timeout() => {
+                FlutterApiErrorType::Networking
+            }
+            _ => FlutterApiErrorType::Generic,
+        }
     }
 }
 
@@ -191,7 +209,7 @@ impl From<&InstructionError> for FlutterApiErrorType {
     fn from(value: &InstructionError) -> Self {
         match value {
             InstructionError::ServerError(e) => FlutterApiErrorType::from(e),
-            InstructionError::InstructionValidation => FlutterApiErrorType::Networking,
+            InstructionError::InstructionValidation => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
         }
     }
