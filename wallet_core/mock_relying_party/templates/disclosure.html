@@ -198,12 +198,13 @@
                 }
                 resultList.appendChild(doctypeList)
 
-                let resultElem = document.createElement('dt')
-                resultElem.innerText = 'Result'
-                statusSpan.innerText = 'DONE'
-
-                resultList.parentElement.insertBefore(resultElem, resultList)
             }
+
+            let resultElem = document.createElement('dt')
+            resultElem.innerText = 'Result'
+            statusSpan.innerText = 'DONE'
+
+            resultList.parentElement.insertBefore(resultElem, resultList)
         }
 
         // either start polling or, if we have a disclosedAttributesUrl, fetch the results
