@@ -56,7 +56,10 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
     let app = Router::new()
         .route("/", get(index))
         .route("/", post(engage))
-        .route("/sessions/:session_id/disclosed_attributes", get(disclosed_attributes))
+        .route(
+            "/disclosure/sessions/:session_id/disclosed_attributes",
+            get(disclosed_attributes),
+        )
         .route("/marx.min.css", get(marxcss))
         .route("/qrcodegen.min.js", get(qrcodegenjs))
         .route("/qrcodegen.wasm", get(qrcodegenwasm))
