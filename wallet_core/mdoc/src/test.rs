@@ -1,6 +1,22 @@
 use std::fmt::Debug;
 
-use crate::{iso::mdocs::DataElementValue, verifier::DisclosedAttributes};
+use ciborium::Value;
+use indexmap::IndexMap;
+
+use wallet_common::{
+    generator::TimeGenerator,
+    keys::{EcdsaKey, WithIdentifier},
+};
+
+use crate::{
+    holder::Mdoc,
+    iso::mdocs::DataElementValue,
+    server_keys::KeyPair,
+    unsigned::{Entry, UnsignedMdoc},
+    utils::{issuer_auth::IssuerRegistration, keys::KeyFactory},
+    verifier::{DisclosedAttributes, ItemsRequests},
+    IssuerSigned, ItemsRequest,
+};
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
 /// but with byte sequences (which can take a lot of vertical space) replaced with
@@ -18,7 +34,7 @@ use crate::{iso::mdocs::DataElementValue, verifier::DisclosedAttributes};
 ///
 /// Example code:
 /// ```rust
-/// use nl_wallet_mdoc::mock::DebugCollapseBts;
+/// use nl_wallet_mdoc::test::DebugCollapseBts;
 ///
 /// #[derive(Debug)]
 /// struct Test {
@@ -100,4 +116,121 @@ pub fn assert_disclosure_contains(
 
     assert_eq!(disclosed_attr.name, *name);
     assert_eq!(disclosed_attr.value, *value);
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TestDocument {
+    pub doc_type: String,
+    pub namespaces: IndexMap<String, Vec<Entry>>,
+}
+
+impl TestDocument {
+    fn new(doc_type: String, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
+        Self { doc_type, namespaces }
+    }
+
+    pub async fn sign<KF>(self, ca: &KeyPair, key_factory: &KF) -> Mdoc
+    where
+        KF: KeyFactory,
+    {
+        let unsigned = UnsignedMdoc::from(self);
+        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+
+        let mdoc_key = key_factory.generate_new().await.unwrap();
+        let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
+        let (issuer_signed, _) = IssuerSigned::sign(unsigned, mdoc_public_key, &issuance_key)
+            .await
+            .unwrap();
+
+        Mdoc::new::<KF::Key>(
+            mdoc_key.identifier().to_string(),
+            issuer_signed,
+            &TimeGenerator,
+            &[(ca.certificate().try_into().unwrap())],
+        )
+        .unwrap()
+    }
+}
+
+impl From<(&'static str, &'static str, Vec<(&'static str, Value)>)> for TestDocument {
+    fn from((doc_type, namespace, attributes): (&'static str, &'static str, Vec<(&'static str, Value)>)) -> Self {
+        Self::new(
+            doc_type.to_string(),
+            IndexMap::from_iter(vec![(
+                namespace.to_string(),
+                attributes
+                    .into_iter()
+                    .map(|(name, value)| Entry {
+                        name: name.into(),
+                        value,
+                    })
+                    .collect(),
+            )]),
+        )
+    }
+}
+
+impl From<TestDocument> for UnsignedMdoc {
+    fn from(value: TestDocument) -> Self {
+        Self {
+            doc_type: value.doc_type,
+            copy_count: 2,
+            valid_from: chrono::Utc::now().into(),
+            valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
+            attributes: value.namespaces,
+        }
+    }
+}
+
+impl From<TestDocument> for ItemsRequest {
+    fn from(value: TestDocument) -> Self {
+        Self {
+            doc_type: value.doc_type,
+            name_spaces: IndexMap::from_iter(value.namespaces.into_iter().map(|(namespace, attributes)| {
+                (
+                    namespace,
+                    IndexMap::from_iter(attributes.into_iter().map(|attribute| (attribute.name, true))),
+                )
+            })),
+            request_info: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TestDocuments(Vec<TestDocument>);
+impl TestDocuments {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+impl From<Vec<TestDocument>> for TestDocuments {
+    fn from(value: Vec<TestDocument>) -> Self {
+        Self(value)
+    }
+}
+impl IntoIterator for TestDocuments {
+    type Item = TestDocument;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+impl From<TestDocuments> for ItemsRequests {
+    fn from(value: TestDocuments) -> Self {
+        let requests: Vec<_> = value.into_iter().map(ItemsRequest::from).collect();
+        Self::from(requests)
+    }
+}
+impl std::ops::Add for TestDocuments {
+    type Output = TestDocuments;
+
+    fn add(mut self, mut rhs: Self) -> Self::Output {
+        self.0.append(&mut rhs.0);
+        self
+    }
 }

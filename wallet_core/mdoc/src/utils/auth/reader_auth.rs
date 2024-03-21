@@ -178,6 +178,8 @@ impl MdocCertificateExtension for ReaderRegistration {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use crate::verifier::ItemsRequests;
+
     use super::*;
 
     impl ReaderRegistration {
@@ -213,6 +215,31 @@ pub mod mock {
                 return_url_prefix: "https://example.com/".parse().unwrap(),
                 request_origin_base_url: "https://example.com/".parse().unwrap(),
                 attributes: Default::default(),
+            }
+        }
+
+        pub fn new_mock_from_requests(items_requests: &ItemsRequests) -> Self {
+            let attributes = items_requests
+                .0
+                .iter()
+                .map(|items_request| {
+                    let namespaces: IndexMap<_, _> = items_request
+                        .name_spaces
+                        .iter()
+                        .map(|(namespace, attributes)| {
+                            let authorized_attributes = attributes
+                                .iter()
+                                .map(|attribute| (attribute.0.clone(), AuthorizedAttribute {}))
+                                .collect();
+                            (namespace.clone(), AuthorizedNamespace(authorized_attributes))
+                        })
+                        .collect();
+                    (items_request.doc_type.clone(), AuthorizedMdoc(namespaces))
+                })
+                .collect();
+            Self {
+                attributes,
+                ..Self::new_mock()
             }
         }
     }

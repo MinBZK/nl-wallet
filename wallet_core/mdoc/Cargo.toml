@@ -26,7 +26,7 @@ software_key_factory = ["software_keys", "dep:parking_lot"]
 # Include MdocsMap, which can be used for tests that store Mdocs
 mdocs_map = []
 # Include miscellaneous test utilities
-test = []
+test = ["dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 
@@ -67,6 +67,7 @@ once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
 parking_lot = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser"] }
 regex = { workspace = true, optional = true }
+rstest = { workspace = true, optional = true }
 
 wallet_common.path = "../wallet_common"
 
@@ -79,8 +80,8 @@ once_cell = { workspace = true, features = ["parking_lot"] }
 parking_lot.workspace = true
 rcgen = { workspace = true, features = ["x509-parser"] }
 regex.workspace = true
-tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
+tokio = { workspace = true, features = ["macros"] }
 
 wallet_common = { path = "../wallet_common", features = [
     "mock_secure_keys",
