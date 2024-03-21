@@ -11,7 +11,10 @@ graph
     digid["`
         DigiD
         _[Software system]_
-        Used in dealings with Dutch government
+    `"]
+
+    relying_party["`
+        Relying Party
     `"]
 
     wallet_app("`
@@ -20,14 +23,14 @@ graph
     `")
 
     wallet_app -- "`
-        Makes API calls to
+        Provides key instructions
         _[JSON/HTTPS]_
     `"--> wallet_provider
 
     subgraph Wallet Provider
         wallet_provider["`
             Wallet Provider
-            _[Container: Rust]_
+            _[Container: Rust (wallet_provider)]_
         `"]
         wallet_provider_migrations["`
             Wallet Provider Migrations
@@ -63,26 +66,26 @@ graph
         `"]
         pid_issuer["`
             PID Issuer
-            _[Container: Rust]_
-        `"]
-        pid_issuer_server["`
-            PID Issuer Server
             _[Container: Rust (wallet_server)]_
         `"]
         cache[("`
             Cache
             _[Container: Postgres]_
         `")]
+        issuer_migrations["`
+            Issuer Migrations
+            _[Container: Rust]_
+        `"]
 
         pid_issuer -- "`
             Gets BSN
             _[JSON/HTTPS]_
         `" --> digid_connector
+        issuer_migrations -- "`
+            Manages schema
+            _[SQL/TCP]_
+        `" --> cache
         pid_issuer -- "`
-            Starts session with PID
-            _[JSON/HTTPS]_
-        `" --> pid_issuer_server
-        pid_issuer_server -- "`
             Stores session
             _[SQL/TCP]_
         `" --> cache
@@ -93,27 +96,22 @@ graph
             Relying Party Server
             _[Container: Rust (wallet_server)]_
         `"]
-        relying_party["`
-            Relying Party
+        relying_party_migrations["`
+            Relying Party Migrations
             _[Container: Rust]_
         `"]
         cache_rp[("`
             Cache
             _[Container: Postgres]_
         `")]
-
-        relying_party -- "`
-            Starts session
-            _[JSON/HTTPS_]
-        `" --> relying_party_server
-        relying_party_server -- "`
-            Disclosed attributes
-            _[JSON/HTTPS_]
-        `" --> relying_party
         relying_party_server -- "`
             Stores session
             _[SQL/TCP]_
         `"--> cache_rp
+        relying_party_migrations -- "`
+            Manages schema
+            _[SQL/TCP]_
+        `" --> cache_rp
     end
 
     wallet_app -- "`
@@ -121,29 +119,38 @@ graph
         _[OIDC/HTTPS]_
     `" --> digid_connector
     wallet_app -- "`
-        Gets session
-        _[MDOC/HTTPS]_
+        Gets PID issued
+        _[OpenID4VCI/HTTPS]_
     `" --> pid_issuer
     wallet_app -- "`
-        Gets PID issued
-        _[MDOC/HTTPS]_
-    `" --> pid_issuer_server
+        Gets session
+        _[OpenID4VCI/HTTPS]_
+    `" --> pid_issuer
 
     digid_connector -- "`
-        Uses
+        Identifies user
         _[SAML/HTTPS]_
     `" --> digid
     pid_issuer -- "`
-        Looks up attributes
+        Looks up PID attributes
         _[JSON/HTTPS]_
     `" --> brp
 
     wallet_app -- "`
-        Gets session
-        _[MDOC/HTTPS]_
-    `" --> relying_party
-    wallet_app -- "`
         Discloses attributes
         _[MDOC/HTTPS]_
+    `" --> relying_party_server
+    wallet_app -- "`
+        Gets session
+        _[MDOC/HTTPS]_
+    `" --> relying_party_server
+
+    relying_party -- "`
+        Gets disclosed attributes
+        _[JSON/HTTPS_]
+    `" --> relying_party_server
+    relying_party -- "`
+        Starts session
+        _[JSON/HTTPS_]
     `" --> relying_party_server
 ```

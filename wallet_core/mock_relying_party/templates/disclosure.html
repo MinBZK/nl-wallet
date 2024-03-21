@@ -44,7 +44,7 @@
         if (window.location.hash) {
             let sessionId = window.location.hash.substring(1)
             let publicUrl = [window.location.protocol, '//', window.location.host, window.location.pathname].join('');
-            disclosedAttributesUrl = `${publicUrl}${window.location.pathname.endsWith('/') ? '' : '/'}sessions/${sessionId}/disclosed_attributes`
+            disclosedAttributesUrl = `${publicUrl}${window.location.pathname.endsWith('/') ? '' : '/'}disclosure/sessions/${sessionId}/disclosed_attributes`
             if (window.location.search.startsWith("?transcript_hash=")) {
                 let end = window.location.search.search("&")
                 end = end == -1 ? window.location.search.length : end
@@ -198,12 +198,13 @@
                 }
                 resultList.appendChild(doctypeList)
 
-                let resultElem = document.createElement('dt')
-                resultElem.innerText = 'Result'
-                statusSpan.innerText = 'DONE'
-
-                resultList.parentElement.insertBefore(resultElem, resultList)
             }
+
+            let resultElem = document.createElement('dt')
+            resultElem.innerText = 'Result'
+            statusSpan.innerText = 'DONE'
+
+            resultList.parentElement.insertBefore(resultElem, resultList)
         }
 
         // either start polling or, if we have a disclosedAttributesUrl, fetch the results

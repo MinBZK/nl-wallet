@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
-import '../../../../wallet_assets.dart';
-import '../../../common/widget/svg_or_image.dart';
 
 class DataPrivacyBanner extends StatelessWidget {
   const DataPrivacyBanner({super.key});
@@ -26,12 +24,12 @@ class DataPrivacyBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-          const SizedBox(
+          SizedBox(
             height: 24,
             width: 24,
-            child: SvgOrImage(
-              asset: WalletAssets.svg_eye_closed,
-              fit: BoxFit.fitWidth,
+            child: Icon(
+              Icons.back_hand_outlined,
+              color: context.colorScheme.background,
             ),
           ),
         ],

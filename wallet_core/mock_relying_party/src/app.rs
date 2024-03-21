@@ -14,6 +14,7 @@ use strum::IntoEnumIterator;
 use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
+use wallet_common::config::wallet_config::BaseUrl;
 
 use crate::{askama_axum, client::WalletServerClient, settings::Settings};
 use nl_wallet_mdoc::{
@@ -41,7 +42,7 @@ type Result<T> = StdResult<T, Error>;
 
 struct ApplicationState {
     client: WalletServerClient,
-    public_url: Url,
+    public_url: BaseUrl,
     usecases: HashMap<String, ItemsRequests>,
 }
 
@@ -55,7 +56,10 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
     let app = Router::new()
         .route("/", get(index))
         .route("/", post(engage))
-        .route("/sessions/:session_id/disclosed_attributes", get(disclosed_attributes))
+        .route(
+            "/disclosure/sessions/:session_id/disclosed_attributes",
+            get(disclosed_attributes),
+        )
         .route("/marx.min.css", get(marxcss))
         .route("/qrcodegen.min.js", get(qrcodegenjs))
         .route("/qrcodegen.wasm", get(qrcodegenwasm))
@@ -131,15 +135,7 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
         )
         .await?;
 
-    let mut public_url = state.public_url.clone();
-    // the mrp disclosed attributes url matches the wallet server disclosed attributes url
-    if !public_url.path().ends_with('/') {
-        public_url.path_segments_mut().unwrap().push("/");
-    }
-
-    let mrp_disclosed_attributes_url: Url = public_url
-        .join(&disclosed_attributes_url.path()[1..]) // `.path()` always starts with a `/`
-        .expect("should always be a valid url");
+    let mrp_disclosed_attributes_url: Url = state.public_url.join(&disclosed_attributes_url.path()[1..]); // `.path()` always starts with a `/`
 
     Ok(askama_axum::into_response(&DisclosureTemplate {
         engagement: Some((

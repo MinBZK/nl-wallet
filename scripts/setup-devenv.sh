@@ -143,8 +143,8 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
   docker compose build max
   # Generate JWK from private RSA key of test_client.
   CLIENT_PRIVKEY_JWK=$(docker compose run max make --silent create-jwk)
-  # Remove the 'kid' json field, otherwise the digid-connector will fail on it.
-  # TODO: find out what a correct value of 'kid' is and how to configure it for both the pid_issuer and digid-connector.
+  # Remove the 'kid' json field, because the digid-connector does not send a JWE 'kid' header claim, which is required
+  # if `kid` field is specified.
   BSN_PRIVKEY=$(echo "${CLIENT_PRIVKEY_JWK}" | jq -c 'del(.kid)')
   export BSN_PRIVKEY
 fi

@@ -3,13 +3,13 @@ use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 use config::{Config, ConfigError, Environment, File};
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use serde::Deserialize;
-use url::Url;
+use wallet_common::config::wallet_config::BaseUrl;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     pub webserver: Server,
-    pub wallet_server_url: Url,
-    pub public_url: Url,
+    pub wallet_server_url: BaseUrl,
+    pub public_url: BaseUrl,
     pub usecases: HashMap<String, ItemsRequests>,
 }
 

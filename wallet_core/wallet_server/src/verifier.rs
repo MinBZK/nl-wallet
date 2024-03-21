@@ -258,7 +258,7 @@ where
         .expect("should always be a valid URL");
 
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here
-    let engagement_url = WalletConfiguration::disclosure_base_uri(state.universal_link_base_url.to_owned())
+    let engagement_url = WalletConfiguration::disclosure_base_uri(&state.universal_link_base_url)
         .join(
             &BASE64_URL_SAFE_NO_PAD
                 .encode(cbor_serialize(&engagement).expect("serializing an engagement should never fail")),

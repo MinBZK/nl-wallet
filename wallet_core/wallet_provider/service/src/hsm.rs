@@ -432,12 +432,6 @@ impl Pkcs11Client for Pkcs11Hsm {
 
         spawn::blocking(move || {
             let session = pool.get()?;
-
-            // todo: SoftHSM does not support the AesGcm mechanism for wrap.
-            // let iv = session.generate_random_vec(32).unwrap();
-            // let gcm_params = GcmParams::new(&iv, &[], 128.into());
-            // let result = session.wrap_key(&Mechanism::AesGcm(gcm_params), wrapping_key.0, key.0)?;
-
             let wrapped_key_bytes = session.wrap_key(&Mechanism::AesKeyWrapPad, wrapping_key.0, key.0)?;
             Ok(WrappedKey::new(wrapped_key_bytes))
         })

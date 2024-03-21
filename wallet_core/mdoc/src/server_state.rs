@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tokio::{task::JoinHandle, time};
+use tracing::warn;
 use wallet_common::utils::random_string;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +43,9 @@ pub trait SessionStore {
         tokio::spawn(async move {
             loop {
                 interval.tick().await;
-                let _ = self.cleanup().await; // TODO use result
+                if let Err(e) = self.cleanup().await {
+                    warn!("error during session cleanup: {e}");
+                }
             }
         })
     }
