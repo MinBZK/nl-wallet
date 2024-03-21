@@ -210,6 +210,8 @@ impl TestDocuments {
     }
 
     pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, IndexMap<String, Vec<Entry>>>) {
+        // verify the number of documents
+        assert_eq!(disclosed_documents.len(), self.len());
         for TestDocument {
             doc_type: expected_doc_type,
             namespaces: expected_namespaces,
@@ -219,16 +221,18 @@ impl TestDocuments {
             let disclosed_namespaces = disclosed_documents
                 .get(expected_doc_type)
                 .expect("expected doc_type not received");
+            // verify the number of namespaces in this document
+            assert_eq!(disclosed_namespaces.len(), expected_namespaces.len());
             for (expected_namespace, expected_attributes) in expected_namespaces {
                 let disclosed_attributes = disclosed_namespaces
                     .get(expected_namespace)
                     .expect("expected namespace not received");
-                // verify the length of the attributes in the current namespace
+                // verify the number of the attributes in this namespace
                 assert_eq!(disclosed_attributes.len(), expected_attributes.len());
-                // verify whether all expected attributes are disclosed
-                // NOTE: this comparison will not detect disclosed attributes that are not expected, however due to the
-                //       length comparison above, this could theoretically only happen when [`expected_attributes`] contains
-                //       duplicate entries.
+                // verify whether all expected attributes exist in this namespace
+                // NOTE: this comparison by itself will not detect disclosed attributes that are not expected, however
+                //       due to the length comparison above, this could theoretically only happen when
+                //       [`expected_attributes`] contains duplicate entries.
                 for expected_attribute in expected_attributes {
                     assert!(disclosed_attributes.contains(expected_attribute))
                 }
