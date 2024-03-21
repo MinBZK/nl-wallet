@@ -129,6 +129,7 @@ impl TestDocument {
         Self { doc_type, namespaces }
     }
 
+    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn sign<KF>(self, ca: &KeyPair, key_factory: &KF) -> Mdoc
     where
         KF: KeyFactory,

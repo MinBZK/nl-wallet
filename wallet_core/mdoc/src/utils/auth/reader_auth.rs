@@ -218,8 +218,8 @@ pub mod mock {
             }
         }
 
-        pub fn new_mock_from_requests(items_requests: &ItemsRequests) -> Self {
-            let attributes = items_requests
+        pub fn new_mock_from_requests(authorized_requests: &ItemsRequests) -> Self {
+            let attributes = authorized_requests
                 .0
                 .iter()
                 .map(|items_request| {

@@ -155,9 +155,9 @@ async fn test_disclosure_usecases_ok(
     let status = response.status();
     assert_eq!(status, StatusCode::OK);
 
-    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+    let disclosed_documents = response.json::<DisclosedAttributes>().await.unwrap();
 
-    expected_documents.assert_matches(&disclosed_attributes);
+    expected_documents.assert_matches(&disclosed_documents);
 }
 
 #[tokio::test]

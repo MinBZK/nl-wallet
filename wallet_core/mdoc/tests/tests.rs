@@ -76,9 +76,9 @@ impl HttpClient for MockDisclosureHttpClient {
 
 fn setup_verifier_test(
     mdoc_trust_anchors: &[TrustAnchor<'_>],
-    items_requests: &ItemsRequests,
+    authorized_requests: &ItemsRequests,
 ) -> (MockDisclosureHttpClient, Arc<MockVerifier>, Certificate) {
-    let reader_registration = ReaderRegistration::new_mock_from_requests(items_requests);
+    let reader_registration = ReaderRegistration::new_mock_from_requests(authorized_requests);
     let ca = KeyPair::generate_reader_mock_ca().unwrap();
     let disclosure_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
 
@@ -151,9 +151,9 @@ impl MdocDataSource for MockMdocDataSource {
 async fn test_disclosure(
     #[case] session_type: SessionType,
     #[case] return_url: Option<Url>,
-    #[case] stored_attributes: TestDocuments,
-    #[case] requested_attributes: ItemsRequests,
-    #[case] expected_attributes: TestDocuments,
+    #[case] stored_documents: TestDocuments,
+    #[case] requested_documents: ItemsRequests,
+    #[case] expected_documents: TestDocuments,
 ) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let key_factory = SoftwareKeyFactory::default();
@@ -161,7 +161,7 @@ async fn test_disclosure(
     let mdocs = {
         let mut mdocs = vec![];
 
-        for doc in stored_attributes {
+        for doc in stored_documents {
             let mdoc = doc.sign(&ca, &key_factory).await;
             mdocs.push(mdoc);
         }
@@ -173,14 +173,14 @@ async fn test_disclosure(
 
     let mdoc_data_source = MockMdocDataSource::from(mdocs);
 
-    // Prepare a request and start issuance on the verifier side.
-    let authorized_attributes = requested_attributes.clone();
+    // Prepare a request and start disclosure on the verifier side.
+    let authorized_documents = &requested_documents;
     let (verifier_client, verifier, verifier_ca) =
-        setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()], &authorized_attributes);
+        setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()], authorized_documents);
 
     let (session_id, reader_engagement) = verifier
         .new_session(
-            requested_attributes,
+            requested_documents,
             session_type,
             Default::default(),
             return_url.is_some(),
@@ -227,10 +227,10 @@ async fn test_disclosure(
             .transcript_hash
     });
 
-    let disclosed_attributes = verifier
+    let disclosed_documents = verifier
         .disclosed_attributes(&session_id, transcript_hash)
         .await
         .expect("verifier disclosed attributes should be present");
 
-    expected_attributes.assert_matches(&disclosed_attributes);
+    expected_documents.assert_matches(&disclosed_documents);
 }
