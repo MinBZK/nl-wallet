@@ -7,7 +7,10 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    test::{TestDocument, TestDocuments},
+    test::{
+        data::{addr_street, pid_family_name, pid_full_name, pid_given_name, pid_given_name_and_addr_street},
+        TestDocuments,
+    },
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };
@@ -26,25 +29,36 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 }
 
 #[rstest]
-#[case(SessionType::SameDevice, None, full_name())]
-#[case(SessionType::SameDevice, Some("http://localhost:3004/return".parse().unwrap()), full_name())]
-#[case(SessionType::CrossDevice, None, full_name())]
-#[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()), full_name())]
-#[case(SessionType::SameDevice, None, bsn())]
-#[case(SessionType::SameDevice, None, multiple_cards())]
-#[case(SessionType::SameDevice, None, duplicate_cards())]
-#[case(SessionType::SameDevice, None, duplicate_attributes())]
+#[case(SessionType::SameDevice, None, "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::SameDevice, Some("http://localhost:3004/return".parse().unwrap()), "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::CrossDevice, None, "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()), "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::SameDevice, None, "xyz_bank", pid_family_name() + pid_given_name(), pid_full_name())]
+#[case(
+    SessionType::SameDevice,
+    None,
+    "multiple_cards",
+    pid_given_name_and_addr_street(),
+    pid_given_name_and_addr_street()
+)]
+#[case(SessionType::SameDevice, None, "multiple_cards", pid_given_name() + addr_street(), pid_given_name_and_addr_street())]
 #[tokio::test]
 #[serial]
 async fn test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
     #[case] return_url: Option<ReturnUrlTemplate>,
+    #[case] usecase: &str,
     #[case] test_documents: TestDocuments,
+    #[case] expected_documents: TestDocuments,
 ) {
-    let start_request =
-        test_documents
-            .clone()
-            .start_disclosure_request("duplicate_attributes", return_url, session_type);
+    let start_request = StartDisclosureRequest {
+        usecase: usecase.to_string(),
+        session_type,
+        items_requests: test_documents.into(),
+        // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
+        // contained in the certificate, so we have to specify a return URL prefixed with that.
+        return_url_template: return_url,
+    };
 
     let digid_context = MockOidcClient::start_context();
     digid_context.expect().return_once(|_, _, _, _| {
@@ -112,7 +126,7 @@ async fn test_disclosure_usecases_ok(
         .start_disclosure(&engagement_url)
         .await
         .expect("Could not start disclosure");
-    assert_eq!(proposal.documents.len(), test_documents.len());
+    assert_eq!(proposal.documents.len(), expected_documents.len());
 
     // after the first wallet interaction it should have status "Waiting"
     assert_matches!(
@@ -143,24 +157,7 @@ async fn test_disclosure_usecases_ok(
 
     let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
 
-    for TestDocument {
-        doc_type: expected_doc_type,
-        namespaces: expected_namespaces,
-    } in test_documents.into_iter()
-    {
-        // verify the disclosed attributes
-        let disclosed_namespaces = disclosed_attributes
-            .get(&expected_doc_type)
-            .expect("expected doc_type not received");
-        for (expected_namespace, expected_entries) in expected_namespaces {
-            assert_eq!(
-                disclosed_namespaces
-                    .get(&expected_namespace)
-                    .expect("expected namespace not received"),
-                &expected_entries
-            );
-        }
-    }
+    expected_documents.assert_matches(&disclosed_attributes);
 }
 
 #[tokio::test]
@@ -323,77 +320,4 @@ async fn test_disclosure_not_found() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
-}
-
-trait StartDisclosure {
-    fn start_disclosure_request(
-        self,
-        usecase: &str,
-        return_url: Option<ReturnUrlTemplate>,
-        session_type: SessionType,
-    ) -> StartDisclosureRequest;
-}
-
-impl StartDisclosure for TestDocuments {
-    /// Generate StartDisclosureRequest, with a single [`ItemsRequest`] per attribute
-    fn start_disclosure_request(
-        self,
-        usecase: &str,
-        return_url: Option<ReturnUrlTemplate>,
-        session_type: SessionType,
-    ) -> StartDisclosureRequest {
-        StartDisclosureRequest {
-            usecase: usecase.to_string(),
-            session_type,
-            items_requests: self.into(),
-            // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
-            // contained in the certificate, so we have to specify a return URL prefixed with that.
-            return_url_template: return_url,
-        }
-    }
-}
-
-const PID: &str = "com.example.pid";
-const ADDR: &str = "com.example.address";
-
-fn full_name() -> TestDocuments {
-    vec![(
-        PID,
-        PID,
-        vec![
-            ("family_name", "De Bruijn".into()),
-            ("given_name", "Willeke Liselotte".into()),
-        ],
-    )
-        .into()]
-    .into()
-}
-
-fn bsn() -> TestDocuments {
-    vec![(PID, PID, vec![("bsn", "999991772".into())]).into()].into()
-}
-
-fn multiple_cards() -> TestDocuments {
-    vec![
-        (PID, PID, vec![("given_name", "Willeke Liselotte".into())]).into(),
-        (ADDR, ADDR, vec![("resident_street", "Turfmarkt".into())]).into(),
-    ]
-    .into()
-}
-
-fn duplicate_cards() -> TestDocuments {
-    vec![(
-        ADDR,
-        ADDR,
-        vec![
-            ("resident_street", "Turfmarkt".into()),
-            ("resident_house_number", "147".into()),
-        ],
-    )
-        .into()]
-    .into()
-}
-
-fn duplicate_attributes() -> TestDocuments {
-    vec![(PID, PID, vec![("given_name", "Willeke Liselotte".into())]).into()].into()
 }

@@ -20,7 +20,10 @@ use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
-    test::{TestDocument, TestDocuments},
+    test::{
+        data::{addr_street, pid_full_name, pid_given_name, pid_given_name_and_addr_street},
+        TestDocuments,
+    },
     utils::{reader_auth::ReaderRegistration, serialization, x509::Certificate},
     verifier::{DisclosureData, ItemsRequests, SessionType, Verifier},
 };
@@ -132,53 +135,20 @@ impl MdocDataSource for MockMdocDataSource {
     }
 }
 
-fn full_name() -> TestDocuments {
-    vec![(
-        "passport",
-        "identity",
-        vec![("first_name", "John".into()), ("family_name", "Doe".into())],
-    )
-        .into()]
-    .into()
-}
-
-fn first_name() -> TestDocuments {
-    vec![("passport", "identity", vec![("first_name", "John".into())]).into()].into()
-}
-
-fn two_cards() -> TestDocuments {
-    vec![
-        ("passport", "identity", vec![("first_name", "John".into())]).into(),
-        ("driver_license", "residence", vec![("city", "Ons Dorp".into())]).into(),
-    ]
-    .into()
-}
-
 #[rstest]
-#[case(SessionType::SameDevice, None, full_name(), full_name().into(), full_name())]
-#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()), full_name(), full_name().into(), full_name())]
-#[case(SessionType::CrossDevice, None, full_name(), full_name().into(), full_name())]
-#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()), full_name(), full_name().into(), full_name())]
-#[case(SessionType::SameDevice, None, full_name(), first_name().into(), first_name())]
-#[case(SessionType::SameDevice, None, first_name(), first_name().into(), first_name())]
-#[case(SessionType::SameDevice, None, two_cards(), two_cards().into(), two_cards())]
-#[case(SessionType::SameDevice, None, two_cards(), first_name().into(), first_name())]
-#[case(
-    SessionType::SameDevice,
-    None,
-    full_name(),
-    (first_name() + first_name()).into(),
-    first_name()
-)]
-#[case(
-    SessionType::SameDevice,
-    None,
-    first_name(),
-    (first_name() + first_name()).into(),
-    first_name()
-)]
+#[case(SessionType::SameDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::CrossDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::SameDevice, None, pid_full_name(), pid_given_name().into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_given_name(), pid_given_name().into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_given_name_and_addr_street(), pid_given_name_and_addr_street().into(), pid_given_name_and_addr_street())]
+#[case(SessionType::SameDevice, None, pid_given_name_and_addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name_and_addr_street())]
+#[case(SessionType::SameDevice, None, pid_given_name_and_addr_street(), pid_given_name().into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_full_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_given_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
 #[tokio::test]
-async fn test_issuance_and_disclosure(
+async fn test_disclosure(
     #[case] session_type: SessionType,
     #[case] return_url: Option<Url>,
     #[case] stored_attributes: TestDocuments,
@@ -262,18 +232,5 @@ async fn test_issuance_and_disclosure(
         .await
         .expect("verifier disclosed attributes should be present");
 
-    for TestDocument { doc_type, namespaces } in expected_attributes.into_iter() {
-        // Check the disclosed namespaces
-        for (namespace, expected_entries) in namespaces {
-            // Check the disclosed attributes.
-            itertools::assert_equal(
-                disclosed_attributes
-                    .get(&doc_type)
-                    .expect("expected doc_type not received")
-                    .get(&namespace)
-                    .expect("expected namespace not received"),
-                &expected_entries,
-            );
-        }
-    }
+    expected_attributes.assert_matches(&disclosed_attributes);
 }

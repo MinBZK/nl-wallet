@@ -207,6 +207,33 @@ impl TestDocuments {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, IndexMap<String, Vec<Entry>>>) {
+        for TestDocument {
+            doc_type: expected_doc_type,
+            namespaces: expected_namespaces,
+        } in self.0.iter()
+        {
+            // verify the disclosed attributes
+            let disclosed_namespaces = disclosed_documents
+                .get(expected_doc_type)
+                .expect("expected doc_type not received");
+            for (expected_namespace, expected_attributes) in expected_namespaces {
+                let disclosed_attributes = disclosed_namespaces
+                    .get(expected_namespace)
+                    .expect("expected namespace not received");
+                // verify the length of the attributes in the current namespace
+                assert_eq!(disclosed_attributes.len(), expected_attributes.len());
+                // verify whether all expected attributes are disclosed
+                // NOTE: this comparison will not detect disclosed attributes that are not expected, however due to the
+                //       length comparison above, this could theoretically only happen when [`expected_attributes`] contains
+                //       duplicate entries.
+                for expected_attribute in expected_attributes {
+                    assert!(disclosed_attributes.contains(expected_attribute))
+                }
+            }
+        }
+    }
 }
 impl From<Vec<TestDocument>> for TestDocuments {
     fn from(value: Vec<TestDocument>) -> Self {
@@ -232,5 +259,45 @@ impl std::ops::Add for TestDocuments {
     fn add(mut self, mut rhs: Self) -> Self::Output {
         self.0.append(&mut rhs.0);
         self
+    }
+}
+
+pub mod data {
+    use super::*;
+
+    const PID: &str = "com.example.pid";
+    const ADDR: &str = "com.example.address";
+
+    pub fn pid_given_name() -> TestDocuments {
+        vec![(PID, PID, vec![("given_name", "Willeke Liselotte".into())]).into()].into()
+    }
+
+    pub fn pid_family_name() -> TestDocuments {
+        vec![(PID, PID, vec![("family_name", "De Bruijn".into())]).into()].into()
+    }
+
+    pub fn pid_full_name() -> TestDocuments {
+        vec![(
+            PID,
+            PID,
+            vec![
+                ("given_name", "Willeke Liselotte".into()),
+                ("family_name", "De Bruijn".into()),
+            ],
+        )
+            .into()]
+        .into()
+    }
+
+    pub fn addr_street() -> TestDocuments {
+        vec![(ADDR, ADDR, vec![("resident_street", "Turfmarkt".into())]).into()].into()
+    }
+
+    pub fn pid_given_name_and_addr_street() -> TestDocuments {
+        vec![
+            (PID, PID, vec![("given_name", "Willeke Liselotte".into())]).into(),
+            (ADDR, ADDR, vec![("resident_street", "Turfmarkt".into())]).into(),
+        ]
+        .into()
     }
 }
