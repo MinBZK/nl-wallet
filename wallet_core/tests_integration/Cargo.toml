@@ -44,10 +44,6 @@ digid_test = []
 
 [dev-dependencies]
 assert_matches.workspace = true
-base64.workspace = true
-ciborium.workspace = true
-ctor.workspace = true
-dotenvy.workspace = true
 indexmap.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }

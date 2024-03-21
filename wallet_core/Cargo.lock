@@ -4282,10 +4282,6 @@ name = "tests_integration"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "base64 0.21.4",
- "ciborium",
- "ctor",
- "dotenvy",
  "indexmap 2.0.2",
  "jsonwebtoken",
  "nl_wallet_mdoc",
