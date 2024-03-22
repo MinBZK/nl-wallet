@@ -33,9 +33,11 @@ class PinOverlay extends StatelessWidget {
       }),
       initialData: _lockedStreamCache,
       builder: (context, snapshot) {
+        final didChangeState = _lockedStreamCache != snapshot.data!;
         final isLocked = _lockedStreamCache = snapshot.data!;
         if (isLocked) {
-          _dismissOpenDialogs(context);
+          /// Only dismiss when the app was locked this build(), this avoids dismissing new dialogs
+          if (didChangeState) _dismissOpenDialogs(context);
           return _buildLockedState();
         } else {
           return child;
