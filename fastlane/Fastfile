@@ -88,7 +88,7 @@ platform :android do
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
-    version = options[:version] || local_version
+    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
     file_format = options[:file_format] || "aab"
     build_mode = options[:build_mode] || "release"
     mock_repositories = options[:mock] || false
