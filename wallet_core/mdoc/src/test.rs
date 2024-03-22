@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use ciborium::Value;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 
 use wallet_common::{
     generator::TimeGenerator,
@@ -10,12 +10,13 @@ use wallet_common::{
 
 use crate::{
     holder::Mdoc,
+    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::mdocs::DataElementValue,
     server_keys::KeyPair,
     unsigned::{Entry, UnsignedMdoc},
     utils::{issuer_auth::IssuerRegistration, keys::KeyFactory},
     verifier::{DisclosedAttributes, ItemsRequests},
-    IssuerSigned, ItemsRequest,
+    DeviceRequest, IssuerSigned, ItemsRequest,
 };
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
@@ -198,7 +199,7 @@ impl From<TestDocument> for ItemsRequest {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TestDocuments(Vec<TestDocument>);
 impl TestDocuments {
     pub fn len(&self) -> usize {
@@ -266,12 +267,38 @@ impl std::ops::Add for TestDocuments {
         self
     }
 }
+impl From<TestDocuments> for DeviceRequest {
+    fn from(value: TestDocuments) -> Self {
+        let items_requests = ItemsRequests::from(value);
+        Self::new(items_requests.0)
+    }
+}
+impl AttributeIdentifierHolder for TestDocuments {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.0
+            .iter()
+            .flat_map(|document| {
+                document.namespaces.iter().flat_map(|(namespace, attributes)| {
+                    attributes.iter().map(|attribute| AttributeIdentifier {
+                        doc_type: document.doc_type.clone(),
+                        namespace: namespace.clone(),
+                        attribute: attribute.name.clone(),
+                    })
+                })
+            })
+            .collect()
+    }
+}
 
 pub mod data {
     use super::*;
 
     const PID: &str = "com.example.pid";
     const ADDR: &str = "com.example.address";
+
+    pub fn empty() -> TestDocuments {
+        vec![].into()
+    }
 
     pub fn pid_given_name() -> TestDocuments {
         vec![(PID, PID, vec![("given_name", "Willeke Liselotte".into())]).into()].into()
