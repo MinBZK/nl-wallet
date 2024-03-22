@@ -8,7 +8,7 @@ use wallet::{
         reqwest, AccountProviderError, DisclosureError, HistoryError, InstructionError, PidIssuanceError, ResetError,
         UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
     },
-    openid4vc::OidcError,
+    openid4vc::{IssuanceSessionError, OidcError},
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -156,8 +156,18 @@ impl FlutterApiErrorFields for PidIssuanceError {
             PidIssuanceError::NotRegistered | PidIssuanceError::Locked | PidIssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
+
             PidIssuanceError::DigidSessionFinish(OidcError::RedirectUriError(_)) => FlutterApiErrorType::RedirectUri,
 
+            PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(_))
+            | PidIssuanceError::PidIssuer(IssuanceSessionError::CredentialRequest(_))
+            | PidIssuanceError::DigidSessionStart(OidcError::RedirectUriError(_))
+            | PidIssuanceError::DigidSessionStart(OidcError::RequestingAccessToken(_))
+            | PidIssuanceError::DigidSessionStart(OidcError::RequestingUserInfo(_))
+            | PidIssuanceError::DigidSessionFinish(OidcError::RequestingAccessToken(_))
+            | PidIssuanceError::DigidSessionFinish(OidcError::RequestingUserInfo(_)) => {
+                crate::errors::FlutterApiErrorType::Server
+            }
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -202,10 +212,10 @@ impl FlutterApiErrorFields for url::ParseError {
 
 impl From<&reqwest::Error> for FlutterApiErrorType {
     fn from(value: &reqwest::Error) -> Self {
-        if value.is_timeout() || value.is_request() || value.is_connect() {
-            FlutterApiErrorType::Networking
-        } else {
-            FlutterApiErrorType::Generic
+        match () {
+            _ if value.is_timeout() || value.is_request() || value.is_connect() => FlutterApiErrorType::Networking,
+            _ if value.is_status() => FlutterApiErrorType::Server,
+            _ => FlutterApiErrorType::Generic,
         }
     }
 }
