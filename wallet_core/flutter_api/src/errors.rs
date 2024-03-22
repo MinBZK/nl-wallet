@@ -26,11 +26,20 @@ pub struct FlutterApiError {
 
 #[derive(Debug, Serialize)]
 enum FlutterApiErrorType {
-    Generic,
+    /// A network connection has timed-out, was unable to connect or something else went wrong during the request.
     Networking,
+
+    /// The request failed, but the server did send a response.
     Server,
+
+    /// The wallet is in an unexpected state.
     WalletState,
+
+    /// Failed to finish the DigiD session and get an authorization code.
     RedirectUri,
+
+    /// Indicating something unexpected went wrong.
+    Generic,
 }
 
 trait FlutterApiErrorFields {
@@ -129,11 +138,8 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
     // within the error tree, just look for it with some help
     // from the `anyhow::Chain` iterator.
     for source in Chain::new(error) {
-        if source.is::<reqwest::Error>() {
-            let err: &reqwest::Error = source.downcast_ref().unwrap();
-            if err.is_timeout() || err.is_request() || err.is_connect() {
-                return Some(FlutterApiErrorType::Networking);
-            }
+        if let Some(err) = source.downcast_ref::<reqwest::Error>() {
+            return Some(FlutterApiErrorType::from(err));
         }
     }
 
@@ -177,11 +183,12 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             DisclosureError::DisclosureSession(error) => {
                 if let Some(network_error) = detect_networking_error(error) {
-                    return network_error;
+                    network_error
+                } else {
+                    FlutterApiErrorType::Generic
                 }
-
-                FlutterApiErrorType::Generic
             }
+            DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -193,13 +200,21 @@ impl FlutterApiErrorFields for url::ParseError {
     }
 }
 
+impl From<&reqwest::Error> for FlutterApiErrorType {
+    fn from(value: &reqwest::Error) -> Self {
+        if value.is_timeout() || value.is_request() || value.is_connect() {
+            FlutterApiErrorType::Networking
+        } else {
+            FlutterApiErrorType::Generic
+        }
+    }
+}
+
 impl From<&AccountProviderError> for FlutterApiErrorType {
     fn from(value: &AccountProviderError) -> Self {
         match value {
             AccountProviderError::Response(_) => FlutterApiErrorType::Server,
-            AccountProviderError::Networking(e) if e.is_request() || e.is_connect() || e.is_timeout() => {
-                FlutterApiErrorType::Networking
-            }
+            AccountProviderError::Networking(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
         }
     }
