@@ -328,12 +328,4 @@ pub mod data {
     pub fn addr_street() -> TestDocuments {
         vec![(ADDR, ADDR, vec![("resident_street", "Turfmarkt".into())]).into()].into()
     }
-
-    pub fn pid_given_name_and_addr_street() -> TestDocuments {
-        vec![
-            (PID, PID, vec![("given_name", "Willeke Liselotte".into())]).into(),
-            (ADDR, ADDR, vec![("resident_street", "Turfmarkt".into())]).into(),
-        ]
-        .into()
-    }
 }

@@ -8,7 +8,7 @@ use url::Url;
 use nl_wallet_mdoc::{
     server_state::SessionToken,
     test::{
-        data::{addr_street, pid_family_name, pid_full_name, pid_given_name, pid_given_name_and_addr_street},
+        data::{addr_street, pid_family_name, pid_full_name, pid_given_name},
         TestDocuments,
     },
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
@@ -38,10 +38,10 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
     SessionType::SameDevice,
     None,
     "multiple_cards",
-    pid_given_name_and_addr_street(),
-    pid_given_name_and_addr_street()
+    pid_given_name() + addr_street(),
+    pid_given_name() + addr_street()
 )]
-#[case(SessionType::SameDevice, None, "multiple_cards", pid_given_name() + addr_street(), pid_given_name_and_addr_street())]
+#[case(SessionType::SameDevice, None, "multiple_cards", pid_given_name() + addr_street(), pid_given_name() + addr_street())]
 #[tokio::test]
 #[serial]
 async fn test_disclosure_usecases_ok(

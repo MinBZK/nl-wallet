@@ -21,7 +21,7 @@ use nl_wallet_mdoc::{
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
     test::{
-        data::{addr_street, pid_full_name, pid_given_name, pid_given_name_and_addr_street},
+        data::{addr_street, pid_full_name, pid_given_name},
         TestDocuments,
     },
     utils::{reader_auth::ReaderRegistration, serialization, x509::Certificate},
@@ -142,9 +142,9 @@ impl MdocDataSource for MockMdocDataSource {
 #[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
 #[case(SessionType::SameDevice, None, pid_full_name(), pid_given_name().into(), pid_given_name())]
 #[case(SessionType::SameDevice, None, pid_given_name(), pid_given_name().into(), pid_given_name())]
-#[case(SessionType::SameDevice, None, pid_given_name_and_addr_street(), pid_given_name_and_addr_street().into(), pid_given_name_and_addr_street())]
-#[case(SessionType::SameDevice, None, pid_given_name_and_addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name_and_addr_street())]
-#[case(SessionType::SameDevice, None, pid_given_name_and_addr_street(), pid_given_name().into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name() + addr_street())]
+#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name() + addr_street())]
+#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), pid_given_name().into(), pid_given_name())]
 #[case(SessionType::SameDevice, None, pid_full_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
 #[case(SessionType::SameDevice, None, pid_given_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
 #[tokio::test]
