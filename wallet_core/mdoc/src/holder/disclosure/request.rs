@@ -282,13 +282,20 @@ impl DocRequest {
 mod tests {
     use assert_matches::assert_matches;
 
+    use rstest::rstest;
     use wallet_common::{generator::TimeGenerator, trust_anchor::DerTrustAnchor};
 
     use crate::{
         errors::Error,
-        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
         iso::device_retrieval::DeviceRequestVersion,
         server_keys::KeyPair,
+        software_key_factory::SoftwareKeyFactory,
+        test::{
+            data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name},
+            TestDocument, TestDocuments,
+        },
+        unsigned::Entry,
+        Attributes, IssuerSignedItem,
     };
 
     use super::{super::test::*, *};
@@ -370,132 +377,46 @@ mod tests {
         assert_matches!(error, Error::Holder(HolderError::ReaderAuthsInconsistent));
     }
 
-    // TODO: Add more complex test cases for `DeviceRequest.match_stored_documents()`. (PVW-2354)
-
+    #[rstest]
+    #[case(empty(), empty(), candidates(empty()))]
+    #[case(pid_full_name(), pid_full_name(), candidates(pid_full_name()))]
+    #[case(pid_given_name(), pid_given_name() + pid_given_name(), candidates(pid_given_name()))]
+    #[case(pid_given_name() + pid_given_name(), pid_given_name(), candidates(pid_given_name() + pid_given_name()))]
+    #[case(pid_full_name() + pid_given_name() + addr_street(), addr_street(), candidates(addr_street()))]
+    #[case(pid_full_name() + pid_given_name() + addr_street(), pid_given_name(), candidates(pid_given_name() + pid_given_name()))]
+    #[case(pid_full_name() + pid_given_name() + addr_street(), empty(), candidates(empty()))]
+    #[case(empty(), pid_given_name(), missing_attributes(pid_given_name()))]
+    #[case(
+        empty(),
+        pid_given_name() + addr_street(),
+        missing_attributes(pid_given_name() + addr_street())
+    )]
+    #[case(pid_given_name(), pid_full_name(), missing_attributes(pid_family_name()))]
+    #[case(pid_full_name(), addr_street(), missing_attributes(addr_street()))]
     #[tokio::test]
-    async fn test_device_request_match_stored_documents() {
-        let mut mdoc_data_source = MockMdocDataSource::default();
+    async fn test_match_stored_documents(
+        #[case] stored_documents: TestDocuments,
+        #[case] requested_documents: TestDocuments,
+        #[case] expected_match: ExpectedDeviceRequestMatch,
+    ) {
+        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let key_factory = SoftwareKeyFactory::default();
+
+        let mut mdoc_data_source = MockMdocDataSource::new();
+        for document in stored_documents.into_iter() {
+            mdoc_data_source.mdocs.push(document.sign(&ca, &key_factory, 1).await);
+        }
+
+        let device_request = DeviceRequest::from(requested_documents);
+
         let session_transcript = create_basic_session_transcript();
-
-        let empty_device_request = DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: vec![],
-        };
-
-        // An empty `DeviceRequest` should result in an empty set of candidates.
-        let match_result = empty_device_request
-            .match_stored_documents(&mdoc_data_source, &session_transcript)
-            .await
-            .expect("Could not match device request with stored documents");
-
-        assert_matches!(match_result, DeviceRequestMatch::Candidates(candidates) if candidates.is_empty());
-
-        // Have the `MdocDataSource` contain several mdocs with different attributes
-        let mdoc1 = mdoc_data_source.mdocs.pop().unwrap();
-        let mdoc2 = {
-            let mut mdoc = mdoc1.clone();
-
-            // Remove the `driving_privileges` attribute.
-            mdoc.issuer_signed
-                .name_spaces
-                .as_mut()
-                .unwrap()
-                .first_mut()
-                .unwrap()
-                .1
-                 .0
-                .pop();
-
-            mdoc
-        };
-        let mdoc3 = {
-            let mut mdoc = mdoc1.clone();
-
-            // Add a fake `foobar` attribute.
-            let attributes = &mut mdoc
-                .issuer_signed
-                .name_spaces
-                .as_mut()
-                .unwrap()
-                .first_mut()
-                .unwrap()
-                .1
-                 .0;
-
-            let mut attribute = attributes.first().unwrap().clone();
-            attribute.0.element_identifier = "foobar".to_string();
-            attributes.push(attribute);
-
-            mdoc
-        };
-        let mdoc4 = {
-            let mut mdoc = mdoc1.clone();
-
-            // Remove all attributes.
-            mdoc.issuer_signed
-                .name_spaces
-                .as_mut()
-                .unwrap()
-                .first_mut()
-                .unwrap()
-                .1
-                 .0
-                .clear();
-
-            mdoc
-        };
-        mdoc_data_source.mdocs = vec![mdoc1, mdoc2, mdoc3, mdoc4];
-
-        let items_request = example_items_request();
-
-        let device_request = DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: vec![DocRequest {
-                items_request: items_request.into(),
-                reader_auth: None,
-            }],
-        };
-
-        // Only two of the `Mdoc` should match and be returned as a `DocumentProposal`,
-        // which should contain only the requested attributes.
         let match_result = device_request
             .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
             .expect("Could not match device request with stored documents");
 
-        assert_matches!(
-            match_result,
-            DeviceRequestMatch::Candidates(candidates) if candidates.get(EXAMPLE_DOC_TYPE).unwrap().len() == 2 &&
-                candidates.get(EXAMPLE_DOC_TYPE).unwrap().iter().all(|proposed_document|
-                    proposed_document
-                        .issuer_signed
-                        .name_spaces
-                        .as_ref()
-                        .unwrap()
-                        .get(EXAMPLE_NAMESPACE)
-                        .unwrap()
-                        .0
-                        .len() == 5
-                )
-        );
-
-        // Remove all but `mdoc2` from `MdocDataSource`.
-        mdoc_data_source.mdocs.pop();
-        mdoc_data_source.mdocs.pop();
-        mdoc_data_source.mdocs.swap_remove(0);
-
-        // Now there should not be a match, one of the attributes should be reported as missing.
-        let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, &session_transcript)
-            .await
-            .expect("Could not match device request with stored documents");
-
-        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
-        assert_matches!(
-            match_result,
-            DeviceRequestMatch::MissingAttributes(missing_attributes)
-                if missing_attributes.iter().eq(expected_missing_attributes.iter())
-        );
+        let match_result: ExpectedDeviceRequestMatch = match_result.into();
+        assert_eq!(match_result, expected_match);
     }
 
     #[tokio::test]
@@ -549,5 +470,69 @@ mod tests {
             .expect("Could not verify DeviceRequest");
 
         assert!(no_certificate.is_none());
+    }
+
+    #[derive(Debug, PartialEq)]
+    enum ExpectedDeviceRequestMatch {
+        Candidates(TestDocuments),
+        MissingAttributes(IndexSet<AttributeIdentifier>),
+    }
+
+    fn candidates(candidates: TestDocuments) -> ExpectedDeviceRequestMatch {
+        ExpectedDeviceRequestMatch::Candidates(candidates)
+    }
+    fn missing_attributes(missing_attributes: TestDocuments) -> ExpectedDeviceRequestMatch {
+        ExpectedDeviceRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
+    }
+
+    impl<T> From<DeviceRequestMatch<T>> for ExpectedDeviceRequestMatch {
+        fn from(value: DeviceRequestMatch<T>) -> Self {
+            match value {
+                DeviceRequestMatch::Candidates(candidates) => {
+                    let candidates: Vec<TestDocument> = candidates
+                        .into_iter()
+                        .flat_map(|(_, namespaces)| namespaces)
+                        .map(convert_proposed_document)
+                        .collect();
+                    Self::Candidates(candidates.into())
+                }
+                DeviceRequestMatch::MissingAttributes(missing) => {
+                    Self::MissingAttributes(missing.into_iter().collect())
+                }
+            }
+        }
+    }
+
+    fn convert_proposed_document<I>(
+        ProposedDocument {
+            doc_type,
+            issuer_signed,
+            ..
+        }: ProposedDocument<I>,
+    ) -> TestDocument {
+        let name_spaces = issuer_signed.name_spaces.expect("Expected namespaces");
+
+        TestDocument {
+            doc_type,
+            namespaces: convert_namespaces(name_spaces),
+        }
+    }
+
+    fn convert_namespaces(namespaces: IndexMap<String, Attributes>) -> IndexMap<String, Vec<Entry>> {
+        namespaces
+            .into_iter()
+            .map(|(namespace, attributes)| (namespace, convert_attributes(attributes)))
+            .collect()
+    }
+
+    fn convert_attributes(attributes: Attributes) -> Vec<Entry> {
+        attributes.0.into_iter().map(convert_attribute).collect()
+    }
+
+    fn convert_attribute(attribute: TaggedBytes<IssuerSignedItem>) -> Entry {
+        Entry {
+            name: attribute.0.element_identifier,
+            value: attribute.0.element_value,
+        }
     }
 }

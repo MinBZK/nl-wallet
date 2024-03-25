@@ -216,6 +216,14 @@ pub struct MockMdocDataSource {
     pub mdocs: Vec<Mdoc>,
     pub has_error: bool,
 }
+impl MockMdocDataSource {
+    pub fn new() -> Self {
+        Self {
+            mdocs: vec![],
+            has_error: false,
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum MdocDataSourceError {
@@ -244,22 +252,19 @@ impl MdocDataSource for MockMdocDataSource {
             return Err(MdocDataSourceError::Failed);
         }
 
-        if doc_types.contains(EXAMPLE_DOC_TYPE) {
-            let stored_mdocs = self
-                .mdocs
-                .iter()
-                .cloned()
-                .enumerate()
-                .map(|(index, mdoc)| StoredMdoc {
-                    id: format!("id_{}", index + 1),
-                    mdoc,
-                })
-                .collect();
+        let stored_mdocs = self
+            .mdocs
+            .iter()
+            .filter(|mdoc| doc_types.contains(mdoc.doc_type.as_str()))
+            .cloned()
+            .enumerate()
+            .map(|(index, mdoc)| StoredMdoc {
+                id: format!("id_{}", index + 1),
+                mdoc,
+            })
+            .collect();
 
-            return Ok(vec![stored_mdocs]);
-        }
-
-        Ok(Default::default())
+        Ok(vec![stored_mdocs])
     }
 }
 

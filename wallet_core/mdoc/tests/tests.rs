@@ -1,12 +1,10 @@
 use std::{
     collections::{HashMap, HashSet},
     convert::Infallible,
-    ops::Add,
     sync::Arc,
 };
 
-use ciborium::value::Value;
-use indexmap::IndexMap;
+use futures::future;
 use rstest::rstest;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_with::{
@@ -15,30 +13,21 @@ use serde_with::{
     serde_as,
 };
 use url::Url;
+use webpki::TrustAnchor;
 
 use nl_wallet_mdoc::{
     holder::{DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, StoredMdoc},
-    iso::{device_retrieval::ItemsRequest, mdocs::DocType},
+    iso::mdocs::DocType,
     server_keys::{KeyPair, KeyRing},
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
-    unsigned::{Entry, UnsignedMdoc},
-    utils::{
-        issuer_auth::IssuerRegistration, keys::KeyFactory, reader_auth::ReaderRegistration, serialization,
-        x509::Certificate,
+    test::{
+        data::{addr_street, pid_full_name, pid_given_name},
+        TestDocuments,
     },
-    verifier::{DisclosureData, SessionType, Verifier},
-    IssuerSigned,
+    utils::{reader_auth::ReaderRegistration, serialization, x509::Certificate},
+    verifier::{DisclosureData, ItemsRequests, SessionType, Verifier},
 };
-use wallet_common::{
-    generator::TimeGenerator,
-    keys::{EcdsaKey, WithIdentifier},
-};
-use webpki::TrustAnchor;
-
-const ISSUANCE_DOC_TYPE: &str = "example_doctype";
-const ISSUANCE_NAME_SPACE: &str = "example_namespace";
-const ISSUANCE_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
 
@@ -88,15 +77,9 @@ impl HttpClient for MockDisclosureHttpClient {
 
 fn setup_verifier_test(
     mdoc_trust_anchors: &[TrustAnchor<'_>],
+    authorized_requests: &ItemsRequests,
 ) -> (MockDisclosureHttpClient, Arc<MockVerifier>, Certificate) {
-    let reader_registration = ReaderRegistration {
-        attributes: ReaderRegistration::create_attributes(
-            ISSUANCE_DOC_TYPE.to_string(),
-            ISSUANCE_NAME_SPACE.to_string(),
-            ISSUANCE_ATTRS.iter().map(|(key, _)| key).copied(),
-        ),
-        ..ReaderRegistration::new_mock()
-    };
+    let reader_registration = ReaderRegistration::new_mock_from_requests(authorized_requests);
     let ca = KeyPair::generate_reader_mock_ca().unwrap();
     let disclosure_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
 
@@ -114,12 +97,12 @@ fn setup_verifier_test(
 
 struct MockMdocDataSource(HashMap<DocType, MdocCopies>);
 
-impl From<Vec<MdocCopies>> for MockMdocDataSource {
-    fn from(value: Vec<MdocCopies>) -> Self {
+impl From<Vec<Mdoc>> for MockMdocDataSource {
+    fn from(value: Vec<Mdoc>) -> Self {
         MockMdocDataSource(
             value
                 .into_iter()
-                .map(|copies| (copies.cred_copies.first().unwrap().doc_type.clone(), copies))
+                .map(|mdoc| (mdoc.doc_type.clone(), vec![mdoc].into()))
                 .collect(),
         )
     }
@@ -153,76 +136,52 @@ impl MdocDataSource for MockMdocDataSource {
     }
 }
 
-/// Generates a valid `Mdoc`, based on an `UnsignedMdoc` and key identifier.
-pub async fn mdoc_from_unsigned<KF>(unsigned_mdoc: UnsignedMdoc, key_factory: &KF) -> (Mdoc, Certificate)
-where
-    KF: KeyFactory,
-{
-    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-
-    let mdoc_key = key_factory.generate_new().await.unwrap();
-    let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuance_key)
-        .await
-        .unwrap();
-
-    let mdoc = Mdoc::new::<KF::Key>(
-        mdoc_key.identifier().to_string(),
-        issuer_signed,
-        &TimeGenerator,
-        &[(ca.certificate().try_into().unwrap())],
-    )
-    .unwrap();
-
-    (mdoc, ca.certificate().clone())
-}
-
 #[rstest]
-#[case(SessionType::SameDevice, None)]
-#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()))]
-#[case(SessionType::CrossDevice, None)]
-#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()))]
+#[case(SessionType::SameDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::CrossDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::SameDevice, None, pid_full_name(), pid_given_name().into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_given_name(), pid_given_name().into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name() + addr_street())]
+#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name() + addr_street())]
+#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), pid_given_name().into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_full_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
+#[case(SessionType::SameDevice, None, pid_given_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
 #[tokio::test]
-async fn test_disclosure(#[case] session_type: SessionType, #[case] return_url: Option<Url>) {
-    let unsigned = UnsignedMdoc {
-        doc_type: ISSUANCE_DOC_TYPE.to_string(),
-        copy_count: 2,
-        valid_from: chrono::Utc::now().into(),
-        valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
-        attributes: IndexMap::from([(
-            ISSUANCE_NAME_SPACE.to_string(),
-            ISSUANCE_ATTRS
-                .iter()
-                .map(|(key, val)| Entry {
-                    name: key.to_string(),
-                    value: Value::Text(val.to_string()),
-                })
-                .collect(),
-        )]),
-    };
-
+async fn test_disclosure(
+    #[case] session_type: SessionType,
+    #[case] return_url: Option<Url>,
+    #[case] stored_documents: TestDocuments,
+    #[case] requested_documents: ItemsRequests,
+    #[case] expected_documents: TestDocuments,
+) {
+    let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let key_factory = SoftwareKeyFactory::default();
-    let (mdoc, mdoc_ca) = mdoc_from_unsigned(unsigned, &key_factory).await;
 
-    let mdoc_data_source = MockMdocDataSource::from(vec![MdocCopies {
-        cred_copies: vec![mdoc],
-    }]);
+    let mdocs = future::join_all(
+        stored_documents
+            .into_iter()
+            .map(|doc| async { doc.sign(&ca, &key_factory, 1).await }),
+    )
+    .await;
 
-    // Prepare a request and start issuance on the verifier side.
-    let (verifier_client, verifier, verifier_ca) = setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()]);
-    let items_requests = vec![ItemsRequest {
-        doc_type: ISSUANCE_DOC_TYPE.to_string(),
-        name_spaces: IndexMap::from([(
-            ISSUANCE_NAME_SPACE.to_string(),
-            ISSUANCE_ATTRS.iter().map(|(key, _)| (key.to_string(), false)).collect(),
-        )]),
-        request_info: None,
-    }]
-    .into();
+    let mdoc_ca = ca.certificate().clone();
+
+    let mdoc_data_source = MockMdocDataSource::from(mdocs);
+
+    // Prepare a request and start disclosure on the verifier side.
+    let authorized_documents = &requested_documents;
+    let (verifier_client, verifier, verifier_ca) =
+        setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()], authorized_documents);
 
     let (session_id, reader_engagement) = verifier
-        .new_session(items_requests, session_type, Default::default(), return_url.is_some())
+        .new_session(
+            requested_documents,
+            session_type,
+            Default::default(),
+            return_url.is_some(),
+        )
         .await
         .expect("creating new verifier session should succeed");
 
@@ -265,19 +224,10 @@ async fn test_disclosure(#[case] session_type: SessionType, #[case] return_url: 
             .transcript_hash
     });
 
-    let disclosed_attributes = verifier
+    let disclosed_documents = verifier
         .disclosed_attributes(&session_id, transcript_hash)
         .await
         .expect("verifier disclosed attributes should be present");
 
-    // Check the disclosed attributes.
-    let attributes_iter = disclosed_attributes
-        .get(ISSUANCE_DOC_TYPE)
-        .expect("disclosed attributes should contain doc_type")
-        .attributes
-        .get(ISSUANCE_NAME_SPACE)
-        .expect("disclosed attributes should contain namespace")
-        .iter()
-        .map(|entry| (entry.name.as_str(), entry.value.as_text().unwrap()));
-    itertools::assert_equal(attributes_iter, ISSUANCE_ATTRS.iter().copied());
+    expected_documents.assert_matches(&disclosed_documents);
 }

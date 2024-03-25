@@ -7,7 +7,10 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    unsigned::Entry,
+    test::{
+        data::{addr_street, pid_family_name, pid_full_name, pid_given_name},
+        TestDocuments,
+    },
     verifier::{DisclosedAttributes, SessionType, StatusResponse},
     ItemsRequest,
 };
@@ -26,13 +29,37 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 }
 
 #[rstest]
-#[case(SessionType::SameDevice, None)]
-#[case(SessionType::SameDevice, Some("http://localhost:3004/return".parse().unwrap()))]
-#[case(SessionType::CrossDevice, None)]
-#[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()))]
+#[case(SessionType::SameDevice, None, "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::SameDevice, Some("http://localhost:3004/return".parse().unwrap()), "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::CrossDevice, None, "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()), "xyz_bank", pid_full_name(), pid_full_name())]
+#[case(SessionType::SameDevice, None, "xyz_bank", pid_family_name() + pid_given_name(), pid_full_name())]
+#[case(
+    SessionType::SameDevice,
+    None,
+    "multiple_cards",
+    pid_given_name() + addr_street(),
+    pid_given_name() + addr_street()
+)]
+#[case(SessionType::SameDevice, None, "multiple_cards", pid_given_name() + addr_street(), pid_given_name() + addr_street())]
 #[tokio::test]
 #[serial]
-async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_url: Option<ReturnUrlTemplate>) {
+async fn test_disclosure_usecases_ok(
+    #[case] session_type: SessionType,
+    #[case] return_url: Option<ReturnUrlTemplate>,
+    #[case] usecase: String,
+    #[case] test_documents: TestDocuments,
+    #[case] expected_documents: TestDocuments,
+) {
+    let start_request = StartDisclosureRequest {
+        usecase,
+        session_type,
+        items_requests: test_documents.into(),
+        // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
+        // contained in the certificate, so we have to specify a return URL prefixed with that.
+        return_url_template: return_url,
+    };
+
     let digid_context = MockOidcClient::start_context();
     digid_context.expect().return_once(|_, _, _, _| {
         let mut session = MockOidcClient::default();
@@ -65,26 +92,6 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
 
     let client = reqwest::Client::new();
 
-    let start_request = StartDisclosureRequest {
-        usecase: "xyz_bank".to_owned(),
-        session_type,
-        items_requests: vec![ItemsRequest {
-            doc_type: "com.example.pid".to_owned(),
-            request_info: None,
-            name_spaces: IndexMap::from([(
-                "com.example.pid".to_owned(),
-                IndexMap::from_iter(
-                    [("given_name", true), ("family_name", false)]
-                        .iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
-                ),
-            )]),
-        }]
-        .into(),
-        // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
-        // contained in the certificate, so we have to specify a return URL prefixed with that.
-        return_url_template: return_url,
-    };
     let response = client
         .post(
             ws_settings
@@ -119,7 +126,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         .start_disclosure(&engagement_url)
         .await
         .expect("Could not start disclosure");
-    assert_eq!(proposal.documents.len(), 1);
+    assert_eq!(proposal.documents.len(), expected_documents.len());
 
     // after the first wallet interaction it should have status "Waiting"
     assert_matches!(
@@ -148,28 +155,9 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
     let status = response.status();
     assert_eq!(status, StatusCode::OK);
 
-    let expected_entries = vec![
-        Entry {
-            name: "family_name".into(),
-            value: "De Bruijn".into(),
-        },
-        Entry {
-            name: "given_name".into(),
-            value: "Willeke Liselotte".into(),
-        },
-    ];
-    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+    let disclosed_documents = response.json::<DisclosedAttributes>().await.unwrap();
 
-    // verify the disclosed attributes
-    assert_eq!(
-        disclosed_attributes
-            .get("com.example.pid")
-            .unwrap()
-            .attributes
-            .get("com.example.pid")
-            .unwrap(),
-        &expected_entries
-    );
+    expected_documents.assert_matches(&disclosed_documents);
 }
 
 #[tokio::test]
@@ -204,8 +192,8 @@ async fn test_disclosure_without_pid() {
                 "com.example.pid".to_owned(),
                 IndexMap::from_iter(
                     [("given_name", true), ("family_name", false)]
-                        .iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+                        .into_iter()
+                        .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
                 ),
             )]),
         }]

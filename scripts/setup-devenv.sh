@@ -63,7 +63,7 @@ expect_command openssl "Missing binary 'openssl', please install OpenSSL"
 expect_command jq "Missing binary 'jq', please install"
 expect_command xxd "Missing binary 'xxd', please install"
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
-  expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
+    expect_command docker "Missing binary 'docker', please install Docker (Desktop)"
 fi
 expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
 expect_command p11tool "Missing binary 'p11tool', please install 'gnutls' using Homebrew on macOS or 'gnutls-bin' on Debian/Ubuntu."
@@ -219,10 +219,12 @@ export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 
 render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
 render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
+render_template_append "${DEVENV}/mock_relying_party.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
 
 # And the mrp's wallet_server config
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${MRP_WALLET_SERVER_DIR}/wallet_server.toml"
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/performance/.env"
 
