@@ -162,7 +162,7 @@ async fn test_disclosure(
         let mut mdocs = vec![];
 
         for doc in stored_documents {
-            let mdoc = doc.sign(&ca, &key_factory).await;
+            let mdoc = doc.sign(&ca, &key_factory, 1).await;
             mdocs.push(mdoc);
         }
 

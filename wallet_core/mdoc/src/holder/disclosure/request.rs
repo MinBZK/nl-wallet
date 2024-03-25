@@ -406,7 +406,7 @@ mod tests {
 
         let mut mdoc_data_source = MockMdocDataSource::new();
         for document in stored_documents.into_iter() {
-            mdoc_data_source.mdocs.push(document.sign(&ca, &key_factory).await);
+            mdoc_data_source.mdocs.push(document.sign(&ca, &key_factory, 1).await);
         }
 
         let device_request = DeviceRequest::from(requested_documents);

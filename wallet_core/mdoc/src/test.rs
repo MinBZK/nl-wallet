@@ -131,11 +131,15 @@ impl TestDocument {
     }
 
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
-    pub async fn sign<KF>(self, ca: &KeyPair, key_factory: &KF) -> Mdoc
+    pub async fn sign<KF>(self, ca: &KeyPair, key_factory: &KF, copy_count: u64) -> Mdoc
     where
         KF: KeyFactory,
     {
-        let unsigned = UnsignedMdoc::from(self);
+        let unsigned = {
+            let mut unsigned = UnsignedMdoc::from(self);
+            unsigned.copy_count = copy_count;
+            unsigned
+        };
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
@@ -176,7 +180,7 @@ impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
         Self {
             doc_type: value.doc_type,
-            copy_count: 2,
+            copy_count: 1,
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
             attributes: value.namespaces,
