@@ -192,11 +192,7 @@ impl FlutterApiErrorFields for DisclosureError {
                 FlutterApiErrorType::WalletState
             }
             DisclosureError::DisclosureSession(error) => {
-                if let Some(network_error) = detect_networking_error(error) {
-                    network_error
-                } else {
-                    FlutterApiErrorType::Generic
-                }
+                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
