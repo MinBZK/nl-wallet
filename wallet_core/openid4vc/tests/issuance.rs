@@ -247,7 +247,12 @@ impl MockOpenidMessageClient {
                     jwt: invalidate_jwt(&jwt.0).into(),
                 },
             };
-            credential_requests.credential_requests[0].proof = Some(invalidated_proof);
+
+            let mut requests = credential_requests.credential_requests.into_inner();
+
+            requests[0].proof = Some(invalidated_proof);
+            credential_requests.credential_requests = requests.try_into().unwrap();
+
             credential_requests
         } else {
             credential_requests

@@ -344,7 +344,11 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .message_client
             .request_credentials(
                 &url,
-                &CredentialRequests { credential_requests },
+                &CredentialRequests {
+                    // This `.unwrap()` is safe as long as the received
+                    // `TokenResponseWithPreviews.attestation_previews` is not empty.
+                    credential_requests: credential_requests.try_into().unwrap(),
+                },
                 &dpop_header,
                 &access_token_header,
             )

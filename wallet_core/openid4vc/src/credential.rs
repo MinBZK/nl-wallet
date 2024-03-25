@@ -1,5 +1,6 @@
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
+use nutype::nutype;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -23,8 +24,16 @@ use crate::{
 /// Sent JSON-encoded to `POST /batch_credential`.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CredentialRequests {
-    pub credential_requests: Vec<CredentialRequest>,
+    pub credential_requests: CredentialRequestVec,
 }
+
+/// This newtype simply wraps and derefs a `Vec<CredentialRequest>`,
+/// while checking that this `Vec` is never empty.
+#[nutype(
+    derive(Debug, Clone, TryFrom, Deref, Serialize, Deserialize),
+    validate(predicate = |requests| !requests.is_empty() ),
+)]
+pub struct CredentialRequestVec(Vec<CredentialRequest>);
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.
 /// Sent JSON-encoded to `POST /credential`.
