@@ -165,6 +165,7 @@ async fn test_disclosure_ok(#[case] session_type: SessionType, #[case] return_ur
         disclosed_attributes
             .get("com.example.pid")
             .unwrap()
+            .attributes
             .get("com.example.pid")
             .unwrap(),
         &expected_entries

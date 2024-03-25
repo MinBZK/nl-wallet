@@ -274,6 +274,7 @@ async fn test_disclosure(#[case] session_type: SessionType, #[case] return_url: 
     let attributes_iter = disclosed_attributes
         .get(ISSUANCE_DOC_TYPE)
         .expect("disclosed attributes should contain doc_type")
+        .attributes
         .get(ISSUANCE_NAME_SPACE)
         .expect("disclosed attributes should contain namespace")
         .iter()

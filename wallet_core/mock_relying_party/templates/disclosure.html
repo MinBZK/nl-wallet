@@ -172,32 +172,80 @@
                 resultList.appendChild(doctypeElem)
                 resultList.appendChild(doctypeTextElem)
 
-                let doctypeList = document.createElement('dl')
-                for (namespace in attributes[doctype]) {
+                let documentList = document.createElement('dl')
+                let issuerElem = document.createElement('dt')
+                issuerElem.innerText = 'Issuer'
+
+                let issuerTextElem = document.createElement('dd')
+                issuerTextElem.innerText = attributes[doctype].issuer.join(',')
+
+                documentList.appendChild(issuerElem)
+                documentList.appendChild(issuerTextElem)
+
+                let attributesElem = document.createElement('dt')
+                attributesElem.innerText = 'Attributes'
+
+                let attributesList = document.createElement('dl')
+                for (namespace in attributes[doctype].attributes) {
                     let namespaceElem = document.createElement('dt')
                     namespaceElem.innerText = 'Namespace'
 
                     let namespaceTextElem = document.createElement('dd')
                     namespaceTextElem.innerText = namespace
 
-                    doctypeList.appendChild(namespaceElem)
-                    doctypeList.appendChild(namespaceTextElem)
+                    attributesList.appendChild(namespaceElem)
+                    attributesList.appendChild(namespaceTextElem)
 
                     let namespaceList = document.createElement('dl')
-                    for (idx in attributes[doctype][namespace]) {
+                    for (idx in attributes[doctype].attributes[namespace]) {
                         let attributeElem = document.createElement('dt')
-                        attributeElem.innerText = attributes[doctype][namespace][idx]['name']
+                        attributeElem.innerText = attributes[doctype].attributes[namespace][idx]['name']
 
                         let attributeTextElem = document.createElement('dd')
-                        attributeTextElem.innerText = attributes[doctype][namespace][idx]['value']
+                        attributeTextElem.innerText = attributes[doctype].attributes[namespace][idx]['value']
 
                         namespaceList.appendChild(attributeElem)
                         namespaceList.appendChild(attributeTextElem)
                     }
-                    doctypeList.appendChild(namespaceList)
+                    attributesList.appendChild(namespaceList)
                 }
-                resultList.appendChild(doctypeList)
+                documentList.appendChild(attributesElem)
+                documentList.appendChild(attributesList)
 
+                let validityElem = document.createElement('dt')
+                validityElem.innerText = 'Validity'
+                let validityList = document.createElement('dl')
+
+                let signedElem = document.createElement('dt')
+                signedElem.innerText = 'Signed'
+
+                let signedTextElem = document.createElement('dd')
+                signedTextElem.innerText = attributes[doctype].validityInfo.signed
+
+                validityList.appendChild(signedElem)
+                validityList.appendChild(signedTextElem)
+
+                let validFromElem = document.createElement('dt')
+                validFromElem.innerText = 'ValidFrom'
+
+                let validFromTextElem = document.createElement('dd')
+                validFromTextElem.innerText = attributes[doctype].validityInfo.validFrom
+
+                validityList.appendChild(validFromElem)
+                validityList.appendChild(validFromTextElem)
+
+                let validUntilElem = document.createElement('dt')
+                validUntilElem.innerText = 'ValidUntil'
+
+                let validUntilTextElem = document.createElement('dd')
+                validUntilTextElem.innerText = attributes[doctype].validityInfo.validUntil
+
+                validityList.appendChild(validUntilElem)
+                validityList.appendChild(validUntilTextElem)
+
+                documentList.appendChild(validityElem)
+                documentList.appendChild(validityList)
+                resultList.appendChild(documentList)
             }
 
             let resultElem = document.createElement('dt')

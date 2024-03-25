@@ -198,6 +198,14 @@ impl Certificate {
             .collect::<Result<_, _>>()
     }
 
+    pub fn iter_common_name(&self) -> Result<Vec<String>, CertificateError> {
+        self.to_x509()?
+            .subject
+            .iter_common_name()
+            .map(|cn| cn.as_str().map(ToOwned::to_owned).map_err(CertificateError::X509Error))
+            .collect()
+    }
+
     pub(crate) fn extract_custom_ext<'a, T: Deserialize<'a>>(
         &'a self,
         oid: Oid,
