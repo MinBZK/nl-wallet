@@ -1,7 +1,7 @@
 use crate::{
     holder::HolderError,
     server_keys::KeysError,
-    utils::{cose::CoseError, crypto::CryptoError, serialization::CborError},
+    utils::{cose::CoseError, crypto::CryptoError, serialization::CborError, x509::CertificateError},
     verifier::VerificationError,
 };
 
@@ -21,4 +21,6 @@ pub enum Error {
     Verification(#[from] VerificationError),
     #[error("keys error: {0}")]
     KeysError(#[from] KeysError),
+    #[error("certificate error: {0}")]
+    CertificateError(#[from] CertificateError),
 }

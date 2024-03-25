@@ -217,7 +217,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   Stream<List<WalletEvent>> setRecentHistoryStream({hint}) => _eventLog.logStream;
 
   @override
-  Future<bool> hasActiveDisclosureSession({hint}) async => false;
+  Future<bool> hasActiveDisclosureSession({hint}) async => _ongoingDisclosure != null;
 
   @override
   Future<bool> hasActivePidIssuanceSession({hint}) async => false;

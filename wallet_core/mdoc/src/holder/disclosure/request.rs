@@ -304,7 +304,7 @@ mod tests {
     async fn test_device_request_verify() {
         // Create two certificates and private keys.
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
-        let der_trust_anchors = vec![DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
+        let der_trust_anchors = [DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap()];
         let reader_registration = ReaderRegistration::new_mock();
         let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
         let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();

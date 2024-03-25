@@ -91,6 +91,7 @@ impl StoredByIdentifier for SoftwareEcdsaKey {
 
         // Otherwise, increment the reference count or create a new random key
         // and insert it into the static hashmap.
+        #[allow(clippy::map_clone)]
         let key = maybe_key.map(Arc::clone).unwrap_or_else(|| {
             let signing_key = SigningKey::random(&mut OsRng).into();
 
@@ -183,6 +184,7 @@ impl StoredByIdentifier for SoftwareEncryptionKey {
 
         // Otherwise, increment the reference count or create a new random cipher
         // and insert it into the static hashmap.
+        #[allow(clippy::map_clone)]
         let cipher = maybe_cipher.map(Arc::clone).unwrap_or_else(|| {
             let encryption_cipher = Aes256Gcm::new(&Aes256Gcm::generate_key(&mut OsRng)).into();
 

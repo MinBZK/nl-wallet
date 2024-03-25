@@ -88,7 +88,7 @@ platform :android do
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
-    version = options[:version] || local_version
+    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
     file_format = options[:file_format] || "aab"
     build_mode = options[:build_mode] || "release"
     mock_repositories = options[:mock] || false
@@ -132,7 +132,7 @@ platform :android do
 
     # retrieve local version
     local_version, _ = get_local_version_and_build
-    version = options[:version] || local_version
+    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
 
     # upload non-mock app
     upload_to_play_store_internal_track(package_name: package_name, version: version, json_key_data: json_key_data)
@@ -144,7 +144,7 @@ platform :android do
     UI.user_error!("No package_name or package_name option set") unless package_name
 
     local_version, _ = get_local_version_and_build
-    version = options[:version] || local_version
+    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
 
     browserstack_user = ENV["BROWSERSTACK_USER"]
     browserstack_key = ENV["BROWSERSTACK_KEY"]
@@ -246,7 +246,7 @@ platform :ios do
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
-    version = options[:version] || local_version
+    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
     build_mode = options[:build_mode] || "release"
 
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode

@@ -15,7 +15,7 @@ use crate::{
     server_keys::KeyPair,
     unsigned::{Entry, UnsignedMdoc},
     utils::{issuer_auth::IssuerRegistration, keys::KeyFactory},
-    verifier::{DisclosedAttributes, ItemsRequests},
+    verifier::{DisclosedAttributes, DocumentDisclosedAttributes, ItemsRequests},
     DeviceRequest, IssuerSigned, ItemsRequest,
 };
 
@@ -110,6 +110,7 @@ pub fn assert_disclosure_contains(
     let disclosed_attr = disclosed_attrs
         .get(doctype)
         .unwrap()
+        .attributes
         .get(namespace)
         .unwrap()
         .first()
@@ -214,7 +215,7 @@ impl TestDocuments {
         self.0.is_empty()
     }
 
-    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, IndexMap<String, Vec<Entry>>>) {
+    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DocumentDisclosedAttributes>) {
         // verify the number of documents
         assert_eq!(disclosed_documents.len(), self.len());
         for TestDocument {
@@ -227,9 +228,10 @@ impl TestDocuments {
                 .get(expected_doc_type)
                 .expect("expected doc_type not received");
             // verify the number of namespaces in this document
-            assert_eq!(disclosed_namespaces.len(), expected_namespaces.len());
+            assert_eq!(disclosed_namespaces.attributes.len(), expected_namespaces.len());
             for (expected_namespace, expected_attributes) in expected_namespaces {
                 let disclosed_attributes = disclosed_namespaces
+                    .attributes
                     .get(expected_namespace)
                     .expect("expected namespace not received");
                 // verify the number of the attributes in this namespace

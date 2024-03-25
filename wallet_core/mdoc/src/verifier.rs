@@ -37,8 +37,14 @@ use crate::{
 };
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
-/// Grouped per namespace.
-pub type DocumentDisclosedAttributes = IndexMap<NameSpace, Vec<Entry>>;
+/// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DocumentDisclosedAttributes {
+    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+    pub issuer: Vec<String>,
+    pub validity_info: ValidityInfo,
+}
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 pub type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
@@ -888,7 +894,14 @@ impl IssuerSigned {
             .map(|(namespace, items)| Ok((namespace.to_string(), mso.verify_attrs_in_namespace(items, namespace)?)))
             .collect::<Result<_>>()?;
 
-        Ok((attrs, mso))
+        Ok((
+            DocumentDisclosedAttributes {
+                attributes: attrs,
+                issuer: self.issuer_auth.signing_cert()?.iter_common_name()?,
+                validity_info: mso.validity_info.clone(),
+            },
+            mso,
+        ))
     }
 }
 
