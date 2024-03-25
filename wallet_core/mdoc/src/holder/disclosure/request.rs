@@ -475,7 +475,7 @@ mod tests {
     #[derive(Debug, PartialEq)]
     enum ExpectedDeviceRequestMatch {
         Candidates(TestDocuments),
-        MissingAttributes(IndexSet<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
+        MissingAttributes(IndexSet<AttributeIdentifier>),
     }
 
     fn candidates(candidates: TestDocuments) -> ExpectedDeviceRequestMatch {
