@@ -427,7 +427,7 @@ impl Session<Created> {
                 let next = self.transition(WaitingForResponse {
                     access_token: response.token_response.access_token.clone(),
                     c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
-                    attestation_previews: response.attestation_previews.clone(),
+                    attestation_previews: response.attestation_previews.clone().into_inner(),
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
                 });
@@ -463,10 +463,9 @@ impl Session<Created> {
         let previews = attr_service
             .attributes(&self.state, token_request)
             .await
-            .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
-        if previews.is_empty() {
-            return Err(TokenRequestError::NoAttributes);
-        }
+            .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?
+            .try_into()
+            .map_err(|_| TokenRequestError::NoAttributes)?;
 
         // Append the authorization code, so that when the wallet comes back we can use it to retrieve the session
         let c_nonce = random_string(32);

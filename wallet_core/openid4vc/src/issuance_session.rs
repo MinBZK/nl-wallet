@@ -258,13 +258,15 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
         })?;
 
+        let attestation_previews = token_response.attestation_previews.into_inner();
+
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
             c_nonce: token_response
                 .token_response
                 .c_nonce
                 .ok_or(IssuanceSessionError::MissingNonce)?,
-            attestation_previews: token_response.attestation_previews.clone(),
+            attestation_previews: attestation_previews.clone(),
             issuer_url: base_url,
             dpop_private_key,
             dpop_nonce,
@@ -274,7 +276,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             message_client,
             session_state,
         };
-        Ok((issuance_client, token_response.attestation_previews))
+        Ok((issuance_client, attestation_previews))
     }
 
     async fn accept_issuance<K: MdocEcdsaKey>(
