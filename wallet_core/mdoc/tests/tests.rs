@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+use futures::future;
 use rstest::rstest;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_with::{
@@ -158,16 +159,12 @@ async fn test_disclosure(
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let key_factory = SoftwareKeyFactory::default();
 
-    let mdocs = {
-        let mut mdocs = vec![];
-
-        for doc in stored_documents {
-            let mdoc = doc.sign(&ca, &key_factory, 1).await;
-            mdocs.push(mdoc);
-        }
-
-        mdocs
-    };
+    let mdocs = future::join_all(
+        stored_documents
+            .into_iter()
+            .map(|doc| async { doc.sign(&ca, &key_factory, 1).await }),
+    )
+    .await;
 
     let mdoc_ca = ca.certificate().clone();
 
