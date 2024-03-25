@@ -47,12 +47,12 @@ async fn get_verifier_status(client: &reqwest::Client, session_url: Url) -> Stat
 async fn test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
     #[case] return_url: Option<ReturnUrlTemplate>,
-    #[case] usecase: &str,
+    #[case] usecase: String,
     #[case] test_documents: TestDocuments,
     #[case] expected_documents: TestDocuments,
 ) {
     let start_request = StartDisclosureRequest {
-        usecase: usecase.to_string(),
+        usecase,
         session_type,
         items_requests: test_documents.into(),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
