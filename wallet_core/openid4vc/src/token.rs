@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     },
 };
 use wallet_common::{
-    nonempty::NonEmptyVec,
+    nonempty::NonEmpty,
     utils::{random_string, sha256},
 };
 
@@ -136,7 +136,7 @@ pub struct TokenResponse {
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
-    pub attestation_previews: NonEmptyVec<AttestationPreview>,
+    pub attestation_previews: NonEmpty<Vec<AttestationPreview>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
