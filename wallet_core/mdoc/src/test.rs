@@ -93,6 +93,7 @@ pub fn assert_disclosure_contains(
     let disclosed_attr = disclosed_attrs
         .get(doctype)
         .unwrap()
+        .attributes
         .get(namespace)
         .unwrap()
         .first()
