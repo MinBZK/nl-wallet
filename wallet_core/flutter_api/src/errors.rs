@@ -8,7 +8,7 @@ use wallet::{
         reqwest, AccountProviderError, DisclosureError, HistoryError, InstructionError, PidIssuanceError, ResetError,
         UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
     },
-    openid4vc::OidcError,
+    openid4vc::{IssuanceSessionError, OidcError},
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -26,10 +26,20 @@ pub struct FlutterApiError {
 
 #[derive(Debug, Serialize)]
 enum FlutterApiErrorType {
-    Generic,
+    /// A network connection has timed-out, was unable to connect or something else went wrong during the request.
     Networking,
+
+    /// The request failed, but the server did send a response.
+    Server,
+
+    /// The wallet is in an unexpected state.
     WalletState,
+
+    /// Failed to finish the DigiD session and get an authorization code.
     RedirectUri,
+
+    /// Indicating something unexpected went wrong.
+    Generic,
 }
 
 trait FlutterApiErrorFields {
@@ -123,23 +133,41 @@ impl FlutterApiErrorFields for WalletUnlockError {
 
 impl FlutterApiErrorFields for UriIdentificationError {}
 
+fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiErrorType> {
+    // Since a `reqwest::Error` can occur in multiple locations
+    // within the error tree, just look for it with some help
+    // from the `anyhow::Chain` iterator.
+    for source in Chain::new(error) {
+        if let Some(err) = source.downcast_ref::<reqwest::Error>() {
+            return Some(FlutterApiErrorType::from(err));
+        }
+    }
+
+    None
+}
+
 impl FlutterApiErrorFields for PidIssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
-        // Since a `reqwest::Error` can occur in multiple locations
-        // within the error tree, just look for it with some help
-        // from the `anyhow::Chain` iterator.
-        for source in Chain::new(self) {
-            if source.is::<reqwest::Error>() {
-                return FlutterApiErrorType::Networking;
-            }
+        if let Some(network_error) = detect_networking_error(self) {
+            return network_error;
         }
 
         match self {
             PidIssuanceError::NotRegistered | PidIssuanceError::Locked | PidIssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
+
             PidIssuanceError::DigidSessionFinish(OidcError::RedirectUriError(_)) => FlutterApiErrorType::RedirectUri,
 
+            PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(_))
+            | PidIssuanceError::PidIssuer(IssuanceSessionError::CredentialRequest(_))
+            | PidIssuanceError::DigidSessionStart(OidcError::RedirectUriError(_))
+            | PidIssuanceError::DigidSessionStart(OidcError::RequestingAccessToken(_))
+            | PidIssuanceError::DigidSessionStart(OidcError::RequestingUserInfo(_))
+            | PidIssuanceError::DigidSessionFinish(OidcError::RequestingAccessToken(_))
+            | PidIssuanceError::DigidSessionFinish(OidcError::RequestingUserInfo(_)) => {
+                crate::errors::FlutterApiErrorType::Server
+            }
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -164,12 +192,9 @@ impl FlutterApiErrorFields for DisclosureError {
                 FlutterApiErrorType::WalletState
             }
             DisclosureError::DisclosureSession(error) => {
-                if Chain::new(error).any(|source| source.is::<reqwest::Error>()) {
-                    return FlutterApiErrorType::Networking;
-                }
-
-                FlutterApiErrorType::Generic
+                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
+            DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -181,9 +206,23 @@ impl FlutterApiErrorFields for url::ParseError {
     }
 }
 
+impl From<&reqwest::Error> for FlutterApiErrorType {
+    fn from(value: &reqwest::Error) -> Self {
+        match () {
+            _ if value.is_timeout() || value.is_request() || value.is_connect() => FlutterApiErrorType::Networking,
+            _ if value.is_status() => FlutterApiErrorType::Server,
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
 impl From<&AccountProviderError> for FlutterApiErrorType {
-    fn from(_value: &AccountProviderError) -> Self {
-        Self::Networking
+    fn from(value: &AccountProviderError) -> Self {
+        match value {
+            AccountProviderError::Response(_) => FlutterApiErrorType::Server,
+            AccountProviderError::Networking(e) => FlutterApiErrorType::from(e),
+            _ => FlutterApiErrorType::Generic,
+        }
     }
 }
 
@@ -191,7 +230,7 @@ impl From<&InstructionError> for FlutterApiErrorType {
     fn from(value: &InstructionError) -> Self {
         match value {
             InstructionError::ServerError(e) => FlutterApiErrorType::from(e),
-            InstructionError::InstructionValidation => FlutterApiErrorType::Networking,
+            InstructionError::InstructionValidation => FlutterApiErrorType::Server,
             _ => FlutterApiErrorType::Generic,
         }
     }
