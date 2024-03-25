@@ -154,10 +154,24 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
 
   @override
   Future<PinValidationResult> isValidPin({required String pin, hint}) async {
-    const pinDigits = 6;
-    if (pin.length != pinDigits) return PinValidationResult.OtherIssue;
+    const digits = 6;
+    if (pin.length != digits) return PinValidationResult.OtherIssue;
     if (pin.split('').toSet().length <= 1) return PinValidationResult.TooFewUniqueDigits;
-    if (pin == '123456') return PinValidationResult.SequentialDigits;
+
+    // Check for ascending or descending sequences
+    final pinDigits = pin.split('').map((e) => int.parse(e));
+    var ascending = true;
+    var descending = true;
+    int? prev;
+    for (var digit in pinDigits) {
+      if (prev != null) {
+        if (digit != prev + 1) ascending = false;
+        if (digit != prev - 1) descending = false;
+      }
+      prev = digit;
+    }
+    if (ascending || descending) return PinValidationResult.SequentialDigits;
+
     return PinValidationResult.Ok;
   }
 
