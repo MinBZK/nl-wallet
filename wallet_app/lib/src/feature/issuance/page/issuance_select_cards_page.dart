@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
-import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/button/confirm/confirm_button.dart';
+import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/sliver_sized_box.dart';
@@ -111,13 +112,17 @@ class IssuanceSelectCardsPage extends StatelessWidget {
         children: [
           if (showNoSelectionError) _buildNoSelectionRow(context),
           ConfirmButtons(
-            onSecondaryPressed: onStopPressed,
-            onPrimaryPressed: onAddSelectedPressed,
-            primaryText: context.l10n.issuanceSelectCardsPageAddCta,
-            secondaryText: context.l10n.issuanceSelectCardsPageStopCta,
-            primaryIcon: Icons.arrow_forward,
-            secondaryIcon: Icons.block,
-          )
+            primaryButton: ConfirmButton.accept(
+              onPressed: onAddSelectedPressed,
+              icon: Icons.arrow_forward,
+              text: context.l10n.issuanceSelectCardsPageAddCta,
+            ),
+            secondaryButton: ConfirmButton.reject(
+              onPressed: onStopPressed,
+              icon: Icons.block,
+              text: context.l10n.issuanceSelectCardsPageStopCta,
+            ),
+          ),
         ],
       ),
     );

@@ -10,7 +10,8 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/duration_extension.dart';
 import '../../check_attributes/check_attributes_screen.dart';
-import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/button/confirm/confirm_button.dart';
+import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/sliver_divider.dart';
@@ -150,11 +151,16 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
       children: [
         const Divider(height: 1),
         ConfirmButtons(
-          onPrimaryPressed: onAcceptPressed,
-          primaryText: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
-          onSecondaryPressed: onDeclinePressed,
-          primaryIcon: Icons.arrow_forward,
-          secondaryText: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
+          primaryButton: ConfirmButton.accept(
+            onPressed: onAcceptPressed,
+            text: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
+            icon: Icons.arrow_forward,
+          ),
+          secondaryButton: ConfirmButton.reject(
+            onPressed: onDeclinePressed,
+            icon: Icons.block_flipped,
+            text: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
+          ),
         ),
       ],
     );
