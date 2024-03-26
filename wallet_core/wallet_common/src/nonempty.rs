@@ -90,3 +90,103 @@ where
         Self::new(inner).map_err(de::Error::custom)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug)]
+    struct MockIntoIter {
+        size_hint: (usize, Option<usize>),
+        count: usize,
+    }
+
+    #[derive(Debug)]
+    struct MockIterator {
+        size_hint: (usize, Option<usize>),
+        remaining_count: usize,
+    }
+
+    impl IntoIterator for &MockIntoIter {
+        type Item = ();
+        type IntoIter = MockIterator;
+
+        fn into_iter(self) -> Self::IntoIter {
+            MockIterator {
+                size_hint: self.size_hint,
+                remaining_count: self.count,
+            }
+        }
+    }
+
+    impl Iterator for MockIterator {
+        type Item = ();
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let has_next = self.remaining_count > 0;
+
+            if has_next {
+                self.remaining_count -= 1;
+            }
+
+            has_next.then_some(())
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            self.size_hint
+        }
+    }
+
+    #[test]
+    fn test_non_empty_new() {
+        let collection = MockIntoIter {
+            size_hint: (0, None),
+            count: 1,
+        };
+
+        NonEmpty::new(collection).expect("should be a valid NonEmpty");
+
+        let collection = MockIntoIter {
+            size_hint: (0, None),
+            count: 0,
+        };
+
+        NonEmpty::new(collection).expect_err("should not be a valid NonEmpty");
+
+        let collection = MockIntoIter {
+            size_hint: (1, None),
+            count: 0, // Inconsistent with `size_hint`, but should not be used.
+        };
+
+        NonEmpty::new(collection).expect("should be a valid NonEmpty");
+
+        let collection = MockIntoIter {
+            size_hint: (0, 0.into()),
+            count: 1, // Inconsistent with `size_hint`, but should not be used.
+        };
+
+        NonEmpty::new(collection).expect_err("should not be a valid NonEmpty");
+    }
+
+    #[test]
+    fn test_non_empty_from_vec() {
+        NonEmpty::try_from(vec![()]).expect("should be a valid NonEmpty");
+
+        NonEmpty::try_from(Vec::<()>::default()).expect_err("should not be a valid NonEmpty");
+    }
+
+    #[test]
+    fn test_non_empty_deserialize() {
+        serde_json::from_str::<NonEmpty<Vec<u64>>>("[0]").expect("should deserialize to a valid NonEmpty");
+
+        serde_json::from_str::<NonEmpty<Vec<u64>>>("[]").expect_err("should not deserialize to a valid NonEmpty");
+    }
+
+    #[test]
+    fn test_non_empty_misc() {
+        let non_empty = NonEmpty::try_from(vec![1, 2, 3]).unwrap();
+
+        assert_eq!(non_empty.len(), 3);
+        assert_eq!(non_empty.into_inner(), [1, 2, 3]);
+    }
+}
