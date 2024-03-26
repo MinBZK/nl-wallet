@@ -8,9 +8,9 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
-import '../common/widget/animated_linear_progress_indicator.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/stepper_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_screen.dart';
 import 'bloc/setup_security_bloc.dart';
@@ -51,10 +51,7 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildStepper() {
     return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
       buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: AnimatedLinearProgressIndicator(progress: state.stepperProgress),
-      ),
+      builder: (context, state) => StepperIndicator(progress: state.stepperProgress),
     );
   }
 

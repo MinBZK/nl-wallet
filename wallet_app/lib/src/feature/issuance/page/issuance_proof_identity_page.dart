@@ -6,7 +6,8 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
-import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/button/confirm/confirm_button.dart';
+import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
@@ -51,11 +52,15 @@ class IssuanceProofIdentityPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onPrimaryPressed: onAcceptPressed,
-                primaryText: context.l10n.issuanceProofIdentityPagePositiveCta,
-                onSecondaryPressed: onDeclinePressed,
-                secondaryText: context.l10n.issuanceProofIdentityPageNegativeCta,
-                primaryIcon: Icons.arrow_forward,
+                primaryButton: ConfirmButton.accept(
+                  onPressed: onAcceptPressed,
+                  icon: Icons.arrow_forward,
+                  text: context.l10n.issuanceProofIdentityPagePositiveCta,
+                ),
+                secondaryButton: ConfirmButton.reject(
+                  onPressed: onDeclinePressed,
+                  text: context.l10n.issuanceProofIdentityPageNegativeCta,
+                ),
               ),
             ),
           ),

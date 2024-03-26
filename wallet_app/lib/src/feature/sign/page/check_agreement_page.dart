@@ -7,7 +7,8 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/app_image.dart';
-import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/button/confirm/confirm_button.dart';
+import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/document_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
@@ -54,10 +55,15 @@ class CheckAgreementPage extends StatelessWidget {
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                onPrimaryPressed: onAccept,
-                primaryText: context.l10n.checkAgreementPageConfirmCta,
-                onSecondaryPressed: onDecline,
-                secondaryText: context.l10n.checkAgreementPageCancelCta,
+                primaryButton: ConfirmButton.accept(
+                  onPressed: onAccept,
+                  text: context.l10n.checkAgreementPageConfirmCta,
+                ),
+                secondaryButton: ConfirmButton.reject(
+                  onPressed: onDecline,
+                  icon: Icons.block_flipped,
+                  text: context.l10n.checkAgreementPageCancelCta,
+                ),
               ),
             ),
           ),

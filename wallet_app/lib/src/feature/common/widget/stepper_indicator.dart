@@ -9,9 +9,12 @@ class StepperIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: AnimatedLinearProgressIndicator(progress: progress),
+    return Hero(
+      tag: 'stepper_indicator',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: AnimatedLinearProgressIndicator(progress: progress),
+      ),
     );
   }
 }

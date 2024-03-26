@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/button/confirm/confirm_button.dart';
+import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -69,8 +70,10 @@ class ButtonStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'BottomBackButton'),
         const BottomBackButton(),
         const ThemeSectionSubHeader(title: 'ConfirmButtons'),
-        ConfirmButtons(
-            onSecondaryPressed: () {}, onPrimaryPressed: () {}, primaryText: 'Accept', secondaryText: 'Decline'),
+        const ConfirmButtons(
+          primaryButton: ConfirmButton.accept(text: 'Accept'),
+          secondaryButton: ConfirmButton.reject(text: 'Decline'),
+        ),
       ],
     );
   }

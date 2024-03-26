@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/widget/button/confirm_buttons.dart';
+import '../../common/widget/button/confirm/confirm_button.dart';
+import '../../common/widget/button/confirm/confirm_buttons.dart';
 
 class DigidConfirmButtons extends StatelessWidget {
   final VoidCallback? onAccept;
@@ -12,10 +13,15 @@ class DigidConfirmButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConfirmButtons(
-      onPrimaryPressed: onAccept ?? () {},
-      onSecondaryPressed: onDecline ?? () {},
-      primaryText: context.l10n.mockDigidScreenAcceptCta,
-      secondaryText: context.l10n.mockDigidScreenDeclineCta,
+      primaryButton: ConfirmButton.accept(
+        onPressed: onAccept,
+        text: context.l10n.mockDigidScreenAcceptCta,
+      ),
+      secondaryButton: ConfirmButton.reject(
+        onPressed: onDecline,
+        text: context.l10n.mockDigidScreenDeclineCta,
+        icon: Icons.block_flipped,
+      ),
     );
   }
 }
