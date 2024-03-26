@@ -138,7 +138,7 @@ impl TestDocument {
     {
         let unsigned = {
             let mut unsigned = UnsignedMdoc::from(self);
-            unsigned.copy_count = copy_count;
+            unsigned.copy_count = copy_count.try_into().unwrap();
             unsigned
         };
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
@@ -181,7 +181,7 @@ impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
         Self {
             doc_type: value.doc_type,
-            copy_count: 1,
+            copy_count: 1.try_into().unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
             attributes: value.namespaces,

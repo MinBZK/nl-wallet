@@ -733,7 +733,7 @@ mod tests {
                         valid_from: Tdate::now(),
                         valid_until: (Utc::now() + Days::new(365)).into(),
                         attributes: Default::default(),
-                        copy_count: 1,
+                        copy_count: 1.try_into().unwrap(),
                     },
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],

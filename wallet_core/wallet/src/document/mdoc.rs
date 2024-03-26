@@ -337,7 +337,7 @@ pub mod tests {
     pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
             doc_type: PID_DOCTYPE.to_string(),
-            copy_count: 1,
+            copy_count: 1.try_into().unwrap(),
             valid_from: Tdate::now(),
             valid_until: (Utc::now() + Days::new(365)).into(),
             attributes: IndexMap::from([(
@@ -410,7 +410,7 @@ pub mod tests {
     pub fn create_minimal_unsigned_address_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
             doc_type: ADDRESS_DOCTYPE.to_string(),
-            copy_count: 1,
+            copy_count: 1.try_into().unwrap(),
             valid_from: Tdate::now(),
             valid_until: (Utc::now() + Days::new(365)).into(),
             attributes: IndexMap::from([(

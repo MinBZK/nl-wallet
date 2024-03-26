@@ -94,7 +94,7 @@ mod tests {
 
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
-            copy_count: 2,
+            copy_count: 2.try_into().unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
             attributes: IndexMap::from([(
