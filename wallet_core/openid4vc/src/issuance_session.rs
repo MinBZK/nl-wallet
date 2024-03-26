@@ -261,6 +261,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
         })?;
 
+        // TODO: Check that each `UnsignedMdoc` contains at least one attribute (PVW-2546).
         let attestation_previews = token_response.attestation_previews.into_inner();
 
         let session_state = IssuanceState {
@@ -431,19 +432,23 @@ impl CredentialResponse {
         // Calculate the minimum of all the lengths of the random bytes
         // included in the attributes of `IssuerSigned`. If this value
         // is too low, we should not accept the the attributes.
-        if let Some(name_spaces) = issuer_signed.name_spaces.as_ref() {
-            let min_random_length = name_spaces
-                .values()
-                .flat_map(|attributes| attributes.0.iter().map(|item| item.0.random.len()))
-                .min();
+        let min_random_length = issuer_signed
+            .name_spaces
+            .as_ref()
+            .map(|name_spaces| {
+                name_spaces
+                    .values()
+                    .flat_map(|attributes| attributes.0.iter().map(|item| item.0.random.len()))
+                    .min()
+            })
+            .unwrap_or_default();
 
-            if let Some(min_random_length) = min_random_length {
-                if min_random_length < ATTR_RANDOM_LENGTH {
-                    return Err(IssuanceSessionError::AttributeRandomLength(
-                        min_random_length,
-                        ATTR_RANDOM_LENGTH,
-                    ));
-                }
+        if let Some(min_random_length) = min_random_length {
+            if min_random_length < ATTR_RANDOM_LENGTH {
+                return Err(IssuanceSessionError::AttributeRandomLength(
+                    min_random_length,
+                    ATTR_RANDOM_LENGTH,
+                ));
             }
         }
 
