@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../domain/model/attribute/ui_attribute.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/attribute/attribute_row.dart';
-import '../../../common/widget/button/confirm_buttons.dart';
+import '../../../common/widget/button/confirm/confirm_button.dart';
+import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
 import '../wallet_personalize_data_incorrect_screen.dart';
@@ -76,11 +77,17 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return ConfirmButtons(
-      onSecondaryPressed: () => WalletPersonalizeDataIncorrectScreen.show(context, onRejectPressed),
-      onPrimaryPressed: onAcceptPressed,
-      primaryText: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
-      secondaryText: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
-      secondarySemanticsLabel: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel,
+      primaryButton: ConfirmButton.accept(
+        onPressed: onAcceptPressed,
+        icon: Icons.check_rounded,
+        text: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
+      ),
+      secondaryButton: ConfirmButton.reject(
+        onPressed: () => WalletPersonalizeDataIncorrectScreen.show(context, onRejectPressed),
+        text: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
+        semanticsLabel: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel,
+        icon: Icons.block_flipped,
+      ),
     );
   }
 }

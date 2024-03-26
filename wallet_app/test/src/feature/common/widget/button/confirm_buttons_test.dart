@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/feature/common/widget/button/confirm_buttons.dart';
+import 'package:wallet/src/feature/common/widget/button/confirm/confirm_button.dart';
+import 'package:wallet/src/feature/common/widget/button/confirm/confirm_buttons.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 
@@ -13,11 +14,9 @@ void main() {
       'confirm buttons light',
       (tester) async {
         await tester.pumpWidgetBuilder(
-          ConfirmButtons(
-            primaryText: 'accept',
-            secondaryText: 'decline',
-            onPrimaryPressed: () {},
-            onSecondaryPressed: () {},
+          const ConfirmButtons(
+            primaryButton: ConfirmButton.accept(text: 'accept'),
+            secondaryButton: ConfirmButton.reject(text: 'decline'),
           ),
           wrapper: walletAppWrapper(),
           surfaceSize: kGoldenSize,
@@ -30,12 +29,16 @@ void main() {
       (tester) async {
         await tester.pumpWidgetBuilder(
           ConfirmButtons(
-            primaryText: 'accept',
-            secondaryText: 'decline',
-            onPrimaryPressed: () {},
-            onSecondaryPressed: () {},
-            primaryIcon: Icons.language_outlined,
-            secondaryIcon: Icons.add_card_outlined,
+            primaryButton: ConfirmButton.accept(
+              text: 'accept',
+              onPressed: () {},
+              icon: Icons.language_outlined,
+            ),
+            secondaryButton: ConfirmButton.reject(
+              text: 'decline',
+              onPressed: () {},
+              icon: Icons.add_card_outlined,
+            ),
           ),
           wrapper: walletAppWrapper(),
           surfaceSize: kGoldenSize,
@@ -47,11 +50,9 @@ void main() {
       'confirm buttons dark',
       (tester) async {
         await tester.pumpWidgetBuilder(
-          ConfirmButtons(
-            primaryText: 'accept',
-            secondaryText: 'decline',
-            onPrimaryPressed: () {},
-            onSecondaryPressed: () {},
+          const ConfirmButtons(
+            primaryButton: ConfirmButton.accept(text: 'accept'),
+            secondaryButton: ConfirmButton.reject(text: 'decline'),
           ),
           wrapper: walletAppWrapper(brightness: Brightness.dark),
           surfaceSize: kGoldenSize,
@@ -63,11 +64,9 @@ void main() {
       'confirm buttons stacked light',
       (tester) async {
         await tester.pumpWidgetBuilder(
-          ConfirmButtons(
-            primaryText: 'accept',
-            secondaryText: 'decline',
-            onPrimaryPressed: () {},
-            onSecondaryPressed: () {},
+          const ConfirmButtons(
+            primaryButton: ConfirmButton.accept(text: 'accept'),
+            secondaryButton: ConfirmButton.reject(text: 'decline'),
             forceVertical: true,
           ),
           wrapper: walletAppWrapper(brightness: Brightness.light),
@@ -80,11 +79,9 @@ void main() {
       'confirm buttons stacked light',
       (tester) async {
         await tester.pumpWidgetBuilder(
-          ConfirmButtons(
-            primaryText: 'accept',
-            secondaryText: 'decline',
-            onPrimaryPressed: () {},
-            onSecondaryPressed: () {},
+          const ConfirmButtons(
+            primaryButton: ConfirmButton.accept(text: 'accept'),
+            secondaryButton: ConfirmButton.reject(text: 'decline'),
           ),
           wrapper: walletAppWrapper(brightness: Brightness.light),
           surfaceSize: const Size(156, 156),
@@ -97,11 +94,9 @@ void main() {
   group('widgets', () {
     testWidgets('buttons are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        ConfirmButtons(
-          primaryText: 'A',
-          secondaryText: 'D',
-          onPrimaryPressed: () {},
-          onSecondaryPressed: () {},
+        const ConfirmButtons(
+          primaryButton: ConfirmButton.accept(text: 'A'),
+          secondaryButton: ConfirmButton.reject(text: 'D'),
         ),
       );
 
@@ -116,11 +111,9 @@ void main() {
       // This test is introduced to verify a fix, as rendering the ConfirmButtons
       // on a very narrow screen led to negative numbers, causing the app to crash.
       await tester.pumpWidgetWithAppWrapper(
-        ConfirmButtons(
-          primaryText: 'A',
-          secondaryText: 'D',
-          onPrimaryPressed: () {},
-          onSecondaryPressed: () {},
+        const ConfirmButtons(
+          primaryButton: ConfirmButton.accept(text: 'A'),
+          secondaryButton: ConfirmButton.reject(text: 'D'),
         ),
         surfaceSize: const Size(120, 300),
       );

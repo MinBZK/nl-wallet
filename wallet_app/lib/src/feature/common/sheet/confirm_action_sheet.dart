@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../widget/button/confirm_buttons.dart';
+import '../widget/button/confirm/confirm_button.dart';
+import '../widget/button/confirm/confirm_buttons.dart';
 
 class ConfirmActionSheet extends StatelessWidget {
   final VoidCallback? onCancelPressed;
@@ -72,12 +73,16 @@ class ConfirmActionSheet extends StatelessWidget {
             const SizedBox(height: 16),
             const Divider(height: 1),
             ConfirmButtons(
-              onSecondaryPressed: () => onCancelPressed?.call(),
-              onPrimaryPressed: () => onConfirmPressed?.call(),
-              primaryText: confirmButtonText,
-              primaryIcon: confirmIcon,
-              secondaryText: cancelButtonText,
-              secondaryIcon: cancelIcon,
+              primaryButton: ConfirmButton.accept(
+                onPressed: onConfirmPressed,
+                text: confirmButtonText,
+                icon: confirmIcon,
+              ),
+              secondaryButton: ConfirmButton.reject(
+                onPressed: onCancelPressed,
+                text: cancelButtonText,
+                icon: cancelIcon,
+              ),
             ),
           ],
         ),
