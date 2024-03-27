@@ -12,8 +12,13 @@ import screen.history.HistoryOverviewScreen
 import screen.menu.MenuScreen
 import screen.settings.SettingsScreen
 
-@DisplayName("UC 9.1 - Show app menu [PVW-1225]")
+@DisplayName("${MenuTests.USE_CASE} Show app menu [${MenuTests.JIRA_ID}]")
 class MenuTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 9.1"
+        const val JIRA_ID = "PVW-1225"
+    }
 
     private lateinit var menuScreen: MenuScreen
 
@@ -27,25 +32,25 @@ class MenuTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The app menu is accessible from the footer menu.")
+    @DisplayName("$USE_CASE.1 The app menu is accessible from the footer menu.")
     fun verifyMenuScreen() {
         assertTrue(menuScreen.visible(), "menu screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. The app menu offers an option to log out.")
+    @DisplayName("$USE_CASE.2 The app menu offers an option to log out.")
     fun verifyLogoutButtonVisible() {
         assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The app menu contains the following items: Help, History, Settings, Feedback, About.")
+    @DisplayName("$USE_CASE.3 The app menu contains the following items: Help, History, Settings, Feedback, About.")
     fun verifyMenuItemsVisible() {
         assertTrue(menuScreen.menuListButtonsVisible(), "menu list buttons are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. The settings menu contains the following items: Change pin, Setup biometrics, Change language, Clear data.")
+    @DisplayName("$USE_CASE.4 The settings menu contains the following items: Change pin, Setup biometrics, Change language, Clear data.")
     fun verifySettingsItemsVisible() {
         menuScreen.clickSettingsButton()
 
@@ -54,7 +59,7 @@ class MenuTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("5. All items opened from the menu offer a back button returning the user to the main menu.")
+    @DisplayName("$USE_CASE.5 All items opened from the menu offer a back button returning the user to the main menu.")
     fun verifyBackButtons() {
         // Navigate to help and back
         menuScreen.clickHelpButton()

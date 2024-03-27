@@ -10,8 +10,13 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.security.ForgotPinScreen
 import screen.security.PinScreen
 
-@DisplayName("UC 2.4 - User forgets pin [PVW-1120]")
+@DisplayName("${UserForgetsPinTests.USE_CASE} User forgets pin [${UserForgetsPinTests.JIRA_ID}]")
 class UserForgetsPinTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 2.4"
+        const val JIRA_ID = "PVW-1120"
+    }
 
     private lateinit var forgotPinScreen: ForgotPinScreen
 
@@ -25,25 +30,25 @@ class UserForgetsPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The app explains that the user has to reset the wallet in order to regain access.")
+    @DisplayName("$USE_CASE.1 The app explains that the user has to reset the wallet in order to regain access.")
     fun verifyForgotPin() {
         assertTrue(forgotPinScreen.visible(), "forgot pin screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. The app explains that upon resetting the wallet, data CANNOT be recovered.")
+    @DisplayName("$USE_CASE.2 The app explains that upon resetting the wallet, data CANNOT be recovered.")
     fun verifyDataLoss() {
         assertTrue(forgotPinScreen.dataLossTextVisible(), "data loss description text is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The app offers an entrance to resetting the app.")
+    @DisplayName("$USE_CASE.3 The app offers an entrance to resetting the app.")
     fun verifyResetButton() {
         assertTrue(forgotPinScreen.resetButtonVisible(), "reset wallet button is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. The user can go back to the PIN entry screen.")
+    @DisplayName("$USE_CASE.4 The user can go back to the PIN entry screen.")
     fun verifyBackButton() {
         forgotPinScreen.clickBottomBackButton()
 

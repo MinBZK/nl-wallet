@@ -11,5 +11,5 @@ class DigidLoginStartWebPage : MobileActions() {
 
     fun visible() = isWebElementVisible(findElement(headlineTextLocator))
 
-    fun clickMockLoginButton() = findElement(mockLoginButtonLocator).click()
+    fun clickMockLoginButton() = clickWebElement(findElement(mockLoginButtonLocator))
 }

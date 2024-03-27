@@ -12,8 +12,13 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
 
-@DisplayName("UC 7.1 - App shows all cards available in the app [PVW-1227]")
+@DisplayName("${DashboardTests.USE_CASE} App shows all cards available in the app [${DashboardTests.JIRA_ID}]")
 class DashboardTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 7.1"
+        const val JIRA_ID = "PVW-1227"
+    }
 
     private lateinit var dashboardScreen: DashboardScreen
 
@@ -25,7 +30,7 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The card overview page displays all cards currently available in the app.")
+    @DisplayName("$USE_CASE.1 The card overview page displays all cards currently available in the app.")
     fun verifyIssuedCardsVisible() {
         assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible")
     }
@@ -36,14 +41,14 @@ class DashboardTests : TestBase() {
      */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The card information (and images) is displayed in the active language.")
+    @DisplayName("$USE_CASE.3 The card information (and images) is displayed in the active language.")
     @Tags(Tag("english"))
     fun verifyActiveLanguage() {
         assertTrue(dashboardScreen.cardFaceTextsInActiveLanguage(), "Card face texts are not in active language")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. Tapping the card opens the card's details.")
+    @DisplayName("$USE_CASE.4 Tapping the card opens the card's details.")
     fun verifyCardDetailScreen() {
         dashboardScreen.clickPidCard()
 
@@ -52,7 +57,7 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("5. The card sorting is initially fixed: PID is first, Address is second.")
+    @DisplayName("$USE_CASE.5 The card sorting is initially fixed: PID is first, Address is second.")
     fun verifyCardsFixedSorting() {
         assertTrue(dashboardScreen.checkCardSorting(), "card sorting not as expected")
     }

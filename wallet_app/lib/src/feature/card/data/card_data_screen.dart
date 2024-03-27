@@ -18,7 +18,7 @@ import 'card_data_incorrect_screen.dart';
 import 'widget/data_privacy_banner.dart';
 
 @visibleForTesting
-const kPrivacyBannerKey = Key('privacyBanner');
+const kDataPrivacyBannerKey = Key('dataPrivacyBanner');
 
 class CardDataScreen extends StatelessWidget {
   static CardDataScreenArgument getArgument(RouteSettings settings) {
@@ -70,7 +70,7 @@ class CardDataScreen extends StatelessWidget {
                   const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: DataPrivacyBanner(key: kPrivacyBannerKey),
+                      child: DataPrivacyBanner(key: kDataPrivacyBannerKey),
                     ),
                   ),
                   ...contentSlivers,

@@ -10,8 +10,13 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.personalize.PersonalizeSuccessScreen
 
-@DisplayName("UC 3.1 - App confirms PID issuance to user [PVW-1039]")
+@DisplayName("${PersonalizeSuccessTests.USE_CASE} App confirms PID issuance to user [${PersonalizeSuccessTests.JIRA_ID}]")
 class PersonalizeSuccessTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 3.1"
+        const val JIRA_ID = "PVW-1039"
+    }
 
     private lateinit var personalizeSuccessScreen: PersonalizeSuccessScreen
 
@@ -23,25 +28,25 @@ class PersonalizeSuccessTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. When PID was issued successfully, the App displays a confirmation to the User.")
+    @DisplayName("$USE_CASE.1 When PID was issued successfully, the App displays a confirmation to the User.")
     fun verifyPersonalizeSuccessScreen() {
         assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. The confirmation includes a success message.")
+    @DisplayName("$USE_CASE.2 The confirmation includes a success message.")
     fun verifySuccessMessage() {
         assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The confirmation includes the issued cards (PID + Address): card, title.")
+    @DisplayName("$USE_CASE.3 The confirmation includes the issued cards (PID + Address): card, title.")
     fun verifyIssuedCards() {
         assertTrue(personalizeSuccessScreen.cardsVisible(), "cards not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. The App offers an entrance to enter the wallet which brings the User to the Dashboard.")
+    @DisplayName("$USE_CASE.4 The App offers an entrance to enter the wallet which brings the User to the Dashboard.")
     fun verifyNavigateToDashboardButton() {
         personalizeSuccessScreen.clickNextButton()
 

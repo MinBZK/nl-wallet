@@ -11,8 +11,13 @@ import screen.personalize.PersonalizeConfirmPinScreen
 import screen.personalize.PersonalizePidDataIncorrectScreen
 import screen.personalize.PersonalizePidPreviewScreen
 
-@DisplayName("UC 3.1 - User confirms/rejects offered PID [PVW-1037]")
+@DisplayName("${PersonalizePidPreviewTests.USE_CASE} User confirms/rejects offered PID [${PersonalizePidPreviewTests.JIRA_ID}]")
 class PersonalizePidPreviewTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 3.1"
+        const val JIRA_ID = "PVW-1037"
+    }
 
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
 
@@ -24,25 +29,25 @@ class PersonalizePidPreviewTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. When the PID provider offers PID data, the app displays this PID data to the user.")
+    @DisplayName("$USE_CASE.1 When the PID provider offers PID data, the app displays this PID data to the user.")
     fun verifyPersonalizePidPreviewScreen() {
         assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. The App displays the PID data in a user friendly / human readable format.")
+    @DisplayName("$USE_CASE.2 The App displays the PID data in a user friendly / human readable format.")
     fun verifyHumanReadablePidPreviewData() {
         assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(), "human readable pid data is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The App asks the User to check whether the data is correct, and offers two buttons: confirm and reject.")
+    @DisplayName("$USE_CASE.3 The App asks the User to check whether the data is correct, and offers two buttons: confirm and reject.")
     fun verifyConfirmationButtons() {
         assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. When the User confirms, the User must enter their PIN (UC2.4 Confirm a Protected action)")
+    @DisplayName("$USE_CASE.4 When the User confirms, the User must enter their PIN (UC2.4 Confirm a Protected action)")
     fun verifyAcceptPidPreview() {
         personalizePidPreviewScreen.clickAcceptButton()
 
@@ -61,7 +66,7 @@ class PersonalizePidPreviewTests : TestBase() {
      */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("7. When the User rejects, the App displays a support screen.")
+    @DisplayName("$USE_CASE.7 When the User rejects, the App displays a support screen.")
     fun verifyRejectPidPreview() {
         personalizePidPreviewScreen.clickRejectButton()
 
