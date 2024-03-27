@@ -11,8 +11,13 @@ import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
 import screen.security.PinScreen
 
-@DisplayName("UC 9.7 - Log out of the App [PVW-1226]")
+@DisplayName("${UserLocksWalletTests.USE_CASE} Log out of the App [${UserLocksWalletTests.JIRA_ID}]")
 class UserLocksWalletTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 9.7"
+        const val JIRA_ID = "PVW-1226"
+    }
 
     private lateinit var menuScreen: MenuScreen
 
@@ -26,13 +31,13 @@ class UserLocksWalletTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The User can log out of the app (lock the app) from the app menu.")
+    @DisplayName("$USE_CASE.1 The User can log out of the app (lock the app) from the app menu.")
     fun verifyLogoutButton() {
         assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. When logging out of the app, the PIN entry screen is displayed.")
+    @DisplayName("$USE_CASE.2 When logging out of the app, the PIN entry screen is displayed.")
     fun verifyLockedState() {
         menuScreen.clickLogoutButton()
 

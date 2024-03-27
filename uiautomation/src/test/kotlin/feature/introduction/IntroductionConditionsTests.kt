@@ -11,8 +11,13 @@ import screen.common.PlaceholderScreen
 import screen.introduction.IntroductionConditionsScreen
 import screen.security.PinScreen
 
-@DisplayName("UC 1.1 - User accepts terms & conditions [PVW-1221]")
+@DisplayName("${IntroductionConditionsTests.USE_CASE} User accepts terms & conditions [${IntroductionConditionsTests.JIRA_ID}]")
 class IntroductionConditionsTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 1.1"
+        const val JIRA_ID = "PVW-1221"
+    }
 
     private lateinit var conditionsScreen: IntroductionConditionsScreen
 
@@ -24,13 +29,13 @@ class IntroductionConditionsTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The App displays the summary of the terms & conditions.")
+    @DisplayName("$USE_CASE.1 The App displays the summary of the terms & conditions.")
     fun verifyConditionsScreen() {
         assertTrue(conditionsScreen.visible(), "expectations screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. The App offers an entrance to the full terms & conditions, which is embedded in the app.")
+    @DisplayName("$USE_CASE.2 The App offers an entrance to the full terms & conditions, which is embedded in the app.")
     fun verifyConditionsButton() {
         conditionsScreen.clickConditionsButton()
 
@@ -39,7 +44,7 @@ class IntroductionConditionsTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The App offers an option to accept the terms and conditions, leading to setup pin")
+    @DisplayName("$USE_CASE.3 The App offers an option to accept the terms and conditions, leading to setup pin")
     fun verifyNextButton() {
         conditionsScreen.clickNextButton()
 
@@ -48,7 +53,7 @@ class IntroductionConditionsTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. The App offers a return to the previous screen.")
+    @DisplayName("$USE_CASE.4 The App offers a return to the previous screen.")
     fun verifyBackButton() {
         conditionsScreen.clickBackButton()
         assertTrue(conditionsScreen.absent(), "conditions screen is visible")

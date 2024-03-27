@@ -63,7 +63,24 @@ open class MobileActions {
         return true
     }
 
+    protected fun clickWebElement(element: WebElement) {
+        // Wait for the element to be visible before clicking it
+        val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+        wait.until(ExpectedConditions.visibilityOf(element))
+        element.click()
+    }
+
     protected fun findElement(locator: By): WebElement = driver.findElement(locator)
+
+    protected enum class ScrollableType {
+        CustomScrollView,
+        ListView,
+    }
+
+    protected fun scrollToEnd(scrollableType: ScrollableType) {
+        val args = mapOf("dx" to 0, "dy" to -2000, "durationMilliseconds" to 100, "frequency" to 100)
+        driver.executeScript("flutter:scroll", find.byType(scrollableType.toString()), args)
+    }
 
     protected fun clickElement(element: FlutterElement, frameSync: Boolean = true) {
         // First wait and check if the element is visible, then perform the click action;

@@ -24,6 +24,8 @@ class CardDataScreen : MobileActions() {
     private val dataIncorrectButton = find.byText(l10n.getString("cardDataScreenIncorrectCta"))
     private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
 
+    private val scrollableType = ScrollableType.CustomScrollView
+
     fun visible() = isElementVisible(screen)
 
     fun dataPrivacyBannerVisible() = isElementVisible(dataPrivacyBanner)
@@ -48,4 +50,6 @@ class CardDataScreen : MobileActions() {
     fun clickDataIncorrectButton() = clickElement(dataIncorrectButton)
 
     fun clickBottomBackButton() = clickElement(bottomBackButton)
+
+    fun scrollToEnd() = scrollToEnd(scrollableType)
 }

@@ -12,8 +12,13 @@ import screen.card.CardDetailScreen
 import screen.card.CardHistoryScreen
 import screen.dashboard.DashboardScreen
 
-@DisplayName("UC 7.2 - App shows card detail overview [PVW-1228]")
+@DisplayName("${CardDetailTests.USE_CASE} App shows card detail overview [${CardDetailTests.JIRA_ID}]")
 class CardDetailTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 7.2"
+        const val JIRA_ID = "PVW-1228"
+    }
 
     private lateinit var cardDetailScreen: CardDetailScreen
 
@@ -25,25 +30,25 @@ class CardDetailTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The Card detail page shows the actual card data as stored in the app.")
+    @DisplayName("$USE_CASE.1 The Card detail page shows the actual card data as stored in the app.")
     fun verifyCardDetailScreen() {
         assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. The Card detail page shows the Card face (exactly the same as on the dashboard, minus the 'show details' button).")
+    @DisplayName("$USE_CASE.2 The Card detail page shows the Card face (exactly the same as on the dashboard, minus the 'show details' button).")
     fun verifyCardDetailButtonAbsent() {
         assertTrue(cardDetailScreen.cardFaceElements(), "card face for detail screen is not visible and/or correct")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The Card detail page shows: issuer name, empty history state")
+    @DisplayName("$USE_CASE.3 The Card detail page shows: issuer name, empty history state")
     fun verifyDataAndHistoryState() {
         assertTrue(cardDetailScreen.dataAndHistoryStates(), "data and/or history state not not visible and/or correct")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. The Card detail page offers a button to reveal the card attributes.")
+    @DisplayName("$USE_CASE.4 The Card detail page offers a button to reveal the card attributes.")
     fun verifyCardDataButton() {
         cardDetailScreen.clickCardDataButton()
 
@@ -52,7 +57,7 @@ class CardDetailTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("5. The Card detail page offers a button to display card history.")
+    @DisplayName("$USE_CASE.5 The Card detail page offers a button to display card history.")
     fun verifyCardHistoryButton() {
         cardDetailScreen.clickCardHistoryButton()
 
@@ -61,7 +66,7 @@ class CardDetailTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("6. The Card detail page offers a button to go back to the card overview.")
+    @DisplayName("$USE_CASE.6 The Card detail page offers a button to go back to the card overview.")
     fun verifyBackButton() {
         cardDetailScreen.clickBottomBackButton()
 
