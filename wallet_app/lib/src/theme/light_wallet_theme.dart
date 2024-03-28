@@ -51,9 +51,10 @@ class LightWalletTheme {
 
   static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
     backgroundColor: colorScheme.background,
-    shape: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+    surfaceTintColor: colorScheme.background,
     iconTheme: const IconThemeData(color: primary),
-    titleTextStyle: textTheme.titleMedium,
+    titleTextStyle: textTheme.displayMedium,
+    shadowColor: colorScheme.shadow,
   );
 
   static final bottomNavigationBarTheme = BaseWalletTheme.baseBottomNavigationBarThemeData.copyWith(

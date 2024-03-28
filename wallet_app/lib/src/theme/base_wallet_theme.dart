@@ -94,7 +94,12 @@ class BaseWalletTheme {
     unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily),
   );
 
-  static const baseAppBarTheme = AppBarTheme(centerTitle: true, elevation: 0, scrolledUnderElevation: 0);
+  static const baseAppBarTheme = AppBarTheme(
+    centerTitle: false,
+    elevation: 0,
+    scrolledUnderElevation: 12,
+    shape: LinearBorder(), /* hides the app bar divider */
+  );
 
   static final tabBarTheme = TabBarTheme(
     labelStyle: baseTextTheme.titleSmall,

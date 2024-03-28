@@ -21,7 +21,7 @@ import '../../common/widget/info_row.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../../common/widget/wallet_app_bar.dart';
+import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../../policy/policy_screen.dart';
 import 'argument/history_detail_screen_argument.dart';
@@ -46,33 +46,59 @@ class HistoryDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: WalletAppBar(
-        title: Text(context.l10n.historyDetailScreenTitle),
-      ),
       body: SafeArea(
-        child: _buildBody(context),
+        child: Column(
+          children: [
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  SliverWalletAppBar(title: context.l10n.historyDetailScreenTitle),
+                  const SliverSizedBox(height: 8),
+                  _buildBodySliver(context),
+                ],
+              ),
+            ),
+            _buildBottomBackButton(context),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBodySliver(BuildContext context) {
     return BlocBuilder<HistoryDetailBloc, HistoryDetailState>(
       builder: (context, state) {
         return switch (state) {
-          HistoryDetailInitial() => _buildLoading(),
-          HistoryDetailLoadInProgress() => _buildLoading(),
-          HistoryDetailLoadSuccess() => _buildSuccess(context, state),
-          HistoryDetailLoadFailure() => _buildError(context),
+          HistoryDetailInitial() => _buildLoadingSliver(),
+          HistoryDetailLoadInProgress() => _buildLoadingSliver(),
+          HistoryDetailLoadSuccess() => _buildSuccessSliver(context, state),
+          HistoryDetailLoadFailure() => _buildErrorSliver(context),
         };
       },
     );
   }
 
-  Widget _buildLoading() {
-    return const CenteredLoadingIndicator();
+  Widget _buildBottomBackButton(BuildContext context) {
+    return BlocBuilder<HistoryDetailBloc, HistoryDetailState>(
+      builder: (context, state) {
+        return switch (state) {
+          HistoryDetailInitial() => const BottomBackButton(),
+          HistoryDetailLoadInProgress() => const BottomBackButton(),
+          HistoryDetailLoadSuccess() => const BottomBackButton(),
+          HistoryDetailLoadFailure() => const SizedBox.shrink(),
+        };
+      },
+    );
   }
 
-  Widget _buildSuccess(BuildContext context, HistoryDetailLoadSuccess state) {
+  Widget _buildLoadingSliver() {
+    return const SliverFillRemaining(
+      hasScrollBody: false,
+      child: CenteredLoadingIndicator(),
+    );
+  }
+
+  Widget _buildSuccessSliver(BuildContext context, HistoryDetailLoadSuccess state) {
     final TimelineAttribute attribute = state.timelineAttribute;
     final bool showTimelineStatusRow = _showTimelineStatusRow(attribute);
     final bool showDataAttributesSection = _showDataAttributesSection(attribute);
@@ -82,6 +108,7 @@ class HistoryDetailScreen extends StatelessWidget {
 
     slivers.addAll([
       // Organization
+      const SliverDivider(),
       SliverToBoxAdapter(
         child: _buildOrganizationRow(context, attribute),
       ),
@@ -200,18 +227,7 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(const SliverSizedBox(height: 24));
     }
 
-    return Column(
-      children: [
-        Expanded(
-          child: Scrollbar(
-            child: CustomScrollView(
-              slivers: slivers,
-            ),
-          ),
-        ),
-        const BottomBackButton(),
-      ],
-    );
+    return SliverMainAxisGroup(slivers: slivers);
   }
 
   Widget _buildInteractionRequestPurposeRow(BuildContext context, InteractionTimelineAttribute attribute) {
@@ -352,37 +368,40 @@ class HistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildError(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Spacer(),
-          Text(
-            context.l10n.errorScreenGenericDescription,
-            textAlign: TextAlign.center,
-          ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: () {
-              var settings = ModalRoute.of(context)?.settings;
-              if (settings != null) {
-                final args = getArgument(settings);
-                context.read<HistoryDetailBloc>().add(
-                      HistoryDetailLoadTriggered(
-                        attribute: args.timelineAttribute,
-                        docType: args.docType,
-                      ),
-                    );
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            child: Text(context.l10n.generalRetry),
-          ),
-        ],
+  Widget _buildErrorSliver(BuildContext context) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Spacer(),
+            Text(
+              context.l10n.errorScreenGenericDescription,
+              textAlign: TextAlign.center,
+            ),
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () {
+                var settings = ModalRoute.of(context)?.settings;
+                if (settings != null) {
+                  final args = getArgument(settings);
+                  context.read<HistoryDetailBloc>().add(
+                        HistoryDetailLoadTriggered(
+                          attribute: args.timelineAttribute,
+                          docType: args.docType,
+                        ),
+                      );
+                } else {
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(context.l10n.generalRetry),
+            ),
+          ],
+        ),
       ),
     );
   }
