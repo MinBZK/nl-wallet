@@ -69,21 +69,23 @@ class OrganizationApprovePage extends StatelessWidget {
             SliverFillRemaining(
               hasScrollBody: false,
               fillOverscroll: true,
-              child: Container(
-                alignment: Alignment.bottomCenter,
-                child: ConfirmButtons(
-                  forceVertical: true,
-                  primaryButton: ConfirmButton.accept(
-                    onPressed: onAcceptPressed,
-                    text: _approveButtonText(context),
-                    icon: Icons.arrow_forward,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Divider(height: 1),
+                  ConfirmButtons(
+                    primaryButton: ConfirmButton.accept(
+                      onPressed: onAcceptPressed,
+                      text: _approveButtonText(context),
+                      icon: Icons.arrow_forward,
+                    ),
+                    secondaryButton: ConfirmButton.reject(
+                      onPressed: onDeclinePressed,
+                      text: _declineButtonText(context),
+                      icon: Icons.block_flipped,
+                    ),
                   ),
-                  secondaryButton: ConfirmButton.reject(
-                    onPressed: onDeclinePressed,
-                    text: _declineButtonText(context),
-                    icon: Icons.block_flipped,
-                  ),
-                ),
+                ],
               ),
             ),
           ],

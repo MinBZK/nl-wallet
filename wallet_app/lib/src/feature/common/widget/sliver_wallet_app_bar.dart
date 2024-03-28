@@ -53,9 +53,6 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
     final canPop = Navigator.of(context).canPop();
     return SliverAppBar(
       pinned: true,
-      scrolledUnderElevation: 12,
-      shadowColor: context.colorScheme.shadow,
-      surfaceTintColor: context.colorScheme.background,
       title: ValueListenableBuilder<double>(
         builder: (context, collapsedRatio, child) {
           return Opacity(
@@ -66,11 +63,8 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
         valueListenable: collapsedRatio,
         child: Text(widget.title),
       ),
-      centerTitle: false,
       leading: widget.leading ?? (canPop ? const WalletAppBarBackButton() : null),
       titleSpacing: widget.leading == null && !canPop ? null : 0.0,
-      shape: const LinearBorder() /* hides the app bar divider */,
-      titleTextStyle: context.textTheme.displayMedium,
       actions: widget.actions,
       collapsedHeight: toolbarHeight,
       expandedHeight: expandedHeight,

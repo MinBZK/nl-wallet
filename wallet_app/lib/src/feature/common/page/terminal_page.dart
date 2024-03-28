@@ -38,7 +38,6 @@ class TerminalPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildScrollableSection(context),
-          const SizedBox(height: 16),
           _buildBottomSection(context),
         ],
       ),
@@ -95,6 +94,8 @@ class TerminalPage extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        const Divider(height: 1),
+        const SizedBox(height: 24),
         _buildPrimaryButton(),
         SizedBox(height: hasSecondaryButton ? 16 : 0),
         if (hasSecondaryButton) _buildSecondaryButton(),
