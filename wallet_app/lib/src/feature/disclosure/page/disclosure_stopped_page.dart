@@ -21,6 +21,7 @@ class DisclosureStoppedPage extends StatelessWidget {
       title: context.l10n.disclosureStoppedPageTitle,
       description: context.l10n.disclosureStoppedPageDescription(organization.displayName.l10nValue(context)),
       primaryButtonCta: context.l10n.disclosureStoppedPageCloseCta,
+      primaryButtonIcon: Icons.close_outlined,
       onPrimaryPressed: onClosePressed,
     );
   }
