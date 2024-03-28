@@ -198,18 +198,16 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessPage(BuildContext context, DisclosureSuccess state) {
-    bool hasReturnUrl = state.returnUrl != null;
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
-      primaryButtonCta:
-          hasReturnUrl ? context.l10n.disclosureSuccessPageCloseCta : context.l10n.disclosureSuccessPageToDashboardCta,
+      returnUrl: state.returnUrl,
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
-      onPrimaryPressed: () {
+      onPrimaryPressed: (returnUrl) {
         Navigator.pop(context);
 
         // Handle return url
-        if (hasReturnUrl) {
-          launchUrlStringCatching(state.returnUrl!, mode: LaunchMode.externalApplication);
+        if (returnUrl != null) {
+          launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
         }
       },
     );

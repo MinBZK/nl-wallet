@@ -10,6 +10,7 @@ class TerminalPage extends StatelessWidget {
   final String title;
   final String description;
   final String primaryButtonCta;
+  final IconData primaryButtonIcon;
   final VoidCallback onPrimaryPressed;
   final String? secondaryButtonCta;
   final VoidCallback? onSecondaryButtonPressed;
@@ -22,6 +23,7 @@ class TerminalPage extends StatelessWidget {
     required this.description,
     required this.primaryButtonCta,
     required this.onPrimaryPressed,
+    this.primaryButtonIcon = Icons.arrow_forward_outlined,
     this.secondaryButtonCta,
     this.onSecondaryButtonPressed,
     this.illustration,
@@ -108,6 +110,7 @@ class TerminalPage extends StatelessWidget {
         key: const Key('primaryButtonCta'),
         onPressed: onPrimaryPressed,
         text: primaryButtonCta,
+        icon: primaryButtonIcon,
       ),
     );
   }
