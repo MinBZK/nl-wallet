@@ -2,11 +2,11 @@ use std::future::Future;
 use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use url::Url;
 use wallet_common::{
     account::messages::instructions::{
         Instruction, InstructionChallengeRequest, InstructionChallengeRequestMessage, InstructionEndpoint,
     },
+    config::wallet_config::BaseUrl,
     jwt::EcdsaDecodingKey,
 };
 
@@ -24,7 +24,7 @@ pub struct InstructionClient<'a, S, K, A> {
     hw_privkey: &'a K,
     account_provider_client: &'a A,
     registration: &'a RegistrationData,
-    account_provider_base_url: &'a Url,
+    account_provider_base_url: &'a BaseUrl,
     instruction_result_public_key: &'a EcdsaDecodingKey,
 }
 
@@ -40,7 +40,7 @@ where
         hw_privkey: &'a K,
         account_provider_client: &'a A,
         registration: &'a RegistrationData,
-        account_provider_base_url: &'a Url,
+        account_provider_base_url: &'a BaseUrl,
         instruction_result_public_key: &'a EcdsaDecodingKey,
     ) -> Self {
         Self {

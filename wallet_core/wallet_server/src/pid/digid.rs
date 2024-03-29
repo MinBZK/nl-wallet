@@ -1,6 +1,5 @@
 use reqwest::Certificate;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 use openid4vc::{
     oidc::{
@@ -11,7 +10,7 @@ use openid4vc::{
     },
     token::TokenRequest,
 };
-use wallet_common::reqwest::trusted_reqwest_client_builder;
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder};
 
 #[derive(Serialize, Deserialize)]
 struct UserInfo {
@@ -34,13 +33,13 @@ pub enum Error {
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
 pub struct OpenIdClient {
-    issuer_url: Url,
+    issuer_url: BaseUrl,
     decrypter_private_key: RsaesJweDecrypter,
     trust_anchors: Vec<Certificate>,
 }
 
 impl OpenIdClient {
-    pub fn new(issuer_url: Url, bsn_privkey: String, trust_anchors: Vec<Certificate>) -> Result<Self> {
+    pub fn new(issuer_url: BaseUrl, bsn_privkey: String, trust_anchors: Vec<Certificate>) -> Result<Self> {
         let userinfo_client = OpenIdClient {
             issuer_url,
             decrypter_private_key: OpenIdClient::decrypter(&bsn_privkey)?,

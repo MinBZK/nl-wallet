@@ -1,9 +1,8 @@
-use url::Url;
-
 use nl_wallet_mdoc::{
     holder::{MdocCopies, TrustAnchor},
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
+use wallet_common::config::wallet_config::BaseUrl;
 
 use crate::{
     issuance_session::{HttpOpenidMessageClient, IssuanceSession, IssuanceSessionError},
@@ -30,7 +29,7 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn start_issuance(
         _: HttpOpenidMessageClient,
-        _: Url,
+        _: BaseUrl,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
@@ -44,7 +43,7 @@ impl IssuanceSession for MockIssuanceSession {
         &self,
         _: &[TrustAnchor<'_>],
         _: impl KeyFactory<Key = K>,
-        _: Url,
+        _: BaseUrl,
     ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
         self.accept()
     }

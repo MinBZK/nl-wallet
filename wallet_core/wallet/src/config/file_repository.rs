@@ -1,9 +1,11 @@
 use std::{path::PathBuf, sync::Arc};
 
 use reqwest::Certificate;
-use url::Url;
 
-use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};
+use wallet_common::{
+    config::wallet_config::{BaseUrl, WalletConfiguration},
+    jwt::EcdsaDecodingKey,
+};
 
 use super::{
     config_file, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState, HttpConfigurationRepository,
@@ -18,7 +20,7 @@ pub struct FileStorageConfigurationRepository<T> {
 impl FileStorageConfigurationRepository<HttpConfigurationRepository> {
     pub async fn init(
         storage_path: PathBuf,
-        base_url: Url,
+        base_url: BaseUrl,
         trust_anchors: Vec<Certificate>,
         signing_public_key: EcdsaDecodingKey,
         initial_config: WalletConfiguration,
@@ -89,7 +91,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use parking_lot::RwLock;
     use rand_core::OsRng;
-    use url::Url;
 
     use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};
 
@@ -169,7 +170,7 @@ mod tests {
 
         let repo = FileStorageConfigurationRepository::init(
             path.clone(),
-            Url::parse("http://localhost").unwrap(),
+            "http://localhost".parse().unwrap(),
             vec![],
             config_decoding_key.clone(),
             default_configuration(),
@@ -183,7 +184,7 @@ mod tests {
 
         let repo = FileStorageConfigurationRepository::init(
             path.clone(),
-            Url::parse("http://localhost").unwrap(),
+            "http://localhost".parse().unwrap(),
             vec![],
             config_decoding_key,
             embedded_wallet_config,

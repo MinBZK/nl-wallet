@@ -24,6 +24,7 @@ use openid4vc::{
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
     mock::{default_configuration, MockStorage},
+    wallet_common::BaseUrl,
     wallet_deps::{
         ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository,
         UpdateableConfigurationRepository,
@@ -52,16 +53,22 @@ fn init_logging() {
     );
 }
 
-pub fn local_wp_base_url(port: &u16) -> Url {
-    Url::parse(&format!("http://localhost:{}/api/v1/", port)).expect("Could not create url")
+pub fn local_wp_base_url(port: &u16) -> BaseUrl {
+    format!("http://localhost:{}/api/v1/", port)
+        .parse()
+        .expect("hardcode values should always parse successfully")
 }
 
-pub fn local_config_base_url(port: &u16) -> Url {
-    Url::parse(&format!("https://localhost:{}/config/v1/", port)).expect("Could not create url")
+pub fn local_config_base_url(port: &u16) -> BaseUrl {
+    format!("https://localhost:{}/config/v1/", port)
+        .parse()
+        .expect("hardcode values should always parse successfully")
 }
 
-pub fn local_pid_base_url(port: &u16) -> Url {
-    Url::parse(&format!("http://localhost:{}/issuance/", port)).expect("Could not create url")
+pub fn local_pid_base_url(port: &u16) -> BaseUrl {
+    format!("http://localhost:{}/issuance/", port)
+        .parse()
+        .expect("hardcode values should always parse successfully")
 }
 
 pub async fn database_connection(settings: &WpSettings) -> DatabaseConnection {
@@ -224,8 +231,8 @@ pub fn wallet_server_settings() -> WsSettings {
         port: requester_port,
     };
 
-    settings.public_url = Url::parse(&format!("http://localhost:{}/", ws_port)).unwrap();
-    settings.internal_url = Url::parse(&format!("http://localhost:{}/", requester_port)).unwrap();
+    settings.public_url = format!("http://localhost:{}/", ws_port).parse().unwrap();
+    settings.internal_url = format!("http://localhost:{}/", requester_port).parse().unwrap();
     settings
 }
 
@@ -240,16 +247,16 @@ pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(se
         }
     });
 
-    wait_for_server(public_url.join("disclosure/").unwrap(), vec![]).await;
+    wait_for_server(public_url.join_base_url("disclosure/"), vec![]).await;
 }
 
-async fn wait_for_server(base_url: Url, trust_anchors: Vec<Certificate>) {
+async fn wait_for_server(base_url: BaseUrl, trust_anchors: Vec<Certificate>) {
     let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(10));
         loop {
-            match client.get(base_url.join("health").unwrap()).send().await {
+            match client.get(base_url.join("health")).send().await {
                 Ok(_) => break,
                 Err(e) => {
                     println!("Server not yet up: {e}");
@@ -269,7 +276,7 @@ async fn wait_for_server(base_url: Url, trust_anchors: Vec<Certificate>) {
 // is updated.
 pub async fn fake_digid_auth(
     authorization_url: &Url,
-    digid_base_url: &Url,
+    digid_base_url: &BaseUrl,
     trust_anchors: Vec<reqwest::Certificate>,
 ) -> Url {
     let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();

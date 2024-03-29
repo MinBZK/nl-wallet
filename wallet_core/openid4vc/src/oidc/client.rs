@@ -11,7 +11,7 @@ pub use josekit::{
 use reqwest::header;
 use url::Url;
 
-use wallet_common::utils;
+use wallet_common::{config::wallet_config::BaseUrl, utils};
 
 use crate::{
     authorization::{AuthorizationErrorCode, AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge},
@@ -65,7 +65,7 @@ pub trait OidcClient {
     /// Create a new instance by using OpenID discovery, and return an authorization URL.
     async fn start(
         http_client: reqwest::Client,
-        issuer_url: Url,
+        issuer_url: BaseUrl,
         client_id: String,
         redirect_uri: Url,
     ) -> Result<(Self, Url), OidcError>
@@ -99,7 +99,7 @@ pub struct HttpOidcClient<P = S256PkcePair> {
 impl<P: PkcePair> OidcClient for HttpOidcClient<P> {
     async fn start(
         http_client: reqwest::Client,
-        issuer: Url,
+        issuer: BaseUrl,
         client_id: String,
         redirect_uri: Url,
     ) -> Result<(Self, Url), OidcError> {
@@ -191,7 +191,7 @@ impl<P: PkcePair> HttpOidcClient<P> {
 
 pub async fn request_token(
     http_client: &reqwest::Client,
-    issuer: Url,
+    issuer: BaseUrl,
     token_request: TokenRequest,
 ) -> Result<TokenResponse, OidcError> {
     let config = Config::discover(http_client, issuer).await?;
@@ -218,7 +218,7 @@ pub async fn request_token(
 
 pub async fn request_userinfo<C, H>(
     http_client: &reqwest::Client,
-    issuer: Url,
+    issuer: BaseUrl,
     access_token: &AccessToken,
     expected_sig_alg: SignatureAlgorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
@@ -294,6 +294,7 @@ mod tests {
     use biscuit::jwk::JWKSet;
     use rstest::rstest;
     use url::Url;
+    use wallet_common::config::wallet_config::BaseUrl;
 
     use crate::{
         authorization::AuthorizationErrorCode,
@@ -347,7 +348,7 @@ mod tests {
 
         assert_eq!(&client.client_id, CLIENT_ID);
         assert_eq!(client.redirect_uri, redirect_uri);
-        assert!(auth_url.as_str().starts_with(server_url.as_str()));
+        assert!(auth_url.as_str().starts_with(server_url.as_ref().as_str()));
 
         // Convert it to a token request
         let state = client.state.clone();
@@ -365,13 +366,13 @@ mod tests {
     }
 
     fn create_client() -> HttpOidcClient<MockPkcePair> {
-        let server_url: Url = ISSUER_URL.parse().unwrap();
+        let server_url: BaseUrl = ISSUER_URL.parse().unwrap();
 
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
 
         HttpOidcClient {
-            provider: Config::new(server_url.clone()),
+            provider: Config::new(server_url),
             jwks: Some(JWKSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),

@@ -3,9 +3,11 @@ use std::{path::PathBuf, sync::Arc};
 use parking_lot::RwLock;
 use reqwest::Certificate;
 use tracing::info;
-use url::Url;
 
-use wallet_common::{config::wallet_config::WalletConfiguration, jwt::EcdsaDecodingKey};
+use wallet_common::{
+    config::wallet_config::{BaseUrl, WalletConfiguration},
+    jwt::EcdsaDecodingKey,
+};
 
 use crate::config::{
     http_client::HttpConfigurationClient, ConfigurationError, ConfigurationRepository, ConfigurationUpdateState,
@@ -19,7 +21,7 @@ pub struct HttpConfigurationRepository {
 
 impl HttpConfigurationRepository {
     pub async fn new(
-        base_url: Url,
+        base_url: BaseUrl,
         trust_anchors: Vec<Certificate>,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,

@@ -13,21 +13,32 @@ use webpki::TrustAnchor;
 use crate::{account::serialization::DerVerifyingKey, trust_anchor::DerTrustAnchor};
 
 #[nutype(
-    validate(predicate = |u| !u.cannot_be_a_base() && u.path().ends_with('/')),
-    derive(FromStr, Clone, Deserialize, Display, AsRef),
+    validate(predicate = |u| !u.cannot_be_a_base()),
+    derive(FromStr, Debug, Clone, Deserialize, Serialize, Display, AsRef, TryFrom, PartialEq, Eq, Hash),
 )]
 pub struct BaseUrl(Url);
 
 impl BaseUrl {
+    // removes leading forward slashes, calls `Url::join` and unwraps the result
+    // the idea behind this is that a BaseURL is intended to be joined with a relative path and not an absolute path
     pub fn join(&self, input: &str) -> Url {
-        // safe to unwrap because we know the URL is a valid base URL
-        self.as_ref().join(input).unwrap()
+        let mut ret = self.as_ref().clone();
+        // both safe to unwrap because we know the URL is a valid base URL
+        if !ret.path().ends_with('/') {
+            ret.path_segments_mut().unwrap().push("/");
+        }
+        ret.join(input.trim_start_matches('/')).unwrap()
+    }
+
+    // call .join, but converted into a BaseUrl
+    pub fn join_base_url(&self, input: &str) -> Self {
+        self.join(input).try_into().unwrap()
     }
 }
 
 pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";
-const DIGID_REDIRECT_PATH: &str = "authentication/";
-const DISCLOSURE_BASE_PATH: &str = "disclosure/";
+const DIGID_REDIRECT_PATH: &str = "authentication";
+const DISCLOSURE_BASE_PATH: &str = "disclosure";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct WalletConfiguration {
@@ -54,13 +65,13 @@ impl WalletConfiguration {
     }
 
     #[inline]
-    pub fn issuance_redirect_uri(universal_link_base: &BaseUrl) -> Url {
-        universal_link_base.join(DIGID_REDIRECT_PATH)
+    pub fn issuance_redirect_uri(universal_link_base: &BaseUrl) -> BaseUrl {
+        universal_link_base.join_base_url(DIGID_REDIRECT_PATH)
     }
 
     #[inline]
-    pub fn disclosure_base_uri(universal_link_base: &BaseUrl) -> Url {
-        universal_link_base.join(DISCLOSURE_BASE_PATH)
+    pub fn disclosure_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
+        universal_link_base.join_base_url(DISCLOSURE_BASE_PATH)
     }
 }
 
@@ -90,7 +101,7 @@ impl Default for LockTimeoutConfiguration {
 #[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct AccountServerConfiguration {
     // The base URL for the Account Server API
-    pub base_url: Url,
+    pub base_url: BaseUrl,
     // The known public key for the Wallet Provider
     pub certificate_public_key: DerVerifyingKey,
     pub instruction_result_public_key: DerVerifyingKey,
@@ -98,8 +109,8 @@ pub struct AccountServerConfiguration {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct PidIssuanceConfiguration {
-    pub pid_issuer_url: Url,
-    pub digid_url: Url,
+    pub pid_issuer_url: BaseUrl,
+    pub digid_url: BaseUrl,
     pub digid_client_id: String,
     #[serde(default)]
     pub digid_trust_anchors: Vec<DerTrustAnchor>,
@@ -136,5 +147,68 @@ impl DisclosureConfiguration {
             .iter()
             .map(|anchor| (&anchor.owned_trust_anchor).into())
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("https://example.com/", Ok(()))]
+    #[case("https://example.com/", Ok(()))]
+    #[case("https://example.com/path/", Ok(()))]
+    #[case("https://example.com/path", Ok(()))] // this is okay, since the `.join` method will add a trailing slash
+    #[case("data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD", Err(()))]
+    #[tokio::test]
+    async fn base_url(#[case] value: &str, #[case] expected_err: Result<(), ()>) {
+        // The `BaseUrlParseError` that `nutype` returns does not implement `PartialEq`
+        assert_eq!(value.parse::<BaseUrl>().map(|_| ()).map_err(|_| ()), expected_err);
+    }
+
+    #[rstest]
+    #[case("https://example.com/", "to", "https://example.com/to")]
+    #[case("https://example.com/", "/to", "https://example.com/to")]
+    #[case("https://example.com/", "to/", "https://example.com/to/")]
+    #[case("https://example.com/", "/to/", "https://example.com/to/")]
+    #[case("https://example.com/", "path/to", "https://example.com/path/to")]
+    #[case("https://example.com/", "/path/to", "https://example.com/path/to")]
+    #[case("https://example.com/", "path/to/", "https://example.com/path/to/")]
+    #[case("https://example.com/", "/path/to/", "https://example.com/path/to/")]
+    #[case("https://example.com/path/", "to", "https://example.com/path/to")]
+    #[case("https://example.com/path/", "/to", "https://example.com/path/to")] // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "to/", "https://example.com/path/to/")]
+    #[case("https://example.com/path/", "/to/", "https://example.com/path/to/")] // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "to/success", "https://example.com/path/to/success")]
+    #[case("https://example.com/path/", "/to/success", "https://example.com/path/to/success")] // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "to/success/", "https://example.com/path/to/success/")]
+    #[case("https://example.com/path/", "/to/success/", "https://example.com/path/to/success/")] // if path is absolute, remove leading '/'
+    #[tokio::test]
+    async fn base_url_join(#[case] value: BaseUrl, #[case] path: &str, #[case] expected: &str) {
+        assert_eq!(value.join(path).as_str(), expected);
+    }
+
+    #[rstest]
+    #[case("https://example.com/", "to", "https://example.com/to")]
+    #[case("https://example.com/", "/to", "https://example.com/to")]
+    #[case("https://example.com/", "to/", "https://example.com/to/")]
+    #[case("https://example.com/", "/to/", "https://example.com/to/")]
+    #[case("https://example.com/", "path/to", "https://example.com/path/to")]
+    #[case("https://example.com/", "/path/to", "https://example.com/path/to")]
+    #[case("https://example.com/", "path/to/", "https://example.com/path/to/")]
+    #[case("https://example.com/", "/path/to/", "https://example.com/path/to/")]
+    #[case("https://example.com/path/", "to", "https://example.com/path/to")]
+    #[case("https://example.com/path/", "/to", "https://example.com/path/to")] // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "to/", "https://example.com/path/to/")]
+    #[case("https://example.com/path/", "/to/", "https://example.com/path/to/")] // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "to/success", "https://example.com/path/to/success")]
+    #[case("https://example.com/path/", "/to/success", "https://example.com/path/to/success")] // if path is absolute, remove leading '/'
+    #[case("https://example.com/path/", "to/success/", "https://example.com/path/to/success/")]
+    #[case("https://example.com/path/", "/to/success/", "https://example.com/path/to/success/")] // if path is absolute, remove leading '/'
+    #[tokio::test]
+    async fn base_url_join_base_url(#[case] value: BaseUrl, #[case] path: &str, #[case] expected: &str) {
+        assert_eq!(value.join_base_url(path).as_ref().as_str(), expected);
     }
 }

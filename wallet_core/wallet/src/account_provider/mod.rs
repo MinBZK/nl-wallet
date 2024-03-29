@@ -1,15 +1,18 @@
 mod client;
 
 use reqwest::StatusCode;
-use url::{ParseError, Url};
+use url::ParseError;
 
-use wallet_common::account::{
-    messages::{
-        auth::{Registration, WalletCertificate},
-        errors::ErrorData,
-        instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
+use wallet_common::{
+    account::{
+        messages::{
+            auth::{Registration, WalletCertificate},
+            errors::ErrorData,
+            instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
+        },
+        signed::SignedDouble,
     },
-    signed::SignedDouble,
+    config::wallet_config::BaseUrl,
 };
 
 pub use self::client::HttpAccountProviderClient;
@@ -36,23 +39,23 @@ pub enum AccountProviderResponseError {
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait AccountProviderClient {
-    async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError>;
+    async fn registration_challenge(&self, base_url: &BaseUrl) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
         &self,
-        base_url: &Url,
+        base_url: &BaseUrl,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(
         &self,
-        base_url: &Url,
+        base_url: &BaseUrl,
         challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn instruction<I>(
         &self,
-        base_url: &Url,
+        base_url: &BaseUrl,
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
