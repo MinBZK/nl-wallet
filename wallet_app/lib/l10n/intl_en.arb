@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-03-18T10:30:24+01:00",
+    "@@last_modified": "2024-03-25T11:36:45+01:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
@@ -253,7 +253,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Your data wil not be stored but is shared with other organizations",
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "Your data will not be stored but is shared with other organizations",
     "disclosureConfirmDataAttributesShareWithTitle": "Do you want to share data with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
@@ -286,6 +286,7 @@
         }
     },
     "disclosureConfirmPinPageErrorTitle": "Invalid PIN code",
+    "disclosureConfirmPinPageForLoginTitle": "Log in to {organization} with your PIN code",
     "disclosureConfirmPinPageTitle": "Share data using your PIN code",
     "disclosureGenericErrorPageCloseCta": "Stop",
     "disclosureGenericErrorPageDescription": "Something went wrong. Try again later.",
@@ -404,10 +405,20 @@
             }
         }
     },
+    "disclosureSuccessPageDescriptionForLogin": "Your data has been shared with {organization}. Close this screen and continue on the website of {organization}.",
+    "@disclosureSuccessPageDescriptionForLogin": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "disclosureSuccessPageHistoryDescription": "You can find the details in your activities overview.",
     "disclosureSuccessPageShowHistoryCta": "View activities",
     "disclosureSuccessPageTitle": "Success!",
     "disclosureSuccessPageToDashboardCta": "To cards",
+    "disclosureSuccessPageToWebsiteCta": "Go to website",
     "errorScreenGeneralHelpCta": "Need help?",
     "errorScreenGenericCloseCta": "Close",
     "errorScreenGenericDescription": "It didn't work. Would you like to try again?",
@@ -773,6 +784,11 @@
     },
     "issuanceSuccessPageCloseCta": "To my overview",
     "issuanceSuccessPageTitle": "Success!",
+    "loginDetailScreenAgreementCta": "Read the terms and conditions",
+    "loginDetailScreenAgreementTitle": "Agreement",
+    "loginDetailScreenCredentialsBody": "Only the following data is shared. No more.",
+    "loginDetailScreenCredentialsTitle": "Login credentials",
+    "loginDetailScreenTitle": "Information about logging in at {organization}",
     "menuMainPageAboutCta": "About this app",
     "menuMainPageDesignCta": "Design System",
     "menuMainPageGreeting": "Hi {name}",
@@ -815,6 +831,7 @@
     "mockDigidScreenSignInOrganization": "National Office for Identity Data (RvIG)",
     "mockDigidScreenTitle": "Securely login with DigiD",
     "organizationApprovePageApproveCta": "Yes, next",
+    "organizationApprovePageCancelLoginCta": "Stop",
     "organizationApprovePageDenyCta": "No, decline",
     "organizationApprovePageFraudInfo": "Beware of fraud. Check the web address where you scanned the QR code. \n\nOnly proceed if the address matches {url}.",
     "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
@@ -827,6 +844,16 @@
         }
     },
     "organizationApprovePageIncorrectCta": "Is something not right?",
+    "organizationApprovePageLoginCta": "Log in",
+    "organizationApprovePageLoginTitle": "Do you want to log in to {organization}?",
+    "@organizationApprovePageLoginTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "organizationApprovePageMoreInfoCta": "See details",
     "organizationApprovePagePurpose": "Reason: {purpose}",
     "@organizationApprovePagePurpose": {

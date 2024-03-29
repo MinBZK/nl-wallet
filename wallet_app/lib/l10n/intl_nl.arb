@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-03-18T10:30:24+01:00",
+    "@@last_modified": "2024-03-25T11:36:45+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -286,6 +286,7 @@
         }
     },
     "disclosureConfirmPinPageErrorTitle": "Ongeldige pincode",
+    "disclosureConfirmPinPageForLoginTitle": "Login bij {organization} met je pincode",
     "disclosureConfirmPinPageTitle": "Gegevens versturen met je pincode",
     "disclosureGenericErrorPageCloseCta": "Stoppen",
     "disclosureGenericErrorPageDescription": "Er ging iets mis. Probeer het later opnieuw.",
@@ -404,10 +405,20 @@
             }
         }
     },
+    "disclosureSuccessPageDescriptionForLogin": "Je inloggegevens zijn gedeeld met {organization}. Sluit dit scherm en ga verder op de website van {organization}.",
+    "@disclosureSuccessPageDescriptionForLogin": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "disclosureSuccessPageHistoryDescription": "Je kunt de details vinden in je activiteiten-overzicht.",
     "disclosureSuccessPageShowHistoryCta": "Bekijk activiteiten",
     "disclosureSuccessPageTitle": "Gelukt!",
     "disclosureSuccessPageToDashboardCta": "Naar kaarten",
+    "disclosureSuccessPageToWebsiteCta": "Ga naar website",
     "errorScreenGeneralHelpCta": "Hulp nodig?",
     "errorScreenGenericCloseCta": "Sluiten",
     "errorScreenGenericDescription": "Het is niet gelukt. Wil je het opnieuw proberen?",
@@ -773,6 +784,11 @@
     },
     "issuanceSuccessPageCloseCta": "Naar mijn overzicht",
     "issuanceSuccessPageTitle": "Gelukt!",
+    "loginDetailScreenAgreementCta": "Lees de voorwaarden",
+    "loginDetailScreenAgreementTitle": "Afspraken",
+    "loginDetailScreenCredentialsBody": "Alleen de volgende gegeven worden gedeeld om in te loggen. Niets meer.",
+    "loginDetailScreenCredentialsTitle": "Inloggegevens",
+    "loginDetailScreenTitle": "Informatie over inloggen bij {organization}",
     "menuMainPageAboutCta": "Over deze app",
     "menuMainPageDesignCta": "Design System",
     "menuMainPageGreeting": "Hallo {name}",
@@ -815,6 +831,7 @@
     "mockDigidScreenSignInOrganization": "Rijksdienst voor Identiteits­gegevens",
     "mockDigidScreenTitle": "Vertrouwd inloggen met DigiD",
     "organizationApprovePageApproveCta": "Ja, volgende",
+    "organizationApprovePageCancelLoginCta": "Stoppen",
     "organizationApprovePageDenyCta": "Nee",
     "organizationApprovePageFraudInfo": "Pas op voor fraude. Controleer het webadres op de website waar je QR-code hebt gescand.\n\nGa alleen verder als het adres gelijk is aan {url}.",
     "organizationApprovePageGenericTitle": "Herken je {organization}?",
@@ -827,6 +844,16 @@
         }
     },
     "organizationApprovePageIncorrectCta": "Klopt er iets niet?",
+    "organizationApprovePageLoginCta": "Inloggen",
+    "organizationApprovePageLoginTitle": "Wil je inloggen bij {organization}?",
+    "@organizationApprovePageLoginTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "organizationApprovePageMoreInfoCta": "Bekijk details",
     "organizationApprovePagePurpose": "Reden: {purpose}",
     "@organizationApprovePagePurpose": {

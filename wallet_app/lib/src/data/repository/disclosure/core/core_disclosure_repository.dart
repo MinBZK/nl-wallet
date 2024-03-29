@@ -3,6 +3,7 @@ import 'package:wallet_core/core.dart' as core;
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/attribute/missing_attribute.dart';
 import '../../../../domain/model/disclosure/disclosure_session_type.dart';
+import '../../../../domain/model/disclosure/disclosure_type.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/wallet_card.dart';
@@ -19,6 +20,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<List<core.LocalizedString>, LocalizedText> _localizedStringMapper;
   final Mapper<core.DisclosureSessionType, DisclosureSessionType> _disclosureSessionTypeMapper;
+  final Mapper<core.DisclosureType, DisclosureType> _disclosureTypeMapper;
 
   CoreDisclosureRepository(
     this._walletCore,
@@ -28,6 +30,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
     this._requestPolicyMapper,
     this._localizedStringMapper,
     this._disclosureSessionTypeMapper,
+    this._disclosureTypeMapper,
   );
 
   @override
@@ -45,6 +48,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
           _localizedStringMapper.map(value.requestPurpose),
           value.sharedDataWithRelyingPartyBefore,
           _disclosureSessionTypeMapper.map(value.sessionType),
+          _disclosureTypeMapper.map(value.requestType),
           requestedAttributes,
           policy,
         );

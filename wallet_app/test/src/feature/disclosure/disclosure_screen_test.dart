@@ -96,7 +96,7 @@ void main() {
               child: const DisclosureScreen()
                   .withState<DisclosureBloc, DisclosureState>(
                     MockDisclosureBloc(),
-                    const DisclosureConfirmPin(),
+                    DisclosureConfirmPin(relyingParty: WalletMockData.organization),
                   )
                   .withState<PinBloc, PinState>(
                     MockPinBloc(),

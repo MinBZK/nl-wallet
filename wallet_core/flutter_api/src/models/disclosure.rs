@@ -51,6 +51,11 @@ pub struct DisclosureCard {
     pub attributes: Vec<CardAttribute>,
 }
 
+pub enum DisclosureType {
+    Regular,
+    Login,
+}
+
 pub enum DisclosureSessionType {
     SameDevice,
     CrossDevice,
@@ -74,6 +79,7 @@ pub enum StartDisclosureResult {
         session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
         request_origin_base_url: String,
+        request_type: DisclosureType,
     },
     RequestAttributesMissing {
         relying_party: Organization,
@@ -174,6 +180,16 @@ impl From<DisclosureDocument> for DisclosureCard {
     }
 }
 
+impl From<bool> for DisclosureType {
+    fn from(value: bool) -> Self {
+        if value {
+            DisclosureType::Login
+        } else {
+            DisclosureType::Regular
+        }
+    }
+}
+
 impl MissingAttribute {
     fn from_missing_disclosure_attributes(attributes: Vec<MissingDisclosureAttributes>) -> Vec<Self> {
         attributes
@@ -211,6 +227,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     session_type: proposal.session_type.into(),
                     request_purpose,
                     request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
+                    request_type: proposal.is_login_flow.into(),
                 };
 
                 Ok(result)

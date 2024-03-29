@@ -81,6 +81,45 @@ class DisclosureCheckOrganization extends DisclosureState {
   @override
   List<Object?> get props => [
         relyingParty,
+        originUrl,
+        sharedDataWithOrganizationBefore,
+        sessionType,
+        ...super.props,
+      ];
+}
+
+class DisclosureCheckOrganizationForLogin extends DisclosureState {
+  final Organization relyingParty;
+  final String originUrl;
+  final DisclosureSessionType sessionType;
+  final bool sharedDataWithOrganizationBefore;
+  final bool afterBackPressed;
+  final Policy policy;
+  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
+
+  @override
+  double get stepperProgress => 0.25;
+
+  @override
+  bool get didGoBack => afterBackPressed;
+
+  const DisclosureCheckOrganizationForLogin({
+    required this.relyingParty,
+    required this.originUrl,
+    required this.sessionType,
+    required this.policy,
+    required this.requestedAttributes,
+    required this.sharedDataWithOrganizationBefore,
+    this.afterBackPressed = false,
+  });
+
+  @override
+  List<Object?> get props => [
+        relyingParty,
+        originUrl,
+        sessionType,
+        policy,
+        requestedAttributes,
         sharedDataWithOrganizationBefore,
         ...super.props,
       ];
@@ -147,18 +186,28 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
 }
 
 class DisclosureConfirmPin extends DisclosureState {
-  const DisclosureConfirmPin();
+  final Organization relyingParty;
+  final bool isLoginFlow;
+
+  const DisclosureConfirmPin({
+    required this.relyingParty,
+    this.isLoginFlow = false,
+  });
 
   @override
   double get stepperProgress => 0.75;
 
   @override
   bool get canGoBack => true;
+
+  @override
+  List<Object?> get props => [relyingParty, isLoginFlow, ...super.props];
 }
 
 class DisclosureSuccess extends DisclosureState {
   final Organization relyingParty;
   final String? returnUrl;
+  final bool isLoginFlow;
 
   @override
   double get stepperProgress => 1;
@@ -166,10 +215,10 @@ class DisclosureSuccess extends DisclosureState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureSuccess({required this.relyingParty, this.returnUrl});
+  const DisclosureSuccess({required this.relyingParty, this.returnUrl, this.isLoginFlow = false});
 
   @override
-  List<Object?> get props => [relyingParty, returnUrl, ...super.props];
+  List<Object?> get props => [relyingParty, returnUrl, isLoginFlow, ...super.props];
 }
 
 class DisclosureStopped extends DisclosureState {

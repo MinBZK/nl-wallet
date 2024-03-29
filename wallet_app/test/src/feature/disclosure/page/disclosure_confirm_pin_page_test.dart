@@ -12,10 +12,12 @@ import '../../../util/test_utils.dart';
 void main() {
   group('goldens', () {
     testGoldens('DisclosureConfirmPinPage light', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: DisclosureConfirmPinPage(
+              title: l10n.disclosureConfirmPinPageTitle,
               bloc: PinBloc(Mocks.create()),
               onConfirmWithPinFailed: (context, state) {},
               onPinValidated: (_) {},
@@ -27,10 +29,12 @@ void main() {
     });
 
     testGoldens('DisclosureConfirmPinPage dark', (tester) async {
+      final l10n = await TestUtils.englishLocalizations;
       await tester.pumpDeviceBuilder(
         DeviceUtils.deviceBuilderWithPrimaryScrollController
           ..addScenario(
             widget: DisclosureConfirmPinPage(
+              title: l10n.disclosureConfirmPinPageTitle,
               bloc: PinBloc(Mocks.create()),
               onConfirmWithPinFailed: (context, state) {},
               onPinValidated: (_) {},
@@ -48,6 +52,7 @@ void main() {
       await tester.pumpWidget(
         WalletAppTestWidget(
           child: DisclosureConfirmPinPage(
+            title: l10n.disclosureConfirmPinPageTitle,
             onPinValidated: (_) {},
             bloc: PinBloc(Mocks.create()),
             onConfirmWithPinFailed: (context, state) {},

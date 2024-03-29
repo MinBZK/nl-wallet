@@ -9,11 +9,13 @@ import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
+import '../../../domain/model/disclosure/disclosure_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
+import '../../../util/cast_util.dart';
 import '../../../util/extension/bloc_extension.dart';
 import '../../report_issue/report_issue_screen.dart';
 
@@ -49,15 +51,30 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       // deeplink is pressed while the disclosure flow is currently open. This opens a second
       // disclosure bloc before the original one is closed, thus we need to cancel it here.
       await _cancelDisclosureUseCase.invoke();
-      _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri);
-      emit(
-        DisclosureCheckOrganization(
-          relyingParty: _startDisclosureResult!.relyingParty,
-          originUrl: _startDisclosureResult!.originUrl,
-          sharedDataWithOrganizationBefore: _startDisclosureResult!.sharedDataWithOrganizationBefore,
-          sessionType: _startDisclosureResult!.sessionType,
-        ),
-      );
+      final startDisclosureResult = _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri);
+      bool isLoginFlow =
+          startDisclosureResult is StartDisclosureReadyToDisclose && startDisclosureResult.type == DisclosureType.login;
+      if (isLoginFlow) {
+        emit(
+          DisclosureCheckOrganizationForLogin(
+            relyingParty: startDisclosureResult.relyingParty,
+            originUrl: startDisclosureResult.originUrl,
+            sessionType: startDisclosureResult.sessionType,
+            policy: startDisclosureResult.policy,
+            sharedDataWithOrganizationBefore: startDisclosureResult.sharedDataWithOrganizationBefore,
+            requestedAttributes: startDisclosureResult.requestedAttributes,
+          ),
+        );
+      } else {
+        emit(
+          DisclosureCheckOrganization(
+            relyingParty: startDisclosureResult.relyingParty,
+            originUrl: startDisclosureResult.originUrl,
+            sharedDataWithOrganizationBefore: startDisclosureResult.sharedDataWithOrganizationBefore,
+            sessionType: startDisclosureResult.sessionType,
+          ),
+        );
+      }
     } catch (ex) {
       Fimber.e('Failed to start disclosure', ex: ex);
       await handleError(
@@ -88,6 +105,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     final state = this.state;
     if (state is DisclosureConfirmDataAttributes) {
       assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
+      // No need to check for login flow as [DisclosureConfirmDataAttributes] is never used there
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
@@ -99,6 +117,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       );
     } else if (state is DisclosureMissingAttributes) {
       assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
+      // No need to check for login flow as [DisclosureMissingAttributes] is never used there (bsn always available)
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
@@ -111,15 +130,29 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     } else if (state is DisclosureConfirmPin) {
       assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state');
       final result = _startDisclosureResult as StartDisclosureReadyToDisclose;
-      emit(
-        DisclosureConfirmDataAttributes(
-          relyingParty: _startDisclosureResult!.relyingParty,
-          requestedAttributes: result.requestedAttributes,
-          policy: result.policy,
-          requestPurpose: result.requestPurpose,
-          afterBackPressed: true,
-        ),
-      );
+      if (state.isLoginFlow) {
+        emit(
+          DisclosureCheckOrganizationForLogin(
+            relyingParty: result.relyingParty,
+            originUrl: result.originUrl,
+            sessionType: result.sessionType,
+            policy: result.policy,
+            sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
+            requestedAttributes: result.requestedAttributes,
+            afterBackPressed: true,
+          ),
+        );
+      } else {
+        emit(
+          DisclosureConfirmDataAttributes(
+            relyingParty: result.relyingParty,
+            requestedAttributes: result.requestedAttributes,
+            policy: result.policy,
+            requestPurpose: result.requestPurpose,
+            afterBackPressed: true,
+          ),
+        );
+      }
     }
   }
 
@@ -129,15 +162,27 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       case null:
         throw UnsupportedError('Organization approved while in invalid state, i.e. no result available!');
       case StartDisclosureReadyToDisclose():
-        emit(
-          DisclosureConfirmDataAttributes(
-            relyingParty: startDisclosureResult.relyingParty,
-            requestPurpose: startDisclosureResult.requestPurpose,
-            requestedAttributes: startDisclosureResult.requestedAttributes,
-            policy: startDisclosureResult.policy,
-          ),
-        );
+        if (startDisclosureResult.type == DisclosureType.login) {
+          // When the user is in the login flow, skip straight to the enter pin screen
+          emit(
+            DisclosureConfirmPin(
+              relyingParty: startDisclosureResult.relyingParty,
+              isLoginFlow: true,
+            ),
+          );
+        } else {
+          // When the user is sharing other attributes, ask the user to confirm them
+          emit(
+            DisclosureConfirmDataAttributes(
+              relyingParty: startDisclosureResult.relyingParty,
+              requestPurpose: startDisclosureResult.requestPurpose,
+              requestedAttributes: startDisclosureResult.requestedAttributes,
+              policy: startDisclosureResult.policy,
+            ),
+          );
+        }
       case StartDisclosureMissingAttributes():
+        // When the user doesn't have all the requested attributes, present the ones that are missing
         emit(
           DisclosureMissingAttributes(
             relyingParty: startDisclosureResult.relyingParty,
@@ -150,12 +195,21 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   void _onShareRequestedAttributesApproved(DisclosureShareRequestedAttributesApproved event, emit) {
     assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid data state to continue disclosing');
     assert(state is DisclosureConfirmDataAttributes, 'Invalid UI state to move to pin entry');
-    if (state is DisclosureConfirmDataAttributes) emit(const DisclosureConfirmPin());
+    if (state is DisclosureConfirmDataAttributes) {
+      final relyingParty = (state as DisclosureConfirmDataAttributes).relyingParty;
+      emit(DisclosureConfirmPin(relyingParty: relyingParty));
+    }
   }
 
   void _onPinConfirmed(DisclosurePinConfirmed event, emit) {
     assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
-    emit(DisclosureSuccess(relyingParty: _startDisclosureResult!.relyingParty, returnUrl: event.returnUrl));
+    emit(
+      DisclosureSuccess(
+        relyingParty: _startDisclosureResult!.relyingParty,
+        returnUrl: event.returnUrl,
+        isLoginFlow: tryCast<StartDisclosureReadyToDisclose>(_startDisclosureResult)?.type == DisclosureType.login,
+      ),
+    );
   }
 
   void _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {

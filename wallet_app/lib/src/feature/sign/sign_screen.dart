@@ -13,6 +13,7 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../organization/approve/organization_approve_page.dart';
+import '../organization/detail/organization_detail_screen.dart';
 import 'argument/sign_screen_argument.dart';
 import 'bloc/sign_bloc.dart';
 import 'page/check_agreement_page.dart';
@@ -124,6 +125,13 @@ class SignScreen extends StatelessWidget {
       organization: state.organization,
       originUrl: 'http://sign.origin.org',
       purpose: ApprovalPurpose.sign,
+      onShowDetailsPressed: () {
+        OrganizationDetailScreen.showPreloaded(
+          context,
+          state.organization,
+          false,
+        );
+      },
     );
   }
 
