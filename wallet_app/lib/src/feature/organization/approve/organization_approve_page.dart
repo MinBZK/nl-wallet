@@ -10,7 +10,6 @@ import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text_with_link.dart';
-import '../detail/organization_detail_screen.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user approves the request
@@ -21,6 +20,9 @@ class OrganizationApprovePage extends StatelessWidget {
 
   /// Callback that is triggered when the user wants to report an issue
   final VoidCallback? onReportIssuePressed;
+
+  /// Callback that is triggered when the user presses the button to view the organization details
+  final VoidCallback onShowDetailsPressed;
 
   /// The organization that user is interacting with
   final Organization organization;
@@ -40,6 +42,7 @@ class OrganizationApprovePage extends StatelessWidget {
   const OrganizationApprovePage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
+    required this.onShowDetailsPressed,
     required this.organization,
     required this.originUrl,
     required this.purpose,
@@ -61,8 +64,8 @@ class OrganizationApprovePage extends StatelessWidget {
             const SliverSizedBox(height: 32),
             SliverToBoxAdapter(
               child: LinkTileButton(
+                onPressed: onShowDetailsPressed,
                 child: Text(context.l10n.organizationApprovePageMoreInfoCta),
-                onPressed: () => _openOrganizationDetails(context),
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -77,7 +80,7 @@ class OrganizationApprovePage extends StatelessWidget {
                     primaryButton: ConfirmButton.accept(
                       onPressed: onAcceptPressed,
                       text: _approveButtonText(context),
-                      icon: Icons.arrow_forward,
+                      icon: _primaryIcon(),
                     ),
                     secondaryButton: ConfirmButton.reject(
                       onPressed: onDeclinePressed,
@@ -92,6 +95,15 @@ class OrganizationApprovePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData _primaryIcon() {
+    return switch (purpose) {
+      ApprovalPurpose.issuance => Icons.arrow_forward,
+      ApprovalPurpose.disclosure => Icons.arrow_forward,
+      ApprovalPurpose.sign => Icons.arrow_forward,
+      ApprovalPurpose.login => Icons.key_outlined,
+    };
   }
 
   Widget _buildHeaderSection(BuildContext context) {
@@ -120,8 +132,18 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 
   Widget _buildHeaderTitleText(BuildContext context) {
+    final title = switch (purpose) {
+      ApprovalPurpose.issuance =>
+        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
+      ApprovalPurpose.disclosure =>
+        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
+      ApprovalPurpose.sign =>
+        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
+      ApprovalPurpose.login =>
+        context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
+    };
     return Text(
-      context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
+      title,
       style: context.textTheme.displayMedium,
       textAlign: TextAlign.start,
     );
@@ -140,6 +162,8 @@ class OrganizationApprovePage extends StatelessWidget {
         return context.l10n.organizationApprovePageShareWithApproveCta;
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageApproveCta;
+      case ApprovalPurpose.login:
+        return context.l10n.organizationApprovePageLoginCta;
     }
   }
 
@@ -151,17 +175,10 @@ class OrganizationApprovePage extends StatelessWidget {
         return context.l10n.organizationApprovePageShareWithDenyCta;
       case ApprovalPurpose.sign:
         return context.l10n.organizationApprovePageDenyCta;
+      case ApprovalPurpose.login:
+        return context.l10n.organizationApprovePageCancelLoginCta;
     }
-  }
-
-  void _openOrganizationDetails(BuildContext context) {
-    OrganizationDetailScreen.showPreloaded(
-      context,
-      organization,
-      sharedDataWithOrganizationBefore,
-      onReportIssuePressed: onReportIssuePressed,
-    );
   }
 }
 
-enum ApprovalPurpose { issuance, disclosure, sign }
+enum ApprovalPurpose { issuance, disclosure, sign, login }

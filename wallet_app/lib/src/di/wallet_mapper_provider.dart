@@ -12,6 +12,7 @@ import '../domain/model/attribute/missing_attribute.dart';
 import '../domain/model/card_config.dart';
 import '../domain/model/card_front.dart';
 import '../domain/model/disclosure/disclosure_session_type.dart';
+import '../domain/model/disclosure/disclosure_type.dart';
 import '../domain/model/document.dart';
 import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
@@ -27,7 +28,9 @@ import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
 import '../util/mapper/card/disclosure_card_mapper.dart';
+import '../util/mapper/context_mapper.dart';
 import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
+import '../util/mapper/disclosure/disclosure_type_mapper.dart';
 import '../util/mapper/document/document_mapper.dart';
 import '../util/mapper/history/wallet_event_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';
@@ -37,6 +40,7 @@ import '../util/mapper/pid/core_pid_attribute_mapper.dart';
 import '../util/mapper/pid/mock_pid_attribute_mapper.dart';
 import '../util/mapper/pid/pid_attribute_mapper.dart';
 import '../util/mapper/pin/pin_validation_error_mapper.dart';
+import '../util/mapper/policy/policy_body_text_mapper.dart';
 import '../util/mapper/policy/request_policy_mapper.dart';
 import '../wallet_core/error/core_error.dart';
 import '../wallet_core/error/core_error_mapper.dart';
@@ -99,6 +103,9 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<core.RequestPolicy, Policy>>(
           create: (context) => RequestPolicyMapper(),
         ),
+        RepositoryProvider<ContextMapper<Policy, String>>(
+          create: (context) => PolicyBodyTextMapper(),
+        ),
 
         /// Document
         RepositoryProvider<Mapper<core.Document, Document>>(
@@ -129,6 +136,9 @@ class WalletMapperProvider extends StatelessWidget {
         /// Disclosure mappers
         RepositoryProvider<Mapper<core.DisclosureSessionType, DisclosureSessionType>>(
           create: (context) => DisclosureSessionTypeMapper(),
+        ),
+        RepositoryProvider<Mapper<core.DisclosureType, DisclosureType>>(
+          create: (context) => DisclosureTypeMapper(),
         ),
       ],
       child: child,

@@ -16,6 +16,7 @@ import '../common/widget/wallet_app_bar.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../data_incorrect/data_incorrect_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
+import '../organization/detail/organization_detail_screen.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
 import 'page/issuance_check_card_page.dart';
@@ -144,6 +145,13 @@ class IssuanceScreen extends StatelessWidget {
       onAcceptPressed: () => context.bloc.add(const IssuanceOrganizationApproved()),
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
+      onShowDetailsPressed: () {
+        OrganizationDetailScreen.showPreloaded(
+          context,
+          state.organization,
+          false,
+        );
+      },
     );
   }
 

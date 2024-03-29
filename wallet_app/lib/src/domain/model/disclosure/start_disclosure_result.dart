@@ -5,6 +5,7 @@ import '../organization.dart';
 import '../policy/policy.dart';
 import '../wallet_card.dart';
 import 'disclosure_session_type.dart';
+import 'disclosure_type.dart';
 
 sealed class StartDisclosureResult {
   final Organization relyingParty;
@@ -25,6 +26,7 @@ sealed class StartDisclosureResult {
 class StartDisclosureReadyToDisclose extends StartDisclosureResult {
   final Map<WalletCard, List<DataAttribute>> requestedAttributes;
   final Policy policy;
+  final DisclosureType type;
 
   StartDisclosureReadyToDisclose(
     super.relyingParty,
@@ -32,6 +34,7 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
     super.requestPurpose,
     super.sharedDataWithOrganizationBefore,
     super.sessionType,
+    this.type,
     this.requestedAttributes,
     this.policy,
   );

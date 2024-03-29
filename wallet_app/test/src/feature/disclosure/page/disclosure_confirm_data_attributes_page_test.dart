@@ -1,7 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_data_attributes_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/util/mapper/context_mapper.dart';
+import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -10,16 +14,19 @@ import '../../../util/test_utils.dart';
 void main() {
   testWidgets('card titles are shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      DisclosureConfirmDataAttributesPage(
-        onDeclinePressed: () {},
-        onAcceptPressed: () {},
-        relyingParty: WalletMockData.organization,
-        requestedAttributes: {
-          WalletMockData.card: WalletMockData.card.attributes,
-          WalletMockData.altCard: WalletMockData.altCard.attributes,
-        },
-        policy: WalletMockData.policy,
-        requestPurpose: 'data purpose'.untranslated,
+      Provider<ContextMapper<Policy, String>>(
+        create: (c) => PolicyBodyTextMapper(),
+        child: DisclosureConfirmDataAttributesPage(
+          onDeclinePressed: () {},
+          onAcceptPressed: () {},
+          relyingParty: WalletMockData.organization,
+          requestedAttributes: {
+            WalletMockData.card: WalletMockData.card.attributes,
+            WalletMockData.altCard: WalletMockData.altCard.attributes,
+          },
+          policy: WalletMockData.policy,
+          requestPurpose: 'data purpose'.untranslated,
+        ),
       ),
     );
 
@@ -33,13 +40,16 @@ void main() {
 
   testWidgets('organization title is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      DisclosureConfirmDataAttributesPage(
-        onDeclinePressed: () {},
-        onAcceptPressed: () {},
-        relyingParty: WalletMockData.organization,
-        requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
-        policy: WalletMockData.policy,
-        requestPurpose: 'data purpose'.untranslated,
+      Provider<ContextMapper<Policy, String>>(
+        create: (c) => PolicyBodyTextMapper(),
+        child: DisclosureConfirmDataAttributesPage(
+          onDeclinePressed: () {},
+          onAcceptPressed: () {},
+          relyingParty: WalletMockData.organization,
+          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          policy: WalletMockData.policy,
+          requestPurpose: 'data purpose'.untranslated,
+        ),
       ),
     );
 
@@ -50,13 +60,16 @@ void main() {
 
   testWidgets('data purpose is shown', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      DisclosureConfirmDataAttributesPage(
-        onDeclinePressed: () {},
-        onAcceptPressed: () {},
-        relyingParty: WalletMockData.organization,
-        requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
-        policy: WalletMockData.policy,
-        requestPurpose: 'data purpose'.untranslated,
+      Provider<ContextMapper<Policy, String>>(
+        create: (c) => PolicyBodyTextMapper(),
+        child: DisclosureConfirmDataAttributesPage(
+          onDeclinePressed: () {},
+          onAcceptPressed: () {},
+          relyingParty: WalletMockData.organization,
+          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          policy: WalletMockData.policy,
+          requestPurpose: 'data purpose'.untranslated,
+        ),
       ),
     );
 
@@ -68,13 +81,16 @@ void main() {
   testWidgets('verify decline button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
-      DisclosureConfirmDataAttributesPage(
-        onDeclinePressed: () => isCalled = true,
-        onAcceptPressed: () {},
-        relyingParty: WalletMockData.organization,
-        requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
-        policy: WalletMockData.policy,
-        requestPurpose: 'data purpose'.untranslated,
+      Provider<ContextMapper<Policy, String>>(
+        create: (c) => PolicyBodyTextMapper(),
+        child: DisclosureConfirmDataAttributesPage(
+          onDeclinePressed: () => isCalled = true,
+          onAcceptPressed: () {},
+          relyingParty: WalletMockData.organization,
+          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          policy: WalletMockData.policy,
+          requestPurpose: 'data purpose'.untranslated,
+        ),
       ),
     );
 
@@ -91,13 +107,16 @@ void main() {
   testWidgets('verify accept button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
-      DisclosureConfirmDataAttributesPage(
-        onDeclinePressed: () {},
-        onAcceptPressed: () => isCalled = true,
-        relyingParty: WalletMockData.organization,
-        requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
-        policy: WalletMockData.policy,
-        requestPurpose: 'data purpose'.untranslated,
+      Provider<ContextMapper<Policy, String>>(
+        create: (c) => PolicyBodyTextMapper(),
+        child: DisclosureConfirmDataAttributesPage(
+          onDeclinePressed: () {},
+          onAcceptPressed: () => isCalled = true,
+          relyingParty: WalletMockData.organization,
+          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          policy: WalletMockData.policy,
+          requestPurpose: 'data purpose'.untranslated,
+        ),
       ),
     );
 
