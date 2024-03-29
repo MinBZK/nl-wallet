@@ -4,10 +4,9 @@ use http::{header, HeaderValue, StatusCode};
 use parking_lot::Mutex;
 use reqwest::Certificate;
 use tokio::fs;
-use url::Url;
 
 use wallet_common::{
-    config::wallet_config::WalletConfiguration,
+    config::wallet_config::{BaseUrl, WalletConfiguration},
     jwt::{validations, EcdsaDecodingKey, Jwt},
     reqwest::tls_pinned_client_builder,
 };
@@ -18,7 +17,7 @@ use super::FileStorageError;
 
 pub struct HttpConfigurationClient {
     http_client: reqwest::Client,
-    base_url: Url,
+    base_url: BaseUrl,
     signing_public_key: EcdsaDecodingKey,
     storage_path: PathBuf,
     latest_etag: Mutex<Option<HeaderValue>>,
@@ -28,7 +27,7 @@ const ETAG_FILENAME: &str = "latest-configuration-etag.txt";
 
 impl HttpConfigurationClient {
     pub async fn new(
-        base_url: Url,
+        base_url: BaseUrl,
         trust_anchors: Vec<Certificate>,
         signing_public_key: EcdsaDecodingKey,
         storage_path: PathBuf,
@@ -72,7 +71,7 @@ impl HttpConfigurationClient {
     }
 
     pub async fn get_wallet_config(&self) -> Result<Option<WalletConfiguration>, ConfigurationError> {
-        let url = self.base_url.join("wallet-config")?;
+        let url = self.base_url.join("wallet-config");
         let mut request_builder = self.http_client.get(url);
 
         if let Some(etag) = self.latest_etag.lock().as_ref() {

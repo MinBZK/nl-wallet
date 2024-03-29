@@ -39,15 +39,16 @@ where
         let redirect_uri = WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL).to_owned();
 
         if matches!(self.issuance_session, Some(PidIssuanceSession::Digid(_)))
-            && uri.as_str().starts_with(redirect_uri.as_str())
+            && uri.as_str().starts_with(redirect_uri.as_ref().as_str())
         {
             return Ok(UriType::PidIssuance(uri));
         }
 
-        if uri
-            .as_str()
-            .starts_with(WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_str())
-        {
+        if uri.as_str().starts_with(
+            WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL)
+                .as_ref()
+                .as_str(),
+        ) {
             return Ok(UriType::Disclosure(uri));
         }
 
@@ -73,17 +74,12 @@ mod tests {
         // Set up some URLs to work with.
         let example_uri = "https://example.com";
 
-        let mut disclosure_uri_base = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).to_owned();
+        let disclosure_uri_base = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL);
 
         let digid_uri = WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL);
-        let digid_uri = digid_uri.as_str();
+        let digid_uri = digid_uri.as_ref().as_str();
 
-        // Add a trailing slash to the base path, if needed.
-        if !disclosure_uri_base.path().ends_with('/') {
-            disclosure_uri_base.path_segments_mut().unwrap().push("/");
-        }
-
-        let disclosure_uri = disclosure_uri_base.join("abcd").unwrap();
+        let disclosure_uri = disclosure_uri_base.join("abcd");
 
         // The example URI should not be recognised.
         assert_matches!(

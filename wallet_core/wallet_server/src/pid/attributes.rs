@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use url::Url;
 
 use nl_wallet_mdoc::{server_state::SessionState, utils::x509::Certificate};
 use openid4vc::{
@@ -7,6 +6,7 @@ use openid4vc::{
     token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
+use wallet_common::config::wallet_config::BaseUrl;
 
 use crate::settings::MockAttributes;
 
@@ -41,7 +41,7 @@ pub struct MockPidAttributeService {
 
 impl MockPidAttributeService {
     pub fn new(
-        issuer_url: Url,
+        issuer_url: BaseUrl,
         bsn_privkey: String,
         trust_anchors: Vec<reqwest::Certificate>,
         mock_data: Option<Vec<MockAttributes>>,

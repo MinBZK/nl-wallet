@@ -7,7 +7,6 @@ use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
-use url::Url;
 
 use nl_wallet_mdoc::{
     server_keys::KeyRing,
@@ -16,7 +15,7 @@ use nl_wallet_mdoc::{
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
-use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
+use wallet_common::{config::wallet_config::BaseUrl, jwt::EcdsaDecodingKey, utils::random_string};
 
 use crate::{
     credential::{
@@ -185,13 +184,13 @@ pub struct IssuerData<K> {
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
     /// and MUST be used by the wallet as `aud` in its PoP JWTs.
-    credential_issuer_identifier: Url,
+    credential_issuer_identifier: BaseUrl,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
     accepted_wallet_client_ids: Vec<String>,
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
-    server_url: Url,
+    server_url: BaseUrl,
 }
 
 impl<A, K, S> Drop for Issuer<A, K, S> {
@@ -211,19 +210,19 @@ where
         sessions: S,
         attr_service: A,
         private_keys: K,
-        server_url: &Url,
+        server_url: &BaseUrl,
         wallet_client_ids: Vec<String>,
     ) -> Self {
         let sessions = Arc::new(sessions);
 
         let issuer_data = IssuerData {
             private_keys,
-            credential_issuer_identifier: server_url.join("issuance/").unwrap(),
+            credential_issuer_identifier: server_url.join_base_url("issuance/"),
             accepted_wallet_client_ids: wallet_client_ids,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
-            server_url: server_url.join("issuance/").unwrap(),
+            server_url: server_url.join_base_url("issuance/"),
         };
 
         Self {
@@ -368,11 +367,7 @@ where
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            &self
-                .issuer_data
-                .credential_issuer_identifier
-                .join(endpoint_name)
-                .unwrap(),
+            &self.issuer_data.credential_issuer_identifier.join(endpoint_name),
             &Method::DELETE,
             Some(&access_token),
             Some(&session_data.dpop_nonce),
@@ -415,7 +410,7 @@ impl Session<Created> {
         token_request: TokenRequest,
         dpop: Dpop,
         attr_service: &impl AttributeService,
-        server_url: &Url,
+        server_url: &BaseUrl,
     ) -> Result<(TokenResponseWithPreviews, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)>
     {
         let result = self
@@ -445,7 +440,7 @@ impl Session<Created> {
         token_request: TokenRequest,
         dpop: Dpop,
         attr_service: &impl AttributeService,
-        server_url: &Url,
+        server_url: &BaseUrl,
     ) -> Result<(TokenResponseWithPreviews, VerifyingKey, String), TokenRequestError> {
         if !matches!(
             token_request.grant_type,
@@ -455,7 +450,7 @@ impl Session<Created> {
         }
 
         let dpop_public_key = dpop
-            .verify(server_url.join("token").unwrap(), Method::POST, None)
+            .verify(server_url.join("token"), Method::POST, None)
             .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
 
         let code = token_request.code().clone();
@@ -558,7 +553,7 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            &issuer_data.server_url.join("credential").unwrap(),
+            &issuer_data.server_url.join("credential"),
             &Method::POST,
             Some(&access_token),
             Some(&session_data.dpop_nonce),
@@ -642,7 +637,7 @@ impl Session<WaitingForResponse> {
 
         dpop.verify_expecting_key(
             &session_data.dpop_public_key,
-            &issuer_data.server_url.join("batch_credential").unwrap(),
+            &issuer_data.server_url.join("batch_credential"),
             &Method::POST,
             Some(&access_token),
             Some(&session_data.dpop_nonce),
@@ -754,7 +749,7 @@ impl CredentialRequestProof {
         &self,
         nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
-        credential_issuer_identifier: &Url,
+        credential_issuer_identifier: &BaseUrl,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         let jwt = match self {
             CredentialRequestProof::Jwt { jwt } => jwt,

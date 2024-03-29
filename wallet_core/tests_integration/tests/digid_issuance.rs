@@ -45,7 +45,7 @@ async fn test_pid_issuance_digid_bridge() {
             .unwrap(),
         settings.issuer.digid.issuer_url.clone(),
         wallet_config.pid_issuance.digid_client_id.clone(),
-        WalletConfiguration::issuance_redirect_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()),
+        WalletConfiguration::issuance_redirect_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
     )
     .await
     .unwrap();
@@ -59,7 +59,7 @@ async fn test_pid_issuance_digid_bridge() {
     .await;
     let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
-    let server_url = local_pid_base_url(&settings.public_url.port().unwrap());
+    let server_url = local_pid_base_url(&settings.public_url.as_ref().port().unwrap());
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(

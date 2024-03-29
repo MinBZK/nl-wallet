@@ -85,8 +85,8 @@ impl KeyRing for RelyingPartyKeyRing {
 
 struct ApplicationState<S> {
     verifier: Verifier<RelyingPartyKeyRing, S>,
-    internal_url: Url,
-    public_url: Url,
+    internal_url: BaseUrl,
+    public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
 }
 
@@ -248,22 +248,16 @@ where
         .await
         .map_err(Error::StartSession)?;
 
-    let session_url = state
-        .public_url
-        .join(&format!("disclosure/{session_id}/status"))
-        .expect("should always be a valid URL");
+    let session_url = state.public_url.join(&format!("disclosure/{session_id}/status"));
     let disclosed_attributes_url = state
         .internal_url
-        .join(&format!("disclosure/sessions/{session_id}/disclosed_attributes"))
-        .expect("should always be a valid URL");
+        .join(&format!("disclosure/sessions/{session_id}/disclosed_attributes"));
 
     // base64 produces an alphanumberic value, cbor_serialize takes a Cbor_IntMap here
-    let engagement_url = WalletConfiguration::disclosure_base_uri(&state.universal_link_base_url)
-        .join(
-            &BASE64_URL_SAFE_NO_PAD
-                .encode(cbor_serialize(&engagement).expect("serializing an engagement should never fail")),
-        )
-        .expect("universal link and base should be hardcoded s.t. this will never fail");
+    let engagement_url = WalletConfiguration::disclosure_base_uri(&state.universal_link_base_url).join(
+        &BASE64_URL_SAFE_NO_PAD
+            .encode(cbor_serialize(&engagement).expect("serializing an engagement should never fail")),
+    );
 
     // add session_type and if available the return_url
     let engagement_url = format_engagement_url_params(

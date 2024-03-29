@@ -6,7 +6,6 @@ use serial_test::serial;
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_state::SessionToken,
     test::{
         data::{addr_street, pid_family_name, pid_full_name, pid_given_name},
         TestDocuments,
@@ -93,12 +92,7 @@ async fn test_disclosure_usecases_ok(
     let client = reqwest::Client::new();
 
     let response = client
-        .post(
-            ws_settings
-                .internal_url
-                .join("disclosure/sessions")
-                .expect("could not join url with endpoint"),
-        )
+        .post(ws_settings.internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -201,12 +195,7 @@ async fn test_disclosure_without_pid() {
         return_url_template: None,
     };
     let response = client
-        .post(
-            ws_settings
-                .internal_url
-                .join("disclosure/sessions")
-                .expect("could not join url with endpoint"),
-        )
+        .post(ws_settings.internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -278,12 +267,7 @@ async fn test_disclosure_not_found() {
     let client = reqwest::Client::new();
     // check if a freshly generated token returns a 404 on the status URL
     let response = client
-        .get(
-            settings
-                .public_url
-                .join(&format!("/{}/status", SessionToken::from("does_not_exist".to_owned())))
-                .unwrap(),
-        )
+        .get(settings.public_url.join("/nonexistent_session/status"))
         .send()
         .await
         .unwrap();
@@ -292,12 +276,7 @@ async fn test_disclosure_not_found() {
 
     // check if a freshly generated token returns a 404 on the wallet URL
     let response = client
-        .post(
-            settings
-                .public_url
-                .join(&format!("/{}", SessionToken::from("does_not_exist".to_owned())))
-                .unwrap(),
-        )
+        .post(settings.public_url.join("/nonexistent_session"))
         .send()
         .await
         .unwrap();
@@ -306,15 +285,7 @@ async fn test_disclosure_not_found() {
 
     // check if a freshly generated token returns a 404 on the disclosed_attributes URL
     let response = client
-        .get(
-            settings
-                .internal_url
-                .join(&format!(
-                    "/{}/disclosed_attributes",
-                    SessionToken::from("does_not_exist".to_owned())
-                ))
-                .unwrap(),
-        )
+        .get(settings.internal_url.join("/nonexistent_session/disclosed_attributes"))
         .send()
         .await
         .unwrap();

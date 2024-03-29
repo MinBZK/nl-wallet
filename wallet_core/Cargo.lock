@@ -5000,6 +5000,7 @@ dependencies = [
  "rand_core 0.6.4",
  "reqwest",
  "ring 0.17.5",
+ "rstest",
  "rustls-webpki",
  "serde",
  "serde_json",

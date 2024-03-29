@@ -100,7 +100,9 @@ where
                 .unwrap(),
             pid_issuance_config.digid_url.clone(),
             pid_issuance_config.digid_client_id.to_string(),
-            WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL),
+            WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL)
+                .as_ref()
+                .to_owned(),
         )
         .await
         .map_err(PidIssuanceError::DigidSessionStart)?;

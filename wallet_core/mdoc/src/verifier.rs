@@ -16,6 +16,7 @@ use webpki::TrustAnchor;
 
 use wallet_common::{
     account::serialization::DerSecretKey,
+    config::wallet_config::BaseUrl,
     generator::{Generator, TimeGenerator},
     trust_anchor::OwnedTrustAnchor,
     utils,
@@ -217,7 +218,7 @@ pub enum SessionType {
 }
 
 pub struct Verifier<K, S> {
-    url: Url,
+    url: BaseUrl,
     keys: K,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
@@ -244,7 +245,7 @@ where
     /// - `sessions` will contain all sessions.
     /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
-    pub fn new(url: Url, keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>) -> Self
+    pub fn new(url: BaseUrl, keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>) -> Self
     where
         S: Send + Sync + 'static,
     {
@@ -287,7 +288,7 @@ where
             session_type,
             usecase_id,
             return_url_used,
-            &self.url.join("disclosure/").unwrap(),
+            &self.url.join_base_url("disclosure/"),
         )?;
         self.sessions
             .write(&session_state.state.into())
@@ -461,10 +462,10 @@ impl Session<Created> {
         session_type: SessionType,
         usecase_id: String,
         return_url_used: bool,
-        base_url: &Url,
+        base_url: &BaseUrl,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
         let session_token = SessionToken::new();
-        let url = base_url.join(&session_token.0).unwrap(); // token is alphanumeric so this will always succeed
+        let url = base_url.join(&session_token.0);
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(

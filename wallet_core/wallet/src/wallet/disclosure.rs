@@ -95,9 +95,11 @@ where
 
         let config = &self.config_repository.config().disclosure;
 
-        let disclosure_uri =
-            DisclosureUriData::parse_from_uri(uri, &WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL))
-                .map_err(DisclosureError::DisclosureUri)?;
+        let disclosure_uri = DisclosureUriData::parse_from_uri(
+            uri,
+            WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref(),
+        )
+        .map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors())
@@ -455,9 +457,7 @@ mod tests {
     };
 
     static DISCLOSURE_URI: Lazy<Url> = Lazy::<Url>::new(|| {
-        let mut base_uri = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL)
-            .join("Zm9vYmFy")
-            .expect("hardcoded values should always result in a valid URL");
+        let mut base_uri = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy");
         base_uri.set_query(Some("return_url=https%3A%2F%2Fexample.com&session_type=same_device"));
         base_uri
     });
