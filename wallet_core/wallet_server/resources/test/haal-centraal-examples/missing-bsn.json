@@ -1,0 +1,89 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "geslacht": {
+        "code": "V"
+      },
+      "leeftijd": 24,
+      "naam": {
+        "aanduidingNaamgebruik": {
+          "code": "E"
+        },
+        "voornamen": "Frouke",
+        "geslachtsnaam": "Jansen",
+        "voorletters": "F.",
+        "volledigeNaam": "Frouke Jansen"
+      },
+      "nationaliteiten": [
+        {
+          "type": "Nationaliteit",
+          "datumIngangGeldigheid": {
+            "type": "Datum",
+            "datum": "2000-03-24",
+            "langFormaat": "24 maart 2000"
+          },
+          "nationaliteit": {
+            "code": "0001",
+            "omschrijving": "Nederlandse"
+          },
+          "redenOpname": {
+            "code": "017",
+            "omschrijving": "Rijkswet op het Nederlanderschap 1984, art. 3, lid 1"
+          }
+        },
+        {
+          "type": "Nationaliteit",
+          "datumIngangGeldigheid": {
+            "type": "Datum",
+            "datum": "2001-03-22",
+            "langFormaat": "22 maart 2001"
+          },
+          "nationaliteit": {
+            "code": "0002",
+            "omschrijving": "Belgische"
+          }
+        }
+      ],
+      "geboorte": {
+        "land": {
+          "code": "5010",
+          "omschrijving": "België"
+        },
+        "plaats": {
+          "omschrijving": "Luik"
+        },
+        "datum": {
+          "type": "Datum",
+          "datum": "2000-03-24",
+          "langFormaat": "24 maart 2000"
+        }
+      },
+      "verblijfplaats": {
+        "type": "Adres",
+        "verblijfadres": {
+          "officieleStraatnaam": "Van Wijngaerdenstraat",
+          "korteStraatnaam": "Van Wijngaerdenstraat",
+          "huisnummer": 1,
+          "postcode": "2596TW",
+          "woonplaats": "Toetsoog"
+        },
+        "functieAdres": {
+          "code": "W"
+        },
+        "adresseerbaarObjectIdentificatie": "1810010010001001",
+        "nummeraanduidingIdentificatie": "1810200010001001",
+        "datumVan": {
+          "type": "Datum",
+          "datum": "2000-06-10",
+          "langFormaat": "10 juni 2000"
+        },
+        "datumIngangGeldigheid": {
+          "type": "Datum",
+          "datum": "2000-06-10",
+          "langFormaat": "10 juni 2000"
+        }
+      }
+    }
+  ]
+}

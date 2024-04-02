@@ -3,6 +3,7 @@ name = "wallet_server"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+exclude = ["resources"]
 
 [lints]
 workspace = true
@@ -52,7 +53,7 @@ axum = { workspace = true, features = [
 ] }
 base64.workspace = true
 ciborium = { workspace = true, optional = true }
-chrono.workspace = true
+chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
 futures = { workspace = true, optional = true }

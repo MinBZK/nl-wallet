@@ -90,6 +90,8 @@ pub struct Issuer {
 
     #[cfg(feature = "mock")]
     pub mock_data: Option<Vec<MockAttributes>>,
+
+    pub brp_server: BaseUrl,
 }
 
 impl Issuer {
@@ -116,6 +118,7 @@ impl Settings {
             .set_default("internal_url", "http://localhost:3002/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("store_url", "memory://")?
+            .set_default("issuer.brp_server", "http://localhost:5001/")?
             .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
 
         #[cfg(feature = "issuance")]

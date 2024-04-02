@@ -14,13 +14,11 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
 
   String get lastNameKey;
 
-  String get birthNameKey;
-
   String get birthCountryKey;
 
   String get birthDateKey;
 
-  String get birthPlaceKey;
+  String get birthCityKey;
 
   String get genderKey;
 
@@ -39,7 +37,6 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
   @override
   List<UiAttribute> map(BuildContext context, List<T> input) {
     final l10n = context.l10n;
-    final birthName = getBirthName(context, input);
     //NOTE: We use the untranslated constructor here, since this function is called with a fresh context
     //NOTE: on every locale change, and thus the correct localization is provided by default.
     return [
@@ -48,13 +45,6 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
         icon: Icons.portrait_outlined,
         label: l10n.walletPersonalizeCheckDataOfferingPageNameLabel,
       ),
-      birthName == null
-          ? null
-          : UiAttribute.untranslated(
-              value: StringValue(birthName),
-              icon: Icons.crib_outlined,
-              label: l10n.walletPersonalizeCheckDataOfferingPageBirthNameLabel,
-            ),
       UiAttribute.untranslated(
         value: StringValue(getBirthDetails(context, input)),
         icon: Icons.cake_outlined,
@@ -87,7 +77,7 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
     return context.l10n.walletPersonalizeCheckDataOfferingPageBirthInfoValue(
       getBirthCountry(context, attributes),
       getBirthDate(context, attributes),
-      getBirthPlace(context, attributes),
+      getBirthCity(context, attributes),
     );
   }
 
@@ -106,11 +96,9 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
 
   String getLastName(BuildContext context, List<T> attributes) => findByKey(context, attributes, lastNameKey)!;
 
-  String? getBirthName(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthNameKey);
-
   String getBirthDate(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthDateKey)!;
 
-  String getBirthPlace(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthPlaceKey)!;
+  String getBirthCity(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCityKey)!;
 
   String getBirthCountry(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCountryKey)!;
 

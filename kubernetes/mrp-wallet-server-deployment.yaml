@@ -57,6 +57,8 @@ spec:
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
             - name: WALLET_SERVER_ISSUER__DIGID__CLIENT_ID
               value: "SSSS"
+            - name: WALLET_SERVER_ISSUER__BRP_SERVER
+              value: "http://brpproxy:5001/"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:

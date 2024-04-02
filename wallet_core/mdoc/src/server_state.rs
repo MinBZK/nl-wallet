@@ -78,7 +78,7 @@ impl<T> SessionState<T> {
 pub const SESSION_EXPIRY_MINUTES: u64 = 5;
 
 /// The cleanup task that removes stale sessions runs every so often.
-pub const CLEANUP_INTERVAL_SECONDS: u64 = 10;
+pub const CLEANUP_INTERVAL_SECONDS: u64 = 120;
 
 impl<T: Clone + Send + Sync> SessionStore for MemorySessionStore<T> {
     type Data = SessionState<T>;

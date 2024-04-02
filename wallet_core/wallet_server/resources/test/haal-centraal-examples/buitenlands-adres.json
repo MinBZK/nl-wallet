@@ -1,0 +1,98 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "burgerservicenummer": "999992090",
+      "geslacht": {
+        "code": "O"
+      },
+      "inOnderzoek": {
+        "datumIngangOnderzoekPersoon": {
+          "type": "Datum",
+          "datum": "2010-08-22",
+          "langFormaat": "22 augustus 2010"
+        },
+        "geslacht": true
+      },
+      "leeftijd": 45,
+      "naam": {
+        "aanduidingNaamgebruik": {
+          "code": "E"
+        },
+        "inOnderzoek": {
+          "volledigeNaam": true,
+          "datumIngangOnderzoek": {
+            "type": "Datum",
+            "datum": "2010-08-22",
+            "langFormaat": "22 augustus 2010"
+          }
+        },
+        "geslachtsnaam": "Chailai Chimlin Ngam-Chit Phailin",
+        "volledigeNaam": "Chailai Chimlin Ngam-Chit Phailin"
+      },
+      "nationaliteiten": [
+        {
+          "type": "Nationaliteit",
+          "datumIngangGeldigheid": {
+            "type": "Datum",
+            "datum": "1978-07-07",
+            "langFormaat": "7 juli 1978"
+          },
+          "nationaliteit": {
+            "code": "0001",
+            "omschrijving": "Nederlandse"
+          },
+          "redenOpname": {
+            "code": "001",
+            "omschrijving": "Wet op het Nederlanderschap 1892, art. 1, onder a"
+          }
+        }
+      ],
+      "geboorte": {
+        "land": {
+          "code": "7042",
+          "omschrijving": "Thailand"
+        },
+        "plaats": {
+          "omschrijving": "Bangkok"
+        },
+        "datum": {
+          "type": "Datum",
+          "datum": "1978-07-07",
+          "langFormaat": "7 juli 1978"
+        }
+      },
+      "opschortingBijhouding": {
+        "datum": {
+          "type": "Datum",
+          "datum": "2010-08-22",
+          "langFormaat": "22 augustus 2010"
+        },
+        "reden": {
+          "code": "E"
+        }
+      },
+      "verblijfplaats": {
+        "type": "VerblijfplaatsBuitenland",
+        "verblijfadres": {
+          "regel1": "526 Yaowaraj Rd., Sampuntawong, 101",
+          "regel2": "Krung Thep Mahanakhon Amon Rattanak",
+          "land": {
+            "code": "7042",
+            "omschrijving": "Thailand"
+          }
+        },
+        "datumVan": {
+          "type": "Datum",
+          "datum": "2010-08-22",
+          "langFormaat": "22 augustus 2010"
+        },
+        "datumIngangGeldigheid": {
+          "type": "Datum",
+          "datum": "2010-08-22",
+          "langFormaat": "22 augustus 2010"
+        }
+      }
+    }
+  ]
+}

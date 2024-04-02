@@ -1,0 +1,171 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "burgerservicenummer": "999993112",
+      "geslacht": {
+        "code": "V"
+      },
+      "leeftijd": 53,
+      "naam": {
+        "aanduidingNaamgebruik": {
+          "code": "V"
+        },
+        "voornamen": "Wilma",
+        "voorvoegsel": "van",
+        "geslachtsnaam": "Zon",
+        "voorletters": "W.",
+        "volledigeNaam": "Wilma van Zon"
+      },
+      "nationaliteiten": [
+        {
+          "type": "NationaliteitOnbekend",
+          "datumIngangGeldigheid": {
+            "type": "Datum",
+            "datum": "2015-01-31",
+            "langFormaat": "31 januari 2015"
+          },
+          "redenEinde": {
+            "code": "404"
+          }
+        },
+        {
+          "type": "Nationaliteit",
+          "datumIngangGeldigheid": {
+            "type": "Datum",
+            "datum": "1970-04-07",
+            "langFormaat": "7 april 1970"
+          },
+          "nationaliteit": {
+            "code": "0052",
+            "omschrijving": "Belgische"
+          },
+          "redenOpname": {
+            "code": "301",
+            "omschrijving": "Vaststelling bezit vreemde nationaliteit"
+          }
+        },
+        {
+          "type": "Nationaliteit",
+          "datumIngangGeldigheid": {
+            "type": "Datum",
+            "datum": "1970-04-07",
+            "langFormaat": "7 april 1970"
+          },
+          "nationaliteit": {
+            "code": "0001",
+            "omschrijving": "Nederlandse"
+          },
+          "redenOpname": {
+            "code": "001",
+            "omschrijving": "Wet op het Nederlanderschap 1892, art. 1, onder a"
+          }
+        }
+      ],
+      "geboorte": {
+        "land": {
+          "code": "6030",
+          "omschrijving": "Nederland"
+        },
+        "plaats": {
+          "code": "0599",
+          "omschrijving": "Rotterdam"
+        },
+        "datum": {
+          "type": "Datum",
+          "datum": "1970-04-07",
+          "langFormaat": "7 april 1970"
+        }
+      },
+      "verblijfplaats": {
+        "type": "Adres",
+        "verblijfadres": {
+          "korteStraatnaam": "Schakelstraat",
+          "huisnummer": 14,
+          "huisnummertoevoeging": "H",
+          "postcode": "1014AW",
+          "woonplaats": "Amsterdam"
+        },
+        "functieAdres": {
+          "code": "W"
+        },
+        "adresseerbaarObjectIdentificatie": "0363010000805805",
+        "nummeraanduidingIdentificatie": "0363200000264601",
+        "datumVan": {
+          "type": "Datum",
+          "datum": "1997-05-01",
+          "langFormaat": "1 mei 1997"
+        },
+        "datumIngangGeldigheid": {
+          "type": "Datum",
+          "datum": "1997-05-01",
+          "langFormaat": "1 mei 1997"
+        }
+      },
+      "ouders": [
+        {
+          "geslacht": {
+            "code": "V"
+          },
+          "ouderAanduiding": "1",
+          "datumIngangFamilierechtelijkeBetrekking": {
+            "type": "Datum",
+            "datum": "1970-04-07",
+            "langFormaat": "7 april 1970"
+          },
+          "naam": {
+            "voornamen": "Dorothea Wilhelmina",
+            "geslachtsnaam": "Krabbendijke",
+            "voorletters": "D.W."
+          },
+          "geboorte": {
+            "land": {
+              "code": "6030",
+              "omschrijving": "Nederland"
+            },
+            "plaats": {
+              "code": "0684",
+              "omschrijving": "Krabbendijke"
+            },
+            "datum": {
+              "type": "Datum",
+              "datum": "1949-08-04",
+              "langFormaat": "4 augustus 1949"
+            }
+          }
+        },
+        {
+          "geslacht": {
+            "code": "M"
+          },
+          "ouderAanduiding": "2",
+          "datumIngangFamilierechtelijkeBetrekking": {
+            "type": "Datum",
+            "datum": "1970-04-07",
+            "langFormaat": "7 april 1970"
+          },
+          "naam": {
+            "voornamen": "Alphons",
+            "voorvoegsel": "De",
+            "geslachtsnaam": "Smet",
+            "voorletters": "A."
+          },
+          "geboorte": {
+            "land": {
+              "code": "5010",
+              "omschrijving": "België"
+            },
+            "plaats": {
+              "omschrijving": "Antwerpen"
+            },
+            "datum": {
+              "type": "Datum",
+              "datum": "1947-04-15",
+              "langFormaat": "15 april 1947"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
