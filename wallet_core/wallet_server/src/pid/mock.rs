@@ -4,14 +4,76 @@ use std::{collections::HashMap, ops::Add};
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
-
-use nl_wallet_mdoc::{
-    unsigned::{Entry, UnsignedMdoc},
-    Tdate,
-};
 use serde::Deserialize;
 
-use crate::settings::MockAttributes;
+use nl_wallet_mdoc::{
+    server_state::SessionState,
+    unsigned::{Entry, UnsignedMdoc},
+    utils::x509::Certificate,
+    Tdate,
+};
+use openid4vc::{
+    issuer::{AttributeService, Created},
+    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+};
+use wallet_common::config::wallet_config::BaseUrl;
+
+use crate::{
+    pid::{
+        attributes::{AttributeCertificates, Error},
+        constants::*,
+        digid::OpenIdClient,
+    },
+    settings::MockAttributes,
+};
+
+pub struct MockPidAttributeService {
+    openid_client: OpenIdClient,
+    attrs_lookup: MockAttributesLookup,
+    certificates: AttributeCertificates,
+}
+
+impl MockPidAttributeService {
+    pub fn new(
+        issuer_url: BaseUrl,
+        bsn_privkey: String,
+        trust_anchors: Vec<reqwest::Certificate>,
+        mock_data: Option<Vec<MockAttributes>>,
+        certificates: IndexMap<String, Certificate>,
+    ) -> Result<Self, Error> {
+        Ok(MockPidAttributeService {
+            openid_client: OpenIdClient::new(issuer_url, bsn_privkey, trust_anchors)?,
+            attrs_lookup: MockAttributesLookup::from(mock_data.unwrap_or_default()),
+            certificates: AttributeCertificates::new(certificates),
+        })
+    }
+}
+
+impl AttributeService for MockPidAttributeService {
+    type Error = Error;
+
+    async fn attributes(
+        &self,
+        _session: &SessionState<Created>,
+        token_request: TokenRequest,
+    ) -> Result<Vec<AttestationPreview>, Error> {
+        let openid_token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode {
+                code: token_request.code().clone(),
+            },
+            ..token_request
+        };
+
+        let bsn = self.openid_client.bsn(openid_token_request).await?;
+
+        self.attrs_lookup
+            .attributes(&bsn)
+            .ok_or(Error::NoAttributesFound)?
+            .into_iter()
+            .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
+            .collect::<Result<_, _>>()
+    }
+}
 
 // ISO/IEC 5218
 #[allow(dead_code)]
@@ -36,31 +98,6 @@ impl From<Gender> for Value {
     }
 }
 
-const PID_BSN: &str = "bsn";
-
-const PID_FAMILY_NAME: &str = "family_name";
-const PID_GIVEN_NAME: &str = "given_name";
-const PID_BIRTH_DATE: &str = "birth_date";
-const PID_AGE_OVER_18: &str = "age_over_18";
-// const PID_AGE_OVER_NN: &str = "age_over_NN";
-// const PID_AGE_IN_YEARS: &str = "age_in_years";
-// const PID_AGE_BIRTH_YEAR: &str = "age_birth_year";
-const PID_FAMILY_NAME_BIRTH: &str = "family_name_birth";
-const PID_GIVEN_NAME_BIRTH: &str = "given_name_birth";
-const PID_BIRTH_PLACE: &str = "birth_place";
-const PID_BIRTH_COUNTRY: &str = "birth_country";
-const PID_BIRTH_STATE: &str = "birth_state";
-const PID_BIRTH_CITY: &str = "birth_city";
-const PID_RESIDENT_ADDRESS: &str = "resident_address";
-const PID_RESIDENT_COUNTRY: &str = "resident_country";
-const PID_RESIDENT_STATE: &str = "resident_state";
-const PID_RESIDENT_CITY: &str = "resident_city";
-const PID_RESIDENT_POSTAL_CODE: &str = "resident_postal_code";
-const PID_RESIDENT_STREET: &str = "resident_street";
-const PID_RESIDENT_HOUSE_NUMBER: &str = "resident_house_number";
-const PID_GENDER: &str = "gender";
-const PID_NATIONALITY: &str = "nationality";
-
 #[derive(Default, Deserialize, Clone)]
 pub struct PersonAttributes {
     bsn: String,
@@ -71,9 +108,6 @@ pub struct PersonAttributes {
     // age_over_NN: Option<bool>,
     // age_in_years: Option<u32>,
     // age_birth_year: Option<u32>,
-    family_name_birth: Option<String>,
-    given_name_birth: Option<String>,
-    birth_place: Option<String>,
     birth_country: Option<String>,
     birth_state: Option<String>,
     birth_city: Option<String>,
@@ -109,18 +143,6 @@ impl From<PersonAttributes> for Vec<Entry> {
                 value: Value::Bool(value.age_over_18),
             }
             .into(),
-            value.family_name_birth.map(|v| Entry {
-                name: PID_FAMILY_NAME_BIRTH.to_string(),
-                value: Value::Text(v),
-            }),
-            value.given_name_birth.map(|v| Entry {
-                name: PID_GIVEN_NAME_BIRTH.to_string(),
-                value: Value::Text(v),
-            }),
-            value.birth_place.map(|v| Entry {
-                name: PID_BIRTH_PLACE.to_string(),
-                value: Value::Text(v),
-            }),
             value.birth_country.map(|v| Entry {
                 name: PID_BIRTH_COUNTRY.to_string(),
                 value: Value::Text(v),
@@ -213,7 +235,6 @@ impl Default for MockAttributesLookup {
                     bsn: "999991772".to_owned(),
                     given_name: "Willeke Liselotte".to_owned(),
                     family_name: "De Bruijn".to_owned(),
-                    family_name_birth: Some("Molenaar".to_owned()),
                     gender: Some(Gender::Female),
                     birth_date: chrono::NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
                     age_over_18: true,
@@ -221,7 +242,6 @@ impl Default for MockAttributesLookup {
                     birth_city: Some("Delft".to_owned()),
                     birth_state: Some("Zuid-Holland".to_owned()),
                     nationality: Some("NL".to_owned()),
-                    ..PersonAttributes::default()
                 },
                 Some(ResidentAttributes {
                     street: Some("Turfmarkt".to_owned()),

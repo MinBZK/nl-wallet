@@ -47,14 +47,16 @@ Where:
     wp, wallet_provider:        Start the wallet_provider.
                                 This requires a PostgreSQL database to be running, which can be provided by the
                                 'docker' service.
-    mrp, mock_relying_party:    Start the mock_relying_party (this also starts a wallet_server).
+    ws, wallet_server:          Start the wallet_server.
+    mrp, mock_relying_party:    Start the mock_relying_party.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
-    docker:                     Start a PostgreSQL database, including pgadmin4, on docker.
+    brp:                        Start the Haal-Centraal BRP proxy with GBA mock.
+    postgres:                   Start a PostgreSQL database, including pgadmin4, on docker.
 
   OPTION is any of:
     --all                       Start all of the above services.
-    --default                   Start all of the above services, excluding docker.
+    --default                   Start all of the above services, excluding docker and wallet.
                                 This option is provided when a PostgreSQL database is run and managed by the user.
     --stop                      Just stop all services
     -h, --help                  Show this help
@@ -73,10 +75,12 @@ expect_command flutter "Missing binary 'flutter', please install Flutter"
 
 MOCK_RELYING_PARTY=1
 WALLET_PROVIDER=1
+WALLET_SERVER=1
 WALLET=1
 DIGID_CONNECTOR=1
 CONFIG_SERVER=1
-DOCKER=1
+BRP=1
+POSTGRES=1
 
 USAGE=1
 
@@ -99,6 +103,10 @@ do
             WALLET_PROVIDER=0
             shift # past argument
             ;;
+        ws|wallet_server)
+            WALLET_SERVER=0
+            shift # past argument
+            ;;
         mrp|mock_relying_party)
             MOCK_RELYING_PARTY=0
             shift # past argument
@@ -111,25 +119,32 @@ do
             CONFIG_SERVER=0
             shift
             ;;
-        docker)
-            DOCKER=0
+        brp)
+            BRP=0
+            shift
+            ;;
+        postgres)
+            POSTGRES=0
             shift # past argument
             ;;
         --default)
             DIGID_CONNECTOR=0
             MOCK_RELYING_PARTY=0
+            WALLET_SERVER=0
             WALLET_PROVIDER=0
-            WALLET=0
             CONFIG_SERVER=0
+            BRP=0
             shift # past argument
             ;;
         --all)
             DIGID_CONNECTOR=0
-            DOCKER=0
+            POSTGRES=0
             MOCK_RELYING_PARTY=0
+            WALLET_SERVER=0
             WALLET_PROVIDER=0
             WALLET=0
             CONFIG_SERVER=0
+            BRP=0
             shift # past argument
             ;;
         -h|--help)
@@ -172,31 +187,28 @@ then
     fi
     if [ "${START}" == "0" ]
     then
-
         echo -e "Building and starting ${ORANGE}digid-connector${NC}"
-        docker compose up -d --build --force-recreate
+        docker compose up --detach --build --force-recreate
     fi
 fi
 
 ########################################################################
-# Manage docker
+# Manage postgres
 
-if [ "${DOCKER}" == "0" ]
+if [ "${POSTGRES}" == "0" ]
 then
     echo
-    echo -e "${SECTION}Manage wallet docker services${NC}"
-
-    cd "${BASE_DIR}"
+    echo -e "${SECTION}Manage postgres services${NC}"
 
     if [ "${STOP}" == "0" ]
     then
-        echo -e "${INFO}Stopping docker services${NC}"
-        docker compose down || true
+        echo -e "${INFO}Stopping postgres services${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down postgresql pgadmin4 || true
     fi
     if [ "${START}" == "0" ]
     then
-        echo -e "${INFO}Starting docker services${NC}"
-        docker compose up -d
+        echo -e "${INFO}Starting postgres services${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach postgresql pgadmin4
     fi
 fi
 
@@ -222,7 +234,14 @@ then
 
         echo -e "mock_relying_party logs can be found at ${CYAN}${TARGET_DIR}/mock_relying_party.log${NC}"
     fi
+fi
 
+
+########################################################################
+# Manage wallet_server
+
+if [ "${WALLET_SERVER}" == "0" ]
+then
     # As part of the MRP a wallet_server is started
     echo
     echo -e "${SECTION}Manage wallet_server${NC}"
@@ -297,6 +316,26 @@ then
         RUST_LOG=debug cargo run --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
 
         echo -e "configuration_server logs can be found at ${CYAN}${TARGET_DIR}/configuration_server.log${NC}"
+    fi
+fi
+
+########################################################################
+# Manage brpproxy
+
+if [ "${BRP}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage brpproxy${NC}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Stopping ${ORANGE}brpproxy${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down brpproxy gbamock || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "Building and starting ${ORANGE}brpproxy${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach brpproxy gbamock
     fi
 fi
 
