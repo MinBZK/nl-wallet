@@ -40,7 +40,7 @@ default:
   before_script:
     - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
   image:
-    name: $HARBOR_REGISTRY/ghcr-io-proxy/kaniko-project/executor:debug"
+    name: "$HARBOR_REGISTRY/gcr-io-proxy/kaniko-project/executor:debug"
     entrypoint: [""]
 
 .default-sonar:
