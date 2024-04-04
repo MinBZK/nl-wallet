@@ -41,7 +41,6 @@ futures.workspace = true
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdh", "ecdsa", "pem", "serde", "std"] }
 rand_core.workspace = true
 reqwest = { workspace = true, features = ["json"] }

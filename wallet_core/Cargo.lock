@@ -2413,7 +2413,6 @@ dependencies = [
  "http",
  "indexmap 2.0.2",
  "itertools 0.11.0",
- "nutype",
  "once_cell",
  "p256",
  "parking_lot",
