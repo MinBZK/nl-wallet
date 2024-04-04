@@ -32,9 +32,7 @@ use wallet::{
     Wallet,
 };
 use wallet_common::{
-    config::wallet_config::WalletConfiguration,
-    keys::software::SoftwareEcdsaKey,
-    nonempty::{NonEmpty, NonEmptyError},
+    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey, nonempty::NonEmpty,
     reqwest::trusted_reqwest_client_builder,
 };
 use wallet_provider::settings::Settings as WpSettings;
@@ -364,14 +362,14 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
 pub struct MockAttributeService(pub IndexMap<String, x509::Certificate>);
 
 impl AttributeService for MockAttributeService {
-    type Error = NonEmptyError;
+    type Error = std::convert::Infallible;
 
     async fn attributes(
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
     ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
-        MockAttributesLookup::default()
+        let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
             .into_iter()
@@ -379,7 +377,7 @@ impl AttributeService for MockAttributeService {
                 issuer: self.0[&unsigned_mdoc.doc_type].clone(),
                 unsigned_mdoc,
             })
-            .collect::<Vec<_>>()
-            .try_into()
+            .collect::<Vec<_>>();
+        Ok(attributes.try_into().unwrap())
     }
 }

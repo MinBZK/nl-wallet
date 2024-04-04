@@ -20,10 +20,7 @@ use openid4vc::{
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
-use wallet_common::{
-    config::wallet_config::BaseUrl,
-    nonempty::{NonEmpty, NonEmptyError},
-};
+use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -328,7 +325,7 @@ struct MockAttributeService {
 }
 
 impl AttributeService for MockAttributeService {
-    type Error = NonEmptyError;
+    type Error = std::convert::Infallible;
 
     async fn attributes(
         &self,
@@ -375,6 +372,6 @@ impl AttributeService for MockAttributeService {
                 issuer: self.issuer_cert.clone(),
             },
         ];
-        previews.try_into()
+        Ok(previews.try_into().unwrap())
     }
 }
