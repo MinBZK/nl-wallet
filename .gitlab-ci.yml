@@ -320,7 +320,6 @@ dependency-check-rust:
     - |
       cargo audit \
         --ignore RUSTSEC-2023-0071 \
-        --ignore RUSTSEC-2024-0019 \
         --file wallet_core/Cargo.lock \
         --json | tee audit.json | jq
   artifacts:
