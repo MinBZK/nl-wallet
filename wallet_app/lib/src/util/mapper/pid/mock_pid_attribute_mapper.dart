@@ -10,10 +10,7 @@ class MockPidAttributeMapper extends PidAttributeMapper<DataAttribute> {
   String get birthDateKey => 'mock.birthDate';
 
   @override
-  String get birthNameKey => 'mock.birthName';
-
-  @override
-  String get birthPlaceKey => 'mock.birthPlace';
+  String get birthCityKey => 'mock.birthPlace';
 
   @override
   String get bsnKey => 'mock.citizenshipNumber';

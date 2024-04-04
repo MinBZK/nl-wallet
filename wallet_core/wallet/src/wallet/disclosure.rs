@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
+use itertools::Itertools;
 use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
@@ -35,6 +36,7 @@ pub struct DisclosureProposal {
     pub reader_registration: ReaderRegistration,
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
+    pub is_login_flow: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -95,9 +97,11 @@ where
 
         let config = &self.config_repository.config().disclosure;
 
-        let disclosure_uri =
-            DisclosureUriData::parse_from_uri(uri, &WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL))
-                .map_err(DisclosureError::DisclosureUri)?;
+        let disclosure_uri = DisclosureUriData::parse_from_uri(
+            uri,
+            WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref(),
+        )
+        .map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors())
@@ -154,12 +158,14 @@ where
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
 
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
-        let documents = proposal_session
+        let documents: Vec<DisclosureDocument> = proposal_session
             .proposed_attributes()
             .into_iter()
             .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
             .collect::<Result<_, _>>()
             .map_err(DisclosureError::MdocAttributes)?;
+
+        let is_login_flow = Self::is_login_flow(&documents);
 
         // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.
         let proposal = DisclosureProposal {
@@ -167,12 +173,28 @@ where
             reader_registration: session.reader_registration().clone(),
             shared_data_with_relying_party_before,
             session_type: session.session_type(),
+            is_login_flow,
         };
 
         // Retain the session as `Wallet` state.
         self.disclosure_session.replace(session);
 
         Ok(proposal)
+    }
+
+    // Check if this is a login flow by verifying that ONLY a bsn is shared
+    fn is_login_flow(documents: &[DisclosureDocument]) -> bool {
+        // Currently, a login flow is defined as:
+        // - there is exactly one document being shared
+        // - exactly one attribute is being shared
+        // - that attribute is the BSN
+        documents
+            .iter()
+            .exactly_one()
+            .ok()
+            .and_then(|doc| doc.attributes.iter().exactly_one().ok())
+            .map(|attribute| *attribute.0 == "bsn")
+            .unwrap_or(false)
     }
 
     async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<(), DisclosureError> {
@@ -455,9 +477,7 @@ mod tests {
     };
 
     static DISCLOSURE_URI: Lazy<Url> = Lazy::<Url>::new(|| {
-        let mut base_uri = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL)
-            .join("Zm9vYmFy")
-            .expect("hardcoded values should always result in a valid URL");
+        let mut base_uri = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy");
         base_uri.set_query(Some("return_url=https%3A%2F%2Fexample.com&session_type=same_device"));
         base_uri
     });

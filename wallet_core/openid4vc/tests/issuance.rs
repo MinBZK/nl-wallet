@@ -20,14 +20,17 @@ use openid4vc::{
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
-use wallet_common::nonempty::{NonEmpty, NonEmptyError};
+use wallet_common::{
+    config::wallet_config::BaseUrl,
+    nonempty::{NonEmpty, NonEmptyError},
+};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
-fn setup() -> (MockIssuer, Certificate, Url) {
+fn setup() -> (MockIssuer, Certificate, BaseUrl) {
     let ca = KeyPair::generate_issuer_mock_ca().unwrap();
     let keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-    let server_url = "https://example.com/".parse().unwrap();
+    let server_url: BaseUrl = "https://example.com/".parse().unwrap();
 
     let issuer = MockIssuer::new(
         MemorySessionStore::new(),
@@ -39,7 +42,7 @@ fn setup() -> (MockIssuer, Certificate, Url) {
         vec!["https://example.com".to_string()],
     );
 
-    (issuer, ca.into(), server_url.join("issuance/").unwrap())
+    (issuer, ca.into(), server_url.join_base_url("issuance/"))
 }
 
 #[tokio::test]

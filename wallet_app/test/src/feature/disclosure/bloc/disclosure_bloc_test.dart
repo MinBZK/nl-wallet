@@ -3,6 +3,7 @@ import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
+import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/report_issue/report_issue_screen.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
@@ -64,7 +65,7 @@ void main() {
   );
 
   blocTest(
-    'when startDisclosure returns StartDisclosureReadyToDisclose, the bloc emits DisclosureCheckOrganization',
+    'when startDisclosure returns StartDisclosureReadyToDisclose for regular disclosure, the bloc emits DisclosureCheckOrganization',
     setUp: () {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
@@ -73,6 +74,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -81,6 +83,27 @@ void main() {
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [isA<DisclosureCheckOrganization>()],
+  );
+
+  blocTest(
+    'when startDisclosure returns StartDisclosureReadyToDisclose for login type disclosure, the bloc emits DisclosureCheckOrganizationForLogin',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+        return StartDisclosureReadyToDisclose(
+          WalletMockData.organization,
+          'http://origin.org',
+          'requestPurpose'.untranslated,
+          false,
+          DisclosureSessionType.crossDevice,
+          DisclosureType.login,
+          {},
+          WalletMockData.policy,
+        );
+      });
+    },
+    build: () => create(),
+    act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [isA<DisclosureCheckOrganizationForLogin>()],
   );
 
   blocTest(
@@ -112,6 +135,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -154,7 +178,7 @@ void main() {
   );
 
   blocTest(
-    'when the user continues disclosure while checking the organization for ready to disclose, the bloc emits DisclosureConfirmDataAttributes',
+    'when the user continues regular disclosure after checking the organization based on StartDisclosureReadyToDisclose, the bloc emits DisclosureConfirmDataAttributes',
     setUp: () {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
@@ -163,6 +187,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -179,7 +204,33 @@ void main() {
   );
 
   blocTest(
-    'when the user continues disclosure while checking the organization for missing attributes, the bloc emits DisclosureMissingAttributes',
+    'when the user continues login type disclosure after checking the organization based on StartDisclosureReadyToDisclose, the bloc emits DisclosureConfirmPin',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+        return StartDisclosureReadyToDisclose(
+          WalletMockData.organization,
+          'http://origin.org',
+          'requestPurpose'.untranslated,
+          false,
+          DisclosureSessionType.crossDevice,
+          DisclosureType.login,
+          {},
+          WalletMockData.policy,
+        );
+      });
+    },
+    build: () => create(),
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
+      bloc.add(const DisclosureOrganizationApproved());
+    },
+    expect: () => [isA<DisclosureCheckOrganizationForLogin>(), isA<DisclosureConfirmPin>()],
+  );
+
+  blocTest(
+    'when the user continues disclosure after checking the organization based on StartDisclosureMissingAttributes, the bloc emits DisclosureMissingAttributes',
     setUp: () {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
@@ -243,6 +294,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -270,6 +322,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -298,6 +351,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -319,7 +373,7 @@ void main() {
   );
 
   blocTest(
-    'when user presses back from the DisclosureCheckOrganization state, the bloc emits DisclosureCheckOrganization ',
+    'when user presses back from the DisclosureConfirmDataAttributes state, the bloc emits DisclosureCheckOrganization ',
     setUp: () {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
@@ -328,6 +382,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -358,6 +413,7 @@ void main() {
           'requestPurpose'.untranslated,
           false,
           DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
           {},
           WalletMockData.policy,
         );
@@ -377,6 +433,37 @@ void main() {
       isA<DisclosureConfirmDataAttributes>(),
       isA<DisclosureConfirmPin>(),
       isA<DisclosureConfirmDataAttributes>(),
+    ],
+  );
+
+  blocTest(
+    'when user presses back from the DisclosureConfirmPin state for login type disclosure, the bloc emits DisclosureCheckOrganizationForLogin',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+        return StartDisclosureReadyToDisclose(
+          WalletMockData.organization,
+          'http://origin.org',
+          'requestPurpose'.untranslated,
+          false,
+          DisclosureSessionType.crossDevice,
+          DisclosureType.login,
+          {},
+          WalletMockData.policy,
+        );
+      });
+    },
+    build: () => create(),
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
+      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureBackPressed());
+    },
+    skip: 1,
+    expect: () => [
+      isA<DisclosureConfirmPin>(),
+      isA<DisclosureCheckOrganizationForLogin>(),
     ],
   );
 

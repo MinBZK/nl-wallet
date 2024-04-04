@@ -1,0 +1,4 @@
+enum DisclosureType {
+  regular,
+  login,
+}

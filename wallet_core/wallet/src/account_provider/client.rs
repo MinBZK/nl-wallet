@@ -16,6 +16,7 @@ use wallet_common::{
         },
         signed::SignedDouble,
     },
+    config::wallet_config::BaseUrl,
     reqwest::default_reqwest_client_builder,
 };
 
@@ -109,8 +110,8 @@ impl Default for HttpAccountProviderClient {
 }
 
 impl AccountProviderClient for HttpAccountProviderClient {
-    async fn registration_challenge(&self, base_url: &Url) -> Result<Vec<u8>, AccountProviderError> {
-        let url = base_url.join("enroll")?;
+    async fn registration_challenge(&self, base_url: &BaseUrl) -> Result<Vec<u8>, AccountProviderError> {
+        let url = base_url.join("enroll");
         let request = self.http_client.post(url).build()?;
         let challenge: Challenge = self.send_json_request::<Challenge>(request).await?;
 
@@ -119,10 +120,10 @@ impl AccountProviderClient for HttpAccountProviderClient {
 
     async fn register(
         &self,
-        base_url: &Url,
+        base_url: &BaseUrl,
         registration_message: SignedDouble<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError> {
-        let url = base_url.join("createwallet")?;
+        let url = base_url.join("createwallet");
         let cert: Certificate = self.send_json_post_request(url, &registration_message).await?;
 
         Ok(cert.certificate)
@@ -130,10 +131,10 @@ impl AccountProviderClient for HttpAccountProviderClient {
 
     async fn instruction_challenge(
         &self,
-        base_url: &Url,
+        base_url: &BaseUrl,
         challenge_request: InstructionChallengeRequestMessage,
     ) -> Result<Vec<u8>, AccountProviderError> {
-        let url = base_url.join("instructions/challenge")?;
+        let url = base_url.join("instructions/challenge");
         let challenge: Challenge = self.send_json_post_request(url, &challenge_request).await?;
 
         Ok(challenge.challenge)
@@ -141,13 +142,13 @@ impl AccountProviderClient for HttpAccountProviderClient {
 
     async fn instruction<I>(
         &self,
-        base_url: &Url,
+        base_url: &BaseUrl,
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
         I: InstructionEndpoint,
     {
-        let url = base_url.join(&format!("instructions/{}", I::ENDPOINT))?;
+        let url = base_url.join(&format!("instructions/{}", I::ENDPOINT));
         let message: InstructionResultMessage<I::Result> = self.send_json_post_request(url, &instruction).await?;
 
         Ok(message.result)
@@ -170,7 +171,7 @@ mod tests {
         Mock, MockServer, ResponseTemplate,
     };
 
-    use wallet_common::account::messages::errors::ErrorType;
+    use wallet_common::{account::messages::errors::ErrorType, config::wallet_config::BaseUrl};
 
     use super::*;
 
@@ -180,9 +181,9 @@ mod tests {
         pub bar: u64,
     }
 
-    async fn create_mock_server() -> (MockServer, Url) {
+    async fn create_mock_server() -> (MockServer, BaseUrl) {
         let server = MockServer::start().await;
-        let base_url = Url::parse(&server.uri()).expect("Could not parse mock server URI");
+        let base_url = server.uri().parse().unwrap();
 
         (server, base_url)
     }
@@ -211,7 +212,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::default();
-        let body = post_example_request(&client, base_url.join("foobar").unwrap())
+        let body = post_example_request(&client, base_url.join("foobar"))
             .await
             .expect("Could not get succesful response from server");
 
@@ -231,7 +232,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, base_url.join("foobar_404").unwrap())
+        let error = post_example_request(&client, base_url.join("foobar_404"))
             .await
             .expect_err("No error received from server");
 
@@ -253,7 +254,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, base_url.join("foobar_502").unwrap())
+        let error = post_example_request(&client, base_url.join("foobar_502"))
             .await
             .expect_err("No error received from server");
 
@@ -288,7 +289,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, base_url.join("foobar_400").unwrap())
+        let error = post_example_request(&client, base_url.join("foobar_400"))
             .await
             .expect_err("No error received from server");
 
@@ -314,7 +315,7 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, base_url.join("foobar_503").unwrap())
+        let error = post_example_request(&client, base_url.join("foobar_503"))
             .await
             .expect_err("No error received from server");
 

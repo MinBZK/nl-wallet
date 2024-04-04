@@ -1,20 +1,19 @@
 use indexmap::IndexMap;
-use url::Url;
 
-use nl_wallet_mdoc::{server_state::SessionState, utils::x509::Certificate};
+use nl_wallet_mdoc::{server_state::SessionState, unsigned::UnsignedMdoc, utils::x509::Certificate};
 use openid4vc::{
     issuer::{AttributeService, Created},
     token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
-use wallet_common::nonempty::NonEmpty;
+use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
-use crate::settings::MockAttributes;
-
-use super::{
-    digid::{self, OpenIdClient},
-    mock::MockAttributesLookup,
+use crate::pid::brp::{
+    client::{BrpClient, BrpError, HttpBrpClient},
+    data::BrpDataError,
 };
+
+use super::digid::{self, OpenIdClient};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -32,31 +31,57 @@ pub enum Error {
     NoAttributesFound,
     #[error("missing certificate for issuance of doctype {0}")]
     MissingCertificate(String),
+    #[error("error retrieving from BRP")]
+    Brp(#[from] BrpError),
+    #[error("error mapping BRP data to PID data")]
+    BrpData(#[from] BrpDataError),
 }
 
-pub struct MockPidAttributeService {
-    openid_client: OpenIdClient,
-    attrs_lookup: MockAttributesLookup,
+pub struct AttributeCertificates {
     certificates: IndexMap<String, Certificate>,
 }
 
-impl MockPidAttributeService {
+impl AttributeCertificates {
+    pub fn new(certificates: IndexMap<String, Certificate>) -> Self {
+        Self { certificates }
+    }
+
+    pub fn try_unsigned_mdoc_to_attestion_preview(&self, unsigned: UnsignedMdoc) -> Result<AttestationPreview, Error> {
+        let preview = AttestationPreview::MsoMdoc {
+            issuer: self
+                .certificates
+                .get(&unsigned.doc_type)
+                .ok_or(Error::MissingCertificate(unsigned.doc_type.clone()))?
+                .clone(),
+            unsigned_mdoc: unsigned,
+        };
+        Ok(preview)
+    }
+}
+
+pub struct BrpPidAttributeService {
+    brp_client: HttpBrpClient,
+    openid_client: OpenIdClient,
+    certificates: AttributeCertificates,
+}
+
+impl BrpPidAttributeService {
     pub fn new(
-        issuer_url: Url,
+        brp_client: HttpBrpClient,
+        issuer_url: BaseUrl,
         bsn_privkey: String,
         trust_anchors: Vec<reqwest::Certificate>,
-        mock_data: Option<Vec<MockAttributes>>,
         certificates: IndexMap<String, Certificate>,
     ) -> Result<Self, Error> {
-        Ok(MockPidAttributeService {
+        Ok(Self {
+            brp_client,
             openid_client: OpenIdClient::new(issuer_url, bsn_privkey, trust_anchors)?,
-            attrs_lookup: MockAttributesLookup::from(mock_data.unwrap_or_default()),
-            certificates,
+            certificates: AttributeCertificates::new(certificates),
         })
     }
 }
 
-impl AttributeService for MockPidAttributeService {
+impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
     async fn attributes(
@@ -72,23 +97,19 @@ impl AttributeService for MockPidAttributeService {
         };
 
         let bsn = self.openid_client.bsn(openid_token_request).await?;
+        let persons = self.brp_client.get_person_by_bsn(bsn).await?;
 
-        self.attrs_lookup
-            .attributes(&bsn)
-            .ok_or(Error::NoAttributesFound)?
-            .into_iter()
-            .map(|unsigned| {
-                let preview = AttestationPreview::MsoMdoc {
-                    issuer: self
-                        .certificates
-                        .get(&unsigned.doc_type)
-                        .ok_or(Error::MissingCertificate(unsigned.doc_type.clone()))?
-                        .clone(),
-                    unsigned_mdoc: unsigned,
-                };
-                Ok(preview)
+        persons
+            .persons
+            .first()
+            .map(|person| {
+                let unsigned_mdocs: Vec<UnsignedMdoc> = person.try_into()?;
+                let previews = unsigned_mdocs
+                    .into_iter()
+                    .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
+                    .collect::<Result<Vec<AttestationPreview>, Error>>()?;
+                previews.try_into().map_err(|_| Error::NoAttributesFound)
             })
-            .collect::<Result<Vec<_>, Error>>()
-            .and_then(|r| NonEmpty::try_from(r).map_err(|_| Error::NoAttributesFound))
+            .unwrap_or(Err(Error::NoAttributesFound))
     }
 }

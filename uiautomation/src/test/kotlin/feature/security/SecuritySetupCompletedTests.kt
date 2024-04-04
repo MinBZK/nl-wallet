@@ -10,8 +10,13 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
 import screen.security.SecuritySetupCompletedScreen
 
-@DisplayName("UC 2.1 - Wallet creates account, initializes and confirms to user [PVW-1217]")
+@DisplayName("${SecuritySetupCompletedTests.USE_CASE} Wallet creates account, initializes and confirms to user [${SecuritySetupCompletedTests.JIRA_ID}]")
 class SecuritySetupCompletedTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 2.1"
+        const val JIRA_ID = "PVW-1217"
+    }
 
     private lateinit var securitySetupCompletedScreen: SecuritySetupCompletedScreen
 
@@ -38,7 +43,7 @@ class SecuritySetupCompletedTests : TestBase() {
      */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. Wallet confirms setup to user and offers button to start personalization flow.")
+    @DisplayName("$USE_CASE.4 Wallet confirms setup to user and offers button to start personalization flow.")
     fun verifyStartPersonalization() {
         securitySetupCompletedScreen.clickNextButton()
 

@@ -210,6 +210,11 @@ enum DisclosureStatus {
   Error,
 }
 
+enum DisclosureType {
+  Regular,
+  Login,
+}
+
 class FlutterConfiguration {
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
@@ -327,6 +332,7 @@ class StartDisclosureResult with _$StartDisclosureResult {
     required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,
     required String requestOriginBaseUrl,
+    required DisclosureType requestType,
   }) = StartDisclosureResult_Request;
   const factory StartDisclosureResult.requestAttributesMissing({
     required Organization relyingParty,
@@ -969,6 +975,10 @@ class WalletCoreImpl implements WalletCore {
     return DisclosureStatus.values[raw as int];
   }
 
+  DisclosureType _wire2api_disclosure_type(dynamic raw) {
+    return DisclosureType.values[raw as int];
+  }
+
   FlutterConfiguration _wire2api_flutter_configuration(dynamic raw) {
     final arr = raw as List<dynamic>;
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
@@ -1119,6 +1129,7 @@ class WalletCoreImpl implements WalletCore {
           sessionType: _wire2api_disclosure_session_type(raw[5]),
           requestPurpose: _wire2api_list_localized_string(raw[6]),
           requestOriginBaseUrl: _wire2api_String(raw[7]),
+          requestType: _wire2api_disclosure_type(raw[8]),
         );
       case 1:
         return StartDisclosureResult_RequestAttributesMissing(

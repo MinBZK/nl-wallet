@@ -32,6 +32,8 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
     final containsAllRequestedAttributes =
         _wallet.containsAttributes(request.requestedAttributes.map((requestedAttribute) => requestedAttribute.key));
     if (containsAllRequestedAttributes) {
+      final isLoginRequest =
+          request.requestedAttributes.length == 1 && request.requestedAttributes.first.key == 'mock.citizenshipNumber';
       return _ongoingDisclosure = StartDisclosureResult.request(
         relyingParty: request.relyingParty,
         policy: request.policy,
@@ -40,6 +42,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: requestOriginBaseUrl,
         requestPurpose: request.purpose.untranslated,
+        requestType: isLoginRequest ? DisclosureType.Login : DisclosureType.Regular,
       );
     } else {
       final requestedAttributesNotInWallet =

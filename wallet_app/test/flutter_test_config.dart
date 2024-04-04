@@ -8,6 +8,7 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
+import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/util/extension/bloc_extension.dart';
@@ -49,6 +50,7 @@ void _setupMockitoDummies() {
     'requestPurpose'.untranslated,
     false,
     DisclosureSessionType.crossDevice,
+    DisclosureType.regular,
     {},
     WalletMockData.policy,
   ));

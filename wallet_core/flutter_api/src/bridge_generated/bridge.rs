@@ -30,6 +30,7 @@ use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::DisclosureCard;
 use crate::models::disclosure::DisclosureSessionType;
+use crate::models::disclosure::DisclosureType;
 use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
 use crate::models::disclosure::Organization;
@@ -523,6 +524,22 @@ impl rust2dart::IntoIntoDart<DisclosureStatus> for DisclosureStatus {
     }
 }
 
+impl support::IntoDart for DisclosureType {
+    fn into_dart(self) -> support::DartAbi {
+        match self {
+            Self::Regular => 0,
+            Self::Login => 1,
+        }
+        .into_dart()
+    }
+}
+impl support::IntoDartExceptPrimitive for DisclosureType {}
+impl rust2dart::IntoIntoDart<DisclosureType> for DisclosureType {
+    fn into_into_dart(self) -> Self {
+        self
+    }
+}
+
 impl support::IntoDart for FlutterConfiguration {
     fn into_dart(self) -> support::DartAbi {
         vec![
@@ -692,6 +709,7 @@ impl support::IntoDart for StartDisclosureResult {
                 session_type,
                 request_purpose,
                 request_origin_base_url,
+                request_type,
             } => vec![
                 0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
@@ -701,6 +719,7 @@ impl support::IntoDart for StartDisclosureResult {
                 session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
                 request_origin_base_url.into_into_dart().into_dart(),
+                request_type.into_into_dart().into_dart(),
             ],
             Self::RequestAttributesMissing {
                 relying_party,

@@ -2,7 +2,6 @@ use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
 use nl_wallet_mdoc::{
     utils::{
@@ -11,7 +10,7 @@ use nl_wallet_mdoc::{
     },
     IssuerSigned,
 };
-use wallet_common::{jwt::Jwt, nonempty::NonEmpty};
+use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, nonempty::NonEmpty};
 
 use crate::{
     issuance_session::IssuanceSessionError,
@@ -108,7 +107,7 @@ impl CredentialRequestProof {
     pub async fn new_multiple<K: MdocEcdsaKey>(
         nonce: String,
         wallet_client_id: String,
-        credential_issuer_identifier: Url,
+        credential_issuer_identifier: BaseUrl,
         number_of_keys: u64,
         key_factory: impl KeyFactory<Key = K>,
     ) -> Result<Vec<(K, CredentialRequestProof)>, IssuanceSessionError> {
@@ -120,7 +119,7 @@ impl CredentialRequestProof {
         let payload = CredentialRequestProofJwtPayload {
             nonce: Some(nonce),
             iss: wallet_client_id,
-            aud: credential_issuer_identifier.into(),
+            aud: credential_issuer_identifier.as_ref().to_string(),
             iat: Utc::now(),
         };
         let keys_and_jwt_payloads = try_join_all(keys.into_iter().map(|privkey| async {

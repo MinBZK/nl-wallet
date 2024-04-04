@@ -21,7 +21,7 @@ use nl_wallet_mdoc::{
         x509::{Certificate, CertificateError, CertificateUsage},
     },
 };
-use wallet_common::{generator::TimeGenerator, jwt::JwtError};
+use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError};
 
 use crate::{
     credential::{
@@ -81,7 +81,7 @@ pub enum IssuanceSessionError {
 pub trait IssuanceSession<H = HttpOpenidMessageClient> {
     async fn start_issuance(
         message_client: H,
-        base_url: Url,
+        base_url: BaseUrl,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError>
@@ -92,7 +92,7 @@ pub trait IssuanceSession<H = HttpOpenidMessageClient> {
         &self,
         mdoc_trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        credential_issuer_identifier: Url,
+        credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<MdocCopies>, IssuanceSessionError>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
@@ -226,7 +226,7 @@ struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
     attestation_previews: Vec<AttestationPreview>,
-    issuer_url: Url,
+    issuer_url: BaseUrl,
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
 }
@@ -234,11 +234,11 @@ struct IssuanceState {
 impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn start_issuance(
         message_client: H,
-        base_url: Url,
+        base_url: BaseUrl,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError> {
-        let url = base_url.join("token").unwrap(); // TODO discover token endpoint instead (PVW-2178)
+        let url = base_url.join("token"); // TODO discover token endpoint instead (PVW-2178)
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
@@ -284,7 +284,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         &self,
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: impl KeyFactory<Key = K>,
-        credential_issuer_identifier: Url,
+        credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<MdocCopies>, IssuanceSessionError> {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
         // has no support (yet) for issuance of multiple copies of multiple attestations.
@@ -340,7 +340,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
-        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead (PVW-2178)
+        let url = self.session_state.issuer_url.join("batch_credential"); // TODO discover token endpoint instead (PVW-2178)
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let responses = self
@@ -394,7 +394,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
-        let url = self.session_state.issuer_url.join("batch_credential").unwrap(); // TODO discover token endpoint instead (PVW-2178)
+        let url = self.session_state.issuer_url.join("batch_credential"); // TODO discover token endpoint instead (PVW-2178)
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
         self.message_client

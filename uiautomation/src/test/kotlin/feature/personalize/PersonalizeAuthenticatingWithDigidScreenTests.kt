@@ -10,8 +10,13 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeAuthenticatingWithDigidScreen
 import screen.personalize.PersonalizeInformScreen
 
-@DisplayName("UC 3.1 - App performs issuance with PID provider [PVW-1036]")
+@DisplayName("${PersonalizeAuthenticatingWithDigidScreenTests.USE_CASE} App performs issuance with PID provider [${PersonalizeAuthenticatingWithDigidScreenTests.JIRA_ID}]")
 class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 3.1"
+        const val JIRA_ID = "PVW-1036"
+    }
 
     private lateinit var personalizeAuthenticatingWithDigidScreen: PersonalizeAuthenticatingWithDigidScreen
 
@@ -25,7 +30,7 @@ class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The App displays a loading screen whilst this process is pending.")
+    @DisplayName("$USE_CASE.1 The App displays a loading screen whilst this process is pending.")
     fun verifyPersonalizeAuthenticatingWithDigidScreen() {
         assertTrue(
             personalizeAuthenticatingWithDigidScreen.visible(),

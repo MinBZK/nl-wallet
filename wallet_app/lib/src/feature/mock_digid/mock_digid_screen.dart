@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../theme/light_wallet_theme.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import 'bloc/mock_digid_bloc.dart';
@@ -23,7 +22,7 @@ class MockDigidScreen extends StatelessWidget {
     return Theme(
       data: context.theme.copyWith(
         primaryColor: _kDigidOrange,
-        colorScheme: LightWalletTheme.colorScheme.copyWith(primary: _kDigidOrange),
+        colorScheme: context.colorScheme.copyWith(primary: _kDigidOrange),
         outlinedButtonTheme: outlinedButtonTheme(context),
         elevatedButtonTheme: elevatedButtonTheme(context),
       ),

@@ -40,7 +40,7 @@ default:
   before_script:
     - echo $DOCKER_AUTH_CONFIG > /kaniko/.docker/config.json
   image:
-    name: gcr.io/kaniko-project/executor:debug
+    name: "$HARBOR_REGISTRY/gcr-io-proxy/kaniko-project/executor:debug"
     entrypoint: [""]
 
 .default-sonar:
@@ -887,6 +887,10 @@ run-ws-migrations-demo:
     MRP_WALLET_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server:${CI_COMMIT_SHORT_SHA}
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
+    - envsubst < kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/gbamock-deployment.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/brpproxy-service.yaml
+    - kubectl apply -f kubernetes/gbamock-service.yaml
     - envsubst < kubernetes/mrp-wallet-server-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mrp-wallet-server-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mrp-wallet-server-service.yaml
@@ -945,15 +949,23 @@ check-gitlab-ci-changed:
     - git checkout $CI_DEFAULT_BRANCH
     - cd uiautomation
   script:
-    - gradle wrapper --gradle-version=7.3.3
-    - ./gradlew --debug --stacktrace test
+    - gradle wrapper --gradle-version=7.5
+    - ./gradlew --info --stacktrace test
       --tests "feature.appstart.*"
+      --tests "feature.card.*"
+      --tests "feature.confirm.*"
+      --tests "feature.dashboard.*"
       --tests "feature.introduction.*"
+      --tests "feature.lock.*"
+      --tests "feature.menu.*"
+      --tests "feature.personalize.*"
       --tests "feature.security.*"
+      --tests "feature.settings.*"
+      --tests "feature.web.*"
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
-      -Dtest.config.device.name=$DEVICE_NAME
-      -Dtest.config.platform.name=$PLATFORM_NAME
-      -Dtest.config.platform.version=$PLATFORM_VERSION
+      -Dtest.config.device.name="$DEVICE_NAME"
+      -Dtest.config.platform.name="$PLATFORM_NAME"
+      -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
 
 run-automation-tests-12:

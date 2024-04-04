@@ -5,6 +5,7 @@ use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
+use wallet_common::config::wallet_config::BaseUrl;
 
 use super::OidcError;
 
@@ -13,7 +14,7 @@ use super::OidcError;
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub issuer: Url,
+    pub issuer: BaseUrl, // not a cannot_be_a_base URL
     pub authorization_endpoint: Url,
     pub token_endpoint: Url,
     #[serde(default)]
@@ -95,13 +96,12 @@ pub struct Config {
 }
 
 impl Config {
-    pub(crate) async fn discover(client: &reqwest::Client, mut issuer: Url) -> Result<Self, OidcError> {
-        issuer
-            .path_segments_mut()
-            .map_err(|_| OidcError::CannotBeABase)?
-            .extend(&[".well-known", "openid-configuration"]);
+    pub(crate) async fn discover(client: &reqwest::Client, issuer: BaseUrl) -> Result<Self, OidcError> {
+        // If the Issuer value contains a path component, any terminating / MUST be removed before
+        // appending /.well-known/openid-configuration.
+        let oidc_conf_url = issuer.join(".well-known/openid-configuration");
 
-        let resp = client.get(issuer).send().await?.error_for_status()?;
+        let resp = client.get(oidc_conf_url).send().await?.error_for_status()?;
         resp.json().await.map_err(OidcError::from)
     }
 
@@ -114,13 +114,13 @@ impl Config {
 
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
     #[cfg(test)] // Currently only used in tests
-    pub(crate) fn new(issuer: Url) -> Self {
+    pub(crate) fn new(issuer: BaseUrl) -> Self {
         Self {
             issuer: issuer.clone(),
-            authorization_endpoint: issuer.join("/authorize").unwrap(),
-            token_endpoint: issuer.join("/token").unwrap(),
-            userinfo_endpoint: Some(issuer.join("/userinfo").unwrap()),
-            jwks_uri: issuer.join("/jwks.json").unwrap(),
+            authorization_endpoint: issuer.join("/authorize"),
+            token_endpoint: issuer.join("/token"),
+            userinfo_endpoint: Some(issuer.join("/userinfo")),
+            jwks_uri: issuer.join("/jwks.json"),
             registration_endpoint: None,
             scopes_supported: Some(IndexSet::from_iter(["openid".to_string()])),
             response_types_supported: IndexSet::from_iter(
@@ -165,7 +165,7 @@ const fn bool_value<const B: bool>() -> bool {
 #[cfg(test)]
 pub mod tests {
     use serde_json::json;
-    use url::Url;
+    use wallet_common::config::wallet_config::BaseUrl;
     use wiremock::{
         matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
@@ -173,18 +173,18 @@ pub mod tests {
 
     use super::Config;
 
-    pub async fn start_discovery_server() -> (MockServer, Url) {
+    pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
         let server = MockServer::start().await;
-        let server_url = Url::parse(&server.uri()).unwrap();
+        let server_url: BaseUrl = server.uri().parse().unwrap();
 
         // Mock OpenID configuration endpoint
         Mock::given(method("GET"))
             .and(path("/.well-known/openid-configuration"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "issuer": server_url,
-                "authorization_endpoint": server_url.join("/oauth2/authorize").unwrap(),
-                "token_endpoint": server_url.join("/oauth2/token").unwrap(),
-                "jwks_uri": server_url.join("/.well-known/jwks.json").unwrap(),
+                "authorization_endpoint": server_url.join("/oauth2/authorize"),
+                "token_endpoint": server_url.join("/oauth2/token"),
+                "jwks_uri": server_url.join("/.well-known/jwks.json"),
                 "response_types_supported": ["code", "id_token", "token id_token"],
                 "scopes_supported": ["openid"],
             })))
@@ -215,7 +215,7 @@ pub mod tests {
         assert_eq!(&discovered.issuer, &server_url);
         assert_eq!(
             &discovered.authorization_endpoint,
-            &server_url.join("/oauth2/authorize").unwrap()
+            &server_url.join("/oauth2/authorize")
         );
 
         let jwks = discovered.jwks(&http_client).await.unwrap();

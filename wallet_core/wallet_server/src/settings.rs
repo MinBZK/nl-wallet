@@ -24,9 +24,9 @@ pub struct Settings {
     // if it conflicts with wallet_server, the application will crash on startup
     pub requester_server: Server,
     // used by the wallet
-    pub public_url: Url,
+    pub public_url: BaseUrl,
     // used by the application
-    pub internal_url: Url,
+    pub internal_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     // supported schemes are: memory:// (default) and postgres://
     pub store_url: Url,
@@ -61,7 +61,7 @@ pub struct KeyPair {
 #[cfg(feature = "issuance")]
 #[derive(Deserialize, Clone)]
 pub struct Digid {
-    pub issuer_url: Url,
+    pub issuer_url: BaseUrl,
     pub bsn_privkey: String,
     #[serde(deserialize_with = "deserialize_certificates", default)]
     pub trust_anchors: Vec<reqwest::Certificate>,
@@ -90,6 +90,8 @@ pub struct Issuer {
 
     #[cfg(feature = "mock")]
     pub mock_data: Option<Vec<MockAttributes>>,
+
+    pub brp_server: BaseUrl,
 }
 
 impl Issuer {
@@ -116,6 +118,7 @@ impl Settings {
             .set_default("internal_url", "http://localhost:3002/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("store_url", "memory://")?
+            .set_default("issuer.brp_server", "http://localhost:5001/")?
             .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
 
         #[cfg(feature = "issuance")]

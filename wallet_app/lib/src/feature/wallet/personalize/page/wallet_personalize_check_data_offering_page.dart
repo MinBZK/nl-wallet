@@ -39,13 +39,15 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
             const SliverSizedBox(height: 12),
             SliverList(delegate: _getDataAttributesDelegate()),
             const SliverSizedBox(height: 12),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
             SliverFillRemaining(
               hasScrollBody: false,
               fillOverscroll: true,
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: _buildBottomSection(context),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Divider(height: 1),
+                  _buildBottomSection(context),
+                ],
               ),
             ),
           ],

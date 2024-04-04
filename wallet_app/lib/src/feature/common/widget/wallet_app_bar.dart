@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../util/extension/build_context_extension.dart';
 import 'button/wallet_app_bar_back_button.dart';
 import 'sliver_wallet_app_bar.dart';
 import 'stepper_indicator.dart';
@@ -31,14 +30,8 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
     /// Decide if we should show the [WalletBackButton] when no [leading] widget is provided.
     final showBackButton = Navigator.of(context).canPop() && automaticallyImplyLeading;
     return AppBar(
-      shape: const LinearBorder() /* hides divider */,
       title: title,
-      scrolledUnderElevation: 12,
-      shadowColor: context.colorScheme.shadow,
-      surfaceTintColor: context.colorScheme.background,
       toolbarHeight: kToolbarHeight,
-      titleTextStyle: context.textTheme.displayMedium,
-      centerTitle: false,
       actions: actions,
       leading: leading ?? (showBackButton ? const WalletAppBarBackButton() : null),
       automaticallyImplyLeading: automaticallyImplyLeading,

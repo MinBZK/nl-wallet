@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   postgresql:
     image: docker.io/bitnami/postgresql
@@ -31,11 +29,35 @@ services:
       wallet_provider_network:
         ipv4_address: 172.20.20.3
 
+  brpproxy:
+    container_name: brpproxy
+    image: ghcr.io/brp-api/haal-centraal-brp-bevragen-proxy:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Release
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "5001:5000"
+    networks:
+      - brp-api-network
+
+  gbamock:
+    container_name: gbamock
+    image: ghcr.io/brp-api/haal-centraal-brp-bevragen-gba-mock:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Release
+      - ASPNETCORE_URLS=http://+:5010
+    ports:
+      - "5010:5010"
+    networks:
+      - brp-api-network
+
 volumes:
   postgresql_data:
     driver: local
 
 networks:
+  brp-api-network:
+    name: brp-api-network
   wallet_provider_network:
     ipam:
       config:

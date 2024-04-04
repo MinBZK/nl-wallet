@@ -9,8 +9,13 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
 
-@DisplayName("UC 1.1 - App displays introductory information [PVW-1218]")
+@DisplayName("${IntroductionTests.USE_CASE} App displays introductory information [${IntroductionTests.JIRA_ID}]")
 class IntroductionTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 1.1"
+        const val JIRA_ID = "PVW-1218"
+    }
 
     private lateinit var introductionScreen: IntroductionScreen
 
@@ -20,24 +25,24 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. The App shows a welcome screen so the user knows they are using the NL wallet.")
+    @DisplayName("$USE_CASE.1. The App shows a welcome screen so the user knows they are using the NL wallet.")
     fun verifyWelcomeScreen() {
         assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
     }
 
     @Nested
-    @DisplayName("2. The App shows a series of explanation screens containing the following:")
+    @DisplayName("$USE_CASE.2 The App shows a series of explanation screens containing the following:")
     inner class IntroductoryScreens {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("2.1. The security benefits of the app (online identification).")
+        @DisplayName("$USE_CASE.2.a The security benefits of the app (online identification).")
         fun verifySecurityScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
             assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("2.2. The privacy benefits of the app (selective disclosure).")
+        @DisplayName("$USE_CASE.2.b The privacy benefits of the app (selective disclosure).")
         fun verifyPrivacyScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
             introductionScreen.clickNextButton() // page 2 -> 3
@@ -46,7 +51,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("3. The App offers a button to skip the intro, leading to the privacy summary.")
+    @DisplayName("$USE_CASE.3 The App offers a button to skip the intro, leading to the privacy summary.")
     fun verifySkipIntroButton() {
         val privacyScreen = IntroductionPrivacyScreen()
 
@@ -72,7 +77,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("4. The explanation screens all display a back-button.")
+    @DisplayName("$USE_CASE.4 The explanation screens all display a back-button.")
     fun verifyPageBackButtons() {
         introductionScreen.clickNextButton() // page 1 -> 2
         introductionScreen.clickNextButton() // page 2 -> 3

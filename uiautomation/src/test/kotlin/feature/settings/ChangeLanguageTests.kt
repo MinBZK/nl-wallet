@@ -15,8 +15,13 @@ import screen.dashboard.DashboardScreen
 import screen.menu.MenuScreen
 import screen.settings.SettingsScreen
 
-@DisplayName("UC 9.3 - User changes language [PVW-1224]")
+@DisplayName("${ChangeLanguageTests.USE_CASE} User changes language [${ChangeLanguageTests.JIRA_ID}]")
 class ChangeLanguageTests : TestBase() {
+
+    companion object {
+        const val USE_CASE = "UC 9.3"
+        const val JIRA_ID = "PVW-1224"
+    }
 
     private lateinit var changeLanguageScreen: ChangeLanguageScreen
 
@@ -32,24 +37,24 @@ class ChangeLanguageTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("1. App settings menu displays option to change language.")
+    @DisplayName("$USE_CASE.1 App settings menu displays option to change language.")
     fun verifyChangeLanguageScreen() {
         assertTrue(changeLanguageScreen.visible(), "change language screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("2. Language screen offers two options: English & Dutch.")
+    @DisplayName("$USE_CASE.2 Language screen offers two options: English & Dutch.")
     fun verifyLanguageButtonsVisible() {
         assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible")
     }
 
     @Nested
-    @DisplayName("3. When the User selects a language, the app immediately uses the newly selected language.")
+    @DisplayName("$USE_CASE.3 When the User selects a language, the app immediately uses the newly selected language.")
     inner class LanguageChange {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
-        @DisplayName("3.1. When the User selects Dutch, the app immediately uses Dutch.")
+        @DisplayName("$USE_CASE.3.a When the User selects Dutch, the app immediately uses Dutch.")
         fun verifyDutchLanguageSelect() {
             assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible")
             changeLanguageScreen.clickDutchButton()
@@ -59,7 +64,7 @@ class ChangeLanguageTests : TestBase() {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("dutch"))
-        @DisplayName("3.2. When the User selects English, the app immediately uses English.")
+        @DisplayName("$USE_CASE.3.b When the User selects English, the app immediately uses English.")
         fun verifyEnglishLanguageSelect() {
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
             changeLanguageScreen.clickEnglishButton()

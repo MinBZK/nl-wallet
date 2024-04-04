@@ -4,7 +4,6 @@ use base64::prelude::*;
 use once_cell::sync::Lazy;
 use p256::{ecdsa::VerifyingKey, pkcs8::DecodePublicKey};
 use reqwest::Certificate;
-use url::Url;
 
 use wallet_common::{
     config::wallet_config::{
@@ -84,7 +83,7 @@ pub fn init_universal_link_base_url() {
 
 #[derive(Debug, Clone)]
 pub struct ConfigServerConfiguration {
-    pub base_url: Url,
+    pub base_url: BaseUrl,
     pub trust_anchors: Vec<Certificate>,
     pub signing_public_key: VerifyingKey,
     pub update_frequency: Duration,
@@ -93,7 +92,7 @@ pub struct ConfigServerConfiguration {
 impl Default for ConfigServerConfiguration {
     fn default() -> Self {
         Self {
-            base_url: Url::parse(config_default!(CONFIG_SERVER_BASE_URL)).unwrap(),
+            base_url: config_default!(CONFIG_SERVER_BASE_URL).parse().unwrap(),
             trust_anchors: config_default!(CONFIG_SERVER_TRUST_ANCHORS)
                 .split('|')
                 .map(|root_ca| reqwest::Certificate::from_der(&BASE64_STANDARD.decode(root_ca).unwrap()).unwrap())
@@ -131,7 +130,7 @@ pub fn default_configuration() -> WalletConfiguration {
         version: u64::from_str(config_default!(WALLET_CONFIG_VERSION)).unwrap(),
         lock_timeouts: LockTimeoutConfiguration::default(),
         account_server: AccountServerConfiguration {
-            base_url: Url::parse(config_default!(WALLET_PROVIDER_BASE_URL)).unwrap(),
+            base_url: config_default!(WALLET_PROVIDER_BASE_URL).parse().unwrap(),
             certificate_public_key: VerifyingKey::from_public_key_der(
                 &BASE64_STANDARD.decode(config_default!(CERTIFICATE_PUBLIC_KEY)).unwrap(),
             )
@@ -146,8 +145,8 @@ pub fn default_configuration() -> WalletConfiguration {
             .into(),
         },
         pid_issuance: PidIssuanceConfiguration {
-            pid_issuer_url: Url::parse(config_default!(PID_ISSUER_URL)).unwrap(),
-            digid_url: Url::parse(config_default!(DIGID_URL)).unwrap(),
+            pid_issuer_url: config_default!(PID_ISSUER_URL).parse().unwrap(),
+            digid_url: config_default!(DIGID_URL).parse().unwrap(),
             digid_client_id: String::from(config_default!(DIGID_CLIENT_ID)),
             digid_trust_anchors: parse_optional_trust_anchors(config_default!(DIGID_TRUST_ANCHORS)),
         },

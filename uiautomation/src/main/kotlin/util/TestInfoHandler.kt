@@ -18,18 +18,19 @@ class TestInfoHandler {
 
         fun processTestInfo(testInfo: TestInfo) {
             sessionName = testInfo.displayName
-            setupLanguage(testInfo)
+
+            setupLanguage(testInfo.tags)
         }
 
-        private fun setupLanguage(testInfo: TestInfo) {
+        private fun setupLanguage(tags: Set<String>) {
             setDutchLanguage() // Default to dutch when no language tag is set
-            testInfo.tags.forEach { tag ->
+            tags.forEach { tag ->
                 when (tag) {
                     ENGLISH_LANGUAGE_TAG -> setEnglishLanguage()
                     FRANCE_LANGUAGE_TAG -> setFranceLanguage()
                 }
             }
-            if (testInfo.tags.containsAll(listOf(ENGLISH_LANGUAGE_TAG, FRANCE_LANGUAGE_TAG))) {
+            if (tags.containsAll(listOf(ENGLISH_LANGUAGE_TAG, FRANCE_LANGUAGE_TAG))) {
                 throw ConfigurationException("Multiple foreign language tags are not allowed.")
             }
         }

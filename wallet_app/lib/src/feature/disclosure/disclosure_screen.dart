@@ -1,4 +1,5 @@
 import 'package:fimber/fimber.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,7 +18,9 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
+import '../organization/detail/organization_detail_screen.dart';
 import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
 import 'argument/disclosure_screen_argument.dart';
@@ -116,6 +119,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureInitial() => _buildInitialLoading(context),
           DisclosureLoadInProgress() => _buildLoading(),
           DisclosureCheckOrganization() => _buildCheckOrganizationPage(context, state),
+          DisclosureCheckOrganizationForLogin() => _buildCheckOrganizationForLoginPage(context, state),
           DisclosureMissingAttributes() => _buildMissingAttributesPage(context, state),
           DisclosureConfirmDataAttributes() => _buildConfirmDataAttributesPage(context, state),
           DisclosureConfirmPin() => _buildConfirmPinPage(context, state),
@@ -153,6 +157,38 @@ class DisclosureScreen extends StatelessWidget {
       sessionType: state.sessionType,
       purpose: ApprovalPurpose.disclosure,
       onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
+      onShowDetailsPressed: () {
+        OrganizationDetailScreen.showPreloaded(
+          context,
+          state.relyingParty,
+          state.sharedDataWithOrganizationBefore,
+          onReportIssuePressed: () {
+            _onReportIssuePressed(context, _resolveReportingOptionsForState(context));
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCheckOrganizationForLoginPage(BuildContext context, DisclosureCheckOrganizationForLogin state) {
+    return OrganizationApprovePage(
+      onDeclinePressed: () => _stopDisclosure(context),
+      onAcceptPressed: () => context.bloc.add(const DisclosureOrganizationApproved()),
+      organization: state.relyingParty,
+      originUrl: state.originUrl,
+      sessionType: state.sessionType,
+      purpose: ApprovalPurpose.login,
+      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
+      onShowDetailsPressed: () {
+        LoginDetailScreen.show(
+          context,
+          state.relyingParty,
+          state.policy,
+          state.requestedAttributes,
+          state.sharedDataWithOrganizationBefore,
+          onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
+        );
+      },
     );
   }
 
@@ -177,7 +213,11 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildConfirmPinPage(BuildContext context, DisclosureConfirmPin state) {
+    final title = state.isLoginFlow
+        ? context.l10n.disclosureConfirmPinPageForLoginTitle(state.relyingParty.displayName.l10nValue(context))
+        : context.l10n.disclosureConfirmPinPageTitle;
     return DisclosureConfirmPinPage(
+      title: title,
       bloc: PinBloc(context.read<AcceptDisclosureUseCase>()),
       onPinValidated: (returnUrl) => context.bloc.add(DisclosurePinConfirmed(returnUrl: returnUrl)),
       onConfirmWithPinFailed: (context, state) => context.bloc.add(DisclosureConfirmPinFailed(error: state.error)),
@@ -198,18 +238,17 @@ class DisclosureScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessPage(BuildContext context, DisclosureSuccess state) {
-    bool hasReturnUrl = state.returnUrl != null;
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
-      primaryButtonCta:
-          hasReturnUrl ? context.l10n.disclosureSuccessPageCloseCta : context.l10n.disclosureSuccessPageToDashboardCta,
+      returnUrl: state.returnUrl,
+      isLoginFlow: state.isLoginFlow,
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
-      onPrimaryPressed: () {
+      onPrimaryPressed: (returnUrl) {
         Navigator.pop(context);
 
         // Handle return url
-        if (hasReturnUrl) {
-          launchUrlStringCatching(state.returnUrl!, mode: LaunchMode.externalApplication);
+        if (returnUrl != null) {
+          launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
         }
       },
     );
@@ -259,7 +298,7 @@ class DisclosureScreen extends StatelessWidget {
 
   List<ReportingOption> _resolveReportingOptionsForState(BuildContext context) {
     final state = context.read<DisclosureBloc>().state;
-    if (state is DisclosureCheckOrganization) {
+    if (state is DisclosureCheckOrganization || state is DisclosureCheckOrganizationForLogin) {
       return [
         ReportingOption.unknownOrganization,
         ReportingOption.requestNotInitiated,
@@ -274,6 +313,7 @@ class DisclosureScreen extends StatelessWidget {
         ReportingOption.unreasonableTerms,
       ];
     }
+    if (kDebugMode) throw AssertionError('Reporting options should be provided');
     return <ReportingOption>[];
   }
 
@@ -284,6 +324,15 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureInitial() => null,
           DisclosureLoadInProgress() => null,
           DisclosureCheckOrganization() => FadeInAtOffset(
+              appearOffset: 120,
+              visibleOffset: 150,
+              child: Text(
+                context.l10n.organizationApprovePageGenericTitle(
+                  state.relyingParty.displayName.l10nValue(context),
+                ),
+              ),
+            ),
+          DisclosureCheckOrganizationForLogin() => FadeInAtOffset(
               appearOffset: 120,
               visibleOffset: 150,
               child: Text(

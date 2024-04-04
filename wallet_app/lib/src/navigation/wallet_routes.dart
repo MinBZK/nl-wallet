@@ -33,6 +33,7 @@ import '../feature/introduction/introduction_screen.dart';
 import '../feature/issuance/argument/issuance_screen_argument.dart';
 import '../feature/issuance/bloc/issuance_bloc.dart';
 import '../feature/issuance/issuance_screen.dart';
+import '../feature/login/login_detail_screen.dart';
 import '../feature/menu/bloc/menu_bloc.dart';
 import '../feature/menu/menu_screen.dart';
 import '../feature/organization/detail/argument/organization_detail_screen_argument.dart';
@@ -106,6 +107,7 @@ class WalletRoutes {
   static const organizationDetailRoute = '/organization';
   static const settingsRoute = '/settings';
   static const qrRoute = '/qr';
+  static const loginDetailRoute = '/login_detail';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     WidgetBuilder builder = _widgetBuilderFactory(settings);
@@ -180,6 +182,8 @@ class WalletRoutes {
         return _createPinTimeoutScreenBuilder(settings);
       case WalletRoutes.pinBlockedRoute:
         return _createPinBlockedScreenBuilder(settings);
+      case WalletRoutes.loginDetailRoute:
+        return _createLoginDetailScreenBuilder(settings);
       case WalletRoutes.settingsRoute:
         return _createSettingsScreenBuilder;
       default:
@@ -388,6 +392,18 @@ WidgetBuilder _createPinTimeoutScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createPinBlockedScreenBuilder(RouteSettings settings) {
   return (context) => const PinBlockedScreen();
+}
+
+WidgetBuilder _createLoginDetailScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final argument = LoginDetailScreen.getArgument(settings);
+    return LoginDetailScreen(
+      organization: argument.organization,
+      policy: argument.policy,
+      requestedAttributes: argument.requestedAttributes,
+      sharedDataWithOrganizationBefore: argument.sharedDataWithOrganizationBefore,
+    );
+  };
 }
 
 WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {

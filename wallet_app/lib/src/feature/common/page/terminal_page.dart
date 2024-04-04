@@ -10,6 +10,7 @@ class TerminalPage extends StatelessWidget {
   final String title;
   final String description;
   final String primaryButtonCta;
+  final IconData primaryButtonIcon;
   final VoidCallback onPrimaryPressed;
   final String? secondaryButtonCta;
   final VoidCallback? onSecondaryButtonPressed;
@@ -22,6 +23,7 @@ class TerminalPage extends StatelessWidget {
     required this.description,
     required this.primaryButtonCta,
     required this.onPrimaryPressed,
+    this.primaryButtonIcon = Icons.arrow_forward_outlined,
     this.secondaryButtonCta,
     this.onSecondaryButtonPressed,
     this.illustration,
@@ -36,7 +38,6 @@ class TerminalPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildScrollableSection(context),
-          const SizedBox(height: 16),
           _buildBottomSection(context),
         ],
       ),
@@ -93,6 +94,8 @@ class TerminalPage extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        const Divider(height: 1),
+        const SizedBox(height: 24),
         _buildPrimaryButton(),
         SizedBox(height: hasSecondaryButton ? 16 : 0),
         if (hasSecondaryButton) _buildSecondaryButton(),
@@ -108,6 +111,7 @@ class TerminalPage extends StatelessWidget {
         key: const Key('primaryButtonCta'),
         onPressed: onPrimaryPressed,
         text: primaryButtonCta,
+        icon: primaryButtonIcon,
       ),
     );
   }

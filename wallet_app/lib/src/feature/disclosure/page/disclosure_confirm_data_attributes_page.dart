@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
@@ -8,7 +8,7 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/duration_extension.dart';
+import '../../../util/mapper/context_mapper.dart';
 import '../../check_attributes/check_attributes_screen.dart';
 import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
@@ -98,26 +98,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
       },
       separatorBuilder: (context, i) => const SizedBox(height: 16),
     );
-  }
-
-  String _buildConditionsText(BuildContext context) {
-    bool dataIsStored = policy.storageDuration != null;
-    if (policy.dataIsShared && !dataIsStored) {
-      // Data IS shared but NOT stored
-      return context.l10n.disclosureConfirmDataAttributesPageSharedNotStoredSubtitle;
-    } else if (policy.dataIsShared && dataIsStored) {
-      // Data IS shared and IS stored
-      return context.l10n.disclosureConfirmDataAttributesPageSharedAndStoredSubtitle(policy.storageDuration!.inMonths);
-    } else if (!policy.dataIsShared && !dataIsStored) {
-      // Data is NOT shared and NOT stored
-      return context.l10n.disclosureConfirmDataAttributesPageNotSharedNotStoredSubtitle;
-    } else if (!policy.dataIsShared && dataIsStored) {
-      // Data is NOT shared but IS stored
-      return context.l10n
-          .disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle(policy.storageDuration!.inMonths);
-    }
-    if (kDebugMode) throw UnsupportedError('No valid condition combination found');
-    return '';
   }
 
   Widget _buildHeaderSection(BuildContext context) {
@@ -234,7 +214,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              _buildConditionsText(context),
+              context.read<ContextMapper<Policy, String>>().map(context, policy),
               style: context.textTheme.bodyLarge,
               textAlign: TextAlign.start,
             ),
