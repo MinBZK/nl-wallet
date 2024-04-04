@@ -39,7 +39,7 @@ use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::{
     pid::mock::MockAttributesLookup,
-    settings::{Server, Settings as WsSettings},
+    settings::{RequesterAuth, Server, Settings as WsSettings},
     store::SessionStores,
 };
 
@@ -226,10 +226,10 @@ pub fn wallet_server_settings() -> WsSettings {
     settings.wallet_server.port = ws_port;
 
     let requester_port = find_listener_port();
-    settings.requester_server = Server {
+    settings.requester_server = RequesterAuth::InternalEndpoint(Server {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
         port: requester_port,
-    };
+    });
 
     settings.public_url = format!("http://localhost:{}/", ws_port).parse().unwrap();
     settings.internal_url = format!("http://localhost:{}/", requester_port).parse().unwrap();
