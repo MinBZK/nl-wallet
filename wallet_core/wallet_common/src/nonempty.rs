@@ -94,6 +94,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     #[derive(Debug)]
     struct MockIntoIter {
@@ -137,35 +138,23 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_non_empty_new() {
-        let collection = MockIntoIter {
-            size_hint: (0, None),
-            count: 1,
-        };
-
-        NonEmpty::new(collection).expect("should be a valid NonEmpty");
-
-        let collection = MockIntoIter {
-            size_hint: (0, None),
-            count: 0,
-        };
-
-        NonEmpty::new(collection).expect_err("should not be a valid NonEmpty");
-
-        let collection = MockIntoIter {
-            size_hint: (1, None),
-            count: 0, // Inconsistent with `size_hint`, but should not be used.
-        };
-
-        NonEmpty::new(collection).expect("should be a valid NonEmpty");
-
-        let collection = MockIntoIter {
-            size_hint: (0, 0.into()),
-            count: 1, // Inconsistent with `size_hint`, but should not be used.
-        };
-
-        NonEmpty::new(collection).expect_err("should not be a valid NonEmpty");
+    #[rstest]
+    #[case((0, None), 0, false)]
+    #[case((0, None), 1, true)]
+    #[case((0, 0.into()), 0, false)]
+    #[case((1, None), 1, true)]
+    fn test_non_empty_new_new(
+        #[case] size_hint: (usize, Option<usize>),
+        #[case] count: usize,
+        #[case] is_success: bool,
+    ) {
+        let collection = MockIntoIter { size_hint, count };
+        let actual = NonEmpty::new(collection);
+        if is_success {
+            actual.expect("should be a valid NonEmpty");
+        } else {
+            actual.expect_err("should not be a valid NonEmpty");
+        }
     }
 
     #[test]
