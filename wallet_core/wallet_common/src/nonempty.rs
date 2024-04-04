@@ -93,6 +93,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Debug;
+
     use super::*;
     use rstest::rstest;
 
@@ -138,6 +140,14 @@ mod tests {
         }
     }
 
+    fn verify_non_empty_result<T: Debug, E: Debug>(actual: Result<NonEmpty<T>, E>, expect_success: bool) {
+        if expect_success {
+            actual.expect("should be a valid NonEmpty");
+        } else {
+            actual.expect_err("should not be a valid NonEmpty");
+        }
+    }
+
     #[rstest]
     #[case((0, None), 0, false)]
     #[case((0, None), 1, true)]
@@ -146,29 +156,27 @@ mod tests {
     fn test_non_empty_new_new(
         #[case] size_hint: (usize, Option<usize>),
         #[case] count: usize,
-        #[case] is_success: bool,
+        #[case] expect_success: bool,
     ) {
         let collection = MockIntoIter { size_hint, count };
         let actual = NonEmpty::new(collection);
-        if is_success {
-            actual.expect("should be a valid NonEmpty");
-        } else {
-            actual.expect_err("should not be a valid NonEmpty");
-        }
+        verify_non_empty_result(actual, expect_success);
     }
 
-    #[test]
-    fn test_non_empty_from_vec() {
-        NonEmpty::try_from(vec![()]).expect("should be a valid NonEmpty");
-
-        NonEmpty::try_from(Vec::<()>::default()).expect_err("should not be a valid NonEmpty");
+    #[rstest]
+    #[case(vec![()], true)]
+    #[case(Vec::<()>::default(), false)]
+    fn test_non_empty_from_vec(#[case] collection: Vec<()>, #[case] expect_success: bool) {
+        let actual = NonEmpty::new(collection);
+        verify_non_empty_result(actual, expect_success);
     }
 
-    #[test]
-    fn test_non_empty_deserialize() {
-        serde_json::from_str::<NonEmpty<Vec<u64>>>("[0]").expect("should deserialize to a valid NonEmpty");
-
-        serde_json::from_str::<NonEmpty<Vec<u64>>>("[]").expect_err("should not deserialize to a valid NonEmpty");
+    #[rstest]
+    #[case("[0]", true)]
+    #[case("[]", false)]
+    fn test_non_empty_deserialize(#[case] serialized_collection: &str, #[case] expect_success: bool) {
+        let actual = serde_json::from_str::<NonEmpty<Vec<u64>>>(serialized_collection);
+        verify_non_empty_result(actual, expect_success);
     }
 
     #[test]
