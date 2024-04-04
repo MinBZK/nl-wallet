@@ -20,7 +20,6 @@ use nl_wallet_mdoc::{
         serialization::CborError,
         x509::{Certificate, CertificateError, CertificateUsage},
     },
-    ATTR_RANDOM_LENGTH,
 };
 use wallet_common::{generator::TimeGenerator, jwt::JwtError};
 
@@ -77,8 +76,6 @@ pub enum IssuanceSessionError {
     IssuerCertificateMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
-    #[error("malformed attribute: random too short (was {0}; minimum {1}")]
-    AttributeRandomLength(usize, usize),
 }
 
 pub trait IssuanceSession<H = HttpOpenidMessageClient> {
@@ -427,29 +424,6 @@ impl CredentialResponse {
             != verifying_key
         {
             return Err(IssuanceSessionError::PublicKeyMismatch);
-        }
-
-        // Calculate the minimum of all the lengths of the random bytes
-        // included in the attributes of `IssuerSigned`. If this value
-        // is too low, we should not accept the the attributes.
-        let min_random_length = issuer_signed
-            .name_spaces
-            .as_ref()
-            .map(|name_spaces| {
-                name_spaces
-                    .values()
-                    .flat_map(|attributes| attributes.0.iter().map(|item| item.0.random.len()))
-                    .min()
-            })
-            .unwrap_or_default();
-
-        if let Some(min_random_length) = min_random_length {
-            if min_random_length < ATTR_RANDOM_LENGTH {
-                return Err(IssuanceSessionError::AttributeRandomLength(
-                    min_random_length,
-                    ATTR_RANDOM_LENGTH,
-                ));
-            }
         }
 
         // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
