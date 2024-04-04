@@ -7,6 +7,7 @@ use openid4vc::{
     token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
+use wallet_common::nonempty::NonEmpty;
 
 use crate::settings::MockAttributes;
 
@@ -62,7 +63,7 @@ impl AttributeService for MockPidAttributeService {
         &self,
         _session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Error> {
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -87,6 +88,7 @@ impl AttributeService for MockPidAttributeService {
                 };
                 Ok(preview)
             })
-            .collect::<Result<_, _>>()
+            .collect::<Result<Vec<_>, Error>>()
+            .and_then(|r| NonEmpty::try_from(r).map_err(|_| Error::NoAttributesFound))
     }
 }

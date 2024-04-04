@@ -16,7 +16,7 @@ use nl_wallet_mdoc::{
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
 };
-use wallet_common::{jwt::EcdsaDecodingKey, utils::random_string};
+use wallet_common::{jwt::EcdsaDecodingKey, nonempty::NonEmpty, utils::random_string};
 
 use crate::{
     credential::{
@@ -61,8 +61,6 @@ pub enum TokenRequestError {
     UnsupportedTokenRequestType,
     #[error("failed to get attributes to be issued: {0}")]
     AttributeService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("no attributes found to be issued")]
-    NoAttributes,
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -169,7 +167,7 @@ pub trait LocalAttributeService {
         &self,
         session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Self::Error>;
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error>;
 }
 
 pub struct Issuer<A, K, S> {
@@ -463,9 +461,7 @@ impl Session<Created> {
         let previews = attr_service
             .attributes(&self.state, token_request)
             .await
-            .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?
-            .try_into()
-            .map_err(|_| TokenRequestError::NoAttributes)?;
+            .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
 
         // Append the authorization code, so that when the wallet comes back we can use it to retrieve the session
         let c_nonce = random_string(32);

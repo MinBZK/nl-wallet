@@ -20,6 +20,7 @@ use openid4vc::{
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
+use wallet_common::nonempty::{NonEmpty, NonEmptyError};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -324,14 +325,14 @@ struct MockAttributeService {
 }
 
 impl AttributeService for MockAttributeService {
-    type Error = std::convert::Infallible;
+    type Error = NonEmptyError;
 
     async fn attributes(
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Self::Error> {
-        Ok(vec![
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
+        let previews = vec![
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_PID_DOCTYPE.to_string(),
@@ -370,6 +371,7 @@ impl AttributeService for MockAttributeService {
                 },
                 issuer: self.issuer_cert.clone(),
             },
-        ])
+        ];
+        previews.try_into()
     }
 }
