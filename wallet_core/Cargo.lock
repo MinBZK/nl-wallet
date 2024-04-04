@@ -4526,6 +4526,7 @@ version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61c5bb1d698276a2443e5ecfabc1008bf15a36c12e6a7176e7bf089ea9131140"
 dependencies = [
+ "base64 0.21.4",
  "bitflags 2.4.0",
  "bytes",
  "futures-core",
@@ -4533,6 +4534,7 @@ dependencies = [
  "http",
  "http-body",
  "http-range-header",
+ "mime",
  "pin-project-lite",
  "tower-layer",
  "tower-service",
@@ -5147,7 +5149,6 @@ dependencies = [
  "openid4vc",
  "openssl",
  "p256",
- "platform_support",
  "rand 0.8.5",
  "reqwest",
  "rstest",
