@@ -221,7 +221,12 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildStoppedPage(BuildContext context, DisclosureStopped state) {
     return DisclosureStoppedPage(
       organization: state.organization,
-      onClosePressed: () => Navigator.pop(context),
+      onClosePressed: (returnUrl) {
+        Navigator.pop(context);
+        if (returnUrl != null) launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
+      },
+      isLoginFlow: state.isLoginFlow,
+      returnUrl: state.returnUrl,
     );
   }
 
@@ -239,11 +244,7 @@ class DisclosureScreen extends StatelessWidget {
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
       onPrimaryPressed: (returnUrl) {
         Navigator.pop(context);
-
-        // Handle return url
-        if (returnUrl != null) {
-          launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
-        }
+        if (returnUrl != null) launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
       },
     );
   }
@@ -269,6 +270,7 @@ class DisclosureScreen extends StatelessWidget {
       final stopPressed = await DisclosureStopSheet.show(
         context,
         organizationName: organizationName,
+        isLoginFlow: bloc.isLoginFlow,
         onReportIssuePressed: availableReportOptions.isEmpty
             ? null
             : () {

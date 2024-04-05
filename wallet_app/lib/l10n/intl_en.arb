@@ -387,14 +387,33 @@
             }
         }
     },
+    "disclosureStopSheetDescriptionForLogin": "If you stop, you will not be able to log in to {organization}.",
+    "@disclosureStopSheetDescriptionForLogin": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "disclosureStopSheetNegativeCta": "No",
     "disclosureStopSheetPositiveCta": "Yes, stop",
     "disclosureStopSheetReportIssueCta": "Would you like to report a problem?",
     "disclosureStopSheetTitle": "Are you sure you want to stop?",
     "disclosureStoppedPageCloseCta": "Close",
     "disclosureStoppedPageDescription": "Because you have stopped, no data has been shared with {organization}.",
+    "disclosureStoppedPageDescriptionForLogin": "Because you have stopped, you cannot log in to {organization} and no data has been shared with  {organization}.",
+    "@disclosureStoppedPageDescriptionForLogin": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "disclosureStoppedPageFeedbackCta": "Give feedback",
     "disclosureStoppedPageTitle": "Stopped",
+    "disclosureStoppedPageToWebsiteCta": "Go to website",
     "disclosureSuccessPageCloseCta": "Close",
     "disclosureSuccessPageDescription": "Your data has been shared with {organization}. Close this screen and continue on the website of {organization}.",
     "@disclosureSuccessPageDescription": {
@@ -405,7 +424,7 @@
             }
         }
     },
-    "disclosureSuccessPageDescriptionForLogin": "Your data has been shared with {organization}. Close this screen and continue on the website of {organization}.",
+    "disclosureSuccessPageDescriptionForLogin": "Your login details has been shared with {organization}. Close this screen and continue on the website of {organization}.",
     "@disclosureSuccessPageDescriptionForLogin": {
         "placeholders": {
             "organization": {
@@ -432,9 +451,9 @@
     "errorScreenServerHeadline": "Something went wrong",
     "errorScreenServerHelpCta": "Need help?",
     "errorScreenServerTitle": "Error",
-    "forgotPinScreenCta": "Remove Wallet",
+    "forgotPinScreenCta": "Delete Wallet",
     "forgotPinScreenDescription": "When you forget your PIN code, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN code.",
-    "forgotPinScreenTitle": "Forgot PIN code",
+    "forgotPinScreenTitle": "Forgot PIN code?",
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
     "generalConfigVersionText": "Config version: {versionCode}",
@@ -922,7 +941,6 @@
     "pinBlockedScreenResetWalletCta": "Remove Wallet",
     "pinBlockedScreenTitle": "App blocked",
     "pinErrorDialogBody": "Invalid PIN code. Try again.",
-    "pinErrorDialogCloseCta": "Close",
     "pinErrorDialogDynamicBody": "{count, plural, one {You can try {count} more time.} other {You can try {count} more times.}}",
     "@pinErrorDialogDynamicBody": {
         "placeholders": {
@@ -933,9 +951,24 @@
         }
     },
     "pinErrorDialogFinalAttemptBody": "You can try one more time. If the PIN you enter is wrong, the app will be blocked.",
-    "pinErrorDialogForgotCodeCta": "Forgot code",
-    "pinErrorDialogTitle": "Invalid PIN code",
-    "pinFieldSemanticsLabel": "Access PIN code field, {enteredDigits} of {totalDigits} entered, secured text field.",
+    "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} digit left} other {{count} digits left}}",
+    "pinErrorDialogCloseCta": "Close",
+    "pinErrorDialogFinalRoundAnyAttempt": "{count, plural, one {You may try it {count} more time. If the following PIN code is invalid, the app will be blocked.} other {You may try it {count} more times. If the following PIN code is invalid, the app will be blocked.}}",
+    "pinErrorDialogForgotCodeCta": "Forgot pin code?",
+    "pinErrorDialogNonFinalRoundFinalAttempt": "You may try it 1 more time. If the following PIN code is invalid, the app will be temporary blocked.",
+    "pinErrorDialogNonFinalRoundInitialAttempt": "PIN code incorrect, try again.",
+    "pinErrorDialogNonFinalRoundNonFinalAttempt": "{count, plural, one {You can try {count} more time.} other {You can try {count} more times.}}",
+    "@pinErrorDialogNonFinalRoundNonFinalAttempt": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "pinErrorDialogTitle": "Wrong PIN code",
+    "pinFieldAnnouncementLabel": "{count, plural, one {Access PIN Code, {count} digit left} other {Access PIN Code, {count} digits left}}",
+    "pinFieldSemanticsLabel": "Access PIN code, {enteredDigits} of {totalDigits} entered.",
     "@pinFieldSemanticsLabel": {
         "placeholders": {
             "enteredDigits": {
@@ -948,7 +981,8 @@
             }
         }
     },
-    "pinKeyboardWCAGBackspaceLabel": "Remove digit",
+    "pinKeyboardWCAGBackspaceLabel": "Delete",
+    "pinKeyboardWCAGBackspaceLongPressHint": "Hold to delete all",
     "pinKeyboardWCAGDigitKeyTapHint": "select",
     "pinScreenAboutAppTooltip": "About this app",
     "pinScreenAttemptsCount": "{count, plural, one {You have {count} attempt left} other {You have {count} attempts left}}",
@@ -960,13 +994,12 @@
             }
         }
     },
-    "pinScreenErrorHeader": "Invalid PIN code",
     "pinScreenFinalAttempt": "You may try it 1 more time. If the following PIN code is invalid, the app will be blocked.",
     "pinScreenForgotPinCta": "Forgot PIN code?",
     "pinScreenHeader": "Open with your PIN code",
     "pinScreenTitle": "Login",
     "pinTimeoutScreenForgotPinCta": "Forgot PIN code?",
-    "pinTimeoutScreenHeadline": "Temporarily blocked",
+    "pinTimeoutScreenHeadline": "Temporary block",
     "pinTimeoutScreenTimeoutCountdown": "You have entered your PIN code incorrectly too many times. Please try again in {timeLeft}.",
     "@pinTimeoutScreenTimeoutCountdown": {
         "placeholders": {

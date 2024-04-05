@@ -387,14 +387,33 @@
             }
         }
     },
+    "disclosureStopSheetDescriptionForLogin": "Als je stopt, kun je niet inloggen bij {organization}.",
+    "@disclosureStopSheetDescriptionForLogin": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "disclosureStopSheetNegativeCta": "Nee",
     "disclosureStopSheetPositiveCta": "Ja, stoppen",
     "disclosureStopSheetReportIssueCta": "Wil je een probleem melden?",
     "disclosureStopSheetTitle": "Weet je zeker dat je wilt stoppen?",
     "disclosureStoppedPageCloseCta": "Sluiten",
     "disclosureStoppedPageDescription": "Omdat je bent gestopt zijn er geen gegevens gedeeld met {organization}.",
+    "disclosureStoppedPageDescriptionForLogin": "Omdat je bent gestopt kan je niet inloggen bij {organization} en er zijn geen gegevens gedeeld met {organization}.",
+    "@disclosureStoppedPageDescriptionForLogin": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
     "disclosureStoppedPageFeedbackCta": "Geef feedback",
     "disclosureStoppedPageTitle": "Gestopt",
+    "disclosureStoppedPageToWebsiteCta": "Ga naar website",
     "disclosureSuccessPageCloseCta": "Sluiten",
     "disclosureSuccessPageDescription": "Je gegevens zijn gedeeld met {organization}. Sluit dit scherm en ga verder op de website van {organization}.",
     "@disclosureSuccessPageDescription": {
@@ -434,7 +453,7 @@
     "errorScreenServerTitle": "Fout",
     "forgotPinScreenCta": "Verwijder Wallet",
     "forgotPinScreenDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
-    "forgotPinScreenTitle": "Pincode vergeten",
+    "forgotPinScreenTitle": "Pincode vergeten?",
     "generalBottomBackCta": "Terug",
     "generalCancelCta": "Annuleren",
     "generalConfigVersionText": "Config versie: {versionCode}",
@@ -922,7 +941,6 @@
     "pinBlockedScreenResetWalletCta": "Verwijder Wallet",
     "pinBlockedScreenTitle": "Geblokkeerd",
     "pinErrorDialogBody": "Ongeldige pincode, probeer opnieuw.",
-    "pinErrorDialogCloseCta": "Sluiten",
     "pinErrorDialogDynamicBody": "{count, plural, one {Je mag het nog {count} keer proberen.} other {Je mag het nog {count} keer proberen.}}",
     "@pinErrorDialogDynamicBody": {
         "placeholders": {
@@ -933,9 +951,24 @@
         }
     },
     "pinErrorDialogFinalAttemptBody": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app geblokkeerd.",
-    "pinErrorDialogForgotCodeCta": "Code vergeten",
+    "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} cijfer over} other {{count} cijfers over}}",
+    "pinErrorDialogCloseCta": "Sluiten",
+    "pinErrorDialogFinalRoundAnyAttempt": "{count, plural, one {Je mag het nog {count} keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.} other {Je mag het nog {count} keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.}}",
+    "pinErrorDialogForgotCodeCta": "Code vergeten?",
+    "pinErrorDialogNonFinalRoundFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.",
+    "pinErrorDialogNonFinalRoundInitialAttempt": "Ongeldige pincode, probeer opnieuw.",
+    "pinErrorDialogNonFinalRoundNonFinalAttempt": "{count, plural, one {Je mag het nog {count} keer proberen.} other {Je mag het nog {count} keer proberen.}}",
+    "@pinErrorDialogNonFinalRoundNonFinalAttempt": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
     "pinErrorDialogTitle": "Ongeldige pincode",
-    "pinFieldSemanticsLabel": "Pincode veld, {enteredDigits} van {totalDigits} ingevoerd, beveiligd tekstveld.",
+    "pinFieldAnnouncementLabel": "{count, plural, one {Toegangscode, {count} cijfer over} other {Toeganscode, {count} cijfers over}}",
+    "pinFieldSemanticsLabel": "PIN code, {enteredDigits} van {totalDigits} cijfers ingevoerd.",
     "@pinFieldSemanticsLabel": {
         "placeholders": {
             "enteredDigits": {
@@ -948,7 +981,8 @@
             }
         }
     },
-    "pinKeyboardWCAGBackspaceLabel": "Verwijder cijfer",
+    "pinKeyboardWCAGBackspaceLabel": "Verwijder",
+    "pinKeyboardWCAGBackspaceLongPressHint": "Houd vast om alles te verwijderen",
     "pinKeyboardWCAGDigitKeyTapHint": "invoer",
     "pinScreenAboutAppTooltip": "Over de app",
     "pinScreenAttemptsCount": "{count, plural, one {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
@@ -960,7 +994,6 @@
             }
         }
     },
-    "pinScreenErrorHeader": "Ongeldige pincode",
     "pinScreenFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app geblokkeerd.",
     "pinScreenForgotPinCta": "Pincode vergeten?",
     "pinScreenHeader": "Open met je pincode",

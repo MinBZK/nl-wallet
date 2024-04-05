@@ -92,42 +92,40 @@ class LoginDetailScreen extends StatelessWidget {
 
   Widget _buildOrganizationSection(BuildContext context) {
     return SliverToBoxAdapter(
-      child: Material(
-        child: InkWell(
-          onTap: () => OrganizationDetailScreen.showPreloaded(
-            context,
-            organization,
-            sharedDataWithOrganizationBefore,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                ExcludeSemantics(
-                  child: OrganizationLogo(image: organization.logo, size: 32, fixedRadius: 8),
+      child: InkWell(
+        onTap: () => OrganizationDetailScreen.showPreloaded(
+          context,
+          organization,
+          sharedDataWithOrganizationBefore,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ExcludeSemantics(
+                child: OrganizationLogo(image: organization.logo, size: 32, fixedRadius: 8),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      organization.displayName.l10nValue(context),
+                      textAlign: TextAlign.start,
+                      style: context.textTheme.labelLarge,
+                    ),
+                    Text(
+                      organization.category?.l10nValue(context) ?? '',
+                      textAlign: TextAlign.start,
+                      style: context.textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        organization.displayName.l10nValue(context),
-                        textAlign: TextAlign.start,
-                        style: context.textTheme.labelLarge,
-                      ),
-                      Text(
-                        organization.category?.l10nValue(context) ?? '',
-                        textAlign: TextAlign.start,
-                        style: context.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded),
-              ],
-            ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
           ),
         ),
       ),
@@ -142,15 +140,12 @@ class LoginDetailScreen extends StatelessWidget {
         return SharedAttributesCard(
           card: entry.key,
           attributes: entry.value,
-          onTap: () => CheckAttributesScreen.show(context,
-              card: entry.key,
-              attributes: entry.value,
-              onDataIncorrectPressed: onReportIssuePressed != null
-                  ? () {
-                      Navigator.pop(context);
-                      onReportIssuePressed?.call();
-                    }
-                  : null),
+          onTap: () => CheckAttributesScreen.show(
+            context,
+            card: entry.key,
+            attributes: entry.value,
+            onDataIncorrectPressed: () => PlaceholderScreen.show(context, secured: true),
+          ),
         );
       },
       separatorBuilder: (context, i) => const SizedBox(height: 16),
