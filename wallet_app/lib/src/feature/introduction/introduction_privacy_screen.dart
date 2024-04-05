@@ -5,9 +5,10 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/confirm/confirm_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
-import '../common/widget/button/wallet_app_bar_back_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
@@ -32,13 +33,12 @@ class IntroductionPrivacyScreen extends StatelessWidget {
               slivers: [
                 SliverWalletAppBar(
                   title: context.l10n.introductionPrivacyScreenHeadline,
-                  leading: const WalletAppBarBackButton(),
+                  leading: const BackIconButton(),
                   progress: 0.08,
                   actions: [
-                    IconButton(
-                      onPressed: () => Navigator.pushNamed(context, WalletRoutes.aboutRoute),
-                      icon: const Icon(Icons.help_outline_rounded),
-                    ),
+                    HelpIconButton(
+                      onPressed: () => PlaceholderScreen.show(context, secured: false),
+                    )
                   ],
                 ),
                 SliverPadding(

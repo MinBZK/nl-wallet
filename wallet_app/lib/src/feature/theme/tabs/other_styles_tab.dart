@@ -21,7 +21,8 @@ import '../../common/widget/animated_linear_progress_indicator.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
-import '../../common/widget/button/wallet_app_bar_back_button.dart';
+import '../../common/widget/button/icon/back_icon_button.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -427,16 +428,16 @@ class OtherStylesTab extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) {
-          return Scaffold(
+          return const Scaffold(
             body: CustomScrollView(
               slivers: [
                 SliverWalletAppBar(
                   title: 'Sliver App Bar',
                   progress: 0.65,
-                  leading: const WalletAppBarBackButton(),
-                  actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
+                  leading: BackIconButton(),
+                  actions: [HelpIconButton()],
                 ),
-                const SliverFillRemaining(
+                SliverFillRemaining(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text('Scroll this page to see the collapsing effect'),
@@ -456,11 +457,11 @@ class OtherStylesTab extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) {
           return Scaffold(
-            appBar: WalletAppBar(
-              title: const Text('WalletAppBar'),
+            appBar: const WalletAppBar(
+              title: Text('WalletAppBar'),
               progress: 0.55,
-              leading: const WalletAppBarBackButton(),
-              actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
+              leading: BackIconButton(),
+              actions: [HelpIconButton()],
             ),
             body: ListView.builder(
               itemBuilder: (context, index) {
@@ -493,15 +494,15 @@ class OtherStylesTab extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) {
           return Scaffold(
-            appBar: WalletAppBar(
-              title: const FadeInAtOffset(
+            appBar: const WalletAppBar(
+              title: FadeInAtOffset(
                 appearOffset: 50,
                 visibleOffset: 150,
                 child: Text('FadeInAtOffset'),
               ),
               progress: 0.55,
-              leading: const WalletAppBarBackButton(),
-              actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.help_outline_rounded))],
+              leading: BackIconButton(),
+              actions: [HelpIconButton()],
             ),
             body: ListView.builder(
               itemBuilder: (context, index) {

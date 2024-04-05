@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/num_extensions.dart';
-import 'button/wallet_app_bar_back_button.dart';
+import 'button/icon/back_icon_button.dart';
 import 'stepper_indicator.dart';
 
 /// The space taken up by the stepper indicator (when visible).
@@ -63,7 +63,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
         valueListenable: collapsedRatio,
         child: Text(widget.title),
       ),
-      leading: widget.leading ?? (canPop ? const WalletAppBarBackButton() : null),
+      leading: widget.leading ?? (canPop ? const BackIconButton() : null),
       titleSpacing: widget.leading == null && !canPop ? null : 0.0,
       actions: widget.actions,
       collapsedHeight: toolbarHeight,

@@ -5,6 +5,7 @@ import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/sheet/help_sheet.dart';
+import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/wallet_app_bar.dart';
 import 'error_page.dart';
 
@@ -36,7 +37,7 @@ class ErrorScreen extends StatelessWidget {
       appBar: WalletAppBar(
         title: Text(title),
         automaticallyImplyLeading: false,
-        actions: const [CloseButton()],
+        actions: const [CloseIconButton()],
       ),
       body: ErrorPage(
         illustration: illustration,

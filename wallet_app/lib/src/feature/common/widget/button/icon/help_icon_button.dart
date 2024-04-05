@@ -1,0 +1,25 @@
+import 'package:flutter/material.dart';
+
+import '../../../../../util/extension/build_context_extension.dart';
+import '../../../screen/placeholder_screen.dart';
+
+class HelpIconButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+
+  const HelpIconButton({this.onPressed, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: context.l10n.generalWCAGHelp,
+      onTap: onPressed ?? () => PlaceholderScreen.show(context),
+      excludeSemantics: true,
+      child: IconButton(
+        onPressed: onPressed ?? () => PlaceholderScreen.show(context),
+        icon: const Icon(Icons.help_outline_rounded),
+        tooltip: context.l10n.generalWCAGHelp,
+      ),
+    );
+  }
+}
