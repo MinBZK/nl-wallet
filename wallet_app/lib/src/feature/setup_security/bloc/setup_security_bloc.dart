@@ -37,6 +37,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     on<SetupSecurityBackPressed>(_onSetupSecurityBackPressedEvent);
     on<PinDigitPressed>(_onPinDigitPressedEvent);
     on<PinBackspacePressed>(_onPinBackspacePressedEvent);
+    on<PinClearPressed>(_onPinClearPressedEvent);
     on<SetupSecurityRetryPressed>(_onRetryPressed);
   }
 
@@ -110,6 +111,18 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     }
     if (state is SetupSecurityPinConfirmationInProgress || state is SetupSecurityPinConfirmationFailed) {
       await _onConfirmPinBackspaceEvent(event, emit);
+    }
+  }
+
+  Future<void> _onPinClearPressedEvent(event, emit) async {
+    final state = this.state;
+    if (state is SetupSecuritySelectPinInProgress || state is SetupSecuritySelectPinFailed) {
+      _newPin = '';
+      emit(const SetupSecuritySelectPinInProgress(0, afterBackspacePressed: true));
+    }
+    if (state is SetupSecurityPinConfirmationInProgress || state is SetupSecurityPinConfirmationFailed) {
+      _confirmPin = '';
+      emit(const SetupSecurityPinConfirmationInProgress(0, afterBackspacePressed: true));
     }
   }
 

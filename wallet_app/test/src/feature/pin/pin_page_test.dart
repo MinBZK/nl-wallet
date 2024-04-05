@@ -147,7 +147,7 @@ void main() {
 
       // Setup finders
       final headerFinder = find.text(l10n.pinErrorDialogTitle);
-      final attemptsLeftFinder = find.text(l10n.pinErrorDialogDynamicBody(2));
+      final attemptsLeftFinder = find.text(l10n.pinErrorDialogNonFinalRoundNonFinalAttempt(2));
 
       // Verify all expected widgets show up once
       expect(headerFinder, findsOneWidget);

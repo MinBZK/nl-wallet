@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-03-29T13:21:02+01:00",
+    "@@last_modified": "2024-04-05T12:29:40+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -940,20 +940,9 @@
     "pinBlockedScreenHeadline": "Je app is geblokkeerd",
     "pinBlockedScreenResetWalletCta": "Verwijder Wallet",
     "pinBlockedScreenTitle": "Geblokkeerd",
-    "pinErrorDialogBody": "Ongeldige pincode, probeer opnieuw.",
-    "pinErrorDialogDynamicBody": "{count, plural, one {Je mag het nog {count} keer proberen.} other {Je mag het nog {count} keer proberen.}}",
-    "@pinErrorDialogDynamicBody": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "pinErrorDialogFinalAttemptBody": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app geblokkeerd.",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} cijfer over} other {{count} cijfers over}}",
     "pinErrorDialogCloseCta": "Sluiten",
-    "pinErrorDialogFinalRoundAnyAttempt": "{count, plural, one {Je mag het nog {count} keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.} other {Je mag het nog {count} keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.}}",
+    "pinErrorDialogFinalRoundFinalAttempt": "Je mag het nog één keer proberen. Als de volgende pincode ongeldig is wordt de app geblokkeerd.",
     "pinErrorDialogForgotCodeCta": "Code vergeten?",
     "pinErrorDialogNonFinalRoundFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.",
     "pinErrorDialogNonFinalRoundInitialAttempt": "Ongeldige pincode, probeer opnieuw.",
