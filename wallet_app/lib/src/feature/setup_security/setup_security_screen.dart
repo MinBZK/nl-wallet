@@ -129,7 +129,7 @@ class SetupSecurityScreen extends StatelessWidget {
       builder: (context, state) {
         return AnimatedVisibilityBackButton(
           visible: state.canGoBack,
-          onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityBackPressed()),
+          onPressed: () => context.bloc.add(SetupSecurityBackPressed()),
         );
       },
     );
@@ -149,8 +149,9 @@ class SetupSecurityScreen extends StatelessWidget {
       key: _kSelectPinScreenKey,
       title: context.l10n.setupSecuritySelectPinPageTitle,
       enteredDigits: enteredDigits,
-      onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
-      onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
+      onKeyPressed: (digit) => context.bloc.add(PinDigitPressed(digit)),
+      onBackspacePressed: () => context.bloc.add(PinBackspacePressed()),
+      onBackspaceLongPressed: () => context.bloc.add(PinClearPressed()),
     );
   }
 
@@ -159,8 +160,9 @@ class SetupSecurityScreen extends StatelessWidget {
       key: _kConfirmPinScreenKey,
       title: context.l10n.setupSecurityConfirmationPageTitle,
       enteredDigits: enteredDigits,
-      onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
-      onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
+      onKeyPressed: (digit) => context.bloc.add(PinDigitPressed(digit)),
+      onBackspacePressed: () => context.bloc.add(PinBackspacePressed()),
+      onBackspaceLongPressed: () => context.bloc.add(PinClearPressed()),
     );
   }
 
@@ -193,7 +195,7 @@ class SetupSecurityScreen extends StatelessWidget {
           const SizedBox(height: 16),
           IntrinsicWidth(
             child: ElevatedButton(
-              onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityRetryPressed()),
+              onPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
               child: Text(context.l10n.generalRetry),
             ),
           )
@@ -204,7 +206,7 @@ class SetupSecurityScreen extends StatelessWidget {
 
   void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
     SemanticsService.announce(
-      l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      l10n.pinEnteredDigitsAnnouncement(kPinDigits - enteredDigits),
       TextDirection.ltr,
     );
   }

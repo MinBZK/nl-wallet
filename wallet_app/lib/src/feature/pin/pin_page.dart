@@ -269,10 +269,11 @@ class PinPage extends StatelessWidget {
           opacity: state is PinValidateInProgress ? 0.3 : 1,
           child: PinKeyboard(
             color: keyboardColor,
-            onKeyPressed:
-                _digitKeysEnabled(state) ? (digit) => context.read<PinBloc>().add(PinDigitPressed(digit)) : null,
+            onKeyPressed: _digitKeysEnabled(state) ? (digit) => context.bloc.add(PinDigitPressed(digit)) : null,
             onBackspacePressed:
-                _backspaceKeyEnabled(state) ? () => context.read<PinBloc>().add(const PinBackspacePressed()) : null,
+                _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinBackspacePressed()) : null,
+            onBackspaceLongPressed:
+                _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinClearPressed()) : null,
           ),
         );
       },
@@ -326,7 +327,7 @@ class PinPage extends StatelessWidget {
 
   void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
     SemanticsService.announce(
-      l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      l10n.pinEnteredDigitsAnnouncement(kPinDigits - enteredDigits),
       TextDirection.ltr,
     );
   }
@@ -334,9 +335,10 @@ class PinPage extends StatelessWidget {
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
     final title = context.l10n.pinErrorDialogTitle;
     var body = reason.leftoverAttempts >= kLeftoverAttemptsBeforeDynamicWarning
-        ? context.l10n.pinErrorDialogBody
-        : context.l10n.pinErrorDialogDynamicBody(reason.leftoverAttempts);
-    if (reason.isFinalAttempt) body = context.l10n.pinErrorDialogFinalAttemptBody;
+        ? context.l10n.pinErrorDialogNonFinalRoundInitialAttempt
+        : context.l10n.pinErrorDialogNonFinalRoundNonFinalAttempt(reason.leftoverAttempts);
+    if (reason.leftoverAttempts == 1) body = context.l10n.pinErrorDialogNonFinalRoundFinalAttempt;
+    if (reason.isFinalAttempt) body = context.l10n.pinErrorDialogFinalRoundFinalAttempt;
 
     return showDialog<void>(
       context: context,
@@ -367,4 +369,8 @@ class PinPage extends StatelessWidget {
       },
     );
   }
+}
+
+extension _PinPageExtensions on BuildContext {
+  PinBloc get bloc => read<PinBloc>();
 }

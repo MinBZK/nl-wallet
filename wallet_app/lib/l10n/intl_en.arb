@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-03-29T13:21:02+01:00",
+    "@@last_modified": "2024-04-05T12:29:40+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
@@ -940,20 +940,9 @@
     "pinBlockedScreenHeadline": "Your app has been blocked",
     "pinBlockedScreenResetWalletCta": "Remove Wallet",
     "pinBlockedScreenTitle": "App blocked",
-    "pinErrorDialogBody": "Invalid PIN code. Try again.",
-    "pinErrorDialogDynamicBody": "{count, plural, one {You can try {count} more time.} other {You can try {count} more times.}}",
-    "@pinErrorDialogDynamicBody": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "pinErrorDialogFinalAttemptBody": "You can try one more time. If the PIN you enter is wrong, the app will be blocked.",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} digit left} other {{count} digits left}}",
     "pinErrorDialogCloseCta": "Close",
-    "pinErrorDialogFinalRoundAnyAttempt": "{count, plural, one {You may try it {count} more time. If the following PIN code is invalid, the app will be blocked.} other {You may try it {count} more times. If the following PIN code is invalid, the app will be blocked.}}",
+    "pinErrorDialogFinalRoundFinalAttempt": "You may try it one more time. If the following PIN code is invalid, the app will be blocked.",
     "pinErrorDialogForgotCodeCta": "Forgot pin code?",
     "pinErrorDialogNonFinalRoundFinalAttempt": "You may try it 1 more time. If the following PIN code is invalid, the app will be temporary blocked.",
     "pinErrorDialogNonFinalRoundInitialAttempt": "PIN code incorrect, try again.",
