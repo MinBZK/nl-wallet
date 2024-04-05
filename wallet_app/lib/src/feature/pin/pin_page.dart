@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
@@ -73,13 +74,15 @@ class PinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is PinEntryInProgress) {
-          if (state.afterBackspacePressed) {
-            announceEnteredDigits(context, state.enteredDigits);
-          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-            announceEnteredDigits(context, state.enteredDigits);
-          }
+          Future.delayed(kDefaultAnnouncementDelay).then((value) {
+            if (state.afterBackspacePressed) {
+              _announceEnteredDigits(context.l10n, state.enteredDigits);
+            } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+              _announceEnteredDigits(context.l10n, state.enteredDigits);
+            }
+          });
         }
 
         /// Check for state interceptions
@@ -321,9 +324,9 @@ class PinPage extends StatelessWidget {
     return PinFieldState.idle;
   }
 
-  void announceEnteredDigits(BuildContext context, int enteredDigits) {
+  void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
     SemanticsService.announce(
-      context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
       TextDirection.ltr,
     );
   }
@@ -337,16 +340,16 @@ class PinPage extends StatelessWidget {
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+          semanticLabel: title,
           title: Text(title, style: context.textTheme.displayMedium),
-          content: SingleChildScrollView(
-            child: Text(body, style: context.textTheme.bodyLarge),
-          ),
+          content: Text(body, style: context.textTheme.bodyLarge),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase()),
