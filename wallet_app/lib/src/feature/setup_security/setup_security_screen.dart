@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/pin/pin_validation_error.dart';
 import '../../navigation/wallet_routes.dart';
@@ -95,29 +98,24 @@ class SetupSecurityScreen extends StatelessWidget {
 
   void _runAnnouncements(BuildContext context, SetupSecurityState state) async {
     if (!context.mediaQuery.accessibleNavigation) return;
-    final locale = context.l10n;
+    final l10n = context.l10n;
+    await Future.delayed(kDefaultAnnouncementDelay);
+
     if (state is SetupSecuritySelectPinInProgress) {
       if (state.afterBackspacePressed) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
     if (state is SetupSecurityPinConfirmationInProgress) {
       if (state.afterBackspacePressed) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
-        await Future.delayed(const Duration(seconds: 1));
-        SemanticsService.announce(locale.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+        SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       }
-    }
-    if (state is SetupSecuritySelectPinFailed) {
-      SemanticsService.announce(locale.setupSecurityScreenWCAGPinTooSimpleAnnouncement, TextDirection.ltr);
-    }
-    if (state is SetupSecurityPinConfirmationFailed) {
-      SemanticsService.announce(locale.setupSecurityScreenWCAGPinConfirmationFailedAnnouncement, TextDirection.ltr);
     }
   }
 
@@ -199,9 +197,9 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
-  void announceEnteredDigits(BuildContext context, int enteredDigits) {
+  void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
     SemanticsService.announce(
-      context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
       TextDirection.ltr,
     );
   }
@@ -220,20 +218,20 @@ class SetupSecurityScreen extends StatelessWidget {
     };
     return showDialog<void>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+          semanticLabel: Platform.isAndroid ? title : null,
           title: Text(title, style: context.textTheme.displayMedium),
-          content: SingleChildScrollView(
-            child: Text(body, style: context.textTheme.bodyLarge),
-          ),
+          content: Text(body, style: context.textTheme.bodyLarge),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.generalOkCta),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.pop(context),
             ),
           ],
         );
@@ -242,34 +240,32 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Future<void> _showConfirmationErrorDialog(BuildContext context, bool retryAllowed) async {
+    final title = retryAllowed
+        ? context.l10n.setupSecurityConfirmationErrorPageTitle
+        : context.l10n.setupSecurityConfirmationErrorPageFatalTitle;
+    final content = retryAllowed
+        ? context.l10n.setupSecurityConfirmationErrorPageDescription
+        : context.l10n.setupSecurityConfirmationErrorPageFatalDescription;
+    final cta = retryAllowed ? context.l10n.generalOkCta : context.l10n.setupSecurityConfirmationErrorPageFatalCta;
     return showDialog<void>(
       context: context,
-      barrierDismissible: retryAllowed,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Text(
-            retryAllowed
-                ? context.l10n.setupSecurityConfirmationErrorPageTitle
-                : context.l10n.setupSecurityConfirmationErrorPageFatalTitle,
-            style: context.textTheme.displayMedium,
-          ),
-          content: SingleChildScrollView(
-            child: Text(
-              retryAllowed
-                  ? context.l10n.setupSecurityConfirmationErrorPageDescription
-                  : context.l10n.setupSecurityConfirmationErrorPageFatalDescription,
-              style: context.textTheme.bodyLarge,
-            ),
+          semanticLabel: Platform.isAndroid ? title : null,
+          title: Text(title, style: context.textTheme.displayMedium),
+          content: Text(
+            content,
+            style: context.textTheme.bodyLarge,
           ),
           actions: <Widget>[
             TextButton(
-              child: Text(
-                retryAllowed ? context.l10n.generalOkCta : context.l10n.setupSecurityConfirmationErrorPageFatalCta,
-              ),
-              onPressed: () => Navigator.of(context).pop(),
+              child: Text(cta),
+              onPressed: () => Navigator.pop(context),
             ),
           ],
         );

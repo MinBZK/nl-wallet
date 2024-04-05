@@ -97,6 +97,9 @@ void main() {
         ),
       );
 
+      // Wait for widget to settle (triggered by announcement delay)
+      await tester.pumpAndSettle();
+
       // Setup finders
       final headerFinder = find.text(l10n.pinScreenHeader);
 
@@ -117,6 +120,9 @@ void main() {
           ),
         ),
       );
+
+      // Wait for widget to settle (triggered by announcement delay)
+      await tester.pumpAndSettle();
 
       // Setup finders
       final headerFinder = find.text(l10n.pinScreenHeader);
