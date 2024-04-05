@@ -9,8 +9,8 @@ import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/country_code_formatter.dart';
 import '../../../util/launch_util.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/organization/organization_logo.dart';
@@ -66,12 +66,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             slivers: [
               SliverWalletAppBar(
                 title: _resolveTitle(context),
-                actions: [
-                  IconButton(
-                    onPressed: () => PlaceholderScreen.show(context),
-                    icon: const Icon(Icons.help_outline_rounded),
-                  ),
-                ],
+                actions: const [HelpIconButton()],
               ),
               content,
             ],

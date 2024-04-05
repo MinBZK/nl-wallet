@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-03-25T11:36:45+01:00",
+    "@@last_modified": "2024-03-29T13:21:02+01:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -529,6 +529,11 @@
         }
     },
     "generalWCAGBack": "Terug",
+    "generalWCAGClose": "Sluiten",
+    "generalWCAGHelp": "Hulp nodig?",
+    "generalWCAGInfo": "Meer info",
+    "generalWCAGMenu": "Menu",
+    "generalWCAGQr": "Scan QR code",
     "helpSheetCloseCta": "Sluiten",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
@@ -918,7 +923,15 @@
     "pinBlockedScreenTitle": "Geblokkeerd",
     "pinErrorDialogBody": "Ongeldige pincode, probeer opnieuw.",
     "pinErrorDialogCloseCta": "Sluiten",
-    "pinErrorDialogDynamicBody": "Je mag het nog {attempts} keer proberen.",
+    "pinErrorDialogDynamicBody": "{count, plural, one {Je mag het nog {count} keer proberen.} other {Je mag het nog {count} keer proberen.}}",
+    "@pinErrorDialogDynamicBody": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
     "pinErrorDialogFinalAttemptBody": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app geblokkeerd.",
     "pinErrorDialogForgotCodeCta": "Code vergeten",
     "pinErrorDialogTitle": "Ongeldige pincode",

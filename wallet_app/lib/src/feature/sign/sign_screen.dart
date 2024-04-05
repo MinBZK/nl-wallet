@@ -9,6 +9,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -82,7 +83,7 @@ class SignScreen extends StatelessWidget {
   Widget _buildCloseButton(BuildContext context, double stepperProgress) {
     return ExcludeSemantics(
       excluding: stepperProgress == 1.0,
-      child: CloseButton(onPressed: () => _stopSigning(context)),
+      child: CloseIconButton(onPressed: () => _stopSigning(context)),
     );
   }
 

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-03-25T11:36:45+01:00",
+    "@@last_modified": "2024-03-29T13:21:02+01:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
@@ -529,6 +529,11 @@
         }
     },
     "generalWCAGBack": "Back",
+    "generalWCAGClose": "Close",
+    "generalWCAGHelp": "Need help?",
+    "generalWCAGInfo": "More info",
+    "generalWCAGMenu": "Menu",
+    "generalWCAGQr": "Scan QR code",
     "helpSheetCloseCta": "Close",
     "helpSheetDescription": "Contact support. The following data could be required.",
     "helpSheetErrorCode": "Error code: {code}",
@@ -918,7 +923,15 @@
     "pinBlockedScreenTitle": "App blocked",
     "pinErrorDialogBody": "Invalid PIN code. Try again.",
     "pinErrorDialogCloseCta": "Close",
-    "pinErrorDialogDynamicBody": "You can try {attempts} more times.",
+    "pinErrorDialogDynamicBody": "{count, plural, one {You can try {count} more time.} other {You can try {count} more times.}}",
+    "@pinErrorDialogDynamicBody": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
     "pinErrorDialogFinalAttemptBody": "You can try one more time. If the PIN you enter is wrong, the app will be blocked.",
     "pinErrorDialogForgotCodeCta": "Forgot code",
     "pinErrorDialogTitle": "Invalid PIN code",

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../wallet_constants.dart';
-import 'wallet_app_bar_back_button.dart';
+import 'icon/back_icon_button.dart';
 
 class AnimatedVisibilityBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -20,7 +20,7 @@ class AnimatedVisibilityBackButton extends StatelessWidget {
       duration: kDefaultAnimationDuration,
       child: IgnorePointer(
         ignoring: !visible,
-        child: WalletAppBarBackButton(
+        child: BackIconButton(
           onPressed: onPressed,
         ),
       ),

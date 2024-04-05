@@ -9,6 +9,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/info_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/stepper_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -135,11 +136,7 @@ class SetupSecurityScreen extends StatelessWidget {
     return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
       builder: (context, state) {
         if (state is SetupSecurityCompleted) return const SizedBox.shrink();
-        return IconButton(
-          onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
-          icon: const Icon(Icons.info_outline),
-          tooltip: context.l10n.setupSecurityScreenAboutAppTooltip,
-        );
+        return const InfoIconButton();
       },
     );
   }

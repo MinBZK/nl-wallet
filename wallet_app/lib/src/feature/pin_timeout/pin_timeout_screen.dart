@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
-import '../common/screen/placeholder_screen.dart';
+import '../common/widget/button/icon/info_icon_button.dart';
 import '../common/widget/button/link_button.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
@@ -36,12 +36,7 @@ class PinTimeoutScreen extends StatelessWidget {
       appBar: WalletAppBar(
         title: Text(context.l10n.pinTimeoutScreenTitle),
         automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            onPressed: () => PlaceholderScreen.show(context, secured: false),
-            icon: const Icon(Icons.info_outline_rounded),
-          )
-        ],
+        actions: const [InfoIconButton()],
       ),
       body: SafeArea(
         child: PrimaryScrollController(
