@@ -64,13 +64,11 @@ class ConfirmActionSheet extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 24),
             if (extraContent != null) ...[
-              const SizedBox(height: 24),
               const Divider(height: 1),
-              const SizedBox(height: 16),
               extraContent!,
             ],
-            const SizedBox(height: 16),
             const Divider(height: 1),
             ConfirmButtons(
               primaryButton: ConfirmButton.accept(
