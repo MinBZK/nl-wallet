@@ -10,7 +10,7 @@ use nl_wallet_mdoc::{
     },
     IssuerSigned,
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt};
+use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, nonempty::NonEmpty};
 
 use crate::{
     issuance_session::IssuanceSessionError,
@@ -22,7 +22,7 @@ use crate::{
 /// Sent JSON-encoded to `POST /batch_credential`.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CredentialRequests {
-    pub credential_requests: Vec<CredentialRequest>,
+    pub credential_requests: NonEmpty<Vec<CredentialRequest>>,
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.2.

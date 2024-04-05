@@ -45,7 +45,11 @@ nl_wallet_mdoc.path = "../mdoc"
 assert_matches.workspace = true
 ciborium.workspace = true
 mockall.workspace = true
-nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate"] }
+nl_wallet_mdoc = { path = "../mdoc", features = [
+    "mock",
+    "software_key_factory",
+    "generate",
+] }
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true
