@@ -13,6 +13,7 @@ import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/icon/info_icon_button.dart';
+import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/stepper_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -29,23 +30,27 @@ class SetupSecurityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      restorationId: 'setup_security_scaffold',
-      appBar: WalletAppBar(
-        leading: _buildBackButton(context),
-        actions: [_buildAboutAction(context)],
-      ),
-      body: PopScope(
-        canPop: !context.bloc.state.canGoBack,
-        onPopInvoked: (didPop) {
-          if (!didPop) context.bloc.add(SetupSecurityBackPressed());
-        },
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildStepper(),
-              Expanded(child: _buildPage()),
-            ],
+    return ScrollOffsetProvider(
+      debugLabel: 'setup_security',
+      child: Scaffold(
+        restorationId: 'setup_security_scaffold',
+        appBar: WalletAppBar(
+          leading: _buildBackButton(context),
+          actions: [_buildAboutAction(context)],
+          title: _buildTitle(context),
+        ),
+        body: PopScope(
+          canPop: !context.bloc.state.canGoBack,
+          onPopInvoked: (didPop) {
+            if (!didPop) context.bloc.add(SetupSecurityBackPressed());
+          },
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildStepper(),
+                Expanded(child: _buildPage()),
+              ],
+            ),
           ),
         ),
       ),
@@ -268,6 +273,28 @@ class SetupSecurityScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTitle(BuildContext context) {
+    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+      builder: (context, state) {
+        String title = switch (state) {
+          SetupSecuritySelectPinInProgress() => '',
+          SetupSecuritySelectPinFailed() => '',
+          SetupSecurityPinConfirmationInProgress() => '',
+          SetupSecurityPinConfirmationFailed() => '',
+          SetupSecurityCreatingWallet() => '',
+          SetupSecurityCompleted() => context.l10n.setupSecurityCompletedPageTitle,
+          SetupSecurityGenericError() => '',
+          SetupSecurityNetworkError() => '',
+        };
+        return FadeInAtOffset(
+          appearOffset: 30,
+          visibleOffset: 60,
+          child: Text(title),
         );
       },
     );

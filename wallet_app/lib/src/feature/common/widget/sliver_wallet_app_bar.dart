@@ -6,7 +6,7 @@ import 'button/icon/back_icon_button.dart';
 import 'stepper_indicator.dart';
 
 /// The space taken up by the stepper indicator (when visible).
-const kStepIndicatorHeight = 12.0;
+const kStepIndicatorHeight = 4.0;
 
 class SliverWalletAppBar extends StatefulWidget {
   final String title;
