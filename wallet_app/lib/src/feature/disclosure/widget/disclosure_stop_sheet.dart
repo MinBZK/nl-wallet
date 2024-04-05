@@ -4,7 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
-import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/link_tile_button.dart';
 
 /// Builds upon the [ConfirmActionSheet], but supplies defaults for
 /// when the user is requesting to stop the disclosure flow.
@@ -35,9 +35,9 @@ class DisclosureStopSheet extends StatelessWidget {
       confirmIcon: Icons.not_interested,
       extraContent: onReportIssuePressed == null
           ? null
-          : LinkButton(
+          : LinkTileButton(
+              showDividers: false,
               onPressed: onReportIssuePressed,
-              customPadding: const EdgeInsets.all(16),
               child: Text(context.l10n.disclosureStopSheetReportIssueCta),
             ),
     );

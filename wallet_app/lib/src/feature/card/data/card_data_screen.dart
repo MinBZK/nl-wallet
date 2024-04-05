@@ -8,7 +8,7 @@ import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
@@ -107,25 +107,17 @@ class CardDataScreen extends StatelessWidget {
     }
 
     // Incorrect button
-    slivers.add(const SliverToBoxAdapter(child: Divider(height: 32)));
-    slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
     slivers.add(const SliverSizedBox(height: 16));
-    slivers.add(const SliverToBoxAdapter(child: Divider(height: 1)));
+    slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
     slivers.add(const SliverSizedBox(height: 24));
 
     return slivers;
   }
 
   Widget _buildIncorrectButton(BuildContext context) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: LinkButton(
-          child: Text(context.l10n.cardDataScreenIncorrectCta),
-          onPressed: () => CardDataIncorrectScreen.show(context),
-        ),
-      ),
+    return LinkTileButton(
+      child: Text(context.l10n.cardDataScreenIncorrectCta),
+      onPressed: () => CardDataIncorrectScreen.show(context),
     );
   }
 
