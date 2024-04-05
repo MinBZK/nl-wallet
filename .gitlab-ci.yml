@@ -78,6 +78,15 @@ default:
       variables:
         CACHE_POLICY: pull
 
+.merge-request-manual:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      variables:
+        CACHE_POLICY: pull
+      when: manual
+      # jobs that have "when: manual" in rules are non optional in Gitlab CI/CD
+      allow_failure: true
+
 .default-or-release:
   rules:
     - !reference [.default-branch, rules]
@@ -98,6 +107,11 @@ default:
   rules:
     - !reference [.default-or-release, rules]
     - !reference [.merge-request, rules]
+
+.default-or-demo-release-or-merge-request-manual:
+  rules:
+    - !reference [.default-or-demo-release, rules]
+    - !reference [.merge-request-manual, rules]
 
 .rust-cache:
   cache:
@@ -403,7 +417,7 @@ sonar-android:
 
 build-wp-image:
   extends: .kaniko
-  rules: !reference [.default-or-demo-release, rules]
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -422,7 +436,7 @@ build-wp-image:
 
 build-wp-migrations-image:
   extends: .kaniko
-  rules: !reference [.default-or-demo-release, rules]
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -441,7 +455,7 @@ build-wp-migrations-image:
 
 build-mock-relying-party-image:
   extends: .kaniko
-  rules: !reference [.default-or-demo-release, rules]
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -458,7 +472,7 @@ build-mock-relying-party-image:
 
 build-wallet-server-image:
   extends: .kaniko
-  rules: !reference [.default-or-demo-release, rules]
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -475,7 +489,7 @@ build-wallet-server-image:
 
 build-ws-migrations-image:
   extends: .kaniko
-  rules: !reference [.default-or-demo-release, rules]
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
       artifacts: false
@@ -816,7 +830,7 @@ dependency-check-images:
 
 run-wp-migrations-ont:
   extends: [.env-ont-k8s, .run-wp-migrations]
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request, rules]
 
 run-wp-migrations-demo:
   extends: [.env-demo-k8s, .run-wp-migrations]
@@ -839,7 +853,7 @@ run-wp-migrations-demo:
 
 deploy-wallet-provider-ont:
   extends: [.env-ont-k8s, .deploy-wallet-provider]
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request, rules]
   needs:
     - job: run-wp-migrations-ont
       artifacts: false
@@ -869,7 +883,7 @@ deploy-wallet-provider-demo:
 
 run-ws-migrations-ont:
   extends: [.env-ont-k8s, .run-ws-migrations]
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request, rules]
 
 run-ws-migrations-demo:
   extends: [.env-demo-k8s, .run-ws-migrations]
@@ -902,7 +916,10 @@ run-ws-migrations-demo:
 
 deploy-mock-relying-party-ont:
   extends: [.env-ont-k8s, .deploy-mock-relying-party]
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request, rules]
+  needs:
+    - job: run-ws-migrations-ont
+      artifacts: false
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
     MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
@@ -912,6 +929,9 @@ deploy-mock-relying-party-ont:
 
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
+  needs:
+    - job: run-ws-migrations-demo
+      artifacts: false
   rules: !reference [.demo-release-tag, rules]
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
