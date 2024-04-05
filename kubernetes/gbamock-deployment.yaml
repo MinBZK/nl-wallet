@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: gbamock
-          image: ghcr.io/brp-api/haal-centraal-brp-bevragen-gba-mock:latest
+          image: $HARBOR_REGISTRY/ghcr-io-proxy/brp-api/haal-centraal-brp-bevragen-gba-mock:latest
           volumeMounts:
             - name: testdata
               mountPath: /app/Data/test-data.json
