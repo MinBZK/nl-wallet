@@ -663,7 +663,7 @@ build-android-app-demo-profile:
     - HTTP_PROXY="" HTTPS_PROXY="" bundle install --retry=10
     - bundle exec fastlane disable_flutter_analytics
     - |
-      HTTP_PROXY="" HTTPS_PROXY="" bundle exec fastlane ios ci_build \
+      bundle exec fastlane ios ci_build \
         bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
