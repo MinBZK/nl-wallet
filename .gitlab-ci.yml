@@ -32,6 +32,15 @@ variables:
     kubernetes:
       namespace: ${K8S_DEMO_NAMESPACE}
 
+.env-macos-runner:
+  before_script:
+    - set -euo pipefail
+    - kubectl config set-cluster s15m --server="$K8S_CLUSTER_SERVER"
+    - kubectl config set-context s15m --cluster=s15m --namespace="$K8S_NAMESPACE"
+    - kubectl config set-credentials macos-runner-service-account --token="$(echo "$MACOS_RUNNER_SERVICE_ACCOUNT_TOKEN_B64" | base64 -d)"
+    - kubectl config set-context s15m --user=macos-runner-service-account
+    - kubectl config use-context s15m
+
 default:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-debian@sha256:529d9b3c3ea0b58a71e522837230b6ed473f24b8ec91ea8bc311ea6fa3e7d806"
 
@@ -134,6 +143,11 @@ default:
     - ruby -v
     - bundle config set --local path "vendor/ruby"
 
+.ruby-cache-macos:
+  extends: .ruby-cache
+  cache:
+    key: ruby-macos-${CI_COMMIT_REF_SLUG}
+
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
@@ -154,6 +168,7 @@ test-flutter-ui:
   when: manual
   tags:
     - macos
+  image: sonoma-wallet:latest
   artifacts:
     name: "ui-test-failures"
     when: on_failure
@@ -228,10 +243,8 @@ test-rust-integration:
     paths:
       - wallet_core/lcov_integration.info
 
-test-rust-compilation-android-linux:
+.test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
   variables:
     RUSTFLAGS: "-D warnings"
   script:
@@ -241,15 +254,23 @@ test-rust-compilation-android-linux:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
-    - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
+
+test-rust-compilation-android-linux:
+  extends: .test-rust-compilation
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
+  script:
+      - !reference [.test-rust-compilation, script]
+      - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
 test-rust-compilation-ios:
-  rules: !reference [.default-or-release-or-merge-request, rules]
-  when: manual
+  extends: .test-rust-compilation
   tags:
     - macos
+  image: sonoma-wallet:latest
   script:
-    - cargo check --manifest-path wallet_core/Cargo.toml --locked --target aarch64-apple-ios --release
+    - !reference [.test-rust-compilation, script]
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
 
 test-ios:
   extends: .ruby-cache
@@ -506,6 +527,7 @@ build-ws-migrations-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migrations:$CI_COMMIT_SHORT_SHA
       --cache=true
 
+### Android building
 .build-android-app:
   extends: .ruby-cache
   needs:
@@ -605,9 +627,9 @@ build-android-app-demo-profile:
     APP_FILE_FORMAT: "apk"
     APP_BUILD_MODE: "profile"
 
+### iOS Building
 .build-ios-app:
-  rules: !reference [.default-or-release, rules]
-  when: manual
+  extends: [.env-macos-runner, .ruby-cache-macos]
   needs:
     - job: test-flutter
       artifacts: false
@@ -621,6 +643,7 @@ build-android-app-demo-profile:
       artifacts: false
   tags:
     - macos
+  image: sonoma-wallet:latest
   artifacts:
     name: "wallet-ios"
     paths:
@@ -628,24 +651,73 @@ build-android-app-demo-profile:
   variables:
     FASTLANE_OPT_OUT_USAGE: "YES"
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
+  before_script:
+    - !reference [.env-macos-runner, before_script]
+    - !reference [.ruby-cache-macos, before_script]
   script:
-    - export MATCH_PASSWORD=$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)
-    - bundle install
+    - set -euo pipefail
+    - kubectl get secret nl-wallet-core-env-file -o jsonpath='{.data.env}' | base64 --decode > wallet_core/wallet/.env
+    - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
+    - export MATCH_PASSWORD
+    - (git config --global url.https://gitlab-ci-token:$CI_JOB_TOKEN@$CI_SERVER_HOST.insteadOf https://$CI_SERVER_HOST)
+    - HTTP_PROXY="" HTTPS_PROXY="" bundle install --retry=10
     - bundle exec fastlane disable_flutter_analytics
     - |
-      bundle exec fastlane ios build \
+      HTTP_PROXY="" HTTPS_PROXY="" bundle exec fastlane ios ci_build \
         bundle_id:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         app_name:"${APP_NAME}" \
+        build_mode:"${APP_BUILD_MODE}" \
+        mock:"${APP_MOCK}" \
+        universal_link_base:"${UL_HOSTNAME}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION}"
+        version:"${RELEASE_VERSION:-}"
 
-build-ios-app-latest:
-  extends: [.env-ont-k8s, .build-ios-app] # needs k8s secrets
+.build-ios-app-latest:
+  extends: .build-ios-app
+  rules: !reference [.default-branch, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
 
+build-ios-app-latest-release:
+  extends: .build-ios-app-latest
+  variables:
+    APP_BUILD_MODE: "release"
+
+build-ios-app-latest-profile:
+  extends: .build-ios-app-latest
+  variables:
+    APP_BUILD_MODE: "profile"
+
+.build-ios-app-demo:
+  extends: [.demo-release-tag, .build-ios-app]
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+    APP_NAME: "NL Wallet (demo)"
+    APP_MOCK: "false"
+    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+
+build-ios-app-demo-release:
+  extends: .build-ios-app-demo
+  variables:
+    APP_BUILD_MODE: "release"
+
+build-ios-app-demo-profile:
+  extends: .build-ios-app-demo
+  variables:
+    APP_BUILD_MODE: "profile"
+
+build-ios-app-mock:
+  extends: [.mock-release-tag, .build-ios-app]
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+    APP_NAME: "NL Wallet (mock)"
+    APP_MOCK: "true"
+    APP_BUILD_MODE: "release"
+
+### Android deploying
 .deploy-android-app:
   extends: .ruby-cache
   # needs:
@@ -736,43 +808,96 @@ upload-browserstack-android-app-demo:
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
-#deploy-ios-app:
-#  resource_group: deploy-ios
+## iOS Deploying
+# .deploy-ios-app:
+#  extends: .env-macos-runner
 #  rules: !reference [.default-or-release, rules]
 #  needs:
 #    - job: build-ios-app
 #      artifacts: true
-#    - job: build-android-app # only deploy apps when both apps have been built successfully
-#      artifacts: false
-#  environment:
-#    name: deploy-ios
-#    action: start
+#   # Only deploy apps when both apps have been built successfully
+#   #  - job: build-android-app 
+#   #    artifacts: false
 #  tags:
 #    - macos
+#  image: sonoma-wallet:latest
 #  variables:
 #    FASTLANE_OPT_OUT_USAGE: "YES"
 #  script:
 #    - bundle install
 #    - bundle exec fastlane disable_flutter_analytics
 #    - bundle exec fastlane ios ci_deploy
-#
-#upload-browserstack-ios-app:
-#  resource_group: deploy-ios
-#  rules: !reference [.default-branch, rules]
-#  needs:
-#    - job: build-ios-app
-#      artifacts: true
-#    - job: build-android-app # only deploy apps when both apps have been built successfully
-#      artifacts: false
-#  image:
-#    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
-#  variables:
-#    LC_ALL: "C.UTF-8"
-#    LANG: "C.UTF-8"
-#    FASTLANE_OPT_OUT_USAGE: "YES"
-#  script:
-#    - bundle install
-#    - bundle exec fastlane ios ci_browserstack
+# # TODO: Authentication
+# # - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
+# #         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+# #         version:"${RELEASE_VERSION}"
+
+# deploy-ios-app-latest:
+#   extends: .deploy-ios-app
+#   rules: !reference [.default-branch, rules]
+#   needs:
+#     - job: build-ios-app-latest-release
+#       artifacts: true
+#   environment:
+#     action: start
+#   variables:
+#     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+
+# TODO: Decide if we have an iOS mock version of the app
+# deploy-ios-app-mock:
+#   extends: .deploy-ios-app
+#   rules: !reference [.mock-release-tag, rules]
+#   needs:
+#     - job: build-ios-app-mock-release
+#       artifacts: true
+#   variables:
+#     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
+
+# TODO: Probably need another environment for demo app deployment
+# deploy-ios-app-demo:
+#   extends: .deploy-ios-app
+#   rules: !reference [.demo-release-tag, rules]
+#   needs:
+#     - job: build-ios-app-demo-release
+#       artifacts: true
+#   variables:
+#     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+
+# .upload-browserstack-ios-app:
+#   extends: .ruby-cache
+#   image:
+#     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
+#   variables:
+#     LC_ALL: "C.UTF-8"
+#     LANG: "C.UTF-8"
+#     FASTLANE_OPT_OUT_USAGE: "YES"
+#   script:
+#     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+#     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+#     - bundle install
+#     - |
+#       bundle exec fastlane ios ci_browserstack \
+# # TODO:
+#         # package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+#         # version:"${RELEASE_VERSION}"
+
+# upload-browserstack-ios-app-latest:
+#   extends: [.env-ont-k8s, .upload-browserstack-ios-app]
+#   rules: !reference [.default-branch, rules]
+#   needs:
+#     - job: build-ios-app-latest-profile
+#       artifacts: true
+#   variables:
+#     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+
+# upload-browserstack-ios-app-demo:
+#   extends: [.env-demo-k8s, .upload-browserstack-ios-app]
+#   rules: !reference [.demo-release-tag, rules]
+#   needs:
+#     - job: build-ios-app-demo-profile
+#       artifacts: true
+#   variables:
+#     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
 dependency-check-images:
   rules: !reference [.default-or-demo-release, rules]
