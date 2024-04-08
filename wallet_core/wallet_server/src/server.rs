@@ -6,7 +6,7 @@ use nl_wallet_mdoc::{
     server_state::{SessionState, SessionStore},
     verifier::DisclosureData,
 };
-use tower_http::validate_request::ValidateRequestHeaderLayer;
+use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 use tracing::debug;
 
 #[cfg(feature = "issuance")]
@@ -28,8 +28,7 @@ fn decorate_router(prefix: &str, router: Router) -> Router {
     #[cfg(feature = "log_requests")]
     let router = router.layer(axum::middleware::from_fn(crate::log_requests::log_request_response));
 
-    #[allow(clippy::let_and_return)] // See https://github.com/rust-lang/rust-clippy/issues/9150
-    router
+    router.layer(TraceLayer::new_for_http())
 }
 
 fn setup_disclosure<S>(
