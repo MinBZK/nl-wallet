@@ -169,9 +169,12 @@ class DashboardScreen extends StatelessWidget {
     return Semantics(
       label: context.l10n.dashboardScreenQrCta,
       button: true,
-      child: GestureDetector(
-        onTap: onTapQr,
-        child: ExcludeSemantics(
+      excludeSemantics: true,
+      child: SizedBox(
+        width: context.mediaQuery.size.width * 0.6,
+        height: 240,
+        child: GestureDetector(
+          onTap: onTapQr,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
