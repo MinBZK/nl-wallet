@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-05T16:33:37+02:00",
+    "@@last_modified": "2024-04-08T12:01:16+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -436,7 +436,7 @@
     "disclosureSuccessPageHistoryDescription": "Je kunt de details vinden in je activiteiten-overzicht.",
     "disclosureSuccessPageShowHistoryCta": "Bekijk activiteiten",
     "disclosureSuccessPageTitle": "Gelukt!",
-    "disclosureSuccessPageToDashboardCta": "Naar kaarten",
+    "disclosureSuccessPageToDashboardCta": "Naar mijn overzicht",
     "disclosureSuccessPageToWebsiteCta": "Ga naar website",
     "errorScreenGeneralHelpCta": "Hulp nodig?",
     "errorScreenGenericCloseCta": "Sluiten",
@@ -554,6 +554,7 @@
     "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
+    "generalWCAGSeeAllActivities": "Bekijk alle activiteiten",
     "helpSheetCloseCta": "Sluiten",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
@@ -942,12 +943,21 @@
     "pinBlockedScreenResetWalletCta": "Verwijder Wallet",
     "pinBlockedScreenTitle": "Geblokkeerd",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} cijfer over} other {{count} cijfers over}}",
-    "pinErrorDialogCloseCta": "Sluiten",
-    "pinErrorDialogFinalRoundFinalAttempt": "Je mag het nog één keer proberen. Als de volgende pincode ongeldig is wordt de app geblokkeerd.",
-    "pinErrorDialogForgotCodeCta": "Code vergeten?",
+    "pinErrorDialogCloseCta": "SLUITEN",
+    "pinErrorDialogFinalRoundFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app permanent geblokkeerd.",
+    "pinErrorDialogFinalRoundNonFinalAttempt": "Je mag het nog {count} keer proberen. Na {count} ongeldige pincodes wordt de app permanent geblokkeerd.",
+    "@pinErrorDialogFinalRoundNonFinalAttempt": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "pinErrorDialogForgotCodeCta": "PINCODE VERGETEN?",
     "pinErrorDialogNonFinalRoundFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app tijdelijk geblokkeerd.",
-    "pinErrorDialogNonFinalRoundInitialAttempt": "Ongeldige pincode, probeer opnieuw.",
-    "pinErrorDialogNonFinalRoundNonFinalAttempt": "{count, plural, one {Je mag het nog {count} keer proberen.} other {Je mag het nog {count} keer proberen.}}",
+    "pinErrorDialogNonFinalRoundInitialAttempt": "Pincode onjuist, probeer opnieuw.",
+    "pinErrorDialogNonFinalRoundNonFinalAttempt": "Je mag het nog {count} keer proberen.",
     "@pinErrorDialogNonFinalRoundNonFinalAttempt": {
         "placeholders": {
             "count": {
@@ -956,7 +966,7 @@
             }
         }
     },
-    "pinErrorDialogTitle": "Ongeldige pincode",
+    "pinErrorDialogTitle": "Verkeerde pincode",
     "pinFieldAnnouncementLabel": "{count, plural, one {Toegangscode, {count} cijfer over} other {Toeganscode, {count} cijfers over}}",
     "pinFieldSemanticsLabel": "PIN code, {enteredDigits} van {totalDigits} cijfers ingevoerd.",
     "@pinFieldSemanticsLabel": {
@@ -972,7 +982,7 @@
         }
     },
     "pinKeyboardWCAGBackspaceLabel": "Verwijder",
-    "pinKeyboardWCAGBackspaceLongPressHint": "Houd vast om alles te verwijderen",
+    "pinKeyboardWCAGBackspaceLongPressHint": "Alles te verwijderen",
     "pinKeyboardWCAGDigitKeyTapHint": "invoer",
     "pinScreenAboutAppTooltip": "Over de app",
     "pinScreenAttemptsCount": "{count, plural, one {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",

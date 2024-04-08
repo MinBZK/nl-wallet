@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-04-05T16:33:37+02:00",
+    "@@last_modified": "2024-04-08T12:01:16+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
@@ -436,7 +436,7 @@
     "disclosureSuccessPageHistoryDescription": "You can find the details in your activities overview.",
     "disclosureSuccessPageShowHistoryCta": "View activities",
     "disclosureSuccessPageTitle": "Success!",
-    "disclosureSuccessPageToDashboardCta": "To cards",
+    "disclosureSuccessPageToDashboardCta": "To my overview",
     "disclosureSuccessPageToWebsiteCta": "Go to website",
     "errorScreenGeneralHelpCta": "Need help?",
     "errorScreenGenericCloseCta": "Close",
@@ -554,6 +554,7 @@
     "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
+    "generalWCAGSeeAllActivities": "See all activities",
     "helpSheetCloseCta": "Close",
     "helpSheetDescription": "Contact support. The following data could be required.",
     "helpSheetErrorCode": "Error code: {code}",
@@ -942,12 +943,21 @@
     "pinBlockedScreenResetWalletCta": "Remove Wallet",
     "pinBlockedScreenTitle": "App blocked",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} digit left} other {{count} digits left}}",
-    "pinErrorDialogCloseCta": "Close",
-    "pinErrorDialogFinalRoundFinalAttempt": "You may try it one more time. If the following PIN code is invalid, the app will be blocked.",
-    "pinErrorDialogForgotCodeCta": "Forgot pin code?",
-    "pinErrorDialogNonFinalRoundFinalAttempt": "You may try it 1 more time. If the following PIN code is invalid, the app will be temporary blocked.",
+    "pinErrorDialogCloseCta": "CLOSE",
+    "pinErrorDialogFinalRoundFinalAttempt": "You can try 1 more time. If the following PIN code is invalid, the app will be permanently blocked.",
+    "pinErrorDialogFinalRoundNonFinalAttempt": "You can try {count} more times. After {count} invalid PIN codes, the app will be permanently blocked.",
+    "@pinErrorDialogFinalRoundNonFinalAttempt": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "pinErrorDialogForgotCodeCta": "FOTGOT PIN CODE?",
+    "pinErrorDialogNonFinalRoundFinalAttempt": "You can try 1 more time. If the following PIN code is invalid, the app will be temporary blocked.",
     "pinErrorDialogNonFinalRoundInitialAttempt": "PIN code incorrect, try again.",
-    "pinErrorDialogNonFinalRoundNonFinalAttempt": "{count, plural, one {You can try {count} more time.} other {You can try {count} more times.}}",
+    "pinErrorDialogNonFinalRoundNonFinalAttempt": "You can try {count} more times.",
     "@pinErrorDialogNonFinalRoundNonFinalAttempt": {
         "placeholders": {
             "count": {
@@ -972,7 +982,7 @@
         }
     },
     "pinKeyboardWCAGBackspaceLabel": "Delete",
-    "pinKeyboardWCAGBackspaceLongPressHint": "Hold to delete all",
+    "pinKeyboardWCAGBackspaceLongPressHint": "Delete all",
     "pinKeyboardWCAGDigitKeyTapHint": "select",
     "pinScreenAboutAppTooltip": "About this app",
     "pinScreenAttemptsCount": "{count, plural, one {You have {count} attempt left} other {You have {count} attempts left}}",
