@@ -60,7 +60,9 @@ class DisclosureScreen extends StatelessWidget {
           leading: _buildBackButton(context),
           actions: [
             const HelpIconButton(),
-            _buildCloseButton(context, progress),
+            CloseIconButton(
+              onPressed: () => _stopDisclosure(context),
+            ),
           ],
           title: _buildTitle(context),
           progress: progress,
@@ -92,15 +94,6 @@ class DisclosureScreen extends StatelessWidget {
           onPressed: () => context.bloc.add(const DisclosureBackPressed()),
         );
       },
-    );
-  }
-
-  /// The close button stops/closes the disclosure flow.
-  /// It is only visible in the semantics tree when the disclosure flow is in progress.
-  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
-    return ExcludeSemantics(
-      excluding: stepperProgress == 1.0,
-      child: CloseIconButton(onPressed: () => _stopDisclosure(context)),
     );
   }
 
