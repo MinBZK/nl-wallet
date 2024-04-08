@@ -3,22 +3,7 @@ use std::fmt::{Display, Formatter};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 
-/// The contents of the error JSON are (loosely) based on
-/// [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807).
-/// It serializes having the following fields:
-///
-/// * A `type` field wich contains a uniquely identifiable string.
-///   As opposed to what is suggested in the RFC, this is not a
-///   resolvable URL.
-/// * A `title`, which contains the string value of the error.
-/// * Optionally a `data` field, which can contain some key-value
-///   data.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ErrorData {
-    #[serde(flatten)]
-    pub typ: ErrorType,
-    pub title: String,
-}
+use crate::http_error::ErrorData;
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
@@ -46,7 +31,7 @@ pub struct PinTimeoutData {
     pub time_left_in_ms: u64,
 }
 
-impl Display for ErrorData {
+impl Display for ErrorData<ErrorType> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.title)
     }

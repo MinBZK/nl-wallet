@@ -8,7 +8,7 @@ use wallet_common::{
     account::{
         messages::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
-            errors::ErrorData,
+            errors::ErrorType,
             instructions::{
                 Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult,
                 InstructionResultMessage,
@@ -17,6 +17,7 @@ use wallet_common::{
         signed::SignedDouble,
     },
     config::wallet_config::BaseUrl,
+    http_error::ErrorData,
     reqwest::default_reqwest_client_builder,
 };
 
@@ -78,7 +79,7 @@ impl HttpAccountProviderClient {
                 // attempt to parse the body as `ErrorData`. If this fails, just return
                 // `AccountServerResponseError::Status`.
                 (_, Some((mime::APPLICATION, mime::JSON, _))) | (_, Some((mime::APPLICATION, _, Some(mime::JSON)))) => {
-                    match response.json::<ErrorData>().await {
+                    match response.json::<ErrorData<ErrorType>>().await {
                         Ok(error_data) => AccountProviderResponseError::Data(status, error_data),
                         Err(_) => AccountProviderResponseError::Status(status),
                     }

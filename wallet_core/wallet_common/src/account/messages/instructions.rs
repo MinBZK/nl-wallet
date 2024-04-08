@@ -2,10 +2,10 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
     account::{
+        errors::Result,
         serialization::{DerSignature, DerVerifyingKey},
         signed::SignedDouble,
     },
-    errors::Result,
     jwt::{Jwt, JwtSubject},
     keys::{EphemeralEcdsaKey, SecureEcdsaKey},
 };

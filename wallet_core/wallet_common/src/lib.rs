@@ -1,7 +1,7 @@
 pub mod account;
 pub mod config;
-pub mod errors;
 pub mod generator;
+pub mod http_error;
 pub mod jwt;
 pub mod keys;
 pub mod reqwest;

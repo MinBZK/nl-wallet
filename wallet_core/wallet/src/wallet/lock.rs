@@ -106,11 +106,12 @@ mod tests {
     use wallet_common::{
         account::{
             messages::{
-                errors::{ErrorData, ErrorType, IncorrectPinData, PinTimeoutData},
+                errors::{ErrorType, IncorrectPinData, PinTimeoutData},
                 instructions::{CheckPin, Instruction, InstructionResultClaims},
             },
             signed::SequenceNumberComparison,
         },
+        http_error::ErrorData,
         jwt::Jwt,
         keys::EcdsaKey,
         utils,

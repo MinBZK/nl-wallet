@@ -5,25 +5,23 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use http::{header, HeaderValue};
-use mime::Mime;
-use once_cell::sync::Lazy;
 use tracing::debug;
 
-use wallet_common::account::messages::errors::{ErrorData, ErrorType};
+use wallet_common::{
+    account::messages::errors::ErrorType,
+    http_error::{ErrorData, APPLICATION_PROBLEM_JSON},
+};
 use wallet_provider_service::{
     account_server::{ChallengeError, InstructionError, RegistrationError, WalletCertificateError},
     hsm,
 };
-
-pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
-    Lazy::new(|| "application/problem+json".parse().expect("Could not parse MIME type"));
 
 /// This type wraps a [`StatusCode`] and [`ErrorData`] instance,
 /// which forms the JSON body of the error reponses.
 #[derive(Debug, Clone)]
 pub struct WalletProviderError {
     pub status_code: StatusCode,
-    pub body: ErrorData,
+    pub body: ErrorData<ErrorType>,
 }
 
 /// Any top-level error should implement this trait in order to be
@@ -40,9 +38,9 @@ pub trait ConvertibleError: Error {
 /// of the `(StatusCode, X: IntoResponseParts, Y: IntoResponse)` tuple.
 impl IntoResponse for WalletProviderError {
     fn into_response(self) -> Response {
-        // Panic because the JSON encoding should always succeed.
         debug!("error result: {:?}", self);
 
+        // Panic because the JSON encoding should always succeed.
         let bytes = serde_json::to_vec(&self.body).expect("Could not encode ErrorData to JSON.");
 
         (

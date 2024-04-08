@@ -17,7 +17,6 @@ mock_secure_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
 software_keys = [
     "mock_secure_keys",
-    "dep:once_cell",
     "dep:parking_lot",
     "dep:rand_core",
 ]
@@ -33,7 +32,9 @@ etag.workspace = true
 futures.workspace = true
 http.workspace = true
 jsonwebtoken.workspace = true
+mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
+once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
@@ -47,7 +48,6 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
-once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 
