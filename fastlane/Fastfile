@@ -115,7 +115,7 @@ platform :android do
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
 
             # ENV_CONFIGURATION is ignored when mock repositories are configured
-            "--dart-define=ENV_CONFIGURATION=#{env_configuration}",
+            "--dart-define=ENV_CONFIGURATION=true",
       )
 
       sh("mv", "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}", "../#{package_name}-#{version}-#{build_mode}.#{file_format}")
