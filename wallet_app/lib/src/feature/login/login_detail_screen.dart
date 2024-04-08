@@ -190,13 +190,21 @@ class LoginDetailScreen extends StatelessWidget {
             child: Icon(Icons.handshake_outlined),
           ),
           const SizedBox(height: 16),
-          Text(
-            context.l10n.loginDetailScreenAgreementTitle,
-            style: context.textTheme.headlineMedium,
-          ),
-          Text(
-            context.read<ContextMapper<Policy, String>>().map(context, policy),
-            style: context.textTheme.bodyLarge,
+          MergeSemantics(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.l10n.loginDetailScreenAgreementTitle,
+                  style: context.textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.read<ContextMapper<Policy, String>>().map(context, policy),
+                  style: context.textTheme.bodyLarge,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           Align(

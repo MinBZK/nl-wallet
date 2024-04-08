@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-05T12:29:40+02:00",
+    "@@last_modified": "2024-04-05T16:33:37+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -552,6 +552,7 @@
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",
     "generalWCAGMenu": "Menu",
+    "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
     "helpSheetCloseCta": "Sluiten",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
