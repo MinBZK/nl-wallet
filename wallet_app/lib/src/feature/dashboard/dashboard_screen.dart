@@ -13,8 +13,10 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/activity_summary.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/icon/menu_icon_button.dart';
+import '../common/widget/button/icon/qr_icon_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
@@ -53,11 +55,7 @@ class DashboardScreen extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return WalletAppBar(
-      leading: IconButton(
-        onPressed: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
-        icon: const Icon(Icons.menu),
-        tooltip: context.l10n.dashboardScreenTitle,
-      ),
+      leading: const MenuIconButton(),
       title: ExcludeSemantics(
         excluding: true /* Excluding as the IconButton above is already read out, including the 'menu' tooltip */,
         child: GestureDetector(
@@ -71,18 +69,13 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
       ),
-      actions: [
+      actions: const [
         FadeInAtOffset(
-            visibleOffset: 150,
-            appearOffset: 100,
-            child: IconButton(
-              onPressed: () => Navigator.pushNamed(context, WalletRoutes.qrRoute),
-              icon: const Icon(Icons.qr_code_rounded),
-            )),
-        IconButton(
-          onPressed: () => PlaceholderScreen.show(context),
-          icon: const Icon(Icons.help_outline_rounded),
+          visibleOffset: 150,
+          appearOffset: 100,
+          child: QrIconButton(),
         ),
+        HelpIconButton(),
       ],
     );
   }
@@ -176,9 +169,12 @@ class DashboardScreen extends StatelessWidget {
     return Semantics(
       label: context.l10n.dashboardScreenQrCta,
       button: true,
-      child: GestureDetector(
-        onTap: onTapQr,
-        child: ExcludeSemantics(
+      excludeSemantics: true,
+      child: SizedBox(
+        width: context.mediaQuery.size.width * 0.6,
+        height: 240,
+        child: GestureDetector(
+          onTap: onTapQr,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,

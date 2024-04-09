@@ -16,7 +16,10 @@ use nl_wallet_mdoc::{
         x509::{Certificate, CertificateError, CertificateType},
     },
 };
-use wallet_common::utils::{random_string, sha256};
+use wallet_common::{
+    nonempty::NonEmpty,
+    utils::{random_string, sha256},
+};
 
 use crate::{authorization::AuthorizationDetails, ErrorStatusCode};
 
@@ -133,7 +136,7 @@ pub struct TokenResponse {
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
-    pub attestation_previews: Vec<AttestationPreview>,
+    pub attestation_previews: NonEmpty<Vec<AttestationPreview>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

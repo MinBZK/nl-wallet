@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/disclosure/return_url_case.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/page/terminal_page.dart';
 
@@ -38,18 +39,12 @@ class DisclosureSuccessPage extends StatelessWidget {
   }
 
   String _resolvePrimaryCta(BuildContext context) {
-    if (returnUrl != null) {
-      if (isLoginFlow) {
-        return context.l10n.disclosureSuccessPageToWebsiteCta;
-      } else {
-        return context.l10n.disclosureSuccessPageCloseCta;
-      }
-    } else {
-      if (isLoginFlow) {
-        return context.l10n.disclosureSuccessPageCloseCta;
-      } else {
-        return context.l10n.disclosureSuccessPageToDashboardCta;
-      }
-    }
+    final returnUrlCase = ReturnUrlCase.resolve(isLoginFlow, returnUrl != null);
+    return switch (returnUrlCase) {
+      ReturnUrlCase.returnUrl => context.l10n.disclosureSuccessPageCloseCta,
+      ReturnUrlCase.noReturnUrl => context.l10n.disclosureSuccessPageToDashboardCta,
+      ReturnUrlCase.loginReturnUrl => context.l10n.disclosureSuccessPageToWebsiteCta,
+      ReturnUrlCase.loginNoReturnUrl => context.l10n.disclosureSuccessPageCloseCta,
+    };
   }
 }

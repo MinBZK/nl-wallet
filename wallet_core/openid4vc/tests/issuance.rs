@@ -22,7 +22,7 @@ use openid4vc::{
     oidc::{self},
     token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
 type MockIssuer = Issuer<MockAttributeService, SingleKeyRing, MemorySessionStore<IssuanceData>>;
 
@@ -250,7 +250,12 @@ impl MockOpenidMessageClient {
                     jwt: invalidate_jwt(&jwt.0).into(),
                 },
             };
-            credential_requests.credential_requests[0].proof = Some(invalidated_proof);
+
+            let mut requests = credential_requests.credential_requests.into_inner();
+
+            requests[0].proof = Some(invalidated_proof);
+            credential_requests.credential_requests = requests.try_into().unwrap();
+
             credential_requests
         } else {
             credential_requests
@@ -356,8 +361,8 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Self::Error> {
-        Ok(vec![
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
+        let previews = vec![
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_PID_DOCTYPE.to_string(),
@@ -396,6 +401,7 @@ impl AttributeService for MockAttributeService {
                 },
                 issuer: self.issuer_cert.clone(),
             },
-        ])
+        ];
+        Ok(previews.try_into().unwrap())
     }
 }

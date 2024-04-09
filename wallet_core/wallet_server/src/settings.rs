@@ -1,17 +1,17 @@
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
 use config::{Config, ConfigError, Environment, File};
-use indexmap::IndexMap;
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::utils::x509::Certificate;
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
-    reqwest::deserialize_certificates,
     trust_anchor::DerTrustAnchor,
 };
+
+#[cfg(feature = "issuance")]
+use {indexmap::IndexMap, nl_wallet_mdoc::utils::x509::Certificate, wallet_common::reqwest::deserialize_certificates};
 
 #[cfg(feature = "mock")]
 use crate::pid::mock::{PersonAttributes, ResidentAttributes};
@@ -21,8 +21,9 @@ pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
     pub wallet_server: Server,
     // used by the application, SHOULD be reachable only by the application.
+    // if not configured the wallet_server will be used, but an api_key is required in that case
     // if it conflicts with wallet_server, the application will crash on startup
-    pub requester_server: Server,
+    pub requester_server: RequesterAuth,
     // used by the wallet
     pub public_url: BaseUrl,
     // used by the application
@@ -35,6 +36,26 @@ pub struct Settings {
     pub issuer: Issuer,
 
     pub verifier: Verifier,
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum Authentication {
+    ApiKey(String),
+}
+
+#[derive(Deserialize, Clone)]
+pub enum RequesterAuth {
+    #[serde(rename = "authentication")]
+    Authentication(Authentication),
+    #[serde(untagged)]
+    ProtectedInternalEndpoint {
+        authentication: Authentication,
+        #[serde(flatten)]
+        server: Server,
+    },
+    #[serde(untagged)]
+    InternalEndpoint(Server),
 }
 
 #[derive(Deserialize, Clone)]
@@ -90,8 +111,11 @@ pub struct Issuer {
 
     #[cfg(feature = "mock")]
     pub mock_data: Option<Vec<MockAttributes>>,
+
+    pub brp_server: BaseUrl,
 }
 
+#[cfg(feature = "issuance")]
 impl Issuer {
     pub fn certificates(&self) -> IndexMap<String, Certificate> {
         self.private_keys
@@ -110,12 +134,10 @@ impl Settings {
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
-            .set_default("requester_server.ip", "127.0.0.1")?
-            .set_default("requester_server.port", 3002)?
             .set_default("public_url", "http://localhost:3001/")?
-            .set_default("internal_url", "http://localhost:3002/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("store_url", "memory://")?
+            .set_default("issuer.brp_server", "http://localhost:5001/")?
             .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
 
         #[cfg(feature = "issuance")]
@@ -131,7 +153,7 @@ impl Settings {
                     .separator("__")
                     .prefix_separator("_")
                     .list_separator(",")
-                    .with_list_parse_key("trust_anchors")
+                    .with_list_parse_key("verifier.trust_anchors")
                     .try_parsing(true),
             )
             .build()?

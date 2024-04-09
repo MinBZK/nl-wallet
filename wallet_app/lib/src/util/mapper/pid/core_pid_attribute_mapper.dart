@@ -10,10 +10,7 @@ class CorePidAttributeMapper extends PidAttributeMapper<DataAttribute> {
   String get birthDateKey => 'birth_date';
 
   @override
-  String get birthNameKey => 'family_name_birth';
-
-  @override
-  String get birthPlaceKey => 'birth_city';
+  String get birthCityKey => 'birth_city';
 
   @override
   String get bsnKey => 'bsn';

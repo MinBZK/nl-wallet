@@ -201,35 +201,40 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildPrivacySection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.handshake_outlined, size: 24),
-            const SizedBox(height: 16),
-            Text(
-              context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
-              style: context.textTheme.displaySmall,
-              textAlign: TextAlign.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.handshake_outlined, size: 24),
+          const SizedBox(height: 16),
+          MergeSemantics(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
+                  style: context.textTheme.displaySmall,
+                  textAlign: TextAlign.start,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  context.read<ContextMapper<Policy, String>>().map(context, policy),
+                  style: context.textTheme.bodyLarge,
+                  textAlign: TextAlign.start,
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              context.read<ContextMapper<Policy, String>>().map(context, policy),
-              style: context.textTheme.bodyLarge,
-              textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 4),
+          LinkButton(
+            customPadding: EdgeInsets.zero,
+            child: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
+            onPressed: () => PolicyScreen.show(
+              context,
+              policy,
+              onReportIssuePressed: onReportIssuePressed,
             ),
-            const SizedBox(height: 4),
-            LinkButton(
-              customPadding: EdgeInsets.zero,
-              child: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
-              onPressed: () => PolicyScreen.show(
-                context,
-                policy,
-                onReportIssuePressed: onReportIssuePressed,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

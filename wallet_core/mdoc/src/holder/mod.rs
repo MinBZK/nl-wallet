@@ -29,18 +29,10 @@ pub enum HolderError {
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]
     ReaderAuthsInconsistent,
-    #[error("no unsigned mdocs received from issuer")]
-    NoUnsignedMdocs,
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
     #[error("request error: {0}")]
     RequestError(#[from] HttpClientError),
-    #[error("malformed Service Engagement: url missing")]
-    MalformedServiceEngagement,
-    #[error("malformed attribute: random too short (was {0}; minimum {1}")]
-    AttributeRandomLength(usize, usize),
-    #[error("missing issuance session state")]
-    MissingIssuanceSessionState,
     #[error("verifier URL not present in reader engagement")]
     VerifierUrlMissing,
     #[error("verifier ephemeral key not present in reader engagement")]

@@ -84,7 +84,7 @@ class _PinFieldState extends State<PinField> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: context.l10n.pinFieldSemanticsLabel(widget.enteredDigits, widget.digits),
+      label: context.l10n.pinFieldAnnouncementLabel(widget.digits - widget.enteredDigits),
       child: Transform.translate(
         offset: _calcShakeOffset(),
         child: Row(

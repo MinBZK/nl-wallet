@@ -16,22 +16,30 @@ class ConfirmButton extends StatelessWidget {
   final String text;
   final String? semanticsLabel;
   final IconData? icon;
+  final ImageProvider? iconProvider;
   final ConfirmButtonType buttonType;
 
   const ConfirmButton({
     required this.text,
     this.onPressed,
-    this.icon = Icons.check,
+    this.icon,
+    this.iconProvider,
     this.semanticsLabel,
     required this.buttonType,
     super.key,
-  });
+  }) : assert(
+          icon == null || iconProvider == null,
+          'ConfirmButton does not support showing an icon & iconProvider at the same time',
+        );
+
+  bool get hasIcon => icon != null || iconProvider != null;
 
   const ConfirmButton.accept({
     this.onPressed,
     required this.text,
     this.semanticsLabel,
     this.icon,
+    this.iconProvider,
     this.buttonType = ConfirmButtonType.primary,
     super.key = const Key('acceptButton'),
   });
@@ -41,6 +49,7 @@ class ConfirmButton extends StatelessWidget {
     required this.text,
     this.semanticsLabel,
     this.icon,
+    this.iconProvider,
     this.buttonType = ConfirmButtonType.outlined,
     super.key = const Key('rejectButton'),
   });
@@ -51,7 +60,7 @@ class ConfirmButton extends StatelessWidget {
     final textAndIcon = Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: _kButtonIconSize),
+        _buildIcon(),
         const SizedBox(width: _kButtonIconSpacing),
         Flexible(child: text),
       ],
@@ -61,9 +70,22 @@ class ConfirmButton extends StatelessWidget {
       child: _buildButtonType(
         type: buttonType,
         onPressed: onPressed,
-        child: icon == null ? text : textAndIcon,
+        child: hasIcon ? textAndIcon : text,
       ),
     );
+  }
+
+  Widget _buildIcon() {
+    if (iconProvider != null) {
+      return Image(
+        excludeFromSemantics: true,
+        image: iconProvider!,
+        height: _kButtonIconSize,
+        width: _kButtonIconSize,
+        fit: BoxFit.scaleDown,
+      );
+    }
+    return Icon(icon, size: _kButtonIconSize);
   }
 
   Widget _buildButtonType({
@@ -130,7 +152,7 @@ class ConfirmButton extends StatelessWidget {
   /// Checks if the current configuration can be rendered
   /// inside [availableWidth] without line breaks.
   bool fitsOnSingleLine(BuildContext context, double availableWidth) {
-    final reservedIconSpace = icon == null ? 0 : _kButtonIconSize + _kButtonIconSpacing;
+    final reservedIconSpace = hasIcon ? _kButtonIconSize + _kButtonIconSpacing : 0;
     final availableWithForText = availableWidth - (_kButtonTextHorizontalPadding * 2) - reservedIconSpace;
 
     final TextSpan textSpan = TextSpan(text: text, style: _getButtonTextStyle(context));

@@ -9,7 +9,6 @@ use axum::{
     Form, Json, Router, TypedHeader,
 };
 use serde::Serialize;
-use tower_http::trace::TraceLayer;
 
 use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
@@ -103,7 +102,6 @@ where
         .route("/credential", delete(reject_issuance))
         .route("/batch_credential", post(batch_credential))
         .route("/batch_credential", delete(reject_issuance))
-        .layer(TraceLayer::new_for_http())
         .with_state(application_state);
 
     Ok(issuance_router)

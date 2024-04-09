@@ -5,8 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../environment.dart';
 import '../../data/service/navigation_service.dart';
 import '../../util/extension/build_context_extension.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/loading_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
 import 'bloc/qr_bloc.dart';
@@ -33,17 +33,12 @@ class QrScreen extends StatelessWidget {
   }
 
   PreferredSize _buildTransparentAppBar(BuildContext context) {
-    final appBar = WalletAppBar(
-      actions: [
-        IconButton(
-          onPressed: () => PlaceholderScreen.show(context, secured: true),
-          icon: const Icon(Icons.help_outline_rounded),
-        )
-      ],
+    const appBar = WalletAppBar(
+      actions: [HelpIconButton()],
     );
     return PreferredSize(
       preferredSize: appBar.preferredSize,
-      child: Opacity(opacity: 0.9, child: appBar),
+      child: const Opacity(opacity: 0.9, child: appBar),
     );
   }
 

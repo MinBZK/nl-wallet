@@ -20,7 +20,7 @@ required-features = ["db_test", "hsm_test"]
 [[test]]
 name = "issuance"
 path = "tests/issuance.rs"
-required-features = ["db_test", "hsm_test"]
+required-features = ["db_test", "hsm_test", "issuance"]
 
 [[test]]
 name = "locking"
@@ -33,8 +33,10 @@ path = "tests/registration.rs"
 required-features = ["db_test", "hsm_test"]
 
 [features]
+default = ["issuance"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
+issuance = ["wallet_server/issuance"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["allow_http_return_url"]
 hsm_test = []
@@ -65,13 +67,10 @@ nl_wallet_mdoc = { path = "../mdoc", features = [
 ] } # Enable the features necessary to run all integration tests
 openid4vc = { path = "../openid4vc" }
 tests_integration_common = { path = "./common" }
-wallet = { path = "../wallet", features = [
-    "mock",
-    "wallet_deps",
-] }
+wallet = { path = "../wallet", features = ["mock", "wallet_deps"] }
 wallet_common.path = "../wallet_common"
 wallet_provider_service = { path = "../wallet_provider/service", features = [
     "software_keys",
     "mock",
 ] } # Enable the features necessary to run all integration tests, minus "db_test" and "hsm_test"
-wallet_server = { path = "../wallet_server" }
+wallet_server = { path = "../wallet_server", features = ["mock"] }

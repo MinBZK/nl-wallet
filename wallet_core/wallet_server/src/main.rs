@@ -2,6 +2,9 @@ use anyhow::Result;
 
 use wallet_server::{server, settings::Settings, store::SessionStores};
 
+#[cfg(feature = "issuance")]
+use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize tracing.
@@ -14,18 +17,18 @@ async fn main() -> Result<()> {
     // This will block until the server shuts down.
     #[cfg(feature = "issuance")]
     server::serve_full(
-        // TODO: `MockPidAttributeService` issues a configured set of mock attributes. Replace with BRP query. (PVW-2346)
-        wallet_server::pid::attributes::MockPidAttributeService::new(
+        BrpPidAttributeService::new(
+            HttpBrpClient::new(settings.issuer.brp_server.clone()),
             settings.issuer.digid.issuer_url.clone(),
             settings.issuer.digid.bsn_privkey.clone(),
             settings.issuer.digid.trust_anchors.clone(),
-            settings.issuer.mock_data.clone(),
             settings.issuer.certificates(),
         )?,
         settings,
         sessions,
     )
     .await?;
+
     #[cfg(not(feature = "issuance"))]
     server::serve_disclosure(settings, sessions).await?;
 

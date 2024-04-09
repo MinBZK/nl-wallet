@@ -258,37 +258,3 @@ async fn test_disclosure_without_pid() {
     // a cancelled disclosure does not result in any disclosed attributes
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
-
-#[tokio::test]
-async fn test_disclosure_not_found() {
-    let settings = wallet_server_settings();
-    start_wallet_server(settings.clone(), MockAttributeService(settings.issuer.certificates())).await;
-
-    let client = reqwest::Client::new();
-    // check if a freshly generated token returns a 404 on the status URL
-    let response = client
-        .get(settings.public_url.join("/nonexistent_session/status"))
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-    // check if a freshly generated token returns a 404 on the wallet URL
-    let response = client
-        .post(settings.public_url.join("/nonexistent_session"))
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-    // check if a freshly generated token returns a 404 on the disclosed_attributes URL
-    let response = client
-        .get(settings.internal_url.join("/nonexistent_session/disclosed_attributes"))
-        .send()
-        .await
-        .unwrap();
-
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-}

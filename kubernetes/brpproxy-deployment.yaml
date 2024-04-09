@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: brpproxy
+  labels:
+    app: haal-centraal-brp-bevragen-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: brpproxy
+  template:
+    metadata:
+      labels:
+        name: brpproxy
+        tier: vertrouwd
+    spec:
+      containers:
+        - name: brpproxy
+          image: $HARBOR_REGISTRY/ghcr-io-proxy/brp-api/haal-centraal-brp-bevragen-proxy:latest
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Release
+            - name: ASPNETCORE_URLS
+              value: http://+:5000
+          ports:
+            - name: http-brpproxy
+              containerPort: 5000

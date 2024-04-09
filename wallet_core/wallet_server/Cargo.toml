@@ -3,6 +3,7 @@ name = "wallet_server"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+exclude = ["resources"]
 
 [lints]
 workspace = true
@@ -16,16 +17,17 @@ path = "tests/postgres.rs"
 required-features = ["postgres", "db_test"]
 
 [features]
-default = ["postgres", "issuance"]
+default = ["postgres"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = []
+# Include and run test that depend on a valid configuration file
+cfg_test = []
 # Enable issuance
 issuance = [
-    "mock", # TODO remove this line once we can issue actual (i.e. non-hardcoded) attributes (PVW-2346)
     "axum/form",
     "dep:ciborium",
     "dep:futures",
@@ -35,7 +37,7 @@ issuance = [
     "dep:openid4vc",
 ]
 # Enable mock PID issuance
-mock = ["dep:rand"]
+mock = ["dep:rand", "issuance"]
 # Enable middleware that logs HTTP requests and responses
 log_requests = ["dep:hyper"]
 
@@ -52,7 +54,7 @@ axum = { workspace = true, features = [
 ] }
 base64.workspace = true
 ciborium = { workspace = true, optional = true }
-chrono.workspace = true
+chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
 futures = { workspace = true, optional = true }
@@ -64,7 +66,9 @@ nutype = { workspace = true, features = ["serde"] }
 openssl = { workspace = true, features = ["vendored"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 rand = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
+reqwest = { workspace = true, optional = true, features = [
+    "rustls-tls-webpki-roots",
+] }
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -83,7 +87,7 @@ tokio = { workspace = true, features = [
     "parking_lot",
     "rt-multi-thread",
 ] }
-tower-http = { workspace = true, features = ["cors", "trace"] }
+tower-http = { workspace = true, features = ["auth", "cors", "trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
 url = { workspace = true, features = ["serde"] }
@@ -93,6 +97,7 @@ openid4vc = { path = "../openid4vc", optional = true }
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
-platform_support = { path = "../platform_support", features = ["software"] }
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
+indexmap.workspace = true
 rstest.workspace = true
+
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
