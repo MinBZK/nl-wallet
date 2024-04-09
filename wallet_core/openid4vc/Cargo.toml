@@ -10,6 +10,7 @@ workspace = true
 [[test]]
 name = "test"
 path = "tests/issuance.rs"
+required-features = ["mock"]
 
 [features]
 # Include mock implementations for testing

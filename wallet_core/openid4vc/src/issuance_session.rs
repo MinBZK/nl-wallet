@@ -30,6 +30,8 @@ use crate::{
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,
+    metadata::IssuerMetadata,
+    oidc::{self, OidcError},
     token::{AccessToken, AttestationPreview, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
@@ -76,6 +78,10 @@ pub enum IssuanceSessionError {
     IssuerCertificateMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
+    #[error("error discovering Oauth metadata: {0}")]
+    OauthDiscovery(#[from] OidcError),
+    #[error("issuer has no batch credential endpoint")]
+    NoBatchCredentialEndpoint,
 }
 
 pub trait IssuanceSession<H = HttpOpenidMessageClient> {
@@ -105,6 +111,9 @@ pub struct HttpIssuanceSession<H = HttpOpenidMessageClient> {
 
 /// Contract for sending OpenID4VCI protocol messages.
 pub trait OpenidMessageClient {
+    async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError>;
+    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
+
     async fn request_token(
         &self,
         url: &Url,
@@ -135,6 +144,16 @@ impl From<reqwest::Client> for HttpOpenidMessageClient {
 }
 
 impl OpenidMessageClient for HttpOpenidMessageClient {
+    async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
+        let metadata = IssuerMetadata::discover(&self.http_client, url).await?;
+        Ok(metadata)
+    }
+
+    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
+        let metadata = oidc::Config::discover(&self.http_client, url).await?;
+        Ok(metadata)
+    }
+
     async fn request_token(
         &self,
         url: &Url,
@@ -231,6 +250,39 @@ struct IssuanceState {
     dpop_nonce: Option<String>,
 }
 
+impl<H: OpenidMessageClient> HttpIssuanceSession<H> {
+    /// Discover the token endpoint from the OAuth server metadata.
+    async fn discover_token_endpoint(message_client: &H, base_url: &BaseUrl) -> Result<Url, IssuanceSessionError> {
+        let issuer_metadata = message_client.discover_metadata(base_url).await?;
+
+        // The issuer may announce multiple OAuth authorization servers the wallet may use. Which one the wallet
+        // uses is left up to the wallet. We just take the first one.
+        // authorization_servers() always returns a non-empty vec so the unwrap() is safe.
+        let authorization_servers = &issuer_metadata.issuer_config.authorization_servers();
+        let oauth_server = authorization_servers.first().unwrap();
+        let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
+
+        let token_endpoint = oauth_metadata.token_endpoint.clone();
+        Ok(token_endpoint)
+    }
+
+    /// Discover the batch credential endpoint from the Credential Issuer metadata.
+    /// This function returns an `Option` because the batch credential is optional.
+    async fn discover_batch_credential_endpoint(
+        message_client: &H,
+        base_url: &BaseUrl,
+    ) -> Result<Option<Url>, IssuanceSessionError> {
+        let url = message_client
+            .discover_metadata(base_url)
+            .await?
+            .issuer_config
+            .batch_credential_endpoint
+            .map(|url| url.as_ref().clone())
+            .clone();
+        Ok(url)
+    }
+}
+
 impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn start_issuance(
         message_client: H,
@@ -238,12 +290,14 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError> {
-        let url = base_url.join("token"); // TODO discover token endpoint instead (PVW-2178)
+        let token_endpoint = Self::discover_token_endpoint(&message_client, &base_url).await?;
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
-        let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
+        let dpop_header = Dpop::new(&dpop_private_key, token_endpoint.clone(), Method::POST, None, None).await?;
 
-        let (token_response, dpop_nonce) = message_client.request_token(&url, &token_request, &dpop_header).await?;
+        let (token_response, dpop_nonce) = message_client
+            .request_token(&token_endpoint, &token_request, &dpop_header)
+            .await?;
 
         // Verify the issuer certificates that the issuer presents for each attestation to be issued.
         // NB: this only proves the authenticity of the data inside the certificates (the [`IssuerRegistration`]s),
@@ -337,7 +391,9 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
-        let url = self.session_state.issuer_url.join("batch_credential"); // TODO discover token endpoint instead (PVW-2178)
+        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
+            .await?
+            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let responses = self
@@ -387,7 +443,9 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
-        let url = self.session_state.issuer_url.join("batch_credential"); // TODO discover token endpoint instead (PVW-2178)
+        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
+            .await?
+            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
         self.message_client

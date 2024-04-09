@@ -5,7 +5,7 @@ use axum::{
     headers::{authorization::Credentials, Authorization, Header},
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
-    routing::{delete, post},
+    routing::{delete, get, post},
     Form, Json, Router, TypedHeader,
 };
 use serde::Serialize;
@@ -18,10 +18,12 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorCode, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
+    metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
     token::{AccessToken, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
 };
 use tracing::warn;
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder};
 
 use crate::settings::{self, Settings};
 
@@ -29,6 +31,10 @@ use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
 struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
+    metadata_http_client: reqwest::Client,
+    digid_url: BaseUrl,
+    token_url: BaseUrl,
+    metadata: IssuerMetadata,
 }
 
 pub struct IssuerKeyRing(pub HashMap<String, KeyPair>);
@@ -65,9 +71,33 @@ where
             &settings.public_url,
             settings.issuer.wallet_client_ids,
         ),
+        metadata_http_client: trusted_reqwest_client_builder(settings.issuer.digid.trust_anchors.clone()).build()?,
+        digid_url: settings.issuer.digid.issuer_url.clone(),
+        token_url: settings.public_url.join_base_url("/issuance/token"),
+        metadata: IssuerMetadata {
+            issuer_config: IssuerData {
+                credential_issuer: settings.public_url.join_base_url("/issuance"),
+                authorization_servers: None,
+                credential_endpoint: settings.public_url.join_base_url("/issuance/credential"),
+                batch_credential_endpoint: Some(settings.public_url.join_base_url("/issuance/batch_credential")),
+                deferred_credential_endpoint: None,
+                notification_endpoint: None,
+                credential_response_encryption: CredentialResponseEncryption {
+                    alg_values_supported: vec![],
+                    enc_values_supported: vec![],
+                    encryption_required: false,
+                },
+                credential_identifiers_supported: Some(false),
+                display: None,
+                credential_configurations_supported: HashMap::new(),
+            },
+            signed_metadata: None,
+        },
     });
 
     let issuance_router = Router::new()
+        .route("/.well-known/openid-credential-issuer", get(metadata))
+        .route("/.well-known/openid-configuration", get(oidc_metadata))
         .route("/token", post(token))
         .route("/credential", post(credential))
         .route("/credential", delete(reject_issuance))
@@ -77,6 +107,37 @@ where
         .with_state(application_state);
 
     Ok(issuance_router)
+}
+
+/// Get the OAuth metadata from the DigiD issuer, making no assumptions about its contents except that it is a JSON object.
+/// Then, we override the `token_endpoint` to our own Token endpoint.
+async fn oidc_metadata<A, K, S>(
+    State(state): State<Arc<ApplicationState<A, K, S>>>,
+) -> Result<Json<serde_json::Value>, ErrorResponse<MetadataError>> {
+    let metadata: serde_json::Value = state
+        .metadata_http_client
+        .get(state.digid_url.join("/.well-known/openid-configuration"))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let mut metadata = match metadata {
+        serde_json::Value::Object(x) => Ok(x),
+        _ => Err(ErrorResponse(openid4vc::ErrorResponse {
+            error: MetadataError::NotAnObject,
+            error_description: None,
+            error_uri: None,
+        })),
+    }?;
+    metadata["token_endpoint"] = serde_json::Value::String(state.token_url.as_ref().to_string());
+
+    Ok(Json(serde_json::Value::Object(metadata)))
+}
+
+async fn metadata<A, K, S>(State(state): State<Arc<ApplicationState<A, K, S>>>) -> Json<IssuerMetadata> {
+    Json(state.metadata.clone())
 }
 
 async fn token<A, K, S>(
@@ -225,5 +286,28 @@ impl Credentials for DpopBearer {
 
     fn encode(&self) -> HeaderValue {
         HeaderValue::from_str(&(DPOP_HEADER_NAME.to_string() + " " + &self.0)).unwrap()
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+enum MetadataError {
+    Transport,
+    NotAnObject,
+}
+
+impl ErrorStatusCode for MetadataError {
+    fn status_code(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
+impl From<reqwest::Error> for ErrorResponse<MetadataError> {
+    fn from(error: reqwest::Error) -> Self {
+        ErrorResponse(openid4vc::ErrorResponse {
+            error: MetadataError::Transport,
+            error_description: Some(error.to_string()),
+            error_uri: None,
+        })
     }
 }
