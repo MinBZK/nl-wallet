@@ -54,7 +54,7 @@ class ChangeLanguageTests : TestBase() {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
-        @DisplayName("$USE_CASE.3.a When the User selects Dutch, the app immediately uses Dutch.")
+        @DisplayName("$USE_CASE.3.1 When the User selects Dutch, the app immediately uses Dutch.")
         fun verifyDutchLanguageSelect() {
             assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible")
             changeLanguageScreen.clickDutchButton()
@@ -64,7 +64,7 @@ class ChangeLanguageTests : TestBase() {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("dutch"))
-        @DisplayName("$USE_CASE.3.b When the User selects English, the app immediately uses English.")
+        @DisplayName("$USE_CASE.3.2 When the User selects English, the app immediately uses English.")
         fun verifyEnglishLanguageSelect() {
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
             changeLanguageScreen.clickEnglishButton()

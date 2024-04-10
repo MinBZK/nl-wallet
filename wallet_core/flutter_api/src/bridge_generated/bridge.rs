@@ -787,12 +787,12 @@ impl support::IntoDart for WalletInstructionError {
     fn into_dart(self) -> support::DartAbi {
         match self {
             Self::IncorrectPin {
-                leftover_attempts,
-                is_final_attempt,
+                attempts_left_in_round,
+                is_final_round,
             } => vec![
                 0.into_dart(),
-                leftover_attempts.into_into_dart().into_dart(),
-                is_final_attempt.into_into_dart().into_dart(),
+                attempts_left_in_round.into_into_dart().into_dart(),
+                is_final_round.into_into_dart().into_dart(),
             ],
             Self::Timeout { timeout_millis } => vec![1.into_dart(), timeout_millis.into_into_dart().into_dart()],
             Self::Blocked => vec![2.into_dart()],

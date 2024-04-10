@@ -24,7 +24,7 @@ class SignConfirmPinPage extends StatelessWidget {
     return BlocProvider<PinBloc>(
       create: (BuildContext context) => bloc ?? PinBloc(context.read<AcceptSignAgreementUseCase>()),
       child: PinPage(
-        headerBuilder: (context, attempts, isFinalAttempt) {
+        headerBuilder: (context, attempts, isFinalRound) {
           final hasError = attempts != null;
           final String title, description;
           if (!hasError) {

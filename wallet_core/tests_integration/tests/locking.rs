@@ -51,8 +51,8 @@ async fn test_block() {
     assert_matches!(
         result,
         WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-            leftover_attempts: 1,
-            is_final_attempt: true
+            attempts_left_in_round: 1,
+            is_final_round: true
         })
     );
     assert!(wallet.is_locked());
@@ -89,8 +89,8 @@ async fn test_unlock_error() {
     assert_matches!(
         r1,
         WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-            leftover_attempts: 3,
-            is_final_attempt: false
+            attempts_left_in_round: 3,
+            is_final_round: false
         })
     );
     assert!(wallet.is_locked());
@@ -102,8 +102,8 @@ async fn test_unlock_error() {
     assert_matches!(
         r2,
         WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-            leftover_attempts: 2,
-            is_final_attempt: false
+            attempts_left_in_round: 2,
+            is_final_round: false
         })
     );
     assert!(wallet.is_locked());
@@ -115,8 +115,8 @@ async fn test_unlock_error() {
     assert_matches!(
         r3,
         WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-            leftover_attempts: 1,
-            is_final_attempt: false
+            attempts_left_in_round: 1,
+            is_final_round: false
         })
     );
     assert!(wallet.is_locked());
@@ -150,8 +150,8 @@ async fn test_unlock_error() {
     assert_matches!(
         r6,
         WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-            leftover_attempts: 3,
-            is_final_attempt: false
+            attempts_left_in_round: 3,
+            is_final_round: false
         })
     );
     assert!(wallet.is_locked());
@@ -163,8 +163,8 @@ async fn test_unlock_error() {
     assert_matches!(
         r7,
         WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-            leftover_attempts: 2,
-            is_final_attempt: false
+            attempts_left_in_round: 2,
+            is_final_round: false
         })
     );
     assert!(wallet.is_locked());
@@ -176,8 +176,8 @@ async fn test_unlock_error() {
     assert_matches!(
         r8,
         WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-            leftover_attempts: 1,
-            is_final_attempt: false
+            attempts_left_in_round: 1,
+            is_final_round: false
         })
     );
     assert!(wallet.is_locked());

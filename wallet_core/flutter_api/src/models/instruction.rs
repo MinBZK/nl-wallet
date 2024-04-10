@@ -7,8 +7,8 @@ pub enum WalletInstructionResult {
 
 pub enum WalletInstructionError {
     IncorrectPin {
-        leftover_attempts: u8,
-        is_final_attempt: bool,
+        attempts_left_in_round: u8,
+        is_final_round: bool,
     },
     Timeout {
         timeout_millis: u64,
@@ -25,11 +25,11 @@ impl TryFrom<InstructionError> for WalletInstructionError {
     fn try_from(value: InstructionError) -> Result<Self, Self::Error> {
         match value {
             InstructionError::IncorrectPin {
-                leftover_attempts,
-                is_final_attempt,
+                attempts_left_in_round,
+                is_final_round,
             } => Ok(WalletInstructionError::IncorrectPin {
-                leftover_attempts,
-                is_final_attempt,
+                attempts_left_in_round,
+                is_final_round,
             }),
             InstructionError::Timeout { timeout_millis } => Ok(WalletInstructionError::Timeout { timeout_millis }),
             InstructionError::Blocked => Ok(WalletInstructionError::Blocked),

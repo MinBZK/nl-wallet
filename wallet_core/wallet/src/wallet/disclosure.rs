@@ -1246,7 +1246,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case(InstructionError::IncorrectPin { leftover_attempts: 1, is_final_attempt: false }, false)]
+    #[case(InstructionError::IncorrectPin { attempts_left_in_round: 1, is_final_round: false }, false)]
     #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true)]
     #[case(InstructionError::Blocked, true)]
     #[case(InstructionError::InstructionValidation, false)]

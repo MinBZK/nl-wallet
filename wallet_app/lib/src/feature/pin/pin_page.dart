@@ -18,14 +18,18 @@ import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
 
-/// If the user has less then [kLeftoverAttemptsBeforeDynamicWarning] attempts left
+/// If the user has less then [kNonFinalRoundMLeftoverAttemptsMentionThreshold] attempts left
 /// to enter the correct pin, we switch to showing the counter inside the warning dialog.
-const kLeftoverAttemptsBeforeDynamicWarning = 3;
+const kNonFinalRoundMLeftoverAttemptsMentionThreshold = 3;
 
 /// Signature for a function that creates a widget while providing the leftover pin attempts.
 /// [attempts] being null indicates that this is the first attempt.
 /// [isFinalAttempt] being true indicates it's the final attempt (followed by the user being blocked, i.e. no more timeout)
-typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, bool isFinalAttempt);
+typedef PinHeaderBuilder = Widget Function(
+  BuildContext context,
+  int? attemptsLeftInRound,
+  bool isFinalRound,
+);
 
 /// Signature for a function that is called on any state change exposed by the [PinBloc]. When this method
 /// is provided AND returns true for the given [PinState], the state is considered consumed and will not be handled
@@ -214,7 +218,7 @@ class PinPage extends StatelessWidget {
             child: BlocBuilder<PinBloc, PinState>(
               builder: (context, state) {
                 if (state is PinValidateFailure) {
-                  return builder(context, state.leftoverAttempts, state.isFinalAttempt);
+                  return builder(context, state.attemptsLeftInRound, state.isFinalRound);
                 } else {
                   return builder(context, null, false);
                 }
@@ -227,7 +231,7 @@ class PinPage extends StatelessWidget {
   }
 
   /// Builds the default pin header, as shown on the 'unlock the app' screen.
-  Widget _defaultHeaderBuilder(BuildContext context, int? attempts, bool isFinalAttempt) {
+  Widget _defaultHeaderBuilder(BuildContext context, int? attemptsLeftInRound, bool isFinalRound) {
     return PinHeader(
       title: context.l10n.pinScreenHeader,
       contentAlignment: context.isLandscape ? Alignment.centerLeft : Alignment.topCenter,
@@ -334,11 +338,7 @@ class PinPage extends StatelessWidget {
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
     final title = context.l10n.pinErrorDialogTitle;
-    var body = reason.leftoverAttempts >= kLeftoverAttemptsBeforeDynamicWarning
-        ? context.l10n.pinErrorDialogNonFinalRoundInitialAttempt
-        : context.l10n.pinErrorDialogNonFinalRoundNonFinalAttempt(reason.leftoverAttempts);
-    if (reason.leftoverAttempts == 1) body = context.l10n.pinErrorDialogNonFinalRoundFinalAttempt;
-    if (reason.isFinalAttempt) body = context.l10n.pinErrorDialogFinalRoundFinalAttempt;
+    final body = _pinErrorDialogBody(context, reason);
 
     return showDialog<void>(
       context: context,
@@ -368,6 +368,27 @@ class PinPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _pinErrorDialogBody(BuildContext context, PinValidateFailure reason) {
+    if (reason.isFinalRound) {
+      // Final round is a special case where the user has X attempts left before the app is blocked.
+      if (reason.attemptsLeftInRound > 1) {
+        return context.l10n.pinErrorDialogFinalRoundNonFinalAttempt(reason.attemptsLeftInRound);
+      } else {
+        return context.l10n.pinErrorDialogFinalRoundFinalAttempt;
+      }
+    } else {
+      // Regular case where the user has X attempts left before the app is temporary blocked.
+      switch (reason.attemptsLeftInRound) {
+        case 1:
+          return context.l10n.pinErrorDialogNonFinalRoundFinalAttempt;
+        case < kNonFinalRoundMLeftoverAttemptsMentionThreshold:
+          return context.l10n.pinErrorDialogNonFinalRoundNonFinalAttempt(reason.attemptsLeftInRound);
+        default:
+          return context.l10n.pinErrorDialogNonFinalRoundInitialAttempt;
+      }
+    }
   }
 }
 

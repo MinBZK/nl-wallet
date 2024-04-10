@@ -55,7 +55,12 @@ class PinBloc extends Bloc<PinEvent, PinState> {
         case CheckPinResultOk():
           emit(PinValidateSuccess(returnUrl: result.returnUrl));
         case CheckPinResultIncorrect():
-          emit(PinValidateFailure(leftoverAttempts: result.leftoverAttempts, isFinalAttempt: result.isFinalAttempt));
+          emit(
+            PinValidateFailure(
+              attemptsLeftInRound: result.attemptsLeftInRound,
+              isFinalRound: result.isFinalRound,
+            ),
+          );
         case CheckPinResultTimeout():
           emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: result.timeoutMillis))));
         case CheckPinResultBlocked():
