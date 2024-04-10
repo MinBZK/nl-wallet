@@ -96,7 +96,7 @@ where
 
     let issuance_router = Router::new()
         .route("/.well-known/openid-credential-issuer", get(metadata))
-        .route("/.well-known/openid-configuration", get(oidc_metadata))
+        .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/token", post(token))
         .route("/credential", post(credential))
         .route("/credential", delete(reject_issuance))
@@ -109,7 +109,7 @@ where
 
 /// Get the OAuth metadata from the DigiD issuer, making no assumptions about its contents except that it is a JSON object.
 /// Then, we override the `token_endpoint` to our own Token endpoint.
-async fn oidc_metadata<A, K, S>(
+async fn oauth_metadata<A, K, S>(
     State(state): State<Arc<ApplicationState<A, K, S>>>,
 ) -> Result<Json<serde_json::Value>, ErrorResponse<MetadataError>> {
     let metadata: serde_json::Value = state

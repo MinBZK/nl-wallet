@@ -31,7 +31,7 @@ use crate::{
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,
     metadata::IssuerMetadata,
-    oidc::{self, OidcError},
+    oidc::{self},
     token::{AccessToken, AttestationPreview, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
@@ -79,7 +79,9 @@ pub enum IssuanceSessionError {
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
     #[error("error discovering Oauth metadata: {0}")]
-    OauthDiscovery(#[from] OidcError),
+    OauthDiscovery(#[source] reqwest::Error),
+    #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
+    OpenId4vciDiscovery(#[source] reqwest::Error),
     #[error("issuer has no batch credential endpoint")]
     NoBatchCredentialEndpoint,
 }
@@ -145,12 +147,22 @@ impl From<reqwest::Client> for HttpOpenidMessageClient {
 
 impl OpenidMessageClient for HttpOpenidMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
-        let metadata = IssuerMetadata::discover(&self.http_client, url).await?;
+        let metadata = IssuerMetadata::discover(&self.http_client, url)
+            .await
+            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
         Ok(metadata)
     }
 
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
-        let metadata = oidc::Config::discover(&self.http_client, url).await?;
+        let metadata = self
+            .http_client
+            .get(url.join("/.well-known/oauth-authorization-server"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await
+            .map_err(IssuanceSessionError::OauthDiscovery)?;
         Ok(metadata)
     }
 
