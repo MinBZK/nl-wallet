@@ -3109,21 +3109,21 @@ abstract class WalletEvent_Issuance implements WalletEvent {
 mixin _$WalletInstructionError {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),
@@ -3176,7 +3176,7 @@ abstract class _$$WalletInstructionError_IncorrectPinImplCopyWith<$Res> {
           $Res Function(_$WalletInstructionError_IncorrectPinImpl) then) =
       __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({int leftoverAttempts, bool isFinalAttempt});
+  $Res call({int attemptsLeftInRound, bool isFinalRound});
 }
 
 /// @nodoc
@@ -3190,17 +3190,17 @@ class __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? leftoverAttempts = null,
-    Object? isFinalAttempt = null,
+    Object? attemptsLeftInRound = null,
+    Object? isFinalRound = null,
   }) {
     return _then(_$WalletInstructionError_IncorrectPinImpl(
-      leftoverAttempts: null == leftoverAttempts
-          ? _value.leftoverAttempts
-          : leftoverAttempts // ignore: cast_nullable_to_non_nullable
+      attemptsLeftInRound: null == attemptsLeftInRound
+          ? _value.attemptsLeftInRound
+          : attemptsLeftInRound // ignore: cast_nullable_to_non_nullable
               as int,
-      isFinalAttempt: null == isFinalAttempt
-          ? _value.isFinalAttempt
-          : isFinalAttempt // ignore: cast_nullable_to_non_nullable
+      isFinalRound: null == isFinalRound
+          ? _value.isFinalRound
+          : isFinalRound // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
   }
@@ -3209,16 +3209,16 @@ class __$$WalletInstructionError_IncorrectPinImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$WalletInstructionError_IncorrectPinImpl implements WalletInstructionError_IncorrectPin {
-  const _$WalletInstructionError_IncorrectPinImpl({required this.leftoverAttempts, required this.isFinalAttempt});
+  const _$WalletInstructionError_IncorrectPinImpl({required this.attemptsLeftInRound, required this.isFinalRound});
 
   @override
-  final int leftoverAttempts;
+  final int attemptsLeftInRound;
   @override
-  final bool isFinalAttempt;
+  final bool isFinalRound;
 
   @override
   String toString() {
-    return 'WalletInstructionError.incorrectPin(leftoverAttempts: $leftoverAttempts, isFinalAttempt: $isFinalAttempt)';
+    return 'WalletInstructionError.incorrectPin(attemptsLeftInRound: $attemptsLeftInRound, isFinalRound: $isFinalRound)';
   }
 
   @override
@@ -3226,12 +3226,13 @@ class _$WalletInstructionError_IncorrectPinImpl implements WalletInstructionErro
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletInstructionError_IncorrectPinImpl &&
-            (identical(other.leftoverAttempts, leftoverAttempts) || other.leftoverAttempts == leftoverAttempts) &&
-            (identical(other.isFinalAttempt, isFinalAttempt) || other.isFinalAttempt == isFinalAttempt));
+            (identical(other.attemptsLeftInRound, attemptsLeftInRound) ||
+                other.attemptsLeftInRound == attemptsLeftInRound) &&
+            (identical(other.isFinalRound, isFinalRound) || other.isFinalRound == isFinalRound));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, leftoverAttempts, isFinalAttempt);
+  int get hashCode => Object.hash(runtimeType, attemptsLeftInRound, isFinalRound);
 
   @JsonKey(ignore: true)
   @override
@@ -3243,33 +3244,33 @@ class _$WalletInstructionError_IncorrectPinImpl implements WalletInstructionErro
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
-    return incorrectPin(leftoverAttempts, isFinalAttempt);
+    return incorrectPin(attemptsLeftInRound, isFinalRound);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) {
-    return incorrectPin?.call(leftoverAttempts, isFinalAttempt);
+    return incorrectPin?.call(attemptsLeftInRound, isFinalRound);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),
   }) {
     if (incorrectPin != null) {
-      return incorrectPin(leftoverAttempts, isFinalAttempt);
+      return incorrectPin(attemptsLeftInRound, isFinalRound);
     }
     return orElse();
   }
@@ -3311,11 +3312,11 @@ class _$WalletInstructionError_IncorrectPinImpl implements WalletInstructionErro
 
 abstract class WalletInstructionError_IncorrectPin implements WalletInstructionError {
   const factory WalletInstructionError_IncorrectPin(
-      {required final int leftoverAttempts,
-      required final bool isFinalAttempt}) = _$WalletInstructionError_IncorrectPinImpl;
+      {required final int attemptsLeftInRound,
+      required final bool isFinalRound}) = _$WalletInstructionError_IncorrectPinImpl;
 
-  int get leftoverAttempts;
-  bool get isFinalAttempt;
+  int get attemptsLeftInRound;
+  bool get isFinalRound;
   @JsonKey(ignore: true)
   _$$WalletInstructionError_IncorrectPinImplCopyWith<_$WalletInstructionError_IncorrectPinImpl> get copyWith =>
       throw _privateConstructorUsedError;
@@ -3385,7 +3386,7 @@ class _$WalletInstructionError_TimeoutImpl implements WalletInstructionError_Tim
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -3395,7 +3396,7 @@ class _$WalletInstructionError_TimeoutImpl implements WalletInstructionError_Tim
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) {
@@ -3405,7 +3406,7 @@ class _$WalletInstructionError_TimeoutImpl implements WalletInstructionError_Tim
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),
@@ -3499,7 +3500,7 @@ class _$WalletInstructionError_BlockedImpl implements WalletInstructionError_Blo
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(int leftoverAttempts, bool isFinalAttempt) incorrectPin,
+    required TResult Function(int attemptsLeftInRound, bool isFinalRound) incorrectPin,
     required TResult Function(int timeoutMillis) timeout,
     required TResult Function() blocked,
   }) {
@@ -3509,7 +3510,7 @@ class _$WalletInstructionError_BlockedImpl implements WalletInstructionError_Blo
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult? Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult? Function(int timeoutMillis)? timeout,
     TResult? Function()? blocked,
   }) {
@@ -3519,7 +3520,7 @@ class _$WalletInstructionError_BlockedImpl implements WalletInstructionError_Blo
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(int leftoverAttempts, bool isFinalAttempt)? incorrectPin,
+    TResult Function(int attemptsLeftInRound, bool isFinalRound)? incorrectPin,
     TResult Function(int timeoutMillis)? timeout,
     TResult Function()? blocked,
     required TResult orElse(),

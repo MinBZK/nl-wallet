@@ -145,8 +145,8 @@ mod tests {
             status_code: StatusCode::OK,
             body: ErrorData {
                 typ: ErrorType::IncorrectPin(IncorrectPinData {
-                    attempts_left: 8,
-                    is_final_attempt: false,
+                    attempts_left_in_round: 8,
+                    is_final_round: false,
                 }),
                 title: "Error title".to_string(),
             },
@@ -157,8 +157,8 @@ mod tests {
             "type": "IncorrectPin",
             "title": "Error title",
             "data": {
-                "attempts_left": 8,
-                "is_final_attempt": false,
+                "attempts_left_in_round": 8,
+                "is_final_round": false,
             }
         });
         assert_eq!(error_body, expected_body);

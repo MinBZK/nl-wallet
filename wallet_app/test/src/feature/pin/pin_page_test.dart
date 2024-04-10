@@ -46,7 +46,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false),
+          const PinValidateFailure(attemptsLeftInRound: 3, isFinalRound: false),
         ),
       );
       await screenMatchesGolden(tester, 'pin_page/pin_validate_failure');
@@ -56,7 +56,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateFailure(leftoverAttempts: 1, isFinalAttempt: true),
+          const PinValidateFailure(attemptsLeftInRound: 1, isFinalRound: true),
         ),
       );
       await screenMatchesGolden(tester, 'pin_page/pin_validate_final_chance');
@@ -137,7 +137,7 @@ void main() {
         WalletAppTestWidget(
           child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
-            const PinValidateFailure(leftoverAttempts: 2, isFinalAttempt: false),
+            const PinValidateFailure(attemptsLeftInRound: 2, isFinalRound: false),
           ),
         ),
       );
