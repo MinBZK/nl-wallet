@@ -354,6 +354,7 @@ then
             --dart-define MOCK_REPOSITORIES=false \
             --dart-define ALLOW_HTTP_RETURN_URL=true \
             --dart-define ENV_CONFIGURATION=true \
-            --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}"
+            --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
+            --dart-define SENTRY_DSN="${SENTRY_DSN:-}"
     fi
 fi
