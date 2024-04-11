@@ -162,7 +162,7 @@ async fn test_disclosure(
     let mdocs = future::join_all(
         stored_documents
             .into_iter()
-            .map(|doc| async { doc.sign(&ca, &key_factory, 1).await }),
+            .map(|doc| async { doc.sign(&ca, &key_factory, 1.try_into().unwrap()).await }),
     )
     .await;
 

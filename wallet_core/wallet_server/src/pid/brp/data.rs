@@ -73,7 +73,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
         let mdocs = vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
-                copy_count: 2,
+                copy_count: 2.try_into().unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(
@@ -135,7 +135,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
             },
             UnsignedMdoc {
                 doc_type: String::from(MOCK_ADDRESS_DOCTYPE),
-                copy_count: 2,
+                copy_count: 2.try_into().unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(

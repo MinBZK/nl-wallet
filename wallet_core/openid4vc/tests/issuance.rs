@@ -336,7 +336,7 @@ impl AttributeService for MockAttributeService {
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_PID_DOCTYPE.to_string(),
-                    copy_count: 2,
+                    copy_count: 2.try_into().unwrap(),
                     valid_from: Tdate::now(),
                     valid_until: Utc::now().add(Days::new(365)).into(),
                     attributes: IndexMap::from([(
@@ -355,7 +355,7 @@ impl AttributeService for MockAttributeService {
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                    copy_count: 2,
+                    copy_count: 2.try_into().unwrap(),
                     valid_from: Tdate::now(),
                     valid_until: Utc::now().add(Days::new(365)).into(),
                     attributes: IndexMap::from([(
