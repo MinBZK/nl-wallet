@@ -145,7 +145,7 @@ impl TestDocument {
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let (issuer_signed, _) = IssuerSigned::sign(unsigned, mdoc_public_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned, mdoc_public_key, &issuance_key)
             .await
             .unwrap();
 
