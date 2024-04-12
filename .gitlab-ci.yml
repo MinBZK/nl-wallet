@@ -598,6 +598,7 @@ build-ws-migrations-image:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
+        sentry_dsn:"${SENTRY_DSN}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION}"
   after_script:
@@ -611,6 +612,7 @@ build-ws-migrations-image:
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
 
 build-android-app-latest-release:
   extends: .build-android-app-latest
@@ -701,6 +703,7 @@ build-android-app-demo-profile:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
+        sentry_dsn:"${SENTRY_DSN}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
@@ -712,6 +715,7 @@ build-android-app-demo-profile:
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
 
 build-ios-app-latest-release:
   extends: .build-ios-app-latest
@@ -848,7 +852,7 @@ upload-browserstack-android-app-demo:
 #    - job: build-ios-app
 #      artifacts: true
 #   # Only deploy apps when both apps have been built successfully
-#   #  - job: build-android-app 
+#   #  - job: build-android-app
 #   #    artifacts: false
 #  tags:
 #    - macos
