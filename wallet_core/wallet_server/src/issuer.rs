@@ -30,6 +30,7 @@ use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
 struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
+    attr_service: A,
     metadata: IssuerMetadata,
 }
 
@@ -59,14 +60,16 @@ where
     A: AttributeService + Send + Sync + 'static,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
+    let attr_service = Arc::new(attr_service);
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::new(
             sessions,
-            attr_service,
+            Arc::clone(&attr_service),
             IssuerKeyRing::try_from(settings.issuer.private_keys)?,
             &settings.public_url,
             settings.issuer.wallet_client_ids,
         ),
+        attr_service,
         metadata: IssuerMetadata {
             issuer_config: IssuerData {
                 credential_issuer: settings.public_url.join_base_url("/issuance"),
@@ -110,7 +113,6 @@ where
     A: AttributeService,
 {
     let metadata = state
-        .issuer
         .attr_service
         .oauth_metadata(&state.metadata.issuer_config.credential_issuer)
         .await

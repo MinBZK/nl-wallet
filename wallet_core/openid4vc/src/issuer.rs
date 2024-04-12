@@ -172,9 +172,28 @@ pub trait LocalAttributeService {
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
 
+impl<A> AttributeService for Arc<A>
+where
+    A: AttributeService + Sync,
+{
+    type Error = A::Error;
+
+    async fn attributes(
+        &self,
+        session: &SessionState<Created>,
+        token_request: TokenRequest,
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
+        self.as_ref().attributes(session, token_request).await
+    }
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+        self.as_ref().oauth_metadata(issuer_url).await
+    }
+}
+
 pub struct Issuer<A, K, S> {
-    pub attr_service: A,
     sessions: Arc<S>,
+    attr_service: A,
     issuer_data: IssuerData<K>,
     cleanup_task: JoinHandle<()>,
 }
