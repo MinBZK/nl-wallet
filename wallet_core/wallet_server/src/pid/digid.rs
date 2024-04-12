@@ -77,4 +77,13 @@ impl OpenIdClient {
 
         Ok(decrypter)
     }
+
+    pub async fn discover_metadata(&self) -> Result<oidc::Config> {
+        let http_client = trusted_reqwest_client_builder(self.trust_anchors.clone())
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        let metadata = oidc::Config::discover(&http_client, &self.issuer_url).await?;
+        Ok(metadata)
+    }
 }

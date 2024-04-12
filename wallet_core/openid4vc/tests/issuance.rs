@@ -404,4 +404,8 @@ impl AttributeService for MockAttributeService {
         ];
         Ok(previews.try_into().unwrap())
     }
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+        Ok(oidc::Config::new(issuer_url))
+    }
 }

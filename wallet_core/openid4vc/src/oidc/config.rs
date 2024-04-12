@@ -96,7 +96,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub(crate) async fn discover(client: &reqwest::Client, issuer: &BaseUrl) -> Result<Self, OidcError> {
+    pub async fn discover(client: &reqwest::Client, issuer: &BaseUrl) -> Result<Self, OidcError> {
         // If the Issuer value contains a path component, any terminating / MUST be removed before
         // appending /.well-known/openid-configuration.
         let oidc_conf_url = issuer.join(".well-known/openid-configuration");

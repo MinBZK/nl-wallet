@@ -24,6 +24,7 @@ use crate::{
     },
     dpop::{Dpop, DpopError},
     jwt::{jwk_to_p256, JwkConversionError},
+    oidc,
     token::{
         AccessToken, AttestationPreview, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse,
         TokenResponseWithPreviews, TokenType,
@@ -148,7 +149,7 @@ pub struct Session<S: IssuanceState> {
 }
 
 /// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
-/// the token request. See for example the [`MockPidAttributeService`].
+/// the token request. See for example the [`BrpPidAttributeService`].
 ///
 /// A future implementation of this trait is expected to enable generic issuance of attributes as follows:
 /// - The owner of the issuance server determines the attributes to be issued and sends those to the issuance server.
@@ -167,11 +168,13 @@ pub trait LocalAttributeService {
         session: &SessionState<Created>,
         token_request: TokenRequest,
     ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error>;
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
 
 pub struct Issuer<A, K, S> {
+    pub attr_service: A,
     sessions: Arc<S>,
-    attr_service: A,
     issuer_data: IssuerData<K>,
     cleanup_task: JoinHandle<()>,
 }

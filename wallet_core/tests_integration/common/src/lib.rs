@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{server_state::SessionState, utils::x509};
 use openid4vc::{
     issuance_session::HttpIssuanceSession,
     issuer::{AttributeService, Created},
-    oidc::MockOidcClient,
+    oidc::{self, MockOidcClient},
     token::{AttestationPreview, TokenRequest},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
@@ -379,5 +379,9 @@ impl AttributeService for MockAttributeService {
             })
             .collect::<Vec<_>>();
         Ok(attributes.try_into().unwrap())
+    }
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+        Ok(oidc::Config::new(issuer_url))
     }
 }
