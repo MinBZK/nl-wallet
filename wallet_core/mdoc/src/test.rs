@@ -215,6 +215,10 @@ impl TestDocuments {
         self.0.is_empty()
     }
 
+    pub fn into_first(self) -> Option<TestDocument> {
+        self.0.into_iter().next()
+    }
+
     pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DocumentDisclosedAttributes>) {
         // verify the number of documents
         assert_eq!(disclosed_documents.len(), self.len());
