@@ -26,7 +26,7 @@ void main() async {
 
   // Propagate uncaught errors
   final errorHandler = WalletErrorHandler();
-  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handlerError(error, stack);
+  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handleError(error, stack);
 
   // Debug specific setup
   if (kDebugMode) {
