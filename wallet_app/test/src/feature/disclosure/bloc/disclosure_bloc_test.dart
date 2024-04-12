@@ -408,7 +408,7 @@ void main() {
   );
 
   blocTest(
-    'when a generic error occurs while the user confirms the pin, the bloc emits DisclosureGenericError',
+    'when a network error occurs while the user confirms the pin, the bloc emits DisclosureNetworkError',
     setUp: () {
       when(BlocExtensions.checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async {
         await Future.delayed(const Duration(milliseconds: 100));
