@@ -384,7 +384,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     .map(|(cred_response, (pubkey, key_id))| {
                         // Convert the response into an `Mdoc`, verifying it against both the
                         // trust anchors and the `UnsignedMdoc` we received in the preview.
-                        cred_response.into_mdoc::<K>(key_id, pubkey, preview, trust_anchors)
+                        cred_response.into_mdoc::<K>(key_id, &pubkey, preview, trust_anchors)
                     })
                     .collect::<Result<_, _>>()?;
 
@@ -413,7 +413,7 @@ impl CredentialResponse {
     fn into_mdoc<K: MdocEcdsaKey>(
         self,
         key_id: String,
-        verifying_key: VerifyingKey,
+        verifying_key: &VerifyingKey,
         preview: &AttestationPreview,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Mdoc, IssuanceSessionError> {
@@ -424,7 +424,7 @@ impl CredentialResponse {
         if issuer_signed
             .public_key()
             .map_err(IssuanceSessionError::PublicKeyFromMdoc)?
-            != verifying_key
+            != *verifying_key
         {
             return Err(IssuanceSessionError::PublicKeyMismatch);
         }
