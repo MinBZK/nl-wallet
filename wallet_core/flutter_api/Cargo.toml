@@ -19,6 +19,9 @@ flutter_rust_bridge.workspace = true
 itertools.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 parking_lot.workspace = true
+sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
+sentry-anyhow.workspace = true
+sentry-panic.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
