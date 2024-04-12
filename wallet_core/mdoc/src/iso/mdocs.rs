@@ -233,7 +233,7 @@ impl From<Vec<Entry>> for Attributes {
     fn from(attrs: Vec<Entry>) -> Self {
         Attributes::from(
             attrs
-                .iter()
+                .into_iter()
                 .map(|entry| (entry.name.clone(), entry.value.clone()))
                 .collect::<IndexMap<String, Value>>(),
         )
