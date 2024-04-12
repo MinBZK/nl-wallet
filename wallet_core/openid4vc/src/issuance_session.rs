@@ -253,10 +253,14 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
         // corresponding certificate in the attestation preview, which implicitly authenticates the issuer because
         // only it could have produced an mdoc against that certificate.
-        token_response.attestation_previews.iter().try_for_each(|preview| {
-            let issuer: &Certificate = preview.as_ref();
-            issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
-        })?;
+        token_response
+            .attestation_previews
+            .as_ref()
+            .iter()
+            .try_for_each(|preview| {
+                let issuer: &Certificate = preview.as_ref();
+                issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+            })?;
 
         // TODO: Check that each `UnsignedMdoc` contains at least one attribute (PVW-2546).
         let attestation_previews = token_response.attestation_previews.into_inner();
