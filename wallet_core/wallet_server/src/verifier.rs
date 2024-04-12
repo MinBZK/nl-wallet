@@ -19,10 +19,7 @@ use serde_with::{
     serde_as,
 };
 use strfmt::strfmt;
-use tower_http::{
-    cors::{Any, CorsLayer},
-    trace::TraceLayer,
-};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
 use url::Url;
 
@@ -135,13 +132,11 @@ where
                 // but only on this endpoint
                 .layer(CorsLayer::new().allow_methods([Method::GET]).allow_origin(Any)),
         )
-        .layer(TraceLayer::new_for_http())
         .with_state(application_state.clone());
 
     let requester_router = Router::new()
         .route("/", post(start::<S>))
         .route("/:session_id/disclosed_attributes", get(disclosed_attributes::<S>))
-        .layer(TraceLayer::new_for_http())
         .with_state(application_state);
 
     Ok((wallet_router, requester_router))

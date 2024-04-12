@@ -9,8 +9,11 @@ ip = '127.0.0.1'
 port = 3001
 
 [requester_server]
-ip = '127.0.0.1'
+ip = "127.0.0.1"
 port = 3002
+
+# [requester_server.authentication]
+# api_key = "your_secret_key"
 
 [verifier]
 trust_anchors = []

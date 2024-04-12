@@ -1,7 +1,7 @@
 import 'package:wallet_core/core.dart';
 
-int _kMaxAttempts = 9;
-int _kAttemptsBeforeTimeout = 3;
+int _kMaxAttempts = 12;
+int _kAttemptsBeforeTimeout = 4;
 
 class PinManager {
   String? _selectedPin;
@@ -16,6 +16,7 @@ class PinManager {
 
   WalletInstructionResult checkPin(String pin) {
     if (!isRegistered) throw StateError('Cannot unlock before registration');
+
     // We've already reached our max attempts, notify blocked.
     if (_attempts >= _kMaxAttempts) {
       return WalletInstructionResult.instructionError(error: WalletInstructionError.blocked());
@@ -41,10 +42,13 @@ class PinManager {
       );
     }
     // No timeout, not yet blocked, notify about the attempts left
+    final attemptsLeftInRound = _kAttemptsBeforeTimeout - (_attempts % _kAttemptsBeforeTimeout);
+    final attemptsLeftInTotal = _kMaxAttempts - _attempts;
+    final isFinalRound = attemptsLeftInTotal < _kAttemptsBeforeTimeout;
     return WalletInstructionResult.instructionError(
       error: WalletInstructionError.incorrectPin(
-        leftoverAttempts: _kAttemptsBeforeTimeout - (_attempts % _kAttemptsBeforeTimeout),
-        isFinalAttempt: _attempts == (_kMaxAttempts - 1),
+        attemptsLeftInRound: attemptsLeftInRound,
+        isFinalRound: isFinalRound,
       ),
     );
   }

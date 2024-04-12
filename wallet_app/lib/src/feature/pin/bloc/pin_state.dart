@@ -35,13 +35,16 @@ class PinValidateSuccess extends PinState {
 }
 
 class PinValidateFailure extends PinState {
-  final int leftoverAttempts;
-  final bool isFinalAttempt;
+  final int attemptsLeftInRound;
+  final bool isFinalRound;
 
-  const PinValidateFailure({required this.leftoverAttempts, this.isFinalAttempt = false});
+  const PinValidateFailure({
+    required this.attemptsLeftInRound,
+    this.isFinalRound = false,
+  });
 
   @override
-  List<Object> get props => [leftoverAttempts, isFinalAttempt];
+  List<Object> get props => [attemptsLeftInRound, isFinalRound];
 }
 
 class PinValidateTimeout extends PinState {

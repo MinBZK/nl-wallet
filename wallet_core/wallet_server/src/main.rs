@@ -1,11 +1,9 @@
 use anyhow::Result;
 
-use wallet_server::{
-    pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient},
-    server,
-    settings::Settings,
-    store::SessionStores,
-};
+use wallet_server::{server, settings::Settings, store::SessionStores};
+
+#[cfg(feature = "issuance")]
+use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
 
 #[tokio::main]
 async fn main() -> Result<()> {

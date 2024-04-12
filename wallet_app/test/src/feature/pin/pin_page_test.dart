@@ -46,7 +46,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false),
+          const PinValidateFailure(attemptsLeftInRound: 3, isFinalRound: false),
         ),
       );
       await screenMatchesGolden(tester, 'pin_page/pin_validate_failure');
@@ -56,7 +56,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateFailure(leftoverAttempts: 1, isFinalAttempt: true),
+          const PinValidateFailure(attemptsLeftInRound: 1, isFinalRound: true),
         ),
       );
       await screenMatchesGolden(tester, 'pin_page/pin_validate_final_chance');
@@ -97,6 +97,9 @@ void main() {
         ),
       );
 
+      // Wait for widget to settle (triggered by announcement delay)
+      await tester.pumpAndSettle();
+
       // Setup finders
       final headerFinder = find.text(l10n.pinScreenHeader);
 
@@ -118,6 +121,9 @@ void main() {
         ),
       );
 
+      // Wait for widget to settle (triggered by announcement delay)
+      await tester.pumpAndSettle();
+
       // Setup finders
       final headerFinder = find.text(l10n.pinScreenHeader);
 
@@ -131,7 +137,7 @@ void main() {
         WalletAppTestWidget(
           child: PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
             MockPinBloc(),
-            const PinValidateFailure(leftoverAttempts: 2, isFinalAttempt: false),
+            const PinValidateFailure(attemptsLeftInRound: 2, isFinalRound: false),
           ),
         ),
       );
@@ -141,7 +147,7 @@ void main() {
 
       // Setup finders
       final headerFinder = find.text(l10n.pinErrorDialogTitle);
-      final attemptsLeftFinder = find.text(l10n.pinErrorDialogDynamicBody(2));
+      final attemptsLeftFinder = find.text(l10n.pinErrorDialogNonFinalRoundNonFinalAttempt(2));
 
       // Verify all expected widgets show up once
       expect(headerFinder, findsOneWidget);

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-import 'link_button.dart';
+import '../../../../util/extension/build_context_extension.dart';
 
-/// A button that encapsulates the normal [LinkButton] by wrapping it with
-/// a top and bottom divider, some vertical padding and makes the whole row
-/// clickable with visual feedback.
+/// A Button that spans the full width of the screen and wraps the [child] with optional bottom and top dividers.
 class LinkTileButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Widget child;
+  final bool showDividers;
 
   const LinkTileButton({
     required this.child,
     this.onPressed,
+    this.showDividers = true,
     super.key,
   });
 
@@ -19,18 +19,37 @@ class LinkTileButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onPressed,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          LinkButton(
-            customPadding: const EdgeInsets.only(left: 16),
-            child: child,
+      child: IntrinsicHeight(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              showDividers ? const Divider(height: 1) : const SizedBox.shrink(),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      DefaultTextStyle(
+                        style: context.textTheme.labelLarge!.copyWith(color: context.colorScheme.primary),
+                        child: child,
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: context.colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              showDividers ? const Divider(height: 1) : const SizedBox.shrink(),
+            ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-        ],
+        ),
       ),
     );
   }

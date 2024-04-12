@@ -48,7 +48,7 @@ class TerminalPage extends StatelessWidget {
     return Expanded(
       child: Scrollbar(
         child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.only(top: 2, bottom: 24),
           children: [
             Padding(
               padding: const EdgeInsets.all(16),

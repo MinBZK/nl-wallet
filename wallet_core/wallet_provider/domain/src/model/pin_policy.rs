@@ -11,9 +11,16 @@ pub trait PinPolicyEvaluator {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PinPolicyEvaluation {
-    Failed { attempts_left: u8, is_final_attempt: bool },
-    Timeout { timeout: Duration },
-    InTimeout { timeout: Duration },
+    Failed {
+        attempts_left_in_round: u8,
+        is_final_round: bool,
+    },
+    Timeout {
+        timeout: Duration,
+    },
+    InTimeout {
+        timeout: Duration,
+    },
     BlockedPermanently,
 }
 
@@ -31,8 +38,8 @@ pub mod mock {
             _current_datetime: DateTime<Local>,
         ) -> PinPolicyEvaluation {
             PinPolicyEvaluation::Failed {
-                attempts_left: 3,
-                is_final_attempt: false,
+                attempts_left_in_round: 3,
+                is_final_round: false,
             }
         }
     }

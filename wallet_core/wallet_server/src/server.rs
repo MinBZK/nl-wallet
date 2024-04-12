@@ -6,15 +6,16 @@ use nl_wallet_mdoc::{
     server_state::{SessionState, SessionStore},
     verifier::DisclosureData,
 };
+use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 use tracing::debug;
 
 #[cfg(feature = "issuance")]
 use openid4vc::issuer::AttributeService;
 
 use crate::{
-    settings::Settings,
+    settings::{Authentication, RequesterAuth, Settings},
     store::SessionStores,
-    verifier::{self},
+    verifier,
 };
 
 fn health_router() -> Router {
@@ -27,17 +28,34 @@ fn decorate_router(prefix: &str, router: Router) -> Router {
     #[cfg(feature = "log_requests")]
     let router = router.layer(axum::middleware::from_fn(crate::log_requests::log_request_response));
 
-    #[allow(clippy::let_and_return)] // See https://github.com/rust-lang/rust-clippy/issues/9150
-    router
+    router.layer(TraceLayer::new_for_http())
 }
 
-fn setup_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<(SocketAddr, SocketAddr, Router, Router)>
+fn setup_disclosure<S>(
+    settings: Settings,
+    disclosure_sessions: S,
+) -> Result<(SocketAddr, Option<SocketAddr>, Router, Router)>
 where
     S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
 {
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
-    let requester_socket = SocketAddr::new(settings.requester_server.ip, settings.requester_server.port);
-    let (wallet_disclosure_router, requester_router) = verifier::create_routers(settings, disclosure_sessions)?;
+    let (wallet_disclosure_router, mut requester_router) =
+        verifier::create_routers(settings.clone(), disclosure_sessions)?;
+
+    let requester_socket = match settings.requester_server {
+        RequesterAuth::Authentication(Authentication::ApiKey(api_key)) => {
+            requester_router = requester_router.layer(ValidateRequestHeaderLayer::bearer(&api_key));
+            None
+        }
+        RequesterAuth::ProtectedInternalEndpoint {
+            authentication: Authentication::ApiKey(api_key),
+            server,
+        } => {
+            requester_router = requester_router.layer(ValidateRequestHeaderLayer::bearer(&api_key));
+            Some(SocketAddr::new(server.ip, server.port))
+        }
+        RequesterAuth::InternalEndpoint(server) => Some(SocketAddr::new(server.ip, server.port)),
+    };
 
     Ok((
         wallet_socket,
@@ -87,27 +105,35 @@ where
 
 async fn listen(
     wallet_socket: SocketAddr,
-    requester_socket: SocketAddr,
+    requester_socket: Option<SocketAddr>,
     wallet_router: Router,
     requester_router: Router,
 ) -> anyhow::Result<()> {
-    debug!("listening for requester on {}", requester_socket);
-    let requester_server = tokio::spawn(async move {
-        axum::Server::bind(&requester_socket)
-            .serve(requester_router.into_make_service())
-            .await
-            .expect("requester server should be started")
-    });
+    if let Some(requester_socket) = requester_socket {
+        debug!("listening for requester on {}", requester_socket);
+        let requester_server = tokio::spawn(async move {
+            axum::Server::bind(&requester_socket)
+                .serve(requester_router.into_make_service())
+                .await
+                .expect("requester server should be started")
+        });
 
-    debug!("listening for wallet on {}", wallet_socket);
-    let wallet_server = tokio::spawn(async move {
+        debug!("listening for wallet on {}", wallet_socket);
+        let wallet_server = tokio::spawn(async move {
+            axum::Server::bind(&wallet_socket)
+                .serve(wallet_router.into_make_service())
+                .await
+                .expect("wallet server should be started")
+        });
+
+        tokio::try_join!(requester_server, wallet_server)?;
+    } else {
+        debug!("listening for wallet and requester on {}", wallet_socket);
         axum::Server::bind(&wallet_socket)
-            .serve(wallet_router.into_make_service())
+            .serve(wallet_router.merge(requester_router).into_make_service())
             .await
             .expect("wallet server should be started")
-    });
-
-    tokio::try_join!(requester_server, wallet_server)?;
+    }
 
     Ok(())
 }

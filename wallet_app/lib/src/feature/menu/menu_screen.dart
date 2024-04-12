@@ -6,7 +6,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/button/wallet_app_bar_back_button.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';
@@ -29,7 +29,7 @@ class MenuScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.menuScreenTitle,
-                      leading: const WalletAppBarBackButton(),
+                      leading: const BackIconButton(),
                     ),
                     _buildContentSliver(context),
                   ],

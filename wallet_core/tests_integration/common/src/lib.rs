@@ -32,14 +32,14 @@ use wallet::{
     Wallet,
 };
 use wallet_common::{
-    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey,
+    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey, nonempty::NonEmpty,
     reqwest::trusted_reqwest_client_builder,
 };
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_server::{
     pid::mock::MockAttributesLookup,
-    settings::{Server, Settings as WsSettings},
+    settings::{RequesterAuth, Server, Settings as WsSettings},
     store::SessionStores,
 };
 
@@ -226,10 +226,10 @@ pub fn wallet_server_settings() -> WsSettings {
     settings.wallet_server.port = ws_port;
 
     let requester_port = find_listener_port();
-    settings.requester_server = Server {
+    settings.requester_server = RequesterAuth::InternalEndpoint(Server {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
         port: requester_port,
-    };
+    });
 
     settings.public_url = format!("http://localhost:{}/", ws_port).parse().unwrap();
     settings.internal_url = format!("http://localhost:{}/", requester_port).parse().unwrap();
@@ -368,8 +368,8 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Self::Error> {
-        Ok(MockAttributesLookup::default()
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
+        let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
             .into_iter()
@@ -377,6 +377,7 @@ impl AttributeService for MockAttributeService {
                 issuer: self.0[&unsigned_mdoc.doc_type].clone(),
                 unsigned_mdoc,
             })
-            .collect())
+            .collect::<Vec<_>>();
+        Ok(attributes.try_into().unwrap())
     }
 }

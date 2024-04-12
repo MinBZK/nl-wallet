@@ -12,8 +12,9 @@ import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/page/generic_loading_page.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/close_icon_button.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -58,8 +59,10 @@ class DisclosureScreen extends StatelessWidget {
         appBar: WalletAppBar(
           leading: _buildBackButton(context),
           actions: [
-            _buildHelpButton(context),
-            _buildCloseButton(context, progress),
+            const HelpIconButton(),
+            CloseIconButton(
+              onPressed: () => _stopDisclosure(context),
+            ),
           ],
           title: _buildTitle(context),
           progress: progress,
@@ -91,22 +94,6 @@ class DisclosureScreen extends StatelessWidget {
           onPressed: () => context.bloc.add(const DisclosureBackPressed()),
         );
       },
-    );
-  }
-
-  Widget _buildHelpButton(BuildContext context) {
-    return IconButton(
-      onPressed: () => PlaceholderScreen.show(context),
-      icon: const Icon(Icons.help_outline_rounded),
-    );
-  }
-
-  /// The close button stops/closes the disclosure flow.
-  /// It is only visible in the semantics tree when the disclosure flow is in progress.
-  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
-    return ExcludeSemantics(
-      excluding: stepperProgress == 1.0,
-      child: CloseButton(onPressed: () => _stopDisclosure(context)),
     );
   }
 
@@ -227,7 +214,12 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildStoppedPage(BuildContext context, DisclosureStopped state) {
     return DisclosureStoppedPage(
       organization: state.organization,
-      onClosePressed: () => Navigator.pop(context),
+      onClosePressed: (returnUrl) {
+        Navigator.pop(context);
+        if (returnUrl != null) launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
+      },
+      isLoginFlow: state.isLoginFlow,
+      returnUrl: state.returnUrl,
     );
   }
 
@@ -245,11 +237,7 @@ class DisclosureScreen extends StatelessWidget {
       onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
       onPrimaryPressed: (returnUrl) {
         Navigator.pop(context);
-
-        // Handle return url
-        if (returnUrl != null) {
-          launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
-        }
+        if (returnUrl != null) launchUrlStringCatching(returnUrl, mode: LaunchMode.externalApplication);
       },
     );
   }
@@ -275,6 +263,7 @@ class DisclosureScreen extends StatelessWidget {
       final stopPressed = await DisclosureStopSheet.show(
         context,
         organizationName: organizationName,
+        isLoginFlow: bloc.isLoginFlow,
         onReportIssuePressed: availableReportOptions.isEmpty
             ? null
             : () {

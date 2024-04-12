@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
@@ -17,14 +18,18 @@ import 'bloc/pin_bloc.dart';
 import 'widget/pin_field.dart';
 import 'widget/pin_keyboard.dart';
 
-/// If the user has less then [kLeftoverAttemptsBeforeDynamicWarning] attempts left
+/// If the user has less then [kNonFinalRoundMLeftoverAttemptsMentionThreshold] attempts left
 /// to enter the correct pin, we switch to showing the counter inside the warning dialog.
-const kLeftoverAttemptsBeforeDynamicWarning = 3;
+const kNonFinalRoundMLeftoverAttemptsMentionThreshold = 3;
 
 /// Signature for a function that creates a widget while providing the leftover pin attempts.
 /// [attempts] being null indicates that this is the first attempt.
 /// [isFinalAttempt] being true indicates it's the final attempt (followed by the user being blocked, i.e. no more timeout)
-typedef PinHeaderBuilder = Widget Function(BuildContext context, int? attempts, bool isFinalAttempt);
+typedef PinHeaderBuilder = Widget Function(
+  BuildContext context,
+  int? attemptsLeftInRound,
+  bool isFinalRound,
+);
 
 /// Signature for a function that is called on any state change exposed by the [PinBloc]. When this method
 /// is provided AND returns true for the given [PinState], the state is considered consumed and will not be handled
@@ -73,13 +78,15 @@ class PinPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is PinEntryInProgress) {
-          if (state.afterBackspacePressed) {
-            announceEnteredDigits(context, state.enteredDigits);
-          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-            announceEnteredDigits(context, state.enteredDigits);
-          }
+          Future.delayed(kDefaultAnnouncementDelay).then((value) {
+            if (state.afterBackspacePressed) {
+              _announceEnteredDigits(context.l10n, state.enteredDigits);
+            } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+              _announceEnteredDigits(context.l10n, state.enteredDigits);
+            }
+          });
         }
 
         /// Check for state interceptions
@@ -211,7 +218,7 @@ class PinPage extends StatelessWidget {
             child: BlocBuilder<PinBloc, PinState>(
               builder: (context, state) {
                 if (state is PinValidateFailure) {
-                  return builder(context, state.leftoverAttempts, state.isFinalAttempt);
+                  return builder(context, state.attemptsLeftInRound, state.isFinalRound);
                 } else {
                   return builder(context, null, false);
                 }
@@ -224,7 +231,7 @@ class PinPage extends StatelessWidget {
   }
 
   /// Builds the default pin header, as shown on the 'unlock the app' screen.
-  Widget _defaultHeaderBuilder(BuildContext context, int? attempts, bool isFinalAttempt) {
+  Widget _defaultHeaderBuilder(BuildContext context, int? attemptsLeftInRound, bool isFinalRound) {
     return PinHeader(
       title: context.l10n.pinScreenHeader,
       contentAlignment: context.isLandscape ? Alignment.centerLeft : Alignment.topCenter,
@@ -266,10 +273,11 @@ class PinPage extends StatelessWidget {
           opacity: state is PinValidateInProgress ? 0.3 : 1,
           child: PinKeyboard(
             color: keyboardColor,
-            onKeyPressed:
-                _digitKeysEnabled(state) ? (digit) => context.read<PinBloc>().add(PinDigitPressed(digit)) : null,
+            onKeyPressed: _digitKeysEnabled(state) ? (digit) => context.bloc.add(PinDigitPressed(digit)) : null,
             onBackspacePressed:
-                _backspaceKeyEnabled(state) ? () => context.read<PinBloc>().add(const PinBackspacePressed()) : null,
+                _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinBackspacePressed()) : null,
+            onBackspaceLongPressed:
+                _backspaceKeyEnabled(state) ? () => context.bloc.add(const PinClearPressed()) : null,
           ),
         );
       },
@@ -321,32 +329,29 @@ class PinPage extends StatelessWidget {
     return PinFieldState.idle;
   }
 
-  void announceEnteredDigits(BuildContext context, int enteredDigits) {
+  void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
     SemanticsService.announce(
-      context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      l10n.pinEnteredDigitsAnnouncement(kPinDigits - enteredDigits),
       TextDirection.ltr,
     );
   }
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
     final title = context.l10n.pinErrorDialogTitle;
-    var body = reason.leftoverAttempts >= kLeftoverAttemptsBeforeDynamicWarning
-        ? context.l10n.pinErrorDialogBody
-        : context.l10n.pinErrorDialogDynamicBody(reason.leftoverAttempts);
-    if (reason.isFinalAttempt) body = context.l10n.pinErrorDialogFinalAttemptBody;
+    final body = _pinErrorDialogBody(context, reason);
 
     return showDialog<void>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+          semanticLabel: title,
           title: Text(title, style: context.textTheme.displayMedium),
-          content: SingleChildScrollView(
-            child: Text(body, style: context.textTheme.bodyLarge),
-          ),
+          content: Text(body, style: context.textTheme.bodyLarge),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase()),
@@ -364,4 +369,29 @@ class PinPage extends StatelessWidget {
       },
     );
   }
+
+  String _pinErrorDialogBody(BuildContext context, PinValidateFailure reason) {
+    if (reason.isFinalRound) {
+      // Final round is a special case where the user has X attempts left before the app is blocked.
+      if (reason.attemptsLeftInRound > 1) {
+        return context.l10n.pinErrorDialogFinalRoundNonFinalAttempt(reason.attemptsLeftInRound);
+      } else {
+        return context.l10n.pinErrorDialogFinalRoundFinalAttempt;
+      }
+    } else {
+      // Regular case where the user has X attempts left before the app is temporary blocked.
+      switch (reason.attemptsLeftInRound) {
+        case 1:
+          return context.l10n.pinErrorDialogNonFinalRoundFinalAttempt;
+        case < kNonFinalRoundMLeftoverAttemptsMentionThreshold:
+          return context.l10n.pinErrorDialogNonFinalRoundNonFinalAttempt(reason.attemptsLeftInRound);
+        default:
+          return context.l10n.pinErrorDialogNonFinalRoundInitialAttempt;
+      }
+    }
+  }
+}
+
+extension _PinPageExtensions on BuildContext {
+  PinBloc get bloc => read<PinBloc>();
 }

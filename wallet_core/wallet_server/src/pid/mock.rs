@@ -16,7 +16,7 @@ use openid4vc::{
     issuer::{AttributeService, Created},
     token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
 };
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
 use crate::{
     pid::{
@@ -56,7 +56,7 @@ impl AttributeService for MockPidAttributeService {
         &self,
         _session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Error> {
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -66,12 +66,14 @@ impl AttributeService for MockPidAttributeService {
 
         let bsn = self.openid_client.bsn(openid_token_request).await?;
 
-        self.attrs_lookup
+        let previews = self
+            .attrs_lookup
             .attributes(&bsn)
             .ok_or(Error::NoAttributesFound)?
             .into_iter()
             .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
-            .collect::<Result<_, _>>()
+            .collect::<Result<Vec<_>, _>>()?;
+        previews.try_into().map_err(|_| Error::NoAttributesFound)
     }
 }
 

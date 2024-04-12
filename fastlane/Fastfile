@@ -93,9 +93,6 @@ platform :android do
     build_mode = options[:build_mode] || "release"
     mock_repositories = options[:mock] || false
 
-    # always `true`, but ignored when `mock_repositories == true`, this flag is used in local development only
-    env_configuration = true
-
     UI.user_error!("Invalid file_format: #{file_format}") unless ["aab", "apk"].include? file_format
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
@@ -115,8 +112,11 @@ platform :android do
             "--build-name", version.to_s,
             "--#{build_mode}",
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
-            "--dart-define=ENV_CONFIGURATION=#{env_configuration}",
-            "--dart-define=UL_HOSTNAME=#{universal_link_base}")
+            "--dart-define=UL_HOSTNAME=#{universal_link_base}",
+
+            # ENV_CONFIGURATION is ignored when mock repositories are configured
+            "--dart-define=ENV_CONFIGURATION=true",
+      )
 
       sh("mv", "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}", "../#{package_name}-#{version}-#{build_mode}.#{file_format}")
     end
@@ -169,7 +169,7 @@ platform :android do
 end
 
 platform :ios do
-  desc "Build iOS app from GitLab CI"
+  desc "Build and sign iOS app from CI"
   lane :ci_build do |options|
     match_basic_auth = ci_get_basic_auth
     match_keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
@@ -244,14 +244,21 @@ platform :ios do
     app_name = options[:app_name]
     UI.user_error!("No app_name option set") unless app_name
 
+    universal_link_base = options[:universal_link_base]
+
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
     version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
-    build_mode = options[:build_mode] || "release"
 
+    build_mode = options[:build_mode] || "release"
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
+    mock_repositories = options[:mock] || false
+
     flutter = flutter_cmd
+
+    UI.message("Going to build iOS bundleID #{bundle_id}, name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}, signing for #{options[:app_store]}")
+    UI.message("Using UL hostname #{universal_link_base} with #{mock_repositories ? "mock repositories" : "env configuration"}")
 
     Dir.chdir("../wallet_app") do
       sh(*flutter, "pub", "get")
@@ -259,7 +266,16 @@ platform :ios do
       sh(*flutter, "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
       sh(*flutter, "pub", "run", "rename", "--target", "ios", "--appname", app_name)
 
-      sh(*flutter, "build", "ipa", "--build-number", build.to_s, "--build-name", version.to_s, "--no-codesign", "--#{build_mode}")
+      sh(*flutter, "build", "ipa",
+            "--build-number", build.to_s,
+            "--build-name", version.to_s,
+            "--no-codesign", "--#{build_mode}",
+            "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
+            "--dart-define=UL_HOSTNAME=#{universal_link_base}",
+
+            # ENV_CONFIGURATION is ignored when mock repositories are configured
+            "--dart-define=ENV_CONFIGURATION=true",
+      )
     end
 
     match(

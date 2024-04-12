@@ -7,8 +7,8 @@ import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/attribute_value_formatter.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/link_tile_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/sliver_divider.dart';
@@ -27,13 +27,8 @@ class CheckAttributesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: WalletAppBar(
-        actions: [
-          IconButton(
-            onPressed: () => PlaceholderScreen.show(context),
-            icon: const Icon(Icons.help_outline_rounded),
-          )
-        ],
+      appBar: const WalletAppBar(
+        actions: [HelpIconButton()],
       ),
       body: SafeArea(
         child: Column(

@@ -19,3 +19,10 @@ class PinBackspacePressed extends PinEvent {
   @override
   List<Object?> get props => [];
 }
+
+class PinClearPressed extends PinEvent {
+  const PinClearPressed();
+
+  @override
+  List<Object?> get props => [];
+}

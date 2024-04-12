@@ -79,20 +79,20 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => CheckPinResultIncorrect(leftoverAttempts: 3),
+        () => CheckPinResultIncorrect(attemptsLeftInRound: 3),
       ),
       skip: 6,
-      expect: () => [const PinValidateFailure(leftoverAttempts: 3, isFinalAttempt: false)],
+      expect: () => [const PinValidateFailure(attemptsLeftInRound: 3, isFinalRound: false)],
     );
     blocTest<PinBloc, PinState>(
-      'Verify that WalletInstructionResult.IncorrectPin results in PinValidateFailure with final attempt',
+      'Verify that WalletInstructionResult.IncorrectPin results in PinValidateFailure with final round',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => CheckPinResultIncorrect(leftoverAttempts: 1, isFinalAttempt: true),
+        () => CheckPinResultIncorrect(attemptsLeftInRound: 1, isFinalRound: true),
       ),
       skip: 6,
-      expect: () => [const PinValidateFailure(leftoverAttempts: 1, isFinalAttempt: true)],
+      expect: () => [const PinValidateFailure(attemptsLeftInRound: 1, isFinalRound: true)],
     );
     blocTest<PinBloc, PinState>(
       'Verify that WalletInstructionResult.Blocked results in PinValidateBlocked',

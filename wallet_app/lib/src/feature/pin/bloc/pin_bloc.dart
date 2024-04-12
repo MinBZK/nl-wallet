@@ -22,6 +22,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
   PinBloc(this.checkPinUseCase) : super(const PinEntryInProgress(0)) {
     on<PinDigitPressed>(_onEnterDigitEvent);
     on<PinBackspacePressed>(_onRemoveDigitEvent);
+    on<PinClearPressed>(_onClearEvent);
   }
 
   FutureOr<void> _onEnterDigitEvent(event, emit) async {
@@ -40,6 +41,11 @@ class PinBloc extends Bloc<PinEvent, PinState> {
     emit(PinEntryInProgress(_currentPin.length, afterBackspacePressed: true));
   }
 
+  Future<void> _onClearEvent(event, emit) async {
+    _currentPin = '';
+    emit(const PinEntryInProgress(0, afterBackspacePressed: true));
+  }
+
   Future<void> _validatePin(Emitter<PinState> emit) async {
     try {
       final result = await checkPinUseCase.invoke(_currentPin);
@@ -49,7 +55,12 @@ class PinBloc extends Bloc<PinEvent, PinState> {
         case CheckPinResultOk():
           emit(PinValidateSuccess(returnUrl: result.returnUrl));
         case CheckPinResultIncorrect():
-          emit(PinValidateFailure(leftoverAttempts: result.leftoverAttempts, isFinalAttempt: result.isFinalAttempt));
+          emit(
+            PinValidateFailure(
+              attemptsLeftInRound: result.attemptsLeftInRound,
+              isFinalRound: result.isFinalRound,
+            ),
+          );
         case CheckPinResultTimeout():
           emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: result.timeoutMillis))));
         case CheckPinResultBlocked():

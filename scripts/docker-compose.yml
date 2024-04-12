@@ -11,7 +11,7 @@ services:
       - POSTGRESQL_DATABASE=${DB_NAME}
     volumes:
       - postgresql_data:/bitnami/postgresql
-      - ./scripts/sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
     networks:
       wallet_provider_network:
         ipv4_address: 172.20.20.2

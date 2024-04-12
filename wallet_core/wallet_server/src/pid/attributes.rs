@@ -6,7 +6,7 @@ use openid4vc::{
     token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
 use crate::pid::brp::{
     client::{BrpClient, BrpError, HttpBrpClient},
@@ -88,7 +88,7 @@ impl AttributeService for BrpPidAttributeService {
         &self,
         _session: &SessionState<Created>,
         token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Error> {
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -108,7 +108,7 @@ impl AttributeService for BrpPidAttributeService {
                     .into_iter()
                     .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
                     .collect::<Result<Vec<AttestationPreview>, Error>>()?;
-                Ok(previews)
+                previews.try_into().map_err(|_| Error::NoAttributesFound)
             })
             .unwrap_or(Err(Error::NoAttributesFound))
     }
