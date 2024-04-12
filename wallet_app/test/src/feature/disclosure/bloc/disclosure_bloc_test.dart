@@ -404,6 +404,35 @@ void main() {
   );
 
   blocTest(
+    'when a generic error occurs while the user confirms the pin, the bloc emits DisclosureGenericError',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+        return StartDisclosureReadyToDisclose(
+          WalletMockData.organization,
+          'http://origin.org',
+          'requestPurpose'.untranslated,
+          false,
+          DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
+          {},
+          WalletMockData.policy,
+        );
+      });
+    },
+    build: () => create(),
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
+      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureConfirmPinFailed(error: 'Some generic error'));
+    },
+    skip: 4,
+    expect: () => [isA<DisclosureGenericError>()],
+  );
+
+  blocTest(
     'when user presses back from the DisclosureConfirmPin state, the bloc emits DisclosureConfirmDataAttributes ',
     setUp: () {
       when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
