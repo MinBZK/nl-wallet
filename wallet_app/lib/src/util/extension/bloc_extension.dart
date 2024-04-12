@@ -27,17 +27,17 @@ extension BlocExtensions on Bloc {
       switch (ex) {
         case CoreGenericError():
           if (onGenericError != null) {
-            onGenericError.call(ex);
+            await onGenericError.call(ex);
             return;
           }
         case CoreNetworkError():
           if (onNetworkError != null) {
-            onNetworkError.call(ex, await checkHasInternetUseCase.invoke());
+            await onNetworkError.call(ex, await checkHasInternetUseCase.invoke());
             return;
           }
         case CoreRedirectUriError():
           if (onRedirectUriError != null) {
-            onRedirectUriError.call(ex);
+            await onRedirectUriError.call(ex);
             return;
           }
         case CoreStateError():
@@ -45,10 +45,10 @@ extension BlocExtensions on Bloc {
           throw ex;
       }
       if (onCoreError != null) {
-        onCoreError.call(ex);
+        await onCoreError.call(ex);
         return;
       }
     }
-    onUnhandledError.call(ex);
+    await onUnhandledError.call(ex);
   }
 }
