@@ -237,7 +237,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
     } finally {
-      handleError(
+      await handleError(
         event.error,
         onNetworkError: (ex, hasInternet) => emit(DisclosureNetworkError(error: ex, hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(DisclosureGenericError(error: ex)),
