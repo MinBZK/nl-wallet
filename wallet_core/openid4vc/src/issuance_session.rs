@@ -431,7 +431,7 @@ impl CredentialResponse {
 
         // Calculate the minimum of all the lengths of the random bytes
         // included in the attributes of `IssuerSigned`. If this value
-        // is too low, we should not accept the the attributes.
+        // is too low, we should not accept the attributes.
         if let Some(name_spaces) = issuer_signed.name_spaces.as_ref() {
             let min_random_length = name_spaces
                 .values()
