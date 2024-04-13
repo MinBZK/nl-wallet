@@ -458,7 +458,6 @@ impl Session<Created> {
             .await
             .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
 
-        // Append the authorization code, so that when the wallet comes back we can use it to retrieve the session
         let c_nonce = random_string(32);
         let dpop_nonce = random_string(32);
 
@@ -466,7 +465,7 @@ impl Session<Created> {
             token_response: TokenResponse {
                 access_token: AccessToken::new(&code),
                 c_nonce: Some(c_nonce),
-                token_type: TokenType::Bearer,
+                token_type: TokenType::DPoP,
                 expires_in: None,
                 refresh_token: None,
                 scope: None,
