@@ -731,7 +731,7 @@ mod tests {
                 MockIssuanceSession::new(),
                 vec![AttestationPreview::MsoMdoc {
                     unsigned_mdoc: UnsignedMdoc {
-                        doc_type: "foobar".to_string(),
+                        doctype: "foobar".to_string(),
                         valid_from: Tdate::now(),
                         valid_until: (Utc::now() + Days::new(365)).into(),
                         attributes: Default::default(),

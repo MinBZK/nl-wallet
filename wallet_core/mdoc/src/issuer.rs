@@ -23,7 +23,7 @@ impl IssuerSigned {
             expected_update: None,
         };
 
-        let doc_type = unsigned_mdoc.doc_type;
+        let doc_type = unsigned_mdoc.doctype;
         let attrs: IssuerNameSpaces = unsigned_mdoc
             .attributes
             .into_iter()
@@ -89,7 +89,7 @@ mod tests {
         let trust_anchors = &[(ca.certificate()).try_into().unwrap()];
 
         let unsigned = UnsignedMdoc {
-            doc_type: ISSUANCE_DOC_TYPE.to_string(),
+            doctype: ISSUANCE_DOC_TYPE.to_string(),
             copy_count: 2,
             valid_from: chrono::Utc::now().into(),
             valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
@@ -122,7 +122,7 @@ mod tests {
         );
 
         let TaggedBytes(cose_payload) = issuer_signed.issuer_auth.dangerous_parse_unverified().unwrap();
-        assert_eq!(cose_payload.doc_type, unsigned.doc_type);
+        assert_eq!(cose_payload.doc_type, unsigned.doctype);
         assert_eq!(cose_payload.validity_info.valid_from, unsigned.valid_from);
         assert_eq!(cose_payload.validity_info.valid_until, unsigned.valid_until);
 

@@ -335,7 +335,7 @@ impl AttributeService for MockAttributeService {
         let previews = vec![
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
-                    doc_type: MOCK_PID_DOCTYPE.to_string(),
+                    doctype: MOCK_PID_DOCTYPE.to_string(),
                     copy_count: 2,
                     valid_from: Tdate::now(),
                     valid_until: Utc::now().add(Days::new(365)).into(),
@@ -354,7 +354,7 @@ impl AttributeService for MockAttributeService {
             },
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
-                    doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                    doctype: MOCK_ADDRESS_DOCTYPE.to_string(),
                     copy_count: 2,
                     valid_from: Tdate::now(),
                     valid_until: Utc::now().add(Days::new(365)).into(),

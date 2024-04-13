@@ -6,9 +6,9 @@ use crate::{Attributes, DataElementIdentifier, DataElementValue, DocType, NameSp
 /// A not-yet-signed mdoc, presented by the issuer to the holder during issuance, so that the holder can agree
 /// or disagree to receive the signed mdoc in the rest of the protocol.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct UnsignedMdoc {
-    pub doc_type: DocType,
+    pub doctype: DocType,
     pub valid_from: Tdate,
     pub valid_until: Tdate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,

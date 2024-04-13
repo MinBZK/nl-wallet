@@ -277,14 +277,14 @@ impl MockAttributesLookup {
 
         let attrs = vec![
             UnsignedMdoc {
-                doc_type: MOCK_PID_DOCTYPE.to_string(),
+                doctype: MOCK_PID_DOCTYPE.to_string(),
                 copy_count: 2,
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())]),
             },
             UnsignedMdoc {
-                doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                doctype: MOCK_ADDRESS_DOCTYPE.to_string(),
                 copy_count: 2,
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),

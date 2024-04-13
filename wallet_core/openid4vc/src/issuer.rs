@@ -565,7 +565,7 @@ impl Session<WaitingForResponse> {
                     .attestation_previews
                     .iter()
                     .map(AsRef::as_ref)
-                    .filter(|unsigned: &&UnsignedMdoc| unsigned.doc_type == *requested_doctype)
+                    .filter(|unsigned: &&UnsignedMdoc| unsigned.doctype == *requested_doctype)
                     .collect();
                 match offered_mdocs.len() {
                     1 => Ok(*offered_mdocs.first().unwrap()),
@@ -709,7 +709,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
         .doctype
         .as_ref()
         .ok_or(CredentialRequestError::DoctypeMismatch)?
-        != unsigned_mdoc.doc_type
+        != unsigned_mdoc.doctype
     {
         return Err(CredentialRequestError::DoctypeMismatch);
     }
@@ -727,9 +727,10 @@ pub(crate) async fn verify_pop_and_sign_attestation(
         .try_into()
         .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-    let private_key = issuer_data.private_keys.private_key(&unsigned_mdoc.doc_type).ok_or(
-        CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
-    )?;
+    let private_key = issuer_data
+        .private_keys
+        .private_key(&unsigned_mdoc.doctype)
+        .ok_or(CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doctype.clone()))?;
     let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
         .await
         .map_err(CredentialRequestError::AttestationSigning)?;

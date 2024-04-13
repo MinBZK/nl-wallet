@@ -182,7 +182,7 @@ impl Document {
     ) -> Result<Self, DocumentMdocError> {
         Document::from_mdoc_attributes(
             DocumentPersistence::InMemory,
-            &mdoc.doc_type,
+            &mdoc.doctype,
             mdoc.attributes,
             issuer_registration,
         )
@@ -336,7 +336,7 @@ pub mod tests {
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
-            doc_type: PID_DOCTYPE.to_string(),
+            doctype: PID_DOCTYPE.to_string(),
             copy_count: 1,
             valid_from: Tdate::now(),
             valid_until: (Utc::now() + Days::new(365)).into(),
@@ -409,7 +409,7 @@ pub mod tests {
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_address_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
-            doc_type: ADDRESS_DOCTYPE.to_string(),
+            doctype: ADDRESS_DOCTYPE.to_string(),
             copy_count: 1,
             valid_from: Tdate::now(),
             valid_until: (Utc::now() + Days::new(365)).into(),
@@ -530,7 +530,7 @@ pub mod tests {
     fn test_unsigned_mdoc_to_document_mapping_doc_type_error() {
         // Test changing the doc_type.
         let mut unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
-        unsigned_mdoc.doc_type = "com.example.foobar".to_string();
+        unsigned_mdoc.doctype = "com.example.foobar".to_string();
 
         let result = Document::from_unsigned_mdoc(unsigned_mdoc, IssuerRegistration::new_mock());
 
@@ -673,7 +673,7 @@ pub mod tests {
         let unsigned_mdoc = create_minimal_unsigned_pid_mdoc();
 
         let disclosure_document = DisclosureDocument::from_mdoc_attributes(
-            &unsigned_mdoc.doc_type,
+            &unsigned_mdoc.doctype,
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes,
                 issuer: ISSUER_KEY.certificate().clone(),

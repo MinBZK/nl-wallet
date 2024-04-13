@@ -94,7 +94,7 @@ impl Mdoc {
     pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedAttributesMismatch> {
         let our_attrs = self.attributes();
         let our_attrs = flatten_map(&self.doc_type, &our_attrs);
-        let expected_attrs = flatten_map(&unsigned.doc_type, &unsigned.attributes);
+        let expected_attrs = flatten_map(&unsigned.doctype, &unsigned.attributes);
 
         let missing = expected_attrs
             .iter()
