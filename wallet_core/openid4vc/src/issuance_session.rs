@@ -20,6 +20,7 @@ use nl_wallet_mdoc::{
         serialization::CborError,
         x509::{Certificate, CertificateError, CertificateUsage},
     },
+    ATTR_RANDOM_LENGTH,
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError};
 
@@ -76,6 +77,8 @@ pub enum IssuanceSessionError {
     IssuerCertificateMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
+    #[error("malformed attribute: random too short (was {0}; minimum {1}")]
+    AttributeRandomLength(usize, usize),
 }
 
 pub trait IssuanceSession<H = HttpOpenidMessageClient> {
@@ -381,7 +384,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     .map(|(cred_response, (pubkey, key_id))| {
                         // Convert the response into an `Mdoc`, verifying it against both the
                         // trust anchors and the `UnsignedMdoc` we received in the preview.
-                        cred_response.into_mdoc::<K>(key_id, pubkey, preview, trust_anchors)
+                        cred_response.into_mdoc::<K>(key_id, &pubkey, preview, trust_anchors)
                     })
                     .collect::<Result<_, _>>()?;
 
@@ -410,7 +413,7 @@ impl CredentialResponse {
     fn into_mdoc<K: MdocEcdsaKey>(
         self,
         key_id: String,
-        verifying_key: VerifyingKey,
+        verifying_key: &VerifyingKey,
         preview: &AttestationPreview,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Mdoc, IssuanceSessionError> {
@@ -421,9 +424,28 @@ impl CredentialResponse {
         if issuer_signed
             .public_key()
             .map_err(IssuanceSessionError::PublicKeyFromMdoc)?
-            != verifying_key
+            != *verifying_key
         {
             return Err(IssuanceSessionError::PublicKeyMismatch);
+        }
+
+        // Calculate the minimum of all the lengths of the random bytes
+        // included in the attributes of `IssuerSigned`. If this value
+        // is too low, we should not accept the attributes.
+        if let Some(name_spaces) = issuer_signed.name_spaces.as_ref() {
+            let min_random_length = name_spaces
+                .values()
+                .flat_map(|attributes| attributes.0.iter().map(|item| item.0.random.len()))
+                .min();
+
+            if let Some(min_random_length) = min_random_length {
+                if min_random_length < ATTR_RANDOM_LENGTH {
+                    return Err(IssuanceSessionError::AttributeRandomLength(
+                        min_random_length,
+                        ATTR_RANDOM_LENGTH,
+                    ));
+                }
+            }
         }
 
         // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
@@ -459,5 +481,192 @@ impl IssuanceState {
         let access_token_header = "DPoP ".to_string() + self.access_token.as_ref();
 
         Ok((dpop_header.into(), access_token_header))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use nl_wallet_mdoc::{
+        server_keys::KeyPair,
+        software_key_factory::SoftwareKeyFactory,
+        test::data,
+        unsigned::UnsignedMdoc,
+        utils::{
+            issuer_auth::IssuerRegistration,
+            serialization::{CborBase64, TaggedBytes},
+        },
+        Attributes, IssuerSigned,
+    };
+    use serde_bytes::ByteBuf;
+    use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
+
+    use super::*;
+
+    async fn create_credential_response() -> (CredentialResponse, AttestationPreview, Certificate, VerifyingKey) {
+        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+        let key_factory = SoftwareKeyFactory::default();
+
+        let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
+        let preview = AttestationPreview::MsoMdoc {
+            unsigned_mdoc: unsigned_mdoc.clone(),
+            issuer: issuance_key.certificate().clone(),
+        };
+
+        let mdoc_key = key_factory.generate_new().await.unwrap();
+        let mdoc_public_key = mdoc_key.verifying_key().await.unwrap();
+        let issuer_signed = IssuerSigned::sign(unsigned_mdoc, (&mdoc_public_key).try_into().unwrap(), &issuance_key)
+            .await
+            .unwrap();
+        let credential_response = CredentialResponse::MsoMdoc {
+            credential: issuer_signed.into(),
+        };
+
+        (credential_response, preview, ca.certificate().clone(), mdoc_public_key)
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc() {
+        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+
+        let _ = credential_response
+            .into_mdoc::<SoftwareEcdsaKey>(
+                "key_id".to_string(),
+                &mdoc_public_key,
+                &preview,
+                &[((&ca_cert).try_into().unwrap())],
+            )
+            .expect("should be able to convert CredentialResponse into Mdoc");
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_public_key_mismatch_error() {
+        let (credential_response, preview, ca_cert, _) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` using a different mdoc
+        // public key than the one contained within the response should fail.
+        let other_public_key = *SigningKey::random(&mut OsRng).verifying_key();
+        let error = credential_response
+            .into_mdoc::<SoftwareEcdsaKey>(
+                "key_id".to_string(),
+                &other_public_key,
+                &preview,
+                &[((&ca_cert).try_into().unwrap())],
+            )
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(error, IssuanceSessionError::PublicKeyMismatch)
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_attribute_random_length_error() {
+        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` from a response
+        // that contains insufficient random data should fail.
+        let credential_response = match credential_response {
+            CredentialResponse::MsoMdoc { mut credential } => {
+                let CborBase64(ref mut credential_inner) = credential;
+                let namespaces = credential_inner.name_spaces.as_mut().unwrap();
+                let (_, Attributes(issuer_signed_items)) = namespaces.first_mut().unwrap();
+                let TaggedBytes(first_item) = issuer_signed_items.first_mut().unwrap();
+
+                first_item.random = ByteBuf::from(b"12345");
+
+                CredentialResponse::MsoMdoc { credential }
+            }
+        };
+
+        let error = credential_response
+            .into_mdoc::<SoftwareEcdsaKey>(
+                "key_id".to_string(),
+                &mdoc_public_key,
+                &preview,
+                &[((&ca_cert).try_into().unwrap())],
+            )
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH)
+        )
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issuer_certificate_mismatch_error() {
+        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
+        // public key in the preview than is contained within the response should fail.
+        let other_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let other_issuance_key = other_ca
+            .generate_issuer_mock(IssuerRegistration::new_mock().into())
+            .unwrap();
+        let preview = match preview {
+            AttestationPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer: _,
+            } => AttestationPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer: other_issuance_key.certificate().clone(),
+            },
+        };
+
+        let error = credential_response
+            .into_mdoc::<SoftwareEcdsaKey>(
+                "key_id".to_string(),
+                &mdoc_public_key,
+                &preview,
+                &[((&ca_cert).try_into().unwrap())],
+            )
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(error, IssuanceSessionError::IssuerCertificateMismatch)
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_mdoc_verification_error() {
+        let (credential_response, preview, _, mdoc_public_key) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` that is
+        // validated against incorrect trust anchors should fail.
+        let error = credential_response
+            .into_mdoc::<SoftwareEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[])
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(error, IssuanceSessionError::MdocVerification(_))
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issued_attributes_mismatch_error() {
+        let (credential_response, preview, ca_cert, mdoc_public_key) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
+        // in the preview than are contained within the response should fail.
+        let preview = match preview {
+            AttestationPreview::MsoMdoc {
+                unsigned_mdoc: _,
+                issuer,
+            } => AttestationPreview::MsoMdoc {
+                unsigned_mdoc: UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()),
+                issuer,
+            },
+        };
+
+        let error = credential_response
+            .into_mdoc::<SoftwareEcdsaKey>(
+                "key_id".to_string(),
+                &mdoc_public_key,
+                &preview,
+                &[((&ca_cert).try_into().unwrap())],
+            )
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::IssuedAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
+                if missing.len() == 1 && unexpected.is_empty()
+        )
     }
 }
