@@ -7,6 +7,7 @@ import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/numbered_list.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/text/body_text.dart';
 
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   final VoidCallback onDataRejected;
@@ -47,33 +48,29 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.l10n.walletPersonalizeDataIncorrectScreenDescription,
-              style: context.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveTitle,
-              style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            NumberedList(
-              items: context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints.split('\n'),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              context.l10n.walletPersonalizeDataIncorrectScreenNotYourDataTitle,
-              style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              context.l10n.walletPersonalizeDataIncorrectScreenNotYourDataDescription,
-              style: context.textTheme.bodyLarge,
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BodyText(
+            context.l10n.walletPersonalizeDataIncorrectScreenDescription,
+          ),
+          const SizedBox(height: 24),
+          BodyText(
+            context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveTitle,
+            style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          NumberedList(
+            items: context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints.split('\n'),
+          ),
+          const SizedBox(height: 24),
+          BodyText(
+            context.l10n.walletPersonalizeDataIncorrectScreenNotYourDataTitle,
+            style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          BodyText(
+            context.l10n.walletPersonalizeDataIncorrectScreenNotYourDataDescription,
+          ),
+        ],
       ),
     );
   }
