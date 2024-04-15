@@ -5,6 +5,7 @@ import '../../../../wallet_assets.dart';
 import '../../../common/widget/button/confirm/confirm_button.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
+import '../../../common/widget/text/body_text.dart';
 
 class WalletPersonalizeIntroPage extends StatelessWidget {
   final VoidCallback onLoginWithDigidPressed;
@@ -35,11 +36,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        Text(
-                          context.l10n.walletPersonalizeIntroPageDescription,
-                          textAlign: TextAlign.start,
-                          style: context.textTheme.bodyLarge,
-                        ),
+                        BodyText(context.l10n.walletPersonalizeIntroPageDescription),
                         const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,

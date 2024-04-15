@@ -730,7 +730,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     let private_key = issuer_data.private_keys.private_key(&unsigned_mdoc.doc_type).ok_or(
         CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
     )?;
-    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
         .await
         .map_err(CredentialRequestError::AttestationSigning)?;
 

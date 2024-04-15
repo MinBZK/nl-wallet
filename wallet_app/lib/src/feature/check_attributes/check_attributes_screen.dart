@@ -13,6 +13,7 @@ import '../common/widget/button/link_tile_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import 'bloc/check_attributes_bloc.dart';
 
@@ -67,14 +68,12 @@ class CheckAttributesScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  TitleText(
                     context.l10n.checkAttributesScreenTitle(
                       attributes.length,
                       attributes.length,
                       card.front.title.l10nValue(context),
                     ),
-                    style: context.textTheme.displayMedium,
-                    textAlign: TextAlign.start,
                   ),
                   const SizedBox(height: 8),
                   BlocBuilder<CheckAttributesBloc, CheckAttributesState>(builder: (context, state) {
@@ -82,12 +81,15 @@ class CheckAttributesScreen extends StatelessWidget {
                       case CheckAttributesInitial():
                         return const SizedBox.shrink();
                       case CheckAttributesSuccess():
-                        return Text(
-                          context.l10n.checkAttributesScreenSubtitle(
-                            state.card.issuer.displayName.l10nValue(context),
+                        return SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            context.l10n.checkAttributesScreenSubtitle(
+                              state.card.issuer.displayName.l10nValue(context),
+                            ),
+                            style: context.textTheme.bodySmall,
+                            textAlign: TextAlign.start,
                           ),
-                          style: context.textTheme.bodySmall,
-                          textAlign: TextAlign.start,
                         );
                     }
                   })

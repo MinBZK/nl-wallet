@@ -103,11 +103,9 @@ class ConfirmAgreementPage extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: LinkButton(
+        customPadding: const EdgeInsets.only(left: 8),
         onPressed: () => PlaceholderScreen.show(context),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Text(context.l10n.confirmAgreementPageDataIncorrectCta),
-        ),
+        child: Text(context.l10n.confirmAgreementPageDataIncorrectCta),
       ),
     );
   }
