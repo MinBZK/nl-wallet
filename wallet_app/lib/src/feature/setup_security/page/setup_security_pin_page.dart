@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../pin/widget/pin_field.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
@@ -50,10 +51,7 @@ class SetupSecurityPinPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               child: Align(
                 alignment: Alignment.topLeft,
-                child: Text(
-                  title,
-                  style: context.textTheme.displayMedium,
-                ),
+                child: TitleText(title),
               ),
             ),
           ),

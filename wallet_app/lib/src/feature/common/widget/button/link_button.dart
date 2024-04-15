@@ -5,7 +5,7 @@ import '../../../../util/extension/build_context_extension.dart';
 /// A button with a trailing arrow that somewhat resembles a hyperlink with its behaviour.
 /// i.e. it has no ripple effect and the text color changes when it's in a pressed state.
 class LinkButton extends StatelessWidget {
-  final Widget child;
+  final Text child;
   final VoidCallback? onPressed;
   final EdgeInsets? customPadding;
 
@@ -18,23 +18,33 @@ class LinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      style: ButtonStyle(
-        padding: customPadding != null ? MaterialStatePropertyAll(customPadding!) : null,
-        overlayColor: MaterialStateProperty.all(Colors.transparent),
-        splashFactory: NoSplash.splashFactory,
-        foregroundColor: MaterialStateProperty.resolveWith(
-          _getForegroundColor(context),
+    return Semantics(
+      onTap: onPressed,
+      label: child.data,
+      button: true,
+      excludeSemantics: true,
+      child: Container(
+        width: double.infinity,
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          onPressed: onPressed,
+          style: ButtonStyle(
+            padding: customPadding != null ? MaterialStatePropertyAll(customPadding!) : null,
+            overlayColor: MaterialStateProperty.all(Colors.transparent),
+            splashFactory: NoSplash.splashFactory,
+            foregroundColor: MaterialStateProperty.resolveWith(
+              _getForegroundColor(context),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: child),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward, size: 16),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(child: child),
-          const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward, size: 16),
-        ],
       ),
     );
   }

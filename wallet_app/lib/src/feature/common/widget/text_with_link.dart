@@ -7,6 +7,7 @@ import '../../../util/extension/build_context_extension.dart';
 class TextWithLink extends StatelessWidget {
   final String fullText;
   final String ctaText;
+  final String? onTapHint;
   final TextStyle? style;
   final TextAlign textAlign;
   final VoidCallback? onCtaPressed;
@@ -14,6 +15,7 @@ class TextWithLink extends StatelessWidget {
   TextWithLink({
     required this.fullText,
     required this.ctaText,
+    this.onTapHint,
     this.style,
     this.textAlign = TextAlign.start,
     this.onCtaPressed,
@@ -31,23 +33,28 @@ class TextWithLink extends StatelessWidget {
 
     /// Fallback for production, so we don't crash for an ill formatted text.
     if (parts.length != 2) return Text(fullText, style: textStyle);
-    return RichText(
-      textAlign: textAlign,
-      textScaler: MediaQuery.textScalerOf(context),
-      text: TextSpan(
-        style: textStyle,
-        children: [
-          TextSpan(text: parts.first),
-          TextSpan(
-            text: ctaText,
-            style: TextStyle(
-              color: context.colorScheme.primary,
-              decoration: TextDecoration.underline,
+    return Semantics(
+      onTap: onCtaPressed,
+      onTapHint: onTapHint,
+      child: Text.rich(
+        TextSpan(
+          style: textStyle,
+          children: [
+            TextSpan(text: parts.first),
+            TextSpan(
+              text: ctaText,
+              style: TextStyle(
+                color: context.colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+              recognizer: TapGestureRecognizer()..onTap = onCtaPressed,
             ),
-            recognizer: TapGestureRecognizer()..onTap = onCtaPressed,
-          ),
-          TextSpan(text: parts.last),
-        ],
+            TextSpan(text: parts.last),
+          ],
+        ),
+        textAlign: textAlign,
+        textScaler: MediaQuery.textScalerOf(context),
+        semanticsLabel: fullText,
       ),
     );
   }

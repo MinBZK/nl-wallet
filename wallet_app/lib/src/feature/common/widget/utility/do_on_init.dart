@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 // a dedicated StatefulWidget.
 class DoOnInit extends StatefulWidget {
   final Function(BuildContext) onInit;
-  final Widget child;
+  final Widget? child;
 
   const DoOnInit({
-    required this.child,
+    this.child,
     required this.onInit,
     super.key,
   });
@@ -25,5 +25,5 @@ class _DoOnInitState extends State<DoOnInit> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) => widget.child ?? const SizedBox.shrink();
 }

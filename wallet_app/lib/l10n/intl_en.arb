@@ -1,7 +1,11 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-04-08T12:01:16+02:00",
-    "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website edi.pleio.nl.",
+    "@@last_modified": "2024-04-12T14:36:57+02:00",
+    "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
+    "aboutScreenDescriptionLink": "edi.pleio.nl",
+    "@aboutScreenDescriptionLink": {
+        "translatable": "false"
+    },
     "aboutScreenPrivacyCta": "Privacy policy",
     "aboutScreenTermsCta": "Terms of use",
     "aboutScreenTitle": "About the NL Wallet",
@@ -186,6 +190,7 @@
     "confirmAgreementPageTitle": "Do you want to sign with this data?",
     "dashboardScreenFooter": "The government is developing this app for your convenience, privacy and security. Learn more at {cta}.",
     "dashboardScreenFooterCta": "About this app",
+    "dashboardScreenMenuWCAGLabel": "Navigation menu",
     "dashboardScreenQrCta": "Scan QR code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",
@@ -555,6 +560,7 @@
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "See all activities",
+    "generalWCAGStepper": "Step {current} out of {total}.",
     "helpSheetCloseCta": "Close",
     "helpSheetDescription": "Contact support. The following data could be required.",
     "helpSheetErrorCode": "Error code: {code}",
@@ -845,8 +851,10 @@
     "menuScreenHelpCta": "Need help?",
     "menuScreenHistoryCta": "Activities",
     "menuScreenLockCta": "Log out",
+    "menuScreenScanQrCta": "Scan QR code",
     "menuScreenSettingsCta": "Settings",
     "menuScreenTitle": "Menu",
+    "menuScreenWCAGPageAnnouncement": "Menu in list {count} items",
     "menuSettingsPageSetupBiometricsCta": "Setup biometrics",
     "mockDigidScreenAcceptCta": "login",
     "mockDigidScreenDeclineCta": "cancel",
@@ -859,7 +867,8 @@
     "organizationApprovePageApproveCta": "Yes, next",
     "organizationApprovePageCancelLoginCta": "Stop",
     "organizationApprovePageDenyCta": "No, decline",
-    "organizationApprovePageFraudInfo": "Beware of fraud. Check the web address where you scanned the QR code. \n\nOnly proceed if the address matches {url}.",
+    "organizationApprovePageFraudInfoPart1": "Beware of fraud. Check the web address where you scanned the QR code.",
+    "organizationApprovePageFraudInfoPart2": "Only proceed if the address matches {url}.",
     "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
     "@organizationApprovePageGenericTitle": {
         "placeholders": {

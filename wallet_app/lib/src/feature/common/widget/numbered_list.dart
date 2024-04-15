@@ -1,4 +1,4 @@
-import 'package:collection/collection.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
@@ -10,21 +10,18 @@ class NumberedList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Table(
-      columnWidths: const {
-        0: IntrinsicColumnWidth(),
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: items.length,
+      itemBuilder: (c, i) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('  ${i + 1}.  ', style: context.textTheme.bodyLarge),
+            Expanded(child: Text(items[i], style: context.textTheme.bodyLarge)),
+          ],
+        );
       },
-      children: items.mapIndexed((index, point) => _buildTableRow(index, point, context.textTheme.bodyLarge)).toList(),
-    );
-  }
-
-  TableRow _buildTableRow(int index, String point, TextStyle? textStyle) {
-    return TableRow(
-      children: [
-        Text('  ${index + 1}.  ', style: textStyle),
-        Text(point, style: textStyle),
-      ],
     );
   }
 }
