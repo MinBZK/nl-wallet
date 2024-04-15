@@ -1,7 +1,7 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-09T15:26:56+02:00",
-    "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website edi.pleio.nl.",
+    "@@last_modified": "2024-04-12T14:36:57+02:00",
+    "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -556,6 +556,7 @@
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "Bekijk alle activiteiten",
+    "generalWCAGStepper": "Stap {current} of {total}.",
     "helpSheetCloseCta": "Sluiten",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
@@ -849,7 +850,7 @@
     "menuScreenScanQrCta": "Scan QR-code",
     "menuScreenSettingsCta": "Instellingen",
     "menuScreenTitle": "Menu",
-    "menuScreenWCAGPageAnnouncement": "Menu in lijst {count} items",
+    "menuScreenWCAGPageAnnouncement": "Menu in lijst {count} stuks",
     "menuSettingsPageSetupBiometricsCta": "Biometrie instellen",
     "mockDigidScreenAcceptCta": "inloggen",
     "mockDigidScreenDeclineCta": "annuleren",
@@ -862,7 +863,8 @@
     "organizationApprovePageApproveCta": "Ja, volgende",
     "organizationApprovePageCancelLoginCta": "Stoppen",
     "organizationApprovePageDenyCta": "Nee",
-    "organizationApprovePageFraudInfo": "Pas op voor fraude. Controleer het webadres op de website waar je QR-code hebt gescand.\n\nGa alleen verder als het adres gelijk is aan {url}.",
+    "organizationApprovePageFraudInfoPart1": "Pas op voor fraude. Controleer het webadres op de website waar je QR-code hebt gescand.",
+    "organizationApprovePageFraudInfoPart2": "Ga alleen verder als het adres gelijk is aan {url}.",
     "organizationApprovePageGenericTitle": "Herken je {organization}?",
     "@organizationApprovePageGenericTitle": {
         "placeholders": {

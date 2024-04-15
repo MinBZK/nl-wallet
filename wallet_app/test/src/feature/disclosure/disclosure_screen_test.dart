@@ -218,8 +218,7 @@ void main() {
   });
 
   group('widgets', () {
-    //TODO: Enable when Flutter version in CI is updated (3.19.2 at time of writing)
-    /*testWidgets('when cross-device session; fraud warning is shown on organization approve page', (tester) async {
+    testWidgets('when cross-device session; fraud warning is shown on organization approve page', (tester) async {
       const originUrl = 'http://origin.org';
 
       await tester.pumpWidgetWithAppWrapper(
@@ -234,8 +233,9 @@ void main() {
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.organizationApprovePageFraudInfo(originUrl), findRichText: true), findsOneWidget);
-    });*/
+      expect(find.text(l10n.organizationApprovePageFraudInfoPart1, findRichText: true), findsOneWidget);
+      expect(find.text(l10n.organizationApprovePageFraudInfoPart2(originUrl), findRichText: true), findsOneWidget);
+    });
 
     testWidgets('when same-device session; fraud warning is NOT shown on organization approve page', (tester) async {
       const originUrl = 'http://origin.org';
@@ -252,7 +252,8 @@ void main() {
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.organizationApprovePageFraudInfo(originUrl), findRichText: true), findsNothing);
+      expect(find.text(l10n.organizationApprovePageFraudInfoPart1, findRichText: true), findsNothing);
+      expect(find.text(l10n.organizationApprovePageFraudInfoPart2(originUrl), findRichText: true), findsNothing);
     });
 
     testWidgets('history button is shown on the success page', (tester) async {
