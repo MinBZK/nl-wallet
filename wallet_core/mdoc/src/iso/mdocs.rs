@@ -234,7 +234,7 @@ impl From<Vec<Entry>> for Attributes {
         Attributes::from(
             attrs
                 .into_iter()
-                .map(|entry| (entry.name.clone(), entry.value.clone()))
+                .map(|entry| (entry.name, entry.value))
                 .collect::<IndexMap<String, Value>>(),
         )
     }
