@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/button/text_icon_button.dart';
+import '../widget/text/body_text.dart';
+import '../widget/text/title_text.dart';
 
 class TerminalPage extends StatelessWidget {
   final String title;
@@ -48,27 +50,17 @@ class TerminalPage extends StatelessWidget {
     return Expanded(
       child: Scrollbar(
         child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.only(top: 2, bottom: 24),
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: MergeSemantics(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: context.textTheme.displayMedium,
-                      textAlign: TextAlign.start,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      style: context.textTheme.bodyLarge,
-                      textAlign: TextAlign.start,
-                    )
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TitleText(title),
+                  const SizedBox(height: 8),
+                  BodyText(description),
+                ],
               ),
             ),
             illustration ?? _buildIllustrationPlaceHolder(context),

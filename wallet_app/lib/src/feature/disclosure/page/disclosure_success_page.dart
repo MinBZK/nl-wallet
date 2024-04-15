@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/disclosure/return_url_case.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/page/terminal_page.dart';
 
@@ -29,7 +30,7 @@ class DisclosureSuccessPage extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.disclosureSuccessPageTitle,
       onPrimaryPressed: () => onPrimaryPressed(returnUrl),
-      primaryButtonIcon: hasReturnUrl ? Icons.close_outlined : Icons.arrow_forward_outlined,
+      primaryButtonIcon: hasReturnUrl ? Icons.arrow_forward_outlined : Icons.close_outlined,
       description: title,
       primaryButtonCta: _resolvePrimaryCta(context),
       secondaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,
@@ -38,18 +39,12 @@ class DisclosureSuccessPage extends StatelessWidget {
   }
 
   String _resolvePrimaryCta(BuildContext context) {
-    if (returnUrl != null) {
-      if (isLoginFlow) {
-        return context.l10n.disclosureSuccessPageToWebsiteCta;
-      } else {
-        return context.l10n.disclosureSuccessPageCloseCta;
-      }
-    } else {
-      if (isLoginFlow) {
-        return context.l10n.disclosureSuccessPageCloseCta;
-      } else {
-        return context.l10n.disclosureSuccessPageToDashboardCta;
-      }
-    }
+    final returnUrlCase = ReturnUrlCase.resolve(isLoginFlow, returnUrl != null);
+    return switch (returnUrlCase) {
+      ReturnUrlCase.returnUrl => context.l10n.disclosureSuccessPageCloseCta,
+      ReturnUrlCase.noReturnUrl => context.l10n.disclosureSuccessPageToDashboardCta,
+      ReturnUrlCase.loginReturnUrl => context.l10n.disclosureSuccessPageToWebsiteCta,
+      ReturnUrlCase.loginNoReturnUrl => context.l10n.disclosureSuccessPageCloseCta,
+    };
   }
 }

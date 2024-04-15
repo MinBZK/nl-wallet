@@ -31,6 +31,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   Organization? get relyingParty => _startDisclosureResult?.relyingParty;
 
+  bool get isLoginFlow => tryCast<StartDisclosureReadyToDisclose>(_startDisclosureResult)?.type == DisclosureType.login;
+
   DisclosureBloc(
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
@@ -52,9 +54,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       // disclosure bloc before the original one is closed, thus we need to cancel it here.
       await _cancelDisclosureUseCase.invoke();
       final startDisclosureResult = _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri);
-      bool isLoginFlow =
-          startDisclosureResult is StartDisclosureReadyToDisclose && startDisclosureResult.type == DisclosureType.login;
-      if (isLoginFlow) {
+      if (startDisclosureResult is StartDisclosureReadyToDisclose && isLoginFlow) {
         emit(
           DisclosureCheckOrganizationForLogin(
             relyingParty: startDisclosureResult.relyingParty,
@@ -96,7 +96,13 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       if (relyingParty == null) {
         emit(const DisclosureGenericError(error: 'Invalid state, no relying party to render stopped'));
       } else {
-        emit(DisclosureStopped(organization: _startDisclosureResult!.relyingParty));
+        emit(
+          DisclosureStopped(
+              organization: _startDisclosureResult!.relyingParty,
+              isLoginFlow: isLoginFlow,
+              returnUrl: null // See PVW-2577,
+              ),
+        );
       }
     }
   }
@@ -207,7 +213,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       DisclosureSuccess(
         relyingParty: _startDisclosureResult!.relyingParty,
         returnUrl: event.returnUrl,
-        isLoginFlow: tryCast<StartDisclosureReadyToDisclose>(_startDisclosureResult)?.type == DisclosureType.login,
+        isLoginFlow: isLoginFlow,
       ),
     );
   }

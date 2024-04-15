@@ -39,21 +39,21 @@ class AppStartTests : TestBase() {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("dutch"))
-        @DisplayName("$USE_CASE.2.a If the device language is set to Dutch, then the app starts in Dutch")
+        @DisplayName("$USE_CASE.2.1 If the device language is set to Dutch, then the app starts in Dutch")
         fun verifyDutchLanguage() {
             assertTrue(introductionScreen.nextButtonTextVisible("Volgende"))
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
-        @DisplayName("$USE_CASE.2.b If the device language is set to English, then the app starts in English")
+        @DisplayName("$USE_CASE.2.2 If the device language is set to English, then the app starts in English")
         fun verifyEnglishLanguage() {
             assertTrue(introductionScreen.nextButtonTextVisible("Next"))
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("france"))
-        @DisplayName("$USE_CASE.2.c If the device language is set to France, then the app starts in English")
+        @DisplayName("$USE_CASE.2.3 If the device language is set to France, then the app starts in English")
         fun verifyOtherLanguage() {
             assertTrue(introductionScreen.nextButtonTextVisible("Next"))
         }

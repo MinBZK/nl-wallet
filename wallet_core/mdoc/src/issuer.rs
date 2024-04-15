@@ -14,11 +14,7 @@ use crate::{
 };
 
 impl IssuerSigned {
-    pub async fn sign(
-        unsigned_mdoc: UnsignedMdoc,
-        device_public_key: CoseKey,
-        key: &KeyPair,
-    ) -> Result<(Self, MobileSecurityObject)> {
+    pub async fn sign(unsigned_mdoc: UnsignedMdoc, device_public_key: CoseKey, key: &KeyPair) -> Result<Self> {
         let now = Utc::now();
         let validity = ValidityInfo {
             signed: now.into(),
@@ -58,13 +54,13 @@ impl IssuerSigned {
             issuer_auth,
         };
 
-        Ok((issuer_signed, mso_tagged.0))
+        Ok(issuer_signed)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Add;
+    use std::{num::NonZeroU8, ops::Add};
 
     use ciborium::Value;
     use indexmap::IndexMap;
@@ -94,7 +90,7 @@ mod tests {
 
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
-            copy_count: 2,
+            copy_count: NonZeroU8::new(2).unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
             attributes: IndexMap::from([(
@@ -110,7 +106,7 @@ mod tests {
         };
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
-        let (issuer_signed, mso) = IssuerSigned::sign(unsigned.clone(), device_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned.clone(), device_key, &issuance_key)
             .await
             .unwrap();
 
@@ -119,19 +115,16 @@ mod tests {
             .verify(ValidityRequirement::Valid, &TimeGenerator, trust_anchors)
             .unwrap();
 
-        // The second return parameter of IssuerSigned::sign() should be the MSO inside the first return parameter
-        let TaggedBytes(cose_payload) = issuer_signed.issuer_auth.dangerous_parse_unverified().unwrap();
-        assert_eq!(cose_payload, mso);
-
         // The issuer certificate generated above should be included in the IssuerAuth
         assert_eq!(
             &issuer_signed.issuer_auth.signing_cert().unwrap(),
             issuance_key.certificate()
         );
 
-        assert_eq!(mso.doc_type, unsigned.doc_type);
-        assert_eq!(mso.validity_info.valid_from, unsigned.valid_from);
-        assert_eq!(mso.validity_info.valid_until, unsigned.valid_until);
+        let TaggedBytes(cose_payload) = issuer_signed.issuer_auth.dangerous_parse_unverified().unwrap();
+        assert_eq!(cose_payload.doc_type, unsigned.doc_type);
+        assert_eq!(cose_payload.validity_info.valid_from, unsigned.valid_from);
+        assert_eq!(cose_payload.validity_info.valid_until, unsigned.valid_until);
 
         // Construct an mdoc so we can use `compare_unsigned()` to check that the attributes have the expected values
         let mdoc = Mdoc::new::<SoftwareEcdsaKey>(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../pin/widget/pin_field.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
@@ -9,6 +10,7 @@ class SetupSecurityPinPage extends StatelessWidget {
   final String title;
   final Function(int)? onKeyPressed;
   final VoidCallback? onBackspacePressed;
+  final VoidCallback? onBackspaceLongPressed;
   final int enteredDigits;
   final bool showInput;
   final bool isShowingError;
@@ -17,6 +19,7 @@ class SetupSecurityPinPage extends StatelessWidget {
     required this.title,
     required this.onKeyPressed,
     required this.onBackspacePressed,
+    required this.onBackspaceLongPressed,
     required this.enteredDigits,
     this.showInput = true,
     this.isShowingError = false,
@@ -48,10 +51,7 @@ class SetupSecurityPinPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               child: Align(
                 alignment: Alignment.topLeft,
-                child: Text(
-                  title,
-                  style: context.textTheme.displayMedium,
-                ),
+                child: TitleText(title),
               ),
             ),
           ),
@@ -66,6 +66,7 @@ class SetupSecurityPinPage extends StatelessWidget {
           child: PinKeyboard(
             onKeyPressed: onKeyPressed,
             onBackspacePressed: onBackspacePressed,
+            onBackspaceLongPressed: onBackspaceLongPressed,
           ),
         ),
       ],
@@ -104,6 +105,7 @@ class SetupSecurityPinPage extends StatelessWidget {
                     child: PinKeyboard(
                       onKeyPressed: onKeyPressed,
                       onBackspacePressed: onBackspacePressed,
+                      onBackspaceLongPressed: onBackspaceLongPressed,
                     ),
                   ),
                 ),

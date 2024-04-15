@@ -7,9 +7,10 @@
     ],
     "token_endpoint_auth_method": "none",
     "redirect_uris": [
-      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication/"
+      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication/",
+      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication"
     ],
-    "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication/",
+    "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication",
     "response_types": [
       "code"
     ],

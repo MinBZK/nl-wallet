@@ -54,5 +54,5 @@ rand_core = { workspace = true, optional = true }
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 rand_core.workspace = true
-tokio = { workspace = true, features = ["macros"] }
 rstest.workspace = true
+tokio = { workspace = true, features = ["macros"] }

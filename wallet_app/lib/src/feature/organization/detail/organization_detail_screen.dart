@@ -9,8 +9,8 @@ import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/country_code_formatter.dart';
 import '../../../util/launch_util.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/organization/organization_logo.dart';
@@ -66,12 +66,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             slivers: [
               SliverWalletAppBar(
                 title: _resolveTitle(context),
-                actions: [
-                  IconButton(
-                    onPressed: () => PlaceholderScreen.show(context),
-                    icon: const Icon(Icons.help_outline_rounded),
-                  ),
-                ],
+                actions: const [HelpIconButton()],
               ),
               content,
             ],
@@ -206,46 +201,24 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildWebUrlRow(BuildContext context, String webUrl) {
-    return _buildInfoRow(
+    return _buildInfoRowWithUrl(
       context,
       icon: Icons.language_outlined,
-      title: Text(context.l10n.organizationDetailScreenWebsiteInfo),
-      subtitle: Semantics(
-        link: true,
-        child: Text.rich(
-          TextSpan(
-            text: webUrl,
-            style: context.textTheme.bodyLarge!.copyWith(
-              fontWeight: FontWeight.w400,
-              decoration: TextDecoration.underline,
-              color: context.colorScheme.primary,
-            ),
-            recognizer: TapGestureRecognizer()..onTap = () => launchUrlStringCatching(webUrl),
-          ),
-        ),
-      ),
+      title: context.l10n.organizationDetailScreenWebsiteInfo,
+      url: webUrl,
+      semanticsLabel: '${context.l10n.organizationDetailScreenWebsiteInfo}\n$webUrl',
+      onTap: () => launchUrlStringCatching(webUrl),
     );
   }
 
   Widget _buildPrivacyRow(BuildContext context, String privacyPolicyUrl) {
-    return _buildInfoRow(
+    return _buildInfoRowWithUrl(
       context,
       icon: Icons.policy_outlined,
-      title: Text(context.l10n.organizationDetailScreenPrivacyInfo),
-      subtitle: Semantics(
-        link: true,
-        child: Text.rich(
-          TextSpan(
-            text: privacyPolicyUrl,
-            style: context.textTheme.bodyLarge!.copyWith(
-              fontWeight: FontWeight.w400,
-              decoration: TextDecoration.underline,
-              color: context.colorScheme.primary,
-            ),
-            recognizer: TapGestureRecognizer()..onTap = () => launchUrlStringCatching(privacyPolicyUrl),
-          ),
-        ),
-      ),
+      title: context.l10n.organizationDetailScreenPrivacyInfo,
+      url: privacyPolicyUrl,
+      semanticsLabel: '${context.l10n.organizationDetailScreenPrivacyInfo}\n$privacyPolicyUrl',
+      onTap: () => launchUrlStringCatching(privacyPolicyUrl),
     );
   }
 
@@ -289,6 +262,39 @@ class OrganizationDetailScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInfoRowWithUrl(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String url,
+    required String semanticsLabel,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      onTapHint: context.l10n.generalWCAGOpenLink,
+      excludeSemantics: true,
+      label: semanticsLabel,
+      button: false,
+      onTap: onTap,
+      child: _buildInfoRow(
+        context,
+        icon: icon,
+        title: Text(title),
+        subtitle: Text.rich(
+          TextSpan(
+            text: url,
+            style: context.textTheme.bodyLarge!.copyWith(
+              fontWeight: FontWeight.w400,
+              decoration: TextDecoration.underline,
+              color: context.colorScheme.primary,
+            ),
+            recognizer: TapGestureRecognizer()..onTap = onTap,
+          ),
+        ),
+      ),
     );
   }
 

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../domain/model/pin/pin_validation_error.dart';
 import '../../navigation/wallet_routes.dart';
@@ -9,6 +12,8 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/info_icon_button.dart';
+import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/stepper_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -25,23 +30,27 @@ class SetupSecurityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      restorationId: 'setup_security_scaffold',
-      appBar: WalletAppBar(
-        leading: _buildBackButton(context),
-        actions: [_buildAboutAction(context)],
-      ),
-      body: PopScope(
-        canPop: !context.bloc.state.canGoBack,
-        onPopInvoked: (didPop) {
-          if (!didPop) context.bloc.add(SetupSecurityBackPressed());
-        },
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildStepper(),
-              Expanded(child: _buildPage()),
-            ],
+    return ScrollOffsetProvider(
+      debugLabel: 'setup_security',
+      child: Scaffold(
+        restorationId: 'setup_security_scaffold',
+        appBar: WalletAppBar(
+          leading: _buildBackButton(context),
+          actions: [_buildAboutAction(context)],
+          title: _buildTitle(context),
+        ),
+        body: PopScope(
+          canPop: !context.bloc.state.canGoBack,
+          onPopInvoked: (didPop) {
+            if (!didPop) context.bloc.add(SetupSecurityBackPressed());
+          },
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildStepper(),
+                Expanded(child: _buildPage()),
+              ],
+            ),
           ),
         ),
       ),
@@ -94,29 +103,24 @@ class SetupSecurityScreen extends StatelessWidget {
 
   void _runAnnouncements(BuildContext context, SetupSecurityState state) async {
     if (!context.mediaQuery.accessibleNavigation) return;
-    final locale = context.l10n;
+    final l10n = context.l10n;
+    await Future.delayed(kDefaultAnnouncementDelay);
+
     if (state is SetupSecuritySelectPinInProgress) {
       if (state.afterBackspacePressed) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       }
     }
     if (state is SetupSecurityPinConfirmationInProgress) {
       if (state.afterBackspacePressed) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
-        await Future.delayed(const Duration(seconds: 1));
-        SemanticsService.announce(locale.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+        SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-        announceEnteredDigits(context, state.enteredDigits);
+        _announceEnteredDigits(l10n, state.enteredDigits);
       }
-    }
-    if (state is SetupSecuritySelectPinFailed) {
-      SemanticsService.announce(locale.setupSecurityScreenWCAGPinTooSimpleAnnouncement, TextDirection.ltr);
-    }
-    if (state is SetupSecurityPinConfirmationFailed) {
-      SemanticsService.announce(locale.setupSecurityScreenWCAGPinConfirmationFailedAnnouncement, TextDirection.ltr);
     }
   }
 
@@ -125,7 +129,7 @@ class SetupSecurityScreen extends StatelessWidget {
       builder: (context, state) {
         return AnimatedVisibilityBackButton(
           visible: state.canGoBack,
-          onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityBackPressed()),
+          onPressed: () => context.bloc.add(SetupSecurityBackPressed()),
         );
       },
     );
@@ -135,11 +139,7 @@ class SetupSecurityScreen extends StatelessWidget {
     return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
       builder: (context, state) {
         if (state is SetupSecurityCompleted) return const SizedBox.shrink();
-        return IconButton(
-          onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.aboutRoute),
-          icon: const Icon(Icons.info_outline),
-          tooltip: context.l10n.setupSecurityScreenAboutAppTooltip,
-        );
+        return const InfoIconButton();
       },
     );
   }
@@ -149,8 +149,9 @@ class SetupSecurityScreen extends StatelessWidget {
       key: _kSelectPinScreenKey,
       title: context.l10n.setupSecuritySelectPinPageTitle,
       enteredDigits: enteredDigits,
-      onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
-      onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
+      onKeyPressed: (digit) => context.bloc.add(PinDigitPressed(digit)),
+      onBackspacePressed: () => context.bloc.add(PinBackspacePressed()),
+      onBackspaceLongPressed: () => context.bloc.add(PinClearPressed()),
     );
   }
 
@@ -159,8 +160,9 @@ class SetupSecurityScreen extends StatelessWidget {
       key: _kConfirmPinScreenKey,
       title: context.l10n.setupSecurityConfirmationPageTitle,
       enteredDigits: enteredDigits,
-      onKeyPressed: (digit) => context.read<SetupSecurityBloc>().add(PinDigitPressed(digit)),
-      onBackspacePressed: () => context.read<SetupSecurityBloc>().add(PinBackspacePressed()),
+      onKeyPressed: (digit) => context.bloc.add(PinDigitPressed(digit)),
+      onBackspacePressed: () => context.bloc.add(PinBackspacePressed()),
+      onBackspaceLongPressed: () => context.bloc.add(PinClearPressed()),
     );
   }
 
@@ -193,7 +195,7 @@ class SetupSecurityScreen extends StatelessWidget {
           const SizedBox(height: 16),
           IntrinsicWidth(
             child: ElevatedButton(
-              onPressed: () => context.read<SetupSecurityBloc>().add(SetupSecurityRetryPressed()),
+              onPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
               child: Text(context.l10n.generalRetry),
             ),
           )
@@ -202,9 +204,9 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
-  void announceEnteredDigits(BuildContext context, int enteredDigits) {
+  void _announceEnteredDigits(AppLocalizations l10n, int enteredDigits) {
     SemanticsService.announce(
-      context.l10n.setupSecurityScreenWCAGEnteredDigitsAnnouncement(enteredDigits, kPinDigits),
+      l10n.pinEnteredDigitsAnnouncement(kPinDigits - enteredDigits),
       TextDirection.ltr,
     );
   }
@@ -223,20 +225,20 @@ class SetupSecurityScreen extends StatelessWidget {
     };
     return showDialog<void>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+          semanticLabel: Platform.isAndroid ? title : null,
           title: Text(title, style: context.textTheme.displayMedium),
-          content: SingleChildScrollView(
-            child: Text(body, style: context.textTheme.bodyLarge),
-          ),
+          content: Text(body, style: context.textTheme.bodyLarge),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.generalOkCta),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.pop(context),
             ),
           ],
         );
@@ -245,36 +247,56 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Future<void> _showConfirmationErrorDialog(BuildContext context, bool retryAllowed) async {
+    final title = retryAllowed
+        ? context.l10n.setupSecurityConfirmationErrorPageTitle
+        : context.l10n.setupSecurityConfirmationErrorPageFatalTitle;
+    final content = retryAllowed
+        ? context.l10n.setupSecurityConfirmationErrorPageDescription
+        : context.l10n.setupSecurityConfirmationErrorPageFatalDescription;
+    final cta = retryAllowed ? context.l10n.generalOkCta : context.l10n.setupSecurityConfirmationErrorPageFatalCta;
     return showDialog<void>(
       context: context,
-      barrierDismissible: retryAllowed,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
+          scrollable: true,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Text(
-            retryAllowed
-                ? context.l10n.setupSecurityConfirmationErrorPageTitle
-                : context.l10n.setupSecurityConfirmationErrorPageFatalTitle,
-            style: context.textTheme.displayMedium,
-          ),
-          content: SingleChildScrollView(
-            child: Text(
-              retryAllowed
-                  ? context.l10n.setupSecurityConfirmationErrorPageDescription
-                  : context.l10n.setupSecurityConfirmationErrorPageFatalDescription,
-              style: context.textTheme.bodyLarge,
-            ),
+          semanticLabel: Platform.isAndroid ? title : null,
+          title: Text(title, style: context.textTheme.displayMedium),
+          content: Text(
+            content,
+            style: context.textTheme.bodyLarge,
           ),
           actions: <Widget>[
             TextButton(
-              child: Text(
-                retryAllowed ? context.l10n.generalOkCta : context.l10n.setupSecurityConfirmationErrorPageFatalCta,
-              ),
-              onPressed: () => Navigator.of(context).pop(),
+              child: Text(cta),
+              onPressed: () => Navigator.pop(context),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTitle(BuildContext context) {
+    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
+      builder: (context, state) {
+        String title = switch (state) {
+          SetupSecuritySelectPinInProgress() => '',
+          SetupSecuritySelectPinFailed() => '',
+          SetupSecurityPinConfirmationInProgress() => '',
+          SetupSecurityPinConfirmationFailed() => '',
+          SetupSecurityCreatingWallet() => '',
+          SetupSecurityCompleted() => context.l10n.setupSecurityCompletedPageTitle,
+          SetupSecurityGenericError() => '',
+          SetupSecurityNetworkError() => '',
+        };
+        return FadeInAtOffset(
+          appearOffset: 30,
+          visibleOffset: 60,
+          child: Text(title),
         );
       },
     );

@@ -32,8 +32,8 @@ void main() {
       if (pinIsValid) return const WalletInstructionResult.ok();
       return const WalletInstructionResult.instructionError(
         error: WalletInstructionError.incorrectPin(
-          leftoverAttempts: 3,
-          isFinalAttempt: false,
+          attemptsLeftInRound: 3,
+          isFinalRound: false,
         ),
       );
     });
@@ -120,16 +120,16 @@ void main() {
       when(core.unlockWallet(any)).thenAnswer(
         (_) async => const WalletInstructionResult.instructionError(
           error: WalletInstructionError.incorrectPin(
-            leftoverAttempts: 1337,
-            isFinalAttempt: false,
+            attemptsLeftInRound: 1337,
+            isFinalRound: false,
           ),
         ),
       );
 
       const expected = WalletInstructionResult.instructionError(
         error: WalletInstructionError.incorrectPin(
-          leftoverAttempts: 1337,
-          isFinalAttempt: false,
+          attemptsLeftInRound: 1337,
+          isFinalRound: false,
         ),
       );
       final result = await repo.unlockWallet('invalid');

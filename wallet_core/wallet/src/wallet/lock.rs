@@ -319,8 +319,8 @@ mod tests {
             StatusCode::FORBIDDEN,
             ErrorData {
                 typ: ErrorType::IncorrectPin(IncorrectPinData {
-                    attempts_left: 2,
-                    is_final_attempt: false,
+                    attempts_left_in_round: 2,
+                    is_final_round: false,
                 }),
                 title: "incorrect pin".to_string(),
             },
@@ -330,8 +330,8 @@ mod tests {
         assert_matches!(
             error,
             WalletUnlockError::Instruction(InstructionError::IncorrectPin {
-                leftover_attempts: 2,
-                is_final_attempt: false
+                attempts_left_in_round: 2,
+                is_final_round: false
             })
         );
     }

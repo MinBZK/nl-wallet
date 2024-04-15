@@ -6,6 +6,7 @@ import navigator.screen.OnboardingScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.dashboard.DashboardScreen
@@ -43,6 +44,7 @@ class UserEntersPinTests : TestBase() {
     fun verifyHiddenPin() {
         val pin = "34567"
         pinScreen.enterPin(pin)
+
         assertTrue(pinScreen.enteredPinAbsent(pin), "entered pin is not absent")
     }
 
@@ -61,10 +63,23 @@ class UserEntersPinTests : TestBase() {
      * >> Manual test: https://SSSS/jira/browse/PVW-2018
      */
 
-    /**
-     * 6. After PIN validation, when the user has retries left, the app indicates the number of retries.
-     * >> Manual test: https://SSSS/jira/browse/PVW-2019
-     */
+    @Nested
+    @DisplayName("$USE_CASE.6 After unsuccessful PIN entry, when the user has retries left:")
+    inner class UnsuccessfulPinEntry {
+
+        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+        @DisplayName("$USE_CASE.6.1 (non-final round, initial attempt) if this was the initial PIN entry in the round, the app simply indicates that the PIN was wrong.")
+        fun verifyNonFinalRoundInitialAttempt() {
+            pinScreen.enterPin("123456")
+
+            assertTrue(pinScreen.pinErrorDialogNonFinalRoundInitialAttemptVisible(), "pin error is not visible")
+        }
+
+        /**
+         * 6.2/3/4. After unsuccessful PIN entry, when the user has retries left.
+         * >> Manual test: https://SSSS/jira/browse/PVW-2019
+         */
+    }
 
     /**
      * 7. After PIN validation, when the user has a timeout, the app indicates the number of minutes the user must wait.

@@ -29,6 +29,9 @@ class PinScreen : MobileActions() {
     private val confirmPinErrorMismatchFatalDescription =
         find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalDescription"))
 
+    private val pinErrorDialogNonFinalRoundInitialAttempt =
+        find.byText(l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt"))
+
     fun pinScreenVisible() = isElementVisible(pinScreen)
 
     fun choosePinScreenVisible() = isElementVisible(choosePinScreen)
@@ -45,11 +48,13 @@ class PinScreen : MobileActions() {
 
     fun choosePinErrorSequentialDigitsVisible() = isElementVisible(selectPinErrorSequentialDigits)
 
-    fun confirmPinErrorMismatchVisible(): Boolean =
+    fun confirmPinErrorMismatchVisible() =
         isElementVisible(confirmPinErrorMismatchTitle) && isElementVisible(confirmPinErrorMismatchDescription)
 
-    fun confirmPinErrorMismatchFatalVisible(): Boolean =
+    fun confirmPinErrorMismatchFatalVisible() =
         isElementVisible(confirmPinErrorMismatchFatalTitle) && isElementVisible(confirmPinErrorMismatchFatalDescription)
+
+    fun pinErrorDialogNonFinalRoundInitialAttemptVisible() = isElementVisible(pinErrorDialogNonFinalRoundInitialAttempt)
 
     fun clickBackButton() = clickElement(backButton)
 

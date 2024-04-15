@@ -45,14 +45,14 @@ spec:
           env:
             - name: WALLET_SERVER_REQUESTER_SERVER__IP
               value: "0.0.0.0"
+            - name: WALLET_SERVER_REQUESTER_SERVER__PORT
+              value: "3002"
             - name: WALLET_SERVER_PUBLIC_URL
               value: "https://${MRP_WALLET_SERVER_EXTERNAL_HOSTNAME}/${MRP_WALLET_SERVER_EXTERNAL_CONTEXT_PATH}/"
             - name: WALLET_SERVER_INTERNAL_URL
               value: "https://${MRP_WALLET_SERVER_INTERNAL_HOSTNAME}/"
             - name: WALLET_SERVER_UNIVERSAL_LINK_BASE_URL
               value: "${UNIVERSAL_LINK_BASE}"
-            - name: WALLET_SERVER_WALLET_SERVER_INTERNAL_URL
-              value: "https://${MRP_WALLET_SERVER_INTERNAL_HOSTNAME}/"
             - name: WALLET_SERVER_ISSUER__DIGID__ISSUER_URL
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
             - name: WALLET_SERVER_ISSUER__DIGID__CLIENT_ID

@@ -121,7 +121,7 @@ pub async fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &Issuer
         .unwrap())
         .try_into()
         .unwrap();
-    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuer_key.issuance_key)
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, &issuer_key.issuance_key)
         .await
         .unwrap();
 

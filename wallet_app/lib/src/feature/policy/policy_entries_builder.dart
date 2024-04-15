@@ -121,16 +121,21 @@ class PolicyEntriesBuilder {
 
     final policyEntry = PolicyEntry(
       title: TextSpan(text: context.l10n.policyScreenPolicySectionTitle),
-      description: TextSpan(children: [
-        TextSpan(text: prefix),
-        TextSpan(
-          text: policyCta,
-          recognizer: TapGestureRecognizer()
-            ..onTap = () => launchUrlString(privacyPolicyUrl, mode: LaunchMode.externalApplication),
-          style: urlTheme,
-        ),
-        TextSpan(text: suffix),
-      ]),
+      description: TextSpan(
+        children: [
+          TextSpan(text: prefix),
+          TextSpan(
+            text: policyCta,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => launchUrlString(privacyPolicyUrl, mode: LaunchMode.externalApplication),
+            style: urlTheme,
+          ),
+          TextSpan(text: suffix),
+        ],
+      ),
+      descriptionSemanticsLabel: prefix + policyCta + suffix,
+      semanticOnTap: () => launchUrlString(privacyPolicyUrl, mode: LaunchMode.externalApplication),
+      semanticOnTapHint: context.l10n.generalWCAGOpenLink,
     );
     return policyEntry;
   }

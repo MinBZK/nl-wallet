@@ -223,6 +223,8 @@ class DisclosureSuccess extends DisclosureState {
 
 class DisclosureStopped extends DisclosureState {
   final Organization organization;
+  final bool isLoginFlow;
+  final String? returnUrl;
 
   @override
   double get stepperProgress => 1;
@@ -230,10 +232,10 @@ class DisclosureStopped extends DisclosureState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureStopped({required this.organization});
+  const DisclosureStopped({required this.organization, this.isLoginFlow = false, this.returnUrl});
 
   @override
-  List<Object?> get props => [organization, ...super.props];
+  List<Object?> get props => [organization, isLoginFlow, returnUrl, ...super.props];
 }
 
 class DisclosureLeftFeedback extends DisclosureState {

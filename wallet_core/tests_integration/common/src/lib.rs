@@ -32,7 +32,7 @@ use wallet::{
     Wallet,
 };
 use wallet_common::{
-    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey,
+    config::wallet_config::WalletConfiguration, keys::software::SoftwareEcdsaKey, nonempty::NonEmpty,
     reqwest::trusted_reqwest_client_builder,
 };
 use wallet_provider::settings::Settings as WpSettings;
@@ -368,8 +368,8 @@ impl AttributeService for MockAttributeService {
         &self,
         _session: &SessionState<Created>,
         _token_request: TokenRequest,
-    ) -> Result<Vec<AttestationPreview>, Self::Error> {
-        Ok(MockAttributesLookup::default()
+    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
+        let attributes = MockAttributesLookup::default()
             .attributes("999991772")
             .unwrap()
             .into_iter()
@@ -377,6 +377,7 @@ impl AttributeService for MockAttributeService {
                 issuer: self.0[&unsigned_mdoc.doc_type].clone(),
                 unsigned_mdoc,
             })
-            .collect())
+            .collect::<Vec<_>>();
+        Ok(attributes.try_into().unwrap())
     }
 }

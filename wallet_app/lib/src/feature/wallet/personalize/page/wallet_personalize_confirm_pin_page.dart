@@ -30,7 +30,7 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
       create: (BuildContext context) => bloc ?? PinBloc(context.read<AcceptOfferedPidUseCase>()),
       child: PinPage(
         key: const Key('personalizeConfirmPinPage'),
-        headerBuilder: (context, attempts, isFinalAttempt) {
+        headerBuilder: (context, attempts, isFinalRound) {
           return PinHeader(title: context.l10n.walletPersonalizeConfirmPinPageTitle);
         },
         onPinValidated: onPidAccepted,

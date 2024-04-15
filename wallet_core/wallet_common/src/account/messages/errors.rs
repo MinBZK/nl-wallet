@@ -22,8 +22,8 @@ pub enum ErrorType {
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct IncorrectPinData {
-    pub attempts_left: u8,
-    pub is_final_attempt: bool,
+    pub attempts_left_in_round: u8,
+    pub is_final_round: bool,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]

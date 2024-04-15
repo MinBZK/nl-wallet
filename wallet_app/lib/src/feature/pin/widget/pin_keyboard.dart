@@ -15,6 +15,7 @@ final _keyboardFocusNode = FocusNode(debugLabel: 'PinKeyboard');
 class PinKeyboard extends StatelessWidget {
   final Function(int)? onKeyPressed;
   final VoidCallback? onBackspacePressed;
+  final VoidCallback? onBackspaceLongPressed;
 
   /// The color used to draw the digits and backspace icon, defaults to [ColorScheme.onBackground]
   final Color? color;
@@ -22,6 +23,7 @@ class PinKeyboard extends StatelessWidget {
   const PinKeyboard({
     this.onKeyPressed,
     this.onBackspacePressed,
+    this.onBackspaceLongPressed,
     this.color,
     super.key,
   });
@@ -37,7 +39,7 @@ class PinKeyboard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: _maxKeyboardHeight(context)),
         child: DefaultTextStyle(
-          style: context.textTheme.displayMedium!.copyWith(color: keyColor),
+          style: context.textTheme.displayMedium!.copyWith(color: keyColor, height: 0.8),
           child: Column(
             children: [
               KeyboardRow(
@@ -68,6 +70,7 @@ class PinKeyboard extends StatelessWidget {
                   KeyboardBackspaceKey(
                     color: keyColor,
                     onBackspacePressed: onBackspacePressed,
+                    onBackspaceLongPressed: onBackspaceLongPressed,
                     key: const Key('keyboardKeyBackspace'),
                   ),
                 ],

@@ -7,10 +7,13 @@ class CheckPinResultOk extends CheckPinResult {
 }
 
 class CheckPinResultIncorrect extends CheckPinResult {
-  final int leftoverAttempts;
-  final bool isFinalAttempt;
+  final int attemptsLeftInRound;
+  final bool isFinalRound;
 
-  CheckPinResultIncorrect({required this.leftoverAttempts, this.isFinalAttempt = false});
+  CheckPinResultIncorrect({
+    required this.attemptsLeftInRound,
+    this.isFinalRound = false,
+  });
 }
 
 class CheckPinResultTimeout extends CheckPinResult {

@@ -8,6 +8,7 @@ const kMockPin = '123456';
 // Mocking
 const kDefaultMockDelay = Duration(milliseconds: 1000);
 const kDefaultDigidMockDelay = Duration(seconds: 2);
+const kDefaultAnnouncementDelay = Duration(milliseconds: 500);
 
 // Deeplink / dive related
 const kDeeplinkScheme = 'walletdebuginteraction';

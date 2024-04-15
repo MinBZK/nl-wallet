@@ -147,11 +147,11 @@ impl From<PinPolicyEvaluation> for InstructionError {
     fn from(value: PinPolicyEvaluation) -> Self {
         match value {
             PinPolicyEvaluation::Failed {
-                attempts_left,
-                is_final_attempt,
+                attempts_left_in_round,
+                is_final_round,
             } => InstructionError::IncorrectPin(IncorrectPinData {
-                attempts_left,
-                is_final_attempt,
+                attempts_left_in_round,
+                is_final_round,
             }),
             PinPolicyEvaluation::Timeout { timeout } | PinPolicyEvaluation::InTimeout { timeout } => {
                 InstructionError::PinTimeout(PinTimeoutData {
@@ -991,8 +991,8 @@ mod tests {
                 .await
                 .expect_err("sequence number mismatch error should result in IncorrectPin error"),
             InstructionError::IncorrectPin(IncorrectPinData {
-                attempts_left: _,
-                is_final_attempt: _
+                attempts_left_in_round: _,
+                is_final_round: _
             })
         );
 

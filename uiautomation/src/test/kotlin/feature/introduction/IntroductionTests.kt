@@ -35,14 +35,14 @@ class IntroductionTests : TestBase() {
     inner class IntroductoryScreens {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.2.a The security benefits of the app (online identification).")
+        @DisplayName("$USE_CASE.2.1 The security benefits of the app (online identification).")
         fun verifySecurityScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
             assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.2.b The privacy benefits of the app (selective disclosure).")
+        @DisplayName("$USE_CASE.2.2 The privacy benefits of the app (selective disclosure).")
         fun verifyPrivacyScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
             introductionScreen.clickNextButton() // page 2 -> 3

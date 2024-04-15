@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/text/body_text.dart';
 
 const _kRequestDigidUrl = 'https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen';
 
@@ -24,12 +25,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
                 slivers: [
                   SliverWalletAppBar(
                     title: context.l10n.walletPersonalizeNoDigidPageHeadline,
-                    actions: [
-                      IconButton(
-                        onPressed: () => PlaceholderScreen.show(context),
-                        icon: const Icon(Icons.help_outline_rounded),
-                      )
-                    ],
+                    actions: const [HelpIconButton()],
                   ),
                   SliverSafeArea(
                     top: false,
@@ -37,11 +33,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
                     sliver: SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverToBoxAdapter(
-                        child: Text(
-                          context.l10n.walletPersonalizeNoDigidPageDescription,
-                          textAlign: TextAlign.start,
-                          style: context.textTheme.bodyLarge,
-                        ),
+                        child: BodyText(context.l10n.walletPersonalizeNoDigidPageDescription),
                       ),
                     ),
                   ),

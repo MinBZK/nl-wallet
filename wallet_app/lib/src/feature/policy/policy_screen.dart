@@ -78,13 +78,7 @@ class PolicyScreen extends StatelessWidget {
           const SliverSizedBox(height: 24),
           const SliverDivider(height: 1),
           SliverList.separated(
-            itemBuilder: (context, index) {
-              return PolicyEntryRow(
-                icon: entries[index].icon,
-                title: Text.rich(entries[index].title),
-                description: Text.rich(entries[index].description),
-              );
-            },
+            itemBuilder: (context, index) => PolicyEntryRow.fromPolicyEntry(entries[index]),
             separatorBuilder: (context, i) => const Divider(height: 1),
             itemCount: entries.length,
           ),

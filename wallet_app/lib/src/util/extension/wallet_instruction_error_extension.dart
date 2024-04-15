@@ -6,8 +6,8 @@ extension WalletInstructionErrorExtension on WalletInstructionError {
   CheckPinResult asCheckPinResult() {
     return map<CheckPinResult>(
       incorrectPin: (result) => CheckPinResultIncorrect(
-        leftoverAttempts: result.leftoverAttempts,
-        isFinalAttempt: result.isFinalAttempt,
+        attemptsLeftInRound: result.attemptsLeftInRound,
+        isFinalRound: result.isFinalRound,
       ),
       timeout: (result) => CheckPinResultTimeout(timeoutMillis: result.timeoutMillis),
       blocked: (result) => CheckPinResultBlocked(),

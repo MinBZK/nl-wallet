@@ -4,11 +4,13 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/launch_util.dart';
 import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/text_with_link.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
@@ -109,24 +111,22 @@ class OrganizationApprovePage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OrganizationLogo(
-              image: organization.logo,
-              size: 64,
-              fixedRadius: 12,
-            ),
-            const SizedBox(height: 24),
-            _buildHeaderTitleText(context),
-            if (sessionType == DisclosureSessionType.crossDevice) ...[
-              const SizedBox(height: 8),
-              _buildFraudInfoText(context),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          OrganizationLogo(
+            image: organization.logo,
+            size: 64,
+            fixedRadius: 12,
+          ),
+          const SizedBox(height: 24),
+          _buildHeaderTitleText(context),
+          if (sessionType == DisclosureSessionType.crossDevice) ...[
+            const SizedBox(height: 8),
+            _buildFraudInfoText(context),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -142,7 +142,7 @@ class OrganizationApprovePage extends StatelessWidget {
       ApprovalPurpose.login =>
         context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
     };
-    return Text(
+    return TitleText(
       title,
       style: context.textTheme.displayMedium,
       textAlign: TextAlign.start,
@@ -150,8 +150,25 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 
   Widget _buildFraudInfoText(BuildContext context) {
-    final fullString = context.l10n.organizationApprovePageFraudInfo(originUrl);
-    return TextWithLink(fullText: fullString, ctaText: originUrl);
+    final fraudTextPart1 = context.l10n.organizationApprovePageFraudInfoPart1;
+    final fraudTextPart2 = context.l10n.organizationApprovePageFraudInfoPart2(originUrl);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          fraudTextPart1,
+          textAlign: TextAlign.start,
+          style: context.textTheme.bodyLarge,
+        ), // Migrate to [BodyText] on merge with PVW-2501
+        const SizedBox(height: 8),
+        TextWithLink(
+          fullText: fraudTextPart2,
+          ctaText: originUrl,
+          onTapHint: context.l10n.generalWCAGOpenLink,
+          onCtaPressed: () => launchUrlStringCatching(originUrl),
+        ),
+      ],
+    );
   }
 
   String _approveButtonText(BuildContext context) {

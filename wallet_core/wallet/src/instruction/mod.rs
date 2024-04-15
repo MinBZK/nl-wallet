@@ -16,11 +16,11 @@ pub use self::{
 #[derive(Debug, thiserror::Error)]
 pub enum InstructionError {
     #[error(
-        "PIN provided is incorrect: (leftover_attempts: {leftover_attempts}, is_final_attempt: {is_final_attempt})"
+        "PIN provided is incorrect: (attempts_left_in_round: {attempts_left_in_round}, is_final_round: {is_final_round})"
     )]
     IncorrectPin {
-        leftover_attempts: u8,
-        is_final_attempt: bool,
+        attempts_left_in_round: u8,
+        is_final_round: bool,
     },
     #[error("unlock disabled due to timeout")]
     Timeout { timeout_millis: u64 },
@@ -46,8 +46,8 @@ impl From<AccountProviderError> for InstructionError {
                     timeout_millis: data.time_left_in_ms,
                 },
                 ErrorType::IncorrectPin(data) => Self::IncorrectPin {
-                    leftover_attempts: data.attempts_left,
-                    is_final_attempt: data.is_final_attempt,
+                    attempts_left_in_round: data.attempts_left_in_round,
+                    is_final_round: data.is_final_round,
                 },
                 ErrorType::AccountBlocked => Self::Blocked,
                 ErrorType::InstructionValidation => Self::InstructionValidation,
