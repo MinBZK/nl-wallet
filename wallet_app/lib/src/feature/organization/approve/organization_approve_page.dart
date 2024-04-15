@@ -9,6 +9,7 @@ import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_tile_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/text_with_link.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
@@ -142,7 +143,7 @@ class OrganizationApprovePage extends StatelessWidget {
       ApprovalPurpose.login =>
         context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
     };
-    return Text(
+    return TitleText(
       title,
       style: context.textTheme.displayMedium,
       textAlign: TextAlign.start,
