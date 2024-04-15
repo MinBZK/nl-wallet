@@ -39,7 +39,7 @@ class PinKeyboard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: _maxKeyboardHeight(context)),
         child: DefaultTextStyle(
-          style: context.textTheme.displayMedium!.copyWith(color: keyColor),
+          style: context.textTheme.displayMedium!.copyWith(color: keyColor, height: 0.8),
           child: Column(
             children: [
               KeyboardRow(

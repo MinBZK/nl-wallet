@@ -7,6 +7,7 @@ import '../../../common/widget/button/confirm/confirm_button.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
+import '../../../common/widget/text/body_text.dart';
 import '../wallet_personalize_data_incorrect_screen.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
@@ -60,10 +61,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
       alignment: Alignment.centerLeft,
-      child: Text(
-        context.l10n.walletPersonalizeCheckDataOfferingPageSubtitle,
-        style: context.textTheme.bodyLarge,
-      ),
+      child: BodyText(context.l10n.walletPersonalizeCheckDataOfferingPageSubtitle),
     );
   }
 

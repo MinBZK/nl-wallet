@@ -44,6 +44,7 @@ class PolicySection extends StatelessWidget {
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: LinkButton(
+            customPadding: const EdgeInsets.only(left: 8),
             onPressed: () => Navigator.pushNamed(
               context,
               WalletRoutes.policyRoute,
@@ -52,10 +53,7 @@ class PolicySection extends StatelessWidget {
                 showSignatureRow: addSignatureRow,
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Text(context.l10n.generalPolicyAllTermsCta),
-            ),
+            child: Text(context.l10n.generalPolicyAllTermsCta),
           ),
         ),
       ],
