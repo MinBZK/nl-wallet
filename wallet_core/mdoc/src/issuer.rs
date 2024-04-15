@@ -60,7 +60,7 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Add;
+    use std::{num::NonZeroU8, ops::Add};
 
     use ciborium::Value;
     use indexmap::IndexMap;
@@ -90,7 +90,7 @@ mod tests {
 
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
-            copy_count: 2.try_into().unwrap(),
+            copy_count: NonZeroU8::new(2).unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
             attributes: IndexMap::from([(

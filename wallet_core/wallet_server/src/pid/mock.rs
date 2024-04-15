@@ -1,5 +1,5 @@
 /// Mock implementations of the two traits abstracting other components
-use std::{collections::HashMap, ops::Add};
+use std::{collections::HashMap, num::NonZeroU8, ops::Add};
 
 use chrono::{Days, Utc};
 use ciborium::Value;
@@ -278,14 +278,14 @@ impl MockAttributesLookup {
         let attrs = vec![
             UnsignedMdoc {
                 doc_type: MOCK_PID_DOCTYPE.to_string(),
-                copy_count: 2.try_into().unwrap(),
+                copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())]),
             },
             UnsignedMdoc {
                 doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                copy_count: 2.try_into().unwrap(),
+                copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(

@@ -314,7 +314,7 @@ impl DisclosureDocument {
 
 #[cfg(test)]
 pub mod tests {
-    use std::{collections::HashMap, mem};
+    use std::{collections::HashMap, mem, num::NonZeroU8};
 
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
@@ -337,7 +337,7 @@ pub mod tests {
     pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
             doc_type: PID_DOCTYPE.to_string(),
-            copy_count: 1.try_into().unwrap(),
+            copy_count: NonZeroU8::new(1).unwrap(),
             valid_from: Tdate::now(),
             valid_until: (Utc::now() + Days::new(365)).into(),
             attributes: IndexMap::from([(
@@ -410,7 +410,7 @@ pub mod tests {
     pub fn create_minimal_unsigned_address_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
             doc_type: ADDRESS_DOCTYPE.to_string(),
-            copy_count: 1.try_into().unwrap(),
+            copy_count: NonZeroU8::new(1).unwrap(),
             valid_from: Tdate::now(),
             valid_until: (Utc::now() + Days::new(365)).into(),
             attributes: IndexMap::from([(

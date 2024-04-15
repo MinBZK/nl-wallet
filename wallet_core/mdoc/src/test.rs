@@ -181,7 +181,7 @@ impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
         Self {
             doc_type: value.doc_type,
-            copy_count: 1.try_into().unwrap(),
+            copy_count: NonZeroU8::new(1).unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
             attributes: value.namespaces,
