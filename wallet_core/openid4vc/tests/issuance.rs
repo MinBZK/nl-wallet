@@ -341,7 +341,9 @@ impl AttributeService for MockAttributeService {
                                 value: Value::Text(val.to_string()),
                             })
                             .collect(),
-                    )]),
+                    )])
+                    .try_into()
+                    .unwrap(),
                 },
                 issuer: self.issuer_cert.clone(),
             },
@@ -360,7 +362,9 @@ impl AttributeService for MockAttributeService {
                                 value: Value::Text(val.to_string()),
                             })
                             .collect(),
-                    )]),
+                    )])
+                    .try_into()
+                    .unwrap(),
                 },
                 issuer: self.issuer_cert.clone(),
             },

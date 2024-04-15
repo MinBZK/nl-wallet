@@ -1,9 +1,18 @@
 use std::num::NonZeroU8;
 
 use indexmap::IndexMap;
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 
 use crate::{Attributes, DataElementIdentifier, DataElementValue, DocType, NameSpace, Tdate};
+
+#[nutype(
+    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),
+    validate(predicate = |attributes|
+        !attributes.is_empty() && !attributes.values().any(|entries| entries.is_empty())
+    ),
+)]
+pub struct UnsignedAttributes(IndexMap<NameSpace, Vec<Entry>>);
 
 /// A not-yet-signed mdoc, presented by the issuer to the holder during issuance, so that the holder can agree
 /// or disagree to receive the signed mdoc in the rest of the protocol.
@@ -13,7 +22,7 @@ pub struct UnsignedMdoc {
     pub doc_type: DocType,
     pub valid_from: Tdate,
     pub valid_until: Tdate,
-    pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+    pub attributes: UnsignedAttributes,
 
     /// The amount of copies of this mdoc that the holder will receive.
     pub copy_count: NonZeroU8,

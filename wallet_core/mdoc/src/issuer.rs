@@ -26,6 +26,7 @@ impl IssuerSigned {
         let doc_type = unsigned_mdoc.doc_type;
         let attrs: IssuerNameSpaces = unsigned_mdoc
             .attributes
+            .into_inner()
             .into_iter()
             .map(|(namespace, attrs)| (namespace, Attributes::from(attrs)))
             .collect();
@@ -102,7 +103,9 @@ mod tests {
                         value: Value::Text(val.to_string()),
                     })
                     .collect(),
-            )]),
+            )])
+            .try_into()
+            .unwrap(),
         };
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
