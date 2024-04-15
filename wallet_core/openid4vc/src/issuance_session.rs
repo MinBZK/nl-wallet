@@ -302,7 +302,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     match preview {
                         AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.doc_type.clone(),
                     },
-                    preview.copy_count().try_into().unwrap(),
+                    preview.copy_count().into(),
                 )
             })
             .collect_vec();
@@ -376,7 +376,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .attestation_previews
             .iter()
             .map(|preview| {
-                let copy_count: usize = preview.copy_count().try_into().unwrap();
+                let copy_count: usize = preview.copy_count().into();
 
                 // Consume the amount of copies from the front of `responses_and_keys`.
                 let cred_copies = responses_and_pubkeys
