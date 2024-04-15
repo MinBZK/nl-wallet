@@ -1,4 +1,8 @@
-use std::{collections::HashSet, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+    time::Duration,
+};
 
 use chrono::Utc;
 use futures::future::try_join_all;
@@ -24,6 +28,7 @@ use crate::{
     },
     dpop::{Dpop, DpopError},
     jwt::{jwk_to_p256, JwkConversionError},
+    metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     token::{
         AccessToken, AttestationPreview, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse,
@@ -172,30 +177,12 @@ pub trait LocalAttributeService {
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
 
-impl<A> AttributeService for Arc<A>
-where
-    A: AttributeService + Sync,
-{
-    type Error = A::Error;
-
-    async fn attributes(
-        &self,
-        session: &SessionState<Created>,
-        token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error> {
-        self.as_ref().attributes(session, token_request).await
-    }
-
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        self.as_ref().oauth_metadata(issuer_url).await
-    }
-}
-
 pub struct Issuer<A, K, S> {
     sessions: Arc<S>,
     attr_service: A,
     issuer_data: IssuerData<K>,
     cleanup_task: JoinHandle<()>,
+    pub metadata: IssuerMetadata,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
@@ -235,14 +222,15 @@ where
     ) -> Self {
         let sessions = Arc::new(sessions);
 
+        let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
             private_keys,
-            credential_issuer_identifier: server_url.join_base_url("issuance/"),
+            credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
-            server_url: server_url.join_base_url("issuance/"),
+            server_url: issuer_url.clone(),
         };
 
         Self {
@@ -250,6 +238,25 @@ where
             attr_service,
             issuer_data,
             cleanup_task: sessions.start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
+            metadata: IssuerMetadata {
+                issuer_config: metadata::IssuerData {
+                    credential_issuer: issuer_url.clone(),
+                    authorization_servers: None,
+                    credential_endpoint: issuer_url.join_base_url("/credential"),
+                    batch_credential_endpoint: Some(issuer_url.join_base_url("/batch_credential")),
+                    deferred_credential_endpoint: None,
+                    notification_endpoint: None,
+                    credential_response_encryption: CredentialResponseEncryption {
+                        alg_values_supported: vec![],
+                        enc_values_supported: vec![],
+                        encryption_required: false,
+                    },
+                    credential_identifiers_supported: Some(false),
+                    display: None,
+                    credential_configurations_supported: HashMap::new(),
+                },
+                signed_metadata: None,
+            },
         }
     }
 }
@@ -404,6 +411,12 @@ where
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
 
         Ok(())
+    }
+
+    pub async fn oauth_metadata(&self) -> Result<oidc::Config, A::Error> {
+        self.attr_service
+            .oauth_metadata(&self.issuer_data.credential_issuer_identifier)
+            .await
     }
 }
 

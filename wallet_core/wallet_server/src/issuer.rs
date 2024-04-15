@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorCode, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
-    metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
+    metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
@@ -30,8 +30,6 @@ use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
 struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
-    attr_service: A,
-    metadata: IssuerMetadata,
 }
 
 pub struct IssuerKeyRing(pub HashMap<String, KeyPair>);
@@ -60,35 +58,14 @@ where
     A: AttributeService + Send + Sync + 'static,
     S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
 {
-    let attr_service = Arc::new(attr_service);
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::new(
             sessions,
-            Arc::clone(&attr_service),
+            attr_service,
             IssuerKeyRing::try_from(settings.issuer.private_keys)?,
             &settings.public_url,
             settings.issuer.wallet_client_ids,
         ),
-        attr_service,
-        metadata: IssuerMetadata {
-            issuer_config: IssuerData {
-                credential_issuer: settings.public_url.join_base_url("/issuance"),
-                authorization_servers: None,
-                credential_endpoint: settings.public_url.join_base_url("/issuance/credential"),
-                batch_credential_endpoint: Some(settings.public_url.join_base_url("/issuance/batch_credential")),
-                deferred_credential_endpoint: None,
-                notification_endpoint: None,
-                credential_response_encryption: CredentialResponseEncryption {
-                    alg_values_supported: vec![],
-                    enc_values_supported: vec![],
-                    encryption_required: false,
-                },
-                credential_identifiers_supported: Some(false),
-                display: None,
-                credential_configurations_supported: HashMap::new(),
-            },
-            signed_metadata: None,
-        },
     });
 
     let issuance_router = Router::new()
@@ -111,17 +88,19 @@ async fn oauth_metadata<A, K, S>(
 ) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
 where
     A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
 {
     let metadata = state
-        .attr_service
-        .oauth_metadata(&state.metadata.issuer_config.credential_issuer)
+        .issuer
+        .oauth_metadata()
         .await
         .map_err(|e| Box::new(e) as Box<dyn Display>)?;
     Ok(Json(metadata))
 }
 
 async fn metadata<A, K, S>(State(state): State<Arc<ApplicationState<A, K, S>>>) -> Json<IssuerMetadata> {
-    Json(state.metadata.clone())
+    Json(state.issuer.metadata.clone())
 }
 
 async fn token<A, K, S>(
