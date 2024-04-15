@@ -488,8 +488,15 @@ impl IssuanceState {
 mod tests {
     use assert_matches::assert_matches;
     use nl_wallet_mdoc::{
-        server_keys::KeyPair, software_key_factory::SoftwareKeyFactory, test::data, unsigned::UnsignedMdoc,
-        utils::issuer_auth::IssuerRegistration, IssuerSigned,
+        server_keys::KeyPair,
+        software_key_factory::SoftwareKeyFactory,
+        test::data,
+        unsigned::UnsignedMdoc,
+        utils::{
+            issuer_auth::IssuerRegistration,
+            serialization::{CborBase64, TaggedBytes},
+        },
+        Attributes, IssuerSigned,
     };
     use serde_bytes::ByteBuf;
     use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
@@ -560,19 +567,12 @@ mod tests {
         // that contains insufficient random data should fail.
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
-                credential
-                    .0
-                    .name_spaces
-                    .as_mut()
-                    .unwrap()
-                    .first_mut()
-                    .unwrap()
-                    .1
-                     .0
-                    .first_mut()
-                    .unwrap()
-                    .0
-                    .random = ByteBuf::from(b"12345");
+                let CborBase64(ref mut credential_inner) = credential;
+                let namespaces = credential_inner.name_spaces.as_mut().unwrap();
+                let (_, Attributes(issuer_signed_items)) = namespaces.first_mut().unwrap();
+                let TaggedBytes(first_item) = issuer_signed_items.first_mut().unwrap();
+
+                first_item.random = ByteBuf::from(b"12345");
 
                 CredentialResponse::MsoMdoc { credential }
             }
