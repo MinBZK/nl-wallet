@@ -372,7 +372,7 @@ mod tests {
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
 
         HttpOidcClient {
-            provider: Config::new(&server_url),
+            provider: Config::new_mock(&server_url),
             jwks: Some(JWKSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
@@ -421,7 +421,7 @@ mod tests {
     // Helper function for testing `Client::token_request()` calls that should result in an error.
     fn parse_request_uri(uri: &Url) -> OidcError {
         let client = HttpOidcClient::<S256PkcePair>::new(
-            Config::new(&ISSUER_URL.parse().unwrap()),
+            Config::new_mock(&ISSUER_URL.parse().unwrap()),
             JWKSet { keys: vec![] },
             CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),

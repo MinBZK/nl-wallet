@@ -114,7 +114,7 @@ impl Config {
 
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
     #[cfg(any(test, feature = "mock"))]
-    pub fn new(issuer: &BaseUrl) -> Self {
+    pub fn new_mock(issuer: &BaseUrl) -> Self {
         Self {
             issuer: issuer.clone(),
             authorization_endpoint: issuer.join("/authorize"),

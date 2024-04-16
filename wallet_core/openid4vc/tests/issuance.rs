@@ -294,7 +294,7 @@ impl OpenidMessageClient for MockOpenidMessageClient {
     }
 
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
-        let metadata = oidc::Config::new(url);
+        let metadata = oidc::Config::new_mock(url);
         Ok(metadata)
     }
 
@@ -406,6 +406,6 @@ impl AttributeService for MockAttributeService {
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new(issuer_url))
+        Ok(oidc::Config::new_mock(issuer_url))
     }
 }

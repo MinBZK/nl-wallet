@@ -382,6 +382,6 @@ impl AttributeService for MockAttributeService {
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new(issuer_url))
+        Ok(oidc::Config::new_mock(issuer_url))
     }
 }
