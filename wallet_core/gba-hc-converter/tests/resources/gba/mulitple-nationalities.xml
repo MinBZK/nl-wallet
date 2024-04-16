@@ -13,6 +13,10 @@
                     <ns2:categorienummer>1</ns2:categorienummer>
                     <ns2:elementen>
                       <ns2:item>
+                        <ns2:nummer>120</ns2:nummer>
+                        <ns2:waarde>999994220</ns2:waarde>
+                      </ns2:item>
+                      <ns2:item>
                         <ns2:nummer>210</ns2:nummer>
                         <ns2:waarde>M&#x129;ka&#x103;&#x140;</ns2:waarde>
                       </ns2:item>

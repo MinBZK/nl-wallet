@@ -24,6 +24,8 @@ pub struct Settings {
 
     #[serde(deserialize_with = "deserialize_certificate")]
     pub trust_anchor: reqwest::Certificate,
+
+    pub preloaded_xml_path: Option<String>,
 }
 
 impl Settings {

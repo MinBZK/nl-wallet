@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     gba,
-    gba::{Categorievoorkomen, GbaResponse},
+    gba::data::{Categorievoorkomen, GbaResponse},
 };
 
 static NATIONALITY_TABLE: Lazy<HashMap<String, String>> =
@@ -28,7 +28,7 @@ pub fn initialize_eager() {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("GBA-V error: {0}")]
-    Gba(#[from] gba::Error),
+    Gba(#[from] gba::error::Error),
 }
 
 impl From<&Error> for StatusCode {
@@ -58,7 +58,7 @@ fn csv_path(name: &str) -> PathBuf {
         .join(format!("resources/stamdata/{}.csv", name))
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PersonenQuery {
     pub r#type: String,
@@ -67,7 +67,7 @@ pub struct PersonenQuery {
     pub fields: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PersonenResponse {
     pub r#type: String,
@@ -108,14 +108,13 @@ impl TryFrom<GbaResponse> for GbaPerson {
     type Error = Error;
 
     fn try_from(value: GbaResponse) -> Result<Self, Self::Error> {
-        let bsn = value.bsn.clone();
         let cat1 = value.get_mandatory_voorkomen(1)?;
         let cat4s: Vec<&Categorievoorkomen> = value.get_voorkomens(4);
         let cat5s: Vec<&Categorievoorkomen> = value.get_voorkomens(5);
         let cat8 = value.get_mandatory_voorkomen(8)?;
 
         let result = Self {
-            bsn,
+            bsn: cat1.elementen.get_mandatory("120")?,
             gender: GbaCode {
                 code: cat1.elementen.get_mandatory("410")?,
             },
@@ -281,7 +280,7 @@ fn nationality_code_description(code: String) -> GbaCodeDescription {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct GbaPerson {
     #[serde(rename = "burgerservicenummer")]
     bsn: String,
@@ -308,7 +307,7 @@ pub struct GbaPerson {
     address: GbaAddress,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct GbaName {
     #[serde(rename = "voornamen")]
     given_names: Option<String>,
@@ -323,7 +322,7 @@ pub struct GbaName {
     name_usage: GbaCode,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct GbaBirth {
     #[serde(rename = "datum")]
     date: String,
@@ -335,13 +334,13 @@ pub struct GbaBirth {
     place: Option<GbaCodeDescription>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct GbaResidence {
     #[serde(rename = "verblijfadres")]
     address: GbaAddress,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct GbaAddress {
     #[serde(rename = "straat")]
     short_street_name: String,
@@ -386,7 +385,7 @@ pub struct GbaNationality {
     date_start_validity: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct GbaPartner {
     #[serde(rename = "geslacht")]
     gender: GbaCode,

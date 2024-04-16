@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use gba_hc_converter::gba::parse_xml;
+use gba_hc_converter::gba::data::parse_xml;
 
 use crate::common::read_file;
 
@@ -13,7 +13,7 @@ fn test_soap_response_deserialization() {
 
     let first = voorkomens.first().unwrap();
     assert_eq!(1, first.categorienummer);
-    assert_eq!(7, first.elementen.map.len());
+    assert_eq!(8, first.elementen.map.len());
 
     let second = voorkomens.get(1).unwrap();
     assert_eq!(4, second.categorienummer);
@@ -31,7 +31,7 @@ fn test_soap_response_single_categorievoorkomen() {
 
     let first = voorkomens.first().unwrap();
     assert_eq!(1, first.categorienummer);
-    assert_eq!(5, first.elementen.map.len());
+    assert_eq!(6, first.elementen.map.len());
 }
 
 #[test]

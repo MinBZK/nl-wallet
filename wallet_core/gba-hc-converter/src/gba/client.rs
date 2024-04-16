@@ -1,155 +1,15 @@
-use http::{header, StatusCode};
-use indexmap::IndexMap;
+use std::{env, fs, future::Future, path::PathBuf};
+
+use http::header;
 use pem::Pem;
-use quick_xml::{
-    de::from_str,
-    events::Event,
-    name::{Namespace, ResolveResult::Bound},
-    DeError, NsReader,
-};
 use reqwest::{tls, Certificate, Identity};
-use serde::{Deserialize, Deserializer};
 
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::tls_pinned_client_builder};
 
-use crate::gba;
+use crate::gba::{data::GbaResponse, error::Error};
 
-const GBA_NAMESPACE: &[u8] = b"http://www.bprbzk.nl/GBA/LO3/version1.1";
-const CATEGORIEVOORKOMENS_TAG: &[u8] = b"categorievoorkomens";
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("networking error: {0}")]
-    Transport(#[from] reqwest::Error),
-    #[error("JSON error: {0}")]
-    Serde(#[from] serde_json::Error),
-    #[error("XML deserialization error: {0}")]
-    XmlDeserialization(#[from] quick_xml::de::DeError),
-    #[error("XML error: {0}")]
-    Xml(#[from] quick_xml::Error),
-    #[error("Categorie {0} is mandatory but missing")]
-    MissingCategorie(u8),
-    #[error("Element number {0} is mandatory but missing")]
-    MissingElement(String),
-}
-
-impl From<&Error> for StatusCode {
-    fn from(value: &Error) -> Self {
-        match value {
-            gba::Error::Transport(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            _ => StatusCode::PRECONDITION_FAILED,
-        }
-    }
-}
-
-pub fn parse_xml(xml: &str) -> Result<Vec<Categorievoorkomen>, Error> {
-    let mut reader = NsReader::from_str(xml);
-    reader.trim_text(true);
-
-    let mut categorievoorkomens = Vec::new();
-
-    // Since quick_xml doesn't handle deserializing nested identical tags well, we'll first take the
-    // 'categorievoorkomens' tag using event based parsing. After that, we can safely deserialize using Serde.
-    loop {
-        match reader.read_event() {
-            Err(e) => return Err(Error::XmlDeserialization(DeError::InvalidXml(e))),
-            Ok(Event::Eof) => break,
-            Ok(Event::Start(e)) => {
-                let (ns, local) = reader.resolve_element(e.name());
-                if ns == Bound(Namespace(GBA_NAMESPACE)) && local.as_ref() == CATEGORIEVOORKOMENS_TAG {
-                    let end = e.to_end();
-                    let text = reader.read_text(end.name())?;
-                    categorievoorkomens.push(text);
-                }
-            }
-            _ => (),
-        }
-    }
-
-    let result = categorievoorkomens
-        .iter()
-        .map(|categorievoorkomen| Ok(from_str(categorievoorkomen)?))
-        .collect::<Result<Vec<Categorievoorkomen>, Error>>()?;
-
-    Ok(result)
-}
-
-pub struct GbaResponse {
-    pub bsn: String,
-    pub categorievoorkomens: Vec<Categorievoorkomen>,
-}
-
-impl GbaResponse {
-    pub fn new(bsn: String, xml: &str) -> Result<Self, Error> {
-        Ok(Self {
-            bsn,
-            categorievoorkomens: parse_xml(xml)?,
-        })
-    }
-
-    pub fn get_mandatory_voorkomen(&self, category_number: u8) -> Result<&Categorievoorkomen, Error> {
-        self.categorievoorkomens
-            .iter()
-            .find(|voorkomen| voorkomen.categorienummer == category_number)
-            .ok_or(Error::MissingCategorie(category_number))
-    }
-
-    pub fn get_voorkomens(&self, category_number: u8) -> Vec<&Categorievoorkomen> {
-        self.categorievoorkomens
-            .iter()
-            .filter(|voorkomen| voorkomen.categorienummer == category_number)
-            .collect()
-    }
-}
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct Categorievoorkomen {
-    pub categorienummer: u8,
-
-    #[serde(deserialize_with = "unwrap_list")]
-    pub elementen: Elementen,
-}
-
-#[derive(Clone, Debug)]
-pub struct Elementen {
-    pub map: IndexMap<String, String>,
-}
-
-impl Elementen {
-    pub fn get_mandatory(&self, element_number: &str) -> Result<String, Error> {
-        self.map
-            .get(element_number)
-            .cloned()
-            .ok_or(Error::MissingElement(String::from(element_number)))
-    }
-
-    pub fn get_optional(&self, element_number: &str) -> Option<String> {
-        self.map.get(element_number).cloned()
-    }
-}
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct Item {
-    nummer: String,
-    waarde: String,
-}
-
-fn unwrap_list<'de, D>(deserializer: D) -> Result<Elementen, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    #[derive(Deserialize)]
-    struct Items {
-        #[serde(default)]
-        item: Vec<Item>,
-    }
-
-    let items = Items::deserialize(deserializer)?;
-    let mut map = IndexMap::new();
-    items.item.into_iter().for_each(|item| {
-        map.insert(item.nummer, item.waarde);
-    });
-    Ok(Elementen { map })
+pub trait GbavClient {
+    fn vraag(&self, bsn: &str) -> impl Future<Output = Result<GbaResponse, Error>> + Send;
 }
 
 pub struct HttpGbavClient {
@@ -185,8 +45,10 @@ impl HttpGbavClient {
 
         Ok(client)
     }
+}
 
-    pub async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error> {
+impl GbavClient for HttpGbavClient {
+    async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error> {
         let response = self
             .http_client
             .post(self.base_url.clone().into_inner())
@@ -198,8 +60,41 @@ impl HttpGbavClient {
             .await?;
 
         let body = response.text().await?;
-        let result = GbaResponse::new(String::from(bsn), &body)?;
+        let result = GbaResponse::new(&body)?;
         Ok(result)
+    }
+}
+
+pub struct FileGbavClient<T> {
+    path: PathBuf,
+    client: T,
+}
+
+impl<T> FileGbavClient<T>
+where
+    T: GbavClient,
+{
+    pub fn new(path: PathBuf, client: T) -> Self {
+        Self { path, client }
+    }
+}
+
+impl<T> GbavClient for FileGbavClient<T>
+where
+    T: GbavClient + Sync,
+{
+    async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error> {
+        let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+        base_path.push(self.path.as_path());
+        let xml_file = base_path.join(format!("{}.xml", bsn));
+
+        if xml_file.exists() {
+            let xml = fs::read_to_string(xml_file)?;
+            let gba_response = GbaResponse::new(&xml)?;
+            Ok(gba_response)
+        } else {
+            self.client.vraag(bsn).await
+        }
     }
 }
 
@@ -213,6 +108,7 @@ const VRAAG_REQUEST: &str = r#"
                 <ns0:indicatieZoekenInHistorie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:nil="true" />
                 <ns0:masker>
+                    <ns0:item>10120</ns0:item>
                     <ns0:item>10210</ns0:item>
                     <ns0:item>10230</ns0:item>
                     <ns0:item>10240</ns0:item>

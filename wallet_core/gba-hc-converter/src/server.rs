@@ -1,73 +1,41 @@
-use std::net::{SocketAddr, TcpListener};
+use std::{
+    net::{IpAddr, SocketAddr, TcpListener},
+    sync::Arc,
+};
 
 use axum::{
     extract::State,
-    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
-use http::{header, HeaderValue, StatusCode};
+use http::StatusCode;
 use tracing::{debug, info};
 
-use wallet_common::http_error::{ErrorData, APPLICATION_PROBLEM_JSON};
-
 use crate::{
-    gba,
-    gba::HttpGbavClient,
-    haal_centraal,
+    error::Error,
+    gba::client::GbavClient,
     haal_centraal::{PersonenQuery, PersonenResponse},
 };
 
-use super::settings::Settings;
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("GBA error: {0}")]
-    Gba(#[from] gba::Error),
-    #[error("Error converting GBA-V XML to Haal-Centraal JSON: {0}")]
-    Conversion(#[from] haal_centraal::Error),
+struct ApplicationState<T> {
+    gbav_client: T,
 }
 
-impl From<&Error> for StatusCode {
-    fn from(value: &Error) -> Self {
-        value.into()
-    }
-}
-
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        info!("error handling request: {:?}", &self);
-
-        let status_code: StatusCode = (&self).into();
-
-        let error_data = ErrorData {
-            typ: match self {
-                Error::Gba(_) => "gba_error",
-                Error::Conversion(_) => "conversion_error",
-            },
-            title: self.to_string(),
-        };
-
-        (
-            status_code,
-            [(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static(APPLICATION_PROBLEM_JSON.as_ref()),
-            )],
-            Json(error_data),
-        )
-            .into_response()
-    }
-}
-
-pub async fn serve(settings: Settings) -> Result<(), Box<dyn std::error::Error>> {
-    let socket = SocketAddr::new(settings.ip, settings.port);
+pub async fn serve<T>(ip: IpAddr, port: u16, gbav_client: T) -> Result<(), Box<dyn std::error::Error>>
+where
+    T: GbavClient + Send + Sync + 'static,
+{
+    let socket = SocketAddr::new(ip, port);
     let listener = TcpListener::bind(socket)?;
     debug!("listening on {}", socket);
 
+    let app_state = Arc::new(ApplicationState { gbav_client });
+
     let app = Router::new().nest("/", health_router()).nest(
         "/haalcentraal/api/brp",
-        Router::new().route("/personen", post(personen)).with_state(settings),
+        Router::new()
+            .route("/personen", post(personen::<T>))
+            .with_state(app_state),
     );
 
     axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
@@ -79,23 +47,20 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-async fn personen(
-    State(settings): State<Settings>,
+async fn personen<T>(
+    State(state): State<Arc<ApplicationState<T>>>,
     Json(payload): Json<PersonenQuery>,
-) -> Result<(StatusCode, Json<PersonenResponse>), Error> {
+) -> Result<(StatusCode, Json<PersonenResponse>), Error>
+where
+    T: GbavClient + Sync,
+{
     info!("Received personen request");
 
-    let client = HttpGbavClient::new(
-        settings.url,
-        settings.username,
-        settings.password,
-        settings.trust_anchor,
-        settings.client_cert,
-        settings.client_cert_key,
-    )?;
-
     // We can safely unwrap here, because the brpproxy already guaranteees there is at least one burgerservicenummer.
-    let gba_response = client.vraag(payload.burgerservicenummer.first().unwrap()).await?;
+    let gba_response = state
+        .gbav_client
+        .vraag(payload.burgerservicenummer.first().unwrap())
+        .await?;
 
     let mut body = PersonenResponse::create(gba_response)?;
     body.filter_terminated_nationalities();

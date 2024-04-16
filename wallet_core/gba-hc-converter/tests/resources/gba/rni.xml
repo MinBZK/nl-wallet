@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='ISO-8859-1'?>
+<?xml version='1.0' encoding='UTF-8'?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <vraagResponse xmlns:ns2="http://www.bprbzk.nl/GBA/LO3/version1.1"
@@ -14,11 +14,11 @@
                     <ns2:elementen>
                       <ns2:item>
                         <ns2:nummer>210</ns2:nummer>
-                        <ns2:waarde>M&#x103;l?ka'stes</ns2:waarde>
+                        <ns2:waarde>Mălïka'stes</ns2:waarde>
                       </ns2:item>
                       <ns2:item>
                         <ns2:nummer>240</ns2:nummer>
-                        <ns2:waarde>V&#x173;lkov&#x101;so?se</ns2:waarde>
+                        <ns2:waarde>VųlkovāsoØse</ns2:waarde>
                       </ns2:item>
                       <ns2:item>
                         <ns2:nummer>310</ns2:nummer>
@@ -250,7 +250,7 @@
           <code>0</code>
           <letter>A</letter>
           <omschrijving>Aantal: 1.</omschrijving>
-          <referentie>60cee185-1e2e-454c-8f6c-be521764b30a</referentie>
+          <referentie>1c14a496-f43a-4a2e-a4d3-477143da20b7</referentie>
         </resultaat>
       </vraagReturn>
     </vraagResponse>

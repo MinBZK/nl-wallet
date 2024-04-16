@@ -19,7 +19,7 @@ axum = { workspace = true, features = [
     "json",
     "tokio",
     "tower-log",
-    "tracing",
+    "tracing"
 ] }
 axum-server = { workspace = true, features = ["tls-rustls"] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
@@ -53,3 +53,5 @@ regex = "1.9.6"
 
 [dev-dependencies]
 assert-json-diff.workspace = true
+ctor.workspace = true
+

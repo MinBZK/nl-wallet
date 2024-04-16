@@ -2,22 +2,18 @@ use assert_json_diff::{assert_json_matches, CompareMode, Config};
 use rstest::rstest;
 use serde_json::Value;
 
-use gba_hc_converter::{gba::GbaResponse, haal_centraal::PersonenResponse};
+use gba_hc_converter::{gba::data::GbaResponse, haal_centraal::PersonenResponse};
 
 use crate::common::read_file;
 
 mod common;
 
 #[rstest]
-#[case("999991772", "gba/frouke.xml", "haal_centraal/frouke.json")]
-#[case(
-    "999994220",
-    "gba/mulitple-nationalities.xml",
-    "haal_centraal/multiple-nationalities.json"
-)]
-#[case("999992806", "gba/partner.xml", "haal_centraal/partner.json")]
-fn test_conversion(#[case] bsn: &str, #[case] xml: &str, #[case] json: &str) {
-    let gba_response = GbaResponse::new(String::from(bsn), &read_file(xml)).unwrap();
+#[case("gba/frouke.xml", "haal_centraal/frouke.json")]
+#[case("gba/mulitple-nationalities.xml", "haal_centraal/multiple-nationalities.json")]
+#[case("gba/partner.xml", "haal_centraal/partner.json")]
+fn test_conversion(#[case] xml: &str, #[case] json: &str) {
+    let gba_response = GbaResponse::new(&read_file(xml)).unwrap();
     let mut personen_response = PersonenResponse::create(gba_response).unwrap();
     personen_response.filter_terminated_nationalities();
 
