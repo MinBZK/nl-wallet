@@ -491,8 +491,6 @@ impl IssuanceState {
 
 #[cfg(test)]
 mod tests {
-    use std::mem;
-
     use assert_matches::assert_matches;
     use nl_wallet_mdoc::{
         server_keys::KeyPair,
@@ -577,16 +575,11 @@ mod tests {
                 let CborBase64(ref mut credential_inner) = credential;
                 let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
 
-                let mut new_name_spaces = name_spaces.as_ref().clone();
-                let (_, attributes) = new_name_spaces.first_mut().unwrap();
+                name_spaces.modify_first_attributes(|attributes| {
+                    let TaggedBytes(first_item) = attributes.first_mut().unwrap();
 
-                let mut new_attributes = attributes.as_ref().clone();
-                let TaggedBytes(first_item) = new_attributes.first_mut().unwrap();
-
-                first_item.random = ByteBuf::from(b"12345");
-
-                mem::swap(attributes, &mut new_attributes.try_into().unwrap());
-                mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
+                    first_item.random = ByteBuf::from(b"12345");
+                });
 
                 CredentialResponse::MsoMdoc { credential }
             }

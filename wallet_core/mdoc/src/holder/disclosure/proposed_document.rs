@@ -204,8 +204,6 @@ impl<I> ProposedDocument<I> {
 
 #[cfg(test)]
 mod tests {
-    use std::mem;
-
     use assert_matches::assert_matches;
     use coset::Header;
 
@@ -273,17 +271,11 @@ mod tests {
             let mut mdoc = mdoc1.clone();
             let name_spaces = mdoc.issuer_signed.name_spaces.as_mut().unwrap();
 
-            let mut new_name_spaces = name_spaces.as_ref().clone();
-            let attributes = new_name_spaces.get_mut(EXAMPLE_NAMESPACE).unwrap();
-
-            let mut new_attributes = attributes.as_ref().clone();
-
-            // Remove `issue_date` and `expiry_date`.
-            new_attributes.remove(1);
-            new_attributes.remove(1);
-
-            mem::swap(attributes, &mut new_attributes.try_into().unwrap());
-            mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
+            name_spaces.modify_attributes(EXAMPLE_NAMESPACE, |attributes| {
+                // Remove `issue_date` and `expiry_date`.
+                attributes.remove(1);
+                attributes.remove(1);
+            });
 
             mdoc
         };

@@ -306,3 +306,46 @@ impl IssuerSignedItem {
         }
     }
 }
+
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use std::mem;
+
+    use super::*;
+
+    impl IssuerNameSpaces {
+        pub fn modify_namespaces<F>(&mut self, modify_func: F)
+        where
+            F: FnOnce(&mut IndexMap<NameSpace, Attributes>),
+        {
+            let mut name_spaces = self.as_ref().clone();
+
+            modify_func(&mut name_spaces);
+
+            mem::swap(self, &mut name_spaces.try_into().unwrap())
+        }
+
+        pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
+        where
+            F: FnOnce(&mut Vec<IssuerSignedItemBytes>),
+        {
+            self.modify_namespaces(|name_spaces| {
+                let attributes = name_spaces.get_mut(name_space).unwrap();
+                let mut new_attributes = attributes.as_ref().clone();
+
+                modify_func(&mut new_attributes);
+
+                mem::swap(attributes, &mut new_attributes.try_into().unwrap());
+            })
+        }
+
+        pub fn modify_first_attributes<F>(&mut self, modify_func: F)
+        where
+            F: FnOnce(&mut Vec<IssuerSignedItemBytes>),
+        {
+            let first_key = self.as_ref().keys().next().unwrap().to_string();
+
+            self.modify_attributes(&first_key, modify_func);
+        }
+    }
+}

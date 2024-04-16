@@ -410,7 +410,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::identity, mem};
+    use std::convert::identity;
 
     use assert_matches::assert_matches;
     use http::StatusCode;
@@ -647,14 +647,9 @@ mod tests {
                 let issuer_signed = &mut mdoc_source.mdocs.first_mut().unwrap().issuer_signed;
                 let name_spaces = issuer_signed.name_spaces.as_mut().unwrap();
 
-                let mut new_name_spaces = name_spaces.as_ref().clone();
-                let attributes = new_name_spaces.get_mut(EXAMPLE_NAMESPACE).unwrap();
-
-                let mut new_attributes = attributes.as_ref().clone();
-                new_attributes.pop();
-
-                mem::swap(attributes, &mut new_attributes.try_into().unwrap());
-                mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
+                name_spaces.modify_attributes(EXAMPLE_NAMESPACE, |attributes| {
+                    attributes.pop();
+                });
 
                 mdoc_source
             },

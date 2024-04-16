@@ -1013,7 +1013,7 @@ impl ItemsRequest {
 
 #[cfg(test)]
 mod tests {
-    use std::{mem, ops::Add};
+    use std::ops::Add;
 
     use chrono::{Duration, Utc};
     use indexmap::IndexMap;
@@ -1270,14 +1270,9 @@ mod tests {
         let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
         let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
 
-        let mut new_name_spaces = name_spaces.as_ref().clone();
-        let (_, attributes) = new_name_spaces.first_mut().unwrap();
-
-        let mut new_attributes = attributes.as_ref().clone();
-        new_attributes.swap(0, 1);
-
-        mem::swap(attributes, &mut new_attributes.try_into().unwrap());
-        mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
+        name_spaces.modify_first_attributes(|attributes| {
+            attributes.swap(0, 1);
+        });
 
         (device_response, example_items_requests(), Ok(()))
     }
@@ -1324,11 +1319,10 @@ mod tests {
         let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
         let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
 
-        let mut new_name_spaces = name_spaces.as_ref().clone();
-        let (_, attributes) = new_name_spaces.pop().unwrap();
-        new_name_spaces.insert("some_not_requested_name_space".to_string(), attributes);
-
-        mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
+        name_spaces.modify_namespaces(|name_spaces| {
+            let (_, attributes) = name_spaces.pop().unwrap();
+            name_spaces.insert("some_not_requested_name_space".to_string(), attributes);
+        });
 
         let items_requests = example_items_requests();
         let missing = attribute_identifiers(&items_requests);
@@ -1341,14 +1335,9 @@ mod tests {
         let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
         let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
 
-        let mut new_name_spaces = name_spaces.as_ref().clone();
-        let (_, attributes) = new_name_spaces.first_mut().unwrap();
-
-        let mut new_attributes = attributes.as_ref().clone();
-        new_attributes.pop();
-
-        mem::swap(attributes, &mut new_attributes.try_into().unwrap());
-        mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
+        name_spaces.modify_first_attributes(|attributes| {
+            attributes.pop();
+        });
 
         let items_requests = example_items_requests();
         let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];
