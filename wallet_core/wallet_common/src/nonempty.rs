@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use serde::{de, Deserialize, Serialize};
 
 #[derive(Debug, thiserror::Error)]
@@ -89,14 +88,6 @@ impl<T> TryFrom<Vec<T>> for NonEmpty<Vec<T>> {
     type Error = NonEmptyError;
 
     fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
-        Self::new(value)
-    }
-}
-
-impl<T, U> TryFrom<IndexMap<T, U>> for NonEmpty<IndexMap<T, U>> {
-    type Error = NonEmptyError;
-
-    fn try_from(value: IndexMap<T, U>) -> Result<Self, Self::Error> {
         Self::new(value)
     }
 }
