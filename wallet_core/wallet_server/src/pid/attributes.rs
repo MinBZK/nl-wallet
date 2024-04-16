@@ -3,6 +3,7 @@ use indexmap::IndexMap;
 use nl_wallet_mdoc::{server_state::SessionState, unsigned::UnsignedMdoc, utils::x509::Certificate};
 use openid4vc::{
     issuer::{AttributeService, Created},
+    oidc,
     token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
     ErrorResponse,
 };
@@ -111,5 +112,11 @@ impl AttributeService for BrpPidAttributeService {
                 previews.try_into().map_err(|_| Error::NoAttributesFound)
             })
             .unwrap_or(Err(Error::NoAttributesFound))
+    }
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {
+        let mut metadata = self.openid_client.discover_metadata().await?;
+        metadata.token_endpoint = issuer_url.join_base_url("/token").as_ref().clone();
+        Ok(metadata)
     }
 }
