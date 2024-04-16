@@ -31,7 +31,7 @@ use crate::{
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,
     metadata::IssuerMetadata,
-    oidc::{self},
+    oidc,
     token::{AccessToken, AttestationPreview, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };

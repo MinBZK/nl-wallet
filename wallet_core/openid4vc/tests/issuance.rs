@@ -19,7 +19,7 @@ use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, OpenidMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
-    oidc::{self},
+    oidc,
     token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
