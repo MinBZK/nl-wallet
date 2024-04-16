@@ -289,8 +289,7 @@ impl<H: OpenidMessageClient> HttpIssuanceSession<H> {
             .await?
             .issuer_config
             .batch_credential_endpoint
-            .map(|url| url.as_ref().clone())
-            .clone();
+            .map(|url| url.as_ref().clone());
         Ok(url)
     }
 }
