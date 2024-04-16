@@ -96,7 +96,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub(crate) async fn discover(client: &reqwest::Client, issuer: BaseUrl) -> Result<Self, OidcError> {
+    pub async fn discover(client: &reqwest::Client, issuer: &BaseUrl) -> Result<Self, OidcError> {
         // If the Issuer value contains a path component, any terminating / MUST be removed before
         // appending /.well-known/openid-configuration.
         let oidc_conf_url = issuer.join(".well-known/openid-configuration");
@@ -113,8 +113,8 @@ impl Config {
     }
 
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
-    #[cfg(test)] // Currently only used in tests
-    pub(crate) fn new(issuer: BaseUrl) -> Self {
+    #[cfg(any(test, feature = "mock"))]
+    pub fn new_mock(issuer: &BaseUrl) -> Self {
         Self {
             issuer: issuer.clone(),
             authorization_endpoint: issuer.join("/authorize"),
@@ -210,7 +210,7 @@ pub mod tests {
         let (_server, server_url) = start_discovery_server().await;
         let http_client = reqwest::Client::new();
 
-        let discovered = Config::discover(&http_client, server_url.clone()).await.unwrap();
+        let discovered = Config::discover(&http_client, &server_url).await.unwrap();
 
         assert_eq!(&discovered.issuer, &server_url);
         assert_eq!(

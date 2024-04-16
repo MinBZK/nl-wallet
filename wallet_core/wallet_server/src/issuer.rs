@@ -1,11 +1,11 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{collections::HashMap, fmt::Display, str::FromStr, sync::Arc};
 
 use axum::{
     extract::State,
     headers::{authorization::Credentials, Authorization, Header},
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
-    routing::{delete, post},
+    routing::{delete, get, post},
     Form, Json, Router, TypedHeader,
 };
 use serde::Serialize;
@@ -17,6 +17,8 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorCode, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
+    metadata::IssuerMetadata,
+    oidc,
     token::{AccessToken, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
 };
@@ -67,6 +69,8 @@ where
     });
 
     let issuance_router = Router::new()
+        .route("/.well-known/openid-credential-issuer", get(metadata))
+        .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/token", post(token))
         .route("/credential", post(credential))
         .route("/credential", delete(reject_issuance))
@@ -75,6 +79,28 @@ where
         .with_state(application_state);
 
     Ok(issuance_router)
+}
+
+// Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
+// for consistency with the other endpoints.
+async fn oauth_metadata<A, K, S>(
+    State(state): State<Arc<ApplicationState<A, K, S>>>,
+) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
+where
+    A: AttributeService,
+    K: KeyRing,
+    S: SessionStore<Data = SessionState<IssuanceData>>,
+{
+    let metadata = state
+        .issuer
+        .oauth_metadata()
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn Display>)?;
+    Ok(Json(metadata))
+}
+
+async fn metadata<A, K, S>(State(state): State<Arc<ApplicationState<A, K, S>>>) -> Json<IssuerMetadata> {
+    Json(state.issuer.metadata.clone())
 }
 
 async fn token<A, K, S>(
@@ -223,5 +249,27 @@ impl Credentials for DpopBearer {
 
     fn encode(&self) -> HeaderValue {
         HeaderValue::from_str(&(DPOP_HEADER_NAME.to_string() + " " + &self.0)).unwrap()
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+enum MetadataError {
+    Metadata,
+}
+
+impl ErrorStatusCode for MetadataError {
+    fn status_code(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
+impl From<Box<dyn Display>> for ErrorResponse<MetadataError> {
+    fn from(error: Box<dyn Display>) -> Self {
+        ErrorResponse(openid4vc::ErrorResponse {
+            error: MetadataError::Metadata,
+            error_description: Some(error.to_string()),
+            error_uri: None,
+        })
     }
 }

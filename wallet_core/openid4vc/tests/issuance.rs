@@ -1,4 +1,4 @@
-use std::{num::NonZeroU8, ops::Add};
+use std::{collections::HashMap, num::NonZeroU8, ops::Add};
 
 use chrono::{Days, Utc};
 use ciborium::Value;
@@ -18,6 +18,8 @@ use openid4vc::{
     dpop::Dpop,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, OpenidMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
+    metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
+    oidc,
     token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
@@ -261,6 +263,34 @@ fn invalidate_jwt(jwt: &str) -> String {
 }
 
 impl OpenidMessageClient for MockOpenidMessageClient {
+    async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
+        let metadata = IssuerMetadata {
+            issuer_config: IssuerData {
+                credential_issuer: url.clone(),
+                authorization_servers: None,
+                credential_endpoint: url.join_base_url("/credential"),
+                batch_credential_endpoint: Some(url.join_base_url("/batch_credential")),
+                deferred_credential_endpoint: None,
+                notification_endpoint: None,
+                credential_response_encryption: CredentialResponseEncryption {
+                    alg_values_supported: vec![],
+                    enc_values_supported: vec![],
+                    encryption_required: false,
+                },
+                credential_identifiers_supported: None,
+                display: None,
+                credential_configurations_supported: HashMap::new(),
+            },
+            signed_metadata: None,
+        };
+        Ok(metadata)
+    }
+
+    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
+        let metadata = oidc::Config::new_mock(url);
+        Ok(metadata)
+    }
+
     async fn request_token(
         &self,
         _url: &Url,
@@ -370,5 +400,9 @@ impl AttributeService for MockAttributeService {
             },
         ];
         Ok(previews.try_into().unwrap())
+    }
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+        Ok(oidc::Config::new_mock(issuer_url))
     }
 }
