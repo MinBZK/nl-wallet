@@ -50,7 +50,7 @@ void main() {
     test('checking an incorrect pin results in incorrectPin', () {
       pinManager.setPin(kTestValidPin);
 
-      const incorrectPin = WalletInstructionError.incorrectPin(leftoverAttempts: 2, isFinalAttempt: false);
+      const incorrectPin = WalletInstructionError.incorrectPin(attemptsLeftInRound: 2, isFinalRound: false);
       expect(
         pinManager.checkPin(kTestInvalidPin),
         WalletInstructionResult.instructionError(error: incorrectPin),
@@ -59,6 +59,7 @@ void main() {
 
     test('checking an incorrect pin 3 times results in timeout', () {
       pinManager.setPin(kTestValidPin);
+      pinManager.checkPin(kTestInvalidPin);
       pinManager.checkPin(kTestInvalidPin);
       pinManager.checkPin(kTestInvalidPin);
 
@@ -98,8 +99,8 @@ void main() {
 
       final expected = WalletInstructionResult.instructionError(
         error: WalletInstructionError.incorrectPin(
-          leftoverAttempts: 1,
-          isFinalAttempt: true,
+          attemptsLeftInRound: 1,
+          isFinalRound: true,
         ),
       );
       final result = pinManager.checkPin(kTestInvalidPin);

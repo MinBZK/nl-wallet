@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Add};
+use std::{collections::HashMap, num::NonZeroU8, ops::Add};
 
 use chrono::{Days, Utc};
 use ciborium::Value;
@@ -366,7 +366,7 @@ impl AttributeService for MockAttributeService {
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_PID_DOCTYPE.to_string(),
-                    copy_count: 2,
+                    copy_count: NonZeroU8::new(2).unwrap(),
                     valid_from: Tdate::now(),
                     valid_until: Utc::now().add(Days::new(365)).into(),
                     attributes: IndexMap::from([(
@@ -385,7 +385,7 @@ impl AttributeService for MockAttributeService {
             AttestationPreview::MsoMdoc {
                 unsigned_mdoc: UnsignedMdoc {
                     doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                    copy_count: 2,
+                    copy_count: NonZeroU8::new(2).unwrap(),
                     valid_from: Tdate::now(),
                     valid_until: Utc::now().add(Days::new(365)).into(),
                     attributes: IndexMap::from([(

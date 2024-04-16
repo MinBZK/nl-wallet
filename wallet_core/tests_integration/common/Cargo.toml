@@ -42,4 +42,7 @@ wallet = { path = "../../wallet", features = [
 wallet_common.path = "../../wallet_common"
 wallet_provider = { path = "../../wallet_provider" }
 wallet_provider_persistence = { path = "../../wallet_provider/persistence" }
-wallet_server = { path = "../../wallet_server" }
+wallet_server = { path = "../../wallet_server", features = [
+    "issuance",
+    "mock",
+] }

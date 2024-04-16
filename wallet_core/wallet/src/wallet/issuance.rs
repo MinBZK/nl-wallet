@@ -345,6 +345,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroU8;
+
     use assert_matches::assert_matches;
     use chrono::{Days, Utc};
     use mockall::predicate::*;
@@ -735,7 +737,7 @@ mod tests {
                         valid_from: Tdate::now(),
                         valid_until: (Utc::now() + Days::new(365)).into(),
                         attributes: Default::default(),
-                        copy_count: 1,
+                        copy_count: NonZeroU8::new(1).unwrap(),
                     },
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
@@ -936,7 +938,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case(InstructionError::IncorrectPin { leftover_attempts: 1, is_final_attempt: false }, false)]
+    #[case(InstructionError::IncorrectPin { attempts_left_in_round: 1, is_final_round: false }, false)]
     #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true)]
     #[case(InstructionError::Blocked, true)]
     #[case(InstructionError::InstructionValidation, false)]

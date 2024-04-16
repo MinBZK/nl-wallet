@@ -30,7 +30,7 @@ class DisclosureSuccessPage extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.disclosureSuccessPageTitle,
       onPrimaryPressed: () => onPrimaryPressed(returnUrl),
-      primaryButtonIcon: hasReturnUrl ? Icons.close_outlined : Icons.arrow_forward_outlined,
+      primaryButtonIcon: hasReturnUrl ? Icons.arrow_forward_outlined : Icons.close_outlined,
       description: title,
       primaryButtonCta: _resolvePrimaryCta(context),
       secondaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,

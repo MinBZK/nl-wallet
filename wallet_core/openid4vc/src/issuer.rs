@@ -679,7 +679,7 @@ impl Session<WaitingForResponse> {
                 .credential_requests
                 .iter()
                 .zip(session_data.attestation_previews.iter().flat_map(|preview| {
-                    itertools::repeat_n::<&UnsignedMdoc>(preview.as_ref(), preview.copy_count().try_into().unwrap())
+                    itertools::repeat_n::<&UnsignedMdoc>(preview.as_ref(), preview.copy_count().into())
                 }))
                 .map(|(cred_req, unsigned_mdoc)| async move {
                     verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc.clone(), issuer_data)
@@ -765,7 +765,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     let private_key = issuer_data.private_keys.private_key(&unsigned_mdoc.doc_type).ok_or(
         CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
     )?;
-    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
         .await
         .map_err(CredentialRequestError::AttestationSigning)?;
 

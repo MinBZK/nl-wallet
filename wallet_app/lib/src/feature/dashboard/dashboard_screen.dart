@@ -55,20 +55,9 @@ class DashboardScreen extends StatelessWidget {
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return WalletAppBar(
-      leading: const MenuIconButton(),
-      title: ExcludeSemantics(
-        excluding: true /* Excluding as the IconButton above is already read out, including the 'menu' tooltip */,
-        child: GestureDetector(
-          onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
-          child: Text(
-            context.l10n.dashboardScreenTitle,
-            style: context.theme.appBarTheme.titleTextStyle?.copyWith(
-              color: context.colorScheme.primary,
-              fontSize: 16,
-            ),
-          ),
-        ),
-      ),
+      automaticallyImplyLeading: false,
+      leading: _buildLeadingMenuButton(context),
+      leadingWidth: double.infinity,
       actions: const [
         FadeInAtOffset(
           visibleOffset: 150,
@@ -77,6 +66,38 @@ class DashboardScreen extends StatelessWidget {
         ),
         HelpIconButton(),
       ],
+    );
+  }
+
+  /// Builds the menu button, wrapped in [Align] and [Semantics] to make sure the
+  /// correct info and FocusArea is provided for TalkBack/VoiceOver.
+  Widget _buildLeadingMenuButton(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Semantics(
+        label: context.l10n.dashboardScreenMenuWCAGLabel,
+        button: true,
+        onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => Navigator.pushNamed(context, WalletRoutes.menuRoute),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const MenuIconButton(),
+              Text(
+                context.l10n.dashboardScreenTitle,
+                style: context.theme.appBarTheme.titleTextStyle?.copyWith(
+                  color: context.colorScheme.primary,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

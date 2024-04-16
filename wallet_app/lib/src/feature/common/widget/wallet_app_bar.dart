@@ -8,6 +8,7 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
   final double? progress;
   final Widget? leading;
+  final double? leadingWidth;
   final List<Widget>? actions;
   final PreferredSizeWidget? bottom;
   final bool automaticallyImplyLeading;
@@ -19,6 +20,7 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.bottom,
     this.automaticallyImplyLeading = true,
+    this.leadingWidth,
     super.key,
   }) : assert(
             progress == null || bottom == null,
@@ -34,6 +36,7 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: kToolbarHeight,
       actions: actions,
       leading: leading ?? (showBackButton ? const BackIconButton() : null),
+      leadingWidth: leadingWidth,
       automaticallyImplyLeading: automaticallyImplyLeading,
       titleSpacing: leading == null && !showBackButton ? null : 0.0,
       bottom: bottom ?? (progress == null ? null : _buildStepper(progress!)),

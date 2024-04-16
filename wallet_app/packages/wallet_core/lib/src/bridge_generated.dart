@@ -363,8 +363,8 @@ class WalletEvent with _$WalletEvent {
 @freezed
 class WalletInstructionError with _$WalletInstructionError {
   const factory WalletInstructionError.incorrectPin({
-    required int leftoverAttempts,
-    required bool isFinalAttempt,
+    required int attemptsLeftInRound,
+    required bool isFinalRound,
   }) = WalletInstructionError_IncorrectPin;
   const factory WalletInstructionError.timeout({
     required int timeoutMillis,
@@ -1190,8 +1190,8 @@ class WalletCoreImpl implements WalletCore {
     switch (raw[0]) {
       case 0:
         return WalletInstructionError_IncorrectPin(
-          leftoverAttempts: _wire2api_u8(raw[1]),
-          isFinalAttempt: _wire2api_bool(raw[2]),
+          attemptsLeftInRound: _wire2api_u8(raw[1]),
+          isFinalRound: _wire2api_bool(raw[2]),
         );
       case 1:
         return WalletInstructionError_Timeout(

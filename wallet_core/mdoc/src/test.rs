@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, num::NonZeroU8};
 
 use ciborium::Value;
 use indexmap::{IndexMap, IndexSet};
@@ -132,7 +132,7 @@ impl TestDocument {
     }
 
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
-    pub async fn sign<KF>(self, ca: &KeyPair, key_factory: &KF, copy_count: u64) -> Mdoc
+    pub async fn sign<KF>(self, ca: &KeyPair, key_factory: &KF, copy_count: NonZeroU8) -> Mdoc
     where
         KF: KeyFactory,
     {
@@ -145,7 +145,7 @@ impl TestDocument {
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let (issuer_signed, _) = IssuerSigned::sign(unsigned, mdoc_public_key, &issuance_key)
+        let issuer_signed = IssuerSigned::sign(unsigned, mdoc_public_key, &issuance_key)
             .await
             .unwrap();
 
@@ -181,7 +181,7 @@ impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
         Self {
             doc_type: value.doc_type,
-            copy_count: 1,
+            copy_count: NonZeroU8::new(1).unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
             attributes: value.namespaces,
@@ -213,6 +213,10 @@ impl TestDocuments {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    pub fn into_first(self) -> Option<TestDocument> {
+        self.0.into_iter().next()
     }
 
     pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DocumentDisclosedAttributes>) {
