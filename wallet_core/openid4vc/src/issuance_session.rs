@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     utils::{
         cose::CoseError,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::CborError,
+        serialization::{CborError, TaggedBytes},
         x509::{Certificate, CertificateError, CertificateUsage},
     },
     ATTR_RANDOM_LENGTH,
@@ -438,8 +438,9 @@ impl CredentialResponse {
         // is too low, we should not accept the attributes.
         if let Some(name_spaces) = issuer_signed.name_spaces.as_ref() {
             let min_random_length = name_spaces
+                .as_ref()
                 .values()
-                .flat_map(|attributes| attributes.0.iter().map(|item| item.0.random.len()))
+                .flat_map(|attributes| attributes.as_ref().iter().map(|TaggedBytes(item)| item.random.len()))
                 .min();
 
             if let Some(min_random_length) = min_random_length {
@@ -490,6 +491,8 @@ impl IssuanceState {
 
 #[cfg(test)]
 mod tests {
+    use std::mem;
+
     use assert_matches::assert_matches;
     use nl_wallet_mdoc::{
         server_keys::KeyPair,
@@ -500,7 +503,7 @@ mod tests {
             issuer_auth::IssuerRegistration,
             serialization::{CborBase64, TaggedBytes},
         },
-        Attributes, IssuerSigned,
+        IssuerSigned,
     };
     use serde_bytes::ByteBuf;
     use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
@@ -572,11 +575,18 @@ mod tests {
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
                 let CborBase64(ref mut credential_inner) = credential;
-                let namespaces = credential_inner.name_spaces.as_mut().unwrap();
-                let (_, Attributes(issuer_signed_items)) = namespaces.first_mut().unwrap();
-                let TaggedBytes(first_item) = issuer_signed_items.first_mut().unwrap();
+                let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
+
+                let mut new_name_spaces = name_spaces.as_ref().clone();
+                let (_, attributes) = new_name_spaces.first_mut().unwrap();
+
+                let mut new_attributes = attributes.as_ref().clone();
+                let TaggedBytes(first_item) = new_attributes.first_mut().unwrap();
 
                 first_item.random = ByteBuf::from(b"12345");
+
+                mem::swap(attributes, &mut new_attributes.try_into().unwrap());
+                mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
 
                 CredentialResponse::MsoMdoc { credential }
             }

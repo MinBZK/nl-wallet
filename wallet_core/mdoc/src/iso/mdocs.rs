@@ -9,6 +9,7 @@ use std::{fmt::Debug, result::Result};
 use chrono::{DateTime, ParseError, Utc};
 use ciborium::{tag, value::Value};
 use indexmap::IndexMap;
+use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -17,7 +18,7 @@ use serde_with::skip_serializing_none;
 use wallet_common::utils::random_bytes;
 
 use crate::{
-    unsigned::Entry,
+    unsigned::{Entry, UnsignedAttributes},
     utils::{
         cose::CoseKey,
         crypto::{cbor_digest, CryptoError},
@@ -42,7 +43,7 @@ impl TryFrom<&Attributes> for DigestIDs {
     type Error = CborError;
     fn try_from(val: &Attributes) -> Result<Self, Self::Error> {
         let ids = DigestIDs(
-            val.0
+            val.as_ref()
                 .iter()
                 .enumerate()
                 .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
@@ -59,7 +60,8 @@ impl TryFrom<&IssuerNameSpaces> for ValueDigests {
     type Error = CborError;
     fn try_from(val: &IssuerNameSpaces) -> Result<Self, Self::Error> {
         let digests = ValueDigests(
-            val.iter()
+            val.as_ref()
+                .iter()
                 .map(|(namespace, attrs)| Ok((namespace.clone(), DigestIDs::try_from(attrs)?)))
                 .collect::<Result<IndexMap<_, _>, CborError>>()?,
         );
@@ -206,36 +208,56 @@ impl TryFrom<&Tdate> for DateTime<Utc> {
 pub type DocType = String;
 
 /// [`Attributes`], which contains [`IssuerSignedItem`]s, grouped per [`NameSpace`].
-pub type IssuerNameSpaces = IndexMap<NameSpace, Attributes>;
+#[nutype(
+    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),
+    validate(predicate = |name_spaces| !name_spaces.is_empty() ),
+)]
+pub struct IssuerNameSpaces(IndexMap<NameSpace, Attributes>);
+
+/// Since [`UnsignedAttributes`] is guaranteed not to be empty, we can
+/// implement `From` instead of `TryFrom` and use `unwrap()` safely.
+impl From<UnsignedAttributes> for IssuerNameSpaces {
+    fn from(value: UnsignedAttributes) -> Self {
+        value
+            .into_inner()
+            .into_iter()
+            .map(|(namespace, attrs)| (namespace, Attributes::try_from(attrs).unwrap()))
+            .collect::<IndexMap<_, _>>()
+            .try_into()
+            .unwrap()
+    }
+}
 
 /// A `Vec` of [`IssuerSignedItemBytes`], i.e., attributes. In the [`IssuerNameSpaces`] map,
 /// this is used as the type of the keys. (This datastructure is itself not named in the spec.)
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Attributes(pub Vec<IssuerSignedItemBytes>);
-impl From<Vec<IssuerSignedItemBytes>> for Attributes {
-    fn from(val: Vec<IssuerSignedItemBytes>) -> Self {
-        Attributes(val)
+#[nutype(
+    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),
+    validate(predicate = |items| !items.is_empty() ),
+)]
+pub struct Attributes(Vec<IssuerSignedItemBytes>);
+
+impl TryFrom<IndexMap<DataElementIdentifier, DataElementValue>> for Attributes {
+    type Error = <Attributes as TryFrom<Vec<IssuerSignedItemBytes>>>::Error;
+
+    fn try_from(value: IndexMap<DataElementIdentifier, DataElementValue>) -> Result<Self, Self::Error> {
+        value
+            .into_iter()
+            .enumerate()
+            .map(|(i, (key, val))| IssuerSignedItemBytes::from(IssuerSignedItem::new(i as u64, key, val)))
+            .collect::<Vec<_>>()
+            .try_into()
     }
 }
 
-impl From<IndexMap<DataElementIdentifier, DataElementValue>> for Attributes {
-    fn from(val: IndexMap<String, Value>) -> Self {
-        Attributes(
-            val.into_iter()
-                .enumerate()
-                .map(|(i, (key, val))| IssuerSignedItem::new(i as u64, key, val).into())
-                .collect(),
-        )
-    }
-}
+impl TryFrom<Vec<Entry>> for Attributes {
+    type Error = <Attributes as TryFrom<IndexMap<DataElementIdentifier, DataElementValue>>>::Error;
 
-impl From<Vec<Entry>> for Attributes {
-    fn from(attrs: Vec<Entry>) -> Self {
-        Attributes::from(
-            attrs
+    fn try_from(value: Vec<Entry>) -> Result<Self, Self::Error> {
+        Attributes::try_from(
+            value
                 .into_iter()
                 .map(|entry| (entry.name, entry.value))
-                .collect::<IndexMap<String, Value>>(),
+                .collect::<IndexMap<DataElementIdentifier, DataElementValue>>(),
         )
     }
 }

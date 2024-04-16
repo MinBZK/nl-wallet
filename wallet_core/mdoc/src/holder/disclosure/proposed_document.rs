@@ -98,12 +98,17 @@ impl<I> ProposedDocument<I> {
             mdoc,
         } = stored_mdoc;
 
+        // As this method should only ever be called when we know that it
+        // matches the `requested_attributes`, we know that it should result
+        // in at least one name space with at least one attribute. For this
+        // reason calling `unwrap()` below is safe.
         let name_spaces = mdoc.issuer_signed.name_spaces.map(|name_spaces| {
             name_spaces
+                .into_inner()
                 .into_iter()
                 .flat_map(|(name_space, attributes)| {
                     let attributes = attributes
-                        .0
+                        .into_inner()
                         .into_iter()
                         .filter(|attribute| {
                             let attribute_identifier = AttributeIdentifier {
@@ -116,13 +121,12 @@ impl<I> ProposedDocument<I> {
                         })
                         .collect::<Vec<_>>();
 
-                    if attributes.is_empty() {
-                        return None;
-                    }
-
-                    (name_space, attributes.into()).into()
+                    // This will return `None` if the attributes are empty and will subsequently be filtered out.
+                    attributes.try_into().ok().map(|attributes| (name_space, attributes))
                 })
-                .collect()
+                .collect::<IndexMap<_, _>>()
+                .try_into()
+                .unwrap()
         });
 
         // Construct everything necessary for signing when the user approves the disclosure.
@@ -153,6 +157,7 @@ impl<I> ProposedDocument<I> {
             .as_ref()
             .map(|name_spaces| {
                 name_spaces
+                    .as_ref()
                     .iter()
                     .map(|(name_space, attributes)| (name_space.clone(), attributes.into()))
                     .collect()
@@ -199,6 +204,8 @@ impl<I> ProposedDocument<I> {
 
 #[cfg(test)]
 mod tests {
+    use std::mem;
+
     use assert_matches::assert_matches;
     use coset::Header;
 
@@ -242,10 +249,10 @@ mod tests {
             .issuer_signed
             .name_spaces
             .as_ref()
-            .and_then(|name_spaces| name_spaces.get(EXAMPLE_NAMESPACE))
+            .and_then(|name_spaces| name_spaces.as_ref().get(EXAMPLE_NAMESPACE))
             .map(|attributes| {
                 attributes
-                    .0
+                    .as_ref()
                     .iter()
                     .map(|attribute| attribute.0.element_identifier.as_str())
                     .collect::<Vec<_>>()
@@ -264,37 +271,23 @@ mod tests {
         let mdoc1 = Mdoc::new_example_mock();
         let mdoc2 = {
             let mut mdoc = mdoc1.clone();
-            let attributes = &mut mdoc
-                .issuer_signed
-                .name_spaces
-                .as_mut()
-                .unwrap()
-                .get_mut(EXAMPLE_NAMESPACE)
-                .unwrap()
-                .0;
+            let name_spaces = mdoc.issuer_signed.name_spaces.as_mut().unwrap();
+
+            let mut new_name_spaces = name_spaces.as_ref().clone();
+            let attributes = new_name_spaces.get_mut(EXAMPLE_NAMESPACE).unwrap();
+
+            let mut new_attributes = attributes.as_ref().clone();
 
             // Remove `issue_date` and `expiry_date`.
-            attributes.remove(1);
-            attributes.remove(1);
+            new_attributes.remove(1);
+            new_attributes.remove(1);
+
+            mem::swap(attributes, &mut new_attributes.try_into().unwrap());
+            mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
 
             mdoc
         };
         let mdoc3 = mdoc1.clone();
-        let mdoc4 = {
-            let mut mdoc = mdoc1.clone();
-            let attributes = &mut mdoc
-                .issuer_signed
-                .name_spaces
-                .as_mut()
-                .unwrap()
-                .get_mut(EXAMPLE_NAMESPACE)
-                .unwrap()
-                .0;
-
-            attributes.clear();
-
-            mdoc
-        };
 
         let doc_type = mdoc1.doc_type.clone();
         let private_key_id = mdoc1.private_key_id.clone();
@@ -302,7 +295,7 @@ mod tests {
         let requested_attributes =
             example_identifiers_from_attributes(["driving_privileges", "issue_date", "expiry_date"]);
 
-        let stored_mdocs = vec![mdoc1, mdoc2, mdoc3, mdoc4]
+        let stored_mdocs = vec![mdoc1, mdoc2, mdoc3]
             .into_iter()
             .enumerate()
             .map(|(index, mdoc)| StoredMdoc {
@@ -333,28 +326,22 @@ mod tests {
                         .issuer_signed
                         .name_spaces
                         .unwrap()
+                        .as_ref()
                         .get(EXAMPLE_NAMESPACE)
                         .unwrap()
-                        .0
+                        .as_ref()
                         .len(),
                     3
                 );
             });
 
-        assert_eq!(missing_attributes.len(), 2);
+        assert_eq!(missing_attributes.len(), 1);
         assert_eq!(
             missing_attributes[0]
                 .iter()
                 .map(|attribute| attribute.attribute.as_str())
                 .collect::<Vec<_>>(),
             ["issue_date", "expiry_date"]
-        );
-        assert_eq!(
-            missing_attributes[1]
-                .iter()
-                .map(|attribute| attribute.attribute.as_str())
-                .collect::<Vec<_>>(),
-            ["driving_privileges", "issue_date", "expiry_date"]
         );
     }
 

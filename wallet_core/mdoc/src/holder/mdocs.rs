@@ -79,10 +79,14 @@ impl Mdoc {
         self.issuer_signed
             .name_spaces
             .as_ref()
-            .unwrap_or(&IndexMap::new())
-            .iter()
-            .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
-            .collect::<IndexMap<_, _>>()
+            .map(|name_spaces| {
+                name_spaces
+                    .as_ref()
+                    .iter()
+                    .map(|(name_space, attrs)| (name_space.clone(), attrs.into()))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     pub fn issuer_certificate(&self) -> Result<Certificate, CoseError> {

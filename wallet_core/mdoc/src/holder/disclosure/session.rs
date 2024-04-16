@@ -410,7 +410,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::convert::identity;
+    use std::{convert::identity, mem};
 
     use assert_matches::assert_matches;
     use http::StatusCode;
@@ -644,18 +644,17 @@ mod tests {
             identity,
             |mut mdoc_source| {
                 // Remove the last attribute.
-                mdoc_source
-                    .mdocs
-                    .first_mut()
-                    .unwrap()
-                    .issuer_signed
-                    .name_spaces
-                    .as_mut()
-                    .unwrap()
-                    .get_mut(EXAMPLE_NAMESPACE)
-                    .unwrap()
-                    .0
-                    .pop();
+                let issuer_signed = &mut mdoc_source.mdocs.first_mut().unwrap().issuer_signed;
+                let name_spaces = issuer_signed.name_spaces.as_mut().unwrap();
+
+                let mut new_name_spaces = name_spaces.as_ref().clone();
+                let attributes = new_name_spaces.get_mut(EXAMPLE_NAMESPACE).unwrap();
+
+                let mut new_attributes = attributes.as_ref().clone();
+                new_attributes.pop();
+
+                mem::swap(attributes, &mut new_attributes.try_into().unwrap());
+                mem::swap(name_spaces, &mut new_name_spaces.try_into().unwrap());
 
                 mdoc_source
             },
