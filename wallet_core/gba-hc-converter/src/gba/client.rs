@@ -66,7 +66,7 @@ impl GbavClient for HttpGbavClient {
 }
 
 pub struct FileGbavClient<T> {
-    path: PathBuf,
+    base_path: PathBuf,
     client: T,
 }
 
@@ -75,7 +75,9 @@ where
     T: GbavClient,
 {
     pub fn new(path: PathBuf, client: T) -> Self {
-        Self { path, client }
+        let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+        base_path.push(path.as_path());
+        Self { base_path, client }
     }
 }
 
@@ -84,10 +86,7 @@ where
     T: GbavClient + Sync,
 {
     async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error> {
-        let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-        base_path.push(self.path.as_path());
-        let xml_file = base_path.join(format!("{}.xml", bsn));
-
+        let xml_file = self.base_path.join(format!("{}.xml", bsn));
         if xml_file.exists() {
             let xml = fs::read_to_string(xml_file)?;
             let gba_response = GbaResponse::new(&xml)?;
