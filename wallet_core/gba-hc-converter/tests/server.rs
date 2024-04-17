@@ -9,7 +9,7 @@ use reqwest::Response;
 
 use gba_hc_converter::{
     gba::{client::GbavClient, data::GbaResponse, error::Error},
-    haal_centraal::{PersonenQuery, PersonenResponse},
+    haal_centraal::{PersonQuery, PersonsResponse},
     server,
 };
 use wallet_common::reqwest::default_reqwest_client_builder;
@@ -52,10 +52,10 @@ where
 }
 
 async fn query_personen(port: u16) -> Response {
-    let query = PersonenQuery {
+    let query = PersonQuery {
         r#type: String::from("RaadpleegMetBurgerservicenummer"),
-        burgerservicenummer: vec![String::from("12345678")],
-        gemeente_van_inschrijving: None,
+        bsn: vec![String::from("12345678")],
+        registration_municipality: None,
         fields: vec![],
     };
 
@@ -95,7 +95,7 @@ async fn test_ok_response() {
     let response = query_personen(port).await;
     assert_eq!(StatusCode::OK, response.status());
 
-    let json: PersonenResponse = response.json().await.unwrap();
+    let json: PersonsResponse = response.json().await.unwrap();
     assert_eq!(1, json.persons.len());
 }
 

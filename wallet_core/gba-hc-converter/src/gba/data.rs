@@ -1,6 +1,5 @@
 use indexmap::IndexMap;
 use quick_xml::{
-    de::from_str,
     events::Event,
     name::{Namespace, ResolveResult::Bound},
     DeError, NsReader,
@@ -38,7 +37,7 @@ pub fn parse_xml(xml: &str) -> Result<Vec<Categorievoorkomen>, Error> {
 
     let result = categorievoorkomens
         .iter()
-        .map(|categorievoorkomen| Ok(from_str(categorievoorkomen)?))
+        .map(|categorievoorkomen| Ok(quick_xml::de::from_str(categorievoorkomen)?))
         .collect::<Result<Vec<Categorievoorkomen>, Error>>()?;
 
     Ok(result)

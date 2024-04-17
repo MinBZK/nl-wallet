@@ -2,7 +2,7 @@ use assert_json_diff::{assert_json_matches, CompareMode, Config};
 use rstest::rstest;
 use serde_json::Value;
 
-use gba_hc_converter::{gba::data::GbaResponse, haal_centraal::PersonenResponse};
+use gba_hc_converter::{gba::data::GbaResponse, haal_centraal::PersonsResponse};
 
 use crate::common::read_file;
 
@@ -14,7 +14,7 @@ mod common;
 #[case("gba/partner.xml", "haal_centraal/partner.json")]
 fn test_conversion(#[case] xml: &str, #[case] json: &str) {
     let gba_response = GbaResponse::new(&read_file(xml)).unwrap();
-    let mut personen_response = PersonenResponse::create(gba_response).unwrap();
+    let mut personen_response = PersonsResponse::create(gba_response).unwrap();
     personen_response.filter_terminated_nationalities();
 
     println!("{}", serde_json::to_string_pretty(&personen_response).unwrap());
