@@ -1,9 +1,5 @@
-use std::fmt::{Display, Formatter};
-
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
-
-use crate::http_error::ErrorData;
 
 /// The list of uniquely identifiable error types. A client
 /// can use these types to distinguish between different errors.
@@ -31,12 +27,6 @@ pub struct PinTimeoutData {
     pub time_left_in_ms: u64,
 }
 
-impl Display for ErrorData<ErrorType> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.title)
-    }
-}
-
 /// For the purposes of predictability, there exist a strict mapping
 /// of unique error identifiers to HTTP response codes. In this sense
 /// the error type gives addtional information over the HTTP response code.
@@ -58,6 +48,8 @@ impl From<&ErrorType> for StatusCode {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+
+    use crate::http_error::ErrorData;
 
     use super::*;
 

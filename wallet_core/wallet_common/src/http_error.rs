@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 
 use mime::Mime;
 use once_cell::sync::Lazy;
@@ -24,10 +24,8 @@ pub struct ErrorData<T> {
     pub title: String,
 }
 
-// /// This type wraps a [`StatusCode`] and [`ErrorData`] instance,
-// /// which forms the JSON body of the error reponses.
-// #[derive(Debug, Clone)]
-// pub struct ServerError {
-//     pub status_code: StatusCode,
-//     pub body: ErrorData<ErrorType>,
-// }
+impl<T> Display for ErrorData<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.title)
+    }
+}
