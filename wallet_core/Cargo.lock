@@ -1673,6 +1673,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "trait-variant",
  "wallet_common",
 ]
 

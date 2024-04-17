@@ -1,4 +1,4 @@
-use std::{env, fs, future::Future, path::PathBuf};
+use std::{env, fs, path::PathBuf};
 
 use http::header;
 use pem::Pem;
@@ -8,8 +8,9 @@ use wallet_common::{config::wallet_config::BaseUrl, reqwest::tls_pinned_client_b
 
 use crate::gba::{data::GbaResponse, error::Error};
 
-pub trait GbavClient {
-    fn vraag(&self, bsn: &str) -> impl Future<Output = Result<GbaResponse, Error>> + Send;
+#[trait_variant::make(GbavClient: Send)]
+pub trait GbavClientLocal {
+    async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error>;
 }
 
 pub struct HttpGbavClient {
