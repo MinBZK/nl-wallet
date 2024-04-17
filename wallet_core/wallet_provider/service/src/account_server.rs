@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use wallet_common::{
     account::{
+        errors::Error as AccountError,
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             errors::{IncorrectPinData, PinTimeoutData},
@@ -138,7 +139,7 @@ pub enum InstructionValidationError {
     #[error("instruction challenge timeout")]
     ChallengeTimeout,
     #[error("instruction verification failed: {0}")]
-    VerificationFailed(#[source] wallet_common::account::errors::Error),
+    VerificationFailed(#[source] AccountError),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
 }
