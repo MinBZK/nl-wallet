@@ -20,9 +20,9 @@ static COUNTRIES_TABLE: Lazy<HashMap<String, String>> =
     Lazy::new(|| read_csv("Tabel34 Landentabel (gesorteerd op code)").unwrap());
 
 pub fn initialize_eager() {
-    let _ = NATIONALITY_TABLE.get("0000");
-    let _ = MUNICIPALITIES_TABLE.get("0000");
-    let _ = COUNTRIES_TABLE.get("0000");
+    let _ = Lazy::force(&NATIONALITY_TABLE);
+    let _ = Lazy::force(&MUNICIPALITIES_TABLE);
+    let _ = Lazy::force(&COUNTRIES_TABLE);
 }
 
 #[derive(Debug, thiserror::Error)]
