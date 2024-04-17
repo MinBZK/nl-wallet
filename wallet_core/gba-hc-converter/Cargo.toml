@@ -31,6 +31,7 @@ mime.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 pem.workspace = true
 quick-xml = { workspace = true, features = ["async-tokio", "serialize", "overlapped-lists"] }
+regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 rstest.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -50,7 +51,6 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
 
 wallet_common = { path = "../wallet_common" }
-regex = "1.9.6"
 
 [dev-dependencies]
 assert-json-diff.workspace = true
