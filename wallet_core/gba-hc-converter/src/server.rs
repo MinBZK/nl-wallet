@@ -14,7 +14,7 @@ use tracing::{debug, info};
 use crate::{
     error::Error,
     gba::client::GbavClient,
-    haal_centraal::{PersonenQuery, PersonenResponse},
+    haal_centraal::{PersonQuery, PersonsResponse},
 };
 
 struct ApplicationState<T> {
@@ -49,20 +49,17 @@ fn health_router() -> Router {
 
 async fn personen<T>(
     State(state): State<Arc<ApplicationState<T>>>,
-    Json(payload): Json<PersonenQuery>,
-) -> Result<(StatusCode, Json<PersonenResponse>), Error>
+    Json(payload): Json<PersonQuery>,
+) -> Result<(StatusCode, Json<PersonsResponse>), Error>
 where
     T: GbavClient + Sync,
 {
     info!("Received personen request");
 
     // We can safely unwrap here, because the brpproxy already guarantees there is at least one burgerservicenummer.
-    let gba_response = state
-        .gbav_client
-        .vraag(payload.burgerservicenummer.first().unwrap())
-        .await?;
+    let gba_response = state.gbav_client.vraag(payload.bsn.first().unwrap()).await?;
 
-    let mut body = PersonenResponse::create(gba_response)?;
+    let mut body = PersonsResponse::create(gba_response)?;
     body.filter_terminated_nationalities();
 
     Ok((StatusCode::OK, body.into()))

@@ -60,22 +60,27 @@ fn csv_path(name: &str) -> PathBuf {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct PersonenQuery {
+pub struct PersonQuery {
     pub r#type: String,
-    pub burgerservicenummer: Vec<String>,
-    pub gemeente_van_inschrijving: Option<String>,
+
+    #[serde(rename = "burgerservicenummer")]
+    pub bsn: Vec<String>,
+
+    #[serde(rename = "gemeente_van_inschrijving")]
+    pub registration_municipality: Option<String>,
+
     pub fields: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct PersonenResponse {
+pub struct PersonsResponse {
     pub r#type: String,
     #[serde(rename = "personen")]
     pub persons: Vec<GbaPerson>,
 }
 
-impl PersonenResponse {
+impl PersonsResponse {
     pub fn create(gba_response: GbaResponse) -> Result<Self, Error> {
         Ok(Self {
             r#type: String::from("RaadpleegMetBurgerservicenummer"),
