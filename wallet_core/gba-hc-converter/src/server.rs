@@ -56,7 +56,7 @@ where
 {
     info!("Received personen request");
 
-    // We can safely unwrap here, because the brpproxy already guaranteees there is at least one burgerservicenummer.
+    // We can safely unwrap here, because the brpproxy already guarantees there is at least one burgerservicenummer.
     let gba_response = state
         .gbav_client
         .vraag(payload.burgerservicenummer.first().unwrap())
