@@ -5,17 +5,21 @@ use quick_xml::{
     DeError, NsReader,
 };
 use serde::{Deserialize, Deserializer};
+use std::fmt::{Display, Formatter};
 
 use crate::gba::error::Error;
 
-const GBA_NAMESPACE: &[u8] = b"http://www.bprbzk.nl/GBA/LO3/version1.1";
-const CATEGORIEVOORKOMENS_TAG: &[u8] = b"categorievoorkomens";
+const LO3_NAMESPACE: &[u8] = b"http://www.bprbzk.nl/GBA/LO3/version1.1";
+const LRD_NAMESPACE: &[u8] = b"http://www.bprbzk.nl/GBA/LRDPlus/version1.1";
+const CATEGORIEVOORKOMENS_TAG: &str = "categorievoorkomens";
+const RESULTAAT_TAG: &str = "resultaat";
 
-pub fn parse_xml(xml: &str) -> Result<Vec<Categorievoorkomen>, Error> {
+fn parse_xml(xml: &str) -> Result<GbaResponse, Error> {
     let mut reader = NsReader::from_str(xml);
     reader.trim_text(true);
 
-    let mut categorievoorkomens = Vec::new();
+    let mut voorkomens_xml = Vec::new();
+    let mut result_xml: Option<String> = None;
 
     // Since quick_xml doesn't handle deserializing nested identical tags well, we'll first take the
     // 'categorievoorkomens' tag using event based parsing. After that, we can safely deserialize using Serde.
@@ -25,34 +29,43 @@ pub fn parse_xml(xml: &str) -> Result<Vec<Categorievoorkomen>, Error> {
             Ok(Event::Eof) => break,
             Ok(Event::Start(e)) => {
                 let (ns, local) = reader.resolve_element(e.name());
-                if ns == Bound(Namespace(GBA_NAMESPACE)) && local.as_ref() == CATEGORIEVOORKOMENS_TAG {
+                if ns == Bound(Namespace(LO3_NAMESPACE)) && local.as_ref() == CATEGORIEVOORKOMENS_TAG.as_bytes() {
                     let end = e.to_end();
                     let text = reader.read_text(end.name())?;
-                    categorievoorkomens.push(text);
+                    voorkomens_xml.push(text);
+                } else if ns == Bound(Namespace(LRD_NAMESPACE)) && local.as_ref() == RESULTAAT_TAG.as_bytes() {
+                    let end = e.to_end();
+                    let text = reader.read_text(end.name())?;
+                    result_xml = Some(format!("<{0}>{1}</{0}>", RESULTAAT_TAG, &text));
                 }
             }
             _ => (),
         }
     }
 
-    let result = categorievoorkomens
+    let result: GbaResult = quick_xml::de::from_str(&result_xml.ok_or(Error::UnexpectedResponse)?)?;
+
+    let categorievoorkomens = voorkomens_xml
         .iter()
-        .map(|categorievoorkomen| Ok(quick_xml::de::from_str(categorievoorkomen)?))
+        .map(|voorkomen_xml| Ok(quick_xml::de::from_str(voorkomen_xml)?))
         .collect::<Result<Vec<Categorievoorkomen>, Error>>()?;
 
-    Ok(result)
+    let response = GbaResponse {
+        categorievoorkomens,
+        result,
+    };
+    Ok(response)
 }
 
 #[derive(Clone)]
 pub struct GbaResponse {
+    pub result: GbaResult,
     pub categorievoorkomens: Vec<Categorievoorkomen>,
 }
 
 impl GbaResponse {
     pub fn new(xml: &str) -> Result<Self, Error> {
-        Ok(Self {
-            categorievoorkomens: parse_xml(xml)?,
-        })
+        parse_xml(xml)
     }
 
     pub fn get_mandatory_voorkomen(&self, category_number: u8) -> Result<&Categorievoorkomen, Error> {
@@ -67,6 +80,41 @@ impl GbaResponse {
             .iter()
             .filter(|voorkomen| voorkomen.categorienummer == category_number)
             .collect()
+    }
+
+    pub fn is_error(&self) -> bool {
+        self.result.letter != "A" && self.result.letter != "G"
+    }
+
+    pub fn as_error(&self) -> Result<(), Error> {
+        if self.is_error() {
+            Err(Error::ErrorResponse(self.result.clone()))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct GbaResult {
+    pub code: String,
+
+    pub letter: String,
+
+    #[serde(rename = "omschrijving")]
+    pub description: String,
+
+    #[serde(rename = "referentie")]
+    pub reference: String,
+}
+
+impl Display for GbaResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "foutcode: {}{:0>3}, description: {}, reference: {}",
+            self.letter, self.code, self.description, self.reference
+        )
     }
 }
 

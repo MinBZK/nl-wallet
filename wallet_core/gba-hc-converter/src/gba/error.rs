@@ -1,3 +1,4 @@
+use crate::gba::data::GbaResult;
 use http::StatusCode;
 
 #[derive(Debug, thiserror::Error)]
@@ -16,6 +17,10 @@ pub enum Error {
     MissingElement(String),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("Unexpected response received")]
+    UnexpectedResponse,
+    #[error("Received error response: {0}")]
+    ErrorResponse(GbaResult),
 }
 
 impl From<&Error> for StatusCode {

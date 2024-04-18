@@ -58,6 +58,7 @@ where
 
     // We can safely unwrap here, because the brpproxy already guarantees there is at least one burgerservicenummer.
     let gba_response = state.gbav_client.vraag(payload.bsn.first().unwrap()).await?;
+    gba_response.as_error()?;
 
     let mut body = PersonsResponse::create(gba_response)?;
     body.filter_terminated_nationalities();

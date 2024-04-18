@@ -114,3 +114,22 @@ async fn test_error_response() {
         response.text().await.unwrap()
     );
 }
+
+#[tokio::test]
+async fn test_received_error_response() {
+    let port = start_server_with_mock(MockGbavClient {
+        xml_file: String::from("gba/error.xml"),
+    })
+    .await;
+
+    let response = query_personen(port).await;
+    assert_eq!(StatusCode::PRECONDITION_FAILED, response.status());
+    assert_eq!(
+        "application/problem+json",
+        response.headers().get("Content-Type").unwrap().to_str().unwrap()
+    );
+    assert_eq!(
+        r#"{"type":"gba_error","title":"GBA error: Received error response: foutcode: X001, description: Interne fout., reference: a00d961b-dd58-4f1c-bd48-964a46d2708b"}"#,
+        response.text().await.unwrap()
+    );
+}
