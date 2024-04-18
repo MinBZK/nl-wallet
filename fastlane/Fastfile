@@ -85,6 +85,8 @@ platform :android do
     UI.user_error!("No app_name option set") unless app_name
 
     universal_link_base = options[:universal_link_base]
+    sentry_dsn = options[:sentry_dsn]
+    sentry_environment = options[:sentry_environment]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -113,6 +115,8 @@ platform :android do
             "--#{build_mode}",
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
+            "--dart-define=SENTRY_DSN=#{sentry_dsn}",
+            "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
 
             # ENV_CONFIGURATION is ignored when mock repositories are configured
             "--dart-define=ENV_CONFIGURATION=true",
@@ -245,6 +249,8 @@ platform :ios do
     UI.user_error!("No app_name option set") unless app_name
 
     universal_link_base = options[:universal_link_base]
+    sentry_dsn = options[:sentry_dsn]
+    sentry_environment = options[:sentry_environment]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -272,6 +278,8 @@ platform :ios do
             "--no-codesign", "--#{build_mode}",
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
+            "--dart-define=SENTRY_DSN=#{sentry_dsn}",
+            "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
 
             # ENV_CONFIGURATION is ignored when mock repositories are configured
             "--dart-define=ENV_CONFIGURATION=true",
