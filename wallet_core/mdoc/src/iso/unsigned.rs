@@ -15,7 +15,6 @@ pub struct UnsignedMdoc {
     // with the other structs that have a doc_type field.
     #[serde(rename = "doctype")]
     pub doc_type: DocType,
-
     pub valid_from: Tdate,
     pub valid_until: Tdate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
