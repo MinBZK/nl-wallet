@@ -72,7 +72,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
     fn try_from(value: &BrpPerson) -> Result<Self, Self::Error> {
         let mdocs = vec![
             UnsignedMdoc {
-                doctype: String::from(MOCK_PID_DOCTYPE),
+                doc_type: String::from(MOCK_PID_DOCTYPE),
                 copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
@@ -134,7 +134,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                 )]),
             },
             UnsignedMdoc {
-                doctype: String::from(MOCK_ADDRESS_DOCTYPE),
+                doc_type: String::from(MOCK_ADDRESS_DOCTYPE),
                 copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),

@@ -374,7 +374,7 @@ impl AttributeService for MockAttributeService {
             .unwrap()
             .into_iter()
             .map(|unsigned_mdoc| AttestationPreview::MsoMdoc {
-                issuer: self.0[&unsigned_mdoc.doctype].clone(),
+                issuer: self.0[&unsigned_mdoc.doc_type].clone(),
                 unsigned_mdoc,
             })
             .collect::<Vec<_>>();

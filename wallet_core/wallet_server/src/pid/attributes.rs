@@ -51,8 +51,8 @@ impl AttributeCertificates {
         let preview = AttestationPreview::MsoMdoc {
             issuer: self
                 .certificates
-                .get(&unsigned.doctype)
-                .ok_or(Error::MissingCertificate(unsigned.doctype.clone()))?
+                .get(&unsigned.doc_type)
+                .ok_or(Error::MissingCertificate(unsigned.doc_type.clone()))?
                 .clone(),
             unsigned_mdoc: unsigned,
         };

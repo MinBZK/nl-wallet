@@ -180,7 +180,7 @@ impl From<(&'static str, &'static str, Vec<(&'static str, Value)>)> for TestDocu
 impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
         Self {
-            doctype: value.doc_type,
+            doc_type: value.doc_type,
             copy_count: NonZeroU8::new(1).unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),

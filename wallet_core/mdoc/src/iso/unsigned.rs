@@ -10,7 +10,12 @@ use crate::{Attributes, DataElementIdentifier, DataElementValue, DocType, NameSp
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub struct UnsignedMdoc {
-    pub doctype: DocType,
+    // ISO 18013-5 calls this `docType` (which in Rust would be `doc_type`), and OpenID4VCI calls this `doctype`.
+    // We rename it during serialization to cater to OpenID4VCI, but call it `doc_type` here for consistency
+    // with the other structs that have a doc_type field.
+    #[serde(rename = "doctype")]
+    pub doc_type: DocType,
+
     pub valid_from: Tdate,
     pub valid_until: Tdate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,

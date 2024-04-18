@@ -365,7 +365,7 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .flat_map(|preview| {
                 itertools::repeat_n(
                     match preview {
-                        AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.doctype.clone(),
+                        AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.doc_type.clone(),
                     },
                     preview.copy_count().into(),
                 )
