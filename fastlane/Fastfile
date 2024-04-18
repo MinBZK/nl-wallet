@@ -1,5 +1,6 @@
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
+DEFAULT_APP_NAME = "NL Wallet"
 
 # opt out of analytics
 opt_out_usage
@@ -81,8 +82,7 @@ platform :android do
     package_name = options[:package_name] || get_app_identifier
     UI.user_error!("No package_name option set") unless package_name
 
-    app_name = options[:app_name]
-    UI.user_error!("No app_name option set") unless app_name
+    app_name = options[:app_name] || DEFAULT_APP_NAME
 
     universal_link_base = options[:universal_link_base]
 
@@ -241,8 +241,7 @@ platform :ios do
     bundle_id = options[:bundle_id] || get_app_identifier
     UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
 
-    app_name = options[:app_name]
-    UI.user_error!("No app_name option set") unless app_name
+    app_name = options[:app_name] || DEFAULT_APP_NAME
 
     universal_link_base = options[:universal_link_base]
 
