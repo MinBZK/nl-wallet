@@ -19,6 +19,57 @@ static MUNICIPALITIES_TABLE: Lazy<HashMap<String, String>> =
 static COUNTRIES_TABLE: Lazy<HashMap<String, String>> =
     Lazy::new(|| read_csv("Tabel34 Landentabel (gesorteerd op code)").unwrap());
 
+pub enum Category {
+    Person = 1,
+    Nationality = 4,
+    MarriagePartnership = 5,
+    Address = 8,
+}
+
+impl Category {
+    pub fn code(self) -> u8 {
+        self as u8
+    }
+}
+
+pub enum Element {
+    Bsn = 120,
+    Voornamen = 210,
+    Voorvoegsel = 230,
+    Geslachtsnaam = 240,
+    Geboortedatum = 310,
+    Geboorteplaats = 320,
+    Geboorteland = 330,
+    Geslacht = 410,
+    Nationality = 510,
+    DatumAangaanHuwelijk = 610,
+    PlaatsAangaanHuwelijk = 620,
+    LandAangaanHuwelijk = 630,
+    DatumOntbindingHuwelijk = 710,
+    Straatnaam = 1110,
+    NaamOpenbareRuimte = 1115,
+    Huisnummer = 1120,
+    Huisletter = 1130,
+    Huisnummertoevoeging = 1140,
+    Postcode = 1160,
+    Woonplaats = 1170,
+    SoortVerbintenis = 1510,
+    IndicatieNaamgebruik = 6110,
+    RedenOpnameNationaliteit = 6310,
+    RedenBeeindigenNationaliteit = 6410,
+    AanduidingBijzonderNederlanderschap = 6510,
+    AangifteAdreshouding = 7210,
+    AanduidingInOnderzoek = 8310,
+    DatumIngangOnderzoek = 8320,
+    IngangsdatumGeldigheid = 8510,
+}
+
+impl Element {
+    pub fn code(self) -> u16 {
+        self as u16
+    }
+}
+
 pub fn initialize_eager() {
     let _ = Lazy::force(&NATIONALITY_TABLE);
     let _ = Lazy::force(&MUNICIPALITIES_TABLE);
@@ -115,15 +166,15 @@ impl TryFrom<GbaResponse> for GbaPerson {
     type Error = Error;
 
     fn try_from(value: GbaResponse) -> Result<Self, Self::Error> {
-        let cat1 = value.get_mandatory_voorkomen(1)?;
-        let cat4s: Vec<&Categorievoorkomen> = value.get_voorkomens(4);
-        let cat5s: Vec<&Categorievoorkomen> = value.get_voorkomens(5);
-        let cat8 = value.get_mandatory_voorkomen(8)?;
+        let cat1 = value.get_mandatory_voorkomen(Category::Person.code())?;
+        let cat4s: Vec<&Categorievoorkomen> = value.get_voorkomens(Category::Nationality.code());
+        let cat5s: Vec<&Categorievoorkomen> = value.get_voorkomens(Category::MarriagePartnership.code());
+        let cat8 = value.get_mandatory_voorkomen(Category::Address.code())?;
 
         let result = Self {
-            bsn: cat1.elementen.get_mandatory("120")?,
+            bsn: cat1.elementen.get_mandatory(Element::Bsn.code())?,
             gender: GbaCode {
-                code: cat1.elementen.get_mandatory("410")?,
+                code: cat1.elementen.get_mandatory(Element::Geslacht.code())?,
             },
             name: cat1.try_into()?,
             birth: cat1.try_into()?,
@@ -138,7 +189,7 @@ impl TryFrom<GbaResponse> for GbaPerson {
             address: cat8.try_into()?,
             investigation: cat1
                 .elementen
-                .get_optional("8310")
+                .get_optional(Element::AanduidingInOnderzoek.code())
                 .map(|_| cat1.try_into())
                 .transpose()?,
         };
@@ -152,11 +203,14 @@ impl TryFrom<&Categorievoorkomen> for GbaName {
 
     fn try_from(value: &Categorievoorkomen) -> Result<Self, Self::Error> {
         let name = GbaName {
-            given_names: value.elementen.get_optional("210"),
-            family_name_prefix: value.elementen.get_optional("230"),
-            family_name: value.elementen.get_mandatory("240")?,
+            given_names: value.elementen.get_optional(Element::Voornamen.code()),
+            family_name_prefix: value.elementen.get_optional(Element::Voorvoegsel.code()),
+            family_name: value.elementen.get_mandatory(Element::Geslachtsnaam.code())?,
             name_usage: GbaCode {
-                code: value.elementen.get_optional("6110").unwrap_or(String::from("E")),
+                code: value
+                    .elementen
+                    .get_optional(Element::IndicatieNaamgebruik.code())
+                    .unwrap_or(String::from("E")),
             },
         };
         Ok(name)
@@ -168,9 +222,15 @@ impl TryFrom<&Categorievoorkomen> for GbaBirth {
 
     fn try_from(value: &Categorievoorkomen) -> Result<Self, Self::Error> {
         let birth = GbaBirth {
-            date: value.elementen.get_mandatory("310")?,
-            place: value.elementen.get_optional("320").map(municipalities_code_description),
-            country: value.elementen.get_optional("330").map(country_code_description),
+            date: value.elementen.get_mandatory(Element::Geboortedatum.code())?,
+            place: value
+                .elementen
+                .get_optional(Element::Geboorteplaats.code())
+                .map(municipalities_code_description),
+            country: value
+                .elementen
+                .get_optional(Element::Geboorteland.code())
+                .map(country_code_description),
         };
         Ok(birth)
     }
@@ -181,13 +241,25 @@ impl TryFrom<&Categorievoorkomen> for GbaNationality {
 
     fn try_from(value: &Categorievoorkomen) -> Result<Self, Self::Error> {
         let nationality = GbaNationality {
-            nationality: value.elementen.get_optional("510").map(nationality_code_description),
-            reason_intake: value.elementen.get_optional("6310").map(|code| GbaCode { code }),
-            reason_termination: value.elementen.get_optional("6410").map(|code| GbaCode { code }),
-            date_start_validity: value.elementen.get_optional("8510"),
+            nationality: value
+                .elementen
+                .get_optional(Element::Nationality.code())
+                .map(nationality_code_description),
+            indication_special_citizenship: value
+                .elementen
+                .get_optional(Element::AanduidingBijzonderNederlanderschap.code()),
+            reason_intake: value
+                .elementen
+                .get_optional(Element::RedenOpnameNationaliteit.code())
+                .map(|code| GbaCode { code }),
+            reason_termination: value
+                .elementen
+                .get_optional(Element::RedenBeeindigenNationaliteit.code())
+                .map(|code| GbaCode { code }),
+            date_start_validity: value.elementen.get_optional(Element::IngangsdatumGeldigheid.code()),
             investigation: value
                 .elementen
-                .get_optional("8310")
+                .get_optional(Element::AanduidingInOnderzoek.code())
                 .map(|_| value.try_into())
                 .transpose()?,
         };
@@ -203,26 +275,32 @@ impl TryFrom<&Categorievoorkomen> for GbaPartner {
             name: value.try_into()?,
             birth: value.try_into()?,
             gender: GbaCode {
-                code: value.elementen.get_mandatory("410")?,
+                code: value.elementen.get_mandatory(Element::Geslacht.code())?,
             },
             kind: GbaCode {
-                code: value.elementen.get_mandatory("1510")?,
+                code: value.elementen.get_mandatory(Element::SoortVerbintenis.code())?,
             },
             start: value
                 .elementen
-                .get_optional("610")
+                .get_optional(Element::DatumAangaanHuwelijk.code())
                 .map(|date| GbaMarriagePartnershipStart {
                     date,
-                    place: value.elementen.get_optional("620").map(municipalities_code_description),
-                    country: value.elementen.get_optional("630").map(country_code_description),
+                    place: value
+                        .elementen
+                        .get_optional(Element::PlaatsAangaanHuwelijk.code())
+                        .map(municipalities_code_description),
+                    country: value
+                        .elementen
+                        .get_optional(Element::LandAangaanHuwelijk.code())
+                        .map(country_code_description),
                 }),
             end: value
                 .elementen
-                .get_optional("710")
+                .get_optional(Element::DatumOntbindingHuwelijk.code())
                 .map(|date| GbaMarriagePartnershipEnd { date }),
             investigation: value
                 .elementen
-                .get_optional("8310")
+                .get_optional(Element::AanduidingInOnderzoek.code())
                 .map(|_| value.try_into())
                 .transpose()?,
         };
@@ -235,15 +313,18 @@ impl TryFrom<&Categorievoorkomen> for GbaAddress {
 
     fn try_from(value: &Categorievoorkomen) -> Result<Self, Self::Error> {
         let address = GbaAddress {
-            short_street_name: value.elementen.get_mandatory("1110")?,
-            official_street_name: value.elementen.get_mandatory("1115")?,
-            house_number: u32::from_str(&value.elementen.get_mandatory("1120")?)
+            short_street_name: value.elementen.get_mandatory(Element::Straatnaam.code())?,
+            official_street_name: value.elementen.get_mandatory(Element::NaamOpenbareRuimte.code())?,
+            house_number: u32::from_str(&value.elementen.get_mandatory(Element::Huisnummer.code())?)
                 .expect("housenumber should be an integer"),
-            house_letter: value.elementen.get_optional("1130"),
-            house_number_addition: value.elementen.get_optional("1140"),
-            postal_code: value.elementen.get_optional("1160"),
-            city: value.elementen.get_mandatory("1170")?,
-            address_function: value.elementen.get_optional("7210").map(|code| GbaCode { code }),
+            house_letter: value.elementen.get_optional(Element::Huisletter.code()),
+            house_number_addition: value.elementen.get_optional(Element::Huisnummertoevoeging.code()),
+            postal_code: value.elementen.get_optional(Element::Postcode.code()),
+            city: value.elementen.get_mandatory(Element::Woonplaats.code())?,
+            address_function: value
+                .elementen
+                .get_optional(Element::AangifteAdreshouding.code())
+                .map(|code| GbaCode { code }),
         };
         Ok(address)
     }
@@ -254,8 +335,8 @@ impl TryFrom<&Categorievoorkomen> for GbaInvestigation {
 
     fn try_from(value: &Categorievoorkomen) -> Result<Self, Self::Error> {
         let investigation = GbaInvestigation {
-            data_investigated: value.elementen.get_optional("8310"),
-            start_date: value.elementen.get_optional("8320"),
+            data_investigated: value.elementen.get_optional(Element::AanduidingInOnderzoek.code()),
+            start_date: value.elementen.get_optional(Element::DatumIngangOnderzoek.code()),
         };
         Ok(investigation)
     }
@@ -379,7 +460,9 @@ pub struct GbaNationality {
     #[serde(rename = "nationaliteit")]
     nationality: Option<GbaCodeDescription>,
 
-    #[serde(skip)]
+    #[serde(rename = "aanduidingBijzonderNederlanderschap")]
+    indication_special_citizenship: Option<String>,
+
     reason_termination: Option<GbaCode>,
 
     #[serde(rename = "redenOpname")]

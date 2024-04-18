@@ -9,7 +9,7 @@ use reqwest::Response;
 
 use gba_hc_converter::{
     gba::{client::GbavClient, data::GbaResponse, error::Error},
-    haal_centraal::{PersonQuery, PersonsResponse},
+    haal_centraal::{Element, PersonQuery, PersonsResponse},
     server,
 };
 use wallet_common::reqwest::default_reqwest_client_builder;
@@ -81,7 +81,7 @@ impl GbavClient for MockGbavClient {
 struct ErrorGbavClient {}
 impl GbavClient for ErrorGbavClient {
     async fn vraag(&self, _bsn: &str) -> Result<GbaResponse, Error> {
-        Err(Error::MissingElement(String::from("510")))
+        Err(Error::MissingElement(Element::Nationality.code()))
     }
 }
 

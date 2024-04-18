@@ -1,7 +1,10 @@
-use gba_hc_converter::gba::{
-    client::{FileGbavClient, GbavClient},
-    data::GbaResponse,
-    error::Error,
+use gba_hc_converter::{
+    gba::{
+        client::{FileGbavClient, GbavClient},
+        data::GbaResponse,
+        error::Error,
+    },
+    haal_centraal::Element,
 };
 
 use crate::common::read_file;
@@ -22,7 +25,10 @@ async fn should_return_preloaded_xml() {
     let response = client.vraag("999991772").await.unwrap();
     assert_eq!(
         "Froukje",
-        &response.categorievoorkomens[0].elementen.get_mandatory("210").unwrap()
+        &response.categorievoorkomens[0]
+            .elementen
+            .get_mandatory(Element::Voornamen.code())
+            .unwrap()
     );
 }
 

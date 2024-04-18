@@ -14,7 +14,7 @@ pub enum Error {
     #[error("Categorie {0} is mandatory but missing")]
     MissingCategorie(u8),
     #[error("Element number {0} is mandatory but missing")]
-    MissingElement(String),
+    MissingElement(u16),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Unexpected response received")]

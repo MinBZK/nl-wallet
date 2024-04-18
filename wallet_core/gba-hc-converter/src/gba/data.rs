@@ -128,25 +128,25 @@ pub struct Categorievoorkomen {
 
 #[derive(Clone, Debug)]
 pub struct Elementen {
-    pub map: IndexMap<String, String>,
+    pub map: IndexMap<u16, String>,
 }
 
 impl Elementen {
-    pub fn get_mandatory(&self, element_number: &str) -> Result<String, Error> {
+    pub fn get_mandatory(&self, element_number: u16) -> Result<String, Error> {
         self.map
-            .get(element_number)
+            .get(&element_number)
             .cloned()
-            .ok_or(Error::MissingElement(String::from(element_number)))
+            .ok_or(Error::MissingElement(element_number))
     }
 
-    pub fn get_optional(&self, element_number: &str) -> Option<String> {
-        self.map.get(element_number).cloned()
+    pub fn get_optional(&self, element_number: u16) -> Option<String> {
+        self.map.get(&element_number).cloned()
     }
 }
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Item {
-    nummer: String,
+    nummer: u16,
     waarde: String,
 }
 
