@@ -19,6 +19,8 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/svg_or_image.dart';
+import '../common/widget/text/body_text.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import 'widget/introduction_progress_stepper.dart';
 
@@ -169,21 +171,13 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: MergeSemantics(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: context.textTheme.displayMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        description,
-                        style: context.textTheme.bodyLarge,
-                      ),
-                    ],
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TitleText(title),
+                    const SizedBox(height: 8),
+                    BodyText(description),
+                  ],
                 ),
               ),
             ),

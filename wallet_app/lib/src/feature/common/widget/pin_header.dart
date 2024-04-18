@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import 'text/body_text.dart';
+import 'text/title_text.dart';
 
 class PinHeader extends StatelessWidget {
   final String title;
@@ -43,30 +45,28 @@ class PinHeader extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     final textColor = hasError ? context.colorScheme.error : null;
     if (description == null) {
-      return Text(
+      return TitleText(
         title,
         textAlign: textAlign,
         style: context.textTheme.displayMedium?.copyWith(color: textColor),
       );
     } else {
-      return MergeSemantics(
-        child: Column(
-          crossAxisAlignment: _resolveCrossAxisAlignment(context),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: context.textTheme.displayMedium?.copyWith(color: textColor),
-              textAlign: textAlign,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              description!,
-              style: context.textTheme.bodyLarge?.copyWith(color: textColor),
-              textAlign: textAlign,
-            ),
-          ],
-        ),
+      return Column(
+        crossAxisAlignment: _resolveCrossAxisAlignment(context),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TitleText(
+            title,
+            style: context.textTheme.displayMedium?.copyWith(color: textColor),
+            textAlign: textAlign,
+          ),
+          const SizedBox(height: 8),
+          BodyText(
+            description!,
+            style: context.textTheme.bodyLarge?.copyWith(color: textColor),
+            textAlign: textAlign,
+          ),
+        ],
       );
     }
   }

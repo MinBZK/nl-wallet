@@ -149,9 +149,9 @@ pub enum AttestationPreview {
 }
 
 impl AttestationPreview {
-    pub fn copy_count(&self) -> u64 {
+    pub fn copy_count(&self) -> u8 {
         match self {
-            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count,
+            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
         }
     }
 }

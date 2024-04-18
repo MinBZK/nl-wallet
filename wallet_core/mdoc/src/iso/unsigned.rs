@@ -1,3 +1,5 @@
+use std::num::NonZeroU8;
+
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +16,7 @@ pub struct UnsignedMdoc {
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
 
     /// The amount of copies of this mdoc that the holder will receive.
-    pub copy_count: u64,
+    pub copy_count: NonZeroU8,
 }
 
 /// An attribute name and value.
@@ -37,5 +39,40 @@ impl From<&Attributes> for Vec<Entry> {
                 value: issuer_signed.0.element_value.clone(),
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use regex::Regex;
+
+    use crate::test::data;
+
+    use super::*;
+
+    #[test]
+    fn test_unsigned_mdoc_disclosure_count() {
+        let unsigned = UnsignedMdoc::from(data::pid_full_name().into_iter().next().unwrap());
+        let unsigned_json = serde_json::to_string(&unsigned).unwrap();
+
+        // Replace the `copyCount` in the JSON with invalid values, which should not deserialize.
+        let unsigned_json_cc_0 = Regex::new(r#""copyCount":\s*\d+"#)
+            .unwrap()
+            .replace(&unsigned_json, "\"copyCount\": 0");
+        let unsigned_json_cc_256 = Regex::new(r#""copyCount":\s*\d+"#)
+            .unwrap()
+            .replace(&unsigned_json, "\"copyCount\": 256");
+
+        serde_json::from_str::<UnsignedMdoc>(&unsigned_json_cc_0)
+            .expect_err("should not be valid JSON of UnsignedMdoc");
+        serde_json::from_str::<UnsignedMdoc>(&unsigned_json_cc_256)
+            .expect_err("should not be valid JSON of UnsignedMdoc");
+
+        // As a sanity check, replace the `copyCount` again with a valid value.
+        let unsigned_json_cc_100 = Regex::new(r#""copyCount":\s*\d+"#)
+            .unwrap()
+            .replace(&unsigned_json_cc_0, "\"copyCount\": 100");
+
+        serde_json::from_str::<UnsignedMdoc>(&unsigned_json_cc_100).expect("should be valid JSON of UnsignedMdoc");
     }
 }

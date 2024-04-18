@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::{num::NonZeroU8, ops::Add};
 
 use chrono::{Days, Utc};
 use ciborium::Value;
@@ -73,7 +73,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
         let mdocs = vec![
             UnsignedMdoc {
                 doctype: String::from(MOCK_PID_DOCTYPE),
-                copy_count: 2,
+                copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(
@@ -135,7 +135,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
             },
             UnsignedMdoc {
                 doctype: String::from(MOCK_ADDRESS_DOCTYPE),
-                copy_count: 2,
+                copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(
