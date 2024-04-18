@@ -599,6 +599,7 @@ build-ws-migrations-image:
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
         sentry_dsn:"${SENTRY_DSN}" \
+        sentry_environment:"${SENTRY_ENVIRONMENT}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION}"
   after_script:
@@ -613,6 +614,7 @@ build-ws-migrations-image:
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
     SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
 
 build-android-app-latest-release:
   extends: .build-android-app-latest
@@ -633,6 +635,8 @@ build-android-app-latest-profile:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
     APP_MOCK: "true"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
 
 build-android-app-mock-release:
   extends: .build-android-app-mock
@@ -648,6 +652,8 @@ build-android-app-mock-release:
     APP_NAME: "NL Wallet (demo)"
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
 
 build-android-app-demo-release:
   extends: .build-android-app-demo
@@ -704,6 +710,7 @@ build-android-app-demo-profile:
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
         sentry_dsn:"${SENTRY_DSN}" \
+        sentry_environment:"${SENTRY_ENVIRONMENT}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
@@ -716,6 +723,7 @@ build-android-app-demo-profile:
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
     SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
 
 build-ios-app-latest-release:
   extends: .build-ios-app-latest
@@ -734,6 +742,8 @@ build-ios-app-latest-profile:
     APP_NAME: "NL Wallet (demo)"
     APP_MOCK: "false"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
 
 build-ios-app-demo-release:
   extends: .build-ios-app-demo
@@ -752,6 +762,8 @@ build-ios-app-mock:
     APP_NAME: "NL Wallet (mock)"
     APP_MOCK: "true"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
 
 ### Android deploying
 .deploy-android-app:

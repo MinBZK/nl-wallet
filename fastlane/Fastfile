@@ -86,6 +86,7 @@ platform :android do
 
     universal_link_base = options[:universal_link_base]
     sentry_dsn = options[:sentry_dsn]
+    sentry_environment = options[:sentry_environment]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -115,6 +116,7 @@ platform :android do
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
+            "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
 
             # ENV_CONFIGURATION is ignored when mock repositories are configured
             "--dart-define=ENV_CONFIGURATION=true",
@@ -248,6 +250,7 @@ platform :ios do
 
     universal_link_base = options[:universal_link_base]
     sentry_dsn = options[:sentry_dsn]
+    sentry_environment = options[:sentry_environment]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -276,6 +279,7 @@ platform :ios do
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
+            "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
 
             # ENV_CONFIGURATION is ignored when mock repositories are configured
             "--dart-define=ENV_CONFIGURATION=true",

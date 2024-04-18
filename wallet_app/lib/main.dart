@@ -34,6 +34,7 @@ void main() async {
     await SentryFlutter.init(
       (options) => options
         ..dsn = Environment.sentryDsn
+        ..environment = Environment.sentryEnvironment
         ..debug = kDebugMode,
       appRunner: () => mainImpl(),
     );
