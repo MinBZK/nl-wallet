@@ -11,5 +11,6 @@ class Environment {
 
   static bool get hasSentryDsn => sentryDsn.isNotEmpty;
 
-  static String get sentryEnvironment => const String.fromEnvironment('SENTRY_ENVIRONMENT', defaultValue: 'unspecified');
+  static String get sentryEnvironment =>
+      const String.fromEnvironment('SENTRY_ENVIRONMENT', defaultValue: 'unspecified');
 }
