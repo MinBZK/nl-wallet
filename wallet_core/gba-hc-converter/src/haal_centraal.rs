@@ -262,7 +262,7 @@ impl TryFrom<&Categorievoorkomen> for GbaInvestigation {
 }
 
 fn municipalities_code_description(code: String) -> GbaCodeDescription {
-    let (code, description) = if Regex::new(r"^(\d+){4}$").unwrap().is_match(&code) {
+    let (code, description) = if Regex::new(r"^\d{4}$").unwrap().is_match(&code) {
         let description = MUNICIPALITIES_TABLE.get(&code).cloned();
         (Some(code), description)
     } else {
