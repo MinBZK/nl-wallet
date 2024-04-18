@@ -254,21 +254,41 @@ platform :ios do
 
     mock_repositories = options[:mock] || false
 
+    export_method = options[:app_store] ? "app-store" : "ad-hoc"
+
     flutter = flutter_cmd
 
-    UI.message("Going to build iOS bundleID #{bundle_id}, name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}, signing for #{options[:app_store]}")
+    UI.message("Going to build iOS bundleID #{bundle_id}, name #{app_name}, build name #{version} with number #{build} in mode #{build_mode}, signing for #{export_method}")
     UI.message("Using UL hostname #{universal_link_base} with #{mock_repositories ? "mock repositories" : "env configuration"}")
 
+    # Set up provisioning profiles using match
+    match(
+      type: options[:app_store] ? "appstore" : "adhoc",
+      readonly: true,
+      git_basic_authorization: options[:match_basic_auth],
+      keychain_password: options[:keychain_password]
+    )
+
+    # Update the Xcode project so that Flutter can produce a signed build archive
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "wallet_app/ios/Runner.xcodeproj",
+      bundle_identifier: bundle_id,
+      code_sign_identity: "iPhone Distribution",
+      profile_name: Actions.lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING][bundle_id]
+    )
+
+    # Set the app name and have Flutter build it
     Dir.chdir("../wallet_app") do
       sh(*flutter, "pub", "get")
 
-      sh(*flutter, "pub", "run", "rename", "--target", "ios", "--bundleId", bundle_id)
       sh(*flutter, "pub", "run", "rename", "--target", "ios", "--appname", app_name)
 
       sh(*flutter, "build", "ipa",
             "--build-number", build.to_s,
             "--build-name", version.to_s,
-            "--no-codesign", "--#{build_mode}",
+            "--#{build_mode}",
+            "--export-method", export_method,
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
 
@@ -277,12 +297,7 @@ platform :ios do
       )
     end
 
-    match(
-      type: options[:app_store] ? "appstore" : "adhoc",
-      readonly: true,
-      git_basic_authorization: options[:match_basic_auth],
-      keychain_password: options[:keychain_password]
-    )
+    # Create an .ipa file from the archive produce by Flutter
     build_app(
       skip_build_archive: true,
       archive_path: "wallet_app/build/ios/archive/Runner.xcarchive",
