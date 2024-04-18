@@ -1,4 +1,4 @@
-use std::{env, fs, path::PathBuf};
+use std::{env, path::PathBuf};
 
 use http::header;
 use pem::Pem;
@@ -90,7 +90,7 @@ where
     async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error> {
         let xml_file = self.base_path.join(format!("{}.xml", bsn));
         if xml_file.exists() {
-            let xml = fs::read_to_string(xml_file)?;
+            let xml = tokio::fs::read_to_string(xml_file).await?;
             let gba_response = GbaResponse::new(&xml)?;
             Ok(gba_response)
         } else {
