@@ -14,7 +14,7 @@ const LRD_NAMESPACE: &[u8] = b"http://www.bprbzk.nl/GBA/LRDPlus/version1.1";
 const CATEGORIEVOORKOMENS_TAG: &str = "categorievoorkomens";
 const RESULTAAT_TAG: &str = "resultaat";
 
-fn parse_xml(xml: &str) -> Result<GbaResponse, Error> {
+fn parse_response_xml(xml: &str) -> Result<GbaResponse, Error> {
     let mut reader = NsReader::from_str(xml);
     reader.trim_text(true);
 
@@ -65,7 +65,7 @@ pub struct GbaResponse {
 
 impl GbaResponse {
     pub fn new(xml: &str) -> Result<Self, Error> {
-        parse_xml(xml)
+        parse_response_xml(xml)
     }
 
     pub fn get_mandatory_voorkomen(&self, category_number: u8) -> Result<&Categorievoorkomen, Error> {
@@ -88,7 +88,7 @@ impl GbaResponse {
 
     pub fn as_error(&self) -> Result<(), Error> {
         if self.is_error() {
-            Err(Error::ErrorResponse(self.result.clone()))
+            Err(Error::GbaErrorResponse(self.result.clone()))
         } else {
             Ok(())
         }

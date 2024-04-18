@@ -20,7 +20,7 @@ pub enum Error {
     #[error("Unexpected response received")]
     UnexpectedResponse,
     #[error("Received error response: {0}")]
-    ErrorResponse(GbaResult),
+    GbaErrorResponse(GbaResult),
 }
 
 impl From<&Error> for StatusCode {
