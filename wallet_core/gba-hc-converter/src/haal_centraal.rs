@@ -109,6 +109,8 @@ impl PersonsResponse {
     }
 }
 
+/// Converts GBA-V XML to Haal-Centraal JSON. The reference for the category- and element numbers is
+/// the Logisch Ontwerp BRP: https://www.rvig.nl/lo-brp
 impl TryFrom<GbaResponse> for GbaPerson {
     type Error = Error;
 
