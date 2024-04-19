@@ -1,3 +1,5 @@
+pub use std::borrow::Cow;
+
 pub use sentry::ClientInitGuard;
 
 pub(crate) fn init_sentry() -> Option<ClientInitGuard> {
@@ -6,8 +8,8 @@ pub(crate) fn init_sentry() -> Option<ClientInitGuard> {
             dsn,
             sentry::ClientOptions {
                 release: sentry::release_name!(),
+                environment: option_env!("SENTRY_ENVIRONMENT").map(Cow::from),
                 attach_stacktrace: true,
-                traces_sample_rate: 1.0,
                 debug: true,
                 ..Default::default()
             },
