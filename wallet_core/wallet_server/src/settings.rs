@@ -127,10 +127,10 @@ impl Issuer {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
-        // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+        Settings::new_custom("wallet_server.toml", "wallet_server")
+    }
 
+    pub fn new_custom(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
@@ -146,10 +146,22 @@ impl Settings {
             vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
         )?;
 
+        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
+        // otherwise look in the current working directory.
+        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+        let config_source = config_path.join(config_file);
+
+        // If `config_source` exists use that, otherwise try `config_file` as absolute path.
+        let config_source = if config_source.exists() {
+            config_source
+        } else {
+            PathBuf::from(config_file)
+        };
+
         config_builder
-            .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
+            .add_source(File::from(config_source).required(false))
             .add_source(
-                Environment::with_prefix("wallet_server")
+                Environment::with_prefix(env_prefix)
                     .separator("__")
                     .prefix_separator("_")
                     .list_separator(",")

@@ -5138,6 +5138,7 @@ dependencies = [
  "base64 0.21.4",
  "chrono",
  "ciborium",
+ "clap",
  "config",
  "dashmap",
  "futures",
