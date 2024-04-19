@@ -203,6 +203,7 @@ impl TryFrom<AttestationPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
 pub enum TokenType {
     #[default]
     Bearer,
+    DPoP,
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-6.3
