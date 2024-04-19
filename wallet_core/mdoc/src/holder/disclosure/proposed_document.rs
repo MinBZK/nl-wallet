@@ -101,7 +101,7 @@ impl<I> ProposedDocument<I> {
         // As this method should only ever be called when we know that it
         // matches the `requested_attributes`, we know that it should result
         // in at least one name space with at least one attribute. For this
-        // reason calling `unwrap()` below is safe.
+        // reason calling `expect()` below is safe.
         let name_spaces = mdoc.issuer_signed.name_spaces.map(|name_spaces| {
             name_spaces
                 .into_inner()
@@ -126,7 +126,7 @@ impl<I> ProposedDocument<I> {
                 })
                 .collect::<IndexMap<_, _>>()
                 .try_into()
-                .unwrap()
+                .expect("stored_mdoc and requested_attributes intersection should not be empty")
         });
 
         // Construct everything necessary for signing when the user approves the disclosure.
