@@ -3,13 +3,12 @@ use std::{future::Future, sync::Arc, time::Duration};
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use nutype::nutype;
-use serde::{Deserialize, Serialize};
 use tokio::{task::JoinHandle, time};
 use tracing::warn;
 
 use wallet_common::utils::random_string;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct SessionState<T> {
     pub session_data: T,
     pub token: SessionToken,

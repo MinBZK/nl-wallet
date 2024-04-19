@@ -136,7 +136,7 @@ pub mod postgres {
 
     impl<T> SessionStore<T> for PostgresSessionStore
     where
-        T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
+        T: SessionDataType + Serialize + DeserializeOwned + Send,
     {
         async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
             // find value by token, deserialize from JSON if it exists
@@ -146,7 +146,15 @@ pub mod postgres {
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
             state
-                .map(|s| serde_json::from_value(s.data))
+                .map(|state| {
+                    let state = SessionState {
+                        session_data: serde_json::from_value(state.data)?,
+                        token: state.token.into(),
+                        last_active: state.last_active_date_time.into(),
+                    };
+
+                    Result::<_, serde_json::Error>::Ok(state)
+                })
                 .transpose()
                 .map_err(|e| SessionStoreError::Deserialize(Box::new(e)))
         }
@@ -155,7 +163,8 @@ pub mod postgres {
             // insert new value (serialized to JSON), update on conflicting session token
             session_state::Entity::insert(session_state::ActiveModel {
                 data: ActiveValue::set(
-                    serde_json::to_value(session.clone()).map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
+                    serde_json::to_value(session.session_data)
+                        .map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
                 ),
                 r#type: ActiveValue::set(T::TYPE.to_string()),
                 token: ActiveValue::set(session.token.into()),
@@ -189,12 +198,13 @@ pub mod postgres {
 
     #[cfg(test)]
     mod tests {
+        use serde::Deserialize;
+
         use crate::settings::Settings;
 
         use super::*;
-        use serde::Deserialize;
 
-        #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
         struct TestData {
             id: String,
             data: Vec<u8>,
