@@ -106,7 +106,7 @@ impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
 ///
 /// In issuance, this token is the part of the `ServiceEngagement` that identifies the session. During the session, the
 /// issuer additionally chooses a `SessionId` that must after that be present in each protocol message. The
-/// `SessionToken` is distict from `SessionId` because the `ServiceEngagement` that contains the `SessionToken` may be
+/// `SessionToken` is distinct from `SessionId` because the `ServiceEngagement` that contains the `SessionToken` may be
 /// transmitted over an insecure channel (e.g. a QR code). By not using the `SessionId` for this, the issuer transmits
 /// this to the holder in response to its first HTTPS request, so that it remains secret between them. Since in later
 /// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
