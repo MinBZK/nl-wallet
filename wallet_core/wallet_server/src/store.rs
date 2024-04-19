@@ -37,11 +37,11 @@ impl SessionStores {
         match url.scheme() {
             #[cfg(feature = "postgres")]
             "postgres" => {
-                let db = std::sync::Arc::new(postgres::connect(url).await?);
+                let store = PostgresSessionStore::try_new(url).await?;
                 Ok(SessionStores {
                     #[cfg(feature = "issuance")]
-                    issuance: SessionStoreVariant::Postgres(PostgresSessionStore::new(std::sync::Arc::clone(&db))),
-                    disclosure: SessionStoreVariant::Postgres(PostgresSessionStore::new(db)),
+                    issuance: SessionStoreVariant::Postgres(store.clone()),
+                    disclosure: SessionStoreVariant::Postgres(store),
                 })
             }
             "memory" => Ok(SessionStores {
@@ -58,7 +58,7 @@ impl SessionStores {
 /// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
 pub enum SessionStoreVariant<T> {
     #[cfg(feature = "postgres")]
-    Postgres(PostgresSessionStore<T>),
+    Postgres(PostgresSessionStore),
     Memory(MemorySessionStore<T>),
 }
 
@@ -85,7 +85,9 @@ where
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            SessionStoreVariant::Postgres(postgres) => postgres.cleanup().await,
+            SessionStoreVariant::Postgres(postgres) => {
+                <PostgresSessionStore as SessionStore<T>>::cleanup(postgres).await
+            }
             SessionStoreVariant::Memory(memory) => memory.cleanup().await,
         }
     }
@@ -93,12 +95,12 @@ where
 
 #[cfg(feature = "postgres")]
 pub mod postgres {
-    use std::{marker::PhantomData, sync::Arc, time::Duration};
+    use std::time::Duration;
 
     use chrono::Utc;
     use sea_orm::{
-        sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait,
-        QueryFilter,
+        sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr,
+        EntityTrait, QueryFilter,
     };
     use serde::{de::DeserializeOwned, Serialize};
     use tracing::log::LevelFilter;
@@ -113,21 +115,26 @@ pub mod postgres {
 
     const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
-    pub struct PostgresSessionStore<T> {
-        connection: Arc<DatabaseConnection>,
-        _marker: PhantomData<T>,
+    #[derive(Debug, Clone)]
+    pub struct PostgresSessionStore {
+        connection: DatabaseConnection,
     }
 
-    impl<T> PostgresSessionStore<T> {
-        pub fn new(db: Arc<DatabaseConnection>) -> Self {
-            Self {
-                connection: db,
-                _marker: PhantomData,
-            }
+    impl PostgresSessionStore {
+        pub async fn try_new(url: Url) -> Result<Self, DbErr> {
+            let mut connection_options = ConnectOptions::new(url);
+            connection_options
+                .connect_timeout(DB_CONNECT_TIMEOUT)
+                .sqlx_logging(true)
+                .sqlx_logging_level(LevelFilter::Trace);
+
+            let connection = Database::connect(connection_options).await?;
+
+            Ok(Self { connection })
         }
     }
 
-    impl<T> SessionStore<T> for PostgresSessionStore<T>
+    impl<T> SessionStore<T> for PostgresSessionStore
     where
         T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
     {
@@ -136,7 +143,7 @@ pub mod postgres {
             let state = session_state::Entity::find()
                 .filter(session_state::Column::Token.eq(token.to_string()))
                 .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
-                .one(self.connection.as_ref())
+                .one(&self.connection)
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
@@ -163,7 +170,7 @@ pub mod postgres {
                     .update_columns([session_state::Column::Data, session_state::Column::ExpirationDateTime])
                     .to_owned(),
             )
-            .exec(self.connection.as_ref())
+            .exec(&self.connection)
             .await
             .map_err(|e| SessionStoreError::Other(e.into()))?;
 
@@ -173,24 +180,14 @@ pub mod postgres {
         async fn cleanup(&self) -> Result<(), SessionStoreError> {
             // delete expired sessions
             session_state::Entity::delete_many()
+                .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
                 .filter(session_state::Column::ExpirationDateTime.lt(Utc::now()))
-                .exec(self.connection.as_ref())
+                .exec(&self.connection)
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
             Ok(())
         }
-    }
-
-    pub async fn connect(url: Url) -> Result<DatabaseConnection, anyhow::Error> {
-        let mut connection_options = ConnectOptions::new(url);
-        connection_options
-            .connect_timeout(DB_CONNECT_TIMEOUT)
-            .sqlx_logging(true)
-            .sqlx_logging_level(LevelFilter::Trace);
-
-        let db = Database::connect(connection_options).await?;
-        Ok(db)
     }
 
     #[cfg(test)]
@@ -214,8 +211,7 @@ pub mod postgres {
         #[tokio::test]
         async fn test_write() {
             let settings = Settings::new().unwrap();
-            let db = Arc::new(connect(settings.store_url).await.unwrap());
-            let store = PostgresSessionStore::<TestData>::new(db);
+            let store = PostgresSessionStore::try_new(settings.store_url).await.unwrap();
 
             let expected = SessionState::<TestData>::new(
                 SessionToken::new(),
@@ -227,7 +223,7 @@ pub mod postgres {
 
             store.write(&expected).await.unwrap();
 
-            let actual = store.get(&expected.token).await.unwrap().unwrap();
+            let actual: SessionState<TestData> = store.get(&expected.token).await.unwrap().unwrap();
             assert_eq!(actual.session_data, expected.session_data);
         }
     }

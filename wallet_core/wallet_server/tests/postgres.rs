@@ -1,15 +1,10 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::server_state::{SessionState, SessionStore, SessionToken};
 
 use wallet_server::{
     settings::Settings,
-    store::{
-        postgres::{self, PostgresSessionStore},
-        SessionDataType,
-    },
+    store::{postgres::PostgresSessionStore, SessionDataType},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -25,7 +20,7 @@ impl SessionDataType for TestData {
 #[tokio::test]
 async fn test_write() {
     let settings = Settings::new().unwrap();
-    let store = PostgresSessionStore::<TestData>::new(Arc::new(postgres::connect(settings.store_url).await.unwrap()));
+    let store = PostgresSessionStore::try_new(settings.store_url).await.unwrap();
 
     let expected = SessionState::<TestData>::new(
         SessionToken::new(),
@@ -37,6 +32,6 @@ async fn test_write() {
 
     store.write(&expected).await.unwrap();
 
-    let actual = store.get(&expected.token).await.unwrap().unwrap();
+    let actual: SessionState<TestData> = store.get(&expected.token).await.unwrap().unwrap();
     assert_eq!(actual.session_data, expected.session_data);
 }
