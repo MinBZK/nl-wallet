@@ -11,7 +11,6 @@ curl "https://publicaties.rvig.nl/dsresource?objectid=29b66cb2-02ef-4a11-baf4-31
 
 for table in "$t32" "$t33" "$t34"; do 
 	# Some version of iconv can't update the file in place
-	# TODO: determine if we lose anything with the conversion to utf-8
 	iconv -f utf-16le -t utf-8 "$table" > "temp.csv"
 	dos2unix "temp.csv"
 	mv "temp.csv" "$table"
