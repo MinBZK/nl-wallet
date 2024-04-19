@@ -1,16 +1,20 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-    name: db-cluster-mrp
+  name: db-cluster-mrp
 spec:
-    resources:
-        requests:
-            memory: "256Mi"
-            cpu: "0.5"
-        limits:
-            memory: "256Mi"
-            cpu: "0.5"
-    storage:
-        size: 10Gi
-    walStorage:
-        size: 10Gi
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "0.5"
+    limits:
+      memory: "256Mi"
+      cpu: "0.5"
+  storage:
+    size: 10Gi
+  walStorage:
+    size: 10Gi
+
+  postgresql:
+    parameters:
+      shared_buffers: "256MB"

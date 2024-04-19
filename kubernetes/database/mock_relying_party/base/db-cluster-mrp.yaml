@@ -13,10 +13,6 @@ spec:
       tier: zeer-vertrouwd
       egress-frontoffice-policy: allow
 
-  postgresql:
-    parameters:
-      shared_buffers: "256MB"
-
   resources:
     requests:
       memory: "256Mi"
