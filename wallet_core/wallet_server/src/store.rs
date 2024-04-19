@@ -148,7 +148,7 @@ pub mod postgres {
             state
                 .map(|state| {
                     let state = SessionState {
-                        session_data: serde_json::from_value(state.data)?,
+                        data: serde_json::from_value(state.data)?,
                         token: state.token.into(),
                         last_active: state.last_active_date_time.into(),
                     };
@@ -163,8 +163,7 @@ pub mod postgres {
             // insert new value (serialized to JSON), update on conflicting session token
             session_state::Entity::insert(session_state::ActiveModel {
                 data: ActiveValue::set(
-                    serde_json::to_value(session.session_data)
-                        .map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
+                    serde_json::to_value(session.data).map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
                 ),
                 r#type: ActiveValue::set(T::TYPE.to_string()),
                 token: ActiveValue::set(session.token.into()),
@@ -231,7 +230,7 @@ pub mod postgres {
             store.write(expected.clone()).await.unwrap();
 
             let actual: SessionState<TestData> = store.get(&expected.token).await.unwrap().unwrap();
-            assert_eq!(actual.session_data, expected.session_data);
+            assert_eq!(actual.data, expected.data);
         }
     }
 }

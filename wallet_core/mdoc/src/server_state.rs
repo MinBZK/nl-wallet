@@ -10,7 +10,7 @@ use wallet_common::utils::random_string;
 
 #[derive(Debug, Clone)]
 pub struct SessionState<T> {
-    pub session_data: T,
+    pub data: T,
     pub token: SessionToken,
     pub last_active: DateTime<Utc>,
 }
@@ -69,7 +69,7 @@ impl<T> MemorySessionStore<T> {
 impl<T> SessionState<T> {
     pub fn new(token: SessionToken, data: T) -> SessionState<T> {
         SessionState {
-            session_data: data,
+            data,
             token,
             last_active: Utc::now(),
         }

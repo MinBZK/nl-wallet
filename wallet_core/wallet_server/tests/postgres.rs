@@ -33,5 +33,5 @@ async fn test_write() {
     store.write(expected.clone()).await.unwrap();
 
     let actual: SessionState<TestData> = store.get(&expected.token).await.unwrap().unwrap();
-    assert_eq!(actual.session_data, expected.session_data);
+    assert_eq!(actual.data, expected.data);
 }

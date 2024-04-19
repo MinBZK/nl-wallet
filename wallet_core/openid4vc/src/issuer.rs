@@ -424,12 +424,12 @@ impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
     type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
-        let IssuanceData::Created(session_data) = value.session_data else {
+        let IssuanceData::Created(session_data) = value.data else {
             return Err(IssuanceError::UnexpectedState);
         };
         Ok(Session::<Created> {
             state: SessionState {
-                session_data,
+                data: session_data,
                 token: value.token,
                 last_active: value.last_active,
             },
@@ -517,7 +517,7 @@ impl Session<Created> {
 impl From<Session<WaitingForResponse>> for SessionState<IssuanceData> {
     fn from(value: Session<WaitingForResponse>) -> Self {
         SessionState {
-            session_data: IssuanceData::WaitingForResponse(value.state.session_data),
+            data: IssuanceData::WaitingForResponse(value.state.data),
             token: value.state.token,
             last_active: value.state.last_active,
         }
@@ -528,12 +528,12 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
     type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
-        let IssuanceData::WaitingForResponse(session_data) = value.session_data else {
+        let IssuanceData::WaitingForResponse(session_data) = value.data else {
             return Err(IssuanceError::UnexpectedState);
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
-                session_data,
+                data: session_data,
                 token: value.token,
                 last_active: value.last_active,
             },
@@ -695,7 +695,7 @@ impl Session<WaitingForResponse> {
 impl From<Session<Done>> for SessionState<IssuanceData> {
     fn from(value: Session<Done>) -> Self {
         SessionState {
-            session_data: IssuanceData::Done(value.state.session_data),
+            data: IssuanceData::Done(value.state.data),
             token: value.state.token,
             last_active: value.state.last_active,
         }
@@ -708,7 +708,7 @@ impl<T: IssuanceState> Session<T> {
     pub fn transition<NewT: IssuanceState>(self, new_state: NewT) -> Session<NewT> {
         Session {
             state: SessionState::<NewT> {
-                session_data: new_state,
+                data: new_state,
                 token: self.state.token,
                 last_active: Utc::now(),
             },
@@ -724,7 +724,7 @@ impl<T: IssuanceState> Session<T> {
     }
 
     pub fn session_data(&self) -> &T {
-        &self.state.session_data
+        &self.state.data
     }
 }
 

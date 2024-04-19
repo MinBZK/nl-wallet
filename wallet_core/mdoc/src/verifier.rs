@@ -169,7 +169,7 @@ pub enum DisclosureData {
 impl From<SessionState<Created>> for SessionState<DisclosureData> {
     fn from(value: SessionState<Created>) -> Self {
         SessionState {
-            session_data: DisclosureData::Created(value.session_data),
+            data: DisclosureData::Created(value.data),
             token: value.token,
             last_active: value.last_active,
         }
@@ -179,7 +179,7 @@ impl From<SessionState<Created>> for SessionState<DisclosureData> {
 impl From<SessionState<WaitingForResponse>> for SessionState<DisclosureData> {
     fn from(value: SessionState<WaitingForResponse>) -> Self {
         SessionState {
-            session_data: DisclosureData::WaitingForResponse(value.session_data),
+            data: DisclosureData::WaitingForResponse(value.data),
             token: value.token,
             last_active: value.last_active,
         }
@@ -189,7 +189,7 @@ impl From<SessionState<WaitingForResponse>> for SessionState<DisclosureData> {
 impl From<SessionState<Done>> for SessionState<DisclosureData> {
     fn from(value: SessionState<Done>) -> Self {
         SessionState {
-            session_data: DisclosureData::Done(value.session_data),
+            data: DisclosureData::Done(value.data),
             token: value.token,
             last_active: value.last_active,
         }
@@ -312,11 +312,11 @@ where
 
         info!("Session({token}): process message");
 
-        let (response, next) = match state.session_data {
+        let (response, next) = match state.data {
             DisclosureData::Created(session_data) => {
                 let session = Session::<Created> {
                     state: SessionState {
-                        session_data,
+                        data: session_data,
                         token: state.token,
                         last_active: state.last_active,
                     },
@@ -332,7 +332,7 @@ where
             DisclosureData::WaitingForResponse(session_data) => {
                 let session = Session::<WaitingForResponse> {
                     state: SessionState {
-                        session_data,
+                        data: session_data,
                         token: state.token,
                         last_active: state.last_active,
                     },
@@ -365,7 +365,7 @@ where
             .await
             .map_err(VerificationError::SessionStore)?
             .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
-            .session_data
+            .data
         {
             DisclosureData::Created(_) => Ok(StatusResponse::Created),
             DisclosureData::WaitingForResponse(_) => Ok(StatusResponse::WaitingForResponse),
@@ -393,7 +393,7 @@ where
             .await
             .map_err(VerificationError::SessionStore)?
             .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
-            .session_data
+            .data
         {
             DisclosureData::Created(_) => Err(VerificationError::SessionNotDone(StatusResponse::Created).into()),
             DisclosureData::WaitingForResponse(_) => {
@@ -443,7 +443,7 @@ impl<T: DisclosureState> Session<T> {
     fn transition<NewT: DisclosureState>(self, new_state: NewT) -> Session<NewT> {
         Session {
             state: SessionState::<NewT> {
-                session_data: new_state,
+                data: new_state,
                 token: self.state.token,
                 last_active: Utc::now(),
             },
@@ -451,7 +451,7 @@ impl<T: DisclosureState> Session<T> {
     }
 
     fn state(&self) -> &T {
-        &self.state.session_data
+        &self.state.data
     }
 }
 
@@ -598,7 +598,7 @@ impl Session<Created> {
         ephemeral_privkey: SecretKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
-        let return_url_used = self.state.session_data.return_url_used;
+        let return_url_used = self.state.data.return_url_used;
         self.transition(WaitingForResponse {
             items_requests,
             their_key,
@@ -706,11 +706,9 @@ impl Session<WaitingForResponse> {
 
         let transcript_hash = self
             .state
-            .session_data
+            .data
             .return_url_used
-            .then(|| {
-                cbor_serialize(&TaggedBytes(&self.state.session_data.session_transcript)).map(|b| utils::sha256(&b))
-            })
+            .then(|| cbor_serialize(&TaggedBytes(&self.state.data.session_transcript)).map(|b| utils::sha256(&b)))
             .transpose()?;
 
         Ok((response, disclosed_attributes, transcript_hash))
