@@ -59,23 +59,23 @@ mod tests {
         let unsigned = UnsignedMdoc::from(data::pid_full_name().into_iter().next().unwrap());
         let unsigned_json = serde_json::to_string(&unsigned).unwrap();
 
-        // Replace the `copyCount` in the JSON with invalid values, which should not deserialize.
-        let unsigned_json_cc_0 = Regex::new(r#""copyCount":\s*\d+"#)
+        // Replace the `copy_count` in the JSON with invalid values, which should not deserialize.
+        let unsigned_json_cc_0 = Regex::new(r#""copy_count":\s*\d+"#)
             .unwrap()
-            .replace(&unsigned_json, "\"copyCount\": 0");
-        let unsigned_json_cc_256 = Regex::new(r#""copyCount":\s*\d+"#)
+            .replace(&unsigned_json, "\"copy_count\": 0");
+        let unsigned_json_cc_256 = Regex::new(r#""copy_count":\s*\d+"#)
             .unwrap()
-            .replace(&unsigned_json, "\"copyCount\": 256");
+            .replace(&unsigned_json, "\"copy_count\": 256");
 
         serde_json::from_str::<UnsignedMdoc>(&unsigned_json_cc_0)
             .expect_err("should not be valid JSON of UnsignedMdoc");
         serde_json::from_str::<UnsignedMdoc>(&unsigned_json_cc_256)
             .expect_err("should not be valid JSON of UnsignedMdoc");
 
-        // As a sanity check, replace the `copyCount` again with a valid value.
-        let unsigned_json_cc_100 = Regex::new(r#""copyCount":\s*\d+"#)
+        // As a sanity check, replace the `copy_count` again with a valid value.
+        let unsigned_json_cc_100 = Regex::new(r#""copy_count":\s*\d+"#)
             .unwrap()
-            .replace(&unsigned_json_cc_0, "\"copyCount\": 100");
+            .replace(&unsigned_json_cc_0, "\"copy_count\": 100");
 
         serde_json::from_str::<UnsignedMdoc>(&unsigned_json_cc_100).expect("should be valid JSON of UnsignedMdoc");
     }
