@@ -62,21 +62,19 @@ pub enum SessionStoreVariant<T> {
     Memory(MemorySessionStore<T>),
 }
 
-impl<T> SessionStore for SessionStoreVariant<T>
+impl<T> SessionStore<T> for SessionStoreVariant<T>
 where
     T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
 {
-    type Data = SessionState<T>;
-
-    async fn get(&self, id: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
+    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            SessionStoreVariant::Postgres(postgres) => postgres.get(id).await,
-            SessionStoreVariant::Memory(memory) => memory.get(id).await,
+            SessionStoreVariant::Postgres(postgres) => postgres.get(token).await,
+            SessionStoreVariant::Memory(memory) => memory.get(token).await,
         }
     }
 
-    async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
+    async fn write(&self, session: &SessionState<T>) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
             SessionStoreVariant::Postgres(postgres) => postgres.write(session).await,
@@ -129,10 +127,11 @@ pub mod postgres {
         }
     }
 
-    impl<T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync> SessionStore for PostgresSessionStore<T> {
-        type Data = SessionState<T>;
-
-        async fn get(&self, token: &SessionToken) -> Result<Option<Self::Data>, SessionStoreError> {
+    impl<T> SessionStore<T> for PostgresSessionStore<T>
+    where
+        T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
+    {
+        async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
             // find value by token, deserialize from JSON if it exists
             let state = session_state::Entity::find()
                 .filter(session_state::Column::Token.eq(token.to_string()))
@@ -147,7 +146,7 @@ pub mod postgres {
                 .map_err(|e| SessionStoreError::Deserialize(Box::new(e)))
         }
 
-        async fn write(&self, session: &Self::Data) -> Result<(), SessionStoreError> {
+        async fn write(&self, session: &SessionState<T>) -> Result<(), SessionStoreError> {
             // insert new value (serialized to JSON), update on conflicting session token
             session_state::Entity::insert(session_state::ActiveModel {
                 data: ActiveValue::set(

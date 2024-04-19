@@ -2,10 +2,7 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{routing::get, Router};
-use nl_wallet_mdoc::{
-    server_state::{SessionState, SessionStore},
-    verifier::DisclosureData,
-};
+use nl_wallet_mdoc::{server_state::SessionStore, verifier::DisclosureData};
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 use tracing::debug;
 
@@ -36,7 +33,7 @@ fn setup_disclosure<S>(
     disclosure_sessions: S,
 ) -> Result<(SocketAddr, Option<SocketAddr>, Router, Router)>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let (wallet_disclosure_router, mut requester_router) =

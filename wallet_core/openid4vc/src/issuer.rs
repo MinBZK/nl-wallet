@@ -211,7 +211,7 @@ impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Send + Sync + 'static,
 {
     pub fn new(
         sessions: S,
@@ -265,7 +265,7 @@ impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
+    S: SessionStore<IssuanceData>,
 {
     pub async fn process_token_request(
         &self,

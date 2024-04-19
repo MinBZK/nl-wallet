@@ -235,7 +235,7 @@ impl<K, S> Drop for Verifier<K, S> {
 impl<K, S> Verifier<K, S>
 where
     K: KeyRing,
-    S: SessionStore<Data = SessionState<DisclosureData>>,
+    S: SessionStore<DisclosureData>,
 {
     /// Create a new [`Verifier`].
     ///

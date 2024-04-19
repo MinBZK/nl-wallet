@@ -5,6 +5,7 @@ use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use tokio::{task::JoinHandle, time};
 use tracing::warn;
+
 use wallet_common::utils::random_string;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,11 +29,12 @@ pub enum SessionStoreError {
 
 // For this trait we cannot use the `trait_variant::make()` macro to add the `Send` trait to the return type
 // of the async methods, as the `start_cleanup_task()` default method itself needs that specific trait.
-pub trait SessionStore {
-    type Data: Clone + Send + Sync;
-
-    fn get(&self, id: &SessionToken) -> impl Future<Output = Result<Option<Self::Data>, SessionStoreError>> + Send;
-    fn write(&self, session: &Self::Data) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
+pub trait SessionStore<T> {
+    fn get(
+        &self,
+        token: &SessionToken,
+    ) -> impl Future<Output = Result<Option<SessionState<T>>, SessionStoreError>> + Send;
+    fn write(&self, session: &SessionState<T>) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
     fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
@@ -80,9 +82,7 @@ pub const SESSION_EXPIRY_MINUTES: u64 = 5;
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: u64 = 120;
 
-impl<T: Clone + Send + Sync> SessionStore for MemorySessionStore<T> {
-    type Data = SessionState<T>;
-
+impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
     async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
         Ok(self.sessions.get(token).map(|s| s.clone()))
     }

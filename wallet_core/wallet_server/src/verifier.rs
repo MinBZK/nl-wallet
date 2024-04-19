@@ -25,7 +25,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
-    server_state::{SessionState, SessionStore, SessionStoreError, SessionToken},
+    server_state::{SessionStore, SessionStoreError, SessionToken},
     utils::{reader_auth::ReturnUrlPrefix, serialization::cbor_serialize, x509::Certificate},
     verifier::{
         DisclosedAttributes, DisclosureData, ItemsRequests, SessionType, StatusResponse, VerificationError, Verifier,
@@ -89,7 +89,7 @@ struct ApplicationState<S> {
 
 pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let application_state = Arc::new(ApplicationState {
         verifier: Verifier::new(
@@ -148,7 +148,7 @@ async fn session<S>(
     msg: Bytes,
 ) -> Result<Cbor<SessionData>, Error>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>>,
+    S: SessionStore<DisclosureData>,
 {
     info!("process received message");
 
@@ -167,7 +167,7 @@ async fn status<S>(
     Path(session_id): Path<SessionToken>,
 ) -> Result<Json<StatusResponse>, Error>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>> + Send + Sync + 'static,
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let status = state.verifier.status(&session_id).await.map_err(Error::SessionStatus)?;
     Ok(Json(status))
@@ -230,7 +230,7 @@ async fn start<S>(
     Json(start_request): Json<StartDisclosureRequest>,
 ) -> Result<Json<StartDisclosureResponse>, Error>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>>,
+    S: SessionStore<DisclosureData>,
 {
     let (session_id, engagement) = state
         .verifier
@@ -281,7 +281,7 @@ async fn disclosed_attributes<S>(
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Json<DisclosedAttributes>, Error>
 where
-    S: SessionStore<Data = SessionState<DisclosureData>>,
+    S: SessionStore<DisclosureData>,
 {
     let disclosed_attributes = state
         .verifier
