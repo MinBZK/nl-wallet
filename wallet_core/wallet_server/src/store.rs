@@ -140,9 +140,7 @@ pub mod postgres {
     {
         async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
             // find value by token, deserialize from JSON if it exists
-            let state = session_state::Entity::find()
-                .filter(session_state::Column::Token.eq(token.to_string()))
-                .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
+            let state = session_state::Entity::find_by_id((T::TYPE.to_string(), token.to_string()))
                 .one(&self.connection)
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
@@ -166,7 +164,7 @@ pub mod postgres {
                 ),
             })
             .on_conflict(
-                OnConflict::column(session_state::Column::Token)
+                OnConflict::columns([session_state::PrimaryKey::Type, session_state::PrimaryKey::Token])
                     .update_columns([session_state::Column::Data, session_state::Column::ExpirationDateTime])
                     .to_owned(),
             )

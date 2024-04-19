@@ -12,14 +12,15 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(SessionState::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(SessionState::Token).string().not_null().primary_key())
+                    .col(ColumnDef::new(SessionState::Type).string().not_null())
+                    .col(ColumnDef::new(SessionState::Token).string().not_null())
                     .col(ColumnDef::new(SessionState::Data).json().not_null())
-                    .col(ColumnDef::new(SessionState::Type).text().not_null())
                     .col(
                         ColumnDef::new(SessionState::ExpirationDateTime)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
+                    .primary_key(Index::create().col(SessionState::Type).col(SessionState::Token))
                     .to_owned(),
             )
             .await?;
@@ -33,8 +34,8 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum SessionState {
     Table,
+    Type,
     Token,
     Data,
     ExpirationDateTime,
-    Type,
 }
