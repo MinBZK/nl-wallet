@@ -16,6 +16,7 @@ import '../../common/widget/button/link_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text/body_text.dart';
 import '../../policy/policy_screen.dart';
 
 class DisclosureConfirmDataAttributesPage extends StatelessWidget {
@@ -103,23 +104,19 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.displayName.l10nValue(context)),
-              style: context.textTheme.displayMedium,
-              textAlign: TextAlign.start,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.l10n.disclosureConfirmDataAttributesDisclaimer,
-              style: context.textTheme.bodyLarge,
-              textAlign: TextAlign.start,
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.l10n.disclosureConfirmDataAttributesShareWithTitle(relyingParty.displayName.l10nValue(context)),
+            style: context.textTheme.displayMedium,
+            textAlign: TextAlign.start,
+          ),
+          const SizedBox(height: 8),
+          BodyText(
+            context.l10n.disclosureConfirmDataAttributesDisclaimer,
+          ),
+        ],
       ),
     );
   }

@@ -280,6 +280,8 @@ impl DocRequest {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroU8;
+
     use assert_matches::assert_matches;
 
     use rstest::rstest;
@@ -287,7 +289,10 @@ mod tests {
 
     use crate::{
         errors::Error,
-        iso::device_retrieval::DeviceRequestVersion,
+        iso::{
+            device_retrieval::DeviceRequestVersion,
+            mdocs::{Attributes, IssuerNameSpaces, IssuerSignedItem},
+        },
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         test::{
@@ -295,7 +300,6 @@ mod tests {
             TestDocument, TestDocuments,
         },
         unsigned::Entry,
-        Attributes, IssuerSignedItem,
     };
 
     use super::{super::test::*, *};
@@ -404,7 +408,9 @@ mod tests {
 
         let mut mdoc_data_source = MockMdocDataSource::new();
         for document in stored_documents.into_iter() {
-            mdoc_data_source.mdocs.push(document.sign(&ca, &key_factory, 1).await);
+            mdoc_data_source
+                .mdocs
+                .push(document.sign(&ca, &key_factory, NonZeroU8::new(1).unwrap()).await);
         }
 
         let device_request = DeviceRequest::from(requested_documents);
@@ -518,15 +524,16 @@ mod tests {
         }
     }
 
-    fn convert_namespaces(namespaces: IndexMap<String, Attributes>) -> IndexMap<String, Vec<Entry>> {
+    fn convert_namespaces(namespaces: IssuerNameSpaces) -> IndexMap<String, Vec<Entry>> {
         namespaces
+            .into_inner()
             .into_iter()
             .map(|(namespace, attributes)| (namespace, convert_attributes(attributes)))
             .collect()
     }
 
     fn convert_attributes(attributes: Attributes) -> Vec<Entry> {
-        attributes.0.into_iter().map(convert_attribute).collect()
+        attributes.into_inner().into_iter().map(convert_attribute).collect()
     }
 
     fn convert_attribute(attribute: TaggedBytes<IssuerSignedItem>) -> Entry {

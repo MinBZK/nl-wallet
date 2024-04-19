@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::{num::NonZeroU8, ops::Add};
 
 use chrono::{Days, Utc};
 use ciborium::Value;
@@ -73,7 +73,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
         let mdocs = vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
-                copy_count: 2,
+                copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(
@@ -131,11 +131,13 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                     .into_iter()
                     .flatten()
                     .collect(),
-                )]),
+                )])
+                .try_into()
+                .unwrap(),
             },
             UnsignedMdoc {
                 doc_type: String::from(MOCK_ADDRESS_DOCTYPE),
-                copy_count: 2,
+                copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
                 attributes: IndexMap::from([(
@@ -169,7 +171,9 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                     .into_iter()
                     .flatten()
                     .collect(),
-                )]),
+                )])
+                .try_into()
+                .unwrap(),
             },
         ];
 
@@ -402,7 +406,7 @@ mod tests {
                 ("gender", ""),
                 ("nationality", "Nederlandse"),
             ],
-            readable_attrs(&pid_card.attributes)
+            readable_attrs(pid_card.attributes.as_ref())
                 .iter()
                 .map(|(a, b)| (a.as_str(), b.as_str()))
                 .collect::<Vec<_>>()
@@ -416,7 +420,7 @@ mod tests {
                 ("resident_house_number", "1"),
                 ("resident_city", "Toetsoog"),
             ],
-            readable_attrs(&address_card.attributes)
+            readable_attrs(address_card.attributes.as_ref())
                 .iter()
                 .map(|(a, b)| (a.as_str(), b.as_str()))
                 .collect::<Vec<_>>()

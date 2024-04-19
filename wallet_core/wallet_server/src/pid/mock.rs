@@ -1,5 +1,5 @@
 /// Mock implementations of the two traits abstracting other components
-use std::{collections::HashMap, ops::Add};
+use std::{collections::HashMap, num::NonZeroU8, ops::Add};
 
 use chrono::{Days, Utc};
 use ciborium::Value;
@@ -7,75 +7,11 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 
 use nl_wallet_mdoc::{
-    server_state::SessionState,
     unsigned::{Entry, UnsignedMdoc},
-    utils::x509::Certificate,
     Tdate,
 };
-use openid4vc::{
-    issuer::{AttributeService, Created},
-    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
-};
-use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
-use crate::{
-    pid::{
-        attributes::{AttributeCertificates, Error},
-        constants::*,
-        digid::OpenIdClient,
-    },
-    settings::MockAttributes,
-};
-
-pub struct MockPidAttributeService {
-    openid_client: OpenIdClient,
-    attrs_lookup: MockAttributesLookup,
-    certificates: AttributeCertificates,
-}
-
-impl MockPidAttributeService {
-    pub fn new(
-        issuer_url: BaseUrl,
-        bsn_privkey: String,
-        trust_anchors: Vec<reqwest::Certificate>,
-        mock_data: Option<Vec<MockAttributes>>,
-        certificates: IndexMap<String, Certificate>,
-    ) -> Result<Self, Error> {
-        Ok(MockPidAttributeService {
-            openid_client: OpenIdClient::new(issuer_url, bsn_privkey, trust_anchors)?,
-            attrs_lookup: MockAttributesLookup::from(mock_data.unwrap_or_default()),
-            certificates: AttributeCertificates::new(certificates),
-        })
-    }
-}
-
-impl AttributeService for MockPidAttributeService {
-    type Error = Error;
-
-    async fn attributes(
-        &self,
-        _session: &SessionState<Created>,
-        token_request: TokenRequest,
-    ) -> Result<NonEmpty<Vec<AttestationPreview>>, Error> {
-        let openid_token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode {
-                code: token_request.code().clone(),
-            },
-            ..token_request
-        };
-
-        let bsn = self.openid_client.bsn(openid_token_request).await?;
-
-        let previews = self
-            .attrs_lookup
-            .attributes(&bsn)
-            .ok_or(Error::NoAttributesFound)?
-            .into_iter()
-            .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
-            .collect::<Result<Vec<_>, _>>()?;
-        previews.try_into().map_err(|_| Error::NoAttributesFound)
-    }
-}
+use crate::{pid::constants::*, settings::MockAttributes};
 
 // ISO/IEC 5218
 #[allow(dead_code)]
@@ -276,24 +212,34 @@ impl MockAttributesLookup {
         let (person, residence) = self.0.get(bsn)?;
 
         let attrs = vec![
-            UnsignedMdoc {
+            Some(UnsignedMdoc {
                 doc_type: MOCK_PID_DOCTYPE.to_string(),
-                copy_count: 2,
+                copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())]),
-            },
-            UnsignedMdoc {
-                doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                copy_count: 2,
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    MOCK_ADDRESS_DOCTYPE.to_string(),
-                    residence.clone().unwrap_or_default().into(),
-                )]),
-            },
-        ];
+                attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())])
+                    .try_into()
+                    .unwrap(),
+            }),
+            residence
+                .as_ref()
+                .and_then(|residence| {
+                    // This will return `None` if the `UnsignedAttributes` is empty.
+                    IndexMap::from([(MOCK_ADDRESS_DOCTYPE.to_string(), residence.clone().into())])
+                        .try_into()
+                        .ok()
+                })
+                .map(|attributes| UnsignedMdoc {
+                    doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                    copy_count: NonZeroU8::new(2).unwrap(),
+                    valid_from: Tdate::now(),
+                    valid_until: Utc::now().add(Days::new(365)).into(),
+                    attributes,
+                }),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
 
         Some(attrs)
     }

@@ -149,9 +149,9 @@ pub enum AttestationPreview {
 }
 
 impl AttestationPreview {
-    pub fn copy_count(&self) -> u64 {
+    pub fn copy_count(&self) -> u8 {
         match self {
-            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count,
+            AttestationPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
         }
     }
 }
@@ -203,6 +203,7 @@ impl TryFrom<AttestationPreview> for (UnsignedMdoc, Box<IssuerRegistration>) {
 pub enum TokenType {
     #[default]
     Bearer,
+    DPoP,
 }
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-6.3

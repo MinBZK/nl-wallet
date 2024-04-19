@@ -254,7 +254,12 @@ mod test {
         let map = docs
             .into_iter()
             .filter(|doc| doc_types.contains(&doc.doc_type.as_str()))
-            .map(|doc| (doc.doc_type, (issuer_certificate.clone(), doc.attributes).into()))
+            .map(|doc| {
+                (
+                    doc.doc_type,
+                    (issuer_certificate.clone(), doc.attributes.into_inner()).into(),
+                )
+            })
             .collect();
         EventDocuments(map)
     }

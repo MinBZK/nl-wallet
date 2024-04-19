@@ -1,4 +1,8 @@
-use std::{collections::HashSet, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+    time::Duration,
+};
 
 use chrono::Utc;
 use futures::future::try_join_all;
@@ -24,6 +28,8 @@ use crate::{
     },
     dpop::{Dpop, DpopError},
     jwt::{jwk_to_p256, JwkConversionError},
+    metadata::{self, CredentialResponseEncryption, IssuerMetadata},
+    oidc,
     token::{
         AccessToken, AttestationPreview, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse,
         TokenResponseWithPreviews, TokenType,
@@ -148,7 +154,7 @@ pub struct Session<S: IssuanceState> {
 }
 
 /// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
-/// the token request. See for example the [`MockPidAttributeService`].
+/// the token request. See for example the [`BrpPidAttributeService`].
 ///
 /// A future implementation of this trait is expected to enable generic issuance of attributes as follows:
 /// - The owner of the issuance server determines the attributes to be issued and sends those to the issuance server.
@@ -167,6 +173,8 @@ pub trait LocalAttributeService {
         session: &SessionState<Created>,
         token_request: TokenRequest,
     ) -> Result<NonEmpty<Vec<AttestationPreview>>, Self::Error>;
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
 
 pub struct Issuer<A, K, S> {
@@ -174,6 +182,7 @@ pub struct Issuer<A, K, S> {
     attr_service: A,
     issuer_data: IssuerData<K>,
     cleanup_task: JoinHandle<()>,
+    pub metadata: IssuerMetadata,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
@@ -213,14 +222,15 @@ where
     ) -> Self {
         let sessions = Arc::new(sessions);
 
+        let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
             private_keys,
-            credential_issuer_identifier: server_url.join_base_url("issuance/"),
+            credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_client_ids,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
-            server_url: server_url.join_base_url("issuance/"),
+            server_url: issuer_url.clone(),
         };
 
         Self {
@@ -228,6 +238,25 @@ where
             attr_service,
             issuer_data,
             cleanup_task: sessions.start_cleanup_task(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)),
+            metadata: IssuerMetadata {
+                issuer_config: metadata::IssuerData {
+                    credential_issuer: issuer_url.clone(),
+                    authorization_servers: None,
+                    credential_endpoint: issuer_url.join_base_url("/credential"),
+                    batch_credential_endpoint: Some(issuer_url.join_base_url("/batch_credential")),
+                    deferred_credential_endpoint: None,
+                    notification_endpoint: None,
+                    credential_response_encryption: CredentialResponseEncryption {
+                        alg_values_supported: vec![],
+                        enc_values_supported: vec![],
+                        encryption_required: false,
+                    },
+                    credential_identifiers_supported: Some(false),
+                    display: None,
+                    credential_configurations_supported: HashMap::new(),
+                },
+                signed_metadata: None,
+            },
         }
     }
 }
@@ -383,6 +412,12 @@ where
 
         Ok(())
     }
+
+    pub async fn oauth_metadata(&self) -> Result<oidc::Config, A::Error> {
+        self.attr_service
+            .oauth_metadata(&self.issuer_data.credential_issuer_identifier)
+            .await
+    }
 }
 
 impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
@@ -458,7 +493,6 @@ impl Session<Created> {
             .await
             .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
 
-        // Append the authorization code, so that when the wallet comes back we can use it to retrieve the session
         let c_nonce = random_string(32);
         let dpop_nonce = random_string(32);
 
@@ -466,7 +500,7 @@ impl Session<Created> {
             token_response: TokenResponse {
                 access_token: AccessToken::new(&code),
                 c_nonce: Some(c_nonce),
-                token_type: TokenType::Bearer,
+                token_type: TokenType::DPoP,
                 expires_in: None,
                 refresh_token: None,
                 scope: None,
@@ -642,9 +676,10 @@ impl Session<WaitingForResponse> {
         let credential_responses = try_join_all(
             credential_requests
                 .credential_requests
+                .as_ref()
                 .iter()
                 .zip(session_data.attestation_previews.iter().flat_map(|preview| {
-                    itertools::repeat_n::<&UnsignedMdoc>(preview.as_ref(), preview.copy_count().try_into().unwrap())
+                    itertools::repeat_n::<&UnsignedMdoc>(preview.as_ref(), preview.copy_count().into())
                 }))
                 .map(|(cred_req, unsigned_mdoc)| async move {
                     verify_pop_and_sign_attestation(&session_data.c_nonce, cred_req, unsigned_mdoc.clone(), issuer_data)
@@ -730,7 +765,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     let private_key = issuer_data.private_keys.private_key(&unsigned_mdoc.doc_type).ok_or(
         CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
     )?;
-    let (issuer_signed, _) = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
         .await
         .map_err(CredentialRequestError::AttestationSigning)?;
 

@@ -203,6 +203,8 @@ in the URL, which is provided using self-signed certificates.
 Besides that, the development setup runs without using TLS. Therefore, the feature `allow_http_return_url` enables the
 possibility to use a return URL with the scheme `http` (while normally `https` is only allowed).
 
+The local wallet can be connected to Sentry for crash and error reporting by setting the `SENTRY_DSN` environment variable.
+
 Additionally, the `wallet` crate offers the `config_env` feature to aid during local development, which does the following:
 
 * Any constant defined in the file `data.rs` can be overridden by an environment variable of the same name at compile time.

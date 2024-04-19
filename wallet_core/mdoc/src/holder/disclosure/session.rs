@@ -644,18 +644,12 @@ mod tests {
             identity,
             |mut mdoc_source| {
                 // Remove the last attribute.
-                mdoc_source
-                    .mdocs
-                    .first_mut()
-                    .unwrap()
-                    .issuer_signed
-                    .name_spaces
-                    .as_mut()
-                    .unwrap()
-                    .get_mut(EXAMPLE_NAMESPACE)
-                    .unwrap()
-                    .0
-                    .pop();
+                let issuer_signed = &mut mdoc_source.mdocs.first_mut().unwrap().issuer_signed;
+                let name_spaces = issuer_signed.name_spaces.as_mut().unwrap();
+
+                name_spaces.modify_attributes(EXAMPLE_NAMESPACE, |attributes| {
+                    attributes.pop();
+                });
 
                 mdoc_source
             },

@@ -5,6 +5,7 @@ import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/secondary_button.dart';
+import '../common/widget/paragraphed_list.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
 class ForgotPinScreen extends StatelessWidget {
@@ -42,11 +43,7 @@ class ForgotPinScreen extends StatelessWidget {
   Widget _buildContentSliver(BuildContext context) {
     return SliverList.list(
       children: [
-        Text(
-          context.l10n.forgotPinScreenDescription,
-          textAlign: TextAlign.start,
-          style: context.textTheme.bodyLarge,
-        ),
+        ParagraphedList.splitContent(context.l10n.forgotPinScreenDescription),
         const SizedBox(height: 32),
         Image.asset(WalletAssets.illustration_forgot_pin_header, fit: BoxFit.fitWidth),
       ],
