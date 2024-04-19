@@ -23,14 +23,14 @@ async fn test_write() {
     let store = PostgresSessionStore::try_new(settings.store_url).await.unwrap();
 
     let expected = SessionState::<TestData>::new(
-        SessionToken::new(),
+        SessionToken::new_random(),
         TestData {
             id: "hello".to_owned(),
             data: vec![1, 2, 3],
         },
     );
 
-    store.write(&expected).await.unwrap();
+    store.write(expected.clone()).await.unwrap();
 
     let actual: SessionState<TestData> = store.get(&expected.token).await.unwrap().unwrap();
     assert_eq!(actual.session_data, expected.session_data);

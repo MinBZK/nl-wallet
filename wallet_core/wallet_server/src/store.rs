@@ -74,7 +74,7 @@ where
         }
     }
 
-    async fn write(&self, session: &SessionState<T>) -> Result<(), SessionStoreError> {
+    async fn write(&self, session: SessionState<T>) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
             SessionStoreVariant::Postgres(postgres) => postgres.write(session).await,
@@ -151,14 +151,14 @@ pub mod postgres {
                 .map_err(|e| SessionStoreError::Deserialize(Box::new(e)))
         }
 
-        async fn write(&self, session: &SessionState<T>) -> Result<(), SessionStoreError> {
+        async fn write(&self, session: SessionState<T>) -> Result<(), SessionStoreError> {
             // insert new value (serialized to JSON), update on conflicting session token
             session_state::Entity::insert(session_state::ActiveModel {
                 data: ActiveValue::set(
                     serde_json::to_value(session.clone()).map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
                 ),
                 r#type: ActiveValue::set(T::TYPE.to_string()),
-                token: ActiveValue::set(session.token.to_string()),
+                token: ActiveValue::set(session.token.into()),
                 expiration_date_time: ActiveValue::set(
                     (session.last_active + chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64)).into(),
                 ),
@@ -212,14 +212,14 @@ pub mod postgres {
             let store = PostgresSessionStore::try_new(settings.store_url).await.unwrap();
 
             let expected = SessionState::<TestData>::new(
-                SessionToken::new(),
+                SessionToken::new_random(),
                 TestData {
                     id: "hello".to_owned(),
                     data: vec![1, 2, 3],
                 },
             );
 
-            store.write(&expected).await.unwrap();
+            store.write(expected.clone()).await.unwrap();
 
             let actual: SessionState<TestData> = store.get(&expected.token).await.unwrap().unwrap();
             assert_eq!(actual.session_data, expected.session_data);

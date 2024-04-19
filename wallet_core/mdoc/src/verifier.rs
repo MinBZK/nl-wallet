@@ -291,7 +291,7 @@ where
             &self.url.join_base_url("disclosure/"),
         )?;
         self.sessions
-            .write(&session_state.state.into())
+            .write(session_state.state.into())
             .await
             .map_err(VerificationError::SessionStore)?;
         info!("Session({session_token}): session created");
@@ -351,7 +351,7 @@ where
         }?;
 
         self.sessions
-            .write(&next)
+            .write(next)
             .await
             .map_err(VerificationError::SessionStore)?;
 
@@ -464,8 +464,8 @@ impl Session<Created> {
         return_url_used: bool,
         base_url: &BaseUrl,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
-        let session_token = SessionToken::new();
-        let url = base_url.join(&session_token.0);
+        let session_token = SessionToken::new_random();
+        let url = base_url.join(&session_token.to_string());
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(

@@ -304,7 +304,7 @@ where
         };
 
         self.sessions
-            .write(&next)
+            .write(next)
             .await
             .map_err(|e| TokenRequestError::IssuanceError(e.into()))?;
 
@@ -333,7 +333,7 @@ where
             .await;
 
         self.sessions
-            .write(&next.into())
+            .write(next.into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
 
@@ -362,7 +362,7 @@ where
             .await;
 
         self.sessions
-            .write(&next.into())
+            .write(next.into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
 
@@ -406,7 +406,7 @@ where
         });
 
         self.sessions
-            .write(&next.into())
+            .write(next.into())
             .await
             .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
 

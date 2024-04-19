@@ -1,7 +1,8 @@
-use std::{fmt::Display, future::Future, sync::Arc, time::Duration};
+use std::{future::Future, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use tokio::{task::JoinHandle, time};
 use tracing::warn;
@@ -34,7 +35,7 @@ pub trait SessionStore<T> {
         &self,
         token: &SessionToken,
     ) -> impl Future<Output = Result<Option<SessionState<T>>, SessionStoreError>> + Send;
-    fn write(&self, session: &SessionState<T>) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
+    fn write(&self, session: SessionState<T>) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
     fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
@@ -87,8 +88,8 @@ impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
         Ok(self.sessions.get(token).map(|s| s.clone()))
     }
 
-    async fn write(&self, session: &SessionState<T>) -> Result<(), SessionStoreError> {
-        self.sessions.insert(session.token.clone(), session.clone());
+    async fn write(&self, session: SessionState<T>) -> Result<(), SessionStoreError> {
+        self.sessions.insert(session.token.clone(), session);
         Ok(())
     }
 
@@ -110,23 +111,11 @@ impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
 /// this to the holder in response to its first HTTPS request, so that it remains secret between them. Since in later
 /// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
 /// sends the first HTTP request can send later HTTP requests for the session.
-#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct SessionToken(pub(crate) String);
+#[nutype(derive(Debug, Clone, PartialEq, Eq, Hash, From, Into, Display, Serialize, Deserialize))]
+pub struct SessionToken(String);
 
 impl SessionToken {
-    pub fn new() -> Self {
+    pub fn new_random() -> Self {
         random_string(32).into()
-    }
-}
-
-impl From<String> for SessionToken {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl Display for SessionToken {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
     }
 }
