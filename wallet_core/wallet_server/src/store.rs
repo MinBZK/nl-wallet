@@ -159,13 +159,11 @@ pub mod postgres {
                 ),
                 r#type: ActiveValue::set(T::TYPE.to_string()),
                 token: ActiveValue::set(session.token.into()),
-                expiration_date_time: ActiveValue::set(
-                    (session.last_active + chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64)).into(),
-                ),
+                last_active_date_time: ActiveValue::set(session.last_active.into()),
             })
             .on_conflict(
                 OnConflict::columns([session_state::PrimaryKey::Type, session_state::PrimaryKey::Token])
-                    .update_columns([session_state::Column::Data, session_state::Column::ExpirationDateTime])
+                    .update_columns([session_state::Column::Data, session_state::Column::LastActiveDateTime])
                     .to_owned(),
             )
             .exec(&self.connection)
@@ -177,9 +175,10 @@ pub mod postgres {
 
         async fn cleanup(&self) -> Result<(), SessionStoreError> {
             // delete expired sessions
+            let threshold = Utc::now() - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.try_into().unwrap());
             session_state::Entity::delete_many()
                 .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
-                .filter(session_state::Column::ExpirationDateTime.lt(Utc::now()))
+                .filter(session_state::Column::LastActiveDateTime.lt(threshold))
                 .exec(&self.connection)
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;

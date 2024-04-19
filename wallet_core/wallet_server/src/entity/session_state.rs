@@ -10,7 +10,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub token: String,
     pub data: Json,
-    pub expiration_date_time: DateTimeWithTimeZone,
+    pub last_active_date_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
