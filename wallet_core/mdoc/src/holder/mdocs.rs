@@ -79,10 +79,14 @@ impl Mdoc {
         self.issuer_signed
             .name_spaces
             .as_ref()
-            .unwrap_or(&IndexMap::new())
-            .iter()
-            .map(|(namespace, attrs)| (namespace.clone(), Vec::<Entry>::from(attrs)))
-            .collect::<IndexMap<_, _>>()
+            .map(|name_spaces| {
+                name_spaces
+                    .as_ref()
+                    .iter()
+                    .map(|(name_space, attrs)| (name_space.clone(), attrs.into()))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     pub fn issuer_certificate(&self) -> Result<Certificate, CoseError> {
@@ -94,7 +98,7 @@ impl Mdoc {
     pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedAttributesMismatch> {
         let our_attrs = self.attributes();
         let our_attrs = flatten_map(&self.doc_type, &our_attrs);
-        let expected_attrs = flatten_map(&unsigned.doc_type, &unsigned.attributes);
+        let expected_attrs = flatten_map(&unsigned.doc_type, unsigned.attributes.as_ref());
 
         let missing = expected_attrs
             .iter()

@@ -890,10 +890,15 @@ impl IssuerSigned {
         let attrs = self
             .name_spaces
             .as_ref()
-            .unwrap_or(&IndexMap::new())
-            .iter()
-            .map(|(namespace, items)| Ok((namespace.to_string(), mso.verify_attrs_in_namespace(items, namespace)?)))
-            .collect::<Result<_>>()?;
+            .map(|name_spaces| {
+                name_spaces
+                    .as_ref()
+                    .iter()
+                    .map(|(namespace, items)| Ok((namespace.clone(), mso.verify_attrs_in_namespace(items, namespace)?)))
+                    .collect::<Result<_>>()
+            })
+            .transpose()?
+            .unwrap_or_default();
 
         Ok((
             DocumentDisclosedAttributes {
@@ -909,7 +914,7 @@ impl IssuerSigned {
 impl MobileSecurityObject {
     fn verify_attrs_in_namespace(&self, attrs: &Attributes, namespace: &NameSpace) -> Result<Vec<Entry>> {
         attrs
-            .0
+            .as_ref()
             .iter()
             .map(|item| {
                 self.verify_attr_digest(namespace, item)?;
@@ -1087,8 +1092,8 @@ mod tests {
         let document = device_response.documents.as_ref().unwrap()[0].clone();
         assert_eq!(document.doc_type, EXAMPLE_DOC_TYPE);
         let namespaces = document.issuer_signed.name_spaces.as_ref().unwrap();
-        let attrs = namespaces.get(EXAMPLE_NAMESPACE).unwrap();
-        let issuer_signed_attr = attrs.0.first().unwrap().0.clone();
+        let attrs = namespaces.as_ref().get(EXAMPLE_NAMESPACE).unwrap();
+        let issuer_signed_attr = attrs.as_ref().first().unwrap().0.clone();
         assert_eq!(issuer_signed_attr.element_identifier, EXAMPLE_ATTR_NAME);
         assert_eq!(issuer_signed_attr.element_value, *EXAMPLE_ATTR_VALUE);
         println!("issuer_signed_attr: {:#?}", DebugCollapseBts::from(&issuer_signed_attr));
@@ -1235,7 +1240,6 @@ mod tests {
     #[case(remove_documents())]
     #[case(remove_document())]
     #[case(change_doctype())]
-    #[case(remove_namespace())]
     #[case(change_namespace())]
     #[case(remove_attribute())]
     #[case(multiple_doc_types_swapped())]
@@ -1263,17 +1267,12 @@ mod tests {
     // Matching attributes is insensitive to swapped attributes, so verification succeeds
     fn swap_attributes() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
-        device_response.documents.as_mut().unwrap()[0]
-            .issuer_signed
-            .name_spaces
-            .as_mut()
-            .unwrap()
-            .first_mut()
-            .as_mut()
-            .unwrap()
-            .1
-             .0
-            .swap(0, 1);
+        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
+        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
+
+        name_spaces.modify_first_attributes(|attributes| {
+            attributes.swap(0, 1);
+        });
 
         (device_response, example_items_requests(), Ok(()))
     }
@@ -1314,36 +1313,16 @@ mod tests {
         (device_response, items_requests, Err(missing))
     }
 
-    // Remove one of the disclosed namespaces
-    fn remove_namespace() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        device_response.documents.as_mut().unwrap()[0]
-            .issuer_signed
-            .name_spaces
-            .as_mut()
-            .unwrap()
-            .pop();
-
-        let items_requests = example_items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
     // Change a namespace so it is not the requested one
     fn change_namespace() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
-        let namespaces = device_response
-            .documents
-            .as_mut()
-            .unwrap()
-            .first_mut()
-            .unwrap()
-            .issuer_signed
-            .name_spaces
-            .as_mut()
-            .unwrap();
-        let (_, attributes) = namespaces.pop().unwrap();
-        namespaces.insert("some_not_requested_name_space".to_string(), attributes);
+        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
+        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
+
+        name_spaces.modify_namespaces(|name_spaces| {
+            let (_, attributes) = name_spaces.pop().unwrap();
+            name_spaces.insert("some_not_requested_name_space".to_string(), attributes);
+        });
 
         let items_requests = example_items_requests();
         let missing = attribute_identifiers(&items_requests);
@@ -1353,16 +1332,12 @@ mod tests {
     // Remove one of the disclosed attributes
     fn remove_attribute() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
         let mut device_response = DeviceResponse::example();
-        device_response.documents.as_mut().unwrap()[0]
-            .issuer_signed
-            .name_spaces
-            .as_mut()
-            .unwrap()
-            .first_mut()
-            .unwrap()
-            .1
-             .0
-            .pop();
+        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
+        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
+
+        name_spaces.modify_first_attributes(|attributes| {
+            attributes.pop();
+        });
 
         let items_requests = example_items_requests();
         let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];

@@ -5,7 +5,7 @@ use crate::{
     iso::{
         device_retrieval::{DeviceRequest, ItemsRequest},
         disclosure::IssuerSigned,
-        mdocs::{Attributes, DataElementIdentifier, DocType, NameSpace},
+        mdocs::{DataElementIdentifier, DocType, NameSpace},
     },
     utils::serialization::TaggedBytes,
     Document,
@@ -30,13 +30,17 @@ impl IssuerSigned {
             .as_ref()
             .map(|name_spaces| {
                 name_spaces
-                    .into_iter()
-                    .flat_map(|(namespace, Attributes(attributes))| {
-                        attributes.iter().map(|TaggedBytes(attribute)| AttributeIdentifier {
-                            doc_type: doc_type.to_owned(),
-                            namespace: namespace.to_owned(),
-                            attribute: attribute.element_identifier.to_owned(),
-                        })
+                    .as_ref()
+                    .iter()
+                    .flat_map(|(namespace, attributes)| {
+                        attributes
+                            .as_ref()
+                            .iter()
+                            .map(|TaggedBytes(attribute)| AttributeIdentifier {
+                                doc_type: doc_type.to_owned(),
+                                namespace: namespace.to_owned(),
+                                attribute: attribute.element_identifier.to_owned(),
+                            })
                     })
                     .collect()
             })

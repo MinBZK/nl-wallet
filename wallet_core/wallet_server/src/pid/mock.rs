@@ -212,24 +212,34 @@ impl MockAttributesLookup {
         let (person, residence) = self.0.get(bsn)?;
 
         let attrs = vec![
-            UnsignedMdoc {
+            Some(UnsignedMdoc {
                 doc_type: MOCK_PID_DOCTYPE.to_string(),
                 copy_count: NonZeroU8::new(2).unwrap(),
                 valid_from: Tdate::now(),
                 valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())]),
-            },
-            UnsignedMdoc {
-                doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
-                copy_count: NonZeroU8::new(2).unwrap(),
-                valid_from: Tdate::now(),
-                valid_until: Utc::now().add(Days::new(365)).into(),
-                attributes: IndexMap::from([(
-                    MOCK_ADDRESS_DOCTYPE.to_string(),
-                    residence.clone().unwrap_or_default().into(),
-                )]),
-            },
-        ];
+                attributes: IndexMap::from([(MOCK_PID_DOCTYPE.to_string(), person.clone().into())])
+                    .try_into()
+                    .unwrap(),
+            }),
+            residence
+                .as_ref()
+                .and_then(|residence| {
+                    // This will return `None` if the `UnsignedAttributes` is empty.
+                    IndexMap::from([(MOCK_ADDRESS_DOCTYPE.to_string(), residence.clone().into())])
+                        .try_into()
+                        .ok()
+                })
+                .map(|attributes| UnsignedMdoc {
+                    doc_type: MOCK_ADDRESS_DOCTYPE.to_string(),
+                    copy_count: NonZeroU8::new(2).unwrap(),
+                    valid_from: Tdate::now(),
+                    valid_until: Utc::now().add(Days::new(365)).into(),
+                    attributes,
+                }),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
 
         Some(attrs)
     }

@@ -345,10 +345,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU8;
-
     use assert_matches::assert_matches;
-    use chrono::{Days, Utc};
     use mockall::predicate::*;
     use openid4vc::{
         mock::MockIssuanceSession,
@@ -358,8 +355,6 @@ mod tests {
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
-
-    use nl_wallet_mdoc::{unsigned::UnsignedMdoc, Tdate};
 
     use crate::{
         document::{self, DocumentPersistence},
@@ -729,16 +724,13 @@ mod tests {
         // Set up the `MockIssuanceSession` to return an `AttestationPreview` with an unknown doctype.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
+            let mut unsigned_mdoc = document::create_full_unsigned_pid_mdoc();
+            unsigned_mdoc.doc_type = "foobar".to_string();
+
             Ok((
                 MockIssuanceSession::new(),
                 vec![AttestationPreview::MsoMdoc {
-                    unsigned_mdoc: UnsignedMdoc {
-                        doc_type: "foobar".to_string(),
-                        valid_from: Tdate::now(),
-                        valid_until: (Utc::now() + Days::new(365)).into(),
-                        attributes: Default::default(),
-                        copy_count: NonZeroU8::new(1).unwrap(),
-                    },
+                    unsigned_mdoc,
                     issuer: ISSUER_KEY.issuance_key.certificate().clone(),
                 }],
             ))

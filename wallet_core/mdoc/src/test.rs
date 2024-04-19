@@ -184,7 +184,7 @@ impl From<TestDocument> for UnsignedMdoc {
             copy_count: NonZeroU8::new(1).unwrap(),
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
-            attributes: value.namespaces,
+            attributes: value.namespaces.try_into().unwrap(),
         }
     }
 }

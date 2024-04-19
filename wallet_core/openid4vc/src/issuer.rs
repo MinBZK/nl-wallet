@@ -676,6 +676,7 @@ impl Session<WaitingForResponse> {
         let credential_responses = try_join_all(
             credential_requests
                 .credential_requests
+                .as_ref()
                 .iter()
                 .zip(session_data.attestation_previews.iter().flat_map(|preview| {
                     itertools::repeat_n::<&UnsignedMdoc>(preview.as_ref(), preview.copy_count().into())
