@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use indexmap::IndexMap;
 use quick_xml::{
     events::Event,
@@ -5,7 +7,6 @@ use quick_xml::{
     DeError, NsReader,
 };
 use serde::{Deserialize, Deserializer};
-use std::fmt::{Display, Formatter};
 
 use crate::gba::error::Error;
 

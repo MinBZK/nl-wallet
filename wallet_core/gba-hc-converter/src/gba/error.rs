@@ -1,5 +1,6 @@
-use crate::gba::data::GbaResult;
 use http::StatusCode;
+
+use crate::gba::data::GbaResult;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
