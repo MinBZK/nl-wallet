@@ -74,11 +74,11 @@ where
         }
     }
 
-    async fn write(&self, session: SessionState<T>) -> Result<(), SessionStoreError> {
+    async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
-            SessionStoreVariant::Postgres(postgres) => postgres.write(session).await,
-            SessionStoreVariant::Memory(memory) => memory.write(session).await,
+            SessionStoreVariant::Postgres(postgres) => postgres.write(session, is_new).await,
+            SessionStoreVariant::Memory(memory) => memory.write(session, is_new).await,
         }
     }
 
@@ -100,7 +100,7 @@ pub mod postgres {
     use chrono::Utc;
     use sea_orm::{
         sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr,
-        EntityTrait, QueryFilter,
+        EntityTrait, QueryFilter, SqlErr,
     };
     use serde::{de::DeserializeOwned, Serialize};
     use tracing::log::LevelFilter;
@@ -159,24 +159,38 @@ pub mod postgres {
                 .map_err(|e| SessionStoreError::Deserialize(Box::new(e)))
         }
 
-        async fn write(&self, session: SessionState<T>) -> Result<(), SessionStoreError> {
-            // insert new value (serialized to JSON), update on conflicting session token
-            session_state::Entity::insert(session_state::ActiveModel {
+        async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
+            // Needed for potential SessionStoreError::DuplicateToken.
+            let session_token = session.token.clone();
+
+            // Insert new value, with data serialized to JSON.
+            let query = session_state::Entity::insert(session_state::ActiveModel {
                 data: ActiveValue::set(
                     serde_json::to_value(session.data).map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
                 ),
                 r#type: ActiveValue::set(T::TYPE.to_string()),
                 token: ActiveValue::set(session.token.into()),
                 last_active_date_time: ActiveValue::set(session.last_active.into()),
-            })
-            .on_conflict(
-                OnConflict::columns([session_state::PrimaryKey::Type, session_state::PrimaryKey::Token])
-                    .update_columns([session_state::Column::Data, session_state::Column::LastActiveDateTime])
-                    .to_owned(),
-            )
-            .exec(&self.connection)
-            .await
-            .map_err(|e| SessionStoreError::Other(e.into()))?;
+            });
+
+            // If this is an existing session, an update is allowed.
+            let final_query = match is_new {
+                true => query,
+                false => query.on_conflict(
+                    OnConflict::columns([session_state::PrimaryKey::Type, session_state::PrimaryKey::Token])
+                        .update_columns([session_state::Column::Data, session_state::Column::LastActiveDateTime])
+                        .to_owned(),
+                ),
+            };
+
+            // Execute the query and handle a conflicting primary key when updates are not allowed.
+            final_query.exec(&self.connection).await.map_err(|e| {
+                if matches!(e.sql_err(), Some(SqlErr::UniqueConstraintViolation(_))) {
+                    return SessionStoreError::DuplicateToken(session_token);
+                }
+
+                SessionStoreError::Other(e.into())
+            })?;
 
             Ok(())
         }
@@ -227,7 +241,7 @@ pub mod postgres {
                 },
             );
 
-            store.write(expected.clone()).await.unwrap();
+            store.write(expected.clone(), true).await.unwrap();
 
             let actual: SessionState<TestData> = store.get(&expected.token).await.unwrap().unwrap();
             assert_eq!(actual.data, expected.data);

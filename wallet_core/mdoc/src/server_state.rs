@@ -17,6 +17,8 @@ pub struct SessionState<T> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum SessionStoreError {
+    #[error("token {0} already exists")]
+    DuplicateToken(SessionToken),
     #[error("error while serializing: {0}")]
     Serialize(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("error while deserializing: {0}")]
@@ -32,7 +34,11 @@ pub trait SessionStore<T> {
         &self,
         token: &SessionToken,
     ) -> impl Future<Output = Result<Option<SessionState<T>>, SessionStoreError>> + Send;
-    fn write(&self, session: SessionState<T>) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
+    fn write(
+        &self,
+        session: SessionState<T>,
+        is_new: bool,
+    ) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
     fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
@@ -85,8 +91,21 @@ impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
         Ok(self.sessions.get(token).map(|s| s.clone()))
     }
 
-    async fn write(&self, session: SessionState<T>) -> Result<(), SessionStoreError> {
-        self.sessions.insert(session.token.clone(), session);
+    async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
+        // Get a mutable reference, so that we can both check token presence
+        // and replace the session while maintaining a lock on the DashMap.
+        let existing_session = self.sessions.get_mut(&session.token);
+
+        if let Some(mut existing_session) = existing_session {
+            if is_new {
+                return Err(SessionStoreError::DuplicateToken(session.token));
+            }
+
+            *existing_session = session;
+        } else {
+            self.sessions.insert(session.token.clone(), session);
+        }
+
         Ok(())
     }
 

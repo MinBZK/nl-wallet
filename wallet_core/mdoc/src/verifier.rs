@@ -305,7 +305,7 @@ where
             &self.url.join_base_url("disclosure/"),
         )?;
         self.sessions
-            .write(session_state.state.into())
+            .write(session_state.state.into(), true)
             .await
             .map_err(VerificationError::SessionStore)?;
         info!("Session({session_token}): session created");
@@ -365,7 +365,7 @@ where
         }?;
 
         self.sessions
-            .write(next)
+            .write(next, false)
             .await
             .map_err(VerificationError::SessionStore)?;
 
