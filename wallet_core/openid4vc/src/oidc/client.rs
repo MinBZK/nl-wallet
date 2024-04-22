@@ -103,7 +103,7 @@ impl<P: PkcePair> OidcClient for HttpOidcClient<P> {
         client_id: String,
         redirect_uri: Url,
     ) -> Result<(Self, Url), OidcError> {
-        let config = Config::discover(&http_client, issuer).await?;
+        let config = Config::discover(&http_client, &issuer).await?;
         let jwks = config.jwks(&http_client).await?;
 
         let client = Self::new(config, jwks, client_id, redirect_uri);
@@ -191,7 +191,7 @@ impl<P: PkcePair> HttpOidcClient<P> {
 
 pub async fn request_token(
     http_client: &reqwest::Client,
-    issuer: BaseUrl,
+    issuer: &BaseUrl,
     token_request: TokenRequest,
 ) -> Result<TokenResponse, OidcError> {
     let config = Config::discover(http_client, issuer).await?;
@@ -218,7 +218,7 @@ pub async fn request_token(
 
 pub async fn request_userinfo<C, H>(
     http_client: &reqwest::Client,
-    issuer: BaseUrl,
+    issuer: &BaseUrl,
     access_token: &AccessToken,
     expected_sig_alg: SignatureAlgorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
@@ -372,7 +372,7 @@ mod tests {
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
 
         HttpOidcClient {
-            provider: Config::new(server_url),
+            provider: Config::new_mock(&server_url),
             jwks: Some(JWKSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
@@ -421,7 +421,7 @@ mod tests {
     // Helper function for testing `Client::token_request()` calls that should result in an error.
     fn parse_request_uri(uri: &Url) -> OidcError {
         let client = HttpOidcClient::<S256PkcePair>::new(
-            Config::new(ISSUER_URL.parse().unwrap()),
+            Config::new_mock(&ISSUER_URL.parse().unwrap()),
             JWKSet { keys: vec![] },
             CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),

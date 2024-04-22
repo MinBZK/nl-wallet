@@ -2,6 +2,7 @@ import 'dart:io' as io;
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/pin/pin_validation_error.dart';
@@ -48,8 +49,9 @@ class CoreWalletRepository implements WalletRepository {
   Future<void> lockWallet() async {
     try {
       await _walletCore.lockWallet();
-    } catch (exception) {
+    } catch (exception, stackTrace) {
       Fimber.e('Failed to lock wallet', ex: exception);
+      await Sentry.captureException(exception, stackTrace: stackTrace);
       exit(1); // Crash if locking fails
     }
   }

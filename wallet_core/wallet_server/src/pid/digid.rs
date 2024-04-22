@@ -53,13 +53,13 @@ impl OpenIdClient {
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        let access_token = &oidc::request_token(&http_client, self.issuer_url.clone(), token_request)
+        let access_token = &oidc::request_token(&http_client, &self.issuer_url, token_request)
             .await?
             .access_token;
 
         let userinfo_claims: JWT<UserInfo, Empty> = oidc::request_userinfo(
             &http_client,
-            self.issuer_url.clone(),
+            &self.issuer_url,
             access_token,
             SignatureAlgorithm::RS256,
             Some((&self.decrypter_private_key, &AescbcHmacJweEncryption::A128cbcHs256)),
@@ -76,5 +76,14 @@ impl OpenIdClient {
         let decrypter = RsaesJweAlgorithm::RsaOaep.decrypter_from_jwk(&jwk)?;
 
         Ok(decrypter)
+    }
+
+    pub async fn discover_metadata(&self) -> Result<oidc::Config> {
+        let http_client = trusted_reqwest_client_builder(self.trust_anchors.clone())
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
+        let metadata = oidc::Config::discover(&http_client, &self.issuer_url).await?;
+        Ok(metadata)
     }
 }

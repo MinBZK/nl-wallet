@@ -598,6 +598,8 @@ build-ws-migrations-image:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
+        sentry_dsn:"${SENTRY_DSN:-}" \
+        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION}"
   after_script:
@@ -617,6 +619,8 @@ build-android-app-latest-release:
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
 
 build-android-app-latest-profile:
   extends: .build-android-app-latest
@@ -637,6 +641,8 @@ build-android-app-mock-release:
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
 
 .build-android-app-demo:
   extends: [.env-demo-k8s, .build-android-app]
@@ -652,6 +658,8 @@ build-android-app-demo-release:
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
 
 build-android-app-demo-profile:
   extends: .build-android-app-demo
@@ -701,6 +709,8 @@ build-android-app-demo-profile:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
+        sentry_dsn:"${SENTRY_DSN:-}" \
+        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
@@ -717,6 +727,8 @@ build-ios-app-latest-release:
   extends: .build-ios-app-latest
   variables:
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
 
 build-ios-app-latest-profile:
   extends: .build-ios-app-latest
@@ -735,6 +747,8 @@ build-ios-app-demo-release:
   extends: .build-ios-app-demo
   variables:
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
 
 build-ios-app-demo-profile:
   extends: .build-ios-app-demo
@@ -748,6 +762,8 @@ build-ios-app-mock:
     APP_NAME: "NL Wallet (mock)"
     APP_MOCK: "true"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
 
 ### Android deploying
 .deploy-android-app:
@@ -848,7 +864,7 @@ upload-browserstack-android-app-demo:
 #    - job: build-ios-app
 #      artifacts: true
 #   # Only deploy apps when both apps have been built successfully
-#   #  - job: build-android-app 
+#   #  - job: build-android-app
 #   #    artifacts: false
 #  tags:
 #    - macos
@@ -1127,17 +1143,7 @@ check-gitlab-ci-changed:
   script:
     - gradle wrapper --gradle-version=7.5
     - ./gradlew --info --stacktrace test
-      --tests "feature.appstart.*"
-      --tests "feature.card.*"
-      --tests "feature.confirm.*"
-      --tests "feature.dashboard.*"
-      --tests "feature.introduction.*"
-      --tests "feature.lock.*"
-      --tests "feature.menu.*"
-      --tests "feature.personalize.*"
-      --tests "feature.security.*"
-      --tests "feature.settings.*"
-      --tests "feature.web.*"
+      --tests suite.AppStartToDashboardTestSuite
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"

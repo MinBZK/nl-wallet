@@ -1,5 +1,8 @@
 part of 'disclosure_bloc.dart';
 
+const kNormalDisclosureSteps = 4;
+const kLoginDisclosureSteps = 3;
+
 sealed class DisclosureState extends Equatable {
   bool get showStopConfirmation => true;
 
@@ -7,7 +10,7 @@ sealed class DisclosureState extends Equatable {
 
   bool get didGoBack => false;
 
-  double get stepperProgress => 0.0;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: 4);
 
   const DisclosureState();
 
@@ -65,7 +68,7 @@ class DisclosureCheckOrganization extends DisclosureState {
   final bool afterBackPressed;
 
   @override
-  double get stepperProgress => 0.25;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kNormalDisclosureSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -98,7 +101,7 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   final Map<WalletCard, List<DataAttribute>> requestedAttributes;
 
   @override
-  double get stepperProgress => 0.25;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kLoginDisclosureSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -130,7 +133,7 @@ class DisclosureMissingAttributes extends DisclosureState {
   final List<Attribute> missingAttributes;
 
   @override
-  double get stepperProgress => 0.5;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kNormalDisclosureSteps);
 
   @override
   bool get canGoBack => true;
@@ -159,7 +162,7 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   final bool afterBackPressed;
 
   @override
-  double get stepperProgress => 0.5;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kNormalDisclosureSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -195,7 +198,10 @@ class DisclosureConfirmPin extends DisclosureState {
   });
 
   @override
-  double get stepperProgress => 0.75;
+  FlowProgress get stepperProgress => FlowProgress(
+        currentStep: isLoginFlow ? 2 : 3,
+        totalSteps: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
+      );
 
   @override
   bool get canGoBack => true;
@@ -210,7 +216,8 @@ class DisclosureSuccess extends DisclosureState {
   final bool isLoginFlow;
 
   @override
-  double get stepperProgress => 1;
+  FlowProgress get stepperProgress =>
+      const FlowProgress(currentStep: kNormalDisclosureSteps, totalSteps: kNormalDisclosureSteps);
 
   @override
   bool get showStopConfirmation => false;
@@ -227,7 +234,10 @@ class DisclosureStopped extends DisclosureState {
   final String? returnUrl;
 
   @override
-  double get stepperProgress => 1;
+  FlowProgress get stepperProgress => FlowProgress(
+        currentStep: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
+        totalSteps: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
+      );
 
   @override
   bool get showStopConfirmation => false;
@@ -240,7 +250,8 @@ class DisclosureStopped extends DisclosureState {
 
 class DisclosureLeftFeedback extends DisclosureState {
   @override
-  double get stepperProgress => 1;
+  FlowProgress get stepperProgress =>
+      const FlowProgress(currentStep: kNormalDisclosureSteps, totalSteps: kNormalDisclosureSteps);
 
   @override
   bool get showStopConfirmation => false;

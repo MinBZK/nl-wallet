@@ -51,7 +51,7 @@ class IssuanceScreen extends StatelessWidget {
       appBar: WalletAppBar(
         title: _buildTitle(context),
         leading: _buildBackButton(context),
-        actions: [_buildCloseButton(context, progress)],
+        actions: [CloseIconButton(onPressed: () => _stopIssuance(context))],
         progress: progress,
       ),
       body: PopScope(
@@ -127,15 +127,6 @@ class IssuanceScreen extends StatelessWidget {
           onPressed: () => context.bloc.add(const IssuanceBackPressed()),
         );
       },
-    );
-  }
-
-  /// The close button stops/closes the issuance flow.
-  /// It is only visible in the semantics tree when the issuance flow is in progress.
-  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
-    return ExcludeSemantics(
-      excluding: stepperProgress == 1.0,
-      child: CloseIconButton(onPressed: () => _stopIssuance(context)),
     );
   }
 

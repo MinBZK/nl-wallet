@@ -289,7 +289,10 @@ mod tests {
 
     use crate::{
         errors::Error,
-        iso::device_retrieval::DeviceRequestVersion,
+        iso::{
+            device_retrieval::DeviceRequestVersion,
+            mdocs::{Attributes, IssuerNameSpaces, IssuerSignedItem},
+        },
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         test::{
@@ -297,7 +300,6 @@ mod tests {
             TestDocument, TestDocuments,
         },
         unsigned::Entry,
-        Attributes, IssuerSignedItem,
     };
 
     use super::{super::test::*, *};
@@ -522,15 +524,16 @@ mod tests {
         }
     }
 
-    fn convert_namespaces(namespaces: IndexMap<String, Attributes>) -> IndexMap<String, Vec<Entry>> {
+    fn convert_namespaces(namespaces: IssuerNameSpaces) -> IndexMap<String, Vec<Entry>> {
         namespaces
+            .into_inner()
             .into_iter()
             .map(|(namespace, attributes)| (namespace, convert_attributes(attributes)))
             .collect()
     }
 
     fn convert_attributes(attributes: Attributes) -> Vec<Entry> {
-        attributes.0.into_iter().map(convert_attribute).collect()
+        attributes.into_inner().into_iter().map(convert_attribute).collect()
     }
 
     fn convert_attribute(attribute: TaggedBytes<IssuerSignedItem>) -> Entry {

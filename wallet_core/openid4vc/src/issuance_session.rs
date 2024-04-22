@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     utils::{
         cose::CoseError,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::CborError,
+        serialization::{CborError, TaggedBytes},
         x509::{Certificate, CertificateError, CertificateUsage},
     },
     ATTR_RANDOM_LENGTH,
@@ -31,6 +31,8 @@ use crate::{
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,
+    metadata::IssuerMetadata,
+    oidc,
     token::{AccessToken, AttestationPreview, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorResponse, Format, NL_WALLET_CLIENT_ID,
 };
@@ -77,6 +79,12 @@ pub enum IssuanceSessionError {
     IssuerCertificateMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
+    #[error("error discovering Oauth metadata: {0}")]
+    OauthDiscovery(#[source] reqwest::Error),
+    #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
+    OpenId4vciDiscovery(#[source] reqwest::Error),
+    #[error("issuer has no batch credential endpoint")]
+    NoBatchCredentialEndpoint,
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     AttributeRandomLength(usize, usize),
 }
@@ -108,6 +116,9 @@ pub struct HttpIssuanceSession<H = HttpOpenidMessageClient> {
 
 /// Contract for sending OpenID4VCI protocol messages.
 pub trait OpenidMessageClient {
+    async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError>;
+    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
+
     async fn request_token(
         &self,
         url: &Url,
@@ -138,6 +149,26 @@ impl From<reqwest::Client> for HttpOpenidMessageClient {
 }
 
 impl OpenidMessageClient for HttpOpenidMessageClient {
+    async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
+        let metadata = IssuerMetadata::discover(&self.http_client, url)
+            .await
+            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
+        Ok(metadata)
+    }
+
+    async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError> {
+        let metadata = self
+            .http_client
+            .get(url.join("/.well-known/oauth-authorization-server"))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await
+            .map_err(IssuanceSessionError::OauthDiscovery)?;
+        Ok(metadata)
+    }
+
     async fn request_token(
         &self,
         url: &Url,
@@ -234,6 +265,38 @@ struct IssuanceState {
     dpop_nonce: Option<String>,
 }
 
+impl<H: OpenidMessageClient> HttpIssuanceSession<H> {
+    /// Discover the token endpoint from the OAuth server metadata.
+    async fn discover_token_endpoint(message_client: &H, base_url: &BaseUrl) -> Result<Url, IssuanceSessionError> {
+        let issuer_metadata = message_client.discover_metadata(base_url).await?;
+
+        // The issuer may announce multiple OAuth authorization servers the wallet may use. Which one the wallet
+        // uses is left up to the wallet. We just take the first one.
+        // authorization_servers() always returns a non-empty vec so the unwrap() is safe.
+        let authorization_servers = &issuer_metadata.issuer_config.authorization_servers();
+        let oauth_server = authorization_servers.first().unwrap();
+        let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
+
+        let token_endpoint = oauth_metadata.token_endpoint.clone();
+        Ok(token_endpoint)
+    }
+
+    /// Discover the batch credential endpoint from the Credential Issuer metadata.
+    /// This function returns an `Option` because the batch credential is optional.
+    async fn discover_batch_credential_endpoint(
+        message_client: &H,
+        base_url: &BaseUrl,
+    ) -> Result<Option<Url>, IssuanceSessionError> {
+        let url = message_client
+            .discover_metadata(base_url)
+            .await?
+            .issuer_config
+            .batch_credential_endpoint
+            .map(|url| url.as_ref().clone());
+        Ok(url)
+    }
+}
+
 impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn start_issuance(
         message_client: H,
@@ -241,12 +304,14 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<(Self, Vec<AttestationPreview>), IssuanceSessionError> {
-        let url = base_url.join("token"); // TODO discover token endpoint instead (PVW-2178)
+        let token_endpoint = Self::discover_token_endpoint(&message_client, &base_url).await?;
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
-        let dpop_header = Dpop::new(&dpop_private_key, url.clone(), Method::POST, None, None).await?;
+        let dpop_header = Dpop::new(&dpop_private_key, token_endpoint.clone(), Method::POST, None, None).await?;
 
-        let (token_response, dpop_nonce) = message_client.request_token(&url, &token_request, &dpop_header).await?;
+        let (token_response, dpop_nonce) = message_client
+            .request_token(&token_endpoint, &token_request, &dpop_header)
+            .await?;
 
         // Verify the issuer certificates that the issuer presents for each attestation to be issued.
         // NB: this only proves the authenticity of the data inside the certificates (the [`IssuerRegistration`]s),
@@ -256,10 +321,14 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
         // corresponding certificate in the attestation preview, which implicitly authenticates the issuer because
         // only it could have produced an mdoc against that certificate.
-        token_response.attestation_previews.iter().try_for_each(|preview| {
-            let issuer: &Certificate = preview.as_ref();
-            issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
-        })?;
+        token_response
+            .attestation_previews
+            .as_ref()
+            .iter()
+            .try_for_each(|preview| {
+                let issuer: &Certificate = preview.as_ref();
+                issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+            })?;
 
         // TODO: Check that each `UnsignedMdoc` contains at least one attribute (PVW-2546).
         let attestation_previews = token_response.attestation_previews.into_inner();
@@ -343,7 +412,9 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
-        let url = self.session_state.issuer_url.join("batch_credential"); // TODO discover token endpoint instead (PVW-2178)
+        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
+            .await?
+            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let responses = self
@@ -397,7 +468,9 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
-        let url = self.session_state.issuer_url.join("batch_credential"); // TODO discover token endpoint instead (PVW-2178)
+        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_url)
+            .await?
+            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
         self.message_client
@@ -434,8 +507,9 @@ impl CredentialResponse {
         // is too low, we should not accept the attributes.
         if let Some(name_spaces) = issuer_signed.name_spaces.as_ref() {
             let min_random_length = name_spaces
+                .as_ref()
                 .values()
-                .flat_map(|attributes| attributes.0.iter().map(|item| item.0.random.len()))
+                .flat_map(|attributes| attributes.as_ref().iter().map(|TaggedBytes(item)| item.random.len()))
                 .min();
 
             if let Some(min_random_length) = min_random_length {
@@ -496,7 +570,7 @@ mod tests {
             issuer_auth::IssuerRegistration,
             serialization::{CborBase64, TaggedBytes},
         },
-        Attributes, IssuerSigned,
+        IssuerSigned,
     };
     use serde_bytes::ByteBuf;
     use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
@@ -568,11 +642,13 @@ mod tests {
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
                 let CborBase64(ref mut credential_inner) = credential;
-                let namespaces = credential_inner.name_spaces.as_mut().unwrap();
-                let (_, Attributes(issuer_signed_items)) = namespaces.first_mut().unwrap();
-                let TaggedBytes(first_item) = issuer_signed_items.first_mut().unwrap();
+                let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
 
-                first_item.random = ByteBuf::from(b"12345");
+                name_spaces.modify_first_attributes(|attributes| {
+                    let TaggedBytes(first_item) = attributes.first_mut().unwrap();
+
+                    first_item.random = ByteBuf::from(b"12345");
+                });
 
                 CredentialResponse::MsoMdoc { credential }
             }

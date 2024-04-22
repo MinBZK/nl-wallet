@@ -8,6 +8,7 @@ import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
 import '../../../navigation/wallet_routes.dart';
+import '../../../util/cast_util.dart';
 import '../../../util/extension/animation_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
@@ -23,8 +24,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
-import '../../common/widget/text/title_text.dart';
-import '../../common/widget/wallet_app_bar.dart';
+import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
@@ -55,45 +55,45 @@ class CardDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('cardDetailScreen'),
-      appBar: _buildAppBar(context),
       body: SafeArea(
-        child: _buildBody(context),
+        child: Column(
+          children: [
+            Expanded(
+              child: BlocBuilder<CardDetailBloc, CardDetailState>(builder: (context, state) {
+                return Scrollbar(
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverWalletAppBar(title: _getTitle(context, state)),
+                      _buildBody(context, state),
+                    ],
+                  ),
+                );
+              }),
+            ),
+            const BottomBackButton(),
+          ],
+        ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    final fallbackAppBarTitleText = TitleText(cardTitle);
-    return WalletAppBar(
-      title: BlocBuilder<CardDetailBloc, CardDetailState>(
-        builder: (context, state) {
-          return switch (state) {
-            CardDetailInitial() => fallbackAppBarTitleText,
-            CardDetailLoadInProgress() => fallbackAppBarTitleText,
-            CardDetailLoadSuccess() => TitleText(state.detail.card.front.title.l10nValue(context)),
-            CardDetailLoadFailure() => fallbackAppBarTitleText,
-          };
-        },
-      ),
-    );
+  String _getTitle(BuildContext context, CardDetailState state) {
+    final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.front.title.l10nValue(context);
+    return title ?? cardTitle;
   }
 
-  Widget _buildBody(BuildContext context) {
-    return BlocBuilder<CardDetailBloc, CardDetailState>(
-      builder: (context, state) {
-        return switch (state) {
-          CardDetailInitial() => _buildLoading(context),
-          CardDetailLoadInProgress() => _buildLoading(context, card: state.card),
-          CardDetailLoadSuccess() => _buildDetail(context, state.detail),
-          CardDetailLoadFailure() => _buildError(context, state),
-        };
-      },
-    );
+  Widget _buildBody(BuildContext context, CardDetailState state) {
+    return switch (state) {
+      CardDetailInitial() => _buildLoading(context),
+      CardDetailLoadInProgress() => _buildLoading(context, card: state.card),
+      CardDetailLoadSuccess() => _buildDetail(context, state.detail),
+      CardDetailLoadFailure() => _buildError(context, state),
+    };
   }
 
   Widget _buildLoading(BuildContext context, {WalletCard? card}) {
-    if (card == null) return const CenteredLoadingIndicator();
-    return CustomScrollView(
+    if (card == null) return const SliverFillRemaining(child: CenteredLoadingIndicator());
+    return SliverMainAxisGroup(
       slivers: [
         const SliverSizedBox(height: 24 + 8),
         SliverToBoxAdapter(
@@ -130,41 +130,36 @@ class CardDetailScreen extends StatelessWidget {
   Widget _buildDetail(BuildContext context, WalletCardDetail detail) {
     final card = detail.card;
 
-    return Column(
-      children: [
-        Expanded(
-          child: Scrollbar(
-            child: ListView(
-              padding: const EdgeInsets.only(top: 24),
-              children: [
-                const SizedBox(height: 8),
-                ExcludeSemantics(
-                  child: FractionallySizedBox(
-                    widthFactor: 0.6,
-                    child: Hero(
-                      tag: card.id,
-                      flightShuttleBuilder: (
-                        BuildContext flightContext,
-                        Animation<double> animation,
-                        HeroFlightDirection flightDirection,
-                        BuildContext fromHeroContext,
-                        BuildContext toHeroContext,
-                      ) =>
-                          WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeIn),
-                      child: WalletCardItem.fromCardFront(context: context, front: card.front),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                const Divider(height: 1),
-                AnimatedFadeIn(
-                  child: _buildDetailContent(context, detail),
-                ),
-              ],
+    return SliverMainAxisGroup(
+      slivers: [
+        const SliverSizedBox(height: 24 + 8),
+        SliverToBoxAdapter(
+          child: ExcludeSemantics(
+            child: FractionallySizedBox(
+              widthFactor: 0.6,
+              child: Hero(
+                tag: card.id,
+                flightShuttleBuilder: (
+                  BuildContext flightContext,
+                  Animation<double> animation,
+                  HeroFlightDirection flightDirection,
+                  BuildContext fromHeroContext,
+                  BuildContext toHeroContext,
+                ) =>
+                    WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeIn),
+                child: WalletCardItem.fromCardFront(context: context, front: card.front),
+              ),
             ),
           ),
         ),
-        const BottomBackButton(),
+        const SliverSizedBox(height: 32),
+        const SliverDivider(),
+        SliverToBoxAdapter(
+          child: AnimatedFadeIn(
+            child: _buildDetailContent(context, detail),
+          ),
+        ),
+        const SliverSizedBox(height: 24),
       ],
     );
   }
@@ -177,7 +172,6 @@ class CardDetailScreen extends StatelessWidget {
         InfoRow(
           icon: Icons.description_outlined,
           title: Text(context.l10n.cardDetailScreenCardDataCta),
-          subtitle: Text(context.l10n.cardDetailScreenCardDataIssuedBy(card.issuer.displayName.l10nValue(context))),
           onTap: () => _onCardDataPressed(context, card),
         ),
         const Divider(height: 1),
@@ -249,9 +243,10 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   Widget _buildError(BuildContext context, CardDetailLoadFailure state) {
-    return Center(
+    return SliverFillRemaining(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: [
           const Icon(Icons.error_outline),
           const SizedBox(height: 16),

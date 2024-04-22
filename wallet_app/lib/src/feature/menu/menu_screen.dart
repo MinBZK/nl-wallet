@@ -73,7 +73,10 @@ class MenuScreen extends StatelessWidget {
           child: Center(
             child: IntrinsicWidth(
               child: OutlinedButton(
-                onPressed: () => context.read<MenuBloc>().add(MenuLockWalletPressed()),
+                onPressed: () async {
+                  context.read<MenuBloc>().add(MenuLockWalletPressed());
+                  Navigator.popUntil(context, ModalRoute.withName(WalletRoutes.dashboardRoute));
+                },
                 child: Row(
                   children: [
                     const Icon(Icons.lock, size: 14),

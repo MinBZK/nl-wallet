@@ -6,5 +6,5 @@ import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectPackages("feature")
 @Suite
-@SuiteDisplayName("Feature test suite")
-object FeatureTestSuite
+@SuiteDisplayName("Full test suite")
+object FullTestSuite

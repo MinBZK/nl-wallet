@@ -131,7 +131,9 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                     .into_iter()
                     .flatten()
                     .collect(),
-                )]),
+                )])
+                .try_into()
+                .unwrap(),
             },
             UnsignedMdoc {
                 doc_type: String::from(MOCK_ADDRESS_DOCTYPE),
@@ -169,7 +171,9 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                     .into_iter()
                     .flatten()
                     .collect(),
-                )]),
+                )])
+                .try_into()
+                .unwrap(),
             },
         ];
 
@@ -402,7 +406,7 @@ mod tests {
                 ("gender", ""),
                 ("nationality", "Nederlandse"),
             ],
-            readable_attrs(&pid_card.attributes)
+            readable_attrs(pid_card.attributes.as_ref())
                 .iter()
                 .map(|(a, b)| (a.as_str(), b.as_str()))
                 .collect::<Vec<_>>()
@@ -416,7 +420,7 @@ mod tests {
                 ("resident_house_number", "1"),
                 ("resident_city", "Toetsoog"),
             ],
-            readable_attrs(&address_card.attributes)
+            readable_attrs(address_card.attributes.as_ref())
                 .iter()
                 .map(|(a, b)| (a.as_str(), b.as_str()))
                 .collect::<Vec<_>>()

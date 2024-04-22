@@ -16,6 +16,8 @@ pub mod issuer;
 pub mod errors;
 pub use errors::*;
 
+pub mod metadata;
+
 pub mod oidc;
 
 #[cfg(feature = "mock")]

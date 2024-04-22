@@ -102,6 +102,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildOrganizationDetailLoaded(BuildContext context, OrganizationDetailSuccess state) {
+    final items = _buildInfoSectionItems(context, state.organization);
     return SliverList.list(
       children: [
         const SizedBox(height: 24),
@@ -115,9 +116,14 @@ class OrganizationDetailScreen extends StatelessWidget {
           _buildInteractionRow(context, state),
         ],
         const Divider(height: 1),
-        const SizedBox(height: 16),
-        ..._buildInfoSectionItems(context, state.organization),
-        const SizedBox(height: 16),
+        ListView.separated(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shrinkWrap: true,
+          itemBuilder: (c, i) => items[i],
+          separatorBuilder: (c, i) => const SizedBox(height: 24),
+          itemCount: items.length,
+        ),
         onReportIssuePressed == null
             ? const SizedBox()
             : LinkTileButton(
@@ -238,30 +244,33 @@ class OrganizationDetailScreen extends StatelessWidget {
     required Widget subtitle,
   }) {
     /// Note: not relying on [InfoRow] widget because the styling here is a bit too custom.
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Icon(icon, size: 24),
-        ),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DefaultTextStyle(
-                style: context.textTheme.bodySmall!,
-                child: title,
-              ),
-              DefaultTextStyle(
-                style: context.textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w400),
-                child: subtitle,
-              ),
-            ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 44),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Icon(icon, size: 24),
           ),
-        ),
-      ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DefaultTextStyle(
+                  style: context.textTheme.bodySmall!,
+                  child: title,
+                ),
+                DefaultTextStyle(
+                  style: context.textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w400),
+                  child: subtitle,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
