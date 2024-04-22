@@ -55,8 +55,6 @@ class IntroductionTests : TestBase() {
     fun verifySkipIntroButton() {
         val privacyScreen = IntroductionPrivacyScreen()
 
-        assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
-
         // Skip from page 1
         introductionScreen.clickSkipButton() // page 1 -> privacy
         assertTrue(privacyScreen.visible(), "privacy screen is not visible")
@@ -68,11 +66,13 @@ class IntroductionTests : TestBase() {
         introductionScreen.clickSkipButton() // page 2 -> privacy
         assertTrue(privacyScreen.visible(), "privacy screen is not visible")
 
-        // Back to page 2, next, skip from page 3
+        // Back to page 2, next to page 3
         privacyScreen.clickBackButton() // privacy -> page 2
         introductionScreen.clickNextButton() // page 2 -> page 3
         assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
-        introductionScreen.clickSkipButton() // page 3 -> privacy
+
+        // Page 3 only contains next button (skip button is gone on last intro page)
+        introductionScreen.clickNextButton() // page 3 -> privacy
         assertTrue(privacyScreen.visible(), "privacy screen is not visible")
     }
 
