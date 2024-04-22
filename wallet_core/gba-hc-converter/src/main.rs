@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use crate::{
-    gba::client::{FileGbavClient, HttpGbavClient},
-    settings::Settings,
+    gba::client::{FileGbavClient, HttpGbavClient, NoopGbavClient},
+    settings::{RunMode, Settings},
 };
 
 mod error;
@@ -19,21 +19,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let settings = Settings::new()?;
 
-    let http_client = HttpGbavClient::new(
-        settings.gbav.adhoc_url,
-        settings.gbav.username,
-        settings.gbav.password,
-        settings.gbav.trust_anchor,
-        settings.gbav.client_cert,
-        settings.gbav.client_cert_key,
-    )?;
-
-    if let Some(path) = settings.preloaded_xml_path {
-        let file_client = FileGbavClient::new(path.into(), http_client);
-        server::serve(settings.ip, settings.port, file_client).await?;
-    } else {
-        server::serve(settings.ip, settings.port, http_client).await?;
-    };
+    match settings.run_mode {
+        RunMode::Gbav(gbav) => {
+            let http_client: HttpGbavClient = gbav.try_into()?;
+            server::serve(settings.ip, settings.port, http_client).await?;
+        }
+        RunMode::Preloaded(preloaded) => {
+            let file_client = FileGbavClient::new(preloaded.xml_path.into(), NoopGbavClient {});
+            server::serve(settings.ip, settings.port, file_client).await?;
+        }
+        RunMode::All { gbav, preloaded } => {
+            let http_client: HttpGbavClient = gbav.try_into()?;
+            let file_client = FileGbavClient::new(preloaded.xml_path.into(), http_client);
+            server::serve(settings.ip, settings.port, file_client).await?;
+        }
+    }
 
     Ok(())
 }

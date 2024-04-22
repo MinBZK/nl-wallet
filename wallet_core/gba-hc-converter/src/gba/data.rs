@@ -14,6 +14,9 @@ const LRD_NAMESPACE: &[u8] = b"http://www.bprbzk.nl/GBA/LRDPlus/version1.1";
 const CATEGORIEVOORKOMENS_TAG: &str = "categorievoorkomens";
 const RESULTAAT_TAG: &str = "resultaat";
 
+const EMPTY_RESULT_CODE: &str = "33";
+const EMPTY_RESULT_LETTER: &str = "G";
+
 fn parse_response_xml(xml: &str) -> Result<GbaResponse, Error> {
     let mut reader = NsReader::from_str(xml);
     reader.trim_text(true);
@@ -68,6 +71,17 @@ impl GbaResponse {
         parse_response_xml(xml)
     }
 
+    pub fn empty() -> Self {
+        Self {
+            result: GbaResult::empty(),
+            categorievoorkomens: vec![],
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.result.is_empty() && self.categorievoorkomens.is_empty()
+    }
+
     pub fn get_mandatory_voorkomen(&self, category_number: u8) -> Result<&Categorievoorkomen, Error> {
         self.categorievoorkomens
             .iter()
@@ -106,6 +120,21 @@ pub struct GbaResult {
 
     #[serde(rename = "referentie")]
     pub reference: String,
+}
+
+impl GbaResult {
+    pub fn empty() -> Self {
+        Self {
+            code: String::from(EMPTY_RESULT_CODE),
+            letter: String::from(EMPTY_RESULT_LETTER),
+            description: String::from("Geen gegevens gevonden."),
+            reference: String::from("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.code.as_str() == EMPTY_RESULT_CODE && self.letter.as_str() == EMPTY_RESULT_LETTER
+    }
 }
 
 impl Display for GbaResult {

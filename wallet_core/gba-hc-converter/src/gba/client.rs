@@ -99,6 +99,13 @@ where
     }
 }
 
+pub struct NoopGbavClient {}
+impl GbavClient for NoopGbavClient {
+    async fn vraag(&self, _bsn: &str) -> Result<GbaResponse, Error> {
+        Ok(GbaResponse::empty())
+    }
+}
+
 const VRAAG_REQUEST: &str = r#"
 <soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
     <soap-env:Body>

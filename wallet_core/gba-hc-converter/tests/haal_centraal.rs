@@ -12,6 +12,7 @@ mod common;
 #[case("gba/frouke.xml", "haal_centraal/frouke.json")]
 #[case("gba/mulitple-nationalities.xml", "haal_centraal/multiple-nationalities.json")]
 #[case("gba/partner.xml", "haal_centraal/partner.json")]
+#[case("gba/empty-response.xml", "haal_centraal/empty.json")]
 fn test_conversion(#[case] xml: &str, #[case] json: &str) {
     let gba_response = GbaResponse::new(&read_file(xml)).unwrap();
     let mut personen_response = PersonsResponse::create(gba_response).unwrap();

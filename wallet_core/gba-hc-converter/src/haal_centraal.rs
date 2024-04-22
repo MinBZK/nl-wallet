@@ -135,7 +135,7 @@ impl PersonsResponse {
     pub fn create(gba_response: GbaResponse) -> Result<Self, Error> {
         Ok(Self {
             r#type: String::from("RaadpleegMetBurgerservicenummer"),
-            persons: vec![gba_response.try_into()?],
+            persons: gba_response.try_into()?,
         })
     }
 
@@ -164,16 +164,20 @@ impl PersonsResponse {
 
 /// Converts GBA-V XML to Haal-Centraal JSON. The reference for the category- and element numbers is
 /// the Logisch Ontwerp BRP: https://www.rvig.nl/lo-brp
-impl TryFrom<GbaResponse> for GbaPerson {
+impl TryFrom<GbaResponse> for Vec<GbaPerson> {
     type Error = Error;
 
     fn try_from(value: GbaResponse) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            return Ok(vec![]);
+        }
+
         let cat1 = value.get_mandatory_voorkomen(Category::Person.code())?;
         let cat4s: Vec<&Categorievoorkomen> = value.get_voorkomens(Category::Nationality.code());
         let cat5s: Vec<&Categorievoorkomen> = value.get_voorkomens(Category::MarriagePartnership.code());
         let cat8 = value.get_mandatory_voorkomen(Category::Address.code())?;
 
-        let result = Self {
+        let person = GbaPerson {
             bsn: cat1.elementen.get_mandatory(Element::Bsn.code())?,
             gender: GbaCode {
                 code: cat1.elementen.get_mandatory(Element::Geslacht.code())?,
@@ -196,7 +200,7 @@ impl TryFrom<GbaResponse> for GbaPerson {
                 .transpose()?,
         };
 
-        Ok(result)
+        Ok(vec![person])
     }
 }
 

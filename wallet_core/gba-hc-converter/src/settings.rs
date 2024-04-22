@@ -6,14 +6,14 @@ use serde_with::{base64::Base64, serde_as};
 
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::deserialize_certificate};
 
+use crate::{gba, gba::client::HttpGbavClient};
+
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
 
-    pub gbav: GbavSettings,
-
-    pub preloaded_xml_path: Option<String>,
+    pub run_mode: RunMode,
 }
 
 #[serde_as]
@@ -31,6 +31,37 @@ pub struct GbavSettings {
 
     #[serde(deserialize_with = "deserialize_certificate")]
     pub trust_anchor: reqwest::Certificate,
+}
+
+impl TryFrom<GbavSettings> for HttpGbavClient {
+    type Error = gba::error::Error;
+
+    fn try_from(value: GbavSettings) -> Result<Self, Self::Error> {
+        HttpGbavClient::new(
+            value.adhoc_url,
+            value.username,
+            value.password,
+            value.trust_anchor,
+            value.client_cert,
+            value.client_cert_key,
+        )
+    }
+}
+
+#[derive(Clone, Deserialize)]
+pub struct PreloadedSettings {
+    pub xml_path: String,
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(rename_all(deserialize = "lowercase"))]
+pub enum RunMode {
+    Gbav(GbavSettings),
+    Preloaded(PreloadedSettings),
+    All {
+        gbav: GbavSettings,
+        preloaded: PreloadedSettings,
+    },
 }
 
 impl Settings {
