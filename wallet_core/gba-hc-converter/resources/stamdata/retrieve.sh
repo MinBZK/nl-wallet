@@ -20,7 +20,6 @@ done
 sed -i.deleteme 's/,94.10 Landcode/94.10 Landcode/' "$t34"
 rm *deleteme
 
-# TODO
 echo "ab35e37f74b4f9ad69571b6726bfe8c380b694b18b24ee87343423deae990bd7  $t32" | sha256sum -c
 echo "a584ae747adb7058f81d356744cd1f6996943320451aaf251d02e4da109f280c  $t33" | sha256sum -c
 echo "26ed3a9d93b4e6729b096cbe790ed2b181cfb6ba4ffb6897b2fb1d0a4b0f2a12  $t34" | sha256sum -c
