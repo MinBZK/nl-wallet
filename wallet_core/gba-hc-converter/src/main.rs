@@ -20,12 +20,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let settings = Settings::new()?;
 
     let http_client = HttpGbavClient::new(
-        settings.url,
-        settings.username,
-        settings.password,
-        settings.trust_anchor,
-        settings.client_cert,
-        settings.client_cert_key,
+        settings.gbav.adhoc_url,
+        settings.gbav.username,
+        settings.gbav.password,
+        settings.gbav.trust_anchor,
+        settings.gbav.client_cert,
+        settings.gbav.client_cert_key,
     )?;
 
     if let Some(path) = settings.preloaded_xml_path {

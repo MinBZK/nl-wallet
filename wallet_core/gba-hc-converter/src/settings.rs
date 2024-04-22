@@ -6,13 +6,20 @@ use serde_with::{base64::Base64, serde_as};
 
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::deserialize_certificate};
 
-#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
 
-    pub url: BaseUrl,
+    pub gbav: GbavSettings,
+
+    pub preloaded_xml_path: Option<String>,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct GbavSettings {
+    pub adhoc_url: BaseUrl,
     pub username: String,
     pub password: String,
 
@@ -24,8 +31,6 @@ pub struct Settings {
 
     #[serde(deserialize_with = "deserialize_certificate")]
     pub trust_anchor: reqwest::Certificate,
-
-    pub preloaded_xml_path: Option<String>,
 }
 
 impl Settings {

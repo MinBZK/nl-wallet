@@ -1,6 +1,11 @@
 #ip = "0.0.0.0"
 #port = 3006
-url = "https://lap.gbav.idm.diginetwerk.net/gba-v/online/lo3services/adhoc"
+
+# Optional path to folder containing preloaded GBA-V XML responses of the form "{bsn}.xml" (relative to binary or Cargo.toml)
+preloaded_xml_path = "resources/gba-v-responses"
+
+[gbav]
+adhoc_url = "https://lap.gbav.idm.diginetwerk.net/gba-v/online/lo3services/adhoc"
 
 # GBA-V username
 username = ""
@@ -16,6 +21,3 @@ client_cert_key = "MIIJQgI..."
 
 # GBA-V server certificate trust anchor (BASE64 encoded DER certificate)
 trust_anchor = "MIIFhDCC..."
-
-# Optional path to folder containing preloaded GBA-V XML responses of the form "{bsn}.xml" (relative to binary or Cargo.toml)
-preloaded_xml_path = "resources/gba-v-responses"
