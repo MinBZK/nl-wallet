@@ -4,7 +4,8 @@ import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../widget/button/bottom_back_button.dart';
-import '../widget/wallet_app_bar.dart';
+import '../widget/sliver_sized_box.dart';
+import '../widget/sliver_wallet_app_bar.dart';
 
 enum PlaceholderType { generic, contract }
 
@@ -17,35 +18,44 @@ class PlaceholderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('placeholderScreen'),
-      appBar: WalletAppBar(
-        title: Text(context.l10n.placeholderScreenTitle),
-      ),
       body: SafeArea(
-        child: _buildBody(context),
+        child: Column(
+          children: [
+            Expanded(child: _buildBody(context)),
+            const BottomBackButton(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildBody(BuildContext context) {
-    return Column(
-      children: [
-        const Spacer(),
-        Image.asset(
-          _imageAssetName(),
-          scale: context.isLandscape ? 1.5 : 1,
-        ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            _informTitle(context),
-            style: context.textTheme.displaySmall,
-            textAlign: TextAlign.center,
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: [
+          SliverWalletAppBar(title: context.l10n.placeholderScreenTitle),
+          const SliverSizedBox(height: 24),
+          SliverToBoxAdapter(
+            child: Image.asset(
+              _imageAssetName(),
+              height: 200,
+              alignment: Alignment.center,
+            ),
           ),
-        ),
-        const Spacer(flex: 2),
-        const BottomBackButton(),
-      ],
+          const SliverSizedBox(height: 24),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _informTitle(context),
+                style: context.textTheme.displaySmall,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          const SliverSizedBox(height: 24),
+        ],
+      ),
     );
   }
 

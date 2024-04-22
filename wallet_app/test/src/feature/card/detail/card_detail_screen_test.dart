@@ -93,7 +93,7 @@ void main() {
 
       // Validate that the widget exists
       final cardTitleFinder = find.text(WalletMockData.card.front.title.testValue);
-      expect(cardTitleFinder, findsNWidgets(2)); // App bar title + title on card
+      expect(cardTitleFinder, findsNWidgets(3)); // App bar (collapsed and expanded) title + title on card
     });
   });
 }
