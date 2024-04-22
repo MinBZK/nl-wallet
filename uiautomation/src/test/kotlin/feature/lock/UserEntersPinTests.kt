@@ -111,8 +111,8 @@ class UserEntersPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.11 The PIN entry screen offers an entrance to the App Info page.")
-    fun verifyAboutAppButton() {
-        pinScreen.clickAboutAppButton()
+    fun verifyAppInfoButton() {
+        pinScreen.clickAppInfoButton()
 
         val aboutScreen = AboutScreen()
         assertTrue(aboutScreen.visible(), "about screen is not visible")

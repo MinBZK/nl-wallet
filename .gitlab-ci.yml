@@ -1143,17 +1143,7 @@ check-gitlab-ci-changed:
   script:
     - gradle wrapper --gradle-version=7.5
     - ./gradlew --info --stacktrace test
-      --tests "feature.appstart.*"
-      --tests "feature.card.*"
-      --tests "feature.confirm.*"
-      --tests "feature.dashboard.*"
-      --tests "feature.introduction.*"
-      --tests "feature.lock.*"
-      --tests "feature.menu.*"
-      --tests "feature.personalize.*"
-      --tests "feature.security.*"
-      --tests "feature.settings.*"
-      --tests "feature.web.*"
+      --tests suite.AppStartToDashboardTestSuite
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"

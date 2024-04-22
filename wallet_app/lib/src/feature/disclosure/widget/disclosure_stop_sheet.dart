@@ -56,6 +56,7 @@ class DisclosureStopSheet extends StatelessWidget {
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
+      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       isScrollControlled: true,
       builder: (BuildContext context) {
         return Scrollbar(

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-12T14:36:57+02:00",
+    "@@last_modified": "2024-04-16T14:39:15+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -552,6 +552,7 @@
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",
+    "generalWCAGLogoutAnnouncement": "Je bent uitgelogd",
     "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
