@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/flow_progress.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/num_extensions.dart';
 import 'button/icon/back_icon_button.dart';
@@ -7,11 +8,11 @@ import 'stepper_indicator.dart';
 import 'text/title_text.dart';
 
 /// The space taken up by the stepper indicator (when visible).
-const kStepIndicatorHeight = 4.0;
+const kStepIndicatorHeight = 5.0;
 
 class SliverWalletAppBar extends StatefulWidget {
   final String title;
-  final double? progress;
+  final FlowProgress? progress;
   final List<Widget>? actions;
   final Widget? leading;
 
@@ -85,7 +86,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
           /// Render the flexible space, which includes the (optional) progress bar and expanded title
           return Stack(
             children: [
-              if (widget.progress != null) _buildPositionedProgressBar(),
+              _buildPositionedProgressBar(),
               FlexibleSpaceBar(
                 expandedTitleScale: 1.0,
                 centerTitle: false,
@@ -113,6 +114,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
   }
 
   Widget _buildPositionedProgressBar() {
+    if (widget.progress == null) return const SizedBox.shrink();
     return Positioned(
       top: _topPadding + toolbarHeight - kStepIndicatorHeight,
       left: 0,
@@ -121,7 +123,8 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
         top: false,
         bottom: false,
         child: StepperIndicator(
-          progress: widget.progress ?? 0.0,
+          currentStep: widget.progress!.currentStep,
+          totalSteps: widget.progress!.totalSteps,
         ),
       ),
     );

@@ -7,7 +7,7 @@ sealed class SetupSecurityState extends Equatable {
 
   bool get didGoBack => false;
 
-  double get stepperProgress => 0;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
 
   @override
   List<Object?> get props => [canGoBack, didGoBack, stepperProgress];
@@ -30,7 +30,7 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  double get stepperProgress => 0.24;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
 
   @override
   List<Object?> get props => [enteredDigits, ...super.props];
@@ -42,7 +42,7 @@ class SetupSecuritySelectPinFailed extends SetupSecurityState {
   const SetupSecuritySelectPinFailed({required this.reason});
 
   @override
-  double get stepperProgress => 0.24;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
 }
 
 class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
@@ -59,7 +59,7 @@ class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
   List<Object?> get props => [enteredDigits, ...super.props];
 
   @override
-  double get stepperProgress => 0.32;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 }
 
 class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
@@ -71,22 +71,22 @@ class SetupSecurityPinConfirmationFailed extends SetupSecurityState {
   bool get canGoBack => true;
 
   @override
-  double get stepperProgress => 0.32;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 }
 
 class SetupSecurityCreatingWallet extends SetupSecurityState {
   @override
-  double get stepperProgress => 0.40;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 }
 
 class SetupSecurityCompleted extends SetupSecurityState {
   @override
-  double get stepperProgress => 0.48;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kSetupSteps);
 }
 
 class SetupSecurityGenericError extends SetupSecurityState implements ErrorState {
   @override
-  double get stepperProgress => 0;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 
   @override
   final Object error;
@@ -96,7 +96,7 @@ class SetupSecurityGenericError extends SetupSecurityState implements ErrorState
 
 class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErrorState {
   @override
-  double get stepperProgress => 0;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 
   @override
   final Object error;

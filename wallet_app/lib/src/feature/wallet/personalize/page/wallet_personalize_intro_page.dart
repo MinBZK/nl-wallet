@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../wallet_assets.dart';
 import '../../../common/widget/button/confirm/confirm_button.dart';
@@ -10,7 +11,7 @@ import '../../../common/widget/text/body_text.dart';
 class WalletPersonalizeIntroPage extends StatelessWidget {
   final VoidCallback onLoginWithDigidPressed;
   final VoidCallback onNoDigidPressed;
-  final double? progress;
+  final FlowProgress? progress;
 
   const WalletPersonalizeIntroPage({
     required this.onLoginWithDigidPressed,

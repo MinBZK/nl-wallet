@@ -1,5 +1,7 @@
 part of 'sign_bloc.dart';
 
+const kSignSteps = 6;
+
 sealed class SignState extends Equatable {
   bool get showStopConfirmation => true;
 
@@ -7,7 +9,7 @@ sealed class SignState extends Equatable {
 
   bool get didGoBack => false;
 
-  double get stepperProgress => 0.0;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kSignSteps);
 
   const SignState();
 
@@ -42,7 +44,7 @@ class SignCheckOrganization extends SignState {
   });
 
   @override
-  double get stepperProgress => 0.2;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kSignSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -66,7 +68,7 @@ class SignCheckAgreement extends SignState {
   });
 
   @override
-  double get stepperProgress => 0.4;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSignSteps);
 
   @override
   bool get canGoBack => true;
@@ -95,7 +97,7 @@ class SignConfirmAgreement extends SignState {
   });
 
   @override
-  double get stepperProgress => 0.6;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSignSteps);
 
   @override
   bool get canGoBack => true;
@@ -111,7 +113,7 @@ class SignConfirmPin extends SignState {
   const SignConfirmPin();
 
   @override
-  double get stepperProgress => 0.8;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kSignSteps);
 
   @override
   bool get canGoBack => true;
@@ -123,7 +125,7 @@ class SignSuccess extends SignState {
   const SignSuccess({required this.organization});
 
   @override
-  double get stepperProgress => 1;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 6, totalSteps: kSignSteps);
 
   @override
   bool get showStopConfirmation => false;

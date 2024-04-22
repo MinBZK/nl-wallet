@@ -60,7 +60,10 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildStepper() {
     return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
       buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => StepperIndicator(progress: state.stepperProgress),
+      builder: (context, state) => StepperIndicator(
+        currentStep: state.stepperProgress.currentStep,
+        totalSteps: state.stepperProgress.totalSteps,
+      ),
     );
   }
 
