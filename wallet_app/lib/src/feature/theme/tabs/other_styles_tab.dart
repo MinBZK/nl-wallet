@@ -6,6 +6,7 @@ import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/missing_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/model/card_front.dart';
+import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
@@ -433,7 +434,7 @@ class OtherStylesTab extends StatelessWidget {
               slivers: [
                 SliverWalletAppBar(
                   title: 'Sliver App Bar',
-                  progress: 0.65,
+                  progress: FlowProgress(currentStep: 2, totalSteps: 3),
                   leading: BackIconButton(),
                   actions: [HelpIconButton()],
                 ),
@@ -459,7 +460,7 @@ class OtherStylesTab extends StatelessWidget {
           return Scaffold(
             appBar: const WalletAppBar(
               title: Text('WalletAppBar'),
-              progress: 0.55,
+              progress: FlowProgress(currentStep: 2, totalSteps: 8),
               leading: BackIconButton(),
               actions: [HelpIconButton()],
             ),
@@ -500,7 +501,7 @@ class OtherStylesTab extends StatelessWidget {
                 visibleOffset: 150,
                 child: Text('FadeInAtOffset'),
               ),
-              progress: 0.55,
+              progress: FlowProgress(currentStep: 2, totalSteps: 8),
               leading: BackIconButton(),
               actions: [HelpIconButton()],
             ),

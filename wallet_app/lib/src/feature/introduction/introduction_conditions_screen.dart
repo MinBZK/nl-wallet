@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
+import '../../wallet_constants.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/confirm/confirm_button.dart';
@@ -33,7 +35,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
               slivers: [
                 SliverWalletAppBar(
                   title: context.l10n.introductionConditionsScreenHeadline,
-                  progress: 0.16,
+                  progress: const FlowProgress(currentStep: 2, totalSteps: kSetupSteps),
                   leading: const BackIconButton(),
                   actions: [
                     HelpIconButton(

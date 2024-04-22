@@ -7,6 +7,7 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
+import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
@@ -146,7 +147,7 @@ void main() {
           ..addScenario(
             widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
               MockWalletPersonalizeBloc(),
-              const WalletPersonalizeLoadInProgress(5),
+              const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 1, totalSteps: 2)),
             ),
             name: 'load_in_progress',
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/ui_attribute.dart';
+import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/attribute/attribute_row.dart';
 import '../../../common/widget/button/confirm/confirm_button.dart';
@@ -14,7 +15,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onAcceptPressed;
   final VoidCallback onRejectPressed;
   final List<UiAttribute> attributes;
-  final double progress;
+  final FlowProgress progress;
 
   const WalletPersonalizeCheckDataOfferingPage({
     required this.onAcceptPressed,

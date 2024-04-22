@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
+import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
