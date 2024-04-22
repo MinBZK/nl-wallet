@@ -83,8 +83,8 @@ class SecurityChoosePinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.7 The screen offers an entrance to the App Info screen.")
-    fun verifyAboutAppButton() {
-        pinScreen.clickAboutAppButton()
+    fun verifyAppInfoButton() {
+        pinScreen.clickAppInfoButton()
 
         val aboutScreen = AboutScreen()
         assertTrue(aboutScreen.visible(), "about screen is not visible")

@@ -8,15 +8,15 @@ class CardDataScreen : MobileActions() {
     private val dataPrivacyBanner = find.byValueKey("dataPrivacyBanner")
 
     private val pidFirstNamesLabel = find.byText("Voornamen")
-    private val pidFirstNamesValue = find.byText("Willeke Liselotte")
+    private val pidFirstNamesValue = find.byText("Frouke")
     private val pidLastNameLabel = find.byText("Achternaam")
-    private val pidLastNameValue = find.byText("De Bruijn")
+    private val pidLastNameValue = find.byText("Jansen")
     private val birthDateLabel = find.byText("Geboortedatum")
-    private val birthDateValue = find.byText("10 mei 1997")
+    private val birthDateValue = find.byText("24 maart 2000")
 
     private val pidFirstNamesLabelEnglish = find.byText("First names")
     private val pidLastNameLabelEnglish = find.byText("Surname")
-    private val pidBirthDateValueEnglish = find.byText("May 10, 1997")
+    private val pidBirthDateValueEnglish = find.byText("March 24, 2000")
 
     private val dataPrivacySheetTitle = find.byText(l10n.getString("cardDataScreenDataPrivacySheetTitle"))
     private val dataPrivacySheetDescription = find.byText(l10n.getString("cardDataScreenDataPrivacySheetDescription"))
