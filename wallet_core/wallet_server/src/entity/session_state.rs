@@ -10,6 +10,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub token: String,
     pub data: Json,
+    pub status: String,
     pub last_active_date_time: DateTimeWithTimeZone,
 }
 

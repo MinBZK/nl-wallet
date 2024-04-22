@@ -15,6 +15,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(SessionState::Type).string().not_null())
                     .col(ColumnDef::new(SessionState::Token).string().not_null())
                     .col(ColumnDef::new(SessionState::Data).json().not_null())
+                    .col(ColumnDef::new(SessionState::Status).string().not_null())
                     .col(
                         ColumnDef::new(SessionState::LastActiveDateTime)
                             .timestamp_with_time_zone()
@@ -30,6 +31,7 @@ impl MigrationTrait for Migration {
                 Index::create()
                     .table(SessionState::Table)
                     .col(SessionState::Type)
+                    .col(SessionState::Status)
                     .col(SessionState::LastActiveDateTime)
                     .to_owned(),
             )
@@ -47,5 +49,6 @@ enum SessionState {
     Type,
     Token,
     Data,
+    Status,
     LastActiveDateTime,
 }

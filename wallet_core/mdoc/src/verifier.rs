@@ -26,7 +26,9 @@ use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
     server_keys::{KeyPair, KeyRing},
-    server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS},
+    server_state::{
+        HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS,
+    },
     unsigned::Entry,
     utils::{
         cose::{self, ClonePayload, MdocCose},
@@ -164,6 +166,17 @@ pub enum DisclosureData {
     Created(Created),
     WaitingForResponse(WaitingForResponse),
     Done(Done),
+}
+
+impl HasProgress for DisclosureData {
+    fn progress(&self) -> Progress {
+        match self {
+            Self::Created(_) | Self::WaitingForResponse(_) => Progress::Active,
+            Self::Done(done) => Progress::Finished {
+                has_succeeded: matches!(done.session_result, SessionResult::Done { .. }),
+            },
+        }
+    }
 }
 
 impl From<SessionState<Created>> for SessionState<DisclosureData> {

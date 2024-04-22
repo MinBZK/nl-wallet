@@ -2,7 +2,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_state::{MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionToken},
+    server_state::{HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionToken},
     verifier::DisclosureData,
 };
 
@@ -64,7 +64,7 @@ pub enum SessionStoreVariant<T> {
 
 impl<T> SessionStore<T> for SessionStoreVariant<T>
 where
-    T: SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
+    T: HasProgress + SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
 {
     async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
         match self {
@@ -99,21 +99,43 @@ pub mod postgres {
 
     use chrono::Utc;
     use sea_orm::{
-        sea_query::OnConflict, ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr,
-        EntityTrait, QueryFilter, SqlErr,
+        sea_query::{Expr, OnConflict},
+        ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
+        SqlErr, TransactionTrait,
     };
     use serde::{de::DeserializeOwned, Serialize};
+    use strum::{Display, EnumString};
     use tracing::log::LevelFilter;
     use url::Url;
 
     use crate::entity::session_state;
     use nl_wallet_mdoc::server_state::{
-        SessionState, SessionStore, SessionStoreError, SessionToken, SESSION_EXPIRY_MINUTES,
+        HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
+        FAILED_SESSION_DELETION_MINUTES, SESSION_EXPIRY_MINUTES, SUCCESSFUL_SESSION_DELETION_MINUTES,
     };
 
     use super::SessionDataType;
 
     const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+
+    #[derive(Debug, Clone, Copy, Display, EnumString)]
+    #[strum(serialize_all = "snake_case")]
+    enum SessionStatus {
+        Active,
+        Succeeded,
+        Failed,
+        Expired,
+    }
+
+    impl From<Progress> for SessionStatus {
+        fn from(value: Progress) -> Self {
+            match value {
+                Progress::Active => Self::Active,
+                Progress::Finished { has_succeeded } if has_succeeded => Self::Succeeded,
+                Progress::Finished { .. } => Self::Failed,
+            }
+        }
+    }
 
     #[derive(Debug, Clone)]
     pub struct PostgresSessionStore {
@@ -136,7 +158,7 @@ pub mod postgres {
 
     impl<T> SessionStore<T> for PostgresSessionStore
     where
-        T: SessionDataType + Serialize + DeserializeOwned + Send,
+        T: HasProgress + SessionDataType + Serialize + DeserializeOwned + Send,
     {
         async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
             // find value by token, deserialize from JSON if it exists
@@ -147,16 +169,29 @@ pub mod postgres {
 
             state
                 .map(|state| {
+                    // Decode both the status and data columns.
+                    let status = state
+                        .status
+                        .parse::<SessionStatus>()
+                        .map_err(|e| SessionStoreError::Deserialize(e.into()))?;
+                    let data =
+                        serde_json::from_value(state.data).map_err(|e| SessionStoreError::Deserialize(e.into()))?;
+
+                    // If the status is expired, return a error.
+                    if matches!(status, SessionStatus::Expired) {
+                        return Err(SessionStoreError::Expired(token.clone()));
+                    }
+
+                    // Otherwise, convert the remaining columns and return the session state.
                     let state = SessionState {
-                        data: serde_json::from_value(state.data)?,
+                        data,
                         token: state.token.into(),
                         last_active: state.last_active_date_time.into(),
                     };
 
-                    Result::<_, serde_json::Error>::Ok(state)
+                    Ok(state)
                 })
                 .transpose()
-                .map_err(|e| SessionStoreError::Deserialize(Box::new(e)))
         }
 
         async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
@@ -164,12 +199,14 @@ pub mod postgres {
             let session_token = session.token.clone();
 
             // Insert new value, with data serialized to JSON.
+            let status = SessionStatus::from(session.data.progress()); // This cannot be `Expired`.
             let query = session_state::Entity::insert(session_state::ActiveModel {
+                r#type: ActiveValue::set(T::TYPE.to_string()),
+                token: ActiveValue::set(session.token.into()),
                 data: ActiveValue::set(
                     serde_json::to_value(session.data).map_err(|e| SessionStoreError::Serialize(Box::new(e)))?,
                 ),
-                r#type: ActiveValue::set(T::TYPE.to_string()),
-                token: ActiveValue::set(session.token.into()),
+                status: ActiveValue::set(status.to_string()),
                 last_active_date_time: ActiveValue::set(session.last_active.into()),
             });
 
@@ -196,12 +233,50 @@ pub mod postgres {
         }
 
         async fn cleanup(&self) -> Result<(), SessionStoreError> {
-            // delete expired sessions
-            let threshold = Utc::now() - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.try_into().unwrap());
-            session_state::Entity::delete_many()
-                .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
-                .filter(session_state::Column::LastActiveDateTime.lt(threshold))
-                .exec(&self.connection)
+            let now = Utc::now();
+            let succeeded_cutoff = now - chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into());
+            let failed_cutoff = now - chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
+            let expiry_cutoff = now - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
+
+            self.connection
+                .transaction::<_, (), DbErr>(|transaction| {
+                    Box::pin(async move {
+                        // Remove all succeeded sessions that are older than SUCCESSFUL_SESSION_DELETION_MINUTES.
+                        session_state::Entity::delete_many()
+                            .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
+                            .filter(session_state::Column::Status.eq(SessionStatus::Succeeded.to_string()))
+                            .filter(session_state::Column::LastActiveDateTime.lt(succeeded_cutoff))
+                            .exec(transaction)
+                            .await?;
+
+                        // Remove all failed and expired sessions that are older than FAILED_SESSION_DELETION_MINUTES.
+                        session_state::Entity::delete_many()
+                            .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
+                            .filter(
+                                session_state::Column::Status
+                                    .is_in([SessionStatus::Failed.to_string(), SessionStatus::Expired.to_string()]),
+                            )
+                            .filter(session_state::Column::LastActiveDateTime.lt(failed_cutoff))
+                            .exec(transaction)
+                            .await?;
+
+                        // For all active sessions that are older than SESSION_EXPIRY_MINUTES,
+                        // update the last active time and set the status to expired.
+                        session_state::Entity::update_many()
+                            .col_expr(
+                                session_state::Column::Status,
+                                Expr::value(SessionStatus::Expired.to_string()),
+                            )
+                            .col_expr(session_state::Column::LastActiveDateTime, Expr::value(now))
+                            .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
+                            .filter(session_state::Column::Status.eq(SessionStatus::Active.to_string()))
+                            .filter(session_state::Column::LastActiveDateTime.lt(expiry_cutoff))
+                            .exec(transaction)
+                            .await?;
+
+                        Ok(())
+                    })
+                })
                 .await
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
@@ -221,6 +296,12 @@ pub mod postgres {
         struct TestData {
             id: String,
             data: Vec<u8>,
+        }
+
+        impl HasProgress for TestData {
+            fn progress(&self) -> Progress {
+                Progress::Active
+            }
         }
 
         impl SessionDataType for TestData {

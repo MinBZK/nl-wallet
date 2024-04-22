@@ -1,4 +1,9 @@
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{
+    future::Future,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+    time::Duration,
+};
 
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
@@ -7,6 +12,16 @@ use tokio::{task::JoinHandle, time};
 use tracing::warn;
 
 use wallet_common::utils::random_string;
+
+#[derive(Debug, Clone, Copy)]
+pub enum Progress {
+    Active,
+    Finished { has_succeeded: bool },
+}
+
+pub trait HasProgress {
+    fn progress(&self) -> Progress;
+}
 
 #[derive(Debug, Clone)]
 pub struct SessionState<T> {
@@ -19,6 +34,8 @@ pub struct SessionState<T> {
 pub enum SessionStoreError {
     #[error("token {0} already exists")]
     DuplicateToken(SessionToken),
+    #[error("session with token {0} is expired")]
+    Expired(SessionToken),
     #[error("error while serializing: {0}")]
     Serialize(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("error while deserializing: {0}")]
@@ -29,7 +46,10 @@ pub enum SessionStoreError {
 
 // For this trait we cannot use the `trait_variant::make()` macro to add the `Send` trait to the return type
 // of the async methods, as the `start_cleanup_task()` default method itself needs that specific trait.
-pub trait SessionStore<T> {
+pub trait SessionStore<T>
+where
+    T: HasProgress,
+{
     fn get(
         &self,
         token: &SessionToken,
@@ -59,7 +79,8 @@ pub trait SessionStore<T> {
 
 #[derive(Debug, Default)]
 pub struct MemorySessionStore<T> {
-    pub(crate) sessions: DashMap<SessionToken, SessionState<T>>,
+    // Store the session state and expired boolean as the value
+    sessions: DashMap<SessionToken, (SessionState<T>, bool)>,
 }
 
 impl<T> MemorySessionStore<T> {
@@ -80,15 +101,35 @@ impl<T> SessionState<T> {
     }
 }
 
-/// After this amount of inactivity, a session should be cleaned up.
-pub const SESSION_EXPIRY_MINUTES: u64 = 5;
-
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: u64 = 120;
 
-impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
+/// After this amount of inactivity, an active session should be expired.
+pub const SESSION_EXPIRY_MINUTES: u32 = 30;
+
+/// After this amount of time, a successfully completed session should be removed.
+pub const SUCCESSFUL_SESSION_DELETION_MINUTES: u32 = 5;
+
+/// After this amount of time, a failed or expired session should be removed.
+pub const FAILED_SESSION_DELETION_MINUTES: u32 = 4 * 60;
+
+impl<T> SessionStore<T> for MemorySessionStore<T>
+where
+    T: HasProgress + Clone + Send + Sync,
+{
     async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
-        Ok(self.sessions.get(token).map(|s| s.clone()))
+        self.sessions
+            .get(token)
+            .map(|session_and_expired| {
+                let (session, expired) = session_and_expired.deref();
+
+                if *expired {
+                    return Err(SessionStoreError::Expired(token.clone()));
+                }
+
+                Ok(session.clone())
+            })
+            .transpose()
     }
 
     async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
@@ -101,9 +142,9 @@ impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
                 return Err(SessionStoreError::DuplicateToken(session.token));
             }
 
-            *existing_session = session;
+            *existing_session = (session, false);
         } else {
-            self.sessions.insert(session.token.clone(), session);
+            self.sessions.insert(session.token.clone(), (session, false));
         }
 
         Ok(())
@@ -111,8 +152,35 @@ impl<T: Clone + Send + Sync> SessionStore<T> for MemorySessionStore<T> {
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
         let now = Utc::now();
-        let cutoff = chrono::Duration::minutes(SESSION_EXPIRY_MINUTES as i64);
-        self.sessions.retain(|_, session| now - session.last_active < cutoff);
+        let succeeded_cutoff = now - chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into());
+        let failed_cutoff = now - chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
+        let expiry_cutoff = now - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
+
+        self.sessions.retain(|_, session_and_expired| {
+            let (session, expired) = session_and_expired.deref();
+
+            match (session.data.progress(), *expired) {
+                // Remove all succeeded sessions that are older than SUCCESSFUL_SESSION_DELETION_MINUTES.
+                (Progress::Finished { has_succeeded }, false) if has_succeeded => {
+                    succeeded_cutoff < session.last_active
+                }
+                // Remove all failed and expired sessions that are older than FAILED_SESSION_DELETION_MINUTES.
+                (Progress::Finished { .. }, false) | (_, true) => failed_cutoff < session.last_active,
+                _ => true,
+            }
+        });
+
+        // For all active sessions that are older than SESSION_EXPIRY_MINUTES,
+        // update the last active time and set them to expired.
+        self.sessions.iter_mut().for_each(|mut session_and_expired| {
+            let (session, expired) = session_and_expired.deref_mut();
+
+            if !*expired && matches!(session.data.progress(), Progress::Active) && expiry_cutoff < session.last_active {
+                session.last_active = Utc::now();
+                *expired = true;
+            }
+        });
+
         Ok(())
     }
 }

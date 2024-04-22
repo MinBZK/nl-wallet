@@ -14,7 +14,7 @@ use tokio::task::JoinHandle;
 
 use nl_wallet_mdoc::{
     server_keys::KeyRing,
-    server_state::{SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS},
+    server_state::{HasProgress, Progress, SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS},
     unsigned::UnsignedMdoc,
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
@@ -133,6 +133,17 @@ pub enum IssuanceData {
     Created(Created),
     WaitingForResponse(WaitingForResponse),
     Done(Done),
+}
+
+impl HasProgress for IssuanceData {
+    fn progress(&self) -> Progress {
+        match self {
+            Self::Created(_) | Self::WaitingForResponse(_) => Progress::Active,
+            Self::Done(done) => Progress::Finished {
+                has_succeeded: matches!(done.session_result, SessionResult::Done { .. }),
+            },
+        }
+    }
 }
 
 pub trait IssuanceState {}

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use nl_wallet_mdoc::server_state::{SessionState, SessionStore, SessionToken};
+use nl_wallet_mdoc::server_state::{HasProgress, Progress, SessionState, SessionStore, SessionToken};
 
 use wallet_server::{
     settings::Settings,
@@ -11,6 +11,12 @@ use wallet_server::{
 struct TestData {
     id: String,
     data: Vec<u8>,
+}
+
+impl HasProgress for TestData {
+    fn progress(&self) -> Progress {
+        Progress::Active
+    }
 }
 
 impl SessionDataType for TestData {
