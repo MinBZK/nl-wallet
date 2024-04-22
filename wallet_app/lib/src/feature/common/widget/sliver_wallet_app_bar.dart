@@ -113,6 +113,12 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
     _textHeightCache = null;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _textHeightCache = null;
+  }
+
   Widget _buildPositionedProgressBar() {
     if (widget.progress == null) return const SizedBox.shrink();
     return Positioned(
