@@ -100,6 +100,7 @@ class ConfirmActionSheet extends StatelessWidget {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       builder: (BuildContext context) {
         return ConfirmActionSheet(
           title: title,

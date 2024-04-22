@@ -105,7 +105,7 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   void _runAnnouncements(BuildContext context, SetupSecurityState state) async {
-    if (!context.mediaQuery.accessibleNavigation) return;
+    if (!context.isScreenReaderEnabled) return;
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
 

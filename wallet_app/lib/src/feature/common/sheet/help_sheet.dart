@@ -104,6 +104,7 @@ class HelpSheet extends StatelessWidget {
   }) async {
     return showModalBottomSheet<void>(
       context: context,
+      isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       isScrollControlled: true,
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
