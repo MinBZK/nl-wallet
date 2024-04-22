@@ -21,11 +21,16 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .primary_key(Index::create().col(SessionState::Type).col(SessionState::Token))
-                    .index(
-                        Index::create()
-                            .col(SessionState::Type)
-                            .col(SessionState::LastActiveDateTime),
-                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .table(SessionState::Table)
+                    .col(SessionState::Type)
+                    .col(SessionState::LastActiveDateTime)
                     .to_owned(),
             )
             .await?;
