@@ -139,6 +139,9 @@ impl PersonsResponse {
         })
     }
 
+    // We get a list of nationalities, of which an entry can just be that a nationality (doesn't say which one) is
+    // terminated. The assumption here (taken from the Haal-Centraal code) is that this termination applies to the
+    // previous nationality in the list.
     pub fn filter_terminated_nationalities(&mut self) {
         self.persons.iter_mut().for_each(|person| {
             let mut keep = vec![];
@@ -146,8 +149,7 @@ impl PersonsResponse {
             while !person.nationalities.is_empty() {
                 let nationality = person.nationalities.remove(0);
 
-                // If the current nationality is terminated, it means the previous nationality (to which the current one
-                // applies) should be discarded.
+                // If the current nationality is terminated, the previous nationality should be discarded.
                 if nationality.reason_termination.is_none() && nationality.nationality.is_some() {
                     keep.push(nationality);
                 } else if nationality.reason_termination.is_some() && !keep.is_empty() {
