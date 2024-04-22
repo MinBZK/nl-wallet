@@ -1656,7 +1656,9 @@ dependencies = [
  "ctor",
  "http",
  "indexmap 2.0.2",
+ "lazy_static",
  "mime",
+ "nutype",
  "once_cell",
  "pem 3.0.2",
  "quick-xml",
@@ -2610,6 +2612,7 @@ dependencies = [
  "kinded",
  "proc-macro2",
  "quote",
+ "regex",
  "syn 2.0.38",
 ]
 

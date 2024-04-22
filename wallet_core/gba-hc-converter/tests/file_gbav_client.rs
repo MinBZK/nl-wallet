@@ -4,7 +4,7 @@ use gba_hc_converter::{
         data::GbaResponse,
         error::Error,
     },
-    haal_centraal::Element,
+    haal_centraal::{Bsn, Element},
 };
 
 use crate::common::read_file;
@@ -14,7 +14,7 @@ mod common;
 struct EmptyGbavClient {}
 
 impl GbavClient for EmptyGbavClient {
-    async fn vraag(&self, _bsn: &str) -> Result<GbaResponse, Error> {
+    async fn vraag(&self, _bsn: &Bsn) -> Result<GbaResponse, Error> {
         GbaResponse::new(&read_file("gba/empty-response.xml"))
     }
 }
@@ -22,7 +22,7 @@ impl GbavClient for EmptyGbavClient {
 #[tokio::test]
 async fn should_return_preloaded_xml() {
     let client = FileGbavClient::new("tests/resources/gba".into(), EmptyGbavClient {});
-    let response = client.vraag("999991772").await.unwrap();
+    let response = client.vraag(&Bsn::new("999991772").unwrap()).await.unwrap();
     assert_eq!(
         "Froukje",
         &response.categorievoorkomens[0]
@@ -35,6 +35,6 @@ async fn should_return_preloaded_xml() {
 #[tokio::test]
 async fn should_return_empty() {
     let client = FileGbavClient::new("tests/resources/gba".into(), EmptyGbavClient {});
-    let response = client.vraag("12345678").await.unwrap();
+    let response = client.vraag(&Bsn::new("12345678").unwrap()).await.unwrap();
     assert!(response.categorievoorkomens.is_empty());
 }

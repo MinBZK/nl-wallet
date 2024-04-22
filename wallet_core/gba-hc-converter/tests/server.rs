@@ -9,7 +9,7 @@ use reqwest::Response;
 
 use gba_hc_converter::{
     gba::{client::GbavClient, data::GbaResponse, error::Error},
-    haal_centraal::{Element, PersonQuery, PersonsResponse},
+    haal_centraal::{Bsn, Element, PersonQuery, PersonsResponse},
     server,
 };
 use wallet_common::reqwest::default_reqwest_client_builder;
@@ -54,7 +54,7 @@ where
 async fn query_personen(port: u16) -> Response {
     let query = PersonQuery {
         r#type: String::from("RaadpleegMetBurgerservicenummer"),
-        bsn: vec![String::from("12345678")],
+        bsn: vec![Bsn::new("12345678").unwrap()],
         registration_municipality: None,
         fields: vec![],
     };
@@ -73,14 +73,14 @@ struct MockGbavClient {
 }
 
 impl GbavClient for MockGbavClient {
-    async fn vraag(&self, _bsn: &str) -> Result<GbaResponse, Error> {
+    async fn vraag(&self, _bsn: &Bsn) -> Result<GbaResponse, Error> {
         GbaResponse::new(&read_file(&self.xml_file))
     }
 }
 
 struct ErrorGbavClient {}
 impl GbavClient for ErrorGbavClient {
-    async fn vraag(&self, _bsn: &str) -> Result<GbaResponse, Error> {
+    async fn vraag(&self, _bsn: &Bsn) -> Result<GbaResponse, Error> {
         Err(Error::MissingElement(Element::Nationality.code()))
     }
 }

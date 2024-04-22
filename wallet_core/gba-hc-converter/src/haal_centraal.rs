@@ -1,6 +1,7 @@
 use std::{collections::HashMap, env, path::PathBuf, str::FromStr};
 
 use http::StatusCode;
+use nutype::nutype;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -109,13 +110,19 @@ fn csv_path(name: &str) -> PathBuf {
         .join(format!("resources/stamdata/{}.csv", name))
 }
 
+#[nutype(
+    validate(regex = "^[0-9]{8,9}$"),
+    derive(Deserialize, Serialize, Clone, Debug, Display)
+)]
+pub struct Bsn(String);
+
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PersonQuery {
     pub r#type: String,
 
     #[serde(rename = "burgerservicenummer")]
-    pub bsn: Vec<String>,
+    pub bsn: Vec<Bsn>,
 
     #[serde(rename = "gemeente_van_inschrijving")]
     pub registration_municipality: Option<String>,

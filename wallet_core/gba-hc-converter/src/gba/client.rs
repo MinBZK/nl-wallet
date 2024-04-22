@@ -6,11 +6,14 @@ use reqwest::{tls, Certificate, Identity};
 
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::tls_pinned_client_builder};
 
-use crate::gba::{data::GbaResponse, error::Error};
+use crate::{
+    gba::{data::GbaResponse, error::Error},
+    haal_centraal::Bsn,
+};
 
 #[trait_variant::make(GbavClient: Send)]
 pub trait GbavClientLocal {
-    async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error>;
+    async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error>;
 }
 
 pub struct HttpGbavClient {
@@ -50,14 +53,14 @@ impl HttpGbavClient {
 }
 
 impl GbavClient for HttpGbavClient {
-    async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error> {
+    async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error> {
         let response = self
             .http_client
             .post(self.base_url.clone().into_inner())
             .basic_auth(self.username.clone(), Some(self.password.clone()))
             .header(header::CONTENT_TYPE, "application/xml;charset=UTF-8")
             .header(header::ACCEPT_CHARSET, "UTF-8")
-            .body(VRAAG_REQUEST.replace("{{bsn}}", bsn))
+            .body(VRAAG_REQUEST.replace("{{bsn}}", &bsn.to_string()))
             .send()
             .await?;
 
@@ -87,8 +90,8 @@ impl<T> GbavClient for FileGbavClient<T>
 where
     T: GbavClient + Sync,
 {
-    async fn vraag(&self, bsn: &str) -> Result<GbaResponse, Error> {
-        let xml_file = self.base_path.join(format!("{}.xml", bsn));
+    async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error> {
+        let xml_file = self.base_path.join(format!("{bsn}.xml"));
         if xml_file.exists() {
             let xml = tokio::fs::read_to_string(xml_file).await?;
             let gba_response = GbaResponse::new(&xml)?;
@@ -101,7 +104,7 @@ where
 
 pub struct NoopGbavClient {}
 impl GbavClient for NoopGbavClient {
-    async fn vraag(&self, _bsn: &str) -> Result<GbaResponse, Error> {
+    async fn vraag(&self, _bsn: &Bsn) -> Result<GbaResponse, Error> {
         Ok(GbaResponse::empty())
     }
 }
