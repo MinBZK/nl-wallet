@@ -112,6 +112,12 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
     _textHeightCache = null;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _textHeightCache = null;
+  }
+
   Widget _buildPositionedProgressBar() {
     return Positioned(
       top: _topPadding + toolbarHeight - kStepIndicatorHeight,
