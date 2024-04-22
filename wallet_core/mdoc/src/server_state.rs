@@ -17,8 +17,6 @@ pub struct SessionState<T> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum SessionStoreError {
-    #[error("key not found")]
-    NotFound,
     #[error("error while serializing: {0}")]
     Serialize(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("error while deserializing: {0}")]
