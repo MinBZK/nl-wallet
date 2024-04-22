@@ -88,7 +88,7 @@ pub enum VerificationError {
     #[error("disclosed attributes requested for disclosure session with status: {0}")]
     SessionNotDone(StatusResponse),
     #[error("transcript hash '{0:?}' does not match expected")]
-    TranscriptHashMismatch(Option<Vec<u8>>),
+    TranscriptHashMismatch(Vec<u8>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -205,6 +205,20 @@ pub enum StatusResponse {
     Done,
     Failed,
     Cancelled,
+}
+
+impl From<DisclosureData> for StatusResponse {
+    fn from(value: DisclosureData) -> Self {
+        match value {
+            DisclosureData::Created(_) => Self::Created,
+            DisclosureData::WaitingForResponse(_) => Self::WaitingForResponse,
+            DisclosureData::Done(done) => match done.session_result {
+                SessionResult::Done { .. } => Self::Done,
+                SessionResult::Failed { .. } => Self::Failed,
+                SessionResult::Cancelled { .. } => Self::Cancelled,
+            },
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
@@ -359,26 +373,16 @@ where
     }
 
     pub async fn status(&self, session_id: &SessionToken) -> Result<StatusResponse> {
-        match self
+        let response = self
             .sessions
             .get(session_id)
             .await
             .map_err(VerificationError::SessionStore)?
             .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
             .data
-        {
-            DisclosureData::Created(_) => Ok(StatusResponse::Created),
-            DisclosureData::WaitingForResponse(_) => Ok(StatusResponse::WaitingForResponse),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Done { .. },
-            }) => Ok(StatusResponse::Done),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Failed { .. },
-            }) => Ok(StatusResponse::Failed),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Cancelled { .. },
-            }) => Ok(StatusResponse::Cancelled),
-        }
+            .into();
+
+        Ok(response)
     }
 
     /// Returns the disclosed attributes for a session with status `Done` and an error otherwise
@@ -395,28 +399,28 @@ where
             .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
             .data
         {
-            DisclosureData::Created(_) => Err(VerificationError::SessionNotDone(StatusResponse::Created).into()),
-            DisclosureData::WaitingForResponse(_) => {
-                Err(VerificationError::SessionNotDone(StatusResponse::WaitingForResponse).into())
-            }
-            DisclosureData::Done(Done { session_result }) => match session_result {
-                SessionResult::Failed { .. } => Err(VerificationError::SessionNotDone(StatusResponse::Failed).into()),
-                SessionResult::Cancelled { .. } => {
-                    Err(VerificationError::SessionNotDone(StatusResponse::Cancelled).into())
-                }
-                SessionResult::Done {
-                    transcript_hash: None,
-                    disclosed_attributes,
-                } => Ok(disclosed_attributes),
-                SessionResult::Done {
-                    transcript_hash: Some(hash),
-                    disclosed_attributes,
-                } if transcript_hash.as_ref().is_some_and(|h| h == &hash) => Ok(disclosed_attributes),
-                SessionResult::Done {
-                    transcript_hash: Some(_),
-                    ..
-                } => Err(VerificationError::TranscriptHashMismatch(transcript_hash.to_owned()).into()),
-            },
+            DisclosureData::Done(Done {
+                session_result:
+                    SessionResult::Done {
+                        transcript_hash: None,
+                        disclosed_attributes,
+                    },
+            }) => Ok(disclosed_attributes),
+            DisclosureData::Done(Done {
+                session_result:
+                    SessionResult::Done {
+                        transcript_hash: Some(hash),
+                        disclosed_attributes,
+                    },
+            }) if transcript_hash.as_ref().is_some_and(|h| h == &hash) => Ok(disclosed_attributes),
+            DisclosureData::Done(Done {
+                session_result:
+                    SessionResult::Done {
+                        transcript_hash: Some(hash),
+                        ..
+                    },
+            }) => Err(VerificationError::TranscriptHashMismatch(hash).into()),
+            disclosure_data => Err(VerificationError::SessionNotDone(disclosure_data.into()).into()),
         }
     }
 }
