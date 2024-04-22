@@ -226,7 +226,7 @@ async fn test_disclosure(
     });
 
     let disclosed_documents = verifier
-        .disclosed_attributes(&session_id, transcript_hash)
+        .disclosed_attributes(session_id, transcript_hash)
         .await
         .expect("verifier disclosed attributes should be present");
 
