@@ -58,7 +58,11 @@ class CheckAttributesScreen extends StatelessWidget {
               alignment: AlignmentDirectional.centerStart,
               child: SizedBox(
                 width: 110,
-                child: WalletCardItem.fromCardFront(context: context, front: card.front),
+                child: WalletCardItem.fromCardFront(
+                  context: context,
+                  front: card.front,
+                  scaleText: false,
+                ),
               ),
             ),
           ),
