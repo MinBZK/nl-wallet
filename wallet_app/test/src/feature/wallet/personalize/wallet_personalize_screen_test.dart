@@ -73,7 +73,7 @@ void main() {
     ),
     DataAttribute.untranslated(
       label: 'Burger­service­nummer (BSN)',
-      value: const StringValue('******999'),
+      value: const StringValue('111222333'),
       key: 'mock.citizenshipNumber',
       sourceCardDocType: kPidId,
     ),
