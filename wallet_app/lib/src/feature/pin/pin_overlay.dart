@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import '../../util/extension/build_context_extension.dart';
 import 'bloc/pin_bloc.dart';
 import 'pin_screen.dart';
 
@@ -37,7 +39,10 @@ class PinOverlay extends StatelessWidget {
         final isLocked = _lockedStreamCache = snapshot.data!;
         if (isLocked) {
           /// Only dismiss when the app was locked this build(), this avoids dismissing new dialogs
-          if (didChangeState) _dismissOpenDialogs(context);
+          if (didChangeState) {
+            _announceLogout(context);
+            _dismissOpenDialogs(context);
+          }
           return _buildLockedState();
         } else {
           return child;
@@ -55,6 +60,10 @@ class PinOverlay extends StatelessWidget {
         },
       ),
     );
+  }
+
+  void _announceLogout(BuildContext context) {
+    SemanticsService.announce(context.l10n.generalWCAGLogoutAnnouncement, TextDirection.ltr);
   }
 
   void _dismissOpenDialogs(BuildContext context) {
