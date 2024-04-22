@@ -172,7 +172,6 @@ class CardDetailScreen extends StatelessWidget {
         InfoRow(
           icon: Icons.description_outlined,
           title: Text(context.l10n.cardDetailScreenCardDataCta),
-          subtitle: Text(context.l10n.cardDetailScreenCardDataIssuedBy(card.issuer.displayName.l10nValue(context))),
           onTap: () => _onCardDataPressed(context, card),
         ),
         const Divider(height: 1),
