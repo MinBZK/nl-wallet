@@ -203,7 +203,10 @@ class DashboardScreen extends StatelessWidget {
               SvgPicture.asset(WalletAssets.svg_qr_button),
               TextButton(
                 onPressed: onTapQr,
-                child: Text(context.l10n.dashboardScreenQrCta),
+                child: Text(
+                  context.l10n.dashboardScreenQrCta,
+                  textAlign: TextAlign.center,
+                ),
               )
             ],
           ),
