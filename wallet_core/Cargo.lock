@@ -5135,6 +5135,7 @@ name = "wallet_server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "assert_matches",
  "axum",
  "base64 0.21.4",
  "chrono",

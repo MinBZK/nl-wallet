@@ -83,11 +83,23 @@ pub struct MemorySessionStore<T> {
     sessions: DashMap<SessionToken, (SessionState<T>, bool)>,
 }
 
+#[cfg(any(test, feature = "mock_time"))]
+pub static MEMORY_SESSION_STORE_NOW: once_cell::sync::Lazy<parking_lot::RwLock<Option<DateTime<Utc>>>> =
+    once_cell::sync::Lazy::new(|| None.into());
+
 impl<T> MemorySessionStore<T> {
     pub fn new() -> Self {
         Self {
             sessions: DashMap::new(),
         }
+    }
+
+    fn now() -> DateTime<Utc> {
+        #[cfg(not(any(test, feature = "mock_time")))]
+        return Utc::now();
+
+        #[cfg(any(test, feature = "mock_time"))]
+        MEMORY_SESSION_STORE_NOW.read().unwrap_or_else(Utc::now)
     }
 }
 
@@ -151,7 +163,7 @@ where
     }
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
-        let now = Utc::now();
+        let now = Self::now();
         let succeeded_cutoff = now - chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into());
         let failed_cutoff = now - chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
         let expiry_cutoff = now - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
