@@ -65,8 +65,7 @@ pub fn flutter_api_error(_attr: TokenStream, item: TokenStream) -> TokenStream {
     quote! {
         #(#attrs)* #vis #sig {
             (|| #block)()
-                .map_err(|error: ::anyhow::Error| {
-                    sentry_anyhow::capture_anyhow(&error);
+                .map_err(|error: ::anyhow::Error|
                     match crate::errors::FlutterApiError::try_from(error) {
                         Ok(flutter_error) => {
                             ::tracing::warn!("Error: {}", flutter_error);
@@ -76,7 +75,7 @@ pub fn flutter_api_error(_attr: TokenStream, item: TokenStream) -> TokenStream {
                         },
                         Err(error) => error,
                     }
-                })
+                )
         }
     }
     .into()

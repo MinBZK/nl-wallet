@@ -20,7 +20,6 @@ itertools.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 parking_lot.workspace = true
 sentry.workspace = true
-sentry-anyhow.workspace = true
 sentry-panic.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

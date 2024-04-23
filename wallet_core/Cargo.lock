@@ -1436,7 +1436,6 @@ dependencies = [
  "oslog",
  "parking_lot",
  "sentry",
- "sentry-anyhow",
  "sentry-panic",
  "serde",
  "serde_json",
