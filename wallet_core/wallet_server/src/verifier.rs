@@ -50,7 +50,6 @@ pub enum Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        warn!("{}", self);
         match self {
             Error::StartSession(nl_wallet_mdoc::Error::Verification(_)) => StatusCode::BAD_REQUEST,
             Error::StartSession(_) => StatusCode::INTERNAL_SERVER_ERROR,
