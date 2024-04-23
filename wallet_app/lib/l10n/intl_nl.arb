@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-16T14:39:15+02:00",
+    "@@last_modified": "2024-04-18T10:59:54+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -142,12 +142,12 @@
             }
         }
     },
-    "cardValueFalse": "Niet waar",
+    "cardValueFalse": "Nee",
     "cardValueGenderFemale": "Vrouw",
     "cardValueGenderMale": "Man",
     "cardValueGenderNotApplicable": "Niet van toepassing",
     "cardValueGenderUnknown": "Onbekend",
-    "cardValueTrue": "Waar",
+    "cardValueTrue": "Ja",
     "changeLanguageScreenTitle": "Kies een taal",
     "checkAgreementPageCancelCta": "Nee",
     "checkAgreementPageConfirmCta": "Ja, volgende",
@@ -452,6 +452,8 @@
     "errorScreenServerHeadline": "Er gaat iets mis",
     "errorScreenServerHelpCta": "Hulp nodig?",
     "errorScreenServerTitle": "Fout",
+    "flashlightDisabledWCAGAnnouncement": "Zaklamp is uitgezet",
+    "flashlightEnabledWCAGAnnouncement": "Zaklamp is aangezet",
     "forgotPinScreenCta": "Verwijder Wallet",
     "forgotPinScreenDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
     "forgotPinScreenTitle": "Pincode vergeten?",
@@ -475,6 +477,7 @@
             }
         }
     },
+    "generalFalseValue": "No",
     "generalHelpCta": "Hulp nodig?",
     "generalHours": "{hours, plural, one {{hours} uur} other {{hours} uur}}",
     "@generalHours": {
@@ -494,7 +497,9 @@
             }
         }
     },
+    "generalOff": "Uit",
     "generalOkCta": "OK",
+    "generalOn": "Aan",
     "generalOnDate": "Op",
     "generalOsVersionText": "Besturingssysteem: {versionName}",
     "@generalOsVersionText": {
@@ -535,6 +540,7 @@
     "generalSheetCloseCta": "Sluiten",
     "generalTimeAgo": "geleden",
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
+    "generalTrueValue": "Ja",
     "generalVersionText": "App versie: {versionName} ({versionCode})",
     "@generalVersionText": {
         "placeholders": {
@@ -549,6 +555,7 @@
         }
     },
     "generalWCAGBack": "Terug",
+    "generalWCAGChangeLanguage": "Taal te selecteren",
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",
