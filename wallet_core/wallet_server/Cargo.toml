@@ -12,6 +12,11 @@ workspace = true
 doctest = false
 
 [[test]]
+name = "verifier_api"
+path = "tests/verifier_api.rs"
+required-features = ["cfg_test"]
+
+[[test]]
 name = "postgres"
 path = "tests/postgres.rs"
 required-features = ["postgres", "db_test"]
