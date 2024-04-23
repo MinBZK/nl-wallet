@@ -10,7 +10,6 @@ pub(crate) fn init_sentry() -> Option<ClientInitGuard> {
                 release: sentry::release_name!(),
                 environment: option_env!("SENTRY_ENVIRONMENT").map(Cow::from),
                 debug: cfg!(debug_assertions),
-                attach_stacktrace: true,
                 ..Default::default()
             },
         ))
