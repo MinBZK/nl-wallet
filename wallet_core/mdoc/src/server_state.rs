@@ -162,10 +162,10 @@ where
             match (session.data.progress(), *expired) {
                 // Remove all succeeded sessions that are older than SUCCESSFUL_SESSION_DELETION_MINUTES.
                 (Progress::Finished { has_succeeded }, false) if has_succeeded => {
-                    succeeded_cutoff < session.last_active
+                    session.last_active >= succeeded_cutoff
                 }
                 // Remove all failed and expired sessions that are older than FAILED_SESSION_DELETION_MINUTES.
-                (Progress::Finished { .. }, false) | (_, true) => failed_cutoff < session.last_active,
+                (Progress::Finished { .. }, false) | (_, true) => session.last_active >= failed_cutoff,
                 _ => true,
             }
         });
@@ -175,8 +175,8 @@ where
         self.sessions.iter_mut().for_each(|mut session_and_expired| {
             let (session, expired) = session_and_expired.deref_mut();
 
-            if !*expired && matches!(session.data.progress(), Progress::Active) && expiry_cutoff < session.last_active {
-                session.last_active = Utc::now();
+            if !*expired && matches!(session.data.progress(), Progress::Active) && session.last_active < expiry_cutoff {
+                session.last_active = now;
                 *expired = true;
             }
         });
