@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <vraagResponse xmlns:ns2="http://www.bprbzk.nl/GBA/LO3/version1.1"
+                   xmlns="http://www.bprbzk.nl/GBA/LRDPlus/version1.1">
+      <vraagReturn>
+        <persoonslijsten xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:nil="true"/>
+        <resultaat>
+          <code>33</code>
+          <letter>G</letter>
+          <omschrijving>Geen gegevens gevonden.</omschrijving>
+          <referentie>a5702bb1-30d6-4d8e-b409-d4c8659f72e5</referentie>
+        </resultaat>
+      </vraagReturn>
+    </vraagResponse>
+  </soap:Body>
+</soap:Envelope>

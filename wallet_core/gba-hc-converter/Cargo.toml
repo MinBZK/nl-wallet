@@ -1,0 +1,60 @@
+[package]
+name = "gba-hc-converter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "gba-hc-converter"
+
+[lib]
+doctest = false
+
+[dependencies]
+axum = { workspace = true, features = [
+    "http1",
+    "json",
+    "tokio",
+    "tower-log",
+    "tracing"
+] }
+axum-server = { workspace = true, features = ["tls-rustls"] }
+chrono = { workspace = true, features = ["clock", "serde", "std"] }
+config = { workspace = true, features = ["toml"] }
+csv.workspace = true
+http.workspace = true
+indexmap.workspace = true
+mime.workspace = true
+once_cell = { workspace = true, features = ["parking_lot"] }
+lazy_static.workspace = true
+nutype = { workspace = true, features = ["regex", "serde"] }
+pem.workspace = true
+quick-xml = { workspace = true, features = ["async-tokio", "serialize", "overlapped-lists"] }
+regex.workspace = true
+reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
+rstest.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+serde_urlencoded = { workspace = true, optional = true }
+serde_with = { workspace = true, features = ["base64"] }
+serde-xml-rs.workspace = true
+thiserror.workspace = true
+trait-variant.workspace = true
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "parking_lot",
+    "macros",
+] }
+tower-http = { workspace = true, features = ["trace"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["parking_lot"] }
+
+wallet_common = { path = "../wallet_common" }
+
+[dev-dependencies]
+assert-json-diff.workspace = true
+ctor.workspace = true
+

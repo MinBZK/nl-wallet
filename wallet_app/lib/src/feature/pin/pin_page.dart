@@ -216,6 +216,7 @@ class PinPage extends StatelessWidget {
       child: CustomScrollView(
         slivers: [
           SliverFillRemaining(
+            hasScrollBody: false,
             child: BlocBuilder<PinBloc, PinState>(
               builder: (context, state) {
                 if (state is PinValidateFailure) {

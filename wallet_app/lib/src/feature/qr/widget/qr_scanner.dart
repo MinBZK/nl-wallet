@@ -1,5 +1,6 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -76,30 +77,34 @@ class _QrScannerState extends State<QrScanner> {
           child: Material(
             color: Colors.white,
             borderRadius: buttonRadius,
-            child: InkWell(
-              borderRadius: buttonRadius,
-              onTap: () => cameraController.toggleTorch(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                child: ValueListenableBuilder(
-                  valueListenable: cameraController.torchState,
-                  builder: (context, torch, child) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          torch.isOn ? Icons.flashlight_off_outlined : Icons.flashlight_on_outlined,
-                          color: context.colorScheme.onSecondary,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          torch.isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta,
-                          style: context.textTheme.labelLarge?.copyWith(color: context.colorScheme.onSecondary),
-                        ),
-                      ],
-                    );
-                  },
+            child: Semantics(
+              button: true,
+              child: InkWell(
+                borderRadius: buttonRadius,
+                onTap: () => _toggleFlashLight(context),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  child: ValueListenableBuilder(
+                    valueListenable: cameraController.torchState,
+                    builder: (context, torch, child) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            torch.isOn ? Icons.flashlight_on_outlined : Icons.flashlight_off_outlined,
+                            color: context.colorScheme.onSecondary,
+                            size: 16,
+                            semanticLabel: torch.isOn ? context.l10n.generalOn : context.l10n.generalOff,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            torch.isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta,
+                            style: context.textTheme.labelLarge?.copyWith(color: context.colorScheme.onSecondary),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -107,6 +112,19 @@ class _QrScannerState extends State<QrScanner> {
         ),
       ),
     );
+  }
+
+  void _toggleFlashLight(BuildContext context) {
+    final l10n = context.l10n;
+    final currentOnState = cameraController.torchState.value.isOn;
+    final postToggleOnState = !currentOnState;
+    cameraController.toggleTorch().then((value) async {
+      if (postToggleOnState) {
+        SemanticsService.announce(l10n.flashlightEnabledWCAGAnnouncement, TextDirection.ltr);
+      } else {
+        SemanticsService.announce(l10n.flashlightDisabledWCAGAnnouncement, TextDirection.ltr);
+      }
+    });
   }
 }
 
