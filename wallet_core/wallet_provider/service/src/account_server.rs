@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use wallet_common::{
     account::{
+        errors::Error as AccountError,
         messages::{
             auth::{Registration, WalletCertificate, WalletCertificateClaims},
             errors::{IncorrectPinData, PinTimeoutData},
@@ -54,7 +55,7 @@ pub enum ChallengeError {
     #[error("could not store challenge: {0}")]
     Storage(#[from] PersistenceError),
     #[error("challenge message validation error: {0}")]
-    Validation(#[from] wallet_common::errors::Error),
+    Validation(#[from] wallet_common::account::errors::Error),
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
     #[error("instruction sequence number validation failed")]
@@ -90,9 +91,9 @@ pub enum RegistrationError {
     #[error("registration challenge validation error: {0}")]
     ChallengeValidation(#[source] JwtError),
     #[error("registration message parsing error: {0}")]
-    MessageParsing(#[source] wallet_common::errors::Error),
+    MessageParsing(#[source] wallet_common::account::errors::Error),
     #[error("registration message validation error: {0}")]
-    MessageValidation(#[source] wallet_common::errors::Error),
+    MessageValidation(#[source] wallet_common::account::errors::Error),
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
     #[error("registration JWT signing error: {0}")]
@@ -138,7 +139,7 @@ pub enum InstructionValidationError {
     #[error("instruction challenge timeout")]
     ChallengeTimeout,
     #[error("instruction verification failed: {0}")]
-    VerificationFailed(#[source] wallet_common::errors::Error),
+    VerificationFailed(#[source] AccountError),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
 }
@@ -1263,7 +1264,7 @@ mod tests {
                     &hsm,
                 ).await,
                 Err(InstructionValidationError::VerificationFailed(
-                    wallet_common::errors::Error::ChallengeMismatch
+                    wallet_common::account::errors::Error::ChallengeMismatch
                 ))
             )
         );

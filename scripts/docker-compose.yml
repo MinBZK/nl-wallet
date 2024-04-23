@@ -35,6 +35,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
       - ASPNETCORE_URLS=http://+:5000
+    # todo: configure for using gba-hc-conversion service locally
+    #      - Routes__0__DownstreamScheme=http
+    #      - Routes__0__DownstreamHostAndPorts__0__Host=host.docker.internal
+    #      - Routes__0__DownstreamHostAndPorts__0__Port=3006
     ports:
       - "5001:5000"
     networks:

@@ -1,0 +1,52 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "burgerservicenummer": "999991772",
+      "geslacht": {
+        "code": "V"
+      },
+      "naam": {
+        "voornamen": "Frouke",
+        "voorvoegsel": null,
+        "geslachtsnaam": "Jansen",
+        "aanduidingNaamgebruik": {
+          "code": "E"
+        }
+      },
+      "geboorte": {
+        "datum": "20000324",
+        "land": {
+          "code": "5010",
+          "omschrijving": "België"
+        },
+        "plaats": {
+          "omschrijving": "Luik"
+        }
+      },
+      "nationaliteiten": [
+        {
+          "nationaliteit": {
+            "code": "0001",
+            "omschrijving": "Nederlandse"
+          },
+          "redenOpname": {
+            "code": "017"
+          }
+        }
+      ],
+      "verblijfplaats": {
+        "straat": "Van Wijngaerdenstraat",
+        "naamOpenbareRuimte": "Van Wijngaerdenstraat",
+        "huisnummer": 1,
+        "huisletter": null,
+        "huisnummertoevoeging": null,
+        "postcode": "2596TW",
+        "woonplaats": "Toetsoog",
+        "functieAdres": {
+          "code": "T"
+        }
+      }
+    }
+  ]
+}
