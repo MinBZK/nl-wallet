@@ -2,10 +2,8 @@ ARG HARBOR_REGISTRY
 ARG HARBOR_NLW_PROJECT
 
 ### Build Stage ###
-FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8 AS builder
+FROM ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a AS builder
 WORKDIR /usr/src/
-RUN update-ca-certificates && \
-    rustup target add x86_64-unknown-linux-gnu
 COPY . .
 RUN cargo build --locked --target x86_64-unknown-linux-gnu --release --package "wallet_provider" --bin wallet_provider
 
