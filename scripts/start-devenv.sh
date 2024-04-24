@@ -320,22 +320,28 @@ then
 fi
 
 ########################################################################
-# Manage brpproxy
+# Manage brpproxy and gba_hc_converter
 
 if [ "${BRP}" == "0" ]
 then
     echo
-    echo -e "${SECTION}Manage brpproxy${NC}"
+    echo -e "${SECTION}Manage brpproxy and gba_hc_converter${NC}"
+
+    cd "${GBA_HC_CONVERTER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
-        echo -e "${INFO}Stopping ${ORANGE}brpproxy${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down brpproxy gbamock || true
+        echo -e "${INFO}Stopping ${ORANGE}brpproxy and gba_hc_converter${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down brpproxy || true
+        killall gba_hc_converter || true
     fi
     if [ "${START}" == "0" ]
     then
-        echo -e "Building and starting ${ORANGE}brpproxy${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach brpproxy gbamock
+        echo -e "Building and starting ${ORANGE}brpproxy and gba_hc_converter${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach brpproxy
+        RUST_LOG=debug cargo run --bin gba_hc_converter > "${TARGET_DIR}/gba_hc_converter.log" 2>&1 &
+
+        echo -e "gba_hc_converter logs can be found at ${CYAN}${TARGET_DIR}/gba_hc_converter.log${NC}"
     fi
 fi
 
