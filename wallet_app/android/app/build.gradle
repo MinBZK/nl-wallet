@@ -111,6 +111,10 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.common
+
+            packagingOptions {
+                doNotStrip "**/*.so"
+            }
         }
         profile {
             signingConfig signingConfigs.common
@@ -157,24 +161,28 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         workingDir "../../../wallet_core"
 
         // Build the Rust code (wallet_core)
-        commandLine 'cargo', 'ndk',
+        executable = 'cargo'
+        args = ['ndk',
                 '-t', 'armeabi-v7a',
                 '-t', 'arm64-v8a',
                 '-t', 'x86_64',
                 '-o', jniTargetDir
+        ]
         if (!doStrip) {
-            args '--no-strip'
+            args += '--no-strip'
         }
-        args 'build',
+        args += [
+                'build',
                 '-p', 'flutter_api'
+        ]
         if (profileMode != null) {
-            args profileMode
+            args += profileMode
         }
         if (dartEnvironmentVariables['ALLOW_HTTP_RETURN_URL'] == 'true') {
-            args '--features', 'wallet/allow_http_return_url'
+            args += ['--features', 'wallet/allow_http_return_url']
         }
         if (dartEnvironmentVariables['ENV_CONFIGURATION'] == 'true') {
-            args '--features', 'wallet/env_config'
+            args += ['--features', 'wallet/env_config']
         }
     }
 }

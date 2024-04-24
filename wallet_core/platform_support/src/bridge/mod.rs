@@ -37,6 +37,8 @@ pub fn init_platform_support(
     encryption_key: Box<dyn EncryptionKeyBridge>,
     utils: Box<dyn UtilitiesBridge>,
 ) {
+    std::env::set_var("RUST_BACKTRACE", "1");
+
     let sentry_guard = init_sentry();
 
     let bridge_collection = BridgeCollection {
