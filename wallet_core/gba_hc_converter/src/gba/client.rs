@@ -3,6 +3,7 @@ use std::{env, path::PathBuf};
 use http::header;
 use pem::Pem;
 use reqwest::{tls, Certificate, Identity};
+use tracing::info;
 
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::tls_pinned_client_builder};
 
@@ -54,6 +55,8 @@ impl HttpGbavClient {
 
 impl GbavClient for HttpGbavClient {
     async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error> {
+        info!("Sending GBA-V request to: {}", &self.base_url.clone().into_inner());
+
         let response = self
             .http_client
             .post(self.base_url.clone().into_inner())
@@ -63,6 +66,8 @@ impl GbavClient for HttpGbavClient {
             .body(VRAAG_REQUEST.replace("{{bsn}}", &bsn.to_string()))
             .send()
             .await?;
+
+        info!("Received GBA-V response with status: {}", &response.status());
 
         let body = response.text().await?;
         let result = GbaResponse::new(&body)?;

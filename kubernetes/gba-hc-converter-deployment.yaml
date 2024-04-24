@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gba-hc-converter
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gba-hc-converter
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: gba-hc-converter
+        tier: vertrouwd
+        egress-frontoffice-policy: allow
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: gba-hc-converter
+          image: $CONVERTER_IMAGE
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "300m"
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+          volumeMounts:
+            - name: gba-hc-converter-xml-files-volume
+              mountPath: /resources/gba-v-responses
+              readOnly: true
+            - name: config-volume
+              mountPath: /gba_hc_converter.toml
+              subPath: gba_hc_converter.toml
+          env:
+            - name: RUST_BACKTRACE
+              value: "1"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+            - name: GBA_HC_CONVERTER_STRUCTURED_LOGGING
+              value: "true"
+            - name: GBA_HC_CONVERTER_PORT
+              value: "3006"
+      volumes:
+        - name: gba-hc-converter-xml-files-volume
+          configMap:
+            name: nl-wallet-gba-hc-converter-xml-files
+        - name: config-volume
+          secret:
+            secretName: nl-wallet-gba-hc-converter-config
+      hostAliases:
+        - ip: 147.181.7.110
+          hostnames:
+            - lap.gbav.idm.diginetwerk.net

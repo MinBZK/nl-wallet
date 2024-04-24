@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use http::StatusCode;
+use tower_http::trace::TraceLayer;
 use tracing::{debug, info};
 
 use crate::{
@@ -31,12 +32,15 @@ where
 
     let app_state = Arc::new(ApplicationState { gbav_client });
 
-    let app = Router::new().nest("/", health_router()).nest(
-        "/haalcentraal/api/brp",
-        Router::new()
-            .route("/personen", post(personen::<T>))
-            .with_state(app_state),
-    );
+    let app = Router::new()
+        .nest("/", health_router())
+        .nest(
+            "/haalcentraal/api/brp",
+            Router::new()
+                .route("/personen", post(personen::<T>))
+                .with_state(app_state),
+        )
+        .layer(TraceLayer::new_for_http());
 
     axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
 
@@ -62,6 +66,8 @@ where
 
     let mut body = PersonsResponse::create(gba_response)?;
     body.filter_terminated_nationalities();
+
+    info!("Sending personen response");
 
     Ok((StatusCode::OK, body.into()))
 }

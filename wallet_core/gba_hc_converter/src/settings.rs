@@ -13,6 +13,9 @@ pub struct Settings {
     pub ip: IpAddr,
     pub port: u16,
 
+    #[serde(default)]
+    pub structured_logging: bool,
+
     pub run_mode: RunMode,
 }
 
@@ -55,6 +58,7 @@ pub struct PreloadedSettings {
 
 #[derive(Clone, Deserialize)]
 #[serde(rename_all(deserialize = "lowercase"))]
+#[derive(strum::Display)]
 pub enum RunMode {
     Gbav(GbavSettings),
     Preloaded(PreloadedSettings),
@@ -73,7 +77,7 @@ impl Settings {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 3006)?
-            .add_source(File::from(config_path.join("gba-hc-converter.toml")).required(false))
+            .add_source(File::from(config_path.join("gba_hc_converter.toml")).required(false))
             .add_source(
                 Environment::with_prefix("gba_hc_converter")
                     .separator("__")

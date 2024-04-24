@@ -3,7 +3,7 @@ members = [
     "configuration_server",
     "flutter_api",
     "flutter_api/flutter_api_macros",
-    "gba-hc-converter",
+    "gba_hc_converter",
     "mdoc",
     "mock_relying_party",
     "openid4vc",

@@ -340,6 +340,15 @@ export WALLET_CONFIG_JWT
 render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
 cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
 
+
+########################################################################
+# Configure gba-hc-converter
+
+echo
+echo -e "${SECTION}Configure gba-hc-converter${NC}"
+
+render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/gba_hc_converter/gba_hc_converter.toml"
+
 ########################################################################
 # Configure wallet
 
