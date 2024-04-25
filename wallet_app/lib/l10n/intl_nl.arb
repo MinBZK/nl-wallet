@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-18T10:59:54+02:00",
+    "@@last_modified": "2024-04-25T11:06:00+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -187,6 +187,7 @@
     "dashboardScreenFooter": "De overheid ontwikkelt deze app voor jouw gemak, privacy en veiligheid. Lees meer in {cta}.",
     "dashboardScreenFooterCta": "Over de app",
     "dashboardScreenMenuWCAGLabel": "Navigatiemenu",
+    "dashboardScreenOverviewAnnouncement": "NL Wallet overzicht",
     "dashboardScreenQrCta": "Scan QR-code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "Uit {source}",

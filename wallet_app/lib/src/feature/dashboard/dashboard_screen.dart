@@ -2,9 +2,11 @@ import 'dart:math';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
@@ -49,7 +51,15 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       key: const Key('dashboardScreen'),
       appBar: _buildAppBar(context),
-      body: _buildBody(context),
+      body: VisibilityDetector(
+        key: const Key('dashboardVisibilityDetector'),
+        onVisibilityChanged: (visibilityInfo) {
+          if (visibilityInfo.visibleFraction >= 1) {
+            SemanticsService.announce(context.l10n.dashboardScreenOverviewAnnouncement, TextDirection.ltr);
+          }
+        },
+        child: _buildBody(context),
+      ),
     );
   }
 

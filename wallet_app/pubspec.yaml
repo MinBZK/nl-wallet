@@ -53,6 +53,7 @@ dependencies:
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.4
   vibration: ^1.8.4
+  visibility_detector: ^0.4.0+2
   wallet_core:
     path: ./packages/wallet_core
   wallet_mock:
