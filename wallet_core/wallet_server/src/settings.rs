@@ -136,15 +136,16 @@ impl Settings {
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
-            .set_default("store_url", "memory://")?
-            .set_default("issuer.brp_server", "http://localhost:5001/")?
-            .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
+            .set_default("store_url", "memory://")?;
 
         #[cfg(feature = "issuance")]
-        let config_builder = config_builder.set_default(
-            "issuer.wallet_client_ids",
-            vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
-        )?;
+        let config_builder = config_builder
+            .set_default(
+                "issuer.wallet_client_ids",
+                vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
+            )?
+            .set_default("issuer.brp_server", "http://localhost:5001/")?
+            .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
