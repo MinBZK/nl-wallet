@@ -73,4 +73,7 @@ wallet_provider_service = { path = "../wallet_provider/service", features = [
     "software_keys",
     "mock",
 ] } # Enable the features necessary to run all integration tests, minus "db_test" and "hsm_test"
-wallet_server = { path = "../wallet_server", features = ["mock"] }
+wallet_server = { path = "../wallet_server", features = [
+    "mock",
+    "mock_time",
+] } # Enable the features necessary to run all integration tests, minus "db_test"

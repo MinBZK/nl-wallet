@@ -6,9 +6,11 @@ use std::{
 };
 
 use assert_matches::assert_matches;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
+use parking_lot::RwLock;
 use rstest::rstest;
 use tokio::time;
 
@@ -55,7 +57,7 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-fn wallet_server_settings() -> Settings {
+fn wallet_server_settings(use_memory_store: bool) -> Settings {
     let mut settings = Settings::new().unwrap();
     let ws_port = find_listener_port();
 
@@ -71,7 +73,10 @@ fn wallet_server_settings() -> Settings {
     settings.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
     settings.internal_url = format!("http://localhost:{requester_port}/").parse().unwrap();
 
-    settings.store_url = "memory://".parse().unwrap();
+    if use_memory_store {
+        settings.store_url = "memory://".parse().unwrap();
+    }
+
     settings
 }
 
@@ -123,7 +128,7 @@ async fn wait_for_server(base_url: BaseUrl) {
 }))]
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
-    let mut settings = wallet_server_settings();
+    let mut settings = wallet_server_settings(true);
     // fix the internal_url
     match auth {
         RequesterAuth::ProtectedInternalEndpoint {
@@ -258,7 +263,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
 #[tokio::test]
 async fn test_disclosure_not_found() {
-    let settings = wallet_server_settings();
+    let settings = wallet_server_settings(true);
     start_wallet_server(settings.clone()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
@@ -298,9 +303,7 @@ async fn test_disclosure_not_found() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
-async fn test_disclosure_expired() {
-    let settings = wallet_server_settings();
+async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<DateTime<Utc>>>, use_delay: bool) {
     start_wallet_server(settings.clone()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
@@ -340,12 +343,17 @@ async fn test_disclosure_expired() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // Advance the clock just enough so that session expiry will have occurred.
+    let expiry_time = Utc::now() + chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
+    mock_now.write().replace(expiry_time);
+
     time::pause();
     time::advance(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)).await;
     time::resume();
 
-    let mock_now = Utc::now() + chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
-    MEMORY_SESSION_STORE_NOW.write().replace(mock_now);
+    // Wait for the database to have run the cleanup.
+    if use_delay {
+        time::sleep(Duration::from_millis(100)).await;
+    }
 
     // Both the status and disclosed attribute requests should now return 410.
     let response = client
@@ -365,15 +373,20 @@ async fn test_disclosure_expired() {
     assert_eq!(response.status(), StatusCode::GONE);
 
     // Advance the clock again so that the expired session will be purged.
+    mock_now.write().replace(
+        expiry_time
+            + chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into())
+            + chrono::Duration::milliseconds(1),
+    );
+
     time::pause();
     time::advance(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)).await;
     time::resume();
 
-    MEMORY_SESSION_STORE_NOW.write().replace(
-        mock_now
-            + chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into())
-            + chrono::Duration::milliseconds(1),
-    );
+    // Wait for the database to have run the cleanup.
+    if use_delay {
+        time::sleep(Duration::from_millis(100)).await;
+    }
 
     // Both the status and disclosed attribute requests should now return 404.
     let response = client.get(disclosure_response.session_url).send().await.unwrap();
@@ -387,4 +400,25 @@ async fn test_disclosure_expired() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_disclosure_expired_memory() {
+    let settings = wallet_server_settings(true);
+    test_disclosure_expired(settings, Lazy::force(&MEMORY_SESSION_STORE_NOW), false).await;
+}
+
+#[cfg(feature = "db_test")]
+#[tokio::test]
+async fn test_disclosure_expired_postgres() {
+    use wallet_server::store::postgres::POSTGRES_SESSION_STORE_NOW;
+
+    let settings = wallet_server_settings(false);
+    assert_eq!(
+        settings.store_url.scheme(),
+        "postgres",
+        "should be configured to use PostgreSQL storage"
+    );
+
+    test_disclosure_expired(settings, Lazy::force(&POSTGRES_SESSION_STORE_NOW), true).await;
 }

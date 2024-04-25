@@ -14,7 +14,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["cfg_test"]
+required-features = ["mock_time", "cfg_test"]
 
 [[test]]
 name = "postgres"
@@ -43,6 +43,8 @@ issuance = [
 ]
 # Enable mock PID issuance
 mock = ["dep:rand", "issuance"]
+# Allow the current time to be mocked for testing purposes
+mock_time = ["dep:once_cell", "dep:parking_lot"]
 # Enable middleware that logs HTTP requests and responses
 log_requests = ["dep:hyper"]
 
@@ -68,6 +70,8 @@ hyper = { version = "0.14.27", optional = true, features = ["full"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
+once_cell = { workspace = true, optional = true, features = ["parking_lot"] }
+parking_lot = { workspace = true, optional = true }
 openssl = { workspace = true, features = ["vendored"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 rand = { workspace = true, optional = true }
@@ -105,6 +109,8 @@ wallet_common.path = "../wallet_common"
 [dev-dependencies]
 assert_matches.workspace = true
 indexmap.workspace = true
+once_cell = { workspace = true, features = ["parking_lot"] }
+parking_lot.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 

@@ -97,7 +97,7 @@ where
 pub mod postgres {
     use std::time::Duration;
 
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
     use sea_orm::{
         sea_query::{Expr, OnConflict},
         ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter,
@@ -142,6 +142,10 @@ pub mod postgres {
         connection: DatabaseConnection,
     }
 
+    #[cfg(any(test, feature = "mock_time"))]
+    pub static POSTGRES_SESSION_STORE_NOW: once_cell::sync::Lazy<parking_lot::RwLock<Option<DateTime<Utc>>>> =
+        once_cell::sync::Lazy::new(|| None.into());
+
     impl PostgresSessionStore {
         pub async fn try_new(url: Url) -> Result<Self, DbErr> {
             let mut connection_options = ConnectOptions::new(url);
@@ -153,6 +157,14 @@ pub mod postgres {
             let connection = Database::connect(connection_options).await?;
 
             Ok(Self { connection })
+        }
+
+        fn now() -> DateTime<Utc> {
+            #[cfg(not(any(test, feature = "mock_time")))]
+            return Utc::now();
+
+            #[cfg(any(test, feature = "mock_time"))]
+            POSTGRES_SESSION_STORE_NOW.read().unwrap_or_else(Utc::now)
         }
     }
 
@@ -233,7 +245,7 @@ pub mod postgres {
         }
 
         async fn cleanup(&self) -> Result<(), SessionStoreError> {
-            let now = Utc::now();
+            let now = Self::now();
             let succeeded_cutoff = now - chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into());
             let failed_cutoff = now - chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
             let expiry_cutoff = now - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
