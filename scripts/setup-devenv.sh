@@ -37,10 +37,7 @@
 #
 # - Android Emulator configuration
 #
-#     adb reverse tcp:3000 tcp:3000
-#     adb reverse tcp:3001 tcp:3001
-#     adb reverse tcp:3004 tcp:3004
-#     adb reverse tcp:8006 tcp:8006
+#     ./scripts/map_android_ports.sh
 #
 
 set -e # break on error

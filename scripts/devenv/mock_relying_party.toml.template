@@ -1,9 +1,9 @@
-wallet_server_url = 'http://${SERVICES_HOST}:3002'
-public_url = 'http://${SERVICES_HOST}:3004/'
+wallet_server_url = 'http://${SERVICES_HOST}:${MOCK_RP_RS_PORT}'
+public_url = 'http://${SERVICES_HOST}:${MOCK_RP_PORT}/'
 
 [webserver]
-# ip = '0.0.0.0'
-# port = 3004
+ip = '0.0.0.0'
+port = ${MOCK_RP_PORT}
 
 [[usecases.mijn_amsterdam]]
 docType = "com.example.pid"

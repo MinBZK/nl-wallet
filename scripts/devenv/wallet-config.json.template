@@ -5,13 +5,13 @@
     "background_timeout": 300
   },
   "account_server": {
-    "base_url": "http://${SERVICES_HOST}:3000/api/v1/",
+    "base_url": "http://${SERVICES_HOST}:${WALLET_PROVIDER_PORT}/api/v1/",
     "certificate_public_key": "${WP_CERTIFICATE_PUBLIC_KEY}",
     "instruction_result_public_key": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}"
   },
   "pid_issuance": {
-    "pid_issuer_url": "http://${SERVICES_HOST}:3001/issuance/",
-    "digid_url": "https://${SERVICES_HOST}:8006/",
+    "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/issuance/",
+    "digid_url": "https://${SERVICES_HOST}:${RDO_MAX_PORT}/",
     "digid_client_id": "${WALLET_CLIENT_ID}",
     "digid_redirect_path": "authentication",
     "digid_trust_anchors": [${DIGID_CA_CRT}]

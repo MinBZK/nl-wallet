@@ -14,8 +14,8 @@ password = "${DB_PASSWORD}"
 name = "${DB_NAME}"
 
 [webserver]
-# ip = "0.0.0.0"
-# port = 3000
+ip = "0.0.0.0"
+port = ${WALLET_PROVIDER_PORT}
 
 [pin_policy]
 # rounds = 4

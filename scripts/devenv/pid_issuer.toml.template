@@ -1,16 +1,16 @@
 # Example config
 
-public_url = 'http://${SERVICES_HOST}:3001/'
-internal_url = 'http://${SERVICES_HOST}:3002/'
+public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
+internal_url = 'http://${SERVICES_HOST}:${PID_ISSUER_RS_PORT}/'
 store_url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
 
 [wallet_server]
 ip = '0.0.0.0'
-port = 3001
+port = ${PID_ISSUER_WS_PORT}
 
 [requester_server]
 ip = '0.0.0.0'
-port = 3002
+port = ${PID_ISSUER_RS_PORT}
 
 [verifier]
 trust_anchors = [
@@ -28,7 +28,7 @@ certificate = "${PID_ISSUER_CRT}"
 
 [issuer.digid]
 client_id = "${WALLET_CLIENT_ID}"
-issuer_url = "https://${SERVICES_HOST}:8006"
+issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 bsn_privkey = '${BSN_PRIVKEY}'
 trust_anchors = [${DIGID_CA_CRT}]
 

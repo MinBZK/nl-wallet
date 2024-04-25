@@ -21,6 +21,15 @@ export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-$(realpath "${BASE_DIR}"/../
 # export SERVICES_HOST=10.0.2.2
 export SERVICES_HOST=localhost
 
+export WALLET_PROVIDER_PORT=3000
+export PID_ISSUER_WS_PORT=3001
+export PID_ISSUER_RS_PORT=3002
+export CONFIG_SERVER_PORT=3003
+export MOCK_RP_PORT=3004
+export MOCK_RP_WS_PORT=3005
+export MOCK_RP_RS_PORT=3006
+export RDO_MAX_PORT=8006
+
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.
 # Set these properties before executing this script
@@ -41,4 +50,4 @@ export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 # export WALLET_CLIENT_ID=$(uuidgen)
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
-export RP_RETURN_URL="${RP_RETURN_URL:-http://${SERVICES_HOST}:3004/}" # default: http://${SERVICES_HOST}:3004/
+export RP_RETURN_URL="${RP_RETURN_URL:-http://${SERVICES_HOST}:${MOCK_RP_PORT}/}" # default: http://${SERVICES_HOST}:${MOCK_RP_PORT}/
