@@ -133,35 +133,37 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, DashboardLoadSuccess state) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            height: 250,
-            alignment: Alignment.center,
-            child: _buildQrLogo(context),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          sliver: SliverToBoxAdapter(
-            child: ActivitySummary(
-              attributes: state.history ?? [],
-              onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              height: 250,
+              alignment: Alignment.center,
+              child: _buildQrLogo(context),
             ),
           ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          sliver: _buildCardsSliver(context, state.cards),
-        ),
-        SliverToBoxAdapter(
-          child: _buildFooter(context),
-        ),
-        SliverSizedBox(
-          height: context.mediaQuery.padding.bottom,
-        )
-      ],
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            sliver: SliverToBoxAdapter(
+              child: ActivitySummary(
+                attributes: state.history ?? [],
+                onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            sliver: _buildCardsSliver(context, state.cards),
+          ),
+          SliverToBoxAdapter(
+            child: _buildFooter(context),
+          ),
+          SliverSizedBox(
+            height: context.mediaQuery.padding.bottom,
+          )
+        ],
+      ),
     );
   }
 
