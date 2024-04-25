@@ -1,0 +1,104 @@
+The intention of this documentation is to provide insight into how the wallet
+app and its dependent infrastructure works. We aim to document the components
+used, the communication that happens between the different layers of the app
+and various related flow-diagrams for various things you can do with the app.
+
+This file mainly serves as an introduction and a table of contents, the actual
+(sequence) diagrams and other docs can be found in the linked files.
+
+Note that the flows (for now) will mainly serve as a guide as the project is
+still rapidly evolving. As such they should be updated when they are implemented
+or the implementation changes.
+
+[[_TOC_]]
+
+## Participants
+
+A brief summary of the participants used in diagrams.
+
+| Participant      | Description                                                                       |
+|------------------|-----------------------------------------------------------------------------------|
+| user             | The end-user that downloads, installs and uses the application.                   |
+| platform         | The platform specific native layer, referring to iOS (Swift) or Android (Kotlin). |
+| platform_browser | The platform specific browser, user configurable.                                 |
+| wallet_app       | The Flutter application code (i.e. Dart).                                         |
+| wallet_core      | The core business logic, built using Rust.                                        |
+| wallet_provider  | The backend, its business logic is often kept out of scope for now.               |
+| digid_connector  | Service used to abstract the DigiD SAML protocol.                                 |
+| pid_issuer       | The service that will provide the PID to the wallet.                              |
+| digid            | DigiD service, used to authenticate users and retrieve their BSN.                 |
+
+## Components
+
+A global overview of how the different components interact with each other.
+
+See: [overview_components.md](./diagrams/overview_components.md)
+
+## Flows
+
+Various aspects of using the app can be expressed in flows. When a user starts
+the app, creates a wallet and starts using it, approximately the following
+flows are involved:
+
+  1. App startup
+  2. Create wallet
+  3. Pin validation
+  4. Personalize wallet
+  5. Disclosure
+
+The following sub-sections describe those flows and link to flow diagrams.
+
+### App Startup
+
+Details what happens when the app is started, mainly focusing on the
+initialisation of the `wallet_core`.
+
+See: [app_startup.md](./diagrams/app_startup_flow.md)
+
+### Create Wallet
+
+Details what happens when the wallet is created, this includes registering with
+the `wallet_provider`.
+
+See: [wallet_creation.md](./diagrams/wallet_creation_flow.md)
+
+### Pin Validation
+
+Details what happens when the user enters a pin before registering with the
+`wallet_provier` (local validation) and what happens when the user tries to
+unlock the wallet after registration.
+
+See: [pin_validation.md](./diagrams/pin_validation_flow.md)
+
+### Issuance (Personalise Wallet)
+
+Details what happens after registering with `wallet_provider`, when it's time to
+fetch and add some attestations.
+
+See: [issuance.md](./diagrams/issuance_flow.md)
+
+### Disclosure (Verification)
+
+Details what happens when disclosing attestations.
+
+See: [disclosure.md](./diagrams/disclosure_flow.md)
+
+Also, we have a diagram showing a disclosure session from the perspective of the
+relying party.
+
+See: [session_flow.md](./diagrams/session_flow.md)
+
+## Relying Party Step-by-Step
+
+A Relying Party (also known as a verifier, a party that needs to verify
+attestations presented by the wallet). A relying party needs to have a general
+idea of what has to be done to integrate with the wallet environment.
+
+See: [relying-party.md](./relying-party.md)
+
+
+## Localisation
+
+We use a commercial service called "Lokalise" to manage translations.
+
+See: [lokalise.md](./lokalise.md)
