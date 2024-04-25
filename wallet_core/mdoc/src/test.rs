@@ -3,20 +3,12 @@ use std::{fmt::Debug, num::NonZeroU8};
 use ciborium::Value;
 use indexmap::{IndexMap, IndexSet};
 
-use wallet_common::{
-    generator::TimeGenerator,
-    keys::{EcdsaKey, WithIdentifier},
-};
-
 use crate::{
-    holder::Mdoc,
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::mdocs::DataElementValue,
-    server_keys::KeyPair,
     unsigned::{Entry, UnsignedMdoc},
-    utils::{issuer_auth::IssuerRegistration, keys::KeyFactory},
     verifier::{DisclosedAttributes, DocumentDisclosedAttributes, ItemsRequests},
-    DeviceRequest, IssuerSigned, ItemsRequest,
+    DeviceRequest, ItemsRequest,
 };
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
@@ -131,11 +123,24 @@ impl TestDocument {
         Self { doc_type, namespaces }
     }
 
+    #[cfg(all(feature = "generate", feature = "mock"))]
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
-    pub async fn sign<KF>(self, ca: &KeyPair, key_factory: &KF, copy_count: NonZeroU8) -> Mdoc
+    pub async fn sign<KF>(
+        self,
+        ca: &crate::server_keys::KeyPair,
+        key_factory: &KF,
+        copy_count: NonZeroU8,
+    ) -> crate::holder::Mdoc
     where
-        KF: KeyFactory,
+        KF: crate::utils::keys::KeyFactory,
     {
+        use wallet_common::{
+            generator::TimeGenerator,
+            keys::{EcdsaKey, WithIdentifier},
+        };
+
+        use crate::{holder::Mdoc, iso::disclosure::IssuerSigned, utils::issuer_auth::IssuerRegistration};
+
         let unsigned = {
             let mut unsigned = UnsignedMdoc::from(self);
             unsigned.copy_count = copy_count;
