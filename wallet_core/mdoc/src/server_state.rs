@@ -8,7 +8,10 @@ use std::{
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use nutype::nutype;
-use tokio::{task::JoinHandle, time};
+use tokio::{
+    task::JoinHandle,
+    time::{self, MissedTickBehavior},
+};
 use tracing::warn;
 
 use wallet_common::utils::random_string;
@@ -66,6 +69,8 @@ where
         Self: Send + Sync + 'static,
     {
         let mut interval = time::interval(interval);
+        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
+
         tokio::spawn(async move {
             loop {
                 interval.tick().await;
