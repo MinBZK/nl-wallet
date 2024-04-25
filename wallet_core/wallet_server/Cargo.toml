@@ -28,7 +28,7 @@ allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = []
+db_test = ["cfg_test"]
 # Include and run test that depend on a valid configuration file
 cfg_test = []
 # Enable issuance
