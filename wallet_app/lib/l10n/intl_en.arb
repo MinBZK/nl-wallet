@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-04-18T10:59:54+02:00",
+    "@@last_modified": "2024-04-25T11:06:00+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -191,6 +191,7 @@
     "dashboardScreenFooter": "The government is developing this app for your convenience, privacy and security. Learn more at {cta}.",
     "dashboardScreenFooterCta": "About this app",
     "dashboardScreenMenuWCAGLabel": "Navigation menu",
+    "dashboardScreenOverviewAnnouncement": "NL Wallet overview",
     "dashboardScreenQrCta": "Scan QR code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",

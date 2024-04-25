@@ -1,5 +1,8 @@
 use std::error::Error;
 
+use tracing::{info, level_filters::LevelFilter};
+use tracing_subscriber::EnvFilter;
+
 use crate::{
     gba::client::{FileGbavClient, HttpGbavClient, NoopGbavClient},
     settings::{RunMode, Settings},
@@ -13,11 +16,22 @@ mod settings;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    tracing_subscriber::fmt::init();
+    let settings = Settings::new()?;
+
+    let builder = tracing_subscriber::fmt().with_env_filter(
+        EnvFilter::builder()
+            .with_default_directive(LevelFilter::INFO.into())
+            .from_env_lossy(),
+    );
+    if settings.structured_logging {
+        builder.json().init();
+    } else {
+        builder.init()
+    }
 
     haal_centraal::initialize_eager();
 
-    let settings = Settings::new()?;
+    info!("Run mode: {}", settings.run_mode);
 
     match settings.run_mode {
         RunMode::Gbav(gbav) => {

@@ -1644,7 +1644,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gba-hc-converter"
+name = "gba_hc_converter"
 version = "0.1.0"
 dependencies = [
  "assert-json-diff",
@@ -1670,6 +1670,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serde_with",
+ "strum",
  "thiserror",
  "tokio",
  "tower-http",

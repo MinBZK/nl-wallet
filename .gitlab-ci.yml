@@ -182,7 +182,7 @@ test-flutter-ui:
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -195,7 +195,7 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
   script:
     # Run tests, generate code coverage reports
@@ -212,7 +212,7 @@ test-rust:
 test-rust-integration:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
@@ -260,8 +260,8 @@ test-rust-compilation-android-linux:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
   script:
-      - !reference [.test-rust-compilation, script]
-      - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
+    - !reference [.test-rust-compilation, script]
+    - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
 test-rust-compilation-ios:
   extends: .test-rust-compilation
@@ -373,7 +373,7 @@ osv-scanner:
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
@@ -452,9 +452,9 @@ sonar-ios:
 
 sonar-android:
   extends: .default-sonar
-#  needs:
-#    - job: test-android
-#      artifacts: true
+  #  needs:
+  #    - job: test-android
+  #      artifacts: true
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -557,6 +557,23 @@ build-ws-migrations-image:
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migrations:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
+build-gba-hc-converter-image:
+  extends: .kaniko
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile wallet_core/gba_hc_converter/Dockerfile
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-gba-hc-converter:$CI_COMMIT_SHORT_SHA
       --cache=true
 
 ### Android building
@@ -976,6 +993,7 @@ dependency-check-images:
       "nl-wallet-provider"
       "nl-wallet-server-migration"
       "nl-wallet-server"
+      "nl-wallet-gba-hc-converter"
       )
     - mkdir -p trivy
   script:
@@ -1112,6 +1130,26 @@ deploy-mock-relying-party-demo:
     MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
+
+.deploy-gba-hc-converter:
+  needs:
+    - job: build-gba-hc-converter-image
+      artifacts: false
+  variables:
+    CONVERTER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-hc-converter:${CI_COMMIT_SHORT_SHA}
+  script:
+    - kubectl create configmap nl-wallet-gba-hc-converter-xml-files --dry-run=client --from-file wallet_core/gba_hc_converter/resources/gba-v-responses -o yaml | kubectl apply -f -
+    - envsubst < kubernetes/gba-hc-converter-deployment.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/gba-hc-converter-service.yaml
+    - kubectl rollout status deployment/gba-hc-converter
+
+deploy-gba-hc-converter-ont:
+  extends: [.env-ont-k8s, .deploy-gba-hc-converter]
+  rules: !reference [.default-or-merge-request, rules]
+
+deploy-gba-hc-converter-demo:
+  extends: [.env-demo-k8s, .deploy-gba-hc-converter]
+  rules: !reference [.demo-release-tag, rules]
 
 check-gitlab-ci-changed:
   rules:

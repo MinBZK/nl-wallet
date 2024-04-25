@@ -137,7 +137,7 @@ impl Settings {
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("store_url", "memory://")?
-            .set_default("issuer.brp_server", "http://localhost:5001/")?
+            .set_default("issuer.brp_server", "http://localhost:3007/")?
             .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
 
         #[cfg(feature = "issuance")]

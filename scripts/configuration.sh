@@ -7,6 +7,7 @@ WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
 MRP_WALLET_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server"
 MOCK_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/mock_relying_party"
 CS_DIR="${WALLET_CORE_DIR}/configuration_server"
+GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
 DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
