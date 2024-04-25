@@ -6,15 +6,16 @@ use wallet_server::{server, settings::Settings, store::SessionStores};
 #[cfg(feature = "issuance")]
 use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
 
-/// WalletServer
+/// wallet_server
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Configuration file. Will be interpreted
+    /// Configuration file.
     #[arg(short, long, default_value = "wallet_server.toml")]
     config_file: String,
 
-    ///
+    /// Prefix to be used for environment variables. Environment variables will be upper case, so default prefix is:
+    /// `WALLET_SERVER`.
     #[arg(short, long, default_value = "wallet_server")]
     env_prefix: String,
 }
