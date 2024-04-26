@@ -109,9 +109,6 @@ pub struct Issuer {
 
     pub digid: Digid,
 
-    #[cfg(feature = "mock")]
-    pub mock_data: Option<Vec<MockAttributes>>,
-
     pub brp_server: BaseUrl,
 }
 
