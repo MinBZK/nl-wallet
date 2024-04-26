@@ -19,7 +19,7 @@ required-features = ["mock_time", "cfg_test"]
 [[test]]
 name = "postgres"
 path = "tests/postgres.rs"
-required-features = ["postgres", "db_test"]
+required-features = ["mock_time", "postgres", "db_test"]
 
 [features]
 default = ["postgres"]
@@ -115,4 +115,8 @@ parking_lot.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_time"] }
+nl_wallet_mdoc = { path = "../mdoc", features = [
+    "generate",
+    "test",
+    "mock_time",
+] }

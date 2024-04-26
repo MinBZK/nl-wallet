@@ -16,7 +16,7 @@ use tracing::warn;
 
 use wallet_common::utils::random_string;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Progress {
     Active,
     Finished { has_succeeded: bool },
@@ -217,5 +217,279 @@ pub struct SessionToken(String);
 impl SessionToken {
     pub fn new_random() -> Self {
         random_string(32).into()
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+pub mod test {
+    use std::fmt::Debug;
+
+    use assert_matches::assert_matches;
+    use parking_lot::RwLock;
+
+    use super::*;
+
+    // Helper trait that signifies that a type has a constructor that generates random data.
+    pub trait RandomData {
+        fn new_random() -> Self;
+    }
+
+    /// Test reading and writing to a `SessionStore` implementation.
+    pub async fn test_session_store_get_write<T>(session_store: &impl SessionStore<T>)
+    where
+        T: Debug + Clone + RandomData + Eq,
+    {
+        // Generate a new random token and session state.
+        let token = SessionToken::new_random();
+        let session = SessionState {
+            data: T::new_random(),
+            token: token.clone(),
+            last_active: Utc::now(),
+        };
+
+        // The token should not be present in the store.
+        assert_matches!(
+            session_store.get(&token).await.expect_err("should return error"),
+            SessionStoreError::NotFound(expired_token) if expired_token == token
+        );
+
+        // Writing the session state to the store and retrieving it should succeed.
+        session_store
+            .write(session.clone(), true)
+            .await
+            .expect("should succeed");
+
+        let session_read = session_store.get(&token).await.expect("should succeed");
+
+        assert_eq!(session_read.data, session.data);
+        assert_eq!(session_read.token, token);
+        assert_eq!(session_read.last_active, session.last_active);
+
+        // Generate new session state for the same token.
+        let updated_session = SessionState {
+            data: T::new_random(),
+            token: token.clone(),
+            last_active: session.last_active + Duration::from_secs(1),
+        };
+
+        // Writing this as new data should return an error that indicates data for this token already exists.
+        assert_matches!(
+            session_store.write(updated_session.clone(), true).await.expect_err("should return error"),
+            SessionStoreError::DuplicateToken(duplicate_token) if duplicate_token == token
+        );
+
+        // Writing this data as an update should succeed.
+        session_store
+            .write(updated_session.clone(), false)
+            .await
+            .expect("should succeed");
+
+        let session_read = session_store.get(&token).await.expect("should succeed");
+
+        assert_ne!(session_read.data, session.data);
+        assert_eq!(session_read.data, updated_session.data);
+        assert_eq!(session_read.token, token);
+        assert_ne!(session_read.last_active, session.last_active);
+        assert_eq!(session_read.last_active, updated_session.last_active);
+    }
+
+    pub async fn test_session_store_cleanup<T>(
+        session_store: &impl SessionStore<T>,
+        mock_now: &RwLock<Option<DateTime<Utc>>>,
+        token: SessionToken,
+        session_progress: Progress,
+        max_time: chrono::Duration,
+    ) -> Result<SessionState<T>, SessionStoreError>
+    where
+        T: HasProgress + From<Progress>,
+    {
+        // Mock the time.
+        let t1 = Utc::now();
+        mock_now.write().replace(t1);
+
+        // Create new session state, this should be present in the store after cleanup, as the time has not advanced.
+        let session = SessionState {
+            data: T::from(session_progress),
+            token: token.clone(),
+            last_active: t1,
+        };
+
+        session_store.write(session, true).await.unwrap();
+        session_store.cleanup().await.unwrap();
+
+        let _ = session_store.get(&token).await.expect("should succeed");
+
+        // Advance the time right up to the requested threshold, the session state should still be retrievable.
+        let t2 = t1 + max_time;
+        mock_now.write().replace(t2);
+
+        session_store.cleanup().await.unwrap();
+
+        let _ = session_store.get(&token).await.expect("should succeed");
+
+        // Advance the time to just after the requested threshold and return the result of retrieving the session state.
+        let t3 = t2 + chrono::Duration::milliseconds(1);
+        mock_now.write().replace(t3);
+
+        session_store.cleanup().await.unwrap();
+
+        session_store.get(&token).await
+    }
+
+    pub async fn test_session_store_cleanup_expiration<T>(
+        session_store: &impl SessionStore<T>,
+        mock_now: &RwLock<Option<DateTime<Utc>>>,
+    ) where
+        T: Debug + HasProgress + From<Progress>,
+    {
+        // Retrieving active session state after SESSION_EXPIRY_MINUTES should result in an expired error.
+        let token = SessionToken::new_random();
+        let error = test_session_store_cleanup(
+            session_store,
+            mock_now,
+            token.clone(),
+            Progress::Active,
+            chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into()),
+        )
+        .await
+        .expect_err("should return error");
+
+        assert_matches!(
+            error,
+            SessionStoreError::Expired(expired_token) if expired_token == token
+        );
+
+        // Advance the time right up to FAILED_SESSION_DELETION_MINUTES, the session state should still be expired.
+        let t4 = mock_now.read().unwrap() + chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
+        mock_now.write().replace(t4);
+
+        session_store.cleanup().await.unwrap();
+
+        assert_matches!(
+            session_store.get(&token).await.expect_err("should return error"),
+            SessionStoreError::Expired(expired_token) if expired_token == token
+        );
+
+        // Advance the time just after FAILED_SESSION_DELETION_MINUTES and the session should no longer be present.
+        let t5 = t4 + chrono::Duration::milliseconds(1);
+        mock_now.write().replace(t5);
+
+        session_store.cleanup().await.unwrap();
+
+        assert_matches!(
+            session_store.get(&token).await.expect_err("should return error"),
+            SessionStoreError::NotFound(expired_token) if expired_token == token
+        );
+    }
+
+    pub async fn test_session_store_cleanup_successful_deletion<T>(
+        session_store: &impl SessionStore<T>,
+        mock_now: &RwLock<Option<DateTime<Utc>>>,
+    ) where
+        T: Debug + HasProgress + From<Progress>,
+    {
+        // Retrieving succeeded session state after SUCCESSFUL_SESSION_DELETION_MINUTES
+        // should result in the state no longer being present.
+        let token = SessionToken::new_random();
+        let error = test_session_store_cleanup(
+            session_store,
+            mock_now,
+            token.clone(),
+            Progress::Finished { has_succeeded: true },
+            chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into()),
+        )
+        .await
+        .expect_err("should return error");
+
+        assert_matches!(
+            error,
+            SessionStoreError::NotFound(expired_token) if expired_token == token
+        );
+    }
+
+    pub async fn test_session_store_cleanup_failed_deletion<T>(
+        session_store: &impl SessionStore<T>,
+        mock_now: &RwLock<Option<DateTime<Utc>>>,
+    ) where
+        T: Debug + HasProgress + From<Progress>,
+    {
+        // Retrieving failed session state after FAILED_SESSION_DELETION_MINUTES
+        // should result in the state no longer being present.
+        let token = SessionToken::new_random();
+        let error = test_session_store_cleanup(
+            session_store,
+            mock_now,
+            token.clone(),
+            Progress::Finished { has_succeeded: false },
+            chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into()),
+        )
+        .await
+        .expect_err("should return error");
+
+        assert_matches!(
+            error,
+            SessionStoreError::NotFound(expired_token) if expired_token == token
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use once_cell::sync::Lazy;
+
+    use wallet_common::utils;
+
+    use self::test::RandomData;
+
+    use super::*;
+
+    /// A mock data type that adheres to all the trait bounds necessary for testing.
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct MockSessionData {
+        progress: Progress,
+        data: Vec<u8>,
+    }
+
+    impl MockSessionData {
+        fn new(progress: Progress) -> Self {
+            Self {
+                progress,
+                data: utils::random_bytes(32),
+            }
+        }
+    }
+
+    impl From<Progress> for MockSessionData {
+        fn from(value: Progress) -> Self {
+            Self::new(value)
+        }
+    }
+
+    impl HasProgress for MockSessionData {
+        fn progress(&self) -> Progress {
+            self.progress
+        }
+    }
+
+    impl RandomData for MockSessionData {
+        fn new_random() -> Self {
+            Self::new(Progress::Active)
+        }
+    }
+
+    #[tokio::test]
+    async fn test_memory_session_get_write() {
+        let session_store = MemorySessionStore::<MockSessionData>::new();
+        test::test_session_store_get_write(&session_store).await;
+    }
+
+    #[tokio::test]
+    async fn test_memory_session_store_cleanup() {
+        let session_store = MemorySessionStore::<MockSessionData>::new();
+        let mock_now = Lazy::force(&MEMORY_SESSION_STORE_NOW);
+
+        test::test_session_store_cleanup_expiration(&session_store, mock_now).await;
+        test::test_session_store_cleanup_successful_deletion(&session_store, mock_now).await;
+        test::test_session_store_cleanup_failed_deletion(&session_store, mock_now).await;
     }
 }

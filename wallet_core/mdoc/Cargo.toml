@@ -26,7 +26,7 @@ software_key_factory = ["software_keys", "dep:parking_lot"]
 # Include MdocsMap, which can be used for tests that store Mdocs
 mdocs_map = []
 # Include miscellaneous test utilities
-test = ["dep:rstest", "dep:regex"]
+test = ["dep:assert_matches", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 # Allow the current time to be mocked for testing purposes
@@ -34,6 +34,7 @@ mock_time = ["dep:once_cell", "dep:parking_lot"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
+assert_matches = { workspace = true, optional = true }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
