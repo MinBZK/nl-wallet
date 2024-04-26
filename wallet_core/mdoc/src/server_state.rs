@@ -51,20 +51,20 @@ pub enum SessionStoreError {
 
 // For this trait we cannot use the `trait_variant::make()` macro to add the `Send` trait to the return type
 // of the async methods, as the `start_cleanup_task()` default method itself needs that specific trait.
-pub trait SessionStore<T>
-where
-    T: HasProgress,
-{
+pub trait SessionStore<T> {
     fn get(&self, token: &SessionToken) -> impl Future<Output = Result<SessionState<T>, SessionStoreError>> + Send;
     fn write(
         &self,
         session: SessionState<T>,
         is_new: bool,
     ) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
-    fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
+    fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send
+    where
+        T: HasProgress;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
+        T: HasProgress,
         Self: Send + Sync + 'static,
     {
         let mut interval = time::interval(interval);
