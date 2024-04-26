@@ -31,8 +31,8 @@ use crate::{
     metadata::{self, CredentialResponseEncryption, IssuerMetadata},
     oidc,
     token::{
-        AccessToken, AttestationPreview, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse,
-        TokenResponseWithPreviews, TokenType,
+        AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponse, TokenResponseWithPreviews,
+        TokenType,
     },
     Format,
 };
@@ -49,8 +49,6 @@ separate in the type system here. */
 pub enum IssuanceError {
     #[error("session not in expected state")]
     UnexpectedState,
-    #[error("unknown session: {0:?}")]
-    UnknownSession(AuthorizationCode),
     #[error("failed to retrieve session: {0}")]
     SessionStore(#[from] SessionStoreError),
     #[error("invalid DPoP header: {0}")]
@@ -291,13 +289,16 @@ where
             .sessions
             .get(&session_token)
             .await
-            .map_err(|e| TokenRequestError::IssuanceError(e.into()))?
-            .unwrap_or(SessionState::<IssuanceData>::new(
-                session_token,
-                IssuanceData::Created(Created {
-                    attestation_previews: None,
-                }),
-            ));
+            .or_else(|error| match error {
+                SessionStoreError::NotFound(token) => Ok(SessionState::<IssuanceData>::new(
+                    token,
+                    IssuanceData::Created(Created {
+                        attestation_previews: None,
+                    }),
+                )),
+                error => Err(error),
+            })
+            .map_err(IssuanceError::SessionStore)?;
         let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
 
         let result = session
@@ -333,10 +334,7 @@ where
             .sessions
             .get(&code.clone().into())
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
-                code,
-            )))?;
+            .map_err(IssuanceError::SessionStore)?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
@@ -346,7 +344,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
+            .map_err(IssuanceError::SessionStore)?;
 
         response
     }
@@ -362,10 +360,7 @@ where
             .sessions
             .get(&code.clone().into())
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
-                code,
-            )))?;
+            .map_err(IssuanceError::SessionStore)?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
@@ -375,7 +370,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
+            .map_err(IssuanceError::SessionStore)?;
 
         response
     }
@@ -391,10 +386,7 @@ where
             .sessions
             .get(&code.clone().into())
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
-                code,
-            )))?;
+            .map_err(IssuanceError::SessionStore)?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         // Check authorization of the request
@@ -419,7 +411,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
+            .map_err(IssuanceError::SessionStore)?;
 
         Ok(())
     }

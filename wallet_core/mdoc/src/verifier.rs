@@ -79,8 +79,6 @@ pub enum VerificationError {
     UnexpectedInput,
     #[error("unknown certificate")]
     UnknownCertificate(String),
-    #[error("unknown session ID: {0}")]
-    UnknownSessionId(SessionToken),
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
     NoItemsRequests,
     #[error("attributes mismatch: {0:?}")]
@@ -334,8 +332,7 @@ where
             .sessions
             .get(&token)
             .await
-            .map_err(VerificationError::SessionStore)?
-            .ok_or_else(|| Error::from(VerificationError::UnknownSessionId(token.clone())))?;
+            .map_err(VerificationError::SessionStore)?;
 
         info!("Session({token}): process message");
 
@@ -391,7 +388,6 @@ where
             .get(&session_id)
             .await
             .map_err(VerificationError::SessionStore)?
-            .ok_or(VerificationError::UnknownSessionId(session_id))?
             .data
             .into();
 
@@ -409,7 +405,6 @@ where
             .get(&session_id)
             .await
             .map_err(VerificationError::SessionStore)?
-            .ok_or(VerificationError::UnknownSessionId(session_id))?
             .data
         {
             DisclosureData::Done(Done {

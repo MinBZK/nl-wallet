@@ -66,7 +66,7 @@ impl<T> SessionStore<T> for SessionStoreVariant<T>
 where
     T: HasProgress + SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
 {
-    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
+    async fn get(&self, token: &SessionToken) -> Result<SessionState<T>, SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
             SessionStoreVariant::Postgres(postgres) => postgres.get(token).await,
@@ -172,7 +172,7 @@ pub mod postgres {
     where
         T: HasProgress + SessionDataType + Serialize + DeserializeOwned + Send,
     {
-        async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
+        async fn get(&self, token: &SessionToken) -> Result<SessionState<T>, SessionStoreError> {
             // find value by token, deserialize from JSON if it exists
             let state = session_state::Entity::find_by_id((T::TYPE.to_string(), token.to_string()))
                 .one(&self.connection)
@@ -180,7 +180,8 @@ pub mod postgres {
                 .map_err(|e| SessionStoreError::Other(e.into()))?;
 
             state
-                .map(|state| {
+                .ok_or_else(|| SessionStoreError::NotFound(token.clone()))
+                .and_then(|state| {
                     // Decode both the status and data columns.
                     let status = state
                         .status
@@ -203,7 +204,6 @@ pub mod postgres {
 
                     Ok(state)
                 })
-                .transpose()
         }
 
         async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {

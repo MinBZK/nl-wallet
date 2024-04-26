@@ -57,7 +57,7 @@ impl IntoResponse for Error {
             | Error::SessionStatus(nl_wallet_mdoc::Error::Verification(verification_error))
             | Error::DisclosedAttributes(nl_wallet_mdoc::Error::Verification(verification_error)) => {
                 match verification_error {
-                    VerificationError::UnknownSessionId(_) => StatusCode::NOT_FOUND,
+                    VerificationError::SessionStore(SessionStoreError::NotFound(_)) => StatusCode::NOT_FOUND,
                     VerificationError::SessionStore(SessionStoreError::Expired(_)) => StatusCode::GONE,
                     VerificationError::SessionStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
                     _ => StatusCode::BAD_REQUEST,

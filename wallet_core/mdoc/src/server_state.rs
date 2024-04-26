@@ -35,10 +35,12 @@ pub struct SessionState<T> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum SessionStoreError {
-    #[error("token {0} already exists")]
-    DuplicateToken(SessionToken),
+    #[error("session with token {0} not found")]
+    NotFound(SessionToken),
     #[error("session with token {0} is expired")]
     Expired(SessionToken),
+    #[error("token {0} already exists")]
+    DuplicateToken(SessionToken),
     #[error("error while serializing: {0}")]
     Serialize(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("error while deserializing: {0}")]
@@ -53,10 +55,7 @@ pub trait SessionStore<T>
 where
     T: HasProgress,
 {
-    fn get(
-        &self,
-        token: &SessionToken,
-    ) -> impl Future<Output = Result<Option<SessionState<T>>, SessionStoreError>> + Send;
+    fn get(&self, token: &SessionToken) -> impl Future<Output = Result<SessionState<T>, SessionStoreError>> + Send;
     fn write(
         &self,
         session: SessionState<T>,
@@ -134,10 +133,11 @@ impl<T> SessionStore<T> for MemorySessionStore<T>
 where
     T: HasProgress + Clone + Send + Sync,
 {
-    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
+    async fn get(&self, token: &SessionToken) -> Result<SessionState<T>, SessionStoreError> {
         self.sessions
             .get(token)
-            .map(|session_and_expired| {
+            .ok_or_else(|| SessionStoreError::NotFound(token.clone()))
+            .and_then(|session_and_expired| {
                 let (session, expired) = session_and_expired.deref();
 
                 if *expired {
@@ -146,7 +146,6 @@ where
 
                 Ok(session.clone())
             })
-            .transpose()
     }
 
     async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
