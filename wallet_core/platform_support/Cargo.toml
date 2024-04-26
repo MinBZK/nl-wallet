@@ -29,7 +29,6 @@ p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 parking_lot.workspace = true
 sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 thiserror.workspace = true
-tracing-subscriber.workspace = true
 uniffi.workspace = true
 
 jni = { workspace = true, optional = true }

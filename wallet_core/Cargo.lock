@@ -2999,7 +2999,6 @@ dependencies = [
  "sentry",
  "thiserror",
  "tokio",
- "tracing-subscriber",
  "uniffi",
  "wallet_common",
 ]
