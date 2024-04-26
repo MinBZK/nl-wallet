@@ -56,25 +56,27 @@ class CardDataScreen extends StatelessWidget {
         Expanded(
           child: BlocBuilder<CardDataBloc, CardDataState>(
             builder: (context, state) {
-              List<Widget> contentSlivers = switch (state) {
+              Widget contentSliver = switch (state) {
                 CardDataInitial() => _buildLoading(),
                 CardDataLoadInProgress() => _buildLoading(),
                 CardDataLoadSuccess() => _buildDataAttributes(context, state.card.attributes),
                 CardDataLoadFailure() => _buildError(context),
               };
-              return CustomScrollView(
-                slivers: [
-                  SliverWalletAppBar(
-                    title: _generateTitle(context, state),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: DataPrivacyBanner(key: kDataPrivacyBannerKey),
+              return Scrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: _generateTitle(context, state),
                     ),
-                  ),
-                  ...contentSlivers,
-                ],
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: DataPrivacyBanner(key: kDataPrivacyBannerKey),
+                      ),
+                    ),
+                    contentSliver,
+                  ],
+                ),
               );
             },
           ),
@@ -84,15 +86,13 @@ class CardDataScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildLoading() {
-    return [
-      const SliverFillRemaining(
-        child: CenteredLoadingIndicator(),
-      ),
-    ];
+  Widget _buildLoading() {
+    return const SliverFillRemaining(
+      child: CenteredLoadingIndicator(),
+    );
   }
 
-  List<Widget> _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
+  Widget _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
     final List<Widget> slivers = [];
 
     // Data attributes
@@ -111,7 +111,7 @@ class CardDataScreen extends StatelessWidget {
     slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
     slivers.add(const SliverSizedBox(height: 24));
 
-    return slivers;
+    return SliverMainAxisGroup(slivers: slivers);
   }
 
   Widget _buildIncorrectButton(BuildContext context) {
@@ -121,33 +121,35 @@ class CardDataScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildError(BuildContext context) {
-    return [
-      const SliverSizedBox(height: 24),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            context.l10n.errorScreenGenericDescription,
-            style: context.textTheme.bodyLarge,
-          ),
-        ),
-      ),
-      SliverFillRemaining(
-        fillOverscroll: false,
-        hasScrollBody: false,
-        child: Align(
-          alignment: Alignment.bottomCenter,
+  Widget _buildError(BuildContext context) {
+    return SliverMainAxisGroup(
+      slivers: [
+        const SliverSizedBox(height: 24),
+        SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: ElevatedButton(
-              onPressed: () => _reloadCardData(context),
-              child: Text(context.l10n.generalRetry),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              context.l10n.errorScreenGenericDescription,
+              style: context.textTheme.bodyLarge,
             ),
           ),
         ),
-      ),
-    ];
+        SliverFillRemaining(
+          fillOverscroll: false,
+          hasScrollBody: false,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: ElevatedButton(
+                onPressed: () => _reloadCardData(context),
+                child: Text(context.l10n.generalRetry),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   void _reloadCardData(BuildContext context) {

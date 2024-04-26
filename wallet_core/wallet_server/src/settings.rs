@@ -109,9 +109,6 @@ pub struct Issuer {
 
     pub digid: Digid,
 
-    #[cfg(feature = "mock")]
-    pub mock_data: Option<Vec<MockAttributes>>,
-
     pub brp_server: BaseUrl,
 }
 
@@ -127,29 +124,36 @@ impl Issuer {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
-        // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+        Settings::new_custom("wallet_server.toml", "wallet_server")
+    }
 
+    pub fn new_custom(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
-            .set_default("store_url", "memory://")?
-            .set_default("issuer.brp_server", "http://localhost:5001/")?
-            .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
+            .set_default("store_url", "memory://")?;
 
         #[cfg(feature = "issuance")]
-        let config_builder = config_builder.set_default(
-            "issuer.wallet_client_ids",
-            vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
-        )?;
+        let config_builder = config_builder
+            .set_default(
+                "issuer.wallet_client_ids",
+                vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
+            )?
+            .set_default("issuer.brp_server", "http://localhost:3007/")?
+            .set_default("issuer.digid.trust_anchors", vec![] as Vec<String>)?;
+
+        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
+        // otherwise look in the current working directory.
+        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+        let config_source = config_path.join(config_file);
 
         config_builder
-            .add_source(File::from(config_path.join("wallet_server.toml")).required(false))
+            .add_source(File::from(config_source).required(false))
+            .add_source(File::from(PathBuf::from(config_file)).required(false))
             .add_source(
-                Environment::with_prefix("wallet_server")
+                Environment::with_prefix(env_prefix)
                     .separator("__")
                     .prefix_separator("_")
                     .list_separator(",")

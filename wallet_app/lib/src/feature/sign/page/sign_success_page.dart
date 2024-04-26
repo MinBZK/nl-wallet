@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/legacy_terminal_page.dart';
+import '../../../wallet_assets.dart';
+import '../../common/page/page_illustration.dart';
+import '../../common/page/terminal_page.dart';
 
 class SignSuccessPage extends StatelessWidget {
   final LocalizedText organizationName;
@@ -18,14 +20,14 @@ class SignSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LegacyTerminalPage(
-      icon: Icons.check,
+    return TerminalPage(
       title: context.l10n.signSuccessPageTitle,
       description: context.l10n.signSuccessPageDescription(organizationName.l10nValue(context)),
       primaryButtonCta: context.l10n.signSuccessPageCloseCta,
+      illustration: const PageIllustration(asset: WalletAssets.svg_signed),
       onPrimaryPressed: onClosePressed,
-      tertiaryButtonCta: context.l10n.signSuccessPageHistoryCta,
-      onTertiaryButtonPressed: onHistoryPressed,
+      secondaryButtonCta: context.l10n.signSuccessPageHistoryCta,
+      onSecondaryButtonPressed: onHistoryPressed,
     );
   }
 }

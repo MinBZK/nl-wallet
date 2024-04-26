@@ -4,9 +4,10 @@ source "${SCRIPTS_DIR}/utils.sh"
 
 WALLET_CORE_DIR="${BASE_DIR}/wallet_core"
 WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
-MRP_WALLET_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server"
+WALLET_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server"
 MOCK_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/mock_relying_party"
 CS_DIR="${WALLET_CORE_DIR}/configuration_server"
+GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
 DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
@@ -20,6 +21,18 @@ export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-$(realpath "${BASE_DIR}"/../
 # Set to `10.0.2.2` for android or to `localhost` for ios
 # export SERVICES_HOST=10.0.2.2
 export SERVICES_HOST=localhost
+
+export WALLET_PROVIDER_PORT=3000
+export PID_ISSUER_WS_PORT=3001
+export PID_ISSUER_RS_PORT=3002
+export CONFIG_SERVER_PORT=3003
+export MOCK_RP_PORT=3004
+export MOCK_RP_WS_PORT=3005
+export MOCK_RP_RS_PORT=3006
+export BRP_SERVER_PORT=3007
+export GBA_HC_CONV_PORT=3008
+
+export RDO_MAX_PORT=8006
 
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.
@@ -41,4 +54,4 @@ export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 # export WALLET_CLIENT_ID=$(uuidgen)
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
-export RP_RETURN_URL="${RP_RETURN_URL:-http://${SERVICES_HOST}:3004/}" # default: http://${SERVICES_HOST}:3004/
+export RP_RETURN_URL="${RP_RETURN_URL:-http://${SERVICES_HOST}:${MOCK_RP_PORT}/}" # default: http://${SERVICES_HOST}:${MOCK_RP_PORT}/

@@ -12,6 +12,8 @@ extension BuildContextExtension on BuildContext {
   /// all the devices on is used to check the orientation (and it's wide).
   bool get isLandscape => mediaQuery.orientation == Orientation.landscape;
 
+  bool get isScreenReaderEnabled => mediaQuery.accessibleNavigation;
+
   ThemeData get theme => Theme.of(this);
 
   TextTheme get textTheme => theme.textTheme;

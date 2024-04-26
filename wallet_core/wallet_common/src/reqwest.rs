@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{error::Error, time::Duration};
 
 use base64::prelude::*;
 use reqwest::{Certificate, Client, ClientBuilder};
@@ -6,6 +6,21 @@ use serde::{Deserialize, Deserializer};
 
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+
+fn base64_to_certificate(encoded_certificate: String) -> Result<reqwest::Certificate, Box<dyn Error>> {
+    let der_bytes = BASE64_STANDARD.decode(encoded_certificate)?;
+    let certificate = reqwest::Certificate::from_der(&der_bytes)?;
+    Ok(certificate)
+}
+
+pub fn deserialize_certificate<'de, D>(deserializer: D) -> Result<reqwest::Certificate, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let encoded_certificate = String::deserialize(deserializer).map_err(serde::de::Error::custom)?;
+    let certificate = base64_to_certificate(encoded_certificate).map_err(serde::de::Error::custom)?;
+    Ok(certificate)
+}
 
 pub fn deserialize_certificates<'de, D>(deserializer: D) -> Result<Vec<reqwest::Certificate>, D::Error>
 where
@@ -15,10 +30,7 @@ where
     let certificates = encoded_certificates
         .into_iter()
         .map(|encoded_certificate| {
-            let der_bytes = BASE64_STANDARD
-                .decode(encoded_certificate)
-                .map_err(serde::de::Error::custom)?;
-            let certificate = reqwest::Certificate::from_der(&der_bytes).map_err(serde::de::Error::custom)?;
+            let certificate = base64_to_certificate(encoded_certificate).map_err(serde::de::Error::custom)?;
             Ok(certificate)
         })
         .collect::<Result<_, _>>()?;

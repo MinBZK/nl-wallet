@@ -37,10 +37,7 @@
 #
 # - Android Emulator configuration
 #
-#     adb reverse tcp:3000 tcp:3000
-#     adb reverse tcp:3001 tcp:3001
-#     adb reverse tcp:3004 tcp:3004
-#     adb reverse tcp:8006 tcp:8006
+#     ./scripts/map_android_ports.sh
 #
 
 set -e # break on error
@@ -222,9 +219,13 @@ render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet
 render_template_append "${DEVENV}/mock_relying_party.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
 
 # And the mrp's wallet_server config
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${MRP_WALLET_SERVER_DIR}/wallet_server.toml"
+render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/wallet_server.toml"
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${WALLET_SERVER_DIR}/wallet_server.toml"
 render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+
+# And the pid_issuer config, for integration tests append to `wallet_server.toml`
+render_template "${DEVENV}/pid_issuer.toml.template" "${WALLET_SERVER_DIR}/pid_issuer.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/performance/.env"
 
@@ -339,6 +340,15 @@ export WALLET_CONFIG_JWT
 
 render_template "${DEVENV}/config_server.toml.template" "${CS_DIR}/config_server.toml"
 cp "${CS_DIR}/config_server.toml" "${BASE_DIR}/wallet_core/tests_integration/config_server.toml"
+
+
+########################################################################
+# Configure gba-hc-converter
+
+echo
+echo -e "${SECTION}Configure gba-hc-converter${NC}"
+
+render_template "${DEVENV}/gba_hc_converter.toml.template" "${BASE_DIR}/wallet_core/gba_hc_converter/gba_hc_converter.toml"
 
 ########################################################################
 # Configure wallet

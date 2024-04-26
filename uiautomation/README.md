@@ -79,7 +79,7 @@ The following parameters can be used to customize the test run:
 Local test run example:
 
 ````bash
-./gradlew test --tests suite.FeatureTestSuite
+./gradlew test --tests suite.FullTestSuite
     -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
     -Dtest.config.device.name="emulator-5554"
     -Dtest.config.platform.name="Android"
@@ -90,7 +90,7 @@ Local test run example:
 Remote test run example:
 
 ````bash
-./gradlew test --tests suite.FeatureTestSuite
+./gradlew test --tests suite.FullTestSuite
     -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
     -Dtest.config.device.name="Google Pixel 8"
     -Dtest.config.platform.name="Android"

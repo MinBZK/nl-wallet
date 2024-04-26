@@ -12,7 +12,7 @@ class PinScreen : MobileActions() {
     private val pinKeyboard = find.byValueKey("pinKeyboard")
 
     private val backButton = find.byToolTip(l10n.getString("generalWCAGBack"))
-    private val aboutAppButton = find.byToolTip(l10n.getString("setupSecurityScreenAboutAppTooltip"))
+    private val appInfoButton = find.byToolTip(l10n.getString("generalWCAGInfo"))
     private val forgotPinButton = find.byText(l10n.getString("pinScreenForgotPinCta"))
     private val confirmPinErrorFatalCta = find.byText(l10n.getString("setupSecurityConfirmationErrorPageFatalCta"))
     private val closeAlertDialogButton = find.byText(l10n.getString("generalOkCta"))
@@ -58,7 +58,7 @@ class PinScreen : MobileActions() {
 
     fun clickBackButton() = clickElement(backButton)
 
-    fun clickAboutAppButton() = clickElement(aboutAppButton)
+    fun clickAppInfoButton() = clickElement(appInfoButton)
 
     fun clickForgotPinButton() = clickElement(forgotPinButton)
 

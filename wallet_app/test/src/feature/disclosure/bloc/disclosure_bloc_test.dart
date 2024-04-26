@@ -53,8 +53,12 @@ void main() {
     'when startDisclosure fails with network issue and there is no internet, emit DisclosureNetworkError(hasInternet: false)',
     setUp: () {
       when(startDisclosureUseCase.invoke(any)).thenThrow(const CoreNetworkError(''));
-      when(BlocExtensions.checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => false);
+      when(BlocExtensions.checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async {
+        await Future.delayed(const Duration(milliseconds: 100));
+        return false;
+      });
     },
+    wait: const Duration(milliseconds: 150),
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     verify: (bloc) {
@@ -401,6 +405,40 @@ void main() {
       isA<DisclosureConfirmDataAttributes>(),
       isA<DisclosureCheckOrganization>(),
     ],
+  );
+
+  blocTest(
+    'when a network error occurs while the user confirms the pin, the bloc emits DisclosureNetworkError',
+    setUp: () {
+      when(BlocExtensions.checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async {
+        await Future.delayed(const Duration(milliseconds: 100));
+        return false;
+      });
+      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+        return StartDisclosureReadyToDisclose(
+          WalletMockData.organization,
+          'http://origin.org',
+          'requestPurpose'.untranslated,
+          false,
+          DisclosureSessionType.crossDevice,
+          DisclosureType.regular,
+          {},
+          WalletMockData.policy,
+        );
+      });
+    },
+    build: () => create(),
+    act: (bloc) async {
+      bloc.add(const DisclosureSessionStarted(''));
+      // Give the bloc 25ms to process the previous event
+      await Future.delayed(const Duration(milliseconds: 25));
+      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureConfirmPinFailed(error: CoreNetworkError('Network issue!')));
+    },
+    wait: const Duration(milliseconds: 150),
+    skip: 4,
+    expect: () => [isA<DisclosureNetworkError>()],
   );
 
   blocTest(

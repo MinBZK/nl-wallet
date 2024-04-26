@@ -8,12 +8,14 @@ import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/bloc/error_state.dart';
 import '../../../../domain/model/bloc/network_error_state.dart';
+import '../../../../domain/model/flow_progress.dart';
 import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
+import '../../../../wallet_constants.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
@@ -132,7 +134,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   }
 
   void _onOfferingRejected(event, emit) async {
-    emit(const WalletPersonalizeLoadInProgress(0));
+    emit(const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kSetupSteps)));
     try {
       await cancelPidIssuanceUseCase.invoke();
     } catch (ex) {
@@ -158,7 +160,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   Future<void> _onPinConfirmed(event, emit) async {
     final state = this.state;
     if (state is WalletPersonalizeConfirmPin) {
-      emit(const WalletPersonalizeLoadInProgress(0.96));
+      emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
       try {
         await _loadCardsAndEmitSuccessState(event, emit);
       } catch (ex, stack) {

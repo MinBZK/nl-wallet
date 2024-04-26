@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-04-12T14:36:57+02:00",
+    "@@last_modified": "2024-04-25T11:06:00+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -146,12 +146,12 @@
             }
         }
     },
-    "cardValueFalse": "False",
+    "cardValueFalse": "No",
     "cardValueGenderFemale": "Female",
     "cardValueGenderMale": "Male",
     "cardValueGenderNotApplicable": "Not applicable",
     "cardValueGenderUnknown": "Unknown",
-    "cardValueTrue": "True",
+    "cardValueTrue": "Yes",
     "changeLanguageScreenTitle": "Select a language",
     "checkAgreementPageCancelCta": "No",
     "checkAgreementPageConfirmCta": "Yes, next",
@@ -191,6 +191,7 @@
     "dashboardScreenFooter": "The government is developing this app for your convenience, privacy and security. Learn more at {cta}.",
     "dashboardScreenFooterCta": "About this app",
     "dashboardScreenMenuWCAGLabel": "Navigation menu",
+    "dashboardScreenOverviewAnnouncement": "NL Wallet overview",
     "dashboardScreenQrCta": "Scan QR code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",
@@ -456,6 +457,8 @@
     "errorScreenServerHeadline": "Something went wrong",
     "errorScreenServerHelpCta": "Need help?",
     "errorScreenServerTitle": "Error",
+    "flashlightDisabledWCAGAnnouncement": "Flashlight turned off",
+    "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Delete Wallet",
     "forgotPinScreenDescription": "When you forget your PIN code, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN code.",
     "forgotPinScreenTitle": "Forgot PIN code?",
@@ -479,6 +482,7 @@
             }
         }
     },
+    "generalFalseValue": "No",
     "generalHelpCta": "Need help?",
     "generalHours": "{hours, plural, one {{hours} hour} other {{hours} hours}}",
     "@generalHours": {
@@ -498,7 +502,9 @@
             }
         }
     },
+    "generalOff": "Off",
     "generalOkCta": "OK",
+    "generalOn": "On",
     "generalOnDate": "On",
     "generalOsVersionText": "Operating System version: {versionName}",
     "@generalOsVersionText": {
@@ -539,6 +545,7 @@
     "generalSheetCloseCta": "Close",
     "generalTimeAgo": "ago",
     "generalTimeAgoLessThenOneMinute": "less then a minute",
+    "generalTrueValue": "Yes",
     "generalVersionText": "App version: {versionName} ({versionCode})",
     "@generalVersionText": {
         "placeholders": {
@@ -553,9 +560,11 @@
         }
     },
     "generalWCAGBack": "Back",
+    "generalWCAGChangeLanguage": "Change language",
     "generalWCAGClose": "Close",
     "generalWCAGHelp": "Need help?",
     "generalWCAGInfo": "More info",
+    "generalWCAGLogoutAnnouncement": "You've been logged out",
     "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",

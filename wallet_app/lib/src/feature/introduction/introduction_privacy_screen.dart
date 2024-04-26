@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
+import '../../wallet_constants.dart';
+import '../common/page/page_illustration.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
-import '../common/widget/button/icon/back_icon_button.dart';
-import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/confirm/confirm_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
@@ -34,7 +37,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                 SliverWalletAppBar(
                   title: context.l10n.introductionPrivacyScreenHeadline,
                   leading: const BackIconButton(),
-                  progress: 0.08,
+                  progress: const FlowProgress(currentStep: 1, totalSteps: kSetupSteps),
                   actions: [
                     HelpIconButton(
                       onPressed: () => PlaceholderScreen.show(context, secured: false),
@@ -54,16 +57,8 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverToBoxAdapter(
-                    child: Image.asset(
-                      WalletAssets.illustration_privacy_policy_screen,
-                      fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
-                      height: context.isLandscape ? 160 : null,
-                      width: double.infinity,
-                    ),
-                  ),
+                const SliverToBoxAdapter(
+                  child: PageIllustration(asset: WalletAssets.svg_privacy),
                 ),
                 const SliverSizedBox(height: 24),
               ],

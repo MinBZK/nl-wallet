@@ -10,6 +10,7 @@ import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/disclosure/disclosure_type.dart';
+import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
@@ -237,7 +238,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     } catch (ex) {
       Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
     } finally {
-      handleError(
+      await handleError(
         event.error,
         onNetworkError: (ex, hasInternet) => emit(DisclosureNetworkError(error: ex, hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(DisclosureGenericError(error: ex)),

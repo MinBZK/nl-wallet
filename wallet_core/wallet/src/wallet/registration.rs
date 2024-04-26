@@ -55,7 +55,7 @@ pub enum WalletRegistrationError {
     #[error("could not get hardware public key: {0}")]
     HardwarePublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
-    Signing(#[source] wallet_common::errors::Error),
+    Signing(#[source] wallet_common::account::errors::Error),
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountProviderError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]

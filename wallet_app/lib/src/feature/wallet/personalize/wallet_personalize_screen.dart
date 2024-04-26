@@ -11,6 +11,7 @@ import 'package:wallet_mock/mock.dart';
 import '../../../../environment.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
+import '../../../domain/model/flow_progress.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../../../util/mapper/mapper.dart';
@@ -19,11 +20,11 @@ import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../common/page/generic_loading_page.dart';
+import '../../common/page/page_illustration.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
-import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../digid_help/digid_help_screen.dart';
@@ -121,7 +122,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoading(BuildContext context, {VoidCallback? onCancel, double? progress}) {
+  Widget _buildLoading(BuildContext context, {VoidCallback? onCancel, FlowProgress? progress}) {
     return GenericLoadingPage(
       title: context.l10n.walletPersonalizeScreenLoadingTitle,
       description: context.l10n.walletPersonalizeScreenLoadingSubtitle,
@@ -130,7 +131,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAuthenticatingWithDigid(BuildContext context, {double? progress}) {
+  Widget _buildAuthenticatingWithDigid(BuildContext context, {FlowProgress? progress}) {
     return GenericLoadingPage(
       key: const Key('personalizeAuthenticatingWithDigidPage'),
       title: context.l10n.walletPersonalizeScreenDigidLoadingTitle,
@@ -242,13 +243,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildErrorPage(BuildContext context) {
     return Scaffold(
       appBar: const WalletAppBar(
-        progress: 0.0,
+        progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
       ),
       body: TerminalPage(
-        illustration: const Padding(
-          padding: EdgeInsets.all(16),
-          child: SvgOrImage(asset: WalletAssets.illustration_general_error),
-        ),
+        illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
         title: context.l10n.walletPersonalizeScreenErrorTitle,
         description: context.l10n.walletPersonalizeScreenErrorDescription,
         primaryButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
@@ -260,7 +258,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildDigidCancelledPage(BuildContext context) {
     return Scaffold(
       appBar: const WalletAppBar(
-        progress: 0.0,
+        progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
       ),
       body: WalletPersonalizeDigidErrorPage(
         title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
@@ -274,7 +272,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildDigidErrorPage(BuildContext context) {
     return Scaffold(
       appBar: const WalletAppBar(
-        progress: 0.0,
+        progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
       ),
       body: WalletPersonalizeDigidErrorPage(
         title: context.l10n.walletPersonalizeDigidErrorPageTitle,
@@ -340,7 +338,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildGenericError(BuildContext context) {
     return Scaffold(
-      appBar: const WalletAppBar(progress: 0),
+      appBar: const WalletAppBar(progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps)),
       body: ErrorPage.generic(
         context,
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),

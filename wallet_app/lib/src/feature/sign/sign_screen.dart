@@ -44,7 +44,7 @@ class SignScreen extends StatelessWidget {
       appBar: WalletAppBar(
         leading: _buildBackButton(context),
         title: Text(context.l10n.signScreenTitle),
-        actions: [_buildCloseButton(context, progress)],
+        actions: [CloseIconButton(onPressed: () => _stopSigning(context))],
         progress: progress,
       ),
       body: PopScope(
@@ -75,15 +75,6 @@ class SignScreen extends StatelessWidget {
           onPressed: () => context.read<SignBloc>().add(const SignBackPressed()),
         );
       },
-    );
-  }
-
-  /// The close button stops/closes the sign flow.
-  /// It is only visible in the semantics tree when the sign flow is in progress.
-  Widget _buildCloseButton(BuildContext context, double stepperProgress) {
-    return ExcludeSemantics(
-      excluding: stepperProgress == 1.0,
-      child: CloseIconButton(onPressed: () => _stopSigning(context)),
     );
   }
 

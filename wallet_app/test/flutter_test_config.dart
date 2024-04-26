@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
@@ -24,6 +25,7 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   _provideDefaultCheckHasInternetMock();
   _setupMockitoDummies();
   _setupGoldenFileComparator();
+  VisibilityDetectorController.instance.updateInterval = Duration.zero;
   return testMain();
 }
 

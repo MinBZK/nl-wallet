@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../environment.dart';
 import '../../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
@@ -18,7 +19,6 @@ import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/sliver_sized_box.dart';
-import '../common/widget/svg_or_image.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -154,7 +154,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     required BuildContext context,
     required String title,
     required String description,
-    required String illustration,
+    required String lottieAsset,
     ScrollController? controller,
   }) {
     return SafeArea(
@@ -189,8 +189,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                 alignment: Alignment.center,
                 color: context.colorScheme.primaryContainer,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                child: SvgOrImage(
-                  asset: illustration,
+                child: Lottie.asset(
+                  lottieAsset,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -207,7 +207,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       context: context,
       title: context.l10n.introductionPage1Title,
       description: context.l10n.introductionPage1Description,
-      illustration: WalletAssets.svg_intro_placeholder_1,
+      lottieAsset: WalletAssets.lottie_intro_1,
       controller: _scrollControllers[0],
     );
   }
@@ -218,7 +218,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       context: context,
       title: context.l10n.introductionPage2Title,
       description: context.l10n.introductionPage2Description,
-      illustration: WalletAssets.svg_intro_placeholder_2,
+      lottieAsset: WalletAssets.lottie_intro_2,
       controller: _scrollControllers[1],
     );
   }
@@ -229,7 +229,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       context: context,
       title: context.l10n.introductionPage3Title,
       description: context.l10n.introductionPage3Description,
-      illustration: WalletAssets.svg_intro_placeholder_3,
+      lottieAsset: WalletAssets.lottie_intro_3,
       controller: _scrollControllers[2],
     );
   }

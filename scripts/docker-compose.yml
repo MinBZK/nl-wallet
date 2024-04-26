@@ -34,11 +34,17 @@ services:
     image: ghcr.io/brp-api/haal-centraal-brp-bevragen-proxy:latest
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
-      - ASPNETCORE_URLS=http://+:5000
+      - ASPNETCORE_URLS=http://+:3007
+      - Routes__0__DownstreamScheme=http
+      - Routes__0__DownstreamHostAndPorts__0__Host=host.docker.internal
+      - Routes__0__DownstreamHostAndPorts__0__Port=${GBA_HC_CONV_PORT}
     ports:
-      - "5001:5000"
+      - "${BRP_SERVER_PORT}:3007"
     networks:
       - brp-api-network
+    # NOTE: all linux users: uncomment the next 2 lines locally until we find a way to make this nicer
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
 
   gbamock:
     container_name: gbamock

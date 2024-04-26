@@ -90,6 +90,7 @@ class TimelineAttributeRow extends StatelessWidget {
         child: WalletCardItem.fromCardFront(
           context: context,
           front: (attribute as OperationTimelineAttribute).card.front,
+          scaleText: false,
         ),
       );
     }
