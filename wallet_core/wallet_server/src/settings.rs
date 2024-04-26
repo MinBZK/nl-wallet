@@ -13,9 +13,6 @@ use wallet_common::{
 #[cfg(feature = "issuance")]
 use {indexmap::IndexMap, nl_wallet_mdoc::utils::x509::Certificate, wallet_common::reqwest::deserialize_certificates};
 
-#[cfg(feature = "mock")]
-use crate::pid::mock::{PersonAttributes, ResidentAttributes};
-
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
@@ -86,13 +83,6 @@ pub struct Digid {
     pub bsn_privkey: String,
     #[serde(deserialize_with = "deserialize_certificates", default)]
     pub trust_anchors: Vec<reqwest::Certificate>,
-}
-
-#[cfg(feature = "mock")]
-#[derive(Deserialize, Clone)]
-pub struct MockAttributes {
-    pub person: PersonAttributes,
-    pub resident: Option<ResidentAttributes>,
 }
 
 #[cfg(feature = "issuance")]
