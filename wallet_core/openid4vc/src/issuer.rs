@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use chrono::Utc;
 use futures::future::try_join_all;
 use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
@@ -710,11 +709,7 @@ impl<T: IssuanceState> Session<T> {
     /// Transition `self` to a new state, consuming the old state, also updating the `last_active` timestamp.
     pub fn transition<NewT: IssuanceState>(self, new_state: NewT) -> Session<NewT> {
         Session {
-            state: SessionState::<NewT> {
-                data: new_state,
-                token: self.state.token,
-                last_active: Utc::now(),
-            },
+            state: SessionState::new(self.state.token, new_state),
         }
     }
 

@@ -87,6 +87,16 @@ pub struct MemorySessionStore<T> {
     sessions: DashMap<SessionToken, (SessionState<T>, bool)>,
 }
 
+impl<T> SessionState<T> {
+    pub fn new(token: SessionToken, data: T) -> SessionState<T> {
+        SessionState {
+            data,
+            token,
+            last_active: Utc::now(),
+        }
+    }
+}
+
 #[cfg(any(test, feature = "mock_time"))]
 pub static MEMORY_SESSION_STORE_NOW: once_cell::sync::Lazy<parking_lot::RwLock<Option<DateTime<Utc>>>> =
     once_cell::sync::Lazy::new(|| None.into());
@@ -104,16 +114,6 @@ impl<T> MemorySessionStore<T> {
 
         #[cfg(any(test, feature = "mock_time"))]
         MEMORY_SESSION_STORE_NOW.read().unwrap_or_else(Utc::now)
-    }
-}
-
-impl<T> SessionState<T> {
-    pub fn new(token: SessionToken, data: T) -> SessionState<T> {
-        SessionState {
-            data,
-            token,
-            last_active: Utc::now(),
-        }
     }
 }
 
@@ -241,11 +241,7 @@ pub mod test {
     {
         // Generate a new random token and session state.
         let token = SessionToken::new_random();
-        let session = SessionState {
-            data: T::new_random(),
-            token: token.clone(),
-            last_active: Utc::now(),
-        };
+        let session = SessionState::new(token.clone(), T::new_random());
 
         // The token should not be present in the store.
         assert_matches!(
