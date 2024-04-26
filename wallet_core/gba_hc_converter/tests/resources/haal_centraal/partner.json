@@ -1,0 +1,76 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "burgerservicenummer": "999992806",
+      "geslacht": {
+        "code": "V"
+      },
+      "naam": {
+        "voornamen": "Roukshana Najia",
+        "voorvoegsel": null,
+        "geslachtsnaam": "Bhutto",
+        "aanduidingNaamgebruik": {
+          "code": "V"
+        }
+      },
+      "geboorte": {
+        "datum": "19680000",
+        "land": {
+          "code": "7020",
+          "omschrijving": "Pakistan"
+        },
+        "plaats": {
+          "code": null,
+          "omschrijving": "Jalālābād"
+        }
+      },
+      "partners": [
+        {
+          "geslacht": {
+            "code": "M"
+          },
+          "naam": {
+            "voornamen": "Osama",
+            "voorvoegsel": null,
+            "geslachtsnaam": "Al-Muwallad",
+            "aanduidingNaamgebruik": {
+              "code": "E"
+            }
+          },
+          "geboorte": {
+            "datum": "19570310",
+            "land": {
+              "code": "5018",
+              "omschrijving": "Saoedi-Arabië"
+            },
+            "plaats": {
+              "code": null,
+              "omschrijving": "Riyadh"
+            }
+          },
+          "soortVerbintenis": {
+            "code": "P"
+          },
+          "aangaanHuwelijkPartnerschap": null,
+          "ontbindingHuwelijkPartnerschap": {
+            "datum": "20011109"
+          }
+        }
+      ],
+      "nationaliteiten": [],
+      "verblijfplaats": {
+        "straat": "Laan v Nieuw Oost-Indië",
+        "naamOpenbareRuimte": "Laan van Nieuw Oost-Indiº",
+        "huisnummer": 210,
+        "huisletter": null,
+        "huisnummertoevoeging": null,
+        "postcode": "2593CC",
+        "woonplaats": "'s-Gravenhage",
+        "functieAdres": {
+          "code": "T"
+        }
+      }
+    }
+  ]
+}

@@ -238,14 +238,7 @@ impl MockOpenidMessageClient {
 
     fn credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
         if self.invalidate_pop {
-            let invalidated_proof = match credential_requests
-                .credential_requests
-                .first()
-                .unwrap()
-                .proof
-                .as_ref()
-                .unwrap()
-            {
+            let invalidated_proof = match credential_requests.credential_requests.first().proof.as_ref().unwrap() {
                 CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
                     jwt: invalidate_jwt(&jwt.0).into(),
                 },
@@ -378,7 +371,9 @@ impl AttributeService for MockAttributeService {
                                 value: Value::Text(val.to_string()),
                             })
                             .collect(),
-                    )]),
+                    )])
+                    .try_into()
+                    .unwrap(),
                 },
                 issuer: self.issuer_cert.clone(),
             },
@@ -397,7 +392,9 @@ impl AttributeService for MockAttributeService {
                                 value: Value::Text(val.to_string()),
                             })
                             .collect(),
-                    )]),
+                    )])
+                    .try_into()
+                    .unwrap(),
                 },
                 issuer: self.issuer_cert.clone(),
             },

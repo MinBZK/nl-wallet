@@ -3,6 +3,7 @@ members = [
     "configuration_server",
     "flutter_api",
     "flutter_api/flutter_api_macros",
+    "gba_hc_converter",
     "mdoc",
     "mock_relying_party",
     "openid4vc",
@@ -41,6 +42,7 @@ android_logger = "0.13.1"
 anyhow = "1.0.66"
 assert_cmd = "2.0.12"
 assert_fs = "1.0.13"
+assert-json-diff = "2.0.2"
 askama = "0.12.1"
 assert_matches = "1"
 async-trait = "0.1.68"
@@ -58,6 +60,7 @@ config = { version = "0.13.3", default-features = false }
 coset = "0.3.3"
 cryptoki = "0.6.0"
 cstr = "0.2.11"
+csv = "1.3.0"
 ctor = "0.2.5"
 dashmap = "5.4.0"
 der = "0.7.7"
@@ -75,6 +78,7 @@ itertools = "0.11.0"
 jni = "0.21.1"
 josekit = "0.8.3"
 jsonwebtoken = "8.2.0"
+lazy_static = "1.4.0"
 libsqlite3-sys = { version = "0.26.0", default-features = false }
 mime = "0.3.17"
 mockall = "0.11.4"
@@ -88,6 +92,7 @@ parking_lot = "0.12.1"
 pem = "3.0.2"
 predicates = "3.0.4"
 proc-macro2 = "1.0.66"
+quick-xml = "0.31.0"
 quote = "1.0.26"
 r2d2-cryptoki = "0.2.1"
 rand = "0.8.5"
@@ -108,6 +113,7 @@ serde_json = { version = "1.0.92", default-features = false }
 serde_repr = "0.1.16"
 serde_urlencoded = "0.7.1"
 serde_with = "3.3.0"
+serde-xml-rs = "0.6.0"
 serial_test = "3.0.0"
 sha2 = "0.10.6"
 strfmt = "0.2.4"

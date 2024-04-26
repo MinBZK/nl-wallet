@@ -1,9 +1,11 @@
 part of 'issuance_bloc.dart';
 
+const int kIssuanceSteps = 7;
+
 sealed class IssuanceState extends Equatable {
   final bool isRefreshFlow;
 
-  double get stepperProgress => 0.0;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kIssuanceSteps);
 
   bool get showStopConfirmation => true;
 
@@ -47,7 +49,7 @@ class IssuanceCheckOrganization extends IssuanceState {
   });
 
   @override
-  double get stepperProgress => 0.2;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kIssuanceSteps);
 
   @override
   bool get didGoBack => afterBackPressed;
@@ -80,7 +82,7 @@ class IssuanceProofIdentity extends IssuanceState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  double get stepperProgress => 0.4;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [organization, policy, requestedAttributes, ...super.props];
@@ -110,7 +112,7 @@ class IssuanceMissingAttributes extends IssuanceState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  double get stepperProgress => 0.4;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [organization, policy, missingAttributes, ...super.props];
@@ -123,7 +125,7 @@ class IssuanceProvidePin extends IssuanceState {
   bool get canGoBack => true;
 
   @override
-  double get stepperProgress => 0.6;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
 }
 
 class IssuanceCheckDataOffering extends IssuanceState {
@@ -132,7 +134,7 @@ class IssuanceCheckDataOffering extends IssuanceState {
   const IssuanceCheckDataOffering({super.isRefreshFlow, required this.card});
 
   @override
-  double get stepperProgress => 0.8;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [card, ...super.props];
@@ -158,7 +160,7 @@ class IssuanceSelectCards extends IssuanceState {
   });
 
   @override
-  double get stepperProgress => 0.8;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kIssuanceSteps);
 
   IssuanceSelectCards toggleCard(String cardId) {
     final selection = Set<String>.from(multipleCardsFlow.selectedCardIds);
@@ -216,7 +218,7 @@ class IssuanceCheckCards extends IssuanceState {
   }
 
   @override
-  double get stepperProgress => 0.9;
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 6, totalSteps: kIssuanceSteps);
 
   @override
   bool get canGoBack => true;
@@ -229,6 +231,9 @@ class IssuanceCompleted extends IssuanceState {
   final List<WalletCard> addedCards;
 
   const IssuanceCompleted({super.isRefreshFlow, required this.addedCards});
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 7, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [addedCards, ...super.props];

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/model/flow_progress.dart';
 import 'button/icon/back_icon_button.dart';
 import 'sliver_wallet_app_bar.dart';
 import 'stepper_indicator.dart';
 
 class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
-  final double? progress;
+  final FlowProgress? progress;
   final Widget? leading;
   final double? leadingWidth;
   final List<Widget>? actions;
@@ -43,13 +44,16 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  PreferredSizeWidget _buildStepper(double progress) {
+  PreferredSizeWidget _buildStepper(FlowProgress progress) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(kStepIndicatorHeight),
       child: Container(
         height: kStepIndicatorHeight,
-        alignment: Alignment.topCenter,
-        child: StepperIndicator(progress: progress),
+        alignment: Alignment.center,
+        child: StepperIndicator(
+          currentStep: progress.currentStep,
+          totalSteps: progress.totalSteps,
+        ),
       ),
     );
   }

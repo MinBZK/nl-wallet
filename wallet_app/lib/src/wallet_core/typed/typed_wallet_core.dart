@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../util/mapper/mapper.dart';
@@ -134,12 +135,12 @@ class TypedWalletCore {
       await _isInitialized.future;
       return await runnable(_walletCore);
     } catch (exception, stacktrace) {
-      throw _handleCoreException(exception, stackTrace: stacktrace);
+      throw await _handleCoreException(exception, stackTrace: stacktrace);
     }
   }
 
   /// Converts the exception to a [CoreError] if it can be mapped into one, otherwise returns the original exception.
-  Object _handleCoreException(Object ex, {StackTrace? stackTrace}) {
+  Future<Object> _handleCoreException(Object ex, {StackTrace? stackTrace}) async {
     try {
       String coreErrorJson = _extractErrorJson(ex)!;
       final error = _errorMapper.map(coreErrorJson);
@@ -149,6 +150,7 @@ class TypedWalletCore {
           ex: error,
           stacktrace: stackTrace,
         );
+        await Sentry.captureException(error, stackTrace: stackTrace);
         exit(0);
       }
       return error;

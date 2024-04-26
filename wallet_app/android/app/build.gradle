@@ -108,15 +108,20 @@ android {
         }
     }
 
+    // Debug and Profile builds use release keys if they're available, auto-available debug keys if not.
+    // Release build needs release keys (i.e., wallet_app/android/key.properties, wallet_app/android/keystore/local-keystore.jks).
     buildTypes {
         debug {
-            signingConfig signingConfigs.common
+            keystoreProperties["storeFile"] ? (signingConfig signingConfigs.common) : (signingConfig signingConfigs.debug)
+            logger.quiet("Build type ${name}, using keystore: ${signingConfig.storeFile}")
         }
         profile {
-            signingConfig signingConfigs.common
+            keystoreProperties["storeFile"] ? (signingConfig signingConfigs.common) : (signingConfig signingConfigs.debug)
+            logger.quiet("Build type ${name}, using keystore: ${signingConfig.storeFile}")
         }
         release {
             signingConfig signingConfigs.common
+            logger.quiet("Build type ${name}, using keystore: ${signingConfig.storeFile}")
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 

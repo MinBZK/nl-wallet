@@ -20,9 +20,15 @@ spec:
           image: $HARBOR_REGISTRY/ghcr-io-proxy/brp-api/haal-centraal-brp-bevragen-proxy:latest
           env:
             - name: ASPNETCORE_ENVIRONMENT
-              value: Release
+              value: "Release"
             - name: ASPNETCORE_URLS
-              value: http://+:5000
+              value: "http://+:5000"
+            - name: Routes__0__DownstreamScheme
+              value: "http"
+            - name: Routes__0__DownstreamHostAndPorts__0__Host
+              value: "gba-hc-converter"
+            - name: Routes__0__DownstreamHostAndPorts__0__Port
+              value: "3006"
           ports:
             - name: http-brpproxy
               containerPort: 5000

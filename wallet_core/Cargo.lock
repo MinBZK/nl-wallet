@@ -1011,6 +1011,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "csv"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac574ff4d437a7b5ad237ef331c17ccca63c46479e5b5453eb8e10bb99a759fe"
+dependencies = [
+ "csv-core",
+ "itoa",
+ "ryu",
+ "serde",
+]
+
+[[package]]
+name = "csv-core"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5efa2b3d7902f4b634a20cae3c9c4e6209dc4779feb6863329607560143efa70"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "ctor"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1620,6 +1641,43 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "gba_hc_converter"
+version = "0.1.0"
+dependencies = [
+ "assert-json-diff",
+ "axum",
+ "axum-server",
+ "chrono",
+ "config",
+ "csv",
+ "ctor",
+ "http",
+ "indexmap 2.0.2",
+ "lazy_static",
+ "mime",
+ "nutype",
+ "once_cell",
+ "pem 3.0.2",
+ "quick-xml",
+ "regex",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde-xml-rs",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "strum",
+ "thiserror",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "trait-variant",
+ "wallet_common",
 ]
 
 [[package]]
@@ -2413,6 +2471,7 @@ dependencies = [
  "http",
  "indexmap 2.0.2",
  "itertools 0.11.0",
+ "nutype",
  "once_cell",
  "p256",
  "parking_lot",
@@ -2554,6 +2613,7 @@ dependencies = [
  "kinded",
  "proc-macro2",
  "quote",
+ "regex",
  "syn 2.0.38",
 ]
 
@@ -2997,6 +3057,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "134c189feb4956b20f6f547d2cf727d4c0fe06722b20a0eec87ed445a97f92da"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1004a344b30a54e2ee58d66a71b32d2db2feb0a31f9a2d302bf0536f15de2a33"
+dependencies = [
+ "memchr",
+ "serde",
+ "tokio",
 ]
 
 [[package]]
@@ -3657,6 +3728,18 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "serde-xml-rs"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb3aa78ecda1ebc9ec9847d5d3aba7d618823446a049ba2491940506da6e2782"
+dependencies = [
+ "log",
+ "serde",
+ "thiserror",
+ "xml-rs",
 ]
 
 [[package]]
@@ -4995,6 +5078,7 @@ dependencies = [
  "futures",
  "http",
  "jsonwebtoken",
+ "mime",
  "nutype",
  "once_cell",
  "p256",
@@ -5022,8 +5106,6 @@ dependencies = [
  "chrono",
  "config",
  "http",
- "mime",
- "once_cell",
  "p256",
  "rand_core 0.6.4",
  "serde",
@@ -5616,6 +5698,12 @@ dependencies = [
  "thiserror",
  "time",
 ]
+
+[[package]]
+name = "xml-rs"
+version = "0.8.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "791978798f0597cfc70478424c2b4fdc2b7a8024aaff78497ef00f24ef674193"
 
 [[package]]
 name = "xxhash-rust"

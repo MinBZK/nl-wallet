@@ -79,12 +79,13 @@ class PinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<PinBloc, PinState>(
       listener: (context, state) async {
+        final l10n = context.l10n;
         if (state is PinEntryInProgress) {
           Future.delayed(kDefaultAnnouncementDelay).then((value) {
             if (state.afterBackspacePressed) {
-              _announceEnteredDigits(context.l10n, state.enteredDigits);
+              _announceEnteredDigits(l10n, state.enteredDigits);
             } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-              _announceEnteredDigits(context.l10n, state.enteredDigits);
+              _announceEnteredDigits(l10n, state.enteredDigits);
             }
           });
         }
@@ -215,6 +216,7 @@ class PinPage extends StatelessWidget {
       child: CustomScrollView(
         slivers: [
           SliverFillRemaining(
+            hasScrollBody: false,
             child: BlocBuilder<PinBloc, PinState>(
               builder: (context, state) {
                 if (state is PinValidateFailure) {

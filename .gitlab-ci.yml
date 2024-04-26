@@ -182,7 +182,7 @@ test-flutter-ui:
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -195,7 +195,7 @@ lint-rust:
 test-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
   script:
     # Run tests, generate code coverage reports
@@ -212,7 +212,7 @@ test-rust:
 test-rust-integration:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
@@ -260,8 +260,8 @@ test-rust-compilation-android-linux:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
   script:
-      - !reference [.test-rust-compilation, script]
-      - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
+    - !reference [.test-rust-compilation, script]
+    - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
 test-rust-compilation-ios:
   extends: .test-rust-compilation
@@ -373,7 +373,7 @@ osv-scanner:
 dependency-check-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:e8004706e1171f995fdfe38ed7c671b076eb4559e0cef3c1bc72690d19ab78b8"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   before_script:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
@@ -452,9 +452,9 @@ sonar-ios:
 
 sonar-android:
   extends: .default-sonar
-#  needs:
-#    - job: test-android
-#      artifacts: true
+  #  needs:
+  #    - job: test-android
+  #      artifacts: true
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -559,6 +559,23 @@ build-ws-migrations-image:
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migrations:$CI_COMMIT_SHORT_SHA
       --cache=true
 
+build-gba-hc-converter-image:
+  extends: .kaniko
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  needs:
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-compilation-android-linux
+      artifacts: false
+  script:
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile wallet_core/gba_hc_converter/Dockerfile
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-gba-hc-converter:$CI_COMMIT_SHORT_SHA
+      --cache=true
+
 ### Android building
 .build-android-app:
   extends: .ruby-cache
@@ -598,6 +615,8 @@ build-ws-migrations-image:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
+        sentry_dsn:"${SENTRY_DSN:-}" \
+        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION}"
   after_script:
@@ -617,6 +636,8 @@ build-android-app-latest-release:
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
 
 build-android-app-latest-profile:
   extends: .build-android-app-latest
@@ -637,6 +658,8 @@ build-android-app-mock-release:
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
 
 .build-android-app-demo:
   extends: [.env-demo-k8s, .build-android-app]
@@ -652,6 +675,8 @@ build-android-app-demo-release:
   variables:
     APP_FILE_FORMAT: "aab"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
 
 build-android-app-demo-profile:
   extends: .build-android-app-demo
@@ -701,6 +726,8 @@ build-android-app-demo-profile:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
+        sentry_dsn:"${SENTRY_DSN:-}" \
+        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
@@ -717,6 +744,8 @@ build-ios-app-latest-release:
   extends: .build-ios-app-latest
   variables:
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_ONT}"
+    SENTRY_ENVIRONMENT: "ont"
 
 build-ios-app-latest-profile:
   extends: .build-ios-app-latest
@@ -735,6 +764,8 @@ build-ios-app-demo-release:
   extends: .build-ios-app-demo
   variables:
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_DEMO}"
+    SENTRY_ENVIRONMENT: "demo"
 
 build-ios-app-demo-profile:
   extends: .build-ios-app-demo
@@ -748,6 +779,8 @@ build-ios-app-mock:
     APP_NAME: "NL Wallet (mock)"
     APP_MOCK: "true"
     APP_BUILD_MODE: "release"
+    SENTRY_DSN: "${SENTRY_DSN_MOCK}"
+    SENTRY_ENVIRONMENT: "mock"
 
 ### Android deploying
 .deploy-android-app:
@@ -848,7 +881,7 @@ upload-browserstack-android-app-demo:
 #    - job: build-ios-app
 #      artifacts: true
 #   # Only deploy apps when both apps have been built successfully
-#   #  - job: build-android-app 
+#   #  - job: build-android-app
 #   #    artifacts: false
 #  tags:
 #    - macos
@@ -960,6 +993,7 @@ dependency-check-images:
       "nl-wallet-provider"
       "nl-wallet-server-migration"
       "nl-wallet-server"
+      "nl-wallet-gba-hc-converter"
       )
     - mkdir -p trivy
   script:
@@ -1097,6 +1131,26 @@ deploy-mock-relying-party-demo:
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
 
+.deploy-gba-hc-converter:
+  needs:
+    - job: build-gba-hc-converter-image
+      artifacts: false
+  variables:
+    CONVERTER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-hc-converter:${CI_COMMIT_SHORT_SHA}
+  script:
+    - kubectl create configmap nl-wallet-gba-hc-converter-xml-files --dry-run=client --from-file wallet_core/gba_hc_converter/resources/gba-v-responses -o yaml | kubectl apply -f -
+    - envsubst < kubernetes/gba-hc-converter-deployment.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/gba-hc-converter-service.yaml
+    - kubectl rollout status deployment/gba-hc-converter
+
+deploy-gba-hc-converter-ont:
+  extends: [.env-ont-k8s, .deploy-gba-hc-converter]
+  rules: !reference [.default-or-merge-request, rules]
+
+deploy-gba-hc-converter-demo:
+  extends: [.env-demo-k8s, .deploy-gba-hc-converter]
+  rules: !reference [.demo-release-tag, rules]
+
 check-gitlab-ci-changed:
   rules:
     - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
@@ -1127,17 +1181,7 @@ check-gitlab-ci-changed:
   script:
     - gradle wrapper --gradle-version=7.5
     - ./gradlew --info --stacktrace test
-      --tests "feature.appstart.*"
-      --tests "feature.card.*"
-      --tests "feature.confirm.*"
-      --tests "feature.dashboard.*"
-      --tests "feature.introduction.*"
-      --tests "feature.lock.*"
-      --tests "feature.menu.*"
-      --tests "feature.personalize.*"
-      --tests "feature.security.*"
-      --tests "feature.settings.*"
-      --tests "feature.web.*"
+      --tests suite.AppStartToDashboardTestSuite
       -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"

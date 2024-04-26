@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:$(UL_HOSTNAME:default=example.com)</string>
+		<string>applinks:$(UL_HOSTNAME:default=app.example.com)</string>
 	</array>
 </dict>
 </plist>

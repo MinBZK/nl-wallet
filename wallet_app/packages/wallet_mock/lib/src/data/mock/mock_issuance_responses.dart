@@ -199,7 +199,7 @@ final _kMockPidDataAttributes = [
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Burger­service­nummer (BSN)')],
-    value: const CardValue.string(value: '******999'),
+    value: const CardValue.string(value: '111222333'),
     key: 'mock.citizenshipNumber',
     // sourceCardId: _kPidId,
   ),

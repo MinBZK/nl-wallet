@@ -2,9 +2,11 @@ import 'dart:math';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../domain/model/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
@@ -49,7 +51,15 @@ class DashboardScreen extends StatelessWidget {
     return Scaffold(
       key: const Key('dashboardScreen'),
       appBar: _buildAppBar(context),
-      body: _buildBody(context),
+      body: VisibilityDetector(
+        key: const Key('dashboardVisibilityDetector'),
+        onVisibilityChanged: (visibilityInfo) {
+          if (visibilityInfo.visibleFraction >= 1) {
+            SemanticsService.announce(context.l10n.dashboardScreenOverviewAnnouncement, TextDirection.ltr);
+          }
+        },
+        child: _buildBody(context),
+      ),
     );
   }
 
@@ -123,35 +133,37 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, DashboardLoadSuccess state) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            height: 250,
-            alignment: Alignment.center,
-            child: _buildQrLogo(context),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          sliver: SliverToBoxAdapter(
-            child: ActivitySummary(
-              attributes: state.history ?? [],
-              onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
+    return Scrollbar(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              height: 250,
+              alignment: Alignment.center,
+              child: _buildQrLogo(context),
             ),
           ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          sliver: _buildCardsSliver(context, state.cards),
-        ),
-        SliverToBoxAdapter(
-          child: _buildFooter(context),
-        ),
-        SliverSizedBox(
-          height: context.mediaQuery.padding.bottom,
-        )
-      ],
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            sliver: SliverToBoxAdapter(
+              child: ActivitySummary(
+                attributes: state.history ?? [],
+                onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            sliver: _buildCardsSliver(context, state.cards),
+          ),
+          SliverToBoxAdapter(
+            child: _buildFooter(context),
+          ),
+          SliverSizedBox(
+            height: context.mediaQuery.padding.bottom,
+          )
+        ],
+      ),
     );
   }
 
@@ -203,7 +215,10 @@ class DashboardScreen extends StatelessWidget {
               SvgPicture.asset(WalletAssets.svg_qr_button),
               TextButton(
                 onPressed: onTapQr,
-                child: Text(context.l10n.dashboardScreenQrCta),
+                child: Text(
+                  context.l10n.dashboardScreenQrCta,
+                  textAlign: TextAlign.center,
+                ),
               )
             ],
           ),

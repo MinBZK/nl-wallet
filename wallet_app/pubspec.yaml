@@ -49,9 +49,11 @@ dependencies:
   rxdart: ^0.27.7
   screen_brightness: ^1.0.0
   sensors_plus: ^4.0.2
+  sentry_flutter: ^7.18.0
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.4
   vibration: ^1.8.4
+  visibility_detector: ^0.4.0+2
   wallet_core:
     path: ./packages/wallet_core
   wallet_mock:

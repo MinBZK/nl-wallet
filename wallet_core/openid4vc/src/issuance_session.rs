@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     utils::{
         cose::CoseError,
         keys::{KeyFactory, MdocEcdsaKey},
-        serialization::CborError,
+        serialization::{CborError, TaggedBytes},
         x509::{Certificate, CertificateError, CertificateUsage},
     },
     ATTR_RANDOM_LENGTH,
@@ -321,10 +321,14 @@ impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // This is not a problem, because at the end of the issuance protocol each mdoc is verified against the
         // corresponding certificate in the attestation preview, which implicitly authenticates the issuer because
         // only it could have produced an mdoc against that certificate.
-        token_response.attestation_previews.iter().try_for_each(|preview| {
-            let issuer: &Certificate = preview.as_ref();
-            issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
-        })?;
+        token_response
+            .attestation_previews
+            .as_ref()
+            .iter()
+            .try_for_each(|preview| {
+                let issuer: &Certificate = preview.as_ref();
+                issuer.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+            })?;
 
         // TODO: Check that each `UnsignedMdoc` contains at least one attribute (PVW-2546).
         let attestation_previews = token_response.attestation_previews.into_inner();
@@ -503,8 +507,9 @@ impl CredentialResponse {
         // is too low, we should not accept the attributes.
         if let Some(name_spaces) = issuer_signed.name_spaces.as_ref() {
             let min_random_length = name_spaces
+                .as_ref()
                 .values()
-                .flat_map(|attributes| attributes.0.iter().map(|item| item.0.random.len()))
+                .flat_map(|attributes| attributes.as_ref().iter().map(|TaggedBytes(item)| item.random.len()))
                 .min();
 
             if let Some(min_random_length) = min_random_length {
@@ -565,7 +570,7 @@ mod tests {
             issuer_auth::IssuerRegistration,
             serialization::{CborBase64, TaggedBytes},
         },
-        Attributes, IssuerSigned,
+        IssuerSigned,
     };
     use serde_bytes::ByteBuf;
     use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
@@ -637,11 +642,13 @@ mod tests {
         let credential_response = match credential_response {
             CredentialResponse::MsoMdoc { mut credential } => {
                 let CborBase64(ref mut credential_inner) = credential;
-                let namespaces = credential_inner.name_spaces.as_mut().unwrap();
-                let (_, Attributes(issuer_signed_items)) = namespaces.first_mut().unwrap();
-                let TaggedBytes(first_item) = issuer_signed_items.first_mut().unwrap();
+                let name_spaces = credential_inner.name_spaces.as_mut().unwrap();
 
-                first_item.random = ByteBuf::from(b"12345");
+                name_spaces.modify_first_attributes(|attributes| {
+                    let TaggedBytes(first_item) = attributes.first_mut().unwrap();
+
+                    first_item.random = ByteBuf::from(b"12345");
+                });
 
                 CredentialResponse::MsoMdoc { credential }
             }

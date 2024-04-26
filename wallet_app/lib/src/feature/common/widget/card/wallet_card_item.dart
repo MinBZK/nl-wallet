@@ -54,6 +54,10 @@ class WalletCardItem extends StatelessWidget {
   /// 'Show Details' CTA will be hidden if [onPressed] is null.
   final VoidCallback? onPressed;
 
+  /// If the text should be scaled based on the device's textScaleFactor
+  /// Worth disabling if widget is used as a thumbnail.
+  final bool scaleText;
+
   const WalletCardItem({
     super.key,
     required this.title,
@@ -65,10 +69,16 @@ class WalletCardItem extends StatelessWidget {
     required this.brightness,
     this.onPressed,
     this.ctaAnimation,
+    this.scaleText = true,
   });
 
   WalletCardItem.fromCardFront(
-      {required BuildContext context, required CardFront front, this.onPressed, this.ctaAnimation, super.key})
+      {required BuildContext context,
+      required CardFront front,
+      this.onPressed,
+      this.ctaAnimation,
+      this.scaleText = true,
+      super.key})
       : title = front.title.l10nValue(context),
         background = front.backgroundImage,
         logo = front.logoImage,
@@ -79,31 +89,34 @@ class WalletCardItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: _resolveTheme(context),
-      child: Builder(
-        builder: (context) {
-          return FittedBox(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: _kCardRenderSize.width,
-                minHeight: _kCardRenderSize.height,
-              ),
-              child: ClipRRect(
-                borderRadius: _kCardBorderRadius,
-                child: Stack(
-                  children: [
-                    _buildBackground(context),
-                    _buildHolograph(context, _kCardRenderSize.height),
-                    _buildContent(context),
-                    _buildShowDetailsCta(context),
-                    _buildRippleAndFocus(context),
-                  ],
+    return MediaQuery(
+      data: context.mediaQuery.copyWith(textScaler: scaleText ? null : TextScaler.noScaling),
+      child: Theme(
+        data: _resolveTheme(context),
+        child: Builder(
+          builder: (context) {
+            return FittedBox(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: _kCardRenderSize.width,
+                  minHeight: _kCardRenderSize.height,
+                ),
+                child: ClipRRect(
+                  borderRadius: _kCardBorderRadius,
+                  child: Stack(
+                    children: [
+                      _buildBackground(context),
+                      _buildHolograph(context, _kCardRenderSize.height),
+                      _buildContent(context),
+                      _buildShowDetailsCta(context),
+                      _buildRippleAndFocus(context),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

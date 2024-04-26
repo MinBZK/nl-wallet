@@ -1,0 +1,6 @@
+#ip = "0.0.0.0"
+#port = 3006
+
+[run_mode.preloaded]
+# Optional path to folder containing preloaded GBA-V XML responses of the form "{bsn}.xml" (relative to binary or Cargo.toml)
+xml_path = "resources/gba-v-responses"

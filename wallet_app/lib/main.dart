@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_driver/driver_extension.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
+import 'environment.dart';
 import 'src/di/wallet_dependency_provider.dart';
 import 'src/feature/common/widget/flutter_app_configuration_provider.dart';
 import 'src/feature/common/widget/privacy_cover.dart';
@@ -26,8 +28,22 @@ void main() async {
 
   // Propagate uncaught errors
   final errorHandler = WalletErrorHandler();
-  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handlerError(error, stack);
+  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handleError(error, stack);
 
+  if (Environment.hasSentryDsn) {
+    await SentryFlutter.init(
+      (options) => options
+        ..dsn = Environment.sentryDsn
+        ..environment = Environment.sentryEnvironment
+        ..debug = kDebugMode,
+      appRunner: () => mainImpl(),
+    );
+  } else {
+    mainImpl();
+  }
+}
+
+void mainImpl() async {
   // Debug specific setup
   if (kDebugMode) {
     Fimber.plantTree(DebugTree());
