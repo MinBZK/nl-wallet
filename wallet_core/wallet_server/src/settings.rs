@@ -152,15 +152,9 @@ impl Settings {
         let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
         let config_source = config_path.join(config_file);
 
-        // If `config_source` exists use that, otherwise try `config_file` as absolute path.
-        let config_source = if config_source.exists() {
-            config_source
-        } else {
-            PathBuf::from(config_file)
-        };
-
         config_builder
             .add_source(File::from(config_source).required(false))
+            .add_source(File::from(PathBuf::from(config_file)).required(false))
             .add_source(
                 Environment::with_prefix(env_prefix)
                     .separator("__")

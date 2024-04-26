@@ -32,5 +32,3 @@ private_key = "${MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
 [verifier.usecases.monkey_bike]
 certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
-
-[issuer.private_keys]
