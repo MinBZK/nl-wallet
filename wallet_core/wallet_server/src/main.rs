@@ -1,16 +1,33 @@
 use anyhow::Result;
+use clap::Parser;
 
 use wallet_server::{server, settings::Settings, store::SessionStores};
 
 #[cfg(feature = "issuance")]
 use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
 
+/// wallet_server
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Configuration file.
+    #[arg(short, long, default_value = "wallet_server.toml")]
+    config_file: String,
+
+    /// Prefix to be used for environment variables. Environment variables will be upper case, so default prefix is:
+    /// `WALLET_SERVER`.
+    #[arg(short, long, default_value = "wallet_server")]
+    env_prefix: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize tracing.
     tracing_subscriber::fmt::init();
 
-    let settings = Settings::new()?;
+    let args = Args::parse();
+
+    let settings = Settings::new_custom(&args.config_file, &args.env_prefix)?;
 
     let sessions = SessionStores::init(settings.store_url.clone()).await?;
 
