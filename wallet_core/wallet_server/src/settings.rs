@@ -145,7 +145,7 @@ impl Settings {
                 vec![openid4vc::NL_WALLET_CLIENT_ID.to_string()],
             )?
             .set_default("issuer.brp_server", "http://localhost:5001/")?
-            .set_default("issuer.trust_anchors", vec![] as Vec<String>)?;
+            .set_default("issuer.digid.trust_anchors", vec![] as Vec<String>)?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
