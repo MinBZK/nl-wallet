@@ -21,7 +21,7 @@ android {
             testCoverageEnabled true
 
             packagingOptions {
-                doNotStrip "**/*.so"
+                // doNotStrip "**/*.so"
             }
         }
         release {
