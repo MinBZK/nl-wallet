@@ -1187,6 +1187,7 @@ check-gitlab-ci-changed:
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8
 
 run-automation-tests-12:
   extends: [.run-automation-tests]
