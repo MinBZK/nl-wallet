@@ -123,7 +123,7 @@ impl TestDocument {
         Self { doc_type, namespaces }
     }
 
-    #[cfg(all(feature = "generate", feature = "mock"))]
+    #[cfg(any(test, all(feature = "generate", feature = "mock")))]
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn sign<KF>(
         self,
