@@ -5,6 +5,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
+import '../common/page/page_illustration.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
 import '../common/widget/button/confirm/confirm_button.dart';
@@ -56,16 +57,8 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverToBoxAdapter(
-                    child: Image.asset(
-                      WalletAssets.illustration_privacy_policy_screen,
-                      fit: context.isLandscape ? BoxFit.contain : BoxFit.fitWidth,
-                      height: context.isLandscape ? 160 : null,
-                      width: double.infinity,
-                    ),
-                  ),
+                const SliverToBoxAdapter(
+                  child: PageIllustration(asset: WalletAssets.svg_privacy),
                 ),
                 const SliverSizedBox(height: 24),
               ],
