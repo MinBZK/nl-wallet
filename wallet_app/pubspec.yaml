@@ -40,6 +40,7 @@ dependencies:
   intl: ^0.18.1
   json_annotation: ^4.8.1
   json_serializable: ^6.7.1
+  lottie: ^3.1.0
   meta: ^1.10.0
   mobile_scanner: ^4.0.0
   package_info_plus: ^5.0.1
@@ -86,6 +87,7 @@ flutter:
     - assets/non-free/fonts/
     - assets/non-free/illustrations/
     - assets/non-free/icons/
+    - assets/non-free/lottie/
 
   fonts:
     - family: RijksoverheidSansWebText

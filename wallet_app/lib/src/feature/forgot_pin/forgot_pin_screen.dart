@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
+import '../common/page/page_illustration.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/secondary_button.dart';
 import '../common/widget/paragraphed_list.dart';
@@ -45,7 +46,10 @@ class ForgotPinScreen extends StatelessWidget {
       children: [
         ParagraphedList.splitContent(context.l10n.forgotPinScreenDescription),
         const SizedBox(height: 32),
-        Image.asset(WalletAssets.illustration_forgot_pin_header, fit: BoxFit.fitWidth),
+        const PageIllustration(
+          asset: WalletAssets.svg_pin_forgot,
+          padding: EdgeInsets.zero,
+        ),
       ],
     );
   }

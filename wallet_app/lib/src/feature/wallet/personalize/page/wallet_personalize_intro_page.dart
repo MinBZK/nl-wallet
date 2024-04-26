@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../wallet_assets.dart';
+import '../../../common/page/page_illustration.dart';
 import '../../../common/widget/button/confirm/confirm_button.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
@@ -39,12 +40,9 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
                       delegate: SliverChildListDelegate([
                         BodyText(context.l10n.walletPersonalizeIntroPageDescription),
                         const SizedBox(height: 32),
-                        SizedBox(
-                          width: double.infinity,
-                          child: Image.asset(
-                            WalletAssets.illustration_personalize_wallet_intro,
-                            fit: BoxFit.fitWidth,
-                          ),
+                        const PageIllustration(
+                          asset: WalletAssets.svg_digid,
+                          padding: EdgeInsets.zero,
                         ),
                         const SizedBox(height: 32),
                       ]),

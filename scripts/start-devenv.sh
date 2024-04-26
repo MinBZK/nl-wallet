@@ -244,28 +244,39 @@ if [ "${WALLET_SERVER}" == "0" ]
 then
     # As part of the MRP a wallet_server is started
     echo
-    echo -e "${SECTION}Manage wallet_server${NC}"
+    echo -e "${SECTION}Manage wallet_server and pid_issuer${NC}"
 
-    cd "${MRP_WALLET_SERVER_DIR}"
+    cd "${WALLET_SERVER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
-        echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC}"
+        echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC} and ${ORANGE}pid_issuer${NC}"
         killall wallet_server || true
     fi
     if [ "${START}" == "0" ]
     then
-        echo -e "${INFO}Running wallet_server database migrations${NC}"
         pushd "${WALLET_CORE_DIR}"
+        echo -e "${INFO}Running wallet_server database migrations${NC}"
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server" cargo run --bin wallet_server_migration -- fresh
+        echo -e "${INFO}Running pid_issuer database migrations${NC}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migration -- fresh
         popd
-        echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
-        RUST_LOG=debug cargo run --features "allow_http_return_url,issuance" --bin wallet_server > "${TARGET_DIR}/mrp_wallet_server.log" 2>&1 &
 
+        echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
+        RUST_LOG=debug cargo run --features "allow_http_return_url" --bin wallet_server \
+                       > "${TARGET_DIR}/mrp_wallet_server.log" \
+                       2>&1 &
         echo -e "wallet_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_wallet_server.log${NC}"
+
+        echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
+        RUST_LOG=debug cargo run --features "allow_http_return_url,issuance" --bin wallet_server -- \
+                       --config-file pid_issuer.toml \
+                       --env-prefix pid_issuer \
+                       > "${TARGET_DIR}/pid_issuer.log" \
+                       2>&1 &
+        echo -e "pid_issuer can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
 fi
-
 
 ########################################################################
 # Manage wallet_provider

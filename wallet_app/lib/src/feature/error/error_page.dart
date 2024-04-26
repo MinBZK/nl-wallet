@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
+import '../common/page/page_illustration.dart';
 import '../common/sheet/help_sheet.dart';
 import '../common/widget/button/text_icon_button.dart';
 import '../common/widget/sliver_sized_box.dart';
@@ -44,7 +45,7 @@ class ErrorPage extends StatelessWidget {
     return ErrorPage(
       headline: headline ?? context.l10n.errorScreenGenericHeadline,
       description: description ?? context.l10n.errorScreenGenericDescription,
-      illustration: WalletAssets.illustration_general_error,
+      illustration: WalletAssets.svg_error_general,
       primaryActionText: primaryActionText ?? context.l10n.errorScreenGenericCloseCta,
       primaryActionIcon: primaryActionIcon,
       onPrimaryActionPressed: onPrimaryActionPressed ?? () => Navigator.pop(context),
@@ -63,7 +64,7 @@ class ErrorPage extends StatelessWidget {
     return ErrorPage(
       headline: context.l10n.errorScreenServerHeadline,
       description: context.l10n.errorScreenServerDescription,
-      illustration: WalletAssets.illustration_server_error,
+      illustration: WalletAssets.svg_error_server_outage,
       primaryActionText: primaryActionText ?? context.l10n.errorScreenServerCloseCta,
       primaryActionIcon: primaryActionIcon,
       onPrimaryActionPressed: onPrimaryActionPressed ?? () => Navigator.pop(context),
@@ -81,7 +82,7 @@ class ErrorPage extends StatelessWidget {
     return ErrorPage(
       headline: context.l10n.errorScreenNoInternetHeadline,
       description: context.l10n.errorScreenNoInternetDescription,
-      illustration: WalletAssets.illustration_no_internet_error,
+      illustration: WalletAssets.svg_error_no_internet,
       primaryActionText: primaryActionText ?? context.l10n.generalRetry,
       primaryActionIcon: primaryActionIcon,
       onPrimaryActionPressed: onPrimaryActionPressed ?? () => Navigator.pop(context),
@@ -142,12 +143,11 @@ class ErrorPage extends StatelessWidget {
         ),
         width: double.infinity,
         height: 100,
-        child: const Text('Placeholder image'),
       );
     } else {
-      return Image.asset(
-        illustration!,
-        fit: BoxFit.fitWidth,
+      return PageIllustration(
+        asset: illustration!,
+        padding: EdgeInsets.zero,
       );
     }
   }

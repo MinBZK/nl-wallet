@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/disclosure/return_url_case.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_assets.dart';
+import '../../common/page/page_illustration.dart';
 import '../../common/page/terminal_page.dart';
 
 class DisclosureSuccessPage extends StatelessWidget {
@@ -32,6 +34,7 @@ class DisclosureSuccessPage extends StatelessWidget {
       onPrimaryPressed: () => onPrimaryPressed(returnUrl),
       primaryButtonIcon: hasReturnUrl ? Icons.arrow_forward_outlined : Icons.close_outlined,
       description: title,
+      illustration: const PageIllustration(asset: WalletAssets.svg_sharing_success),
       primaryButtonCta: _resolvePrimaryCta(context),
       secondaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,
       onSecondaryButtonPressed: onHistoryPressed,

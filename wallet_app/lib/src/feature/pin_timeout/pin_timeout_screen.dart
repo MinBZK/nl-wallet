@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
+import '../common/page/page_illustration.dart';
 import '../common/widget/button/icon/info_icon_button.dart';
 import '../common/widget/button/link_button.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -46,10 +47,9 @@ class PinTimeoutScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               children: [
-                Image.asset(
-                  WalletAssets.illustration_pin_timeout,
-                  width: double.infinity,
-                  fit: BoxFit.fitWidth,
+                const PageIllustration(
+                  asset: WalletAssets.svg_blocked_temporary,
+                  padding: EdgeInsets.zero,
                 ),
                 const SizedBox(height: 24),
                 Text(
