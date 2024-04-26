@@ -61,21 +61,39 @@ impl SessionDataType for MockSessionData {
     const TYPE: &'static str = "mockdata";
 }
 
+async fn postgres_session_store() -> PostgresSessionStore {
+    let storage_settings = Settings::new().unwrap().storage;
+    let timeouts = (&storage_settings).into();
+
+    PostgresSessionStore::try_new(storage_settings.url, timeouts)
+        .await
+        .unwrap()
+}
+
 #[tokio::test]
 async fn test_get_write() {
-    let settings = Settings::new().unwrap();
-    let session_store = PostgresSessionStore::try_new(settings.store_url).await.unwrap();
+    let session_store = postgres_session_store().await;
 
     test::test_session_store_get_write::<MockSessionData>(&session_store).await;
 }
 
 #[tokio::test]
 async fn test_cleanup() {
-    let settings = Settings::new().unwrap();
-    let session_store = PostgresSessionStore::try_new(settings.store_url).await.unwrap();
+    let session_store = postgres_session_store().await;
     let mock_now = Lazy::force(&POSTGRES_SESSION_STORE_NOW);
 
-    test::test_session_store_cleanup_expiration::<MockSessionData>(&session_store, mock_now).await;
-    test::test_session_store_cleanup_successful_deletion::<MockSessionData>(&session_store, mock_now).await;
-    test::test_session_store_cleanup_failed_deletion::<MockSessionData>(&session_store, mock_now).await;
+    test::test_session_store_cleanup_expiration::<MockSessionData>(&session_store, &session_store.timeouts, mock_now)
+        .await;
+    test::test_session_store_cleanup_successful_deletion::<MockSessionData>(
+        &session_store,
+        &session_store.timeouts,
+        mock_now,
+    )
+    .await;
+    test::test_session_store_cleanup_failed_deletion::<MockSessionData>(
+        &session_store,
+        &session_store.timeouts,
+        mock_now,
+    )
+    .await;
 }

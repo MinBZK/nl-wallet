@@ -15,9 +15,7 @@ use rstest::rstest;
 use tokio::time;
 
 use nl_wallet_mdoc::{
-    server_state::{
-        CLEANUP_INTERVAL_SECONDS, FAILED_SESSION_DELETION_MINUTES, MEMORY_SESSION_STORE_NOW, SESSION_EXPIRY_MINUTES,
-    },
+    server_state::{SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS, MEMORY_SESSION_STORE_NOW},
     verifier::{SessionType, StatusResponse},
     ItemsRequest,
 };
@@ -74,7 +72,7 @@ fn wallet_server_settings(use_memory_store: bool) -> Settings {
     settings.internal_url = format!("http://localhost:{requester_port}/").parse().unwrap();
 
     if use_memory_store {
-        settings.store_url = "memory://".parse().unwrap();
+        settings.storage.url = "memory://".parse().unwrap();
     }
 
     settings
@@ -82,7 +80,10 @@ fn wallet_server_settings(use_memory_store: bool) -> Settings {
 
 async fn start_wallet_server(settings: Settings) {
     let public_url = settings.public_url.clone();
-    let sessions = SessionStores::init(settings.store_url.clone()).await.unwrap();
+    let storage_settings = &settings.storage;
+    let sessions = SessionStores::init(storage_settings.url.clone(), storage_settings.into())
+        .await
+        .unwrap();
     tokio::spawn(async move {
         if let Err(error) = wallet_server::server::serve_disclosure(settings, sessions).await {
             println!("Could not start wallet_server: {error:?}");
@@ -304,6 +305,8 @@ async fn test_disclosure_not_found() {
 }
 
 async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<DateTime<Utc>>>, use_delay: bool) {
+    let timeouts = SessionStoreTimeouts::from(&settings.storage);
+
     start_wallet_server(settings.clone()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
@@ -343,7 +346,7 @@ async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<Da
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // Advance the clock just enough so that session expiry will have occurred.
-    let expiry_time = Utc::now() + chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
+    let expiry_time = Utc::now() + timeouts.expiration;
     mock_now.write().replace(expiry_time);
 
     time::pause();
@@ -373,11 +376,9 @@ async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<Da
     assert_eq!(response.status(), StatusCode::GONE);
 
     // Advance the clock again so that the expired session will be purged.
-    mock_now.write().replace(
-        expiry_time
-            + chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into())
-            + chrono::Duration::milliseconds(1),
-    );
+    mock_now
+        .write()
+        .replace(expiry_time + timeouts.failed_deletion + Duration::from_millis(1));
 
     time::pause();
     time::advance(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)).await;
@@ -415,7 +416,7 @@ async fn test_disclosure_expired_postgres() {
 
     let settings = wallet_server_settings(false);
     assert_eq!(
-        settings.store_url.scheme(),
+        settings.storage.url.scheme(),
         "postgres",
         "should be configured to use PostgreSQL storage"
     );

@@ -29,7 +29,8 @@ async fn main() -> Result<()> {
 
     let settings = Settings::new_custom(&args.config_file, &args.env_prefix)?;
 
-    let sessions = SessionStores::init(settings.store_url.clone()).await?;
+    let storage_settings = &settings.storage;
+    let sessions = SessionStores::init(storage_settings.url.clone(), storage_settings.into()).await?;
 
     // This will block until the server shuts down.
     #[cfg(feature = "issuance")]

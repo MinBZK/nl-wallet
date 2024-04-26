@@ -2,7 +2,9 @@
 
 public_url = 'http://${SERVICES_HOST}:${MOCK_RP_WS_PORT}/'
 internal_url = 'http://${SERVICES_HOST}:${MOCK_RP_RS_PORT}/'
-store_url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server'
+
+[storage]
+url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server'
 
 [wallet_server]
 ip = '0.0.0.0'

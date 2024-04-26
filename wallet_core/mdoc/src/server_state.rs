@@ -16,6 +16,9 @@ use tracing::warn;
 
 use wallet_common::utils::random_string;
 
+/// The cleanup task that removes stale sessions runs every so often.
+pub const CLEANUP_INTERVAL_SECONDS: u64 = 120;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Progress {
     Active,
@@ -81,8 +84,20 @@ pub trait SessionStore<T> {
     }
 }
 
-#[derive(Debug, Default)]
+/// Different timeout values that should be used by the [`SessionStore::cleanup()`] implementation.
+#[derive(Debug, Clone, Copy)]
+pub struct SessionStoreTimeouts {
+    /// After this amount of inactivity, an active session should be expired.
+    pub expiration: Duration,
+    /// After this amount of time, a successfully completed session should be removed.
+    pub successful_deletion: Duration,
+    /// After this amount of time, a failed or expired session should be removed.
+    pub failed_deletion: Duration,
+}
+
+#[derive(Debug)]
 pub struct MemorySessionStore<T> {
+    pub timeouts: SessionStoreTimeouts,
     // Store the session state and expired boolean as the value
     sessions: DashMap<SessionToken, (SessionState<T>, bool)>,
 }
@@ -97,13 +112,24 @@ impl<T> SessionState<T> {
     }
 }
 
+impl Default for SessionStoreTimeouts {
+    fn default() -> Self {
+        Self {
+            expiration: Duration::from_secs(30 * 60),
+            successful_deletion: Duration::from_secs(5 * 60),
+            failed_deletion: Duration::from_secs(4 * 60 * 60),
+        }
+    }
+}
+
 #[cfg(any(test, feature = "mock_time"))]
 pub static MEMORY_SESSION_STORE_NOW: once_cell::sync::Lazy<parking_lot::RwLock<Option<DateTime<Utc>>>> =
     once_cell::sync::Lazy::new(|| None.into());
 
 impl<T> MemorySessionStore<T> {
-    pub fn new() -> Self {
+    pub fn new(timeouts: SessionStoreTimeouts) -> Self {
         Self {
+            timeouts,
             sessions: DashMap::new(),
         }
     }
@@ -116,18 +142,6 @@ impl<T> MemorySessionStore<T> {
         MEMORY_SESSION_STORE_NOW.read().unwrap_or_else(Utc::now)
     }
 }
-
-/// The cleanup task that removes stale sessions runs every so often.
-pub const CLEANUP_INTERVAL_SECONDS: u64 = 120;
-
-/// After this amount of inactivity, an active session should be expired.
-pub const SESSION_EXPIRY_MINUTES: u32 = 30;
-
-/// After this amount of time, a successfully completed session should be removed.
-pub const SUCCESSFUL_SESSION_DELETION_MINUTES: u32 = 5;
-
-/// After this amount of time, a failed or expired session should be removed.
-pub const FAILED_SESSION_DELETION_MINUTES: u32 = 4 * 60;
 
 impl<T> SessionStore<T> for MemorySessionStore<T>
 where
@@ -168,9 +182,9 @@ where
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
         let now = Self::now();
-        let succeeded_cutoff = now - chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into());
-        let failed_cutoff = now - chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
-        let expiry_cutoff = now - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
+        let succeeded_cutoff = now - self.timeouts.successful_deletion;
+        let failed_cutoff = now - self.timeouts.failed_deletion;
+        let expiry_cutoff = now - self.timeouts.expiration;
 
         self.sessions.retain(|_, session_and_expired| {
             let (session, expired) = session_and_expired.deref();
@@ -294,7 +308,7 @@ pub mod test {
         mock_now: &RwLock<Option<DateTime<Utc>>>,
         token: SessionToken,
         session_progress: Progress,
-        max_time: chrono::Duration,
+        max_time: Duration,
     ) -> Result<SessionState<T>, SessionStoreError>
     where
         T: HasProgress + From<Progress>,
@@ -334,18 +348,19 @@ pub mod test {
 
     pub async fn test_session_store_cleanup_expiration<T>(
         session_store: &impl SessionStore<T>,
+        timeouts: &SessionStoreTimeouts,
         mock_now: &RwLock<Option<DateTime<Utc>>>,
     ) where
         T: Debug + HasProgress + From<Progress>,
     {
-        // Retrieving active session state after SESSION_EXPIRY_MINUTES should result in an expired error.
+        // Retrieving active session state after the "expiration" timeout should result in an expired error.
         let token = SessionToken::new_random();
         let error = test_session_store_cleanup(
             session_store,
             mock_now,
             token.clone(),
             Progress::Active,
-            chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into()),
+            timeouts.expiration,
         )
         .await
         .expect_err("should return error");
@@ -355,8 +370,8 @@ pub mod test {
             SessionStoreError::Expired(expired_token) if expired_token == token
         );
 
-        // Advance the time right up to FAILED_SESSION_DELETION_MINUTES, the session state should still be expired.
-        let t4 = mock_now.read().unwrap() + chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
+        // Advance the time right up to the "failed_deletion" timeout, the session state should still be expired.
+        let t4 = mock_now.read().unwrap() + timeouts.failed_deletion;
         mock_now.write().replace(t4);
 
         session_store.cleanup().await.unwrap();
@@ -366,7 +381,7 @@ pub mod test {
             SessionStoreError::Expired(expired_token) if expired_token == token
         );
 
-        // Advance the time just after FAILED_SESSION_DELETION_MINUTES and the session should no longer be present.
+        // Advance the time just after the "failed_deletion" timeout and the session should no longer be present.
         let t5 = t4 + chrono::Duration::milliseconds(1);
         mock_now.write().replace(t5);
 
@@ -380,19 +395,20 @@ pub mod test {
 
     pub async fn test_session_store_cleanup_successful_deletion<T>(
         session_store: &impl SessionStore<T>,
+        timeouts: &SessionStoreTimeouts,
         mock_now: &RwLock<Option<DateTime<Utc>>>,
     ) where
         T: Debug + HasProgress + From<Progress>,
     {
-        // Retrieving succeeded session state after SUCCESSFUL_SESSION_DELETION_MINUTES
-        // should result in the state no longer being present.
+        // Retrieving succeeded session state after the "successful_deletion"
+        // timeout should result in the state no longer being present.
         let token = SessionToken::new_random();
         let error = test_session_store_cleanup(
             session_store,
             mock_now,
             token.clone(),
             Progress::Finished { has_succeeded: true },
-            chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into()),
+            timeouts.successful_deletion,
         )
         .await
         .expect_err("should return error");
@@ -405,19 +421,20 @@ pub mod test {
 
     pub async fn test_session_store_cleanup_failed_deletion<T>(
         session_store: &impl SessionStore<T>,
+        timeouts: &SessionStoreTimeouts,
         mock_now: &RwLock<Option<DateTime<Utc>>>,
     ) where
         T: Debug + HasProgress + From<Progress>,
     {
-        // Retrieving failed session state after FAILED_SESSION_DELETION_MINUTES
-        // should result in the state no longer being present.
+        // Retrieving failed session state after the "failed_deletion"
+        // timeout should result in the state no longer being present.
         let token = SessionToken::new_random();
         let error = test_session_store_cleanup(
             session_store,
             mock_now,
             token.clone(),
             Progress::Finished { has_succeeded: false },
-            chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into()),
+            timeouts.failed_deletion,
         )
         .await
         .expect_err("should return error");
@@ -475,17 +492,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_memory_session_get_write() {
-        let session_store = MemorySessionStore::<MockSessionData>::new();
+        let session_store = MemorySessionStore::<MockSessionData>::new(Default::default());
         test::test_session_store_get_write(&session_store).await;
     }
 
     #[tokio::test]
     async fn test_memory_session_store_cleanup() {
-        let session_store = MemorySessionStore::<MockSessionData>::new();
+        let session_store = MemorySessionStore::<MockSessionData>::new(Default::default());
         let mock_now = Lazy::force(&MEMORY_SESSION_STORE_NOW);
 
-        test::test_session_store_cleanup_expiration(&session_store, mock_now).await;
-        test::test_session_store_cleanup_successful_deletion(&session_store, mock_now).await;
-        test::test_session_store_cleanup_failed_deletion(&session_store, mock_now).await;
+        test::test_session_store_cleanup_expiration(&session_store, &session_store.timeouts, mock_now).await;
+        test::test_session_store_cleanup_successful_deletion(&session_store, &session_store.timeouts, mock_now).await;
+        test::test_session_store_cleanup_failed_deletion(&session_store, &session_store.timeouts, mock_now).await;
     }
 }

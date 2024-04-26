@@ -2,7 +2,10 @@ use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_state::{HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionToken},
+    server_state::{
+        HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
+        SessionToken,
+    },
     verifier::DisclosureData,
 };
 
@@ -33,11 +36,11 @@ pub struct SessionStores {
 }
 
 impl SessionStores {
-    pub async fn init(url: Url) -> Result<SessionStores, anyhow::Error> {
+    pub async fn init(url: Url, timeouts: SessionStoreTimeouts) -> Result<SessionStores, anyhow::Error> {
         match url.scheme() {
             #[cfg(feature = "postgres")]
             "postgres" => {
-                let store = PostgresSessionStore::try_new(url).await?;
+                let store = PostgresSessionStore::try_new(url, timeouts).await?;
                 Ok(SessionStores {
                     #[cfg(feature = "issuance")]
                     issuance: SessionStoreVariant::Postgres(store.clone()),
@@ -46,8 +49,8 @@ impl SessionStores {
             }
             "memory" => Ok(SessionStores {
                 #[cfg(feature = "issuance")]
-                issuance: SessionStoreVariant::Memory(MemorySessionStore::new()),
-                disclosure: SessionStoreVariant::Memory(MemorySessionStore::new()),
+                issuance: SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
+                disclosure: SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
             }),
             e => unimplemented!("{}", e),
         }
@@ -110,8 +113,7 @@ pub mod postgres {
 
     use crate::entity::session_state;
     use nl_wallet_mdoc::server_state::{
-        HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
-        FAILED_SESSION_DELETION_MINUTES, SESSION_EXPIRY_MINUTES, SUCCESSFUL_SESSION_DELETION_MINUTES,
+        HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts, SessionToken,
     };
 
     use super::SessionDataType;
@@ -139,6 +141,7 @@ pub mod postgres {
 
     #[derive(Debug, Clone)]
     pub struct PostgresSessionStore {
+        pub timeouts: SessionStoreTimeouts,
         connection: DatabaseConnection,
     }
 
@@ -147,7 +150,7 @@ pub mod postgres {
         once_cell::sync::Lazy::new(|| None.into());
 
     impl PostgresSessionStore {
-        pub async fn try_new(url: Url) -> Result<Self, DbErr> {
+        pub async fn try_new(url: Url, timeouts: SessionStoreTimeouts) -> Result<Self, DbErr> {
             let mut connection_options = ConnectOptions::new(url);
             connection_options
                 .connect_timeout(DB_CONNECT_TIMEOUT)
@@ -156,7 +159,9 @@ pub mod postgres {
 
             let connection = Database::connect(connection_options).await?;
 
-            Ok(Self { connection })
+            let session_store = Self { timeouts, connection };
+
+            Ok(session_store)
         }
 
         fn now() -> DateTime<Utc> {
@@ -246,9 +251,9 @@ pub mod postgres {
 
         async fn cleanup(&self) -> Result<(), SessionStoreError> {
             let now = Self::now();
-            let succeeded_cutoff = now - chrono::Duration::minutes(SUCCESSFUL_SESSION_DELETION_MINUTES.into());
-            let failed_cutoff = now - chrono::Duration::minutes(FAILED_SESSION_DELETION_MINUTES.into());
-            let expiry_cutoff = now - chrono::Duration::minutes(SESSION_EXPIRY_MINUTES.into());
+            let succeeded_cutoff = now - self.timeouts.successful_deletion;
+            let failed_cutoff = now - self.timeouts.failed_deletion;
+            let expiry_cutoff = now - self.timeouts.expiration;
 
             self.connection
                 .transaction::<_, (), DbErr>(|transaction| {
