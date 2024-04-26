@@ -29,6 +29,9 @@ export CONFIG_SERVER_PORT=3003
 export MOCK_RP_PORT=3004
 export MOCK_RP_WS_PORT=3005
 export MOCK_RP_RS_PORT=3006
+export BRP_SERVER_PORT=3007
+export GBA_HC_CONV_PORT=3008
+
 export RDO_MAX_PORT=8006
 
 # Database properties for the wallet_provider, with defaults.
