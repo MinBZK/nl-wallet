@@ -15,14 +15,34 @@ class WalletAssets {
     );
   }
 
+  // LOTTIE
+  static const lottie_intro_1 = 'assets/non-free/lottie/1_WELKOM.json';
+  static const lottie_intro_2 = 'assets/non-free/lottie/2_VEILIG_INLOGGEN.json';
+  static const lottie_intro_3 = 'assets/non-free/lottie/3_EENVOUDIG_DELEN.json';
+
   // SVGS
   static const svg_rijks_card_holo = 'assets/non-free/svg/rijks_card_holo.svg';
   static const svg_rijks_card_bg_light = 'assets/non-free/svg/rijks_card_bg_light.svg';
   static const svg_rijks_card_bg_dark = 'assets/non-free/svg/rijks_card_bg_dark.svg';
   static const svg_qr_button = 'assets/non-free/svg/qr_button.svg';
-  static const svg_intro_placeholder_1 = 'assets/non-free/svg/intro_placeholder_1.svg';
-  static const svg_intro_placeholder_2 = 'assets/non-free/svg/intro_placeholder_2.svg';
-  static const svg_intro_placeholder_3 = 'assets/non-free/svg/intro_placeholder_3.svg';
+
+  static const svg_blocked_final = 'assets/non-free/svg/NL_WALLET_blocked_final.svg';
+  static const svg_blocked_temporary = 'assets/non-free/svg/NL_WALLET_blocked_temporary.svg';
+  static const svg_digid = 'assets/non-free/svg/NL_WALLET_DigiD.svg';
+  static const svg_error_config_update = 'assets/non-free/svg/NL_WALLET_error_config_update.svg';
+  static const svg_error_general = 'assets/non-free/svg/NL_WALLET_error_general.svg';
+  static const svg_error_no_internet = 'assets/non-free/svg/NL_WALLET_error_no_internet.svg';
+  static const svg_error_server_outage = 'assets/non-free/svg/NL_WALLET_error_server_outage.svg';
+  static const svg_error_server_overload = 'assets/non-free/svg/NL_WALLET_error_server_overload.svg';
+  static const svg_error_session_expired = 'assets/non-free/svg/NL_WALLET_error_session_expired.svg';
+  static const svg_pin_forgot = 'assets/non-free/svg/NL_WALLET_PIN_forgot.svg';
+  static const svg_pin_set = 'assets/non-free/svg/NL_WALLET_PIN_set.svg';
+  static const svg_privacy = 'assets/non-free/svg/NL_WALLET_privacy.svg';
+  static const svg_sharing_failed = 'assets/non-free/svg/NL_WALLET_sharing_failed.svg';
+  static const svg_sharing_success = 'assets/non-free/svg/NL_WALLET_sharing_success.svg';
+  static const svg_signed = 'assets/non-free/svg/NL_WALLET_signed.svg';
+  static const svg_stopped = 'assets/non-free/svg/NL_WALLET_stopped.svg';
+  static const svg_terms = 'assets/non-free/svg/NL_WALLET_terms.svg';
 
   // IMAGES
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';
@@ -31,18 +51,10 @@ class WalletAssets {
 
   // ILLUSTRATIONS
   static const illustration_sign_1 = 'assets/non-free/illustrations/sign_1.png';
-  static const illustration_pin_timeout = 'assets/non-free/illustrations/pin_timeout.png';
   static const illustration_sign_2 = 'assets/non-free/illustrations/sign_2.png';
-  static const illustration_general_error = 'assets/non-free/illustrations/general_error.png';
-  static const illustration_no_internet_error = 'assets/non-free/illustrations/no_internet_error.png';
-  static const illustration_conditions_screen = 'assets/non-free/illustrations/conditions_screen.png';
   static const illustration_placeholder_contract = 'assets/non-free/illustrations/placeholder_contract.png';
-  static const illustration_forgot_pin_header = 'assets/non-free/illustrations/forgot_pin_header.png';
-  static const illustration_privacy_policy_screen = 'assets/non-free/illustrations/privacy_policy_screen.png';
   static const illustration_digid_failure = 'assets/non-free/illustrations/digid_failure.png';
-  static const illustration_server_error = 'assets/non-free/illustrations/server_error.png';
   static const illustration_placeholder_generic = 'assets/non-free/illustrations/placeholder_generic.png';
-  static const illustration_personalize_wallet_intro = 'assets/non-free/illustrations/personalize_wallet_intro.png';
 
   // LOGOS
   static const logo_sign_provider = 'assets/non-free/logos/sign_provider.png';

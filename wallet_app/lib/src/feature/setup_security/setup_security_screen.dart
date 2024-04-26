@@ -17,6 +17,7 @@ import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/stepper_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../error/error_page.dart';
 import '../error/error_screen.dart';
 import 'bloc/setup_security_bloc.dart';
 import 'page/setup_security_completed_page.dart';
@@ -190,20 +191,10 @@ class SetupSecurityScreen extends StatelessWidget {
   /// the flow so the user can try again. That said, to be complete we need to build something
   /// in this state, hence this method is kept around.
   Widget _buildSetupFailed(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline),
-          const SizedBox(height: 16),
-          IntrinsicWidth(
-            child: ElevatedButton(
-              onPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
-              child: Text(context.l10n.generalRetry),
-            ),
-          )
-        ],
-      ),
+    return ErrorPage.generic(
+      context,
+      primaryActionText: context.l10n.generalRetry,
+      onPrimaryActionPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
     );
   }
 

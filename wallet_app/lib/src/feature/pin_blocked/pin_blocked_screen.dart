@@ -4,6 +4,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
+import '../common/page/page_illustration.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/wallet_app_bar.dart';
 
@@ -29,11 +30,10 @@ class PinBlockedScreen extends StatelessWidget {
               child: CustomScrollView(
                 slivers: [
                   const SliverSizedBox(height: 24),
-                  SliverToBoxAdapter(
-                    child: Image.asset(
-                      WalletAssets.illustration_pin_timeout,
-                      width: double.infinity,
-                      fit: BoxFit.fitWidth,
+                  const SliverToBoxAdapter(
+                    child: PageIllustration(
+                      asset: WalletAssets.svg_blocked_final,
+                      padding: EdgeInsets.zero,
                     ),
                   ),
                   const SliverSizedBox(height: 24),
