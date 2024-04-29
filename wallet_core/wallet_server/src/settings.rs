@@ -31,6 +31,7 @@ pub struct Settings {
     pub universal_link_base_url: BaseUrl,
     // supported schemes are: memory:// (default) and postgres://
     pub store_url: Url,
+    pub log_requests: bool,
 
     #[cfg(feature = "issuance")]
     pub issuer: Issuer,
@@ -133,7 +134,8 @@ impl Settings {
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
-            .set_default("store_url", "memory://")?;
+            .set_default("store_url", "memory://")?
+            .set_default("log_requests", false)?;
 
         #[cfg(feature = "issuance")]
         let config_builder = config_builder
