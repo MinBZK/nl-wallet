@@ -45,6 +45,8 @@ class IntroductionTests : TestBase() {
         @DisplayName("$USE_CASE.2.2 The privacy benefits of the app (selective disclosure).")
         fun verifyPrivacyScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
+            assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
+
             introductionScreen.clickNextButton() // page 2 -> 3
             assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
         }
@@ -61,6 +63,7 @@ class IntroductionTests : TestBase() {
 
         // Back to page 1, next, skip from page 2
         privacyScreen.clickBackButton() // privacy -> page 1
+        assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
         introductionScreen.clickNextButton() // page 1 -> page 2
         assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
         introductionScreen.clickSkipButton() // page 2 -> privacy
@@ -68,6 +71,7 @@ class IntroductionTests : TestBase() {
 
         // Back to page 2, next to page 3
         privacyScreen.clickBackButton() // privacy -> page 2
+        assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
         introductionScreen.clickNextButton() // page 2 -> page 3
         assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
 
@@ -80,6 +84,8 @@ class IntroductionTests : TestBase() {
     @DisplayName("$USE_CASE.4 The explanation screens all display a back-button.")
     fun verifyPageBackButtons() {
         introductionScreen.clickNextButton() // page 1 -> 2
+        assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
+
         introductionScreen.clickNextButton() // page 2 -> 3
         assertTrue(introductionScreen.page3Visible(), "page 3 is not visible")
 
