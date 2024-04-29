@@ -190,17 +190,17 @@ where
             let (session, expired) = session_and_expired.deref();
 
             match (session.data.progress(), *expired) {
-                // Remove all succeeded sessions that are older than SUCCESSFUL_SESSION_DELETION_MINUTES.
+                // Remove all succeeded sessions that are older than the "successful_deletion" timeout.
                 (Progress::Finished { has_succeeded }, false) if has_succeeded => {
                     session.last_active >= succeeded_cutoff
                 }
-                // Remove all failed and expired sessions that are older than FAILED_SESSION_DELETION_MINUTES.
+                // Remove all failed and expired sessions that are older than the "failed_deletion" timeout.
                 (Progress::Finished { .. }, false) | (_, true) => session.last_active >= failed_cutoff,
                 _ => true,
             }
         });
 
-        // For all active sessions that are older than SESSION_EXPIRY_MINUTES,
+        // For all active sessions that are older than the "expiration" timeout,
         // update the last active time and set them to expired.
         self.sessions.iter_mut().for_each(|mut session_and_expired| {
             let (session, expired) = session_and_expired.deref_mut();

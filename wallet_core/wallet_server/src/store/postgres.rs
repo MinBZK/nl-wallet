@@ -157,7 +157,7 @@ where
         self.connection
             .transaction::<_, (), DbErr>(|transaction| {
                 Box::pin(async move {
-                    // Remove all succeeded sessions that are older than SUCCESSFUL_SESSION_DELETION_MINUTES.
+                    // Remove all succeeded sessions that are older than the "successful_deletion" timeout.
                     session_state::Entity::delete_many()
                         .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
                         .filter(session_state::Column::Status.eq(SessionStatus::Succeeded.to_string()))
@@ -165,7 +165,7 @@ where
                         .exec(transaction)
                         .await?;
 
-                    // Remove all failed and expired sessions that are older than FAILED_SESSION_DELETION_MINUTES.
+                    // Remove all failed and expired sessions that are older than the "failed_deletion" timeout.
                     session_state::Entity::delete_many()
                         .filter(session_state::Column::Type.eq(T::TYPE.to_string()))
                         .filter(
@@ -176,7 +176,7 @@ where
                         .exec(transaction)
                         .await?;
 
-                    // For all active sessions that are older than SESSION_EXPIRY_MINUTES,
+                    // For all active sessions that are older than the "expiration" timeout,
                     // update the last active time and set the status to expired.
                     session_state::Entity::update_many()
                         .col_expr(
