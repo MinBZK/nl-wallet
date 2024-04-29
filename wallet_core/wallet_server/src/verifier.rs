@@ -168,7 +168,7 @@ async fn status<S>(
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let status = state.verifier.status(session_id).await.map_err(Error::SessionStatus)?;
+    let status = state.verifier.status(&session_id).await.map_err(Error::SessionStatus)?;
     Ok(Json(status))
 }
 
@@ -284,7 +284,7 @@ where
 {
     let disclosed_attributes = state
         .verifier
-        .disclosed_attributes(session_id, params.transcript_hash)
+        .disclosed_attributes(&session_id, params.transcript_hash)
         .await
         .map_err(Error::DisclosedAttributes)?;
     Ok(Json(disclosed_attributes))

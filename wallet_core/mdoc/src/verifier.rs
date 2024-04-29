@@ -382,10 +382,10 @@ where
         Ok(response)
     }
 
-    pub async fn status(&self, session_id: SessionToken) -> Result<StatusResponse> {
+    pub async fn status(&self, session_id: &SessionToken) -> Result<StatusResponse> {
         let response = self
             .sessions
-            .get(&session_id)
+            .get(session_id)
             .await
             .map_err(VerificationError::SessionStore)?
             .data
@@ -397,12 +397,12 @@ where
     /// Returns the disclosed attributes for a session with status `Done` and an error otherwise
     pub async fn disclosed_attributes(
         &self,
-        session_id: SessionToken,
+        session_id: &SessionToken,
         transcript_hash: Option<Vec<u8>>,
     ) -> Result<DisclosedAttributes> {
         match self
             .sessions
-            .get(&session_id)
+            .get(session_id)
             .await
             .map_err(VerificationError::SessionStore)?
             .data
