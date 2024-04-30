@@ -6,7 +6,7 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
-use dashmap::DashMap;
+use dashmap::{mapref::entry::Entry, DashMap};
 use nutype::nutype;
 use tokio::{
     task::JoinHandle,
@@ -163,19 +163,16 @@ where
     }
 
     async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
-        // Get a mutable reference, so that we can both check token presence
-        // and replace the session while maintaining a lock on the DashMap.
-        let existing_session = self.sessions.get_mut(&session.token);
+        // Get an `Entry` from the `HashMap`, so that we obtain a lock for that `SessionToken`.
+        // This prevents a race condition between checking if the session is present and inserting it,
+        // since we do not have a mutable reference on the `DashMap`.
+        let entry = self.sessions.entry(session.token.clone());
 
-        if let Some(mut existing_session) = existing_session {
-            if is_new {
-                return Err(SessionStoreError::DuplicateToken(session.token));
-            }
-
-            *existing_session = (session, false);
-        } else {
-            self.sessions.insert(session.token.clone(), (session, false));
+        if matches!(entry, Entry::Occupied(_)) && is_new {
+            return Err(SessionStoreError::DuplicateToken(session.token));
         }
+
+        entry.insert((session, false));
 
         Ok(())
     }
