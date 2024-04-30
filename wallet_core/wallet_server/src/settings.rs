@@ -147,15 +147,26 @@ impl Settings {
     }
 
     pub fn new_custom(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
+        let default_store_timeouts = SessionStoreTimeouts::default();
+
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("storage.url", "memory://")?
-            .set_default("storage.expiration_minutes", 30)?
-            .set_default("storage.successful_deletion_minutes", 5)?
-            .set_default("storage.failed_deletion_minutes", 4 * 60)?;
+            .set_default(
+                "storage.expiration_minutes",
+                default_store_timeouts.expiration.as_secs() / 60,
+            )?
+            .set_default(
+                "storage.successful_deletion_minutes",
+                default_store_timeouts.successful_deletion.as_secs() / 60,
+            )?
+            .set_default(
+                "storage.failed_deletion_minutes",
+                default_store_timeouts.failed_deletion.as_secs() / 60,
+            )?;
 
         #[cfg(feature = "issuance")]
         let config_builder = config_builder
