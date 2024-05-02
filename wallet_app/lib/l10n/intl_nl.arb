@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-25T11:06:00+02:00",
+    "@@last_modified": "2024-04-30T09:41:14+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -565,7 +565,7 @@
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "Bekijk alle activiteiten",
-    "generalWCAGStepper": "Stap {current} of {total}.",
+    "generalWCAGStepper": "Stap {current} van {total}.",
     "helpSheetCloseCta": "Sluiten",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
@@ -997,7 +997,7 @@
     },
     "pinKeyboardWCAGBackspaceLabel": "Verwijder",
     "pinKeyboardWCAGBackspaceLongPressHint": "Alles te verwijderen",
-    "pinKeyboardWCAGDigitKeyTapHint": "invoer",
+    "pinKeyboardWCAGDigitKeyTapHint": "kiezen",
     "pinScreenAboutAppTooltip": "Over de app",
     "pinScreenAttemptsCount": "{count, plural, one {Je hebt nog {count} poging} other {Je hebt nog {count} pogingen}}",
     "@pinScreenAttemptsCount": {

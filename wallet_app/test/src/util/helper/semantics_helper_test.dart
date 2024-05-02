@@ -5,12 +5,12 @@ void main() {
   group('valid number strings', () {
     test('number starting with 0 is split correctly', () {
       String input = '01234';
-      String expectedOutput = '0,1,2,3,4';
+      String expectedOutput = '0 1 2 3 4';
       expect(SemanticsHelper.splitNumberString(input), expectedOutput);
     });
     test('number starting with 1 is split correctly', () {
       String input = '1234';
-      String expectedOutput = '1,2,3,4';
+      String expectedOutput = '1 2 3 4';
       expect(SemanticsHelper.splitNumberString(input), expectedOutput);
     });
     test('single digit number is split correctly', () {
@@ -20,17 +20,17 @@ void main() {
     });
     test('two digit number is split correctly', () {
       String input = '34';
-      String expectedOutput = '3,4';
+      String expectedOutput = '3 4';
       expect(SemanticsHelper.splitNumberString(input), expectedOutput);
     });
     test('8 digit number is split correctly', () {
       String input = '12345678';
-      String expectedOutput = '1,2,3,4,5,6,7,8';
+      String expectedOutput = '1 2 3 4 5 6 7 8';
       expect(SemanticsHelper.splitNumberString(input), expectedOutput);
     });
     test('9 digit number is split correctly', () {
       String input = '123456789';
-      String expectedOutput = '1,2,3,4,5,6,7,8,9';
+      String expectedOutput = '1 2 3 4 5 6 7 8 9';
       expect(SemanticsHelper.splitNumberString(input), expectedOutput);
     });
   });

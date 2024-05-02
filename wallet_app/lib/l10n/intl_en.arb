@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-04-25T11:06:00+02:00",
+    "@@last_modified": "2024-04-30T09:41:14+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -953,7 +953,7 @@
     "organizationDetailScreenTitle": "About {name}",
     "organizationDetailScreenViewTerms": "View the general",
     "organizationDetailScreenWebsiteInfo": "Website",
-    "pageIndicatorSemanticsLabel": "Step {current} of {total}",
+    "pageIndicatorSemanticsLabel": "Step {current} out of {total}",
     "pidAddressCardTitle": "Residential address",
     "pidIdCardTitle": "Personal data",
     "pinBlockedScreenDescription": "You have entered your PIN code incorrectly too many times.\n\nDo you want to use the Wallet again? Then you have to start again. Clear the Wallet and choose a new PIN code.",
@@ -972,7 +972,7 @@
             }
         }
     },
-    "pinErrorDialogForgotCodeCta": "FOTGOT PIN CODE?",
+    "pinErrorDialogForgotCodeCta": "FORGOT PIN CODE?",
     "pinErrorDialogNonFinalRoundFinalAttempt": "You can try 1 more time. If the following PIN code is invalid, the app will be temporary blocked.",
     "pinErrorDialogNonFinalRoundInitialAttempt": "PIN code incorrect, try again.",
     "pinErrorDialogNonFinalRoundNonFinalAttempt": "You can try {count} more times.",
