@@ -378,10 +378,11 @@ dependency-check-rust:
     - mkdir $CI_PROJECT_DIR/dependency_check_data
   script:
     # Note: RUSTSEC-2023-0071 is currently unfixable, a false positive and irrelevant for us, therefore we ignore it
-    # Note: RUSTSEC-2024-0019 is Windows-specific and can be safely ignored
+    # Note: RUSTSEC-2024-0336 is currently unfixable, and irrelevant for us, therefore we ignore it
     - |
       cargo audit \
         --ignore RUSTSEC-2023-0071 \
+        --ignore RUSTSEC-2024-0336 \
         --file wallet_core/Cargo.lock \
         --json | tee audit.json | jq
   artifacts:

@@ -14,9 +14,6 @@ use wallet_common::{
 #[cfg(feature = "issuance")]
 use {indexmap::IndexMap, nl_wallet_mdoc::utils::x509::Certificate, wallet_common::reqwest::deserialize_certificates};
 
-#[cfg(feature = "mock")]
-use crate::pid::mock::{PersonAttributes, ResidentAttributes};
-
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
@@ -30,6 +27,8 @@ pub struct Settings {
     // used by the application
     pub internal_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
+    pub log_requests: bool,
+
     pub storage: Storage,
 
     #[cfg(feature = "issuance")]
@@ -97,13 +96,6 @@ pub struct Digid {
     pub trust_anchors: Vec<reqwest::Certificate>,
 }
 
-#[cfg(feature = "mock")]
-#[derive(Deserialize, Clone)]
-pub struct MockAttributes {
-    pub person: PersonAttributes,
-    pub resident: Option<ResidentAttributes>,
-}
-
 #[cfg(feature = "issuance")]
 #[derive(Deserialize, Clone)]
 pub struct Issuer {
@@ -154,6 +146,7 @@ impl Settings {
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
+            .set_default("log_requests", false)?
             .set_default("storage.url", "memory://")?
             .set_default(
                 "storage.expiration_minutes",

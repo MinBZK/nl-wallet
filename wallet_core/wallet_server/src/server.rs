@@ -10,6 +10,7 @@ use tracing::debug;
 use openid4vc::issuer::AttributeService;
 
 use crate::{
+    log_requests::log_request_response,
     settings::{Authentication, RequesterAuth, Settings},
     verifier,
 };
@@ -18,11 +19,12 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-fn decorate_router(prefix: &str, router: Router) -> Router {
-    let router = Router::new().nest(prefix, router).nest(prefix, health_router());
+fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
+    let mut router = Router::new().nest(prefix, router).nest(prefix, health_router());
 
-    #[cfg(feature = "log_requests")]
-    let router = router.layer(axum::middleware::from_fn(crate::log_requests::log_request_response));
+    if log_requests {
+        router = router.layer(axum::middleware::from_fn(log_request_response));
+    }
 
     router.layer(TraceLayer::new_for_http())
 }
@@ -65,14 +67,16 @@ pub async fn serve_disclosure<S>(settings: Settings, disclosure_sessions: S) -> 
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
+    let log_requests = settings.log_requests;
+
     let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
         setup_disclosure(settings, disclosure_sessions)?;
 
     listen(
         wallet_socket,
         requester_socket,
-        decorate_router("/disclosure/", wallet_disclosure_router),
-        decorate_router("/disclosure/sessions", requester_router),
+        decorate_router("/disclosure/", wallet_disclosure_router, log_requests),
+        decorate_router("/disclosure/sessions", requester_router, log_requests),
     )
     .await?;
 
@@ -91,6 +95,8 @@ where
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
 {
+    let log_requests = settings.log_requests;
+
     let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
         setup_disclosure(settings.clone(), disclosure_sessions)?;
 
@@ -100,9 +106,12 @@ where
     listen(
         wallet_socket,
         requester_socket,
-        decorate_router("/issuance/", wallet_issuance_router)
-            .merge(decorate_router("/disclosure/", wallet_disclosure_router)),
-        decorate_router("/disclosure/sessions", requester_router),
+        decorate_router("/issuance/", wallet_issuance_router, log_requests).merge(decorate_router(
+            "/disclosure/",
+            wallet_disclosure_router,
+            log_requests,
+        )),
+        decorate_router("/disclosure/sessions", requester_router, log_requests),
     )
     .await?;
 
