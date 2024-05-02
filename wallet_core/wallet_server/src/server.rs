@@ -11,7 +11,6 @@ use openid4vc::issuer::AttributeService;
 
 use crate::{
     settings::{Authentication, RequesterAuth, Settings},
-    store::SessionStores,
     verifier,
 };
 
@@ -62,9 +61,12 @@ where
     ))
 }
 
-pub async fn serve_disclosure(settings: Settings, sessions: SessionStores) -> Result<()> {
+pub async fn serve_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<()>
+where
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+{
     let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
-        setup_disclosure(settings, sessions.disclosure)?;
+        setup_disclosure(settings, disclosure_sessions)?;
 
     listen(
         wallet_socket,
@@ -78,15 +80,22 @@ pub async fn serve_disclosure(settings: Settings, sessions: SessionStores) -> Re
 }
 
 #[cfg(feature = "issuance")]
-pub async fn serve_full<A>(attr_service: A, settings: Settings, sessions: SessionStores) -> Result<()>
+pub async fn serve_full<A, DS, IS>(
+    attr_service: A,
+    settings: Settings,
+    disclosure_sessions: DS,
+    issuance_sessions: IS,
+) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
+    DS: SessionStore<DisclosureData> + Send + Sync + 'static,
+    IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
 {
     let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
-        setup_disclosure(settings.clone(), sessions.disclosure)?;
+        setup_disclosure(settings.clone(), disclosure_sessions)?;
 
     let wallet_issuance_router =
-        crate::issuer::create_issuance_router(settings, sessions.issuance, attr_service).await?;
+        crate::issuer::create_issuance_router(settings, issuance_sessions, attr_service).await?;
 
     listen(
         wallet_socket,

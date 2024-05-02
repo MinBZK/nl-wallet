@@ -11,10 +11,12 @@ use strum::{Display, EnumString};
 use tracing::log::LevelFilter;
 use url::Url;
 
-use crate::entity::session_state;
 use nl_wallet_mdoc::server_state::{
     HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts, SessionToken,
 };
+use wallet_common::generator::{Generator, TimeGenerator};
+
+use crate::entity::session_state;
 
 use super::SessionDataType;
 
@@ -40,17 +42,14 @@ impl From<Progress> for SessionStatus {
 }
 
 #[derive(Debug, Clone)]
-pub struct PostgresSessionStore {
+pub struct PostgresSessionStore<G = TimeGenerator> {
     pub timeouts: SessionStoreTimeouts,
+    time: G,
     connection: DatabaseConnection,
 }
 
-#[cfg(any(test, feature = "mock_time"))]
-pub static POSTGRES_SESSION_STORE_NOW: once_cell::sync::Lazy<parking_lot::RwLock<Option<DateTime<Utc>>>> =
-    once_cell::sync::Lazy::new(|| None.into());
-
-impl PostgresSessionStore {
-    pub async fn try_new(url: Url, timeouts: SessionStoreTimeouts) -> Result<Self, DbErr> {
+impl<G> PostgresSessionStore<G> {
+    pub async fn try_new_with_time(url: Url, timeouts: SessionStoreTimeouts, time: G) -> Result<Self, DbErr> {
         let mut connection_options = ConnectOptions::new(url);
         connection_options
             .connect_timeout(DB_CONNECT_TIMEOUT)
@@ -59,23 +58,26 @@ impl PostgresSessionStore {
 
         let connection = Database::connect(connection_options).await?;
 
-        let session_store = Self { timeouts, connection };
+        let session_store = Self {
+            timeouts,
+            time,
+            connection,
+        };
 
         Ok(session_store)
     }
+}
 
-    fn now() -> DateTime<Utc> {
-        #[cfg(not(any(test, feature = "mock_time")))]
-        return Utc::now();
-
-        #[cfg(any(test, feature = "mock_time"))]
-        POSTGRES_SESSION_STORE_NOW.read().unwrap_or_else(Utc::now)
+impl PostgresSessionStore {
+    pub async fn try_new(url: Url, timeouts: SessionStoreTimeouts) -> Result<Self, DbErr> {
+        Self::try_new_with_time(url, timeouts, TimeGenerator).await
     }
 }
 
-impl<T> SessionStore<T> for PostgresSessionStore
+impl<T, G> SessionStore<T> for PostgresSessionStore<G>
 where
     T: HasProgress + SessionDataType + Serialize + DeserializeOwned + Send,
+    G: Generator<DateTime<Utc>> + Send + Sync,
 {
     async fn get(&self, token: &SessionToken) -> Result<SessionState<T>, SessionStoreError> {
         // find value by token, deserialize from JSON if it exists
@@ -149,7 +151,7 @@ where
     }
 
     async fn cleanup(&self) -> Result<(), SessionStoreError> {
-        let now = Self::now();
+        let now = self.time.generate();
         let succeeded_cutoff = now - self.timeouts.successful_deletion;
         let failed_cutoff = now - self.timeouts.failed_deletion;
         let expiry_cutoff = now - self.timeouts.expiration;

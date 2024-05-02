@@ -43,12 +43,13 @@ async fn main() -> Result<()> {
             settings.issuer.certificates(),
         )?,
         settings,
-        sessions,
+        sessions.disclosure,
+        sessions.issuance,
     )
     .await?;
 
     #[cfg(not(feature = "issuance"))]
-    server::serve_disclosure(settings, sessions).await?;
+    server::serve_disclosure(settings, sessions.disclosure).await?;
 
     Ok(())
 }

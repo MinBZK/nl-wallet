@@ -2,6 +2,7 @@ use std::{
     net::{IpAddr, TcpListener},
     process,
     str::FromStr,
+    sync::Arc,
     time::Duration,
 };
 
@@ -9,20 +10,19 @@ use assert_matches::assert_matches;
 use chrono::{DateTime, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use rstest::rstest;
 use tokio::time;
 
 use nl_wallet_mdoc::{
-    server_state::{SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS, MEMORY_SESSION_STORE_NOW},
-    verifier::{SessionType, StatusResponse},
+    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS},
+    utils::mock_time::MockTimeGenerator,
+    verifier::{DisclosureData, SessionType, StatusResponse},
     ItemsRequest,
 };
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
 use wallet_server::{
     settings::{Authentication, RequesterAuth, Server, Settings},
-    store::SessionStores,
     verifier::{StartDisclosureRequest, StartDisclosureResponse},
 };
 
@@ -55,7 +55,7 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-fn wallet_server_settings(use_memory_store: bool) -> Settings {
+fn wallet_server_settings() -> Settings {
     let mut settings = Settings::new().unwrap();
     let ws_port = find_listener_port();
 
@@ -71,21 +71,17 @@ fn wallet_server_settings(use_memory_store: bool) -> Settings {
     settings.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
     settings.internal_url = format!("http://localhost:{requester_port}/").parse().unwrap();
 
-    if use_memory_store {
-        settings.storage.url = "memory://".parse().unwrap();
-    }
-
     settings
 }
 
-async fn start_wallet_server(settings: Settings) {
+async fn start_wallet_server<S>(settings: Settings, disclosure_sessions: S)
+where
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+{
     let public_url = settings.public_url.clone();
-    let storage_settings = &settings.storage;
-    let sessions = SessionStores::init(storage_settings.url.clone(), storage_settings.into())
-        .await
-        .unwrap();
+
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve_disclosure(settings, sessions).await {
+        if let Err(error) = wallet_server::server::serve_disclosure(settings, disclosure_sessions).await {
             println!("Could not start wallet_server: {error:?}");
 
             process::exit(1);
@@ -129,7 +125,7 @@ async fn wait_for_server(base_url: BaseUrl) {
 }))]
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
-    let mut settings = wallet_server_settings(true);
+    let mut settings = wallet_server_settings();
     // fix the internal_url
     match auth {
         RequesterAuth::ProtectedInternalEndpoint {
@@ -144,7 +140,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     settings.requester_server = auth.clone();
 
-    start_wallet_server(settings.clone()).await;
+    start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
@@ -264,8 +260,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
 #[tokio::test]
 async fn test_disclosure_not_found() {
-    let settings = wallet_server_settings(true);
-    start_wallet_server(settings.clone()).await;
+    let settings = wallet_server_settings();
+    start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
     // check if a non-existent token returns a 404 on the status URL
@@ -304,10 +300,17 @@ async fn test_disclosure_not_found() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<DateTime<Utc>>>, use_delay: bool) {
+async fn test_disclosure_expired<S>(
+    settings: Settings,
+    session_store: S,
+    mock_time: &RwLock<DateTime<Utc>>,
+    use_delay: bool,
+) where
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+{
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
 
-    start_wallet_server(settings.clone()).await;
+    start_wallet_server(settings.clone(), session_store).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
@@ -347,7 +350,7 @@ async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<Da
 
     // Advance the clock just enough so that session expiry will have occurred.
     let expiry_time = Utc::now() + timeouts.expiration;
-    mock_now.write().replace(expiry_time);
+    *mock_time.write() = expiry_time;
 
     time::pause();
     time::advance(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)).await;
@@ -376,9 +379,7 @@ async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<Da
     assert_eq!(response.status(), StatusCode::GONE);
 
     // Advance the clock again so that the expired session will be purged.
-    mock_now
-        .write()
-        .replace(expiry_time + timeouts.failed_deletion + Duration::from_millis(1));
+    *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);
 
     time::pause();
     time::advance(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)).await;
@@ -405,21 +406,34 @@ async fn test_disclosure_expired(settings: Settings, mock_now: &RwLock<Option<Da
 
 #[tokio::test]
 async fn test_disclosure_expired_memory() {
-    let settings = wallet_server_settings(true);
-    test_disclosure_expired(settings, Lazy::force(&MEMORY_SESSION_STORE_NOW), false).await;
+    let settings = wallet_server_settings();
+
+    let timeouts = SessionStoreTimeouts::from(&settings.storage);
+    let time_generator = MockTimeGenerator::default();
+    let mock_time = Arc::clone(&time_generator.time);
+    let session_store = MemorySessionStore::new_with_time(timeouts, time_generator);
+
+    test_disclosure_expired(settings, session_store, mock_time.as_ref(), false).await;
 }
 
 #[cfg(feature = "db_test")]
 #[tokio::test]
 async fn test_disclosure_expired_postgres() {
-    use wallet_server::store::postgres::POSTGRES_SESSION_STORE_NOW;
+    use wallet_server::store::postgres::PostgresSessionStore;
 
-    let settings = wallet_server_settings(false);
+    let settings = wallet_server_settings();
     assert_eq!(
         settings.storage.url.scheme(),
         "postgres",
         "should be configured to use PostgreSQL storage"
     );
 
-    test_disclosure_expired(settings, Lazy::force(&POSTGRES_SESSION_STORE_NOW), true).await;
+    let timeouts = SessionStoreTimeouts::from(&settings.storage);
+    let time_generator = MockTimeGenerator::default();
+    let mock_time = Arc::clone(&time_generator.time);
+    let session_store = PostgresSessionStore::try_new_with_time(settings.storage.url.clone(), timeouts, time_generator)
+        .await
+        .unwrap();
+
+    test_disclosure_expired(settings, session_store, mock_time.as_ref(), true).await;
 }

@@ -1159,7 +1159,7 @@ mod tests {
         ];
         let rp_privkey = ca.generate_reader_mock(ReaderRegistration::new_mock().into()).unwrap();
         let keys = SingleKeyRing(rp_privkey);
-        let session_store = MemorySessionStore::new(Default::default());
+        let session_store = MemorySessionStore::default();
 
         let verifier = Verifier::new(
             "https://example.com".parse().unwrap(),

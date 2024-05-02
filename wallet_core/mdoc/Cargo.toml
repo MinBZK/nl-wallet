@@ -29,8 +29,8 @@ mdocs_map = []
 test = ["dep:assert_matches", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
-# Allow the current time to be mocked for testing purposes
-mock_time = ["dep:once_cell", "dep:parking_lot"]
+# Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
+mock_time = ["dep:parking_lot"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }

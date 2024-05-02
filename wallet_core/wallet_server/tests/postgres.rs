@@ -1,18 +1,22 @@
-use once_cell::sync::Lazy;
+use std::sync::Arc;
+
+use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
-use nl_wallet_mdoc::server_state::{
-    test::{self, RandomData},
-    HasProgress, Progress,
+use nl_wallet_mdoc::{
+    server_state::{
+        test::{self, RandomData},
+        HasProgress, Progress, SessionStoreTimeouts,
+    },
+    utils::mock_time::MockTimeGenerator,
 };
+use serial_test::serial;
 
 use wallet_common::utils;
 use wallet_server::{
     settings::Settings,
-    store::{
-        postgres::{PostgresSessionStore, POSTGRES_SESSION_STORE_NOW},
-        SessionDataType,
-    },
+    store::{postgres::PostgresSessionStore, SessionDataType},
 };
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
@@ -63,11 +67,26 @@ impl SessionDataType for MockSessionData {
 
 async fn postgres_session_store() -> PostgresSessionStore {
     let storage_settings = Settings::new().unwrap().storage;
-    let timeouts = (&storage_settings).into();
+    let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
     PostgresSessionStore::try_new(storage_settings.url, timeouts)
         .await
         .unwrap()
+}
+
+async fn postgres_session_store_with_mock_time() -> (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>)
+{
+    let time_generator = MockTimeGenerator::default();
+    let mock_time = Arc::clone(&time_generator.time);
+
+    let storage_settings = Settings::new().unwrap().storage;
+    let timeouts = SessionStoreTimeouts::from(&storage_settings);
+
+    let session_store = PostgresSessionStore::try_new_with_time(storage_settings.url, timeouts, time_generator)
+        .await
+        .unwrap();
+
+    (session_store, mock_time)
 }
 
 #[tokio::test]
@@ -78,22 +97,40 @@ async fn test_get_write() {
 }
 
 #[tokio::test]
-async fn test_cleanup() {
-    let session_store = postgres_session_store().await;
-    let mock_now = Lazy::force(&POSTGRES_SESSION_STORE_NOW);
+#[serial(cleanup)]
+async fn test_cleanup_expiration() {
+    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
 
-    test::test_session_store_cleanup_expiration::<MockSessionData>(&session_store, &session_store.timeouts, mock_now)
-        .await;
+    test::test_session_store_cleanup_expiration::<MockSessionData>(
+        &session_store,
+        &session_store.timeouts,
+        mock_time.as_ref(),
+    )
+    .await;
+}
+
+#[tokio::test]
+#[serial(cleanup)]
+async fn test_cleanup_successful_deletion() {
+    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
+
     test::test_session_store_cleanup_successful_deletion::<MockSessionData>(
         &session_store,
         &session_store.timeouts,
-        mock_now,
+        mock_time.as_ref(),
     )
     .await;
+}
+
+#[tokio::test]
+#[serial(cleanup)]
+async fn test_cleanup_failed_deletion() {
+    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
+
     test::test_session_store_cleanup_failed_deletion::<MockSessionData>(
         &session_store,
         &session_store.timeouts,
-        mock_now,
+        mock_time.as_ref(),
     )
     .await;
 }
