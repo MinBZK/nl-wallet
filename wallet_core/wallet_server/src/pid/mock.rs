@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     Tdate,
 };
 
-use crate::{pid::constants::*, settings::MockAttributes};
+use crate::pid::constants::*;
 
 // ISO/IEC 5218
 #[allow(dead_code)]
@@ -193,17 +193,6 @@ impl Default for MockAttributesLookup {
             ),
         );
         Self(map)
-    }
-}
-
-impl From<Vec<MockAttributes>> for MockAttributesLookup {
-    fn from(value: Vec<MockAttributes>) -> Self {
-        Self(
-            value
-                .iter()
-                .map(|p| (p.person.bsn.clone(), (p.person.clone(), p.resident.clone())))
-                .collect(),
-        )
     }
 }
 
