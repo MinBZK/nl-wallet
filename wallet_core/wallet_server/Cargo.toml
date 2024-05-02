@@ -38,8 +38,6 @@ issuance = [
 ]
 # Enable mock PID issuance
 mock = ["dep:rand", "issuance"]
-# Enable middleware that logs HTTP requests and responses
-log_requests = ["dep:hyper"]
 
 [dependencies]
 anyhow.workspace = true
@@ -60,7 +58,7 @@ config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
 futures = { workspace = true, optional = true }
 http.workspace = true
-hyper = { version = "0.14.27", optional = true, features = ["full"] }
+hyper = { version = "0.14.27", features = ["full"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
