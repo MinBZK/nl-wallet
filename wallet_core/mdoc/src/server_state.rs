@@ -32,6 +32,11 @@ pub trait HasProgress {
     fn progress(&self) -> Progress;
 }
 
+pub trait Expirable {
+    fn is_expired(&self) -> bool;
+    fn expire(&mut self);
+}
+
 #[derive(Debug, Clone)]
 pub struct SessionState<T> {
     pub data: T,
@@ -41,10 +46,6 @@ pub struct SessionState<T> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum SessionStoreError {
-    #[error("session with token {0} not found")]
-    NotFound(SessionToken),
-    #[error("session with token {0} is expired")]
-    Expired(SessionToken),
     #[error("token {0} already exists")]
     DuplicateToken(SessionToken),
     #[error("error while serializing: {0}")]
@@ -58,7 +59,10 @@ pub enum SessionStoreError {
 // For this trait we cannot use the `trait_variant::make()` macro to add the `Send` trait to the return type
 // of the async methods, as the `start_cleanup_task()` default method itself needs that specific trait.
 pub trait SessionStore<T> {
-    fn get(&self, token: &SessionToken) -> impl Future<Output = Result<SessionState<T>, SessionStoreError>> + Send;
+    fn get(
+        &self,
+        token: &SessionToken,
+    ) -> impl Future<Output = Result<Option<SessionState<T>>, SessionStoreError>> + Send;
     fn write(
         &self,
         session: SessionState<T>,
@@ -66,11 +70,11 @@ pub trait SessionStore<T> {
     ) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
     fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send
     where
-        T: HasProgress;
+        T: HasProgress + Expirable;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
-        T: HasProgress,
+        T: HasProgress + Expirable,
         Self: Send + Sync + 'static,
     {
         let mut interval = time::interval(interval);
@@ -150,22 +154,23 @@ impl<T> Default for MemorySessionStore<T, TimeGenerator> {
 
 impl<T, G> SessionStore<T> for MemorySessionStore<T, G>
 where
-    T: HasProgress + Clone + Send + Sync,
+    T: HasProgress + Expirable + Clone + Send + Sync,
     G: Generator<DateTime<Utc>> + Send + Sync,
 {
-    async fn get(&self, token: &SessionToken) -> Result<SessionState<T>, SessionStoreError> {
+    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
         self.sessions
             .get(token)
-            .ok_or_else(|| SessionStoreError::NotFound(token.clone()))
-            .and_then(|session_and_expired| {
+            .map(|session_and_expired| {
                 let (session, expired) = session_and_expired.deref();
+                let mut session = session.clone();
 
                 if *expired {
-                    return Err(SessionStoreError::Expired(token.clone()));
+                    session.data.expire();
                 }
 
-                Ok(session.clone())
+                Ok(session)
             })
+            .transpose()
     }
 
     async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
@@ -261,10 +266,7 @@ pub mod test {
         let session = SessionState::new(token.clone(), T::new_random());
 
         // The token should not be present in the store.
-        assert_matches!(
-            session_store.get(&token).await.expect_err("should return error"),
-            SessionStoreError::NotFound(expired_token) if expired_token == token
-        );
+        assert!(session_store.get(&token).await.expect("should succeed").is_none());
 
         // Writing the session state to the store and retrieving it should succeed.
         session_store
@@ -272,7 +274,11 @@ pub mod test {
             .await
             .expect("should succeed");
 
-        let session_read = session_store.get(&token).await.expect("should succeed");
+        let session_read = session_store
+            .get(&token)
+            .await
+            .expect("should succeed")
+            .expect("should return session");
 
         assert_eq!(session_read.data, session.data);
         assert_eq!(session_read.token, token);
@@ -297,7 +303,11 @@ pub mod test {
             .await
             .expect("should succeed");
 
-        let session_read = session_store.get(&token).await.expect("should succeed");
+        let session_read = session_store
+            .get(&token)
+            .await
+            .expect("should succeed")
+            .expect("should return session");
 
         assert_ne!(session_read.data, session.data);
         assert_eq!(session_read.data, updated_session.data);
@@ -312,9 +322,9 @@ pub mod test {
         token: SessionToken,
         session_progress: Progress,
         max_time: Duration,
-    ) -> Result<SessionState<T>, SessionStoreError>
+    ) -> Result<Option<SessionState<T>>, SessionStoreError>
     where
-        T: HasProgress + From<Progress>,
+        T: HasProgress + Expirable + From<Progress>,
     {
         // Get the mock time.
         let t1 = *mock_time.read();
@@ -353,11 +363,11 @@ pub mod test {
         timeouts: &SessionStoreTimeouts,
         mock_time: &RwLock<DateTime<Utc>>,
     ) where
-        T: Debug + HasProgress + From<Progress>,
+        T: HasProgress + Expirable + From<Progress>,
     {
         // Retrieving active session state after the "expiration" timeout should result in an expired error.
         let token = SessionToken::new_random();
-        let error = test_session_store_cleanup(
+        let session = test_session_store_cleanup(
             session_store,
             mock_time,
             token.clone(),
@@ -365,12 +375,10 @@ pub mod test {
             timeouts.expiration,
         )
         .await
-        .expect_err("should return error");
+        .expect("should succeed")
+        .expect("should return session");
 
-        assert_matches!(
-            error,
-            SessionStoreError::Expired(expired_token) if expired_token == token
-        );
+        assert!(session.data.is_expired());
 
         // Advance the time right up to the "failed_deletion" timeout, the session state should still be expired.
         let t4 = *mock_time.read() + timeouts.failed_deletion;
@@ -378,10 +386,13 @@ pub mod test {
 
         session_store.cleanup().await.unwrap();
 
-        assert_matches!(
-            session_store.get(&token).await.expect_err("should return error"),
-            SessionStoreError::Expired(expired_token) if expired_token == token
-        );
+        let session = session_store
+            .get(&token)
+            .await
+            .expect("should succeed")
+            .expect("should return session");
+
+        assert!(session.data.is_expired());
 
         // Advance the time just after the "failed_deletion" timeout and the session should no longer be present.
         let t5 = t4 + chrono::Duration::milliseconds(1);
@@ -389,10 +400,9 @@ pub mod test {
 
         session_store.cleanup().await.unwrap();
 
-        assert_matches!(
-            session_store.get(&token).await.expect_err("should return error"),
-            SessionStoreError::NotFound(expired_token) if expired_token == token
-        );
+        let session = session_store.get(&token).await.expect("should succeed");
+
+        assert!(session.is_none());
     }
 
     pub async fn test_session_store_cleanup_successful_deletion<T>(
@@ -400,12 +410,12 @@ pub mod test {
         timeouts: &SessionStoreTimeouts,
         mock_time: &RwLock<DateTime<Utc>>,
     ) where
-        T: Debug + HasProgress + From<Progress>,
+        T: HasProgress + Expirable + From<Progress>,
     {
         // Retrieving succeeded session state after the "successful_deletion"
         // timeout should result in the state no longer being present.
         let token = SessionToken::new_random();
-        let error = test_session_store_cleanup(
+        let session = test_session_store_cleanup(
             session_store,
             mock_time,
             token.clone(),
@@ -413,12 +423,9 @@ pub mod test {
             timeouts.successful_deletion,
         )
         .await
-        .expect_err("should return error");
+        .expect("should succeed");
 
-        assert_matches!(
-            error,
-            SessionStoreError::NotFound(expired_token) if expired_token == token
-        );
+        assert!(session.is_none());
     }
 
     pub async fn test_session_store_cleanup_failed_deletion<T>(
@@ -426,12 +433,12 @@ pub mod test {
         timeouts: &SessionStoreTimeouts,
         mock_time: &RwLock<DateTime<Utc>>,
     ) where
-        T: Debug + HasProgress + From<Progress>,
+        T: Expirable + HasProgress + From<Progress>,
     {
         // Retrieving failed session state after the "failed_deletion"
         // timeout should result in the state no longer being present.
         let token = SessionToken::new_random();
-        let error = test_session_store_cleanup(
+        let session = test_session_store_cleanup(
             session_store,
             mock_time,
             token.clone(),
@@ -439,12 +446,9 @@ pub mod test {
             timeouts.failed_deletion,
         )
         .await
-        .expect_err("should return error");
+        .expect("should succeed");
 
-        assert_matches!(
-            error,
-            SessionStoreError::NotFound(expired_token) if expired_token == token
-        );
+        assert!(session.is_none())
     }
 }
 
@@ -463,6 +467,7 @@ mod tests {
     #[derive(Debug, Clone, PartialEq, Eq)]
     struct MockSessionData {
         progress: Progress,
+        is_expired: bool,
         data: Vec<u8>,
     }
 
@@ -470,6 +475,7 @@ mod tests {
         fn new(progress: Progress) -> Self {
             Self {
                 progress,
+                is_expired: false,
                 data: utils::random_bytes(32),
             }
         }
@@ -484,6 +490,16 @@ mod tests {
     impl HasProgress for MockSessionData {
         fn progress(&self) -> Progress {
             self.progress
+        }
+    }
+
+    impl Expirable for MockSessionData {
+        fn is_expired(&self) -> bool {
+            self.is_expired
+        }
+
+        fn expire(&mut self) {
+            self.is_expired = true;
         }
     }
 

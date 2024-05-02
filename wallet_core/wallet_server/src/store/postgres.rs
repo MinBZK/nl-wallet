@@ -12,7 +12,7 @@ use tracing::log::LevelFilter;
 use url::Url;
 
 use nl_wallet_mdoc::server_state::{
-    HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts, SessionToken,
+    Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts, SessionToken,
 };
 use wallet_common::generator::{Generator, TimeGenerator};
 
@@ -76,10 +76,10 @@ impl PostgresSessionStore {
 
 impl<T, G> SessionStore<T> for PostgresSessionStore<G>
 where
-    T: HasProgress + SessionDataType + Serialize + DeserializeOwned + Send,
+    T: HasProgress + Expirable + SessionDataType + Serialize + DeserializeOwned + Send,
     G: Generator<DateTime<Utc>> + Send + Sync,
 {
-    async fn get(&self, token: &SessionToken) -> Result<SessionState<T>, SessionStoreError> {
+    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
         // find value by token, deserialize from JSON if it exists
         let state = session_state::Entity::find_by_id((T::TYPE.to_string(), token.to_string()))
             .one(&self.connection)
@@ -87,18 +87,18 @@ where
             .map_err(|e| SessionStoreError::Other(e.into()))?;
 
         state
-            .ok_or_else(|| SessionStoreError::NotFound(token.clone()))
-            .and_then(|state| {
+            .map(|state| {
                 // Decode both the status and data columns.
                 let status = state
                     .status
                     .parse::<SessionStatus>()
                     .map_err(|e| SessionStoreError::Deserialize(e.into()))?;
-                let data = serde_json::from_value(state.data).map_err(|e| SessionStoreError::Deserialize(e.into()))?;
+                let mut data =
+                    serde_json::from_value::<T>(state.data).map_err(|e| SessionStoreError::Deserialize(e.into()))?;
 
-                // If the status is expired, return a error.
+                // If the status is expired, expire the data.
                 if matches!(status, SessionStatus::Expired) {
-                    return Err(SessionStoreError::Expired(token.clone()));
+                    data.expire();
                 }
 
                 // Otherwise, convert the remaining columns and return the session state.
@@ -110,6 +110,7 @@ where
 
                 Ok(state)
             })
+            .transpose()
     }
 
     async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {

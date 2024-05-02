@@ -27,7 +27,8 @@ use crate::{
     iso::*,
     server_keys::{KeyPair, KeyRing},
     server_state::{
-        HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS,
+        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
+        CLEANUP_INTERVAL_SECONDS,
     },
     unsigned::Entry,
     utils::{
@@ -79,6 +80,8 @@ pub enum VerificationError {
     UnexpectedInput,
     #[error("unknown certificate")]
     UnknownCertificate(String),
+    #[error("unknown session ID: {0}")]
+    UnknownSessionId(SessionToken),
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
     NoItemsRequests,
     #[error("attributes mismatch: {0:?}")]
@@ -149,6 +152,7 @@ pub enum SessionResult {
         error: String,
     },
     Cancelled,
+    Expired,
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
@@ -174,6 +178,23 @@ impl HasProgress for DisclosureData {
                 has_succeeded: matches!(done.session_result, SessionResult::Done { .. }),
             },
         }
+    }
+}
+
+impl Expirable for DisclosureData {
+    fn is_expired(&self) -> bool {
+        matches!(
+            self,
+            Self::Done(Done {
+                session_result: SessionResult::Expired
+            })
+        )
+    }
+
+    fn expire(&mut self) {
+        *self = Self::Done(Done {
+            session_result: SessionResult::Expired,
+        })
     }
 }
 
@@ -216,6 +237,7 @@ pub enum StatusResponse {
     Done,
     Failed,
     Cancelled,
+    Expired,
 }
 
 impl From<DisclosureData> for StatusResponse {
@@ -226,7 +248,8 @@ impl From<DisclosureData> for StatusResponse {
             DisclosureData::Done(done) => match done.session_result {
                 SessionResult::Done { .. } => Self::Done,
                 SessionResult::Failed { .. } => Self::Failed,
-                SessionResult::Cancelled { .. } => Self::Cancelled,
+                SessionResult::Cancelled => Self::Cancelled,
+                SessionResult::Expired => Self::Expired,
             },
         }
     }
@@ -332,7 +355,8 @@ where
             .sessions
             .get(&token)
             .await
-            .map_err(VerificationError::SessionStore)?;
+            .map_err(VerificationError::SessionStore)?
+            .ok_or_else(|| VerificationError::UnknownSessionId(token.clone()))?;
 
         info!("Session({token}): process message");
 
@@ -388,6 +412,7 @@ where
             .get(session_id)
             .await
             .map_err(VerificationError::SessionStore)?
+            .ok_or_else(|| VerificationError::UnknownSessionId(session_id.clone()))?
             .data
             .into();
 
@@ -405,6 +430,7 @@ where
             .get(session_id)
             .await
             .map_err(VerificationError::SessionStore)?
+            .ok_or_else(|| VerificationError::UnknownSessionId(session_id.clone()))?
             .data
         {
             DisclosureData::Done(Done {

@@ -25,7 +25,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
-    server_state::{SessionStore, SessionStoreError, SessionToken},
+    server_state::{SessionStore, SessionToken},
     utils::{reader_auth::ReturnUrlPrefix, serialization::cbor_serialize, x509::Certificate},
     verifier::{
         DisclosedAttributes, DisclosureData, ItemsRequests, SessionType, StatusResponse, VerificationError, Verifier,
@@ -57,8 +57,7 @@ impl IntoResponse for Error {
             | Error::SessionStatus(nl_wallet_mdoc::Error::Verification(verification_error))
             | Error::DisclosedAttributes(nl_wallet_mdoc::Error::Verification(verification_error)) => {
                 match verification_error {
-                    VerificationError::SessionStore(SessionStoreError::NotFound(_)) => StatusCode::NOT_FOUND,
-                    VerificationError::SessionStore(SessionStoreError::Expired(_)) => StatusCode::GONE,
+                    VerificationError::UnknownSessionId(_) => StatusCode::NOT_FOUND,
                     VerificationError::SessionStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
                     _ => StatusCode::BAD_REQUEST,
                 }

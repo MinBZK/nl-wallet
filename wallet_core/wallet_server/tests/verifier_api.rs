@@ -361,22 +361,25 @@ async fn test_disclosure_expired<S>(
         time::sleep(Duration::from_millis(100)).await;
     }
 
-    // Both the status and disclosed attribute requests should now return 410.
+    // Fetching the status should return OK and be in the Expired state.
     let response = client
         .get(disclosure_response.session_url.clone())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::GONE);
+    let status = response.json::<StatusResponse>().await.unwrap();
 
+    assert_matches!(status, StatusResponse::Expired);
+
+    // Fetching the disclosed attributes should still return 400, since the session did not succeed.
     let response = client
         .get(disclosure_response.disclosed_attributes_url.clone())
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::GONE);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // Advance the clock again so that the expired session will be purged.
     *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);

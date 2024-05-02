@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use nl_wallet_mdoc::{
     server_state::{
         test::{self, RandomData},
-        HasProgress, Progress, SessionStoreTimeouts,
+        Expirable, HasProgress, Progress, SessionStoreTimeouts,
     },
     utils::mock_time::MockTimeGenerator,
 };
@@ -24,6 +24,7 @@ use wallet_server::{
 struct MockSessionData {
     #[serde(with = "ProgressDef")]
     progress: Progress,
+    is_expired: bool,
     data: Vec<u8>,
 }
 
@@ -38,6 +39,7 @@ impl MockSessionData {
     fn new(progress: Progress) -> Self {
         Self {
             progress,
+            is_expired: false,
             data: utils::random_bytes(32),
         }
     }
@@ -52,6 +54,16 @@ impl From<Progress> for MockSessionData {
 impl HasProgress for MockSessionData {
     fn progress(&self) -> Progress {
         self.progress
+    }
+}
+
+impl Expirable for MockSessionData {
+    fn is_expired(&self) -> bool {
+        self.is_expired
+    }
+
+    fn expire(&mut self) {
+        self.is_expired = true
     }
 }
 

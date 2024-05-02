@@ -6,8 +6,8 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::{
-        HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
-        SessionToken,
+        Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError,
+        SessionStoreTimeouts, SessionToken,
     },
     verifier::DisclosureData,
 };
@@ -70,9 +70,9 @@ pub enum SessionStoreVariant<T> {
 
 impl<T> SessionStore<T> for SessionStoreVariant<T>
 where
-    T: HasProgress + SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
+    T: HasProgress + Expirable + SessionDataType + Clone + Serialize + DeserializeOwned + Send + Sync,
 {
-    async fn get(&self, token: &SessionToken) -> Result<SessionState<T>, SessionStoreError> {
+    async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
         match self {
             #[cfg(feature = "postgres")]
             SessionStoreVariant::Postgres(postgres) => postgres.get(token).await,
