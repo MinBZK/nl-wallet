@@ -282,7 +282,11 @@ pub mod test {
 
         assert_eq!(session_read.data, session.data);
         assert_eq!(session_read.token, token);
-        assert_eq!(session_read.last_active, session.last_active);
+        // The maximum precision for PostgreSQL is 1 microsecond.
+        assert_eq!(
+            session_read.last_active.timestamp_micros(),
+            session.last_active.timestamp_micros()
+        );
 
         // Generate new session state for the same token.
         let updated_session = SessionState {
@@ -312,8 +316,15 @@ pub mod test {
         assert_ne!(session_read.data, session.data);
         assert_eq!(session_read.data, updated_session.data);
         assert_eq!(session_read.token, token);
-        assert_ne!(session_read.last_active, session.last_active);
-        assert_eq!(session_read.last_active, updated_session.last_active);
+        // The maximum precision for PostgreSQL is 1 microsecond.
+        assert_ne!(
+            session_read.last_active.timestamp_micros(),
+            session.last_active.timestamp_micros()
+        );
+        assert_eq!(
+            session_read.last_active.timestamp_micros(),
+            updated_session.last_active.timestamp_micros()
+        );
     }
 
     pub async fn test_session_store_cleanup<T>(
