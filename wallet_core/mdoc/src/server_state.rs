@@ -1,9 +1,4 @@
-use std::{
-    future::Future,
-    ops::{Deref, DerefMut},
-    sync::Arc,
-    time::Duration,
-};
+use std::{future::Future, sync::Arc, time::Duration};
 
 use chrono::{DateTime, Utc};
 use dashmap::{mapref::entry::Entry, DashMap};
@@ -58,7 +53,10 @@ pub enum SessionStoreError {
 
 // For this trait we cannot use the `trait_variant::make()` macro to add the `Send` trait to the return type
 // of the async methods, as the `start_cleanup_task()` default method itself needs that specific trait.
-pub trait SessionStore<T> {
+pub trait SessionStore<T>
+where
+    T: HasProgress + Expirable,
+{
     fn get(
         &self,
         token: &SessionToken,
@@ -68,13 +66,10 @@ pub trait SessionStore<T> {
         session: SessionState<T>,
         is_new: bool,
     ) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
-    fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send
-    where
-        T: HasProgress + Expirable;
+    fn cleanup(&self) -> impl Future<Output = Result<(), SessionStoreError>> + Send;
 
     fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
     where
-        T: HasProgress + Expirable,
         Self: Send + Sync + 'static,
     {
         let mut interval = time::interval(interval);
@@ -107,7 +102,7 @@ pub struct MemorySessionStore<T, G = TimeGenerator> {
     pub timeouts: SessionStoreTimeouts,
     time: G,
     // Store the session state and expired boolean as the value
-    sessions: DashMap<SessionToken, (SessionState<T>, bool)>,
+    sessions: DashMap<SessionToken, SessionState<T>>,
 }
 
 impl<T> SessionState<T> {
@@ -158,19 +153,9 @@ where
     G: Generator<DateTime<Utc>> + Send + Sync,
 {
     async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError> {
-        self.sessions
-            .get(token)
-            .map(|session_and_expired| {
-                let (session, expired) = session_and_expired.deref();
-                let mut session = session.clone();
+        let session = self.sessions.get(token).map(|session| session.clone());
 
-                if *expired {
-                    session.data.expire();
-                }
-
-                Ok(session)
-            })
-            .transpose()
+        Ok(session)
     }
 
     async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError> {
@@ -183,7 +168,7 @@ where
             return Err(SessionStoreError::DuplicateToken(session.token));
         }
 
-        entry.insert((session, false));
+        entry.insert(session);
 
         Ok(())
     }
@@ -194,10 +179,8 @@ where
         let failed_cutoff = now - self.timeouts.failed_deletion;
         let expiry_cutoff = now - self.timeouts.expiration;
 
-        self.sessions.retain(|_, session_and_expired| {
-            let (session, expired) = session_and_expired.deref();
-
-            match (session.data.progress(), *expired) {
+        self.sessions.retain(|_, session| {
+            match (session.data.progress(), session.data.is_expired()) {
                 // Remove all succeeded sessions that are older than the "successful_deletion" timeout.
                 (Progress::Finished { has_succeeded }, false) if has_succeeded => {
                     session.last_active >= succeeded_cutoff
@@ -210,12 +193,13 @@ where
 
         // For all active sessions that are older than the "expiration" timeout,
         // update the last active time and set them to expired.
-        self.sessions.iter_mut().for_each(|mut session_and_expired| {
-            let (session, expired) = session_and_expired.deref_mut();
-
-            if !*expired && matches!(session.data.progress(), Progress::Active) && session.last_active < expiry_cutoff {
+        self.sessions.iter_mut().for_each(|mut session| {
+            if !session.data.is_expired()
+                && matches!(session.data.progress(), Progress::Active)
+                && session.last_active < expiry_cutoff
+            {
                 session.last_active = now;
-                *expired = true;
+                session.data.expire();
             }
         });
 
@@ -259,7 +243,7 @@ pub mod test {
     /// Test reading and writing to a `SessionStore` implementation.
     pub async fn test_session_store_get_write<T>(session_store: &impl SessionStore<T>)
     where
-        T: Debug + Clone + RandomData + Eq,
+        T: Debug + Clone + HasProgress + Expirable + RandomData + Eq,
     {
         // Generate a new random token and session state.
         let token = SessionToken::new_random();
