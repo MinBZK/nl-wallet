@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use chrono::Utc;
 use futures::future::try_join_all;
 use jsonwebtoken::{Algorithm, Validation};
 use p256::ecdsa::VerifyingKey;
@@ -14,7 +13,9 @@ use tokio::task::JoinHandle;
 
 use nl_wallet_mdoc::{
     server_keys::KeyRing,
-    server_state::{SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS},
+    server_state::{
+        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, CLEANUP_INTERVAL_SECONDS,
+    },
     unsigned::UnsignedMdoc,
     utils::{crypto::CryptoError, serialization::CborError},
     IssuerSigned,
@@ -135,6 +136,34 @@ pub enum IssuanceData {
     Done(Done),
 }
 
+impl HasProgress for IssuanceData {
+    fn progress(&self) -> Progress {
+        match self {
+            Self::Created(_) | Self::WaitingForResponse(_) => Progress::Active,
+            Self::Done(done) => Progress::Finished {
+                has_succeeded: matches!(done.session_result, SessionResult::Done { .. }),
+            },
+        }
+    }
+}
+
+impl Expirable for IssuanceData {
+    fn is_expired(&self) -> bool {
+        matches!(
+            self,
+            Self::Done(Done {
+                session_result: SessionResult::Expired
+            })
+        )
+    }
+
+    fn expire(&mut self) {
+        *self = Self::Done(Done {
+            session_result: SessionResult::Expired,
+        })
+    }
+}
+
 pub trait IssuanceState {}
 impl IssuanceState for Created {}
 impl IssuanceState for WaitingForResponse {}
@@ -146,6 +175,7 @@ pub enum SessionResult {
     Done,
     Failed { error: String },
     Cancelled,
+    Expired,
 }
 
 #[derive(Debug)]
@@ -211,7 +241,7 @@ impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Send + Sync + 'static,
 {
     pub fn new(
         sessions: S,
@@ -265,7 +295,7 @@ impl<A, K, S> Issuer<A, K, S>
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
+    S: SessionStore<IssuanceData>,
 {
     pub async fn process_token_request(
         &self,
@@ -280,7 +310,7 @@ where
             .sessions
             .get(&session_token)
             .await
-            .map_err(|e| TokenRequestError::IssuanceError(e.into()))?
+            .map_err(IssuanceError::SessionStore)?
             .unwrap_or(SessionState::<IssuanceData>::new(
                 session_token,
                 IssuanceData::Created(Created {
@@ -304,7 +334,7 @@ where
         };
 
         self.sessions
-            .write(&next)
+            .write(next, true)
             .await
             .map_err(|e| TokenRequestError::IssuanceError(e.into()))?;
 
@@ -322,10 +352,8 @@ where
             .sessions
             .get(&code.clone().into())
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
-                code,
-            )))?;
+            .map_err(IssuanceError::SessionStore)?
+            .ok_or(IssuanceError::UnknownSession(code))?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
@@ -333,9 +361,9 @@ where
             .await;
 
         self.sessions
-            .write(&next.into())
+            .write(next.into(), false)
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
+            .map_err(IssuanceError::SessionStore)?;
 
         response
     }
@@ -351,10 +379,8 @@ where
             .sessions
             .get(&code.clone().into())
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
-                code,
-            )))?;
+            .map_err(IssuanceError::SessionStore)?
+            .ok_or(IssuanceError::UnknownSession(code))?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         let (response, next) = session
@@ -362,9 +388,9 @@ where
             .await;
 
         self.sessions
-            .write(&next.into())
+            .write(next.into(), false)
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
+            .map_err(IssuanceError::SessionStore)?;
 
         response
     }
@@ -380,10 +406,8 @@ where
             .sessions
             .get(&code.clone().into())
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(
-                code,
-            )))?;
+            .map_err(IssuanceError::SessionStore)?
+            .ok_or(IssuanceError::UnknownSession(code))?;
         let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
 
         // Check authorization of the request
@@ -406,9 +430,9 @@ where
         });
 
         self.sessions
-            .write(&next.into())
+            .write(next.into(), false)
             .await
-            .map_err(|e| CredentialRequestError::IssuanceError(e.into()))?;
+            .map_err(IssuanceError::SessionStore)?;
 
         Ok(())
     }
@@ -424,12 +448,12 @@ impl TryFrom<SessionState<IssuanceData>> for Session<Created> {
     type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
-        let IssuanceData::Created(session_data) = value.session_data else {
+        let IssuanceData::Created(session_data) = value.data else {
             return Err(IssuanceError::UnexpectedState);
         };
         Ok(Session::<Created> {
             state: SessionState {
-                session_data,
+                data: session_data,
                 token: value.token,
                 last_active: value.last_active,
             },
@@ -517,7 +541,7 @@ impl Session<Created> {
 impl From<Session<WaitingForResponse>> for SessionState<IssuanceData> {
     fn from(value: Session<WaitingForResponse>) -> Self {
         SessionState {
-            session_data: IssuanceData::WaitingForResponse(value.state.session_data),
+            data: IssuanceData::WaitingForResponse(value.state.data),
             token: value.state.token,
             last_active: value.state.last_active,
         }
@@ -528,12 +552,12 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
     type Error = IssuanceError;
 
     fn try_from(value: SessionState<IssuanceData>) -> Result<Self, Self::Error> {
-        let IssuanceData::WaitingForResponse(session_data) = value.session_data else {
+        let IssuanceData::WaitingForResponse(session_data) = value.data else {
             return Err(IssuanceError::UnexpectedState);
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
-                session_data,
+                data: session_data,
                 token: value.token,
                 last_active: value.last_active,
             },
@@ -695,7 +719,7 @@ impl Session<WaitingForResponse> {
 impl From<Session<Done>> for SessionState<IssuanceData> {
     fn from(value: Session<Done>) -> Self {
         SessionState {
-            session_data: IssuanceData::Done(value.state.session_data),
+            data: IssuanceData::Done(value.state.data),
             token: value.state.token,
             last_active: value.state.last_active,
         }
@@ -707,11 +731,7 @@ impl<T: IssuanceState> Session<T> {
     /// Transition `self` to a new state, consuming the old state, also updating the `last_active` timestamp.
     pub fn transition<NewT: IssuanceState>(self, new_state: NewT) -> Session<NewT> {
         Session {
-            state: SessionState::<NewT> {
-                session_data: new_state,
-                token: self.state.token,
-                last_active: Utc::now(),
-            },
+            state: SessionState::new(self.state.token, new_state),
         }
     }
 
@@ -724,7 +744,7 @@ impl<T: IssuanceState> Session<T> {
     }
 
     pub fn session_data(&self) -> &T {
-        &self.state.session_data
+        &self.state.data
     }
 }
 

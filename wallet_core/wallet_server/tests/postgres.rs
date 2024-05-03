@@ -1,42 +1,149 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 
-use nl_wallet_mdoc::server_state::{SessionState, SessionStore, SessionToken};
+use nl_wallet_mdoc::{
+    server_state::{
+        test::{self, RandomData},
+        Expirable, HasProgress, Progress, SessionStoreTimeouts,
+    },
+    utils::mock_time::MockTimeGenerator,
+};
+use serial_test::{parallel, serial};
 
+use wallet_common::utils;
 use wallet_server::{
     settings::Settings,
-    store::{
-        postgres::{self, PostgresSessionStore},
-        SessionDataType,
-    },
+    store::{postgres::PostgresSessionStore, SessionDataType},
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-struct TestData {
-    id: String,
+/// A mock data type that adheres to all the trait bounds necessary for testing.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct MockSessionData {
+    #[serde(with = "ProgressDef")]
+    progress: Progress,
+    is_expired: bool,
     data: Vec<u8>,
 }
 
-impl SessionDataType for TestData {
-    const TYPE: &'static str = "testdata";
+#[derive(Serialize, Deserialize)]
+#[serde(remote = "Progress")]
+pub enum ProgressDef {
+    Active,
+    Finished { has_succeeded: bool },
+}
+
+impl MockSessionData {
+    fn new(progress: Progress) -> Self {
+        Self {
+            progress,
+            is_expired: false,
+            data: utils::random_bytes(32),
+        }
+    }
+}
+
+impl From<Progress> for MockSessionData {
+    fn from(value: Progress) -> Self {
+        Self::new(value)
+    }
+}
+
+impl HasProgress for MockSessionData {
+    fn progress(&self) -> Progress {
+        self.progress
+    }
+}
+
+impl Expirable for MockSessionData {
+    fn is_expired(&self) -> bool {
+        self.is_expired
+    }
+
+    fn expire(&mut self) {
+        self.is_expired = true
+    }
+}
+
+impl RandomData for MockSessionData {
+    fn new_random() -> Self {
+        Self::new(Progress::Active)
+    }
+}
+
+impl SessionDataType for MockSessionData {
+    const TYPE: &'static str = "mockdata";
+}
+
+async fn postgres_session_store() -> PostgresSessionStore {
+    let storage_settings = Settings::new().unwrap().storage;
+    let timeouts = SessionStoreTimeouts::from(&storage_settings);
+
+    PostgresSessionStore::try_new(storage_settings.url, timeouts)
+        .await
+        .unwrap()
+}
+
+async fn postgres_session_store_with_mock_time() -> (PostgresSessionStore<MockTimeGenerator>, Arc<RwLock<DateTime<Utc>>>)
+{
+    let time_generator = MockTimeGenerator::default();
+    let mock_time = Arc::clone(&time_generator.time);
+
+    let storage_settings = Settings::new().unwrap().storage;
+    let timeouts = SessionStoreTimeouts::from(&storage_settings);
+
+    let session_store = PostgresSessionStore::try_new_with_time(storage_settings.url, timeouts, time_generator)
+        .await
+        .unwrap();
+
+    (session_store, mock_time)
 }
 
 #[tokio::test]
-async fn test_write() {
-    let settings = Settings::new().unwrap();
-    let store = PostgresSessionStore::<TestData>::new(Arc::new(postgres::connect(settings.store_url).await.unwrap()));
+#[parallel]
+async fn test_get_write() {
+    let session_store = postgres_session_store().await;
 
-    let expected = SessionState::<TestData>::new(
-        SessionToken::new(),
-        TestData {
-            id: "hello".to_owned(),
-            data: vec![1, 2, 3],
-        },
-    );
+    test::test_session_store_get_write::<MockSessionData>(&session_store).await;
+}
 
-    store.write(&expected).await.unwrap();
+#[tokio::test]
+#[serial(cleanup)]
+async fn test_cleanup_expiration() {
+    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
 
-    let actual = store.get(&expected.token).await.unwrap().unwrap();
-    assert_eq!(actual.session_data, expected.session_data);
+    test::test_session_store_cleanup_expiration::<MockSessionData>(
+        &session_store,
+        &session_store.timeouts,
+        mock_time.as_ref(),
+    )
+    .await;
+}
+
+#[tokio::test]
+#[serial(cleanup)]
+async fn test_cleanup_successful_deletion() {
+    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
+
+    test::test_session_store_cleanup_successful_deletion::<MockSessionData>(
+        &session_store,
+        &session_store.timeouts,
+        mock_time.as_ref(),
+    )
+    .await;
+}
+
+#[tokio::test]
+#[serial(cleanup)]
+async fn test_cleanup_failed_deletion() {
+    let (session_store, mock_time) = postgres_session_store_with_mock_time().await;
+
+    test::test_session_store_cleanup_failed_deletion::<MockSessionData>(
+        &session_store,
+        &session_store.timeouts,
+        mock_time.as_ref(),
+    )
+    .await;
 }

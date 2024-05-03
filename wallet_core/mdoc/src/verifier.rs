@@ -26,7 +26,10 @@ use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::*,
     server_keys::{KeyPair, KeyRing},
-    server_state::{SessionState, SessionStore, SessionStoreError, SessionToken, CLEANUP_INTERVAL_SECONDS},
+    server_state::{
+        Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
+        CLEANUP_INTERVAL_SECONDS,
+    },
     unsigned::Entry,
     utils::{
         cose::{self, ClonePayload, MdocCose},
@@ -88,7 +91,7 @@ pub enum VerificationError {
     #[error("disclosed attributes requested for disclosure session with status: {0}")]
     SessionNotDone(StatusResponse),
     #[error("transcript hash '{0:?}' does not match expected")]
-    TranscriptHashMismatch(Option<Vec<u8>>),
+    TranscriptHashMismatch(Vec<u8>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -149,6 +152,7 @@ pub enum SessionResult {
         error: String,
     },
     Cancelled,
+    Expired,
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
@@ -166,10 +170,38 @@ pub enum DisclosureData {
     Done(Done),
 }
 
+impl HasProgress for DisclosureData {
+    fn progress(&self) -> Progress {
+        match self {
+            Self::Created(_) | Self::WaitingForResponse(_) => Progress::Active,
+            Self::Done(done) => Progress::Finished {
+                has_succeeded: matches!(done.session_result, SessionResult::Done { .. }),
+            },
+        }
+    }
+}
+
+impl Expirable for DisclosureData {
+    fn is_expired(&self) -> bool {
+        matches!(
+            self,
+            Self::Done(Done {
+                session_result: SessionResult::Expired
+            })
+        )
+    }
+
+    fn expire(&mut self) {
+        *self = Self::Done(Done {
+            session_result: SessionResult::Expired,
+        })
+    }
+}
+
 impl From<SessionState<Created>> for SessionState<DisclosureData> {
     fn from(value: SessionState<Created>) -> Self {
         SessionState {
-            session_data: DisclosureData::Created(value.session_data),
+            data: DisclosureData::Created(value.data),
             token: value.token,
             last_active: value.last_active,
         }
@@ -179,7 +211,7 @@ impl From<SessionState<Created>> for SessionState<DisclosureData> {
 impl From<SessionState<WaitingForResponse>> for SessionState<DisclosureData> {
     fn from(value: SessionState<WaitingForResponse>) -> Self {
         SessionState {
-            session_data: DisclosureData::WaitingForResponse(value.session_data),
+            data: DisclosureData::WaitingForResponse(value.data),
             token: value.token,
             last_active: value.last_active,
         }
@@ -189,7 +221,7 @@ impl From<SessionState<WaitingForResponse>> for SessionState<DisclosureData> {
 impl From<SessionState<Done>> for SessionState<DisclosureData> {
     fn from(value: SessionState<Done>) -> Self {
         SessionState {
-            session_data: DisclosureData::Done(value.session_data),
+            data: DisclosureData::Done(value.data),
             token: value.token,
             last_active: value.last_active,
         }
@@ -205,6 +237,22 @@ pub enum StatusResponse {
     Done,
     Failed,
     Cancelled,
+    Expired,
+}
+
+impl From<DisclosureData> for StatusResponse {
+    fn from(value: DisclosureData) -> Self {
+        match value {
+            DisclosureData::Created(_) => Self::Created,
+            DisclosureData::WaitingForResponse(_) => Self::WaitingForResponse,
+            DisclosureData::Done(done) => match done.session_result {
+                SessionResult::Done { .. } => Self::Done,
+                SessionResult::Failed { .. } => Self::Failed,
+                SessionResult::Cancelled => Self::Cancelled,
+                SessionResult::Expired => Self::Expired,
+            },
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
@@ -235,7 +283,7 @@ impl<K, S> Drop for Verifier<K, S> {
 impl<K, S> Verifier<K, S>
 where
     K: KeyRing,
-    S: SessionStore<Data = SessionState<DisclosureData>>,
+    S: SessionStore<DisclosureData>,
 {
     /// Create a new [`Verifier`].
     ///
@@ -291,7 +339,7 @@ where
             &self.url.join_base_url("disclosure/"),
         )?;
         self.sessions
-            .write(&session_state.state.into())
+            .write(session_state.state.into(), true)
             .await
             .map_err(VerificationError::SessionStore)?;
         info!("Session({session_token}): session created");
@@ -308,15 +356,15 @@ where
             .get(&token)
             .await
             .map_err(VerificationError::SessionStore)?
-            .ok_or_else(|| Error::from(VerificationError::UnknownSessionId(token.clone())))?;
+            .ok_or_else(|| VerificationError::UnknownSessionId(token.clone()))?;
 
         info!("Session({token}): process message");
 
-        let (response, next) = match state.session_data {
+        let (response, next) = match state.data {
             DisclosureData::Created(session_data) => {
                 let session = Session::<Created> {
                     state: SessionState {
-                        session_data,
+                        data: session_data,
                         token: state.token,
                         last_active: state.last_active,
                     },
@@ -332,7 +380,7 @@ where
             DisclosureData::WaitingForResponse(session_data) => {
                 let session = Session::<WaitingForResponse> {
                     state: SessionState {
-                        session_data,
+                        data: session_data,
                         token: state.token,
                         last_active: state.last_active,
                     },
@@ -351,7 +399,7 @@ where
         }?;
 
         self.sessions
-            .write(&next)
+            .write(next, false)
             .await
             .map_err(VerificationError::SessionStore)?;
 
@@ -359,26 +407,16 @@ where
     }
 
     pub async fn status(&self, session_id: &SessionToken) -> Result<StatusResponse> {
-        match self
+        let response = self
             .sessions
             .get(session_id)
             .await
             .map_err(VerificationError::SessionStore)?
-            .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
-            .session_data
-        {
-            DisclosureData::Created(_) => Ok(StatusResponse::Created),
-            DisclosureData::WaitingForResponse(_) => Ok(StatusResponse::WaitingForResponse),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Done { .. },
-            }) => Ok(StatusResponse::Done),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Failed { .. },
-            }) => Ok(StatusResponse::Failed),
-            DisclosureData::Done(Done {
-                session_result: SessionResult::Cancelled { .. },
-            }) => Ok(StatusResponse::Cancelled),
-        }
+            .ok_or_else(|| VerificationError::UnknownSessionId(session_id.clone()))?
+            .data
+            .into();
+
+        Ok(response)
     }
 
     /// Returns the disclosed attributes for a session with status `Done` and an error otherwise
@@ -392,31 +430,31 @@ where
             .get(session_id)
             .await
             .map_err(VerificationError::SessionStore)?
-            .ok_or(VerificationError::UnknownSessionId(session_id.clone()))?
-            .session_data
+            .ok_or_else(|| VerificationError::UnknownSessionId(session_id.clone()))?
+            .data
         {
-            DisclosureData::Created(_) => Err(VerificationError::SessionNotDone(StatusResponse::Created).into()),
-            DisclosureData::WaitingForResponse(_) => {
-                Err(VerificationError::SessionNotDone(StatusResponse::WaitingForResponse).into())
-            }
-            DisclosureData::Done(Done { session_result }) => match session_result {
-                SessionResult::Failed { .. } => Err(VerificationError::SessionNotDone(StatusResponse::Failed).into()),
-                SessionResult::Cancelled { .. } => {
-                    Err(VerificationError::SessionNotDone(StatusResponse::Cancelled).into())
-                }
-                SessionResult::Done {
-                    transcript_hash: None,
-                    disclosed_attributes,
-                } => Ok(disclosed_attributes),
-                SessionResult::Done {
-                    transcript_hash: Some(hash),
-                    disclosed_attributes,
-                } if transcript_hash.as_ref().is_some_and(|h| h == &hash) => Ok(disclosed_attributes),
-                SessionResult::Done {
-                    transcript_hash: Some(_),
-                    ..
-                } => Err(VerificationError::TranscriptHashMismatch(transcript_hash.to_owned()).into()),
-            },
+            DisclosureData::Done(Done {
+                session_result:
+                    SessionResult::Done {
+                        transcript_hash: None,
+                        disclosed_attributes,
+                    },
+            }) => Ok(disclosed_attributes),
+            DisclosureData::Done(Done {
+                session_result:
+                    SessionResult::Done {
+                        transcript_hash: Some(hash),
+                        disclosed_attributes,
+                    },
+            }) if transcript_hash.as_ref().is_some_and(|h| h == &hash) => Ok(disclosed_attributes),
+            DisclosureData::Done(Done {
+                session_result:
+                    SessionResult::Done {
+                        transcript_hash: Some(hash),
+                        ..
+                    },
+            }) => Err(VerificationError::TranscriptHashMismatch(hash).into()),
+            disclosure_data => Err(VerificationError::SessionNotDone(disclosure_data.into()).into()),
         }
     }
 }
@@ -442,16 +480,12 @@ impl<T: DisclosureState> Session<T> {
     /// Transition `self` to a new state, consuming the old state, also updating the `last_active` timestamp.
     fn transition<NewT: DisclosureState>(self, new_state: NewT) -> Session<NewT> {
         Session {
-            state: SessionState::<NewT> {
-                session_data: new_state,
-                token: self.state.token,
-                last_active: Utc::now(),
-            },
+            state: SessionState::new(self.state.token, new_state),
         }
     }
 
     fn state(&self) -> &T {
-        &self.state.session_data
+        &self.state.data
     }
 }
 
@@ -464,8 +498,8 @@ impl Session<Created> {
         return_url_used: bool,
         base_url: &BaseUrl,
     ) -> Result<(SessionToken, ReaderEngagement, Session<Created>)> {
-        let session_token = SessionToken::new();
-        let url = base_url.join(&session_token.0);
+        let session_token = SessionToken::new_random();
+        let url = base_url.join(&session_token.to_string());
         let (reader_engagement, ephemeral_privkey) = ReaderEngagement::new_reader_engagement(url)?;
         let session = Session::<Created> {
             state: SessionState::new(
@@ -598,7 +632,7 @@ impl Session<Created> {
         ephemeral_privkey: SecretKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
-        let return_url_used = self.state.session_data.return_url_used;
+        let return_url_used = self.state.data.return_url_used;
         self.transition(WaitingForResponse {
             items_requests,
             their_key,
@@ -706,11 +740,9 @@ impl Session<WaitingForResponse> {
 
         let transcript_hash = self
             .state
-            .session_data
+            .data
             .return_url_used
-            .then(|| {
-                cbor_serialize(&TaggedBytes(&self.state.session_data.session_transcript)).map(|b| utils::sha256(&b))
-            })
+            .then(|| cbor_serialize(&TaggedBytes(&self.state.data.session_transcript)).map(|b| utils::sha256(&b)))
             .transpose()?;
 
         Ok((response, disclosed_attributes, transcript_hash))
@@ -1153,7 +1185,7 @@ mod tests {
         ];
         let rp_privkey = ca.generate_reader_mock(ReaderRegistration::new_mock().into()).unwrap();
         let keys = SingleKeyRing(rp_privkey);
-        let session_store = MemorySessionStore::new();
+        let session_store = MemorySessionStore::default();
 
         let verifier = Verifier::new(
             "https://example.com".parse().unwrap(),

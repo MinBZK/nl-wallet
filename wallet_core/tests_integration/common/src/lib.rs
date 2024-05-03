@@ -237,10 +237,15 @@ pub fn wallet_server_settings() -> WsSettings {
 }
 
 pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(settings: WsSettings, attr_service: A) {
+    let storage_settings = &settings.storage;
     let public_url = settings.public_url.clone();
-    let sessions = SessionStores::init(settings.store_url.clone()).await.unwrap();
+    let sessions = SessionStores::init(storage_settings.url.clone(), storage_settings.into())
+        .await
+        .unwrap();
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve_full(attr_service, settings, sessions).await {
+        if let Err(error) =
+            wallet_server::server::serve_full(attr_service, settings, sessions.disclosure, sessions.issuance).await
+        {
             println!("Could not start wallet_server: {:?}", error);
 
             process::exit(1);

@@ -12,6 +12,11 @@ workspace = true
 doctest = false
 
 [[test]]
+name = "verifier_api"
+path = "tests/verifier_api.rs"
+required-features = ["cfg_test"]
+
+[[test]]
 name = "postgres"
 path = "tests/postgres.rs"
 required-features = ["postgres", "db_test"]
@@ -23,7 +28,7 @@ allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = []
+db_test = ["cfg_test"]
 # Include and run test that depend on a valid configuration file
 cfg_test = []
 # Enable issuance
@@ -80,6 +85,7 @@ serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
 serde_with = { workspace = true, features = ["base64"] }
 strfmt.workspace = true
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = [
     "macros",
@@ -96,7 +102,15 @@ openid4vc = { path = "../openid4vc", optional = true }
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
+assert_matches.workspace = true
 indexmap.workspace = true
+parking_lot.workspace = true
 rstest.workspace = true
+serial_test.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate"] }
+nl_wallet_mdoc = { path = "../mdoc", features = [
+    "generate",
+    "test",
+    "mock_time",
+] }

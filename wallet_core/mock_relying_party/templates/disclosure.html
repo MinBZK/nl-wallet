@@ -154,6 +154,9 @@
                 } else if (body.status == 'CANCELLED') {
                     console.log('session got cancelled')
                     clearInterval(interval)
+                } else if (body.status == 'Expired') {
+                    console.log('session has expired')
+                    clearInterval(interval)
                 }
             }).catch(e => {
                 console.error(e)

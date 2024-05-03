@@ -5216,6 +5216,7 @@ name = "wallet_server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "assert_matches",
  "axum",
  "base64 0.21.4",
  "chrono",
@@ -5233,6 +5234,7 @@ dependencies = [
  "openid4vc",
  "openssl",
  "p256",
+ "parking_lot",
  "rand 0.8.5",
  "reqwest",
  "rstest",
@@ -5241,7 +5243,9 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serde_with",
+ "serial_test",
  "strfmt",
+ "strum",
  "thiserror",
  "tokio",
  "tower-http",
