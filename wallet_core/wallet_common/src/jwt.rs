@@ -261,7 +261,7 @@ mod tests {
         let header = header();
         let jwt = Jwt::sign(&t, &header, &private_key).await.unwrap();
         let jwt_message: HashMap<String, serde_json::Value> = part(1, &jwt.0);
-        assert!(jwt_message.get("sub").is_none());
+        assert!(!jwt_message.contains_key("sub"));
 
         // verification fails because `sub` is required
         jwt.parse_and_verify_with_sub(&private_key.verifying_key().into())
