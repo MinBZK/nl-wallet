@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     },
     utils::mock_time::MockTimeGenerator,
 };
-use serial_test::serial;
+use serial_test::{parallel, serial};
 
 use wallet_common::utils;
 use wallet_server::{
@@ -102,6 +102,7 @@ async fn postgres_session_store_with_mock_time() -> (PostgresSessionStore<MockTi
 }
 
 #[tokio::test]
+#[parallel]
 async fn test_get_write() {
     let session_store = postgres_session_store().await;
 
