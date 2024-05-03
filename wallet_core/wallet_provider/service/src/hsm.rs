@@ -72,7 +72,6 @@ pub(crate) enum SigningMechanism {
 
 pub(crate) trait Pkcs11Client {
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
-    async fn generate_wrapping_key(&self, identifier: &str) -> Result<PrivateKeyHandle>;
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
@@ -305,32 +304,6 @@ impl Pkcs11Client for Pkcs11Hsm {
             ];
 
             let private_handle = session.generate_key(&Mechanism::GenericSecretKeyGen, priv_key_template)?;
-
-            Ok(PrivateKeyHandle(private_handle))
-        })
-        .await
-    }
-
-    async fn generate_wrapping_key(&self, identifier: &str) -> Result<PrivateKeyHandle> {
-        let pool = self.pool.clone();
-        let identifier = String::from(identifier);
-
-        spawn::blocking(move || {
-            let session = pool.get()?;
-
-            let priv_key_template = &[
-                Attribute::Token(true),
-                Attribute::Private(true),
-                Attribute::Sensitive(true),
-                Attribute::Wrap(true),
-                Attribute::Unwrap(true),
-                Attribute::Class(ObjectClass::SECRET_KEY),
-                Attribute::KeyType(KeyType::AES),
-                Attribute::ValueLen(32.into()),
-                Attribute::Label(identifier.clone().into()),
-            ];
-
-            let private_handle = session.generate_key(&Mechanism::AesKeyGen, priv_key_template)?;
 
             Ok(PrivateKeyHandle(private_handle))
         })

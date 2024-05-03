@@ -14,6 +14,7 @@ use crate::{
 
 #[trait_variant::make(GbavClient: Send)]
 pub trait GbavClientLocal {
+    #[allow(dead_code)]
     async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error>;
 }
 
