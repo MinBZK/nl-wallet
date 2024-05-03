@@ -69,7 +69,7 @@ spec:
                 secretKeyRef:
                   name: db-cluster-mrp-app
                   key: password
-            - name: WALLET_SERVER_STORE_URL
+            - name: WALLET_SERVER_STORAGE__URL
               value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/wallet_server"
             - name: RUST_LOG
               value: "debug,hyper=warn"
