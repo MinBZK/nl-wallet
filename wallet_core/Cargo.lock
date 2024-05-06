@@ -2996,7 +2996,6 @@ dependencies = [
  "once_cell",
  "p256",
  "parking_lot",
- "sentry",
  "thiserror",
  "tokio",
  "uniffi",

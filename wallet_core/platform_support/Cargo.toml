@@ -27,7 +27,6 @@ hardware_integration_test = ["integration_test", "dep:jni", "tokio/rt"]
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 parking_lot.workspace = true
-sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 thiserror.workspace = true
 uniffi.workspace = true
 
