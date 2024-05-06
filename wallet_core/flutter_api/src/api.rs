@@ -18,6 +18,7 @@ use crate::{
         uri::IdentifyUriResult,
         wallet_event::{WalletEvent, WalletEvents},
     },
+    sentry::init_sentry,
     stream::ClosingStreamSink,
 };
 
@@ -35,6 +36,10 @@ pub fn init() -> Result<()> {
     // As creating the wallet below could fail and init() could be called again,
     // init_logging() should not fail when being called more than once.
     init_logging();
+
+    // Initialize Sentry for Rust panics.
+    // This MUST be called before initializing the async runtime.
+    init_sentry();
 
     // Initialize the async runtime so the #[async_runtime] macro can be used.
     // This function may also be called safely more than once.

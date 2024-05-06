@@ -8,10 +8,10 @@ use self::{
     utils::UtilitiesBridge,
 };
 
-static BRIDGE_COLLECTION: OnceCell<BridgeCollection> = OnceCell::new();
+static PLATFORM_SUPPORT: OnceCell<PlatformSupport> = OnceCell::new();
 
 #[derive(Debug)]
-struct BridgeCollection {
+struct PlatformSupport {
     signing_key: Box<dyn SigningKeyBridge>,
     encryption_key: Box<dyn EncryptionKeyBridge>,
     utils: Box<dyn UtilitiesBridge>,
@@ -22,20 +22,20 @@ pub fn init_platform_support(
     encryption_key: Box<dyn EncryptionKeyBridge>,
     utils: Box<dyn UtilitiesBridge>,
 ) {
-    let bridge_collection = BridgeCollection {
+    let platform_support = PlatformSupport {
         signing_key,
         encryption_key,
         utils,
     };
 
-    BRIDGE_COLLECTION
-        .set(bridge_collection)
+    PLATFORM_SUPPORT
+        .set(platform_support)
         .expect("Cannot call init_platform_support() more than once");
 }
 
-fn get_bridge_collection() -> &'static BridgeCollection {
-    // crash if BRIDGES is not yet set
-    BRIDGE_COLLECTION
+fn get_platform_support() -> &'static PlatformSupport {
+    // crash if PLATFORM_SUPPORT is not yet set
+    PLATFORM_SUPPORT
         .get()
-        .expect("BRIDGES used before init_platform_support() was called")
+        .expect("PLATFORM_SUPPORT used before init_platform_support() was called")
 }

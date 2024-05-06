@@ -92,7 +92,6 @@ def bindingsTargetDir = "${project.projectDir}/../../kotlin"
         fileTree("$workingDir").matching {
             include "**/*.udl"
         }.each {
-
             // Use file name as module name
             String moduleName = it.name.take(it.name.lastIndexOf('.'))
 

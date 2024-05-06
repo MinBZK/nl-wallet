@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::get_bridge_collection;
+use super::get_platform_support;
 
 pub use crate::hw_keystore::KeyStoreError;
 
@@ -25,9 +25,9 @@ pub trait EncryptionKeyBridge: Send + Sync + Debug {
 }
 
 pub fn get_signing_key_bridge() -> &'static dyn SigningKeyBridge {
-    get_bridge_collection().signing_key.as_ref()
+    get_platform_support().signing_key.as_ref()
 }
 
 pub fn get_encryption_key_bridge() -> &'static dyn EncryptionKeyBridge {
-    get_bridge_collection().encryption_key.as_ref()
+    get_platform_support().encryption_key.as_ref()
 }
