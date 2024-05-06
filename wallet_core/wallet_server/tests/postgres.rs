@@ -102,7 +102,7 @@ async fn postgres_session_store_with_mock_time() -> (PostgresSessionStore<MockTi
 }
 
 #[tokio::test]
-#[parallel]
+#[parallel(cleanup)]
 async fn test_get_write() {
     let session_store = postgres_session_store().await;
 
