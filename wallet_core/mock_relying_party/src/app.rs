@@ -101,12 +101,6 @@ async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
     }))
 }
 
-#[derive(Serialize)]
-struct EngageUrlparams {
-    session_type: MrpSessionType,
-    return_url: Url,
-}
-
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
     // return URL is just http://public.url/#{session_id}
     let return_url_template = match selected.session_type {

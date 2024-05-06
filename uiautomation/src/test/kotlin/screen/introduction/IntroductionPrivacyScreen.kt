@@ -12,7 +12,7 @@ class IntroductionPrivacyScreen : MobileActions() {
 
     fun visible() = isElementVisible(screen)
 
-    fun absent() = isElementAbsent(screen)
+    fun absent() = isElementAbsent(screen, false)
 
     fun clickPrivacyButton() = clickElement(privacyButton)
 

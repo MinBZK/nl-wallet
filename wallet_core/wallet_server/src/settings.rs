@@ -1,10 +1,11 @@
-use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
+use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
 
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
+use nl_wallet_mdoc::server_state::SessionStoreTimeouts;
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
     trust_anchor::DerTrustAnchor,
@@ -12,9 +13,6 @@ use wallet_common::{
 
 #[cfg(feature = "issuance")]
 use {indexmap::IndexMap, nl_wallet_mdoc::utils::x509::Certificate, wallet_common::reqwest::deserialize_certificates};
-
-#[cfg(feature = "mock")]
-use crate::pid::mock::{PersonAttributes, ResidentAttributes};
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -29,8 +27,9 @@ pub struct Settings {
     // used by the application
     pub internal_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
-    // supported schemes are: memory:// (default) and postgres://
-    pub store_url: Url,
+    pub log_requests: bool,
+
+    pub storage: Storage,
 
     #[cfg(feature = "issuance")]
     pub issuer: Issuer,
@@ -56,6 +55,15 @@ pub enum RequesterAuth {
     },
     #[serde(untagged)]
     InternalEndpoint(Server),
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Storage {
+    /// Supported schemes are: `memory://` (default) and `postgres://`.
+    pub url: Url,
+    pub expiration_minutes: NonZeroU64,
+    pub successful_deletion_minutes: NonZeroU64,
+    pub failed_deletion_minutes: NonZeroU64,
 }
 
 #[derive(Deserialize, Clone)]
@@ -88,13 +96,6 @@ pub struct Digid {
     pub trust_anchors: Vec<reqwest::Certificate>,
 }
 
-#[cfg(feature = "mock")]
-#[derive(Deserialize, Clone)]
-pub struct MockAttributes {
-    pub person: PersonAttributes,
-    pub resident: Option<ResidentAttributes>,
-}
-
 #[cfg(feature = "issuance")]
 #[derive(Deserialize, Clone)]
 pub struct Issuer {
@@ -110,6 +111,16 @@ pub struct Issuer {
     pub digid: Digid,
 
     pub brp_server: BaseUrl,
+}
+
+impl From<&Storage> for SessionStoreTimeouts {
+    fn from(value: &Storage) -> Self {
+        SessionStoreTimeouts {
+            expiration: Duration::from_secs(60 * value.expiration_minutes.get()),
+            successful_deletion: Duration::from_secs(60 * value.successful_deletion_minutes.get()),
+            failed_deletion: Duration::from_secs(60 * value.failed_deletion_minutes.get()),
+        }
+    }
 }
 
 #[cfg(feature = "issuance")]
@@ -128,12 +139,27 @@ impl Settings {
     }
 
     pub fn new_custom(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
+        let default_store_timeouts = SessionStoreTimeouts::default();
+
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
-            .set_default("store_url", "memory://")?;
+            .set_default("log_requests", false)?
+            .set_default("storage.url", "memory://")?
+            .set_default(
+                "storage.expiration_minutes",
+                default_store_timeouts.expiration.as_secs() / 60,
+            )?
+            .set_default(
+                "storage.successful_deletion_minutes",
+                default_store_timeouts.successful_deletion.as_secs() / 60,
+            )?
+            .set_default(
+                "storage.failed_deletion_minutes",
+                default_store_timeouts.failed_deletion.as_secs() / 60,
+            )?;
 
         #[cfg(feature = "issuance")]
         let config_builder = config_builder

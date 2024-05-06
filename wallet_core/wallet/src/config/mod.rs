@@ -62,6 +62,7 @@ pub trait ConfigurationRepository {
 
 #[trait_variant::make(UpdateableConfigurationRepository: Send)]
 pub trait LocalUpdateableConfigurationRepository: ConfigurationRepository {
+    #[allow(dead_code)]
     async fn fetch(&self) -> Result<ConfigurationUpdateState, ConfigurationError>;
 }
 

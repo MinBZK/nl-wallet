@@ -32,7 +32,7 @@ fn setup() -> (MockIssuer, Certificate, BaseUrl) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
 
     let issuer = MockIssuer::new(
-        MemorySessionStore::new(),
+        MemorySessionStore::default(),
         MockAttributeService {
             issuer_cert: keypair.certificate().clone(),
         },

@@ -68,11 +68,12 @@ class TypedWalletCore {
   }
 
   void _setupCardsStream() async {
-    _cards.onListen = () async {
-      await _isInitialized.future;
-      _walletCore.setCardsStream().listen((event) => _cards.add(event));
-    };
-    _cards.onCancel = () => _walletCore.clearCardsStream();
+    //FIXME: Ideally we don't set the card stream until we start observing it (i.e. in onListen())
+    //FIXME: but since the cards are not persisted yet that means we might miss events, so observing
+    //FIXME: the wallet_core cards stream through the complete lifecycle of the app for now.
+    //To reproduce issue: 1. Start clean, 2. Setup Wallet, 3. Kill app, 4. Continue Setup, 5. Cards don't show up on success page
+    await _isInitialized.future;
+    _walletCore.setCardsStream().listen((event) => _cards.add(event));
   }
 
   void _setupRecentHistoryStream() {

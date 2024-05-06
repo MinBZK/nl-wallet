@@ -12,14 +12,27 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(SessionState::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(SessionState::Token).string().not_null().primary_key())
+                    .col(ColumnDef::new(SessionState::Type).string().not_null())
+                    .col(ColumnDef::new(SessionState::Token).string().not_null())
                     .col(ColumnDef::new(SessionState::Data).json().not_null())
-                    .col(ColumnDef::new(SessionState::Type).text().not_null())
+                    .col(ColumnDef::new(SessionState::Status).string().not_null())
                     .col(
-                        ColumnDef::new(SessionState::ExpirationDateTime)
+                        ColumnDef::new(SessionState::LastActiveDateTime)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
+                    .primary_key(Index::create().col(SessionState::Type).col(SessionState::Token))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .table(SessionState::Table)
+                    .col(SessionState::Type)
+                    .col(SessionState::Status)
+                    .col(SessionState::LastActiveDateTime)
                     .to_owned(),
             )
             .await?;
@@ -33,8 +46,9 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum SessionState {
     Table,
+    Type,
     Token,
     Data,
-    ExpirationDateTime,
-    Type,
+    Status,
+    LastActiveDateTime,
 }

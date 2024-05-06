@@ -12,7 +12,7 @@ use serde::Serialize;
 
 use nl_wallet_mdoc::{
     server_keys::{KeyPair, KeyRing},
-    server_state::{SessionState, SessionStore},
+    server_state::SessionStore,
 };
 use openid4vc::{
     credential::{CredentialErrorCode, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
@@ -56,7 +56,7 @@ impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
 pub async fn create_issuance_router<A, S>(settings: Settings, sessions: S, attr_service: A) -> anyhow::Result<Router>
 where
     A: AttributeService + Send + Sync + 'static,
-    S: SessionStore<Data = SessionState<IssuanceData>> + Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Send + Sync + 'static,
 {
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::new(
@@ -89,7 +89,7 @@ async fn oauth_metadata<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
+    S: SessionStore<IssuanceData>,
 {
     let metadata = state
         .issuer
@@ -111,7 +111,7 @@ async fn token<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
+    S: SessionStore<IssuanceData>,
 {
     let (response, dpop_nonce) = state
         .issuer
@@ -134,7 +134,7 @@ async fn credential<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
+    S: SessionStore<IssuanceData>,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -154,7 +154,7 @@ async fn batch_credential<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
+    S: SessionStore<IssuanceData>,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -174,7 +174,7 @@ async fn reject_issuance<A, K, S>(
 where
     A: AttributeService,
     K: KeyRing,
-    S: SessionStore<Data = SessionState<IssuanceData>>,
+    S: SessionStore<IssuanceData>,
 {
     let uri_path = &uri.path()[1..]; // strip off leading slash
 

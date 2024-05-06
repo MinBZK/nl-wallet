@@ -87,7 +87,7 @@ fn setup_verifier_test(
     let verifier = MockVerifier::new(
         "http://example.com".parse().unwrap(),
         MockKeyring::new(disclosure_key),
-        MemorySessionStore::new(),
+        MemorySessionStore::default(),
         mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect(),
     )
     .into();
