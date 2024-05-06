@@ -11,9 +11,9 @@ use self::{
     utils::UtilitiesBridge,
 };
 
-static BRIDGE_COLLECTION: OnceCell<BridgeCollection> = OnceCell::new();
+static PLATFORM_SUPPORT: OnceCell<PlatformSupport> = OnceCell::new();
 
-struct BridgeCollection {
+struct PlatformSupport {
     signing_key: Box<dyn SigningKeyBridge>,
     encryption_key: Box<dyn EncryptionKeyBridge>,
     utils: Box<dyn UtilitiesBridge>,
@@ -21,14 +21,13 @@ struct BridgeCollection {
 }
 
 // Debug cannot be derived, because ClientInitGuard doesn't implement it.
-impl std::fmt::Debug for BridgeCollection {
+impl std::fmt::Debug for PlatformSupport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("BridgeCollection")
+        f.debug_struct("PlatformSupport")
             .field("signing_key", &self.signing_key)
             .field("encryption_key", &self.encryption_key)
             .field("utils", &self.utils)
-            .field("_sentry_guard", &"<HIDDEN>")
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -41,21 +40,21 @@ pub fn init_platform_support(
 
     let sentry_guard = init_sentry();
 
-    let bridge_collection = BridgeCollection {
+    let platform_support = PlatformSupport {
         signing_key,
         encryption_key,
         utils,
         _sentry_guard: sentry_guard,
     };
 
-    BRIDGE_COLLECTION
-        .set(bridge_collection)
+    PLATFORM_SUPPORT
+        .set(platform_support)
         .expect("Cannot call init_platform_support() more than once");
 }
 
-fn get_bridge_collection() -> &'static BridgeCollection {
-    // crash if BRIDGES is not yet set
-    BRIDGE_COLLECTION
+fn get_platform_support() -> &'static PlatformSupport {
+    // crash if PLATFORM_SUPPORT is not yet set
+    PLATFORM_SUPPORT
         .get()
-        .expect("BRIDGES used before init_platform_support() was called")
+        .expect("PLATFORM_SUPPORT used before init_platform_support() was called")
 }

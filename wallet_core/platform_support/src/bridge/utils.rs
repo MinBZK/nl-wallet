@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::get_bridge_collection;
+use super::get_platform_support;
 
 pub use crate::utils::UtilitiesError;
 
@@ -17,5 +17,5 @@ pub trait UtilitiesBridge: Send + Sync + Debug {
 }
 
 pub fn get_utils_bridge() -> &'static dyn UtilitiesBridge {
-    get_bridge_collection().utils.as_ref()
+    get_platform_support().utils.as_ref()
 }
