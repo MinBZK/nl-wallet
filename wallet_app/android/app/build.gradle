@@ -114,10 +114,6 @@ android {
         debug {
             keystoreProperties["storeFile"] ? (signingConfig signingConfigs.common) : (signingConfig signingConfigs.debug)
             logger.quiet("Build type ${name}, using keystore: ${signingConfig.storeFile}")
-
-            packagingOptions {
-                // doNotStrip "**/*.so"
-            }
         }
         profile {
             keystoreProperties["storeFile"] ? (signingConfig signingConfigs.common) : (signingConfig signingConfigs.debug)

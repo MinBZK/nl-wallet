@@ -19,10 +19,6 @@ android {
     buildTypes {
         debug {
             testCoverageEnabled true
-
-            packagingOptions {
-                // doNotStrip "**/*.so"
-            }
         }
         release {
             minifyEnabled true
