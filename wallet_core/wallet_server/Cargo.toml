@@ -28,9 +28,14 @@ allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = ["postgres", "cfg_test"]
-# Include and run test that depend on a valid configuration file
-cfg_test = []
+db_test = ["postgres", "cfg_test", "dep:serial_test", "nl_wallet_mdoc/test"]
+cfg_test = [
+    "dep:assert_matches",
+    "dep:indexmap",
+    "dep:parking_lot",
+    "tokio/test-util",
+    "nl_wallet_mdoc/mock_time",
+] # Include and run test that depend on a valid configuration file
 # Enable issuance
 issuance = [
     "axum/form",
@@ -46,6 +51,7 @@ mock = ["dep:rand", "issuance"]
 
 [dependencies]
 anyhow.workspace = true
+assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, features = ["headers", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
 ciborium = { workspace = true, optional = true }
@@ -61,6 +67,7 @@ mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 openssl = { workspace = true, features = ["vendored"] }
 p256 = { workspace = true, features = ["ecdsa"] }
+parking_lot = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
@@ -74,6 +81,7 @@ serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
 serde_with = { workspace = true, features = ["base64"] }
+serial_test = { workspace = true, optional = true }
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
@@ -88,11 +96,4 @@ openid4vc = { path = "../openid4vc", optional = true }
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
-assert_matches.workspace = true
-indexmap.workspace = true
-parking_lot.workspace = true
 rstest.workspace = true
-serial_test.workspace = true
-tokio = { workspace = true, features = ["test-util"] }
-
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_time"] }
