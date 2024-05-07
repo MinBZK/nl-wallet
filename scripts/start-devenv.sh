@@ -51,7 +51,9 @@ Where:
     mrp, mock_relying_party:    Start the mock_relying_party.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
-    brp:                        Start the Haal-Centraal BRP proxy with GBA mock.
+    brp:                        Start the Haal-Centraal BRP proxy with GBA HC converter.
+    brpproxy:                   Start the Haal-Centraal BRP proxy.
+    gba, gba_hc_converter:      Start the GBA HC converter.
     postgres:                   Start a PostgreSQL database, including pgadmin4, on docker.
 
   OPTION is any of:
@@ -79,7 +81,8 @@ WALLET_SERVER=1
 WALLET=1
 DIGID_CONNECTOR=1
 CONFIG_SERVER=1
-BRP=1
+BRP_PROXY=1
+GBA_HC=1
 POSTGRES=1
 
 USAGE=1
@@ -120,7 +123,16 @@ do
             shift
             ;;
         brp)
-            BRP=0
+            BRP_PROXY=0
+            GBA_HC=0
+            shift
+            ;;
+        brpproxy)
+            BRP_PROXY=0
+            shift
+            ;;
+        gba_hc_converter)
+            GBA_HC=0
             shift
             ;;
         postgres)
@@ -133,7 +145,8 @@ do
             WALLET_SERVER=0
             WALLET_PROVIDER=0
             CONFIG_SERVER=0
-            BRP=0
+            BRP_PROXY=0
+            GBA_HC=0
             shift # past argument
             ;;
         --all)
@@ -144,7 +157,8 @@ do
             WALLET_PROVIDER=0
             WALLET=0
             CONFIG_SERVER=0
-            BRP=0
+            BRP_PROXY=0
+            GBA_HC=0
             shift # past argument
             ;;
         -h|--help)
@@ -331,25 +345,43 @@ then
 fi
 
 ########################################################################
-# Manage brpproxy and gba_hc_converter
+# Manage brpproxy
 
-if [ "${BRP}" == "0" ]
+if [ "${BRP_PROXY}" == "0" ]
 then
     echo
-    echo -e "${SECTION}Manage brpproxy and gba_hc_converter${NC}"
+    echo -e "${SECTION}Manage brpproxy${NC}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Stopping ${ORANGE}brpproxy${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down brpproxy || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "Building and starting ${ORANGE}brpproxy${NC}"
+        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach brpproxy
+    fi
+fi
+
+########################################################################
+# Manage gba_hc_converter
+
+if [ "${GBA_HC}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage gba_hc_converter${NC}"
 
     cd "${GBA_HC_CONVERTER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
-        echo -e "${INFO}Stopping ${ORANGE}brpproxy and gba_hc_converter${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down brpproxy || true
+        echo -e "${INFO}Stopping ${ORANGE}gba_hc_converter${NC}"
         killall gba_hc_converter || true
     fi
     if [ "${START}" == "0" ]
     then
-        echo -e "Building and starting ${ORANGE}brpproxy and gba_hc_converter${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach brpproxy
+        echo -e "Starting ${ORANGE}gba_hc_converter${NC}"
         RUST_LOG=debug cargo run --bin gba_hc_converter > "${TARGET_DIR}/gba_hc_converter.log" 2>&1 &
 
         echo -e "gba_hc_converter logs can be found at ${CYAN}${TARGET_DIR}/gba_hc_converter.log${NC}"
