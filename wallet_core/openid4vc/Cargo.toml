@@ -10,11 +10,13 @@ workspace = true
 [[test]]
 name = "test"
 path = "tests/issuance.rs"
-required-features = ["mock"]
+required-features = ["integration"]
 
 [features]
 # Include mock implementations for testing
 mock = ["dep:mockall"]
+# All features needed to run the integration test
+integration = ["mock"]
 
 [dependencies]
 base64.workspace = true
@@ -51,9 +53,4 @@ serde_bytes = { workspace = true, features = ["std"] }
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = [
-    "mock",
-    "software_key_factory",
-    "generate",
-    "test",
-] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate", "test"] }

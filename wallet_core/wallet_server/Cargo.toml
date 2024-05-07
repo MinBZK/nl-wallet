@@ -19,7 +19,7 @@ required-features = ["cfg_test"]
 [[test]]
 name = "postgres"
 path = "tests/postgres.rs"
-required-features = ["postgres", "db_test"]
+required-features = ["db_test"]
 
 [features]
 default = ["postgres"]
@@ -28,7 +28,7 @@ allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = ["cfg_test"]
+db_test = ["postgres", "cfg_test"]
 # Include and run test that depend on a valid configuration file
 cfg_test = []
 # Enable issuance
@@ -46,15 +46,7 @@ mock = ["dep:rand", "issuance"]
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = [
-    "headers",
-    "http1",
-    "json",
-    "query",
-    "tokio",
-    "tower-log",
-    "tracing",
-] }
+axum = { workspace = true, features = ["headers", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
 ciborium = { workspace = true, optional = true }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
@@ -70,9 +62,7 @@ nutype = { workspace = true, features = ["serde"] }
 openssl = { workspace = true, features = ["vendored"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 rand = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = [
-    "rustls-tls-webpki-roots",
-] }
+reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -87,11 +77,7 @@ serde_with = { workspace = true, features = ["base64"] }
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = [
-    "macros",
-    "parking_lot",
-    "rt-multi-thread",
-] }
+tokio = { workspace = true, features = ["macros", "parking_lot", "rt-multi-thread"] }
 tower-http = { workspace = true, features = ["auth", "cors", "trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
@@ -109,8 +95,4 @@ rstest.workspace = true
 serial_test.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 
-nl_wallet_mdoc = { path = "../mdoc", features = [
-    "generate",
-    "test",
-    "mock_time",
-] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_time"] }

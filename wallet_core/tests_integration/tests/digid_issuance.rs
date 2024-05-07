@@ -5,7 +5,7 @@ use openid4vc::{
 };
 
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
-use tests_integration_common::*;
+use tests_integration::{common::*, fake_digid::fake_digid_auth};
 use wallet::{mock::default_configuration, wallet_common::WalletConfiguration};
 use wallet_common::{config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE, reqwest::trusted_reqwest_client_builder};
 use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
@@ -25,7 +25,6 @@ use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBr
 /// - `test_pid_ok()`, which uses the WP but mocks the OIDC part,
 /// - `accept_issuance()` in the `openid4vc` integration tests, which also mocks the HTTP server and client.
 #[tokio::test]
-#[cfg_attr(not(feature = "digid_test"), ignore)]
 async fn test_pid_issuance_digid_bridge() {
     let settings = wallet_server_settings();
     let attr_service = BrpPidAttributeService::new(

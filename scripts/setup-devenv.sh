@@ -228,7 +228,7 @@ render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DI
 # And the pid_issuer config, for integration tests append to `wallet_server.toml`
 render_template "${DEVENV}/pid_issuer.toml.template" "${WALLET_SERVER_DIR}/pid_issuer.toml"
 
-render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/performance/.env"
+render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 
 ########################################################################
 # Configure wallet_provider

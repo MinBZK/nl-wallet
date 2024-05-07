@@ -1,4 +1,4 @@
-use tests_integration_common::*;
+use tests_integration::common::*;
 
 #[tokio::test]
 async fn test_wallet_registration() {

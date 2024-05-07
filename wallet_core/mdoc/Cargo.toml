@@ -10,7 +10,7 @@ workspace = true
 [[test]]
 name = "test"
 path = "tests/tests.rs"
-required-features = ["generate", "software_key_factory", "test", "mock"]
+required-features = ["integration"]
 
 [features]
 # Allow the disclosure return URL and its prefix to use http://
@@ -31,6 +31,8 @@ test = ["dep:assert_matches", "dep:rstest", "dep:regex"]
 mock = []
 # Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
 mock_time = ["dep:parking_lot"]
+# All features needed to run the integration test
+integration = ["generate", "software_key_factory", "test", "mock"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -87,7 +89,4 @@ regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-wallet_common = { path = "../wallet_common", features = [
-    "mock_secure_keys",
-    "software_keys",
-] }
+wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "software_keys"] }
