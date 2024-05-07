@@ -548,7 +548,7 @@ Here's an example of a disclosure session initiation. This is usually executed
 by the backend of the relying party application:
 
 ```sh
-curl --quiet -X POST --json '{"usecase":"mijn_amsterdam", "items_requests": [{"docType": "com.example.pid", "nameSpaces": {"com.example.pid": {"given_name": true}}}], "session_type": "cross_device"}' http://localhost:3002/disclosure/sessions
+curl --silent --request POST --json '{"usecase":"mijn_amsterdam", "items_requests": [{"docType": "com.example.pid", "nameSpaces": {"com.example.pid": {"given_name": true}}}], "session_type": "cross_device"}' http://localhost:3002/disclosure/sessions
 ```
 
 Example Response:
@@ -567,19 +567,21 @@ Example status check. This is usually executed by the frontend of the relying
 party application:
 
 ```sh
-curl --quiet -X GET http://localhost:3001/disclosure/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/status
+curl --silent --request GET http://localhost:3001/disclosure/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/status
 ```
 
 Example response:
 
 ```json
-{ "TODO": true }
+{
+  "status": "CREATED"
+}
 ```
 
 ### Retrieve Disclosure Results
 
 ```sh
-curl --quiet -X GET http://localhost:3002/disclosure/sessions/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/disclosed_attributes
+curl --silent --request GET http://localhost:3002/disclosure/sessions/J3GQDvzGIx0fEYzycTCWhDtrqi4BVtnk/disclosed_attributes
 ```
 
 Example response:
