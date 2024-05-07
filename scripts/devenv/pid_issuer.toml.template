@@ -10,15 +10,14 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
 ip = '0.0.0.0'
 port = ${PID_ISSUER_WS_PORT}
 
-[requester_server]
-ip = '0.0.0.0'
-port = ${PID_ISSUER_RS_PORT}
+# Even though this is not used, we will configure a random api key
+[requester_server.authentication]
+api_key = '${PID_ISSUER_API_KEY}'
 
 [verifier]
-trust_anchors = [
-    "${PID_CA_CRT}",
-]
+trust_anchors = [] # Empty list
 
+# Empty map
 [verifier.usecases]
 
 [issuer.private_keys."com.example.pid"]
