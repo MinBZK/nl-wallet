@@ -78,7 +78,9 @@ impl SessionDataType for MockSessionData {
 }
 
 async fn postgres_session_store() -> PostgresSessionStore {
-    let storage_settings = Settings::new().unwrap().storage;
+    let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+        .unwrap()
+        .storage;
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
     PostgresSessionStore::try_new(storage_settings.url, timeouts)
@@ -91,7 +93,9 @@ async fn postgres_session_store_with_mock_time() -> (PostgresSessionStore<MockTi
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
 
-    let storage_settings = Settings::new().unwrap().storage;
+    let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+        .unwrap()
+        .storage;
     let timeouts = SessionStoreTimeouts::from(&storage_settings);
 
     let session_store = PostgresSessionStore::try_new_with_time(storage_settings.url, timeouts, time_generator)

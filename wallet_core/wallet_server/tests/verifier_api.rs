@@ -56,7 +56,7 @@ fn find_listener_port() -> u16 {
 }
 
 fn wallet_server_settings() -> Settings {
-    let mut settings = Settings::new().unwrap();
+    let mut settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test").unwrap();
     let ws_port = find_listener_port();
 
     settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
