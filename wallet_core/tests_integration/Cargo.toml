@@ -19,7 +19,7 @@ required-features = ["integration_test"]
 [[test]]
 name = "digid_issuance"
 path = "tests/digid_issuance.rs"
-required-features = ["integration_test", "digid_test"]
+required-features = ["digid_test"]
 
 [[test]]
 name = "disclosure"
@@ -90,7 +90,7 @@ integration_test = [
     "dep:url",
 ]
 # Optional feature for running integration tests that depend on the DigiD connector
-digid_test = ["fake_digid"]
+digid_test = ["fake_digid", "integration_test", "dep:gba_hc_converter"]
 # Should be enabled when building the performance_test binary
 performance_test = [
     "fake_digid",
@@ -137,6 +137,7 @@ tracing-subscriber = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
+gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 configuration_server = { path = "../configuration_server", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate"] }
 openid4vc = { path = "../openid4vc", optional = true }

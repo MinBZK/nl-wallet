@@ -1,0 +1,5 @@
+ip = "0.0.0.0"
+port = 3008
+
+[run_mode.preloaded]
+xml_path = "resources/gba-v-responses"

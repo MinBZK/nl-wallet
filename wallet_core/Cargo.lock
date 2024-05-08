@@ -4587,6 +4587,7 @@ dependencies = [
  "configuration_server",
  "ctor",
  "dotenvy",
+ "gba_hc_converter",
  "indexmap 2.0.2",
  "jsonwebtoken",
  "nl_wallet_mdoc",

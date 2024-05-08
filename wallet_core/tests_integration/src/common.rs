@@ -150,7 +150,7 @@ pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
         .expect("Could not fetch user count from database")
 }
 
-fn find_listener_port() -> u16 {
+pub fn find_listener_port() -> u16 {
     TcpListener::bind("localhost:0")
         .expect("Could not find TCP port")
         .local_addr()
@@ -255,7 +255,7 @@ pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(se
     wait_for_server(public_url.join_base_url("disclosure/"), vec![]).await;
 }
 
-async fn wait_for_server(base_url: BaseUrl, trust_anchors: Vec<Certificate>) {
+pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: Vec<Certificate>) {
     let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {

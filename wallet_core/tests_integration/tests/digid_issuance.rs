@@ -1,21 +1,46 @@
+use std::{net::IpAddr, process, str::FromStr};
+
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, HttpOpenidMessageClient, IssuanceSession},
     oidc::{HttpOidcClient, OidcClient},
     pkce::S256PkcePair,
 };
 
+use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
 use tests_integration::{common::*, fake_digid::fake_digid_auth};
 use wallet::{mock::default_configuration, wallet_common::WalletConfiguration};
 use wallet_common::{config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE, reqwest::trusted_reqwest_client_builder};
 use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
 
+fn gba_hc_converter_settings() -> GbaSettings {
+    // We cannot use a random port here, since the BRP proxy needs to connect to the converter on a set port.
+    let mut settings = GbaSettings::new().expect("Could not read settings");
+    settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    settings
+}
+
+async fn start_gba_hc_converter(settings: GbaSettings) {
+    let base_url = format!("http://localhost:{}/", settings.port)
+        .parse()
+        .expect("hardcode values should always parse successfully");
+
+    tokio::spawn(async {
+        if let Err(error) = gba_hc_converter::app::serve_from_settings(settings).await {
+            println!("Could not start gba_hc_converter: {:?}", error);
+            process::exit(1);
+        }
+    });
+
+    wait_for_server(base_url, vec![]).await;
+}
+
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP (Haal-Centraal).
 /// This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max is updated.
 ///
-/// Before running this, ensure that you have nl-rdo-max properly configured and running locally:
+/// Before running this, ensure that you have nl-rdo-max and brpproxy properly configured and running locally:
 /// - Run `setup-devenv.sh` if not recently done,
-/// - Run `start-devenv.sh digid brp`,
+/// - Run `start-devenv.sh digid brpproxy`,
 ///     or else `docker compose up` in your nl-rdo-max checkout
 ///     and `docker compose --file docker-compose-brp.yml up` in /scripts.
 ///
@@ -36,6 +61,8 @@ async fn test_pid_issuance_digid_bridge() {
     )
     .unwrap();
     start_wallet_server(settings.clone(), attr_service).await;
+
+    start_gba_hc_converter(gba_hc_converter_settings()).await;
 
     let wallet_config = default_configuration();
 
