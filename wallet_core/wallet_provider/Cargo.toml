@@ -25,35 +25,23 @@ required-features = ["hsm_test"]
 
 [features]
 # Include and run test that depend on a configured HSM
-hsm_test = []
+hsm_test = ["dep:rand_core", "dep:serial_test"]
 
 [dependencies]
-axum = { workspace = true, features = [
-    "http1",
-    "json",
-    "tokio",
-    "tower-log",
-    "tracing",
-] }
+axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
+rand_core = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono"] }
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "parking_lot",
-    "macros",
-] }
+serial_test = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = [
-    "env-filter",
-    "parking_lot",
-    "json",
-] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "parking_lot", "json"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
 wallet_common.path = "../wallet_common"
@@ -61,7 +49,3 @@ wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
 wallet_provider_persistence.path = "persistence"
 wallet_provider_service.path = "service"
-
-[dev-dependencies]
-rand_core.workspace = true
-serial_test.workspace = true
