@@ -520,20 +520,26 @@ impl Session<Created> {
         let dpop_nonce = random_string(32);
 
         let response = TokenResponseWithPreviews {
-            token_response: TokenResponse {
-                access_token: AccessToken::new(&code),
-                c_nonce: Some(c_nonce),
-                token_type: TokenType::DPoP,
-                expires_in: None,
-                refresh_token: None,
-                scope: None,
-                c_nonce_expires_in: None,
-                authorization_details: None,
-            },
+            token_response: TokenResponse::new(AccessToken::new(&code), c_nonce),
             attestation_previews: previews,
         };
 
         Ok((response, dpop_public_key, dpop_nonce))
+    }
+}
+
+impl TokenResponse {
+    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> TokenResponse {
+        TokenResponse {
+            access_token,
+            c_nonce: Some(c_nonce),
+            token_type: TokenType::DPoP,
+            expires_in: None,
+            refresh_token: None,
+            scope: None,
+            c_nonce_expires_in: None,
+            authorization_details: None,
+        }
     }
 }
 

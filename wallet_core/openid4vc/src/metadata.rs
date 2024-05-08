@@ -32,6 +32,29 @@ impl IssuerMetadata {
             .json()
             .await
     }
+
+    #[cfg(any(test, feature = "mock"))]
+    pub fn new_mock(url: BaseUrl) -> IssuerMetadata {
+        IssuerMetadata {
+            issuer_config: IssuerData {
+                credential_issuer: url.clone(),
+                authorization_servers: None,
+                credential_endpoint: url.join_base_url("/credential"),
+                batch_credential_endpoint: Some(url.join_base_url("/batch_credential")),
+                deferred_credential_endpoint: None,
+                notification_endpoint: None,
+                credential_response_encryption: CredentialResponseEncryption {
+                    alg_values_supported: vec![],
+                    enc_values_supported: vec![],
+                    encryption_required: false,
+                },
+                credential_identifiers_supported: None,
+                display: None,
+                credential_configurations_supported: HashMap::new(),
+            },
+            signed_metadata: None,
+        }
+    }
 }
 
 #[skip_serializing_none]

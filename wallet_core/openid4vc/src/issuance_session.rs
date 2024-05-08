@@ -115,6 +115,7 @@ pub struct HttpIssuanceSession<H = HttpOpenidMessageClient> {
 }
 
 /// Contract for sending OpenID4VCI protocol messages.
+#[cfg_attr(test, mockall::automock)]
 pub trait OpenidMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError>;
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
@@ -560,6 +561,8 @@ impl IssuanceState {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use serde_bytes::ByteBuf;
+
     use nl_wallet_mdoc::{
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
@@ -571,10 +574,76 @@ mod tests {
         },
         IssuerSigned,
     };
-    use serde_bytes::ByteBuf;
-    use wallet_common::keys::{software::SoftwareEcdsaKey, EcdsaKey};
+    use wallet_common::{
+        keys::{software::SoftwareEcdsaKey, EcdsaKey},
+        nonempty::NonEmpty,
+    };
+
+    use crate::token::{TokenRequestGrantType, TokenResponse};
 
     use super::*;
+
+    #[tokio::test]
+    async fn test_start_issuance_untrusted_attestation_preview() {
+        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca_cert = ca.certificate();
+        let trust_anchors = &[(ca_cert.try_into().unwrap())];
+
+        let token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode {
+                code: "123".to_string().into(),
+            },
+            code_verifier: None,
+            client_id: None,
+            redirect_uri: None,
+        };
+
+        let mut mock_msg_client = MockOpenidMessageClient::new();
+        mock_msg_client
+            .expect_discover_metadata()
+            .return_once(|url| Ok(IssuerMetadata::new_mock(url.clone())));
+        mock_msg_client
+            .expect_discover_oauth_metadata()
+            .return_once(|url| Ok(oidc::Config::new_mock(url)));
+        mock_msg_client
+            .expect_request_token()
+            .return_once(|_url, _token_request, _dpop_header| {
+                // Generate the attestation previews with some other CA than what the
+                // HttpIssuanceSession::start_issuance() will accept
+                let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+                let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+
+                let preview = AttestationPreview::MsoMdoc {
+                    unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
+                    issuer: issuance_key.certificate().clone(),
+                };
+
+                Ok((
+                    TokenResponseWithPreviews {
+                        token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
+                        attestation_previews: NonEmpty::new(vec![preview]).unwrap(),
+                    },
+                    None,
+                ))
+            });
+
+        let Err(error) = HttpIssuanceSession::start_issuance(
+            mock_msg_client,
+            "https://example.com".parse().unwrap(),
+            token_request,
+            trust_anchors,
+        )
+        .await
+        else {
+            // Can't use .unwrap_err() because HttpIssuanceSession does not implement Debug
+            panic!("starting session should have returned an error")
+        };
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::Certificate(CertificateError::Verification(_))
+        )
+    }
 
     async fn create_credential_response() -> (CredentialResponse, AttestationPreview, Certificate, VerifyingKey) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
