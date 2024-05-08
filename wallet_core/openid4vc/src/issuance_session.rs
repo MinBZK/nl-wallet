@@ -583,66 +583,26 @@ mod tests {
 
     use super::*;
 
-    #[tokio::test]
-    async fn test_start_issuance_untrusted_attestation_preview() {
-        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-        let ca_cert = ca.certificate();
-        let trust_anchors = &[(ca_cert.try_into().unwrap())];
-
-        let token_request = TokenRequest {
+    fn token_request() -> TokenRequest {
+        TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: "123".to_string().into(),
             },
             code_verifier: None,
             client_id: None,
             redirect_uri: None,
-        };
+        }
+    }
 
+    fn mock_openid_message_client() -> MockOpenidMessageClient {
         let mut mock_msg_client = MockOpenidMessageClient::new();
         mock_msg_client
             .expect_discover_metadata()
-            .return_once(|url| Ok(IssuerMetadata::new_mock(url.clone())));
+            .returning(|url| Ok(IssuerMetadata::new_mock(url.clone())));
         mock_msg_client
             .expect_discover_oauth_metadata()
-            .return_once(|url| Ok(oidc::Config::new_mock(url)));
+            .returning(|url| Ok(oidc::Config::new_mock(url)));
         mock_msg_client
-            .expect_request_token()
-            .return_once(|_url, _token_request, _dpop_header| {
-                // Generate the attestation previews with some other CA than what the
-                // HttpIssuanceSession::start_issuance() will accept
-                let ca = KeyPair::generate_issuer_mock_ca().unwrap();
-                let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-
-                let preview = AttestationPreview::MsoMdoc {
-                    unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
-                    issuer: issuance_key.certificate().clone(),
-                };
-
-                Ok((
-                    TokenResponseWithPreviews {
-                        token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        attestation_previews: NonEmpty::new(vec![preview]).unwrap(),
-                    },
-                    None,
-                ))
-            });
-
-        let Err(error) = HttpIssuanceSession::start_issuance(
-            mock_msg_client,
-            "https://example.com".parse().unwrap(),
-            token_request,
-            trust_anchors,
-        )
-        .await
-        else {
-            // Can't use .unwrap_err() because HttpIssuanceSession does not implement Debug
-            panic!("starting session should have returned an error")
-        };
-
-        assert_matches!(
-            error,
-            IssuanceSessionError::Certificate(CertificateError::Verification(_))
-        )
     }
 
     async fn create_credential_response() -> (CredentialResponse, AttestationPreview, Certificate, VerifyingKey) {
@@ -666,6 +626,111 @@ mod tests {
         };
 
         (credential_response, preview, ca.certificate().clone(), mdoc_public_key)
+    }
+
+    #[tokio::test]
+    async fn test_start_issuance_untrusted_attestation_preview() {
+        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let ca_cert = ca.certificate();
+        let trust_anchors = &[(ca_cert.try_into().unwrap())];
+
+        let mut mock_msg_client = mock_openid_message_client();
+        mock_msg_client
+            .expect_request_token()
+            .return_once(|_url, _token_request, _dpop_header| {
+                // Generate the attestation previews with some other CA than what the
+                // HttpIssuanceSession::start_issuance() will accept
+                let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+                let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+
+                let preview = AttestationPreview::MsoMdoc {
+                    unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
+                    issuer: issuance_key.certificate().clone(),
+                };
+
+                Ok((
+                    TokenResponseWithPreviews {
+                        token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
+                        attestation_previews: NonEmpty::new(vec![preview]).unwrap(),
+                    },
+                    None,
+                ))
+            });
+
+        let token_request = token_request();
+
+        let Err(error) = HttpIssuanceSession::start_issuance(
+            mock_msg_client,
+            "https://example.com".parse().unwrap(),
+            token_request,
+            trust_anchors,
+        )
+        .await
+        else {
+            // Can't use .unwrap_err() because HttpIssuanceSession does not implement Debug
+            panic!("starting session should have returned an error")
+        };
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::Certificate(CertificateError::Verification(_))
+        )
+    }
+
+    #[tokio::test]
+    async fn test_accept_issuance_wrong_response_count() {
+        let (cred_response, preview, ca_cert, _) = create_credential_response().await;
+        let trust_anchors = &[((&ca_cert).try_into().unwrap())];
+
+        let mut mock_msg_client = mock_openid_message_client();
+        mock_msg_client
+            .expect_request_token()
+            .return_once(|_url, _token_request, _dpop_header| {
+                Ok((
+                    TokenResponseWithPreviews {
+                        token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
+                        attestation_previews: NonEmpty::new(vec![preview.clone(), preview]).unwrap(), // return two previews
+                    },
+                    Some("dpop_nonce".to_string()),
+                ))
+            });
+        mock_msg_client.expect_request_credentials().return_once(
+            |_url, _credential_requests, _dpop_header, _access_token_header| {
+                Ok(CredentialResponses {
+                    credential_responses: vec![cred_response], // return one credential response
+                })
+            },
+        );
+
+        let token_request = token_request();
+
+        let Ok((client, previews)) = HttpIssuanceSession::start_issuance(
+            mock_msg_client,
+            "https://example.com".parse().unwrap(),
+            token_request,
+            trust_anchors,
+        )
+        .await
+        else {
+            // Can't use .unwrap_err() because HttpIssuanceSession does not implement Debug
+            panic!("starting session should not have returned an error")
+        };
+
+        assert_eq!(previews.len(), 2);
+
+        let error = client
+            .accept_issuance(
+                trust_anchors,
+                SoftwareKeyFactory::default(),
+                "https://example.com".parse().unwrap(),
+            )
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::UnexpectedCredentialResponseCount { found: 1, expected: 2 }
+        );
     }
 
     #[tokio::test]
