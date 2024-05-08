@@ -1,8 +1,9 @@
 use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
 
 use config::{Config, ConfigError, Environment, File};
+use nutype::nutype;
 use serde::Deserialize;
-use serde_with::{base64::Base64, serde_as};
+use serde_with::{base64::Base64, hex::Hex, serde_as};
 use url::Url;
 
 use nl_wallet_mdoc::server_state::SessionStoreTimeouts;
@@ -13,6 +14,8 @@ use wallet_common::{
 
 #[cfg(feature = "issuance")]
 use {indexmap::IndexMap, nl_wallet_mdoc::utils::x509::Certificate, wallet_common::reqwest::deserialize_certificates};
+
+const MIN_KEY_LENGTH_BYTES: usize = 16;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -66,11 +69,17 @@ pub struct Storage {
     pub failed_deletion_minutes: NonZeroU64,
 }
 
+#[serde_as]
 #[derive(Deserialize, Clone)]
 pub struct Verifier {
     pub usecases: HashMap<String, KeyPair>,
     pub trust_anchors: Vec<DerTrustAnchor>,
+    #[serde_as(as = "Hex")]
+    pub ephemeral_id_secret: EhpemeralIdSecret,
 }
+
+#[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, Deserialize))]
+pub struct EhpemeralIdSecret(Vec<u8>);
 
 #[derive(Deserialize, Clone)]
 pub struct Server {

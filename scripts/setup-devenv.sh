@@ -218,6 +218,11 @@ render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PAR
 render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
 render_template_append "${DEVENV}/mock_relying_party.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
 
+# Generate relying party ephemeral ID secret
+generate_ws_random_key ephemeral_id_secret
+MRP_WALLET_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
+export MRP_WALLET_SERVER_EPHEMERAL_ID_SECRET
+
 # And the mrp's wallet_server config
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/wallet_server.toml"
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
