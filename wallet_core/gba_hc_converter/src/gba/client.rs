@@ -81,10 +81,7 @@ pub struct FileGbavClient<T> {
     client: T,
 }
 
-impl<T> FileGbavClient<T>
-where
-    T: GbavClient,
-{
+impl<T> FileGbavClient<T> {
     pub fn new(path: PathBuf, client: T) -> Self {
         let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
         base_path.push(path.as_path());
