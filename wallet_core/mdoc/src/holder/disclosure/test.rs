@@ -36,7 +36,7 @@ use crate::{
 use super::{proposed_document::ProposedDocument, DisclosureSession, MdocDataSource, StoredMdoc};
 
 // Constants for testing.
-pub const SESSION_URL: &str = "http://example.com/disclosure";
+pub const VERIFIER_URL: &str = "http://example.com/disclosure";
 pub const RETURN_URL: &str = "http://example.com/return";
 
 // Describe what is in `DeviceResponse::example()`.
@@ -84,8 +84,7 @@ pub fn emtpy_items_request() -> ItemsRequest {
 
 /// Create a basic `SessionTranscript` we can use for testing.
 pub fn create_basic_session_transcript() -> SessionTranscript {
-    let (reader_engagement, _reader_private_key) =
-        ReaderEngagement::new_reader_engagement(SESSION_URL.parse().unwrap()).unwrap();
+    let (reader_engagement, _reader_private_key) = ReaderEngagement::new_random(VERIFIER_URL.parse().unwrap()).unwrap();
     let (device_engagement, _device_private_key) =
         DeviceEngagement::new_device_engagement("https://example.com".parse().unwrap()).unwrap();
 
@@ -307,7 +306,7 @@ where
 {
     pub fn new(
         session_type: SessionType,
-        session_url: Url,
+        verifier_url: Url,
         return_url: Option<Url>,
         reader_registration: Option<ReaderRegistration>,
         transform_device_request: F,
@@ -318,7 +317,7 @@ where
         let private_key = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate the `ReaderEngagement` that would be be sent in the UL.
-        let (reader_engagement, reader_ephemeral_key) = ReaderEngagement::new_reader_engagement(session_url).unwrap();
+        let (reader_engagement, reader_ephemeral_key) = ReaderEngagement::new_random(verifier_url).unwrap();
 
         // Set up the default item requests
         let items_requests = vec![example_items_request()];
@@ -471,7 +470,7 @@ where
     // Create a mock session and call the transform callback.
     let verifier_session = MockVerifierSession::<FD>::new(
         SessionType::SameDevice,
-        SESSION_URL.parse().unwrap(),
+        VERIFIER_URL.parse().unwrap(),
         Url::parse(RETURN_URL).unwrap().into(),
         reader_registration,
         transform_device_request,

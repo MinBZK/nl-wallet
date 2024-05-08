@@ -15,7 +15,7 @@ use wallet_common::{
 };
 
 /// The cleanup task that removes stale sessions runs every so often.
-pub const CLEANUP_INTERVAL_SECONDS: u64 = 120;
+pub const CLEANUP_INTERVAL_SECONDS: Duration = Duration::from_secs(120);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Progress {
@@ -217,7 +217,19 @@ where
 /// this to the holder in response to its first HTTPS request, so that it remains secret between them. Since in later
 /// protocol messages the issuer enforces that the correct session ID is present, this means that only the party that
 /// sends the first HTTP request can send later HTTP requests for the session.
-#[nutype(derive(Debug, Clone, PartialEq, Eq, Hash, From, Into, Display, Serialize, Deserialize))]
+#[nutype(derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    AsRef,
+    From,
+    Into,
+    Display,
+    Serialize,
+    Deserialize
+))]
 pub struct SessionToken(String);
 
 impl SessionToken {
