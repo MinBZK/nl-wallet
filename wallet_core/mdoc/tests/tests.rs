@@ -5,7 +5,9 @@ use std::{
     sync::Arc,
 };
 
+use base64::prelude::*;
 use futures::future;
+use ring::{hmac, rand};
 use rstest::rstest;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_with::{
@@ -26,9 +28,17 @@ use nl_wallet_mdoc::{
         data::{addr_street, pid_full_name, pid_given_name},
         TestDocuments,
     },
-    utils::{reader_auth::ReaderRegistration, serialization, x509::Certificate},
-    verifier::{DisclosureData, ItemsRequests, SessionType, Verifier},
+    utils::{
+        reader_auth::ReaderRegistration,
+        serialization::{self, cbor_deserialize},
+        x509::Certificate,
+    },
+    verifier::{
+        DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse, Verifier, VerifierUrlParameters,
+    },
+    ReaderEngagement,
 };
+use wallet_common::generator::TimeGenerator;
 
 type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
 
@@ -67,7 +77,19 @@ impl HttpClient for MockDisclosureHttpClient {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
         let msg = serialization::cbor_serialize(val).unwrap();
 
-        let session_data = self.verifier.process_message(&msg, session_token.into()).await.unwrap();
+        // A bit silly, but we have to extract the verifier base URL and parameters from the verifier URL,
+        // only to put them back together in `process_message`.
+        let params: VerifierUrlParameters = serde_urlencoded::from_str(url.query().unwrap()).unwrap();
+        let mut verifier_url = url.clone();
+        verifier_url.set_query(None); // remove the parameters
+        verifier_url.path_segments_mut().unwrap().pop(); // remove session_token
+        let verifier_base_url = verifier_url.try_into().unwrap();
+
+        let session_data = self
+            .verifier
+            .process_message(&msg, &session_token.into(), Some((verifier_base_url, params)))
+            .await
+            .unwrap();
 
         let response_msg = serialization::cbor_serialize(&session_data).unwrap();
         let response = serialization::cbor_deserialize(response_msg.as_slice()).unwrap();
@@ -85,10 +107,10 @@ fn setup_verifier_test(
     let disclosure_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
 
     let verifier = MockVerifier::new(
-        "http://example.com".parse().unwrap(),
         MockKeyring::new(disclosure_key),
         MemorySessionStore::default(),
         mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect(),
+        hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     )
     .into();
     let client = MockDisclosureHttpClient::new(Arc::clone(&verifier));
@@ -139,9 +161,9 @@ impl MdocDataSource for MockMdocDataSource {
 
 #[rstest]
 #[case(SessionType::SameDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
-#[case(SessionType::SameDevice, Some("http://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::SameDevice, Some("https://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
 #[case(SessionType::CrossDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
-#[case(SessionType::CrossDevice, Some("http://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
+#[case(SessionType::CrossDevice, Some("https://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
 #[case(SessionType::SameDevice, None, pid_full_name(), pid_given_name().into(), pid_given_name())]
 #[case(SessionType::SameDevice, None, pid_given_name(), pid_given_name().into(), pid_given_name())]
 #[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name() + addr_street())]
@@ -152,7 +174,7 @@ impl MdocDataSource for MockMdocDataSource {
 #[tokio::test]
 async fn test_disclosure(
     #[case] session_type: SessionType,
-    #[case] return_url: Option<Url>,
+    #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] stored_documents: TestDocuments,
     #[case] requested_documents: ItemsRequests,
     #[case] expected_documents: TestDocuments,
@@ -176,15 +198,46 @@ async fn test_disclosure(
     let (verifier_client, verifier, verifier_ca) =
         setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()], authorized_documents);
 
-    let (session_id, reader_engagement) = verifier
+    let session_token = verifier
         .new_session(
             requested_documents,
             session_type,
             Default::default(),
-            return_url.is_some(),
+            return_url_template.clone(),
         )
         .await
         .expect("creating new verifier session should succeed");
+
+    let response = verifier
+        .status_response(
+            &session_token,
+            &"https://app.example.com/app".parse().unwrap(),
+            &"https://example.com/disclosure".parse().unwrap(),
+            &TimeGenerator,
+        )
+        .await
+        .expect("should return status response for session");
+
+    let engagement_url = match response {
+        StatusResponse::Created { engagement_url } => engagement_url,
+        _ => panic!("should match StatusResponse::Created"),
+    };
+
+    // Deserialize the `ReaderEngagement` from the URL, just to make sure it's the correct type
+    let reader_engagement: ReaderEngagement = cbor_deserialize(
+        BASE64_URL_SAFE_NO_PAD
+            .decode(engagement_url.path_segments().unwrap().last().unwrap())
+            .expect("serializing an engagement should never fail")
+            .as_slice(),
+    )
+    .expect("should always deserialize");
+
+    // Parse the return URL from the engagement URL (if present)
+    let return_url = engagement_url
+        .query_pairs()
+        .find(|(key, _)| key == "return_url")
+        .map(|(_, url)| url.parse().unwrap());
+    assert!(return_url_template.is_some() == return_url.is_some());
 
     // Encode the `ReaderEngagement` and start the disclosure session on the holder side.
     let reader_engagement_bytes = serialization::cbor_serialize(&reader_engagement).unwrap();
@@ -226,7 +279,7 @@ async fn test_disclosure(
     });
 
     let disclosed_documents = verifier
-        .disclosed_attributes(&session_id, transcript_hash)
+        .disclosed_attributes(&session_token, transcript_hash)
         .await
         .expect("verifier disclosed attributes should be present");
 

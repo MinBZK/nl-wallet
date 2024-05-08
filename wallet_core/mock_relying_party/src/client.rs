@@ -3,10 +3,10 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    verifier::{DisclosedAttributes, ItemsRequests, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse},
 };
 use wallet_common::config::wallet_config::BaseUrl;
-use wallet_server::verifier::{ReturnUrlTemplate, StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
 
 pub struct WalletServerClient {
     client: Client,
@@ -27,7 +27,7 @@ impl WalletServerClient {
         items_requests: ItemsRequests,
         session_type: SessionType,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<(Url, Url, Url), anyhow::Error> {
+    ) -> Result<(Url, Url), anyhow::Error> {
         let response = self
             .client
             .post(self.base_url.join("/disclosure/sessions"))
@@ -42,17 +42,13 @@ impl WalletServerClient {
             .error_for_status()?
             .json::<StartDisclosureResponse>()
             .await?;
-        Ok((
-            response.session_url,
-            response.engagement_url,
-            response.disclosed_attributes_url,
-        ))
+        Ok((response.status_url, response.disclosed_attributes_url))
     }
 
-    pub async fn status(&self, session_id: SessionToken) -> Result<StatusResponse, anyhow::Error> {
+    pub async fn status(&self, session_token: SessionToken) -> Result<StatusResponse, anyhow::Error> {
         Ok(self
             .client
-            .get(self.base_url.join(&format!("/disclosure/{session_id}/status")))
+            .get(self.base_url.join(&format!("/disclosure/{session_token}/status")))
             .send()
             .await?
             .error_for_status()?
@@ -62,13 +58,13 @@ impl WalletServerClient {
 
     pub async fn disclosed_attributes(
         &self,
-        session_id: SessionToken,
+        session_token: SessionToken,
         transcript_hash: Option<String>,
     ) -> Result<DisclosedAttributes, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
             .clone()
-            .join(&format!("/disclosure/sessions/{session_id}/disclosed_attributes"));
+            .join(&format!("/disclosure/sessions/{session_token}/disclosed_attributes"));
         if let Some(hash) = transcript_hash {
             disclosed_attributes_url.set_query(Some(&format!("transcript_hash={}", hash)));
         }

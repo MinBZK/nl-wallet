@@ -47,7 +47,7 @@
             disclosedAttributesUrl = `${publicUrl}${window.location.pathname.endsWith('/') ? '' : '/'}disclosure/sessions/${sessionId}/disclosed_attributes`
             if (window.location.search.startsWith("?transcript_hash=")) {
                 let end = window.location.search.search("&")
-                end = end == -1 ? window.location.search.length : end
+                end = end === -1 ? window.location.search.length : end
                 disclosedAttributesUrl += window.location.search.substring(0, end)
             }
         }
@@ -73,7 +73,7 @@
             </p>
             {% endfor -%}
         </form>
-        <div id="session" {% if engagement.is_none() %}style="display: none;" {% endif %}>
+        <div id="session" {% if urls.is_none() %}style="display: none;" {% endif %}>
             <h2>Session</h2>
             <h3><span id="attributes"></span></h3>
             <dl>
@@ -83,7 +83,7 @@
             <dl id="result">
             </dl>
         </div>
-        {% match engagement -%}
+        {% match urls -%}
         {% when Some(urls) -%}
         <dl>
             <dt>Usecase</dt>
@@ -94,29 +94,22 @@
             (selected.as_ref().unwrap().session_type == MrpSessionType::SameDeviceNoReturn) %}
             <dd>{{ selected.as_ref().unwrap().session_type }}</dd>
         </dl>
-        <a href="{{ urls.0 }}" target="_blank" style="font-size: 2rem;" rel="noopener">
+        <a id="universal-link" href="#" target="_blank" style="font-size: 2rem;" rel="noopener" disabled>
             Open NL Wallet
         </a>
         {% else %}
         <dd>{{ selected.as_ref().unwrap().session_type }}</dd>
         </dl>
-        <canvas width="400" height="400" id="canvas" style="cursor: none;"></canvas>
+        <canvas width="400" height="400" id="universal-link" style="cursor: none;"></canvas>
 
         <script src="qrcodegen.min.js"></script>
         <script>
             document.getElementById("status").innerText = 'CREATED'
-
-            qrcodegen.init().then(function (api) {
-                let matrix = api.encodeText('{{ urls.0|safe }}', qrcodegen.Ecc.LOW)
-                let canvas = document.getElementById('canvas')
-                qrcodegen.drawCanvas(canvas, matrix)
-            })
         </script>
         {% endif %}
         <script>
-            console.log('Engagement URL: {{ urls.0|safe }}') // write engagement URL to console (Note: unescaped!)
-            sessionUrl = '{{ urls.1 }}' // overwrite sessionUrl
-            disclosedAttributesUrl = '{{ urls.2 }}' // overwrite disclosedAttributesUrl
+            sessionUrl = '{{ urls.0 }}' // overwrite sessionUrl
+            disclosedAttributesUrl = '{{ urls.1 }}' // overwrite disclosedAttributesUrl
         </script>
         {% when None -%}
         {% endmatch -%}
@@ -130,12 +123,13 @@
         let attributesSpan = document.getElementById('attributes')
         let interval = null
 
-        const loadStatus = (session_id) => {
+        const loadStatus = (session_token) => {
             fetch(sessionUrl).then(res => res.json()).then(body => {
                 sessionDiv.style = 'display: block;'
                 statusSpan.innerText = body.status
                 if (body.status == 'CREATED') {
                     console.log('session created, nothing happened yet')
+                    updateEngagementUrl(body.engagement_url)
                 } else if (body.status == 'WAITING') {
                     console.log('waiting for response, qr is scanned')
                 } else if (body.status == 'DONE') {
@@ -163,6 +157,26 @@
                 statusSpan.innerText = 'ERROR'
             })
         }
+
+        {% match urls -%}
+        {% when Some(urls) -%}
+        const updateEngagementUrl = (url) => {
+          console.log('Engagement URL: ' + url) // write engagement URL to console (Note: unescaped!)
+          {% if (selected.as_ref().unwrap().session_type == MrpSessionType::SameDevice) ||
+          (selected.as_ref().unwrap().session_type == MrpSessionType::SameDeviceNoReturn) %}
+          let sameDeviceUlElem = document.getElementById('universal-link')
+          sameDeviceUlElem.href = url
+          sameDeviceUlElem.removeAttribute('disabled');
+          {% else %}
+          qrcodegen.init().then(function (api) {
+              let matrix = api.encodeText(url, qrcodegen.Ecc.LOW)
+              let canvas = document.getElementById('universal-link')
+              qrcodegen.drawCanvas(canvas, matrix)
+          })
+          {% endif %}
+        }
+        {% when None -%}
+        {% endmatch -%}
 
         const showResults = (attributes) => {
             for (doctype in attributes) {
@@ -256,6 +270,11 @@
             statusSpan.innerText = 'DONE'
 
             resultList.parentElement.insertBefore(resultElem, resultList)
+
+            let ul = document.getElementById('universal-link')
+            if (ul) {
+              ul.remove()
+            }
         }
 
         // either start polling or, if we have a disclosedAttributesUrl, fetch the results
@@ -265,7 +284,7 @@
 
             interval = setInterval(() => {
                 loadStatus(sessionUrl)
-            }, 1000);
+            }, 2000);
         } else if (disclosedAttributesUrl) {
             sessionDiv.style = 'display: block;'
             fetch(disclosedAttributesUrl).then(res => res.json()).then(disclosed_attributes => {

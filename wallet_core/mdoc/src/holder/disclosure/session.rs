@@ -843,7 +843,7 @@ mod tests {
         };
 
         // Set up a basic `ReaderEngagement` and `MdocDataSource` (which is not actually consulted).
-        let (reader_engagement, _) = ReaderEngagement::new_reader_engagement(SESSION_URL.parse().unwrap()).unwrap();
+        let (reader_engagement, _) = ReaderEngagement::new_random(VERIFIER_URL.parse().unwrap()).unwrap();
         let mdoc_data_source = MockMdocDataSource::default();
 
         let error = DisclosureSession::start(
@@ -1224,7 +1224,7 @@ mod tests {
             return_url: Url::parse(RETURN_URL).unwrap().into(),
             data: CommonDisclosureData {
                 client,
-                verifier_url: SESSION_URL.parse().unwrap(),
+                verifier_url: VERIFIER_URL.parse().unwrap(),
                 certificate: vec![].into(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_type: SessionType::SameDevice,
@@ -1305,7 +1305,7 @@ mod tests {
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,
-                verifier_url: SESSION_URL.parse().unwrap(),
+                verifier_url: VERIFIER_URL.parse().unwrap(),
                 certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_type: SessionType::SameDevice,
@@ -1328,7 +1328,7 @@ mod tests {
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,
-                verifier_url: SESSION_URL.parse().unwrap(),
+                verifier_url: VERIFIER_URL.parse().unwrap(),
                 certificate: reader_key_pair.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_type: SessionType::SameDevice,

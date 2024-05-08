@@ -50,7 +50,7 @@ axum-server = "0.5.1"
 backtrace = "0.3.67"
 base64 = "0.21.0"
 biscuit = "0.7.0"
-chrono = { version = "0.4.26", default-features = false }
+chrono = { version = "0.4.38", default-features = false }
 ciborium = "0.2.1"
 clap = "4.4.7"
 clio = "0.3.4"

@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use nl_wallet_mdoc::{
     holder::{CborHttpClient, DisclosureSession},
-    verifier::SessionType,
+    verifier::{SessionType, StatusResponse},
     ItemsRequest,
 };
 use openid4vc::{issuance_session::HttpIssuanceSession, oidc::HttpOidcClient};
@@ -138,11 +138,18 @@ async fn main() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let StartDisclosureResponse {
-        session_url: _session_url,
-        engagement_url,
-        disclosed_attributes_url: _disclosed_attributes_url,
-    } = response.json::<StartDisclosureResponse>().await.unwrap();
+    let StartDisclosureResponse { status_url, .. } = response.json::<StartDisclosureResponse>().await.unwrap();
+
+    // obtain engagement_url
+    let response = client.get(status_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let status = response.json::<StatusResponse>().await.unwrap();
+    let engagement_url = match status {
+        StatusResponse::Created { engagement_url, .. } => engagement_url,
+        _ => panic!("should match StatusResponse::Created"),
+    };
 
     let proposal = wallet
         .start_disclosure(&engagement_url)

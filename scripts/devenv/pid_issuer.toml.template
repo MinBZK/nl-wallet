@@ -18,6 +18,7 @@ port = ${PID_ISSUER_RS_PORT}
 trust_anchors = [
     "${PID_CA_CRT}",
 ]
+ephemeral_id_secret = "deadbeefdeadbeefdeadbeefdeadbeef"
 
 [verifier.usecases]
 
