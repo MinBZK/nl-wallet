@@ -107,7 +107,7 @@ async fn do_and_verify_iso_example_disclosure() {
 /// Disclose some of the attributes of the example mdoc from the spec.
 #[tokio::test]
 async fn iso_examples_custom_disclosure() {
-    let request = DeviceRequest::new(vec![ItemsRequest {
+    let request = DeviceRequest::from_items_requests(vec![ItemsRequest {
         doc_type: EXAMPLE_DOC_TYPE.to_string(),
         name_spaces: IndexMap::from([(
             EXAMPLE_NAMESPACE.to_string(),

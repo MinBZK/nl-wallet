@@ -19,7 +19,7 @@ use wallet_common::config::wallet_config::BaseUrl;
 use crate::{askama_axum, client::WalletServerClient, settings::Settings};
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    verifier::{DisclosedAttributes, ItemsRequests, SessionType},
+    verifier::{DisclosedAttributes, ItemsRequests},
 };
 
 #[derive(Debug)]
@@ -121,10 +121,6 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
                 .get(&selected.usecase)
                 .ok_or(anyhow::Error::msg("usecase not found"))?
                 .clone(),
-            match selected.session_type {
-                MrpSessionType::SameDevice | MrpSessionType::SameDeviceNoReturn => SessionType::SameDevice,
-                _ => SessionType::CrossDevice,
-            },
             return_url_template,
         )
         .await?;

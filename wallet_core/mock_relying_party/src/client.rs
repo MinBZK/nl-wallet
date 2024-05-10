@@ -3,7 +3,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate},
 };
 use wallet_common::config::wallet_config::BaseUrl;
 use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
@@ -25,7 +25,6 @@ impl WalletServerClient {
         &self,
         usecase: String,
         items_requests: ItemsRequests,
-        session_type: SessionType,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<(Url, Url), anyhow::Error> {
         let response = self
@@ -34,7 +33,6 @@ impl WalletServerClient {
             .json(&StartDisclosureRequest {
                 usecase,
                 items_requests,
-                session_type,
                 return_url_template,
             })
             .send()
@@ -43,17 +41,6 @@ impl WalletServerClient {
             .json::<StartDisclosureResponse>()
             .await?;
         Ok((response.status_url, response.disclosed_attributes_url))
-    }
-
-    pub async fn status(&self, session_token: SessionToken) -> Result<StatusResponse, anyhow::Error> {
-        Ok(self
-            .client
-            .get(self.base_url.join(&format!("/disclosure/{session_token}/status")))
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<StatusResponse>()
-            .await?)
     }
 
     pub async fn disclosed_attributes(

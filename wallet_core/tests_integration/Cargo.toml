@@ -53,6 +53,7 @@ rand_core.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
+serde_urlencoded.workspace = true
 serial_test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "sync", "parking_lot"] }
 tracing.workspace = true

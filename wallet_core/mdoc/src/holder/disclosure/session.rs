@@ -1,11 +1,11 @@
-use base64::prelude::*;
 use futures::future::TryFutureExt;
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 use url::Url;
 use webpki::TrustAnchor;
 
-use wallet_common::{generator::TimeGenerator, utils};
+use wallet_common::generator::TimeGenerator;
 
 use crate::{
     device_retrieval::DeviceRequest,
@@ -19,7 +19,7 @@ use crate::{
         crypto::SessionKey,
         keys::{KeyFactory, MdocEcdsaKey},
         reader_auth::ReaderRegistration,
-        serialization::{self, CborError, TaggedBytes},
+        serialization::{self, CborError},
         x509::Certificate,
     },
     verifier::SessionType,
@@ -32,7 +32,11 @@ use super::{
 };
 
 const REFERRER_URL: &str = "https://referrer.url/";
-const TRANSCRIPT_HASH_PARAM: &str = "transcript_hash";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VerifierUrlParameters {
+    pub session_type: SessionType,
+}
 
 pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 
@@ -94,8 +98,6 @@ where
     pub async fn start<'a, S>(
         client: H,
         reader_engagement_bytes: &[u8],
-        return_url: Option<Url>,
-        session_type: SessionType,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self>
@@ -109,6 +111,11 @@ where
 
         // Extract the verifier URL, return an error if it is is missing.
         let verifier_url = reader_engagement.verifier_url()?;
+
+        // Parse the `SessionType` from the verifier URL.
+        let VerifierUrlParameters { session_type, .. } =
+            serde_urlencoded::from_str(verifier_url.query().unwrap_or_default())
+                .map_err(HolderError::VerifierUrlSessionType)?;
 
         // Create a new `DeviceEngagement` message and private key. Use a
         // static referrer URL, as this is not a feature we actually use.
@@ -142,19 +149,20 @@ where
         // Decrypt and verify the received `DeviceRequest`. From this point onwards, we should end
         // the session by sending our own `SessionData` to the verifier if we
         // encounter an error.
-        let return_url_ref = return_url.as_ref();
         let transcript_ref = &transcript;
-        let (check_result, certificate, reader_registration) =
+        let (check_result, certificate, reader_registration, return_url) =
             async { session_data.decrypt_and_deserialize(&reader_key) }
                 .and_then(|device_request| async move {
-                    Self::verify_device_request(
-                        &device_request,
-                        return_url_ref,
-                        transcript_ref,
-                        mdoc_data_source,
-                        trust_anchors,
-                    )
-                    .await
+                    let (check_result, certificate, reader_registration) =
+                        Self::verify_device_request(&device_request, transcript_ref, mdoc_data_source, trust_anchors)
+                            .await?;
+
+                    Ok((
+                        check_result,
+                        certificate,
+                        reader_registration,
+                        device_request.return_url,
+                    ))
                 })
                 .or_else(|error| async { Self::report_error_back(error, &client, verifier_url).await })
                 .await?;
@@ -178,10 +186,7 @@ where
             }
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
                 DisclosureSession::Proposal(DisclosureProposal {
-                    // If we have a return URL, add the hash of the `SessionTranscript` to it.
-                    return_url: return_url
-                        .map(|url| Self::add_transcript_hash_to_url(url, &transcript))
-                        .transpose()?,
+                    return_url,
                     data,
                     device_key,
                     proposed_documents,
@@ -215,7 +220,6 @@ where
     /// `SessionData` received from the verifier, which should contain a `DeviceRequest`.
     async fn verify_device_request<'a, S>(
         device_request: &DeviceRequest,
-        return_url: Option<&Url>,
         session_transcript: &SessionTranscript,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
@@ -236,7 +240,7 @@ where
 
         // Verify the return URL against the prefix in the `ReaderRegistration`,
         // if it was provided when starting the disclosure session.
-        if let Some(return_url) = return_url {
+        if let Some(ref return_url) = device_request.return_url {
             if !reader_registration.return_url_prefix.matches_url(return_url) {
                 let urls = Box::new((reader_registration.return_url_prefix.into(), return_url.clone()));
 
@@ -278,19 +282,6 @@ where
         let result = VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents);
 
         Ok((result, certificate, reader_registration))
-    }
-
-    fn add_transcript_hash_to_url(
-        mut url: Url,
-        session_transcript: &SessionTranscript,
-    ) -> std::result::Result<Url, CborError> {
-        let session_transcript_bytes = serialization::cbor_serialize(&TaggedBytes(session_transcript))?;
-        let transcript_hash = utils::sha256(&session_transcript_bytes);
-
-        url.query_pairs_mut()
-            .append_pair(TRANSCRIPT_HASH_PARAM, &BASE64_URL_SAFE_NO_PAD.encode(transcript_hash));
-
-        Ok(url)
     }
 
     fn data(&self) -> &CommonDisclosureData<H> {
@@ -504,6 +495,12 @@ mod tests {
             _ => panic!("Disclosure session should not have missing attributes"),
         };
 
+        // Test if the return `Url` matches the input.
+        let return_url = return_url.as_ref().unwrap();
+        let expected_return_url = verifier_session.return_url.as_ref().unwrap();
+
+        assert_eq!(return_url, expected_return_url);
+
         // Fill up `payloads` with any further messages sent.
         while let Ok(payload) = payload_receiver.try_recv() {
             payloads.push(payload);
@@ -540,21 +537,7 @@ mod tests {
         // Use the `DeviceEngagement` sent to reconstruct the `SessionTranscript`.
         let session_transcript = SessionTranscript::new(session_type, &reader_engagement, &device_engagement).unwrap();
 
-        // Use the reconstructed `SessionTranscript` to check the generated
-        // `transcript_hash` on the return URL.
-        let transcript_hash = return_url
-            .expect("return URL should be provided by session")
-            .query_pairs()
-            .find(|(key, _)| key == TRANSCRIPT_HASH_PARAM)
-            .map(|(_, value)| BASE64_URL_SAFE_NO_PAD.decode(value.as_ref()))
-            .expect("return URL should contain \"transcript_hash\" query parameter")
-            .expect("return URL \"transcript_hash\" query parameter should be base64 encoded");
-        let expected_transcript_hash =
-            utils::sha256(&serialization::cbor_serialize(&TaggedBytes(&session_transcript)).unwrap());
-
-        assert_eq!(transcript_hash, expected_transcript_hash);
-
-        // Also use the `SessionTranscript` to reconstruct the `DeviceAuthentication`
+        // Use the `SessionTranscript` to reconstruct the `DeviceAuthentication`
         // for every `Document` received in order to verify the signatures received
         // for each of these.
         assert_eq!(documents.len(), public_keys.len());
@@ -582,7 +565,7 @@ mod tests {
         // Starting a disclosure session should succeed with a disclosure proposal.
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, _) = disclosure_session_start(
-            SessionType::SameDevice,
+            SessionType::CrossDevice,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -598,14 +581,11 @@ mod tests {
             DisclosureSession::Proposal(ref session) => session,
         };
 
-        // Test if the return `Url` scheme and host match the input and that the
-        // resulting return URL now includes a `transcript_hash` query parameter.
+        // Test if the return `Url` matches the input.
         let return_url = proposal_session.return_url.as_ref().unwrap();
         let expected_return_url = verifier_session.return_url.as_ref().unwrap();
 
-        assert_eq!(return_url.scheme(), expected_return_url.scheme());
-        assert_eq!(return_url.host(), expected_return_url.host());
-        assert!(return_url.query_pairs().any(|(key, _)| key == TRANSCRIPT_HASH_PARAM));
+        assert_eq!(return_url, expected_return_url);
 
         // Test if the `ReaderRegistration` matches the input.
         assert_eq!(
@@ -786,6 +766,77 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_disclosure_session_start_error_verifier_url_session_type_missing() {
+        // Starting a `DisclosureSession` with a `ReaderEngagement` that contains
+        // a verifier URL without a session_type should result in an error.
+        let mut payloads = Vec::new();
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            &mut payloads,
+            |mut verifier_session| {
+                // Overwrite the verifier URL with a version that does not have the `session_type` added.
+                verifier_session
+                    .reader_engagement
+                    .0
+                    .connection_methods
+                    .as_mut()
+                    .unwrap()
+                    .first_mut()
+                    .unwrap()
+                    .0
+                    .connection_options
+                    .0
+                    .uri = VERIFIER_URL.parse().unwrap();
+
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Holder(HolderError::VerifierUrlSessionType(_)));
+        assert!(payloads.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_verifier_url_session_type_invalid() {
+        // Starting a `DisclosureSession` with a `ReaderEngagement` that contains
+        // a verifier URL with an invalid session_type should result in an error.
+        let mut payloads = Vec::new();
+        let error = disclosure_session_start(
+            SessionType::SameDevice,
+            ReaderCertificateKind::WithReaderRegistration,
+            &mut payloads,
+            |mut verifier_session| {
+                verifier_session
+                    .reader_engagement
+                    .0
+                    .connection_methods
+                    .as_mut()
+                    .unwrap()
+                    .first_mut()
+                    .unwrap()
+                    .0
+                    .connection_options
+                    .0
+                    .uri = format!("{}?session_type=invalid", VERIFIER_URL).parse().unwrap();
+
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, Error::Holder(HolderError::VerifierUrlSessionType(_)));
+        assert!(payloads.is_empty());
+    }
+
+    #[tokio::test]
     async fn test_disclosure_session_start_error_verifier_ephemeral_key_missing() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that does not
         // contain an ephemeral verifier public key should result in an error.
@@ -813,12 +864,27 @@ mod tests {
     async fn test_disclosure_session_start_error_session_type() {
         // Starting a `DisclosureSession` with the wrong `SessionType`
         // should result in a decryption error.
-        let mut payloads = Vec::with_capacity(2);
+        let mut payloads = Vec::new();
         let error = disclosure_session_start(
-            SessionType::CrossDevice,
+            SessionType::SameDevice,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
-            identity,
+            |mut verifier_session| {
+                verifier_session
+                    .reader_engagement
+                    .0
+                    .connection_methods
+                    .as_mut()
+                    .unwrap()
+                    .first_mut()
+                    .unwrap()
+                    .0
+                    .connection_options
+                    .0
+                    .uri = format!("{}?session_type=cross_device", VERIFIER_URL).parse().unwrap();
+
+                verifier_session
+            },
             identity,
             identity,
         )
@@ -843,14 +909,13 @@ mod tests {
         };
 
         // Set up a basic `ReaderEngagement` and `MdocDataSource` (which is not actually consulted).
-        let (reader_engagement, _) = ReaderEngagement::new_random(VERIFIER_URL.parse().unwrap()).unwrap();
+        let (reader_engagement, _) =
+            ReaderEngagement::new_random(VERIFIER_URL.parse().unwrap(), SessionType::SameDevice).unwrap();
         let mdoc_data_source = MockMdocDataSource::default();
 
         let error = DisclosureSession::start(
             client,
             &serialization::cbor_serialize(&reader_engagement).unwrap(),
-            None,
-            SessionType::SameDevice,
             &mdoc_data_source,
             &[],
         )
@@ -1209,9 +1274,11 @@ mod tests {
     where
         F: Fn() -> MockHttpClientResponse,
     {
+        let session_type = SessionType::SameDevice;
+        let session_transcript = create_basic_session_transcript(session_type);
+
         let privkey = SecretKey::random(&mut OsRng);
         let pubkey = SecretKey::random(&mut OsRng).public_key();
-        let session_transcript = create_basic_session_transcript();
         let device_key = SessionKey::new(&privkey, &pubkey, &session_transcript, SessionKeyUser::Device).unwrap();
 
         let (payload_sender, payload_receiver) = mpsc::channel(256);
@@ -1227,7 +1294,7 @@ mod tests {
                 verifier_url: VERIFIER_URL.parse().unwrap(),
                 certificate: vec![].into(),
                 reader_registration: ReaderRegistration::new_mock(),
-                session_type: SessionType::SameDevice,
+                session_type,
             },
             device_key,
             proposed_documents: vec![create_example_proposed_document()],

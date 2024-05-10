@@ -84,8 +84,6 @@ where
         Self::start(
             CborHttpClient(http_client),
             &disclosure_uri.reader_engagement_bytes,
-            disclosure_uri.return_url,
-            disclosure_uri.session_type,
             mdoc_data_source,
             trust_anchors,
         )
@@ -168,17 +166,6 @@ mod mock {
 
     pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
     pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
-
-    // For testing, provide a default for `DisclosureUriData`.
-    impl Default for DisclosureUriData {
-        fn default() -> Self {
-            DisclosureUriData {
-                reader_engagement_bytes: Default::default(),
-                return_url: None,
-                session_type: SessionType::CrossDevice,
-            }
-        }
-    }
 
     // For convenience, the default `SessionState` is a proposal.
     impl Default for SessionState {
@@ -272,7 +259,9 @@ mod mock {
     impl Default for MockMdocDisclosureSession {
         fn default() -> Self {
             Self {
-                disclosure_uri: Default::default(),
+                disclosure_uri: DisclosureUriData {
+                    reader_engagement_bytes: Default::default(),
+                },
                 certificate: READER_KEY.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_state: Default::default(),

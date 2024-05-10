@@ -17,7 +17,9 @@ use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
 use tests_integration_common::*;
 use wallet::errors::DisclosureError;
 use wallet_common::utils;
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{
+    DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse, StatusParams,
+};
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
     let response = client.get(status_url).send().await.unwrap();
@@ -52,7 +54,6 @@ async fn test_disclosure_usecases_ok(
 ) {
     let start_request = StartDisclosureRequest {
         usecase,
-        session_type,
         items_requests: test_documents.into(),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
@@ -101,9 +102,12 @@ async fn test_disclosure_usecases_ok(
     assert_eq!(response.status(), StatusCode::OK);
 
     let StartDisclosureResponse {
-        status_url,
+        mut status_url,
         mut disclosed_attributes_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
+
+    let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
+    status_url.set_query(status_query.as_str().into());
 
     // disclosed attributes endpoint should return a response with code Bad Request when the status is not DONE
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
@@ -139,9 +143,18 @@ async fn test_disclosure_usecases_ok(
     // after disclosure it should have status "Done"
     assert_matches!(get_verifier_status(&client, status_url).await, StatusResponse::Done);
 
-    // passing the transcript_hash this way only works reliably if it is the only query paramater (which should be the case here)
+    // Copy the nonce from the received return URL to the disclosed attributes request.
     if let Some(url) = return_url {
-        disclosed_attributes_url.set_query(url.query());
+        let nonce = url
+            .query_pairs()
+            .find(|(key, _)| key == "nonce")
+            .map(|(_, value)| value.into_owned())
+            .expect("nonce should be present on return URL");
+        let disclosed_attributes_query = serde_urlencoded::to_string(DisclosedAttributesParams {
+            return_url_nonce: nonce.into(),
+        })
+        .unwrap();
+        disclosed_attributes_url.set_query(disclosed_attributes_query.as_str().into());
     }
 
     let response = client.get(disclosed_attributes_url).send().await.unwrap();
@@ -177,7 +190,6 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        session_type: SessionType::SameDevice,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
             request_info: None,
@@ -204,9 +216,15 @@ async fn test_disclosure_without_pid() {
 
     // does it exist for the RP side of things?
     let StartDisclosureResponse {
-        status_url,
+        mut status_url,
         disclosed_attributes_url,
     } = response.json::<StartDisclosureResponse>().await.unwrap();
+
+    let status_query = serde_urlencoded::to_string(StatusParams {
+        session_type: SessionType::SameDevice,
+    })
+    .unwrap();
+    status_url.set_query(status_query.as_str().into());
 
     assert_matches!(
         get_verifier_status(&client, status_url.clone()).await,

@@ -7,6 +7,7 @@ use coset::CoseSign1;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use url::Url;
 
 use crate::{
     iso::{engagement::*, mdocs::*},
@@ -18,26 +19,13 @@ use crate::{
 
 /// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
 /// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceRequest {
     pub version: DeviceRequestVersion,
     pub doc_requests: Vec<DocRequest>,
-}
-
-impl DeviceRequest {
-    pub fn new(items_requests: Vec<ItemsRequest>) -> DeviceRequest {
-        DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: items_requests
-                .into_iter()
-                .map(|items_request| DocRequest {
-                    items_request: items_request.into(),
-                    reader_auth: None,
-                })
-                .collect(),
-        }
-    }
+    pub return_url: Option<Url>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
@@ -106,3 +94,29 @@ pub type DataElements = IndexMap<DataElementIdentifier, IndentToRetain>;
 ///  Claimed intention of the RP to (not) retain the attribute value after receiving and verifying it, as part of
 /// [`DataElements`] within a [`ItemsRequest`].
 pub type IndentToRetain = bool;
+
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use super::*;
+
+    impl DeviceRequest {
+        pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
+            DeviceRequest {
+                doc_requests,
+                ..Default::default()
+            }
+        }
+
+        pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
+            Self::from_doc_requests(
+                items_requests
+                    .into_iter()
+                    .map(|items_request| DocRequest {
+                        items_request: items_request.into(),
+                        reader_auth: None,
+                    })
+                    .collect(),
+            )
+        }
+    }
+}
