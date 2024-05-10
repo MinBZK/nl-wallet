@@ -122,6 +122,16 @@ platform :android do
             "--dart-define=ENV_CONFIGURATION=true",
       )
 
+      # Upload debug symbols to Sentry.
+      # Requires the following environment variables: [SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL].
+      # SENTRY_AUTH_TOKEN enables the sentry_dart_plugin, after which the existense of the other variables is checked.
+      if ENV["SENTRY_AUTH_TOKEN"] then
+          UI.user_error!("Missing environment variable 'SENTRY_ORG'") unless ENV["SENTRY_ORG"]
+          UI.user_error!("Missing environment variable 'SENTRY_PROJECT'") unless ENV["SENTRY_PROJECT"]
+          UI.user_error!("Missing environment variable 'SENTRY_URL'") unless ENV["SENTRY_URL"]
+          sh(*flutter, "packages", "pub", "run",  "sentry_dart_plugin")
+      end
+
       sh("mv", "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}", "../#{package_name}-#{version}-#{build_mode}.#{file_format}")
     end
   end

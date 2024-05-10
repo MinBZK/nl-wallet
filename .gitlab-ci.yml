@@ -625,7 +625,7 @@ build-gba-hc-converter-image:
 
 .build-android-app-latest:
   extends: [.env-ont-k8s, .build-android-app]
-  rules: !reference [.default-branch, rules]
+  # rules: !reference [.default-branch, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
@@ -639,6 +639,10 @@ build-android-app-latest-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_ONT}"
     SENTRY_ENVIRONMENT: "ont"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
+    SENTRY_ORG: "${SENTRY_ORG_ONT}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-latest-profile:
   extends: .build-android-app-latest
