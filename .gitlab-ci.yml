@@ -809,7 +809,7 @@ build-ios-app-mock:
 
 deploy-android-app-latest:
   extends: [.env-ont-k8s, .deploy-android-app]
-  rules: !reference [.default-branch, rules]
+  # rules: !reference [.default-branch, rules]
   needs:
     - job: build-android-app-latest-release
       artifacts: true
