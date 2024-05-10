@@ -665,6 +665,10 @@ build-android-app-mock-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
+    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
+    SENTRY_URL: "https://sentry.io/"
 
 .build-android-app-demo:
   extends: [.env-demo-k8s, .build-android-app]
@@ -682,6 +686,10 @@ build-android-app-demo-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_DEMO}"
     SENTRY_ENVIRONMENT: "demo"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
+    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-demo-profile:
   extends: .build-android-app-demo
