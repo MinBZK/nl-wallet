@@ -165,9 +165,15 @@ function generate_wp_signing_key {
 #
 # $1 name of the key
 function generate_wp_random_key {
-    echo -e "${INFO}Generating random key${NC}"
+    echo -e "${INFO}Generating random wallet provider key${NC}"
     # Replace '00' and '0a' by fixed values 'X' and 'Y'
     random_bytes 32 | LC_ALL=C tr '\000\n' "XY" > "${TARGET_DIR}/wallet_provider/$1.key"
+}
+
+# Generate a random key (64 bytes)
+function generate_ws_random_key {
+    echo -e "${INFO}Generating random wallet server key${NC}"
+    random_bytes 64 > "${TARGET_DIR}/mock_relying_party/$1.key"
 }
 
 # Generate an EC root CA for the pid_issuer

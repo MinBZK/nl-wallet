@@ -57,7 +57,7 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
         .route("/", get(index))
         .route("/", post(engage))
         .route(
-            "/disclosure/sessions/:session_id/disclosed_attributes",
+            "/disclosure/sessions/:session_token/disclosed_attributes",
             get(disclosed_attributes),
         )
         .route("/marx.min.css", get(marxcss))
@@ -88,31 +88,31 @@ enum MrpSessionType {
 #[derive(Template)]
 #[template(path = "disclosure.html")]
 struct DisclosureTemplate {
-    engagement: Option<(String, String, String)>,
+    urls: Option<(String, String)>,
     selected: Option<SelectForm>,
     usecases: Vec<String>,
 }
 
 async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
     Ok(askama_axum::into_response(&DisclosureTemplate {
-        engagement: None,
+        urls: None,
         selected: None,
         usecases: state.usecases.keys().cloned().collect(),
     }))
 }
 
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
-    // return URL is just http://public.url/#{session_id}
+    // return URL is just http://public.url/#{session_token}
     let return_url_template = match selected.session_type {
         MrpSessionType::CrossDeviceWithReturn | MrpSessionType::SameDevice => Some(
-            format!("{}#{{session_id}}", state.public_url)
+            format!("{}#{{session_token}}", state.public_url)
                 .parse()
                 .expect("should always be a valid ReturnUrlTemplate"),
         ),
         _ => None,
     };
 
-    let (session_url, engagement_url, disclosed_attributes_url) = state
+    let (status_url, disclosed_attributes_url) = state
         .client
         .start(
             selected.usecase.clone(),
@@ -132,11 +132,7 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
     let mrp_disclosed_attributes_url: Url = state.public_url.join(&disclosed_attributes_url.path()[1..]); // `.path()` always starts with a `/`
 
     Ok(askama_axum::into_response(&DisclosureTemplate {
-        engagement: Some((
-            engagement_url.to_string(),
-            session_url.to_string(),
-            mrp_disclosed_attributes_url.to_string(),
-        )),
+        urls: Some((status_url.to_string(), mrp_disclosed_attributes_url.to_string())),
         selected: Some(SelectForm {
             usecase: selected.usecase,
             session_type: selected.session_type,
@@ -153,12 +149,12 @@ struct DisclosedAttributesParams {
 // for now this just passes the disclosed attributes on as they are received
 async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
-    Path(session_id): Path<SessionToken>,
+    Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Json<DisclosedAttributes>> {
     let attributes = state
         .client
-        .disclosed_attributes(session_id, params.transcript_hash)
+        .disclosed_attributes(session_token, params.transcript_hash)
         .await?;
     Ok(Json(attributes))
 }

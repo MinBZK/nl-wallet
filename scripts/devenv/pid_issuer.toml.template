@@ -16,6 +16,7 @@ api_key = '${PID_ISSUER_API_KEY}'
 
 [verifier]
 trust_anchors = [] # Empty list
+ephemeral_id_secret = "deadbeefdeadbeefdeadbeefdeadbeef"
 
 # Empty map
 [verifier.usecases]

@@ -327,17 +327,13 @@ async fn test_disclosure_expired<S>(
     let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
 
     // Fetch the status, this should return OK and be in the Created state.
-    let response = client
-        .get(disclosure_response.session_url.clone())
-        .send()
-        .await
-        .unwrap();
+    let response = client.get(disclosure_response.status_url.clone()).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
 
     let status = response.json::<StatusResponse>().await.unwrap();
 
-    assert_matches!(status, StatusResponse::Created);
+    assert_matches!(status, StatusResponse::Created { .. });
 
     // Fetching the disclosed attributes should return 400, since the session is not finished.
     let response = client
@@ -353,7 +349,7 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time;
 
     time::pause();
-    time::advance(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)).await;
+    time::advance(CLEANUP_INTERVAL_SECONDS).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.
@@ -362,11 +358,7 @@ async fn test_disclosure_expired<S>(
     }
 
     // Fetching the status should return OK and be in the Expired state.
-    let response = client
-        .get(disclosure_response.session_url.clone())
-        .send()
-        .await
-        .unwrap();
+    let response = client.get(disclosure_response.status_url.clone()).send().await.unwrap();
 
     let status = response.json::<StatusResponse>().await.unwrap();
 
@@ -385,7 +377,7 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);
 
     time::pause();
-    time::advance(Duration::from_secs(CLEANUP_INTERVAL_SECONDS)).await;
+    time::advance(CLEANUP_INTERVAL_SECONDS).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.
@@ -394,7 +386,7 @@ async fn test_disclosure_expired<S>(
     }
 
     // Both the status and disclosed attribute requests should now return 404.
-    let response = client.get(disclosure_response.session_url).send().await.unwrap();
+    let response = client.get(disclosure_response.status_url).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
