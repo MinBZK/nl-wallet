@@ -625,7 +625,7 @@ build-gba-hc-converter-image:
 
 .build-android-app-latest:
   extends: [.env-ont-k8s, .build-android-app]
-  # rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
@@ -809,7 +809,7 @@ build-ios-app-mock:
 
 deploy-android-app-latest:
   extends: [.env-ont-k8s, .deploy-android-app]
-  # rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request, rules]
   needs:
     - job: build-android-app-latest-release
       artifacts: true
