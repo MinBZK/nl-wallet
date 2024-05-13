@@ -28,7 +28,7 @@ serde_urlencoded.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["macros", "parking_lot", "rt-multi-thread"] }
-tower-http = { workspace = true, features = ["trace"] }
+tower-http = { workspace = true, features = ["trace", "fs"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
 url = { workspace = true, features = ["serde"] }

@@ -1,17 +1,17 @@
-use std::{collections::HashMap, result::Result as StdResult, sync::Arc};
+use std::{collections::HashMap, env, path::PathBuf, result::Result as StdResult, sync::Arc};
 
 use askama::Template;
 use axum::{
     extract::{Path, Query, State},
+    handler::HandlerWithoutStateExt,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
     Form, Json, Router,
 };
-use axum_extra::response::{Css, JavaScript, Wasm};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use tower_http::trace::TraceLayer;
+use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::warn;
 use url::Url;
 
@@ -55,6 +55,8 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
         usecases: settings.usecases,
     });
 
+    let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
+
     let app = Router::new()
         .route("/", get(index))
         .route("/", post(engage))
@@ -62,11 +64,11 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
             "/disclosure/sessions/:session_token/disclosed_attributes",
             get(disclosed_attributes),
         )
-        .route("/marx.min.css", get(marxcss))
-        .route("/qrcodegen.min.js", get(qrcodegenjs))
-        .route("/qrcodegen.wasm", get(qrcodegenwasm))
         .layer(TraceLayer::new_for_http())
-        .with_state(application_state);
+        .with_state(application_state)
+        .fallback_service(
+            ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+        );
 
     Ok(app)
 }
@@ -170,17 +172,4 @@ async fn disclosed_attributes(
 ) -> Result<Json<DisclosedAttributes>> {
     let attributes = state.client.disclosed_attributes(session_token, params.nonce).await?;
     Ok(Json(attributes))
-}
-
-// static files to not depend on external resources
-async fn qrcodegenjs() -> Result<JavaScript<&'static str>> {
-    Ok(JavaScript(include_str!("../templates/qrcodegen.min.js")))
-}
-
-async fn qrcodegenwasm() -> Result<Wasm<&'static [u8; 28041]>> {
-    Ok(Wasm(include_bytes!("../templates/qrcodegen.wasm")))
-}
-
-async fn marxcss() -> Result<Css<&'static str>> {
-    Ok(Css(include_str!("../templates/marx.min.css")))
 }
