@@ -616,8 +616,6 @@ build-gba-hc-converter-image:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
-        sentry_dsn:"${SENTRY_DSN:-}" \
-        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION}"
   after_script:
@@ -739,8 +737,6 @@ build-android-app-demo-profile:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
-        sentry_dsn:"${SENTRY_DSN:-}" \
-        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
