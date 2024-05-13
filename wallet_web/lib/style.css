@@ -1,0 +1,9 @@
+
+:root, :host {
+    --blue-color: #01689B;
+    --bluer-color: #00425e;
+}
+
+a {
+    color: var(--blue-color) !important;
+}
