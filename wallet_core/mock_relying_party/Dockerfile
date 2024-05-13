@@ -9,7 +9,10 @@ RUN cargo build --locked --target x86_64-unknown-linux-musl --release --package 
 
 # Bundle Stage
 FROM scratch
+
 COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/mock_relying_party .
 COPY --from=builder /etc/ssl/certs/ /etc/ssl/certs/
-USER 1000
-CMD ["./mock_relying_party"]
+COPY mock_relying_party/assets/ ./assets/
+COPY mock_relying_party/web-vue/dist ./assets/vue
+
+ENTRYPOINT ["./mock_relying_party"]

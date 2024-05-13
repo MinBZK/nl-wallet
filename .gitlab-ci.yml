@@ -334,16 +334,34 @@ test-codegen:
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
+build-frontend-lib:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
+  script:
+    - (cd wallet_web; npm ci && npm run build)
+    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/vanillajs/
+    - (cd wallet_core/mock_relying_party/web-vue; npm ci && npm run type-check && npx vite build --base="/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/vue")
+  artifacts:
+    paths:
+      - wallet_web/dist
+      - wallet_core/mock_relying_party/web-vue/dist
+      - wallet_core/mock_relying_party/assets/vanillajs/nl-wallet-web.iife.js
+
 dependency-check:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:88a6ff08245ccee24e4625fc19533985ebc745223a600e193b5e9b0c946f2c8b"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:4c32c66768c6e1de95dda6bc51dc4a637f9ca7ed16a8ad1a29079281dda9dcc7"
   before_script:
+    - (cd wallet_web; npm ci)
+    - (cd wallet_core/mock_relying_party/web-vue; npm ci)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
   script:
     - dependency-check.sh
       --data $CI_PROJECT_DIR/dependency_check_data
       --disableDart
+      --disableAssembly
+      --disableYarnAudit
       --enableExperimental
       --format "HTML" --format "JSON" --format "XML"
       --scan "."
@@ -515,6 +533,8 @@ build-mock-relying-party-image:
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
+    - job: build-frontend-lib
+      artifacts: true
   script:
     - /kaniko/executor
       --context wallet_core
