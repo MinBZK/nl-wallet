@@ -6,6 +6,7 @@
 #   This script requires this repo to exist in the same directory that contains the NL Wallet repo. Otherwise, customize
 #   the DIGID_CONNECTOR_PATH environment variable in `scripts/.env`
 # - mock_relying_party
+# - wallet_server
 # - pid_issuer
 # - wallet_provider
 # - wallet
@@ -48,6 +49,7 @@ Where:
                                 This requires a PostgreSQL database to be running, which can be provided by the
                                 'docker' service.
     ws, wallet_server:          Start the wallet_server.
+    pi, pid_issuer:             Start the pid_issuer.
     mrp, mock_relying_party:    Start the mock_relying_party.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
@@ -78,6 +80,7 @@ expect_command flutter "Missing binary 'flutter', please install Flutter"
 MOCK_RELYING_PARTY=1
 WALLET_PROVIDER=1
 WALLET_SERVER=1
+PID_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
 CONFIG_SERVER=1
@@ -108,6 +111,10 @@ do
             ;;
         ws|wallet_server)
             WALLET_SERVER=0
+            shift # past argument
+            ;;
+        pi|pid_issuer)
+            PID_ISSUER=0
             shift # past argument
             ;;
         mrp|mock_relying_party)
@@ -143,6 +150,7 @@ do
             DIGID_CONNECTOR=0
             MOCK_RELYING_PARTY=0
             WALLET_SERVER=0
+            PID_ISSUER=0
             WALLET_PROVIDER=0
             CONFIG_SERVER=0
             BRP_PROXY=0
@@ -154,6 +162,7 @@ do
             POSTGRES=0
             MOCK_RELYING_PARTY=0
             WALLET_SERVER=0
+            PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
             CONFIG_SERVER=0
@@ -252,43 +261,73 @@ fi
 
 
 ########################################################################
+# Manage pid_issuer
+
+if [ "${PID_ISSUER}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage pid_issuer${NC}"
+
+    cd "${WALLET_SERVER_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}pid_issuer${NC}"
+        killall pid_issuer || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        pushd "${WALLET_CORE_DIR}"
+        echo -e "${INFO}Running pid_issuer database migrations${NC}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migration -- fresh
+        popd
+
+        echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
+        cargo build --features "allow_http_return_url,issuance" --bin wallet_server \
+              > "${TARGET_DIR}/pid_issuer.log" \
+              2>&1
+        mv "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/pid_issuer"
+        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/pid_issuer" \
+                       --config-file pid_issuer.toml \
+                       --env-prefix pid_issuer \
+                       >> "${TARGET_DIR}/pid_issuer.log" \
+                       2>&1 &
+        echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
+    fi
+fi
+
+########################################################################
 # Manage wallet_server
 
 if [ "${WALLET_SERVER}" == "0" ]
 then
     # As part of the MRP a wallet_server is started
     echo
-    echo -e "${SECTION}Manage wallet_server and pid_issuer${NC}"
+    echo -e "${SECTION}Manage wallet_server${NC}"
 
     cd "${WALLET_SERVER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
-        echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC} and ${ORANGE}pid_issuer${NC}"
-        killall wallet_server || true
+        echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC}"
+        killall mrp_wallet_server || true
     fi
     if [ "${START}" == "0" ]
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running wallet_server database migrations${NC}"
         DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server" cargo run --bin wallet_server_migration -- fresh
-        echo -e "${INFO}Running pid_issuer database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migration -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
-        RUST_LOG=debug cargo run --features "allow_http_return_url" --bin wallet_server \
-                       > "${TARGET_DIR}/mrp_wallet_server.log" \
+        cargo build --features "allow_http_return_url" --bin wallet_server \
+              > "${TARGET_DIR}/mrp_wallet_server.log" \
+              2>&1
+        mv "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server"
+        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server" \
+                       >> "${TARGET_DIR}/mrp_wallet_server.log" \
                        2>&1 &
         echo -e "wallet_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_wallet_server.log${NC}"
-
-        echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --features "allow_http_return_url,issuance" --bin wallet_server -- \
-                       --config-file pid_issuer.toml \
-                       --env-prefix pid_issuer \
-                       > "${TARGET_DIR}/pid_issuer.log" \
-                       2>&1 &
-        echo -e "pid_issuer can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
 fi
 

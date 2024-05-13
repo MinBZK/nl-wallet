@@ -40,7 +40,8 @@ tokio = { workspace = true, features = [
     "parking_lot",
     "rt-multi-thread",
 ] }
-tower-http = { workspace = true, features = ["trace"] }
+tower = { workspace = true, features = ["util"] }
+tower-http = { workspace = true, features = ["trace", "fs"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
 url = { workspace = true, features = ["serde"] }
