@@ -240,7 +240,7 @@ where
 
         // Verify the return URL against the prefix in the `ReaderRegistration`,
         // if it was provided when starting the disclosure session.
-        if let Some(ref return_url) = device_request.return_url {
+        if let Some(return_url) = &device_request.return_url {
             if !reader_registration.return_url_prefix.matches_url(return_url) {
                 let urls = Box::new((reader_registration.return_url_prefix.into(), return_url.clone()));
 
@@ -428,6 +428,21 @@ mod tests {
     };
 
     use super::{super::test::*, *};
+
+    impl ReaderEngagement {
+        fn set_verifier_url(&mut self, url: Url) {
+            self.0
+                .connection_methods
+                .as_mut()
+                .unwrap()
+                .first_mut()
+                .unwrap()
+                .0
+                .connection_options
+                .0
+                .uri = url;
+        }
+    }
 
     fn test_payload_session_data_error(payload: &[u8], expected_session_status: SessionStatus) {
         let session_data: SessionData =
@@ -778,16 +793,7 @@ mod tests {
                 // Overwrite the verifier URL with a version that does not have the `session_type` added.
                 verifier_session
                     .reader_engagement
-                    .0
-                    .connection_methods
-                    .as_mut()
-                    .unwrap()
-                    .first_mut()
-                    .unwrap()
-                    .0
-                    .connection_options
-                    .0
-                    .uri = VERIFIER_URL.parse().unwrap();
+                    .set_verifier_url(VERIFIER_URL.parse().unwrap());
 
                 verifier_session
             },
@@ -813,16 +819,7 @@ mod tests {
             |mut verifier_session| {
                 verifier_session
                     .reader_engagement
-                    .0
-                    .connection_methods
-                    .as_mut()
-                    .unwrap()
-                    .first_mut()
-                    .unwrap()
-                    .0
-                    .connection_options
-                    .0
-                    .uri = format!("{}?session_type=invalid", VERIFIER_URL).parse().unwrap();
+                    .set_verifier_url(format!("{}?session_type=invalid", VERIFIER_URL).parse().unwrap());
 
                 verifier_session
             },
@@ -872,16 +869,7 @@ mod tests {
             |mut verifier_session| {
                 verifier_session
                     .reader_engagement
-                    .0
-                    .connection_methods
-                    .as_mut()
-                    .unwrap()
-                    .first_mut()
-                    .unwrap()
-                    .0
-                    .connection_options
-                    .0
-                    .uri = format!("{}?session_type=cross_device", VERIFIER_URL).parse().unwrap();
+                    .set_verifier_url(format!("{}?session_type=cross_device", VERIFIER_URL).parse().unwrap());
 
                 verifier_session
             },

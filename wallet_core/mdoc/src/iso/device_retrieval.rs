@@ -25,6 +25,7 @@ use crate::{
 pub struct DeviceRequest {
     pub version: DeviceRequestVersion,
     pub doc_requests: Vec<DocRequest>,
+    /// This is a custom and optional field. Other implementations should ignore it.
     pub return_url: Option<Url>,
 }
 
