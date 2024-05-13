@@ -2459,6 +2459,7 @@ dependencies = [
  "nl_wallet_mdoc",
  "reqwest",
  "serde",
+ "serde_urlencoded",
  "strum",
  "thiserror",
  "tokio",

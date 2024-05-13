@@ -6,7 +6,7 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate},
 };
 use wallet_common::config::wallet_config::BaseUrl;
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse};
 
 pub struct WalletServerClient {
     client: Client,
@@ -46,15 +46,21 @@ impl WalletServerClient {
     pub async fn disclosed_attributes(
         &self,
         session_token: SessionToken,
-        transcript_hash: Option<String>,
+        nonce: Option<String>,
     ) -> Result<DisclosedAttributes, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
             .clone()
             .join(&format!("/disclosure/sessions/{session_token}/disclosed_attributes"));
-        if let Some(hash) = transcript_hash {
-            disclosed_attributes_url.set_query(Some(&format!("transcript_hash={}", hash)));
-        }
+
+        let query = nonce
+            .map(|nonce| {
+                serde_urlencoded::to_string(DisclosedAttributesParams {
+                    return_url_nonce: nonce.into(),
+                })
+            })
+            .transpose()?;
+        disclosed_attributes_url.set_query(query.as_deref());
 
         Ok(self
             .client
