@@ -197,23 +197,6 @@ test-rust:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
-  script:
-    # Run tests, generate code coverage reports
-    - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
-    - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path unit-coverage.xml)
-  artifacts:
-    reports:
-      coverage_report:
-        path: wallet_core/unit-coverage.xml
-        coverage_format: cobertura
-    paths:
-      - wallet_core/lcov.info
-
-test-rust-integration:
-  rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
-  cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
@@ -233,15 +216,15 @@ test-rust-integration:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
-    - cargo llvm-cov test --features db_test,hsm_test --test '*' --locked --lcov --output-path lcov_integration.info
-    - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
+    - cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
     reports:
       coverage_report:
-        path: wallet_core/integration-coverage.xml
+        path: wallet_core/rust-coverage.xml
         coverage_format: cobertura
     paths:
-      - wallet_core/lcov_integration.info
+      - wallet_core/lcov.info
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -254,6 +237,7 @@ test-rust-integration:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package gba_hc_converter --bin gba_hc_converter
 
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
@@ -414,8 +398,6 @@ sonar-rust:
   needs:
     - job: test-rust
       artifacts: true
-    - job: test-rust-integration
-      artifacts: true
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -425,7 +407,7 @@ sonar-rust:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
-      -Dcommunity.rust.lcov.reportPaths="lcov.info,lcov_integration.info"
+      -Dcommunity.rust.lcov.reportPaths="lcov.info"
 
 sonar-flutter:
   rules: !reference [.default-or-merge-request, rules]
@@ -493,8 +475,6 @@ build-wp-image:
   needs:
     - job: test-rust
       artifacts: false
-    - job: test-rust-integration
-      artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
   script:
@@ -511,8 +491,6 @@ build-wp-migrations-image:
   rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
-      artifacts: false
-    - job: test-rust-integration
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
@@ -566,8 +544,6 @@ build-ws-migrations-image:
   rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
-      artifacts: false
-    - job: test-rust-integration
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false

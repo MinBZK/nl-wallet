@@ -4,7 +4,7 @@ use assert_matches::assert_matches;
 use serial_test::serial;
 use tokio::time::sleep;
 
-use tests_integration_common::*;
+use tests_integration::common::*;
 use wallet::errors::{InstructionError, WalletUnlockError};
 
 #[tokio::test]

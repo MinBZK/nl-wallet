@@ -4586,71 +4586,34 @@ name = "tests_integration"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
+ "configuration_server",
+ "ctor",
+ "dotenvy",
+ "gba_hc_converter",
  "indexmap 2.0.2",
  "jsonwebtoken",
  "nl_wallet_mdoc",
  "openid4vc",
  "p256",
+ "platform_support",
  "rand_core 0.6.4",
  "regex",
  "reqwest",
  "rstest",
- "serde_urlencoded",
- "serial_test",
- "tests_integration_common",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "url",
- "wallet",
- "wallet_common",
- "wallet_provider_service",
- "wallet_server",
-]
-
-[[package]]
-name = "tests_integration_common"
-version = "0.1.0"
-dependencies = [
- "configuration_server",
- "ctor",
- "indexmap 2.0.2",
- "jsonwebtoken",
- "nl_wallet_mdoc",
- "openid4vc",
- "platform_support",
- "reqwest",
  "sea-orm",
  "serde_json",
+ "serde_urlencoded",
+ "serial_test",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "url",
- "wallet",
- "wallet_common",
- "wallet_provider",
- "wallet_provider_persistence",
- "wallet_server",
-]
-
-[[package]]
-name = "tests_integration_performance"
-version = "0.1.0"
-dependencies = [
- "dotenvy",
- "indexmap 2.0.2",
- "nl_wallet_mdoc",
- "openid4vc",
- "platform_support",
- "reqwest",
- "serde_urlencoded",
- "tests_integration_common",
- "tokio",
- "tracing",
  "url",
  "uuid",
  "wallet",
  "wallet_common",
+ "wallet_provider",
+ "wallet_provider_persistence",
+ "wallet_provider_service",
  "wallet_server",
 ]
 

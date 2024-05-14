@@ -14,7 +14,7 @@ use nl_wallet_mdoc::{
     ItemsRequest,
 };
 use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
-use tests_integration_common::*;
+use tests_integration::common::*;
 use wallet::errors::DisclosureError;
 use wallet_common::utils;
 use wallet_server::verifier::{

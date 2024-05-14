@@ -3,7 +3,7 @@ use std::sync::Arc;
 use url::Url;
 
 use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
-use tests_integration_common::*;
+use tests_integration::common::*;
 use wallet::{AttributeValue, Document};
 use wallet_common::utils;
 
