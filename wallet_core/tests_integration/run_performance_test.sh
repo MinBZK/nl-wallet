@@ -5,11 +5,11 @@ set -e
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 NUM="${1:-1}"
 
-cargo build --manifest-path "${SCRIPTS_DIR}/Cargo.toml" --features local
+cargo build --manifest-path "${SCRIPTS_DIR}/Cargo.toml" --bin performance_test --features performance_test,allow_http_return_url
 
 pids=()
 for ((i=1; i <= NUM; i++)); do
-  ("${SCRIPTS_DIR}"/../../target/debug/tests_integration_performance 2>&1) & pids+=($!)
+  ("${SCRIPTS_DIR}"/../target/debug/performance_test 2>&1) & pids+=($!)
 done
 
 # wait and collect return codes

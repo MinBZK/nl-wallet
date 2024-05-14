@@ -13,7 +13,7 @@ doctest = false
 [[test]]
 name = "account_server"
 path = "tests/account_server.rs"
-required-features = ["software_keys", "mock", "db_test"]
+required-features = ["db_test"]
 
 [features]
 # Implement InstructionResultSigningKey and related traits on SoftwareEcdsaKey
@@ -21,7 +21,7 @@ software_keys = ["wallet_common/software_keys"]
 # Include mock implementations and constructors for testing
 mock = ["dep:hmac", "wallet_provider_domain/mock"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = []
+db_test = ["software_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provider_database_settings"]
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock"] }
@@ -38,10 +38,12 @@ serde_with = { workspace = true, features = ["base64"] }
 sha2.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+tracing-subscriber = { workspace = true, optional = true, features = ["env-filter", "parking_lot"] }
 uuid = { workspace = true, features = ["v4"] }
 
 hmac = { workspace = true, optional = true, features = ["std"] }
 
+wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_domain.path = "../domain"
 wallet_common.path = "../../wallet_common"
 
@@ -51,15 +53,7 @@ hmac = { workspace = true, features = ["std"] }
 rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
-tracing-subscriber = { workspace = true, features = [
-    "env-filter",
-    "parking_lot",
-] }
 
-wallet_common = { path = "../../wallet_common", features = [
-    "mock_secure_keys",
-    "software_keys",
-] }
-wallet_provider_database_settings.path = "../database_settings"
+wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys", "software_keys"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

@@ -1,6 +1,7 @@
-use std::{env, path::PathBuf};
-
+#[cfg(feature = "performance_test")]
 fn inject_dotenv_vars() {
+    use std::{env, path::PathBuf};
+
     let crate_path: PathBuf = env::var("CARGO_MANIFEST_DIR").expect("Could not get crate path").into();
     let env_file_path = crate_path.join(".env");
 
@@ -19,5 +20,6 @@ fn inject_dotenv_vars() {
 }
 
 fn main() {
+    #[cfg(feature = "performance_test")]
     inject_dotenv_vars();
 }

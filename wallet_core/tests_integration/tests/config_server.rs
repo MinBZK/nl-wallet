@@ -9,7 +9,7 @@ use reqwest::header::HeaderValue;
 use serial_test::serial;
 use tokio::fs;
 
-use tests_integration_common::*;
+use tests_integration::common::*;
 use wallet::{
     errors::ConfigurationError,
     mock::default_configuration,

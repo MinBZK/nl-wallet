@@ -10,16 +10,19 @@ workspace = true
 [[test]]
 name = "test"
 path = "tests/issuance.rs"
-required-features = ["mock"]
+required-features = ["integration"]
 
 [features]
 # Include mock implementations for testing
 mock = ["dep:mockall"]
+# All features needed to run the integration test
+integration = ["mock", "dep:ciborium"]
 
 [dependencies]
 base64.workspace = true
 biscuit.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
+ciborium = { workspace = true, optional = true }
 derive_more.workspace = true
 futures.workspace = true
 indexmap.workspace = true
@@ -44,16 +47,10 @@ nl_wallet_mdoc.path = "../mdoc"
 
 [dev-dependencies]
 assert_matches.workspace = true
-ciborium.workspace = true
 mockall.workspace = true
 rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 tokio = { workspace = true, features = ["macros"] }
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = [
-    "mock",
-    "software_key_factory",
-    "generate",
-    "test",
-] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["mock", "software_key_factory", "generate", "test"] }

@@ -24,11 +24,21 @@ required-features = ["db_test"]
 # Include mock implementations and constructors for testing
 mock = ["mockall"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = []
+db_test = [
+    "dep:ctor",
+    "dep:rand_core",
+    "dep:thiserror",
+    "tokio/macros",
+    "dep:tracing-subscriber",
+    "sea-orm/debug-print",
+    "wallet_provider_domain/mock",
+]
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock"] }
+ctor = { workspace = true, optional = true }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
+rand_core = { workspace = true, optional = true }
 sea-orm = { workspace = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -36,8 +46,10 @@ sea-orm = { workspace = true, features = [
     "with-chrono",
     "with-uuid",
 ] }
+thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["parking_lot", "rt"] }
 tracing.workspace = true
+tracing-subscriber = { workspace = true, optional = true, features = ["parking_lot"] }
 uuid.workspace = true
 
 mockall = { workspace = true, optional = true }
@@ -45,20 +57,3 @@ mockall = { workspace = true, optional = true }
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"
 wallet_common.path = "../../wallet_common"
-
-[dev-dependencies]
-ctor.workspace = true
-rand_core.workspace = true
-sea-orm = { workspace = true, features = [
-    "debug-print",
-    "runtime-tokio-rustls",
-    "sqlx-postgres",
-] }
-thiserror.workspace = true
-tokio = { workspace = true, features = ["macros"] }
-tracing-subscriber = { workspace = true, features = [
-    "env-filter",
-    "parking_lot",
-] }
-
-wallet_provider_domain = { path = "../domain", features = ["mock"] }
