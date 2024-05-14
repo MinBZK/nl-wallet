@@ -20,6 +20,7 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests, SessionType},
 };
 use wallet_common::config::wallet_config::BaseUrl;
+use wallet_server::verifier::StatusParams;
 
 use crate::{askama_axum, client::WalletServerClient, settings::Settings};
 
@@ -78,7 +79,7 @@ struct SelectForm {
     usecase: String,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, strum::Display, strum::EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::Display, strum::EnumIter)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 enum MrpSessionType {
@@ -94,6 +95,15 @@ struct DisclosureTemplate {
     urls: Option<(String, String)>,
     selected: Option<SelectForm>,
     usecases: Vec<String>,
+}
+
+impl From<MrpSessionType> for SessionType {
+    fn from(value: MrpSessionType) -> Self {
+        match value {
+            MrpSessionType::SameDevice | MrpSessionType::SameDeviceNoReturn => Self::SameDevice,
+            MrpSessionType::CrossDevice | MrpSessionType::CrossDeviceWithReturn => Self::CrossDevice,
+        }
+    }
 }
 
 async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
@@ -115,7 +125,7 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
         _ => None,
     };
 
-    let (status_url, disclosed_attributes_url) = state
+    let (mut status_url, disclosed_attributes_url) = state
         .client
         .start(
             selected.usecase.clone(),
@@ -124,13 +134,17 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
                 .get(&selected.usecase)
                 .ok_or(anyhow::Error::msg("usecase not found"))?
                 .clone(),
-            match selected.session_type {
-                MrpSessionType::SameDevice | MrpSessionType::SameDeviceNoReturn => SessionType::SameDevice,
-                _ => SessionType::CrossDevice,
-            },
             return_url_template,
         )
         .await?;
+
+    // For now just make the `session_type` part of the status URL that we send to the frontend.
+    // In a later iteration the frontend should be able to choose this freely.
+    let query = serde_urlencoded::to_string(StatusParams {
+        session_type: selected.session_type.into(),
+    })
+    .expect("all variants of SessionType should convert into query parameters");
+    status_url.set_query(query.as_str().into());
 
     let mrp_disclosed_attributes_url: Url = state.public_url.join(&disclosed_attributes_url.path()[1..]); // `.path()` always starts with a `/`
 
@@ -146,7 +160,8 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
 
 #[derive(Deserialize)]
 struct DisclosedAttributesParams {
-    transcript_hash: Option<String>,
+    // Use the same query parameter as is present in the return_url here, as this is easier on the frontend.
+    nonce: Option<String>,
 }
 
 // for now this just passes the disclosed attributes on as they are received
@@ -155,9 +170,6 @@ async fn disclosed_attributes(
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Json<DisclosedAttributes>> {
-    let attributes = state
-        .client
-        .disclosed_attributes(session_token, params.transcript_hash)
-        .await?;
+    let attributes = state.client.disclosed_attributes(session_token, params.nonce).await?;
     Ok(Json(attributes))
 }

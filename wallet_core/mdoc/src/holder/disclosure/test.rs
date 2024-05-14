@@ -3,6 +3,7 @@ use std::{collections::HashSet, fmt, iter, sync::Arc};
 use futures::future;
 use indexmap::{IndexMap, IndexSet};
 use p256::SecretKey;
+use rand_core::OsRng;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc;
 use url::Url;
@@ -17,8 +18,7 @@ use crate::{
     identifiers::AttributeIdentifier,
     iso::{
         device_retrieval::{
-            DeviceRequest, DeviceRequestVersion, DocRequest, ItemsRequest, ReaderAuthenticationBytes,
-            ReaderAuthenticationKeyed,
+            DeviceRequest, DocRequest, ItemsRequest, ReaderAuthenticationBytes, ReaderAuthenticationKeyed,
         },
         disclosure::{SessionData, SessionStatus},
         engagement::{DeviceEngagement, ReaderEngagement, SessionTranscript},
@@ -33,7 +33,9 @@ use crate::{
     verifier::SessionType,
 };
 
-use super::{proposed_document::ProposedDocument, DisclosureSession, MdocDataSource, StoredMdoc};
+use super::{
+    proposed_document::ProposedDocument, session::VerifierUrlParameters, DisclosureSession, MdocDataSource, StoredMdoc,
+};
 
 // Constants for testing.
 pub const VERIFIER_URL: &str = "http://example.com/disclosure";
@@ -83,12 +85,13 @@ pub fn emtpy_items_request() -> ItemsRequest {
 }
 
 /// Create a basic `SessionTranscript` we can use for testing.
-pub fn create_basic_session_transcript() -> SessionTranscript {
-    let (reader_engagement, _reader_private_key) = ReaderEngagement::new_random(VERIFIER_URL.parse().unwrap()).unwrap();
+pub fn create_basic_session_transcript(session_type: SessionType) -> SessionTranscript {
+    let (reader_engagement, _reader_private_key) =
+        ReaderEngagement::new_random(VERIFIER_URL.parse().unwrap(), session_type).unwrap();
     let (device_engagement, _device_private_key) =
         DeviceEngagement::new_device_engagement("https://example.com".parse().unwrap()).unwrap();
 
-    SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap()
+    SessionTranscript::new(session_type, &reader_engagement, &device_engagement).unwrap()
 }
 
 /// Create a `DocRequest` including reader authentication,
@@ -153,6 +156,16 @@ pub fn example_identifiers_from_attributes(
             attribute: attribute.into(),
         })
         .collect()
+}
+
+impl ReaderEngagement {
+    pub fn new_random(mut verifier_url: Url, session_type: SessionType) -> Result<(Self, SecretKey)> {
+        let privkey = SecretKey::random(&mut OsRng);
+        let query = serde_urlencoded::to_string(VerifierUrlParameters { session_type }).unwrap();
+        verifier_url.set_query(query.as_str().into());
+
+        Ok((Self::try_new(&privkey, verifier_url)?, privkey))
+    }
 }
 
 /// An implementor of `HttpClient` that either returns `SessionData`
@@ -317,7 +330,8 @@ where
         let private_key = ca.generate_reader_mock(reader_registration.clone()).unwrap();
 
         // Generate the `ReaderEngagement` that would be be sent in the UL.
-        let (reader_engagement, reader_ephemeral_key) = ReaderEngagement::new_random(verifier_url).unwrap();
+        let (reader_engagement, reader_ephemeral_key) =
+            ReaderEngagement::new_random(verifier_url, session_type).unwrap();
 
         // Set up the default item requests
         let items_requests = vec![example_items_request()];
@@ -374,8 +388,9 @@ where
         .await;
 
         let device_request = (self.transform_device_request)(DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
             doc_requests,
+            return_url: self.return_url.clone(),
+            ..Default::default()
         });
 
         SessionData::serialize_and_encrypt(&device_request, &reader_key).unwrap()
@@ -469,7 +484,7 @@ where
 
     // Create a mock session and call the transform callback.
     let verifier_session = MockVerifierSession::<FD>::new(
-        SessionType::SameDevice,
+        session_type,
         VERIFIER_URL.parse().unwrap(),
         Url::parse(RETURN_URL).unwrap().into(),
         reader_registration,
@@ -491,8 +506,6 @@ where
     let result = DisclosureSession::start(
         client,
         &verifier_session.reader_engagement_bytes(),
-        verifier_session.return_url.clone(),
-        session_type,
         &mdoc_data_source,
         &verifier_session.trust_anchors(),
     )

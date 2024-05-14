@@ -3,7 +3,7 @@
 use std::{sync::Arc, time::Duration};
 
 use base64::prelude::*;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, SecondsFormat, Utc};
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use nutype::nutype;
@@ -98,8 +98,10 @@ pub enum VerificationError {
     SessionStore(SessionStoreError),
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
-    #[error("transcript hash '{0:?}' does not match expected")]
-    TranscriptHashMismatch(Vec<u8>),
+    #[error("return URL nonce not provided")]
+    ReturnUrlNonceMissing,
+    #[error("return URL nonce '{0}' does not match expected")]
+    ReturnUrlNonceMismatch(String),
     #[error("the ephemeral ID {} is invalid", hex::encode(.0))]
     InvalidEphemeralId(Vec<u8>),
     #[error("the ephemeral ID {} has expired", hex::encode(.0))]
@@ -128,7 +130,6 @@ struct Session<S> {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
     items_requests: ItemsRequests,
-    session_type: SessionType,
     usecase_id: String,
     return_url: Option<Url>,
     ephemeral_privkey: DerSecretKey,
@@ -139,7 +140,7 @@ pub struct Created {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     items_requests: ItemsRequests,
-    return_url_used: bool,
+    return_url_nonce: Option<String>,
     their_key: SessionKey,
     ephemeral_privkey: DerSecretKey,
     #[serde(with = "cbor_hex")]
@@ -158,7 +159,7 @@ pub struct Done {
 pub enum SessionResult {
     Done {
         disclosed_attributes: DisclosedAttributes,
-        transcript_hash: Option<Vec<u8>>,
+        return_url_nonce: Option<String>,
     },
     Failed {
         error: String,
@@ -267,10 +268,11 @@ const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerifierUrlParameters {
+    pub session_type: SessionType,
     #[serde_as(as = "Hex")]
-    ephemeral_id: Vec<u8>,
+    pub ephemeral_id: Vec<u8>,
     // default (de)serialization of DateTime is the RFC 3339 format
-    time: DateTime<Utc>,
+    pub time: DateTime<Utc>,
 }
 
 #[nutype(
@@ -335,7 +337,7 @@ where
         let sessions = Arc::new(sessions);
         Self {
             keys,
-            cleanup_task: sessions.clone().start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            cleanup_task: Arc::clone(&sessions).start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
             sessions,
             trust_anchors,
             ephemeral_id_secret,
@@ -350,7 +352,6 @@ where
     pub async fn new_session(
         &self,
         items_requests: ItemsRequests,
-        session_type: SessionType,
         usecase_id: String,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken> {
@@ -364,8 +365,7 @@ where
             return Err(VerificationError::NoItemsRequests.into());
         }
 
-        let (session_token, session_state) =
-            Session::<Created>::new(items_requests, session_type, usecase_id, return_url_template)?;
+        let (session_token, session_state) = Session::<Created>::new(items_requests, usecase_id, return_url_template)?;
         self.sessions
             .write(session_state.state.into(), true)
             .await
@@ -397,7 +397,14 @@ where
         let (response, next) = match (state.data, verifier_url) {
             (
                 DisclosureData::Created(session_data),
-                Some((verifier_base_url, VerifierUrlParameters { time, ephemeral_id })),
+                Some((
+                    verifier_base_url,
+                    VerifierUrlParameters {
+                        time,
+                        ephemeral_id,
+                        session_type,
+                    },
+                )),
             ) => {
                 if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > time {
                     return Err(VerificationError::ExpiredEphemeralId(ephemeral_id).into());
@@ -419,9 +426,11 @@ where
                 };
 
                 // to be able to compute the SessionTranscript, the verifier URL needs to be reconstructed here
-                let verifier_url = Self::format_verifier_url(&verifier_base_url, session_token, time, ephemeral_id)?;
+                let verifier_url =
+                    Self::format_verifier_url(&verifier_base_url, session_token, session_type, time, ephemeral_id)
+                        .map_err(VerificationError::UrlEncoding)?;
                 let (response, session) = session
-                    .process_device_engagement(&cbor_deserialize(msg)?, verifier_url, &self.keys)
+                    .process_device_engagement(&cbor_deserialize(msg)?, verifier_url, session_type, &self.keys)
                     .await;
                 match session {
                     Ok(next) => Ok((response, next.state.into())),
@@ -458,23 +467,10 @@ where
         Ok(response)
     }
 
-    fn create_reader_engagement(
-        &self,
-        ephemeral_privkey: &SecretKey,
-        verifier_base_url: &BaseUrl,
-        session_token: &SessionToken,
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<ReaderEngagement> {
-        let time = time.generate();
-        let ephemeral_id = self.generate_ephemeral_id(session_token, &time);
-
-        let verifier_url = Self::format_verifier_url(verifier_base_url, session_token, time, ephemeral_id)?;
-        ReaderEngagement::try_new(ephemeral_privkey, verifier_url)
-    }
-
     pub async fn status_response(
         &self,
         session_token: &SessionToken,
+        session_type: SessionType,
         engagement_base_url: &BaseUrl,
         verifier_base_url: &BaseUrl,
         time: &impl Generator<DateTime<Utc>>,
@@ -487,16 +483,17 @@ where
             .ok_or_else(|| VerificationError::UnknownSessionId(session_token.clone()))?
             .data
         {
-            DisclosureData::Created(Created {
-                session_type,
-                return_url,
-                ephemeral_privkey,
-                ..
-            }) => {
-                let reader_engagement =
-                    self.create_reader_engagement(&ephemeral_privkey.0, verifier_base_url, session_token, time)?;
-                let engagement_url =
-                    Self::format_engagement_url(engagement_base_url, &reader_engagement, session_type, return_url);
+            DisclosureData::Created(Created { ephemeral_privkey, .. }) => {
+                let verifier_url = Self::generate_verifier_url(
+                    verifier_base_url,
+                    &self.ephemeral_id_secret,
+                    session_token,
+                    session_type,
+                    time,
+                )
+                .map_err(VerificationError::UrlEncoding)?;
+                let reader_engagement = ReaderEngagement::try_new(&ephemeral_privkey.0, verifier_url)?;
+                let engagement_url = Self::format_engagement_url(engagement_base_url, &reader_engagement);
 
                 StatusResponse::Created { engagement_url }
             }
@@ -522,46 +519,59 @@ where
     pub async fn disclosed_attributes(
         &self,
         session_token: &SessionToken,
-        transcript_hash: Option<Vec<u8>>,
+        return_url_nonce: Option<String>,
     ) -> Result<DisclosedAttributes> {
-        match self
+        let disclosure_data = self
             .sessions
             .get(session_token)
             .await
             .map_err(VerificationError::SessionStore)?
             .ok_or_else(|| VerificationError::UnknownSessionId(session_token.clone()))?
-            .data
-        {
+            .data;
+
+        match disclosure_data {
             DisclosureData::Done(Done {
                 session_result:
                     SessionResult::Done {
-                        transcript_hash: None,
                         disclosed_attributes,
+                        return_url_nonce: stored_nonce,
                     },
-            }) => Ok(disclosed_attributes),
-            DisclosureData::Done(Done {
-                session_result:
-                    SessionResult::Done {
-                        transcript_hash: Some(hash),
-                        disclosed_attributes,
-                    },
-            }) if transcript_hash.as_ref().is_some_and(|h| h == &hash) => Ok(disclosed_attributes),
-            DisclosureData::Done(Done {
-                session_result:
-                    SessionResult::Done {
-                        transcript_hash: Some(hash),
-                        ..
-                    },
-            }) => Err(VerificationError::TranscriptHashMismatch(hash).into()),
+            }) => match (return_url_nonce, stored_nonce) {
+                (_, None) => Ok(disclosed_attributes),
+                (Some(received_nonce), Some(stored_nonce)) if received_nonce == stored_nonce => {
+                    Ok(disclosed_attributes)
+                }
+                (None, Some(_)) => Err(VerificationError::ReturnUrlNonceMissing.into()),
+                (Some(received_nonce), Some(_)) => {
+                    Err(VerificationError::ReturnUrlNonceMismatch(received_nonce).into())
+                }
+            },
             _ => Err(VerificationError::SessionNotDone.into()),
         }
     }
 }
 
 impl<K, S> Verifier<K, S> {
-    fn generate_ephemeral_id(&self, session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
+    fn generate_verifier_url(
+        verifier_base_url: &BaseUrl,
+        ephemeral_id_secret: &hmac::Key,
+        session_token: &SessionToken,
+        session_type: SessionType,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<Url, serde_urlencoded::ser::Error> {
+        let time = time.generate();
+        let ephemeral_id = Self::generate_ephemeral_id(ephemeral_id_secret, session_token, &time);
+
+        Self::format_verifier_url(verifier_base_url, session_token, session_type, time, ephemeral_id)
+    }
+
+    fn generate_ephemeral_id(
+        ephemeral_id_secret: &hmac::Key,
+        session_token: &SessionToken,
+        time: &DateTime<Utc>,
+    ) -> Vec<u8> {
         let ephemeral_id = hmac::sign(
-            &self.ephemeral_id_secret,
+            ephemeral_id_secret,
             &Self::format_ephemeral_id_payload(session_token, time),
         )
         .as_ref()
@@ -569,45 +579,36 @@ impl<K, S> Verifier<K, S> {
         ephemeral_id
     }
 
-    fn format_verifier_url(
-        verifier_base_url: &BaseUrl,
-        session_token: &SessionToken,
-        time: DateTime<Utc>,
-        ephemeral_id: Vec<u8>,
-    ) -> Result<Url, VerificationError> {
-        let mut verifier_url = verifier_base_url.join(session_token.as_ref());
-        verifier_url.set_query(Some(
-            serde_urlencoded::to_string(VerifierUrlParameters { time, ephemeral_id })?.as_str(),
-        ));
-        Ok(verifier_url)
-    }
-
-    fn format_engagement_url(
-        base_url: &BaseUrl,
-        reader_engagement: &ReaderEngagement,
-        session_type: SessionType,
-        return_url: Option<Url>,
-    ) -> Url {
-        let mut engagement_url = base_url.join(
-            &BASE64_URL_SAFE_NO_PAD
-                .encode(cbor_serialize(reader_engagement).expect("serializing an engagement should never fail")),
-        );
-
-        engagement_url
-            .query_pairs_mut()
-            .append_pair("session_type", &session_type.to_string());
-        if let Some(return_url) = return_url {
-            engagement_url
-                .query_pairs_mut()
-                .append_pair("return_url", return_url.as_ref());
-        }
-        engagement_url
-    }
-
     // formats the payload to hash to the ephemeral ID in a consistent way
     fn format_ephemeral_id_payload(session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
         // default (de)serialization of DateTime is the RFC 3339 format
-        format!("{}|{}", session_token, time.to_rfc3339()).into()
+        format!("{}|{}", session_token, time.to_rfc3339_opts(SecondsFormat::Secs, true)).into()
+    }
+
+    fn format_verifier_url(
+        verifier_base_url: &BaseUrl,
+        session_token: &SessionToken,
+        session_type: SessionType,
+        time: DateTime<Utc>,
+        ephemeral_id: Vec<u8>,
+    ) -> Result<Url, serde_urlencoded::ser::Error> {
+        let mut verifier_url = verifier_base_url.join(session_token.as_ref());
+
+        let parameters = VerifierUrlParameters {
+            session_type,
+            time,
+            ephemeral_id,
+        };
+        verifier_url.set_query(serde_urlencoded::to_string(parameters)?.as_str().into());
+
+        Ok(verifier_url)
+    }
+
+    fn format_engagement_url(base_url: &BaseUrl, reader_engagement: &ReaderEngagement) -> Url {
+        base_url.join(
+            &BASE64_URL_SAFE_NO_PAD
+                .encode(cbor_serialize(reader_engagement).expect("serializing an engagement should never fail")),
+        )
     }
 }
 
@@ -645,7 +646,6 @@ impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
         items_requests: ItemsRequests,
-        session_type: SessionType,
         usecase_id: String,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<(SessionToken, Session<Created>)> {
@@ -656,7 +656,6 @@ impl Session<Created> {
                 session_token.clone(),
                 Created {
                     items_requests,
-                    session_type,
                     usecase_id,
                     return_url: return_url_template.map(|u| u.into_url(&session_token)),
                     ephemeral_privkey: ephemeral_privkey.into(),
@@ -673,6 +672,7 @@ impl Session<Created> {
         self,
         device_engagement: &DeviceEngagement,
         verifier_url: Url,
+        session_type: SessionType,
         keys: &impl KeyRing,
     ) -> (
         SessionData,
@@ -680,12 +680,18 @@ impl Session<Created> {
     ) {
         info!("Session({}): process device engagement", self.state.token);
         let (response, next) = match self
-            .process_device_engagement_inner(device_engagement, verifier_url, keys)
+            .process_device_engagement_inner(device_engagement, verifier_url, session_type, keys)
             .await
         {
-            Ok((response, items_requests, their_key, ephemeral_privkey, session_transcript)) => (
+            Ok((response, items_requests, return_url_nonce, their_key, ephemeral_privkey, session_transcript)) => (
                 response,
-                Ok(self.transition_wait_for_response(items_requests, their_key, ephemeral_privkey, session_transcript)),
+                Ok(self.transition_wait_for_response(
+                    items_requests,
+                    return_url_nonce,
+                    their_key,
+                    ephemeral_privkey,
+                    session_transcript,
+                )),
             ),
             Err(e) => {
                 warn!(
@@ -704,21 +710,36 @@ impl Session<Created> {
         &self,
         device_engagement: &DeviceEngagement,
         verifier_url: Url,
+        session_type: SessionType,
         keys: &impl KeyRing,
-    ) -> Result<(SessionData, ItemsRequests, SessionKey, SecretKey, SessionTranscript)> {
+    ) -> Result<(
+        SessionData,
+        ItemsRequests,
+        Option<String>,
+        SessionKey,
+        SecretKey,
+        SessionTranscript,
+    )> {
         Self::verify_origin_infos(&device_engagement.0.origin_infos)?;
 
         let reader_engagement = ReaderEngagement::try_new(&self.state().ephemeral_privkey.0, verifier_url)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
-        let session_transcript =
-            SessionTranscript::new(self.state().session_type, &reader_engagement, device_engagement).unwrap();
+        let session_transcript = SessionTranscript::new(session_type, &reader_engagement, device_engagement).unwrap();
 
         let cert_pair = keys
             .private_key(&self.state().usecase_id)
             .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
 
-        let device_request = self.new_device_request(&session_transcript, cert_pair).await?;
+        // Generate a nonce and add it the return URL, if provided.
+        let (return_url, return_url_nonce) = match self.state().return_url.clone().map(Self::add_nonce_to_return_url) {
+            Some((return_url, nonce)) => (return_url.into(), nonce.into()),
+            None => (None, None),
+        };
+
+        let device_request = self
+            .new_device_request(&session_transcript, return_url, cert_pair)
+            .await?;
 
         // Compute the AES keys with which we and the device encrypt responses
         let their_pubkey = device_engagement
@@ -745,6 +766,7 @@ impl Session<Created> {
         Ok((
             response,
             self.state().items_requests.clone(),
+            return_url_nonce,
             their_key,
             self.state().ephemeral_privkey.clone().0,
             session_transcript,
@@ -777,18 +799,25 @@ impl Session<Created> {
         Ok(())
     }
 
+    fn add_nonce_to_return_url(mut return_url: Url) -> (Url, String) {
+        let nonce = utils::random_string(32);
+        return_url.query_pairs_mut().append_pair("nonce", &nonce);
+
+        (return_url, nonce)
+    }
+
     fn transition_wait_for_response(
         self,
         items_requests: ItemsRequests,
+        return_url_nonce: Option<String>,
         their_key: SessionKey,
         ephemeral_privkey: SecretKey,
         session_transcript: SessionTranscript,
     ) -> Session<WaitingForResponse> {
-        let return_url_used = self.state.data.return_url.is_some();
         self.transition(WaitingForResponse {
             items_requests,
+            return_url_nonce,
             their_key,
-            return_url_used,
             ephemeral_privkey: ephemeral_privkey.into(),
             session_transcript,
         })
@@ -797,6 +826,7 @@ impl Session<Created> {
     async fn new_device_request(
         &self,
         session_transcript: &SessionTranscript,
+        return_url: Option<Url>,
         private_key: &KeyPair,
     ) -> Result<DeviceRequest> {
         let doc_requests = try_join_all(self.state().items_requests.0.iter().map(|items_request| async {
@@ -819,8 +849,9 @@ impl Session<Created> {
         .await?;
 
         Ok(DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
             doc_requests,
+            return_url,
+            ..Default::default()
         })
     }
 }
@@ -841,8 +872,8 @@ impl Session<WaitingForResponse> {
         };
 
         let (response, next) = match self.process_response_inner(&session_data, trust_anchors) {
-            Ok((response, disclosed_attributes, transcript_hash)) => {
-                (response, self.transition_finish(disclosed_attributes, transcript_hash))
+            Ok((response, disclosed_attributes, return_url_nonce)) => {
+                (response, self.transition_finish(disclosed_attributes, return_url_nonce))
             }
             Err(e) => {
                 warn!(
@@ -861,7 +892,7 @@ impl Session<WaitingForResponse> {
         &self,
         session_data: &SessionData,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(SessionData, DisclosedAttributes, Option<Vec<u8>>)> {
+    ) -> Result<(SessionData, DisclosedAttributes, Option<String>)> {
         debug!(
             "Session({}): decrypting and deserializing device response",
             self.state.token
@@ -890,25 +921,18 @@ impl Session<WaitingForResponse> {
             status: Some(SessionStatus::Termination),
         };
 
-        let transcript_hash = self
-            .state
-            .data
-            .return_url_used
-            .then(|| cbor_serialize(&TaggedBytes(&self.state.data.session_transcript)).map(|b| utils::sha256(&b)))
-            .transpose()?;
-
-        Ok((response, disclosed_attributes, transcript_hash))
+        Ok((response, disclosed_attributes, self.state().return_url_nonce.clone()))
     }
 
     fn transition_finish(
         self,
         disclosed_attributes: DisclosedAttributes,
-        transcript_hash: Option<Vec<u8>>,
+        return_url_nonce: Option<String>,
     ) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Done {
                 disclosed_attributes,
-                transcript_hash,
+                return_url_nonce,
             },
         })
     }
@@ -929,12 +953,6 @@ impl ReaderEngagement {
         };
 
         Ok(engagement.into())
-    }
-
-    #[cfg(test)]
-    pub fn new_random(verifier_url: Url) -> Result<(Self, SecretKey)> {
-        let privkey = SecretKey::random(&mut OsRng);
-        Ok((Self::try_new(&privkey, verifier_url)?, privkey))
     }
 }
 
@@ -1200,13 +1218,13 @@ impl ItemsRequest {
 mod tests {
     use std::ops::Add;
 
+    use assert_matches::assert_matches;
     use base64::prelude::*;
     use chrono::{DateTime, Duration, Utc};
     use indexmap::IndexMap;
     use p256::SecretKey;
     use ring::{hmac, rand};
     use rstest::rstest;
-    use url::Url;
 
     use wallet_common::{
         config::wallet_config::BaseUrl,
@@ -1225,6 +1243,7 @@ mod tests {
         test::{self, DebugCollapseBts},
         utils::{
             crypto::{SessionKey, SessionKeyUser},
+            mock_time::MockTimeGenerator,
             reader_auth::ReaderRegistration,
             serialization::{cbor_deserialize, cbor_serialize},
         },
@@ -1334,17 +1353,7 @@ mod tests {
         .into()
     }
 
-    async fn init_and_start_disclosure(
-        time: &impl Generator<DateTime<Utc>>,
-    ) -> (
-        Verifier<SingleKeyRing, MemorySessionStore<DisclosureData>>,
-        ReaderEngagement,
-        DeviceEngagement,
-        SecretKey,
-        SessionToken,
-        BaseUrl,
-        VerifierUrlParameters,
-    ) {
+    fn create_verifier() -> Verifier<SingleKeyRing, MemorySessionStore<DisclosureData>> {
         // Initialize server state
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![
@@ -1356,21 +1365,30 @@ mod tests {
         let keys = SingleKeyRing(rp_privkey);
         let session_store = MemorySessionStore::default();
 
-        let verifier = Verifier::new(
+        Verifier::new(
             keys,
             session_store,
             trust_anchors,
             hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
-        );
+        )
+    }
+
+    async fn init_and_start_disclosure(
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> (
+        Verifier<SingleKeyRing, MemorySessionStore<DisclosureData>>,
+        ReaderEngagement,
+        DeviceEngagement,
+        SecretKey,
+        SessionToken,
+        BaseUrl,
+        VerifierUrlParameters,
+    ) {
+        let verifier = create_verifier();
 
         // Start session
         let session_token = verifier
-            .new_session(
-                new_disclosure_request(),
-                SessionType::SameDevice,
-                DISCLOSURE_USECASE.to_string(),
-                None,
-            )
+            .new_session(new_disclosure_request(), DISCLOSURE_USECASE.to_string(), None)
             .await
             .unwrap();
 
@@ -1380,6 +1398,7 @@ mod tests {
         let response = verifier
             .status_response(
                 &session_token,
+                SessionType::SameDevice,
                 &"https://app.example.com/app".parse().unwrap(),
                 &verifier_url,
                 time,
@@ -1520,6 +1539,113 @@ mod tests {
         ));
     }
 
+    #[tokio::test]
+    async fn test_verifier_disclosed_attributes() {
+        let verifier = create_verifier();
+
+        // Add three sessions to the store:
+        // * One with disclosed attributes and a return URL
+        // * One with disclosed attributes and no return URL
+        // * One expired session
+        let session1 = SessionState::new(
+            "token1".into(),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Done {
+                    disclosed_attributes: Default::default(),
+                    return_url_nonce: None,
+                },
+            }),
+        );
+        let session2 = SessionState::new(
+            "token2".into(),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Done {
+                    disclosed_attributes: Default::default(),
+                    return_url_nonce: "this-is-the-nonce".to_string().into(),
+                },
+            }),
+        );
+        let session3 = SessionState::new(
+            "token3".into(),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Expired,
+            }),
+        );
+
+        verifier.sessions.write(session1, true).await.unwrap();
+        verifier.sessions.write(session2, true).await.unwrap();
+        verifier.sessions.write(session3, true).await.unwrap();
+
+        // The finished session without a return URL should return the
+        // attributes, regardless of the return URL nonce provided.
+        assert!(verifier
+            .disclosed_attributes(&"token1".into(), None)
+            .await
+            .expect("should return disclosed attributes")
+            .is_empty());
+        assert!(verifier
+            .disclosed_attributes(&"token1".into(), "nonsense".to_string().into())
+            .await
+            .expect("should return disclosed attributes")
+            .is_empty());
+
+        // The finished session with a return URL should only return the
+        // disclosed attributes when given the correct return URL nonce.
+        assert!(verifier
+            .disclosed_attributes(&"token2".into(), "this-is-the-nonce".to_string().into())
+            .await
+            .expect("should return disclosed attributes")
+            .is_empty());
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token2".into(), "incorrect".to_string().into())
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            Error::Verification(VerificationError::ReturnUrlNonceMismatch(nonce)) if nonce == "incorrect"
+        );
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token2".into(), None)
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            Error::Verification(VerificationError::ReturnUrlNonceMissing)
+        );
+
+        // The expired session should always return an error.
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token3".into(), None)
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            Error::Verification(VerificationError::SessionNotDone)
+        );
+    }
+
+    #[rstest]
+    #[case(do_nothing())]
+    #[case(swap_attributes())]
+    #[case(remove_documents())]
+    #[case(remove_document())]
+    #[case(change_doctype())]
+    #[case(change_namespace())]
+    #[case(remove_attribute())]
+    #[case(multiple_doc_types_swapped())]
+    fn match_disclosed_attributes(
+        #[case] testcase: (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>),
+    ) {
+        // Construct an items request that matches the example device response
+        let (device_response, items_requests, expected_result) = testcase;
+        assert_eq!(
+            items_requests
+                .match_against_response(&device_response)
+                .map_err(|e| match e {
+                    Error::Verification(VerificationError::MissingAttributes(e)) => e,
+                    _ => panic!(),
+                }),
+            expected_result,
+        );
+    }
+
     fn example_items_requests() -> ItemsRequests {
         vec![ItemsRequest {
             doc_type: EXAMPLE_DOC_TYPE.to_string(),
@@ -1546,31 +1672,6 @@ mod tests {
             .iter()
             .flat_map(AttributeIdentifierHolder::attribute_identifiers)
             .collect()
-    }
-
-    #[rstest]
-    #[case(do_nothing())]
-    #[case(swap_attributes())]
-    #[case(remove_documents())]
-    #[case(remove_document())]
-    #[case(change_doctype())]
-    #[case(change_namespace())]
-    #[case(remove_attribute())]
-    #[case(multiple_doc_types_swapped())]
-    fn match_disclosed_attributes(
-        #[case] testcase: (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>),
-    ) {
-        // Construct an items request that matches the example device response
-        let (device_response, items_requests, expected_result) = testcase;
-        assert_eq!(
-            items_requests
-                .match_against_response(&device_response)
-                .map_err(|e| match e {
-                    Error::Verification(VerificationError::MissingAttributes(e)) => e,
-                    _ => panic!(),
-                }),
-            expected_result,
-        );
     }
 
     // return an unmodified device response, which should verify
@@ -1703,53 +1804,27 @@ mod tests {
         )
     }
 
-    #[rstest]
-    #[case(
-        "https://example.com",
-        SessionType::CrossDevice,
-        None,
-        "https://example.com/owBjMS4wAYIB2BhYS6QBAiABIVggQSzRKlJog6Smkn-OOtSkZi7umI1jmPiIn9-SJ43QJREiWCBl10JVf2y_W7g_R5UgqwCWjON7sQcpHXOFrmixq77auAKBgwQBgXRodHRwczovL2V4YW1wbGUuY29tLw?session_type=cross_device"
-    )]
-    #[case(
-        "https://example.com",
-        SessionType::SameDevice,
-        Some("https://example.com/return/deadbeef".parse().unwrap()),
-        "https://example.com/owBjMS4wAYIB2BhYS6QBAiABIVggQSzRKlJog6Smkn-OOtSkZi7umI1jmPiIn9-SJ43QJREiWCBl10JVf2y_W7g_R5UgqwCWjON7sQcpHXOFrmixq77auAKBgwQBgXRodHRwczovL2V4YW1wbGUuY29tLw?session_type=same_device&return_url=https%3A%2F%2Fexample.com%2Freturn%2Fdeadbeef"
-    )]
-    #[case(
-        "https://example.com",
-        SessionType::CrossDevice,
-        Some("https://example.com/return/deadbeef".parse().unwrap()),
-        "https://example.com/owBjMS4wAYIB2BhYS6QBAiABIVggQSzRKlJog6Smkn-OOtSkZi7umI1jmPiIn9-SJ43QJREiWCBl10JVf2y_W7g_R5UgqwCWjON7sQcpHXOFrmixq77auAKBgwQBgXRodHRwczovL2V4YW1wbGUuY29tLw?session_type=cross_device&return_url=https%3A%2F%2Fexample.com%2Freturn%2Fdeadbeef"
-    )]
-    #[case(
-        "https://example.com",
-        SessionType::SameDevice,
-        None,
-        "https://example.com/owBjMS4wAYIB2BhYS6QBAiABIVggQSzRKlJog6Smkn-OOtSkZi7umI1jmPiIn9-SJ43QJREiWCBl10JVf2y_W7g_R5UgqwCWjON7sQcpHXOFrmixq77auAKBgwQBgXRodHRwczovL2V4YW1wbGUuY29tLw?session_type=same_device"
-    )]
-    #[case(
-        "https://example.com",
-        SessionType::SameDevice,
-        Some("https://example.com/return/deadbeef?hello=world#hashtag".parse().unwrap()),
-        "https://example.com/owBjMS4wAYIB2BhYS6QBAiABIVggQSzRKlJog6Smkn-OOtSkZi7umI1jmPiIn9-SJ43QJREiWCBl10JVf2y_W7g_R5UgqwCWjON7sQcpHXOFrmixq77auAKBgwQBgXRodHRwczovL2V4YW1wbGUuY29tLw?session_type=same_device&return_url=https%3A%2F%2Fexample.com%2Freturn%2Fdeadbeef%3Fhello%3Dworld%23hashtag"
-    )]
-    #[case(
-        "https://example.com",
-        SessionType::SameDevice,
-        Some("https://example.com/deadbeef?id=deadbeef#deadbeef".parse().unwrap()),
-        "https://example.com/owBjMS4wAYIB2BhYS6QBAiABIVggQSzRKlJog6Smkn-OOtSkZi7umI1jmPiIn9-SJ43QJREiWCBl10JVf2y_W7g_R5UgqwCWjON7sQcpHXOFrmixq77auAKBgwQBgXRodHRwczovL2V4YW1wbGUuY29tLw?session_type=same_device&return_url=https%3A%2F%2Fexample.com%2Fdeadbeef%3Fid%3Ddeadbeef%23deadbeef"
-    )]
-    fn test_format_engagement_url(
-        #[case] base_url: BaseUrl,
-        #[case] session_type: SessionType,
-        #[case] return_url: Option<Url>,
-        #[case] expected: Url,
-    ) {
-        // generated with: `BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(&ReaderEngagement::new_reader_engagement("https://example.com".parse().unwrap()).unwrap().0).unwrap()`
-        let reader_engagement: ReaderEngagement =
-            cbor_deserialize(BASE64_URL_SAFE_NO_PAD.decode("owBjMS4wAYIB2BhYS6QBAiABIVggQSzRKlJog6Smkn-OOtSkZi7umI1jmPiIn9-SJ43QJREiWCBl10JVf2y_W7g_R5UgqwCWjON7sQcpHXOFrmixq77auAKBgwQBgXRodHRwczovL2V4YW1wbGUuY29tLw").unwrap().as_slice()).unwrap();
-        let result = Verifier::<(), ()>::format_engagement_url(&base_url, &reader_engagement, session_type, return_url);
-        assert_eq!(result, expected);
+    #[test]
+    fn test_verifier_url() {
+        let ephemeral_id_secret = hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap();
+
+        // Create a verifier URL, given the provided parameters.
+        let verifier_url = Verifier::<(), ()>::generate_verifier_url(
+            &"https://example.com".parse().unwrap(),
+            &ephemeral_id_secret,
+            &"foobar".into(),
+            SessionType::CrossDevice,
+            &MockTimeGenerator::new("1969-07-21T02:56:15Z".parse().unwrap()),
+        )
+        .expect("should format verifier URL");
+
+        // Format the ephemeral ID and sign it as a HMAC, then include it as hex in the URL we expect.
+        let ephemeral_id = hmac::sign(&ephemeral_id_secret, "foobar|1969-07-21T02:56:15Z".as_bytes());
+        let expected_url = format!(
+            "https://example.com/foobar?session_type=cross_device&ephemeral_id={}&time=1969-07-21T02%3A56%3A15Z",
+            hex::encode(ephemeral_id)
+        );
+
+        assert_eq!(verifier_url.as_str(), expected_url);
     }
 }

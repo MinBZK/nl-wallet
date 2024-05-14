@@ -285,7 +285,7 @@ impl std::ops::Add for TestDocuments {
 impl From<TestDocuments> for DeviceRequest {
     fn from(value: TestDocuments) -> Self {
         let items_requests = ItemsRequests::from(value);
-        Self::new(items_requests.0)
+        Self::from_items_requests(items_requests.0)
     }
 }
 impl AttributeIdentifierHolder for TestDocuments {

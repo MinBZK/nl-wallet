@@ -22,7 +22,7 @@ use wallet::{
     Wallet,
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams};
 
 #[instrument(name = "", fields(pid = std::process::id()))]
 #[tokio::main]
@@ -95,7 +95,6 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        session_type: SessionType::SameDevice,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
             request_info: None,
@@ -127,7 +126,13 @@ async fn main() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let StartDisclosureResponse { status_url, .. } = response.json::<StartDisclosureResponse>().await.unwrap();
+    let StartDisclosureResponse { mut status_url, .. } = response.json::<StartDisclosureResponse>().await.unwrap();
+
+    let status_query = serde_urlencoded::to_string(StatusParams {
+        session_type: SessionType::SameDevice,
+    })
+    .unwrap();
+    status_url.set_query(status_query.as_str().into());
 
     // obtain engagement_url
     let response = client.get(status_url).send().await.unwrap();

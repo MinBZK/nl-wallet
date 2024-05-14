@@ -476,11 +476,8 @@ mod tests {
         *,
     };
 
-    static DISCLOSURE_URI: Lazy<Url> = Lazy::<Url>::new(|| {
-        let mut base_uri = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy");
-        base_uri.set_query(Some("return_url=https%3A%2F%2Fexample.com&session_type=same_device"));
-        base_uri
-    });
+    static DISCLOSURE_URI: Lazy<Url> =
+        Lazy::<Url>::new(|| WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
     #[tokio::test]
@@ -524,8 +521,6 @@ mod tests {
         // with the items parsed from the disclosure URI.
         assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUriData {
             reader_engagement_bytes: b"foobar".to_vec(),
-            return_url: Some(Url::parse("https://example.com").unwrap()),
-            session_type: SessionType::SameDevice,
         });
 
         // Test that the returned `DisclosureProposal` contains the

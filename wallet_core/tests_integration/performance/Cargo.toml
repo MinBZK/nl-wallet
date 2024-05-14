@@ -8,31 +8,22 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-local = [
-    "nl_wallet_mdoc/allow_http_return_url",
-]
+local = ["nl_wallet_mdoc/allow_http_return_url"]
 
 [dependencies]
 indexmap.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
-tokio = { workspace = true, features = [
-    "rt-multi-thread",
-    "parking_lot",
-    "macros",
-] }
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }
 url.workspace = true
 uuid.workspace = true
+serde_urlencoded.workspace = true
 tracing.workspace = true
 
 nl_wallet_mdoc = { path = "../../mdoc" }
 openid4vc = { path = "../../openid4vc" }
 platform_support = { path = "../../platform_support", features = ["software"] }
 tests_integration_common = { path = "../common" }
-wallet = { path = "../../wallet", features = [
-    "mock",
-    "wallet_deps",
-    "env_config",
-] }
+wallet = { path = "../../wallet", features = ["mock", "wallet_deps", "env_config"] }
 wallet_common.path = "../../wallet_common"
 wallet_server = { path = "../../wallet_server" }
 

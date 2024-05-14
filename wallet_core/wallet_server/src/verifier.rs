@@ -12,11 +12,6 @@ use http::Method;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use ring::hmac;
 use serde::{Deserialize, Serialize};
-use serde_with::{
-    base64::{Base64, UrlSafe},
-    formats::Unpadded,
-    serde_as,
-};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
 use url::Url;
@@ -165,9 +160,15 @@ where
     Ok(Cbor(response))
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StatusParams {
+    pub session_type: SessionType,
+}
+
 async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
+    Query(params): Query<StatusParams>,
 ) -> Result<Json<StatusResponse>, Error>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -176,6 +177,7 @@ where
         .verifier
         .status_response(
             &session_token,
+            params.session_type,
             &state.universal_link_base_url.join_base_url("disclosure"),
             &state.public_url.join_base_url("disclosure"),
             &TimeGenerator,
@@ -190,7 +192,6 @@ where
 pub struct StartDisclosureRequest {
     pub usecase: String,
     pub items_requests: ItemsRequests,
-    pub session_type: SessionType,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -211,7 +212,6 @@ where
         .verifier
         .new_session(
             start_request.items_requests,
-            start_request.session_type,
             start_request.usecase,
             start_request.return_url_template,
         )
@@ -229,11 +229,9 @@ where
     }))
 }
 
-#[serde_as]
-#[derive(Deserialize)]
-struct DisclosedAttributesParams {
-    #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
-    transcript_hash: Option<Vec<u8>>,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DisclosedAttributesParams {
+    pub return_url_nonce: Option<String>,
 }
 
 async fn disclosed_attributes<S>(
@@ -246,7 +244,7 @@ where
 {
     let disclosed_attributes = state
         .verifier
-        .disclosed_attributes(&session_token, params.transcript_hash)
+        .disclosed_attributes(&session_token, params.return_url_nonce)
         .await
         .map_err(Error::DisclosedAttributes)?;
     Ok(Json(disclosed_attributes))
