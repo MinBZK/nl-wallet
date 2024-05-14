@@ -9,8 +9,6 @@ members = [
     "openid4vc",
     "platform_support",
     "tests_integration",
-    "tests_integration/common",
-    "tests_integration/performance",
     "wallet",
     "wallet/entity",
     "wallet/migration",

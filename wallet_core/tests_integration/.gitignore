@@ -4,5 +4,6 @@
 /mock_relying_party.toml
 /wallet_server.toml
 /config_server.toml
+/gba_hc_converter.toml
 /wallet-config.json
 /*.pem
