@@ -44,8 +44,11 @@ required-features = ["integration_test"]
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc?/allow_http_return_url"]
+# Initialize global logging using tracing-subscriber
+logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
+    "logging",
     "dep:ctor",
     "dep:indexmap",
     "dep:jsonwebtoken",
@@ -53,8 +56,6 @@ test_common = [
     "dep:sea-orm",
     "dep:serde_json",
     "dep:tokio",
-    "dep:tracing",
-    "dep:tracing-subscriber",
     "dep:configuration_server",
     "dep:nl_wallet_mdoc",
     "dep:openid4vc",
@@ -91,13 +92,12 @@ integration_test = [
 digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter"]
 # Should be enabled when building the performance_test binary
 performance_test = [
+    "logging",
     "fake_digid",
     "dep:ctor",
     "dep:indexmap",
     "dep:reqwest",
     "dep:tokio",
-    "dep:tracing",
-    "dep:tracing-subscriber",
     "dep:tracing",
     "dep:url",
     "dep:uuid",

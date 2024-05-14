@@ -13,7 +13,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{issuance_session::HttpIssuanceSession, oidc::HttpOidcClient};
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
-use tests_integration::fake_digid::fake_digid_auth;
+use tests_integration::{fake_digid::fake_digid_auth, logging::init_logging};
 use wallet::{
     mock::{default_configuration, MockStorage},
     wallet_deps::{
@@ -26,13 +26,8 @@ use wallet_common::keys::software::SoftwareEcdsaKey;
 use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
 
 #[ctor]
-fn init_logging() {
-    let _ = tracing::subscriber::set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .with_test_writer()
-            .finish(),
-    );
+fn init() {
+    init_logging();
 }
 
 #[instrument(name = "", fields(pid = std::process::id()))]

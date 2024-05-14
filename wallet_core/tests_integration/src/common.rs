@@ -43,14 +43,11 @@ use wallet_server::{
     store::SessionStores,
 };
 
+use crate::logging::init_logging;
+
 #[ctor]
-fn init_logging() {
-    let _ = tracing::subscriber::set_global_default(
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .with_test_writer()
-            .finish(),
-    );
+fn init() {
+    init_logging();
 }
 
 pub fn local_wp_base_url(port: &u16) -> BaseUrl {
