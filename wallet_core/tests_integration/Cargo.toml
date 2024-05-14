@@ -29,7 +29,7 @@ required-features = ["integration_test"]
 [[test]]
 name = "issuance"
 path = "tests/issuance.rs"
-required-features = ["integration_test", "issuance"]
+required-features = ["integration_test"]
 
 [[test]]
 name = "locking"
@@ -42,10 +42,8 @@ path = "tests/registration.rs"
 required-features = ["integration_test"]
 
 [features]
-default = ["issuance"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_http_return_url = ["nl_wallet_mdoc?/allow_http_return_url"]
-issuance = ["wallet_server?/issuance"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
     "dep:ctor",
@@ -146,7 +144,7 @@ wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps
 wallet_common = { path = "../wallet_common", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
-wallet_server = { path = "../wallet_server", optional = true, features = ["mock"] }
+wallet_server = { path = "../wallet_server", optional = true, features = ["issuance", "mock"] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
