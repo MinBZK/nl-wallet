@@ -358,7 +358,7 @@ where
         info!("create verifier session: {usecase_id}");
 
         if !self.keys.contains_key(&usecase_id) {
-            return Err(VerificationError::UnknownCertificate(usecase_id.clone()).into());
+            return Err(VerificationError::UnknownCertificate(usecase_id).into());
         }
 
         if items_requests.0.is_empty() {
