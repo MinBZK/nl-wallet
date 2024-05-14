@@ -73,10 +73,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     final nextButton = ConfirmButton(
       key: const Key('introductionConditionsScreenNextCta'),
-      onPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
-        WalletRoutes.setupSecurityRoute,
-        ModalRoute.withName(WalletRoutes.splashRoute),
-      ),
+      onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.setupSecurityRoute),
       icon: Icons.arrow_forward_rounded,
       text: context.l10n.introductionConditionsScreenNextCta,
       buttonType: ConfirmButtonType.primary,

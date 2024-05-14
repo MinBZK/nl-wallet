@@ -27,6 +27,9 @@ class SetupSecuritySelectPinInProgress extends SetupSecurityState {
   });
 
   @override
+  bool get canGoBack => true;
+
+  @override
   bool get didGoBack => afterBackPressed;
 
   @override
