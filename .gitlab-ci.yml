@@ -623,7 +623,7 @@ build-gba-hc-converter-image:
 
 .build-android-app-latest:
   extends: [.env-ont-k8s, .build-android-app]
-  rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.default-branch, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
@@ -742,7 +742,7 @@ build-android-app-demo-profile:
 
 .build-ios-app-latest:
   extends: .build-ios-app
-  rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.default-branch, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
