@@ -755,6 +755,10 @@ build-ios-app-latest-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_ONT}"
     SENTRY_ENVIRONMENT: "ont"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
+    SENTRY_ORG: "${SENTRY_ORG_ONT}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-latest-profile:
   extends: .build-ios-app-latest
@@ -775,6 +779,10 @@ build-ios-app-demo-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_DEMO}"
     SENTRY_ENVIRONMENT: "demo"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
+    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-demo-profile:
   extends: .build-ios-app-demo
@@ -790,6 +798,10 @@ build-ios-app-mock:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
+    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
+    SENTRY_URL: "https://sentry.io/"
 
 ### Android deploying
 .deploy-android-app:
