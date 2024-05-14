@@ -17,7 +17,7 @@ use webpki::TrustAnchor;
 use nl_wallet_mdoc::{
     holder::{DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, StoredMdoc},
     iso::mdocs::DocType,
-    server_keys::{KeyPair, KeyRing},
+    server_keys::{KeyPair, SingleKeyRing},
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
     test::{
@@ -37,23 +37,7 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::generator::TimeGenerator;
 
-type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
-
-struct MockKeyring {
-    private_key: KeyPair,
-}
-
-impl MockKeyring {
-    pub fn new(private_key: KeyPair) -> Self {
-        MockKeyring { private_key }
-    }
-}
-
-impl KeyRing for MockKeyring {
-    fn private_key(&self, _: &str) -> Option<&KeyPair> {
-        Some(&self.private_key)
-    }
-}
+type MockVerifier = Verifier<SingleKeyRing, MemorySessionStore<DisclosureData>>;
 
 struct MockDisclosureHttpClient {
     verifier: Arc<MockVerifier>,
@@ -104,7 +88,7 @@ fn setup_verifier_test(
     let disclosure_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
 
     let verifier = MockVerifier::new(
-        MockKeyring::new(disclosure_key),
+        SingleKeyRing(disclosure_key),
         MemorySessionStore::default(),
         mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect(),
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
