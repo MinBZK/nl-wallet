@@ -67,8 +67,12 @@ impl IntoResponse for Error {
 struct RelyingPartyKeyRing(HashMap<String, KeyPair>);
 
 impl KeyRing for RelyingPartyKeyRing {
-    fn private_key(&self, usecase: &str) -> Option<&KeyPair> {
-        self.0.get(usecase)
+    fn private_key(&self, id: &str) -> Option<&KeyPair> {
+        self.0.get(id)
+    }
+
+    fn contains_key(&self, id: &str) -> bool {
+        self.0.contains_key(id)
     }
 }
 
