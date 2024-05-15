@@ -108,7 +108,7 @@ pub enum VerificationError {
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ItemsRequests(pub Vec<ItemsRequest>);
 impl From<Vec<ItemsRequest>> for ItemsRequests {
     fn from(value: Vec<ItemsRequest>) -> Self {
@@ -1222,7 +1222,7 @@ mod tests {
         identifiers::AttributeIdentifierHolder,
         server_keys::{KeyPair, SingleKeyRing},
         server_state::{MemorySessionStore, SessionToken},
-        test::{self, DebugCollapseBts},
+        test::{self, example_items_requests, DebugCollapseBts},
         utils::{
             crypto::{SessionKey, SessionKeyUser},
             reader_auth::ReaderRegistration,
@@ -1518,25 +1518,6 @@ mod tests {
             session_response,
             Error::Verification(VerificationError::InvalidEphemeralId(ephemeral_id)) if ephemeral_id == invalid_ephemeral_id
         ));
-    }
-
-    fn example_items_requests() -> ItemsRequests {
-        vec![ItemsRequest {
-            doc_type: EXAMPLE_DOC_TYPE.to_string(),
-            name_spaces: IndexMap::from_iter([(
-                EXAMPLE_NAMESPACE.to_string(),
-                IndexMap::from_iter([
-                    ("family_name".to_string(), false),
-                    ("issue_date".to_string(), false),
-                    ("expiry_date".to_string(), false),
-                    ("document_number".to_string(), false),
-                    ("portrait".to_string(), false),
-                    ("driving_privileges".to_string(), false),
-                ]),
-            )]),
-            request_info: None,
-        }]
-        .into()
     }
 
     /// Helper to compute all attribute identifiers contained in a bunch of [`ItemsRequest`]s.

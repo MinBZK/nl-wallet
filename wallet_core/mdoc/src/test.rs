@@ -4,6 +4,7 @@ use ciborium::Value;
 use indexmap::{IndexMap, IndexSet};
 
 use crate::{
+    examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     iso::mdocs::DataElementValue,
     unsigned::{Entry, UnsignedMdoc},
@@ -88,6 +89,25 @@ where
 
 fn remove_whitespace(s: &str) -> String {
     s.chars().filter(|c| !c.is_whitespace()).collect()
+}
+
+pub fn example_items_requests() -> ItemsRequests {
+    vec![ItemsRequest {
+        doc_type: EXAMPLE_DOC_TYPE.to_string(),
+        name_spaces: IndexMap::from_iter([(
+            EXAMPLE_NAMESPACE.to_string(),
+            IndexMap::from_iter([
+                ("family_name".to_string(), false),
+                ("issue_date".to_string(), false),
+                ("expiry_date".to_string(), false),
+                ("document_number".to_string(), false),
+                ("portrait".to_string(), false),
+                ("driving_privileges".to_string(), false),
+            ]),
+        )]),
+        request_info: None,
+    }]
+    .into()
 }
 
 /// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
