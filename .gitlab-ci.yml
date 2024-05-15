@@ -67,7 +67,7 @@ default:
 
 .demo-release-tag:
   before_script:
-    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^demo-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^demo-v//')
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^demo-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^demo-v//')"
   rules:
     - if: $CI_COMMIT_TAG =~ /^demo-v\d+\.\d+\.\d+$/
       variables:
@@ -75,7 +75,7 @@ default:
 
 .mock-release-tag:
   before_script:
-    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^mock-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^mock-v//')
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^mock-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^mock-v//')"
   rules:
     - if: $CI_COMMIT_TAG =~ /^mock-v\d+\.\d+\.\d+$/
       variables:
@@ -349,10 +349,12 @@ build-frontend-lib:
       - wallet_core/mock_relying_party/assets/vanillajs/nl-wallet-web.iife.js
 
 dependency-check:
+  extends: [.env-ont-k8s]
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:4c32c66768c6e1de95dda6bc51dc4a637f9ca7ed16a8ad1a29079281dda9dcc7"
   before_script:
+    - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - (cd wallet_web; npm ci)
     - (cd wallet_core/mock_relying_party/web-vue; npm ci)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
@@ -366,6 +368,7 @@ dependency-check:
       --format "HTML" --format "JSON" --format "XML"
       --scan "."
       --suppression $CI_PROJECT_DIR/dependency_check_suppressions.xml
+      --nvdApiKey "$NVD_API_KEY"
   artifacts:
     when: always
     paths:
@@ -817,7 +820,7 @@ build-ios-app-mock:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - bundle install
-    - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
+    - JSON_KEY_DATA="$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)"
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
@@ -868,8 +871,8 @@ deploy-android-app-demo:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - BROWSERSTACK_USER="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)"
+    - BROWSERSTACK_KEY="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)"
     - bundle install
     - |
       bundle exec fastlane android ci_browserstack \
@@ -914,7 +917,7 @@ upload-browserstack-android-app-demo:
 #    - bundle exec fastlane disable_flutter_analytics
 #    - bundle exec fastlane ios ci_deploy
 # # TODO: Authentication
-# # - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
+# # - JSON_KEY_DATA="$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)"
 # #         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
 # #         version:"${RELEASE_VERSION}"
 
@@ -958,8 +961,8 @@ upload-browserstack-android-app-demo:
 #     LANG: "C.UTF-8"
 #     FASTLANE_OPT_OUT_USAGE: "YES"
 #   script:
-#     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-#     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+#     - BROWSERSTACK_USER="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)"
+#     - BROWSERSTACK_KEY="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)"
 #     - bundle install
 #     - |
 #       bundle exec fastlane ios ci_browserstack \
@@ -1192,8 +1195,8 @@ check-gitlab-ci-changed:
       - uiautomation/build/test-results
       - uiautomation/build/reports
   before_script:
-    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - BROWSERSTACK_USER="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)"
+    - BROWSERSTACK_KEY="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)"
     - set -euxo pipefail
     - java -version
     - git fetch origin
