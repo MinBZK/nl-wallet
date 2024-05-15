@@ -17,12 +17,12 @@ import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
+import '../../info/info_screen.dart';
 import '../../policy/policy_screen.dart';
 
 class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
-  final VoidCallback? onReportIssuePressed;
 
   final Organization relyingParty;
   final Map<WalletCard, List<DataAttribute>> requestedAttributes;
@@ -36,7 +36,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   const DisclosureConfirmDataAttributesPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
-    this.onReportIssuePressed,
     required this.relyingParty,
     required this.requestedAttributes,
     required this.policy,
@@ -90,10 +89,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             context,
             card: entry.key,
             attributes: entry.value,
-            onDataIncorrectPressed: () {
-              Navigator.pop(context);
-              onReportIssuePressed?.call();
-            },
+            onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
           ),
         );
       },
@@ -225,11 +221,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           LinkButton(
             customPadding: EdgeInsets.zero,
             child: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
-            onPressed: () => PolicyScreen.show(
-              context,
-              policy,
-              onReportIssuePressed: onReportIssuePressed,
-            ),
+            onPressed: () => PolicyScreen.show(context, policy),
           ),
         ],
       ),

@@ -191,7 +191,6 @@ class DisclosureScreen extends StatelessWidget {
     return DisclosureConfirmDataAttributesPage(
       onDeclinePressed: () => _stopDisclosure(context),
       onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedAttributesApproved()),
-      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
       relyingParty: state.relyingParty,
       requestedAttributes: state.requestedAttributes,
       policy: state.policy,
