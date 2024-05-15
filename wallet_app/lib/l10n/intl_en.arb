@@ -213,6 +213,8 @@
     "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
     "dataIncorrectScreenHeaderTitle": "Is the data incorrect?",
     "dataIncorrectScreenTitle": "Retrieve data",
+    "detailsIncorrectScreenDescription": "It can cause issues if your details are incorrect. Contact your municipality to change your details.\n\nAre you still waiting for an adjustment? It can take a while before changes appear in the app.",
+    "detailsIncorrectScreenTitle": "Are your details incorrect?",
     "digidHelpScreenHelpNeededCta": "Open DigiD help",
     "digidHelpScreenHelpNeededDescription": "DigiD Help can help you with DigiD.",
     "digidHelpScreenHelpNeededTitle": "Still having trouble?",
