@@ -1,19 +1,24 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-04-30T09:41:14+02:00",
+    "@@last_modified": "2024-05-16T15:57:13+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
     "aboutScreenTitle": "Over de NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
-    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd.} other {{count} kaarten toegevoegd.}}",
+    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd} other {{count} kaarten toegevoegd}}",
     "activitySummaryEmpty": "Geen activiteiten",
-    "activitySummaryLastMonth": "Afgelopen maand",
-    "activitySummaryLastWeek": "Afgelopen week",
-    "activitySummarySharedWith": "Gedeeld met {organization}.",
-    "activitySummarySharedWithMultiple": "Gedeeld met {organizations} en {organization}.",
+    "activitySummaryLastMonth": "Activiteiten vorige maand",
+    "activitySummaryLastWeek": "Activiteiten vorige week",
+    "activitySummaryLoggedInMultiple": "ingelogd bij {organizations} en {organization}",
+    "activitySummaryLoggedInWith": "ingelogd bij {organization}",
+    "activitySummaryLoggedInWithOthers": "nog {nrOrganizations} organisaties",
+    "activitySummaryPrefix": "Je hebt",
+    "activitySummarySeparator": "en",
+    "activitySummarySharedWith": "gedeeld met {organization}",
+    "activitySummarySharedWithMultiple": "gedeeld met {organizations} en {organization}",
     "activitySummarySharedWithOthers": "nog {nrOrganizations} organisaties",
-    "activitySummaryToday": "Vandaag",
+    "activitySummaryToday": "Activiteiten vandaag",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Ja, volgende",
     "approveOrganizationPageDenyCta": "Nee",
@@ -92,6 +97,7 @@
         }
     },
     "cardDetailScreenDataAttributesTitle": "Gegevens in deze kaart",
+    "cardDetailScreenIssuerCta": "Over de uitgever",
     "cardDetailScreenLatestIssuedOperation": "Laatste update {dateTime}",
     "@cardDetailScreenLatestIssuedOperation": {
         "placeholders": {
@@ -123,8 +129,18 @@
     "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Sluiten",
     "cardDetailScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
     "cardDetailScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
+    "cardHistoryDisclosureCancelled": "Delen gestopt",
+    "cardHistoryDisclosureError": "Delen mislukt",
+    "cardHistoryDisclosureSuccess": "Gegevens gedeeld",
+    "cardHistoryIssuanceSuccess": "Kaart aangemaakt",
+    "cardHistoryLoginCancelled": "Inloggen gestopt",
+    "cardHistoryLoginError": "Inloggen mislukt",
+    "cardHistoryLoginSuccess": "Ingelogd",
     "cardHistoryScreenBackCta": "Terug",
     "cardHistoryScreenTitle": "Kaartactiviteiten",
+    "cardHistorySigningCancelled": "Ondertekenen gestopt",
+    "cardHistorySigningError": "Ondertekenen mislukt",
+    "cardHistorySigningSuccess": "Ondertekend",
     "cardHistoryTimelineInteractionFailed": "Delen mislukt",
     "cardHistoryTimelineInteractionRejected": "Delen gestopt",
     "cardHistoryTimelineInteractionSuccess": "Gegevens gedeeld",
@@ -209,6 +225,8 @@
     "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kunt nu twee dingen doen:",
     "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
     "dataIncorrectScreenTitle": "Gegevens ophalen",
+    "detailsIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Neem contact op met jouw gemeente om je gegevens te laten aanpassen.\n\nWacht je nog op een aanpassing? Het kan even duren voordat die beschikbaar is in de app.",
+    "detailsIncorrectScreenTitle": "Zijn je gegevens onjuist?",
     "digidHelpScreenHelpNeededCta": "Naar DigiD Hulp",
     "digidHelpScreenHelpNeededDescription": "DigiD Hulp kan je helpen met DigiD.",
     "digidHelpScreenHelpNeededTitle": "Kom je er niet uit?",
@@ -274,7 +292,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSubtitleData": "Gegevens in deze kaart",
+    "disclosureConfirmDataAttributesSubtitleData": "{count, plural, =1 {Gevraagde gegeven} other {Gevraagde gegevens}}",
     "disclosureConfirmDataAttributesSubtitlePurpose": "Reden",
     "disclosureConfirmDataAttributesSubtitleTerms": "Afspraken",
     "disclosureConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens te delen.",
@@ -564,7 +582,7 @@
     "generalWCAGMenu": "Menu",
     "generalWCAGOpenLink": "Open link",
     "generalWCAGQr": "Scan QR code",
-    "generalWCAGSeeAllActivities": "Bekijk alle activiteiten",
+    "generalWCAGSeeAllActivities": "Alle activiteiten te bekijken",
     "generalWCAGStepper": "Stap {current} van {total}.",
     "helpSheetCloseCta": "Sluiten",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
@@ -588,6 +606,24 @@
         }
     },
     "helpSheetTitle": "Hulp nodig?",
+    "historyDetailScreenDisclosureCancelledDescription": "Er zijn geen gegevens gedeeld met {organization}, want je hebt het delen gestopt.",
+    "@historyDetailScreenDisclosureCancelledDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenDisclosureErrorDescription": "Er zijn geen gegevens gedeeld met {organization}, want er is iets misgegaan.",
+    "@historyDetailScreenDisclosureErrorDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenHelpdeskSubtitle": "Om hulp en antwoorden te krijgen",
     "historyDetailScreenHelpdeskTitle": "Naar de helpdesk",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {1 gegeven gedeeld} other {{attributes} gegevens gedeeld}}",
@@ -618,6 +654,7 @@
             }
         }
     },
+    "historyDetailScreenIssuanceSuccessDescription": "Kaart aangemaakt",
     "historyDetailScreenIssueSubtitle": "Over de gegevens, het verzoek of de ontvanger",
     "historyDetailScreenIssueTitle": "Een probleem melden?",
     "historyDetailScreenOperationAttributesTitle": "Opgehaalde gegevens",
@@ -980,6 +1017,7 @@
             }
         }
     },
+    "pinErrorDialogRestartSetupWarning": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is, zal het aanmaken proces opnieuw starten vanaf het begin.",
     "pinErrorDialogTitle": "Verkeerde pincode",
     "pinFieldAnnouncementLabel": "{count, plural, one {Toegangscode, {count} cijfer over} other {Toeganscode, {count} cijfers over}}",
     "pinFieldSemanticsLabel": "PIN code, {enteredDigits} van {totalDigits} cijfers ingevoerd.",
@@ -1012,6 +1050,7 @@
     "pinScreenForgotPinCta": "Pincode vergeten?",
     "pinScreenHeader": "Open met je pincode",
     "pinScreenTitle": "Inloggen",
+    "pinTimeoutScreenClearWalletCta": "Wallet wissen",
     "pinTimeoutScreenForgotPinCta": "Pincode vergeten?",
     "pinTimeoutScreenHeadline": "Tijdelijk geblokkeerd",
     "pinTimeoutScreenTimeoutCountdown": "Je hebt je pincode te vaak verkeerd ingevuld. Probeer het opnieuw in {timeLeft}.",
@@ -1055,7 +1094,7 @@
     },
     "policyScreenDataWillBeShared": "Gegevens worden gedeeld met andere organisaties",
     "policyScreenDataWillBeSharedDescription": "Je gegevens worden gedeeld met andere bedrijven of organisaties.",
-    "policyScreenDataWillNotBeShared": "Gegevens worden gedeeld met andere organisaties",
+    "policyScreenDataWillNotBeShared": "Gegevens worden niet gedeeld met andere organisaties",
     "policyScreenDataWillNotBeSharedDescription": "Je gegevens worden niet gedeeld met andere bedrijven of organisaties",
     "policyScreenErrorDescription": "De voorwaarden konden niet worden geladen.",
     "policyScreenPolicySectionPolicyCta": "privacybeleid",
@@ -1155,6 +1194,7 @@
     "setupSecuritySelectPinErrorPageTitle": "Deze pincode is te simpel",
     "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Kies een pincode met verschillende cijfers.",
     "setupSecuritySelectPinPageTitle": "Kies een 6-cijferige pincode",
+    "sharedAttributesCardCta": "Bekijk",
     "sharedAttributesCardTitle": "{count} uit {cardTitle}",
     "showDetailsCta": "Bekijk",
     "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",

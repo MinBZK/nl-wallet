@@ -4,8 +4,9 @@ import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../wallet_assets.dart';
 import '../../../common/page/page_illustration.dart';
-import '../../../common/widget/button/confirm/confirm_button.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../../common/widget/button/primary_button.dart';
+import '../../../common/widget/button/tertiary_button.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../common/widget/text/body_text.dart';
 
@@ -65,19 +66,17 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
       children: [
         const Divider(height: 1),
         ConfirmButtons(
-          primaryButton: ConfirmButton(
+          primaryButton: PrimaryButton(
             key: const Key('loginWithDigidCta'),
             onPressed: onLoginWithDigidPressed,
-            text: context.l10n.walletPersonalizeIntroPageLoginWithDigidCta,
-            buttonType: ConfirmButtonType.primary,
-            iconProvider: const AssetImage(WalletAssets.logo_digid),
+            text: Text(context.l10n.walletPersonalizeIntroPageLoginWithDigidCta),
+            icon: Image.asset(WalletAssets.logo_digid),
           ),
-          secondaryButton: ConfirmButton(
+          secondaryButton: TertiaryButton(
             key: const Key('noDigidCta'),
             onPressed: onNoDigidPressed,
-            icon: Icons.help_outline_rounded,
-            text: context.l10n.walletPersonalizeIntroPageNoDigidCta,
-            buttonType: ConfirmButtonType.text,
+            icon: const Icon(Icons.help_outline_rounded),
+            text: Text(context.l10n.walletPersonalizeIntroPageNoDigidCta),
           ),
         ),
       ],

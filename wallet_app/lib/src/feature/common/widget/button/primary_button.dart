@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 
-class PrimaryButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final String text;
-  final IconData icon;
+import '../../../../util/extension/build_context_extension.dart';
+import 'button_content.dart';
+import 'confirm/confirm_buttons.dart';
+
+class PrimaryButton extends StatelessWidget implements FitsWidthWidget {
+  final VoidCallback? onPressed;
+  final Text text;
+  final Widget? icon;
+  final IconPosition iconPosition;
+  final MainAxisAlignment mainAxisAlignment;
 
   const PrimaryButton({
-    required this.onPressed,
+    this.onPressed,
     required this.text,
-    this.icon = Icons.arrow_forward_outlined,
+    this.icon = const Icon(Icons.arrow_forward_outlined),
+    this.iconPosition = IconPosition.start,
+    this.mainAxisAlignment = MainAxisAlignment.center,
     super.key,
   });
 
@@ -16,19 +24,22 @@ class PrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: onPressed,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(text),
-            ), //text
-          ],
-        ),
-      ),
+      child: _buildContent(),
     );
+  }
+
+  ButtonContent _buildContent() => ButtonContent(
+        text: text,
+        icon: icon,
+        iconPosition: iconPosition,
+        mainAxisAlignment: mainAxisAlignment,
+      );
+
+  @override
+  bool fitsWidth(BuildContext context, double availableWidth) {
+    final leftOverWidth = availableWidth - context.theme.buttonTheme.padding.horizontal;
+    final contentWidth =
+        _buildContent().contentWidth(context, context.theme.elevatedButtonTheme.style!.textStyle!.resolve({})!);
+    return contentWidth <= leftOverWidth;
   }
 }

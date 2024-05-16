@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 
 import 'base_wallet_theme.dart';
@@ -20,7 +22,7 @@ class DarkWalletTheme {
     onPrimary: Color(0xFF002C71),
     onBackground: primaryColorDark,
     onSurface: Color(0xFF8292CC),
-    outlineVariant: Color(0xFF44464F),
+    outlineVariant: Color(0xFF33343B),
     shadow: Color(0x14FFFFFF),
   );
 
@@ -42,6 +44,9 @@ class DarkWalletTheme {
     backgroundColor: sheetBackgroundColor,
     titleTextStyle: textTheme.headlineSmall,
     surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
   );
 
   //region Modified (colored) BaseThemes
@@ -52,7 +57,7 @@ class DarkWalletTheme {
   static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
     backgroundColor: colorScheme.background,
     surfaceTintColor: colorScheme.background,
-    iconTheme: const IconThemeData(color: primary),
+    iconTheme: const IconThemeData(color: primary, size: 24),
     titleTextStyle: textTheme.displayMedium,
     shadowColor: colorScheme.shadow,
   );
@@ -100,7 +105,37 @@ class DarkWalletTheme {
 
   //endregion Modified (colored) BaseThemes
 
-  static final iconTheme = IconThemeData(color: colorScheme.onBackground);
+  static final iconTheme = IconThemeData(color: colorScheme.onBackground, size: 16);
 
   static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFF292D3A));
+}
+
+// ignore: unused_element
+class _Colors {
+  // Icons
+  static const Color inactive = Color(0xFFFFFFFF);
+  static const Color iconsAction = Color(0xFFA2B7FF);
+  static const Color iconsWhite = Color(0xFF152A62);
+
+  // Text
+  static const Color textIcon = Color(0xFFA2B7FF);
+  static const Color textWhite = Color(0xFF0D193B);
+  static const Color textSecondary = Color(0xFFD0D4E0);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textError = Color(0xFFFF8989);
+  static const Color textAlert = Color(0xFFF4AEFF);
+
+  // Buttons
+  static const Color actionSecondary = Color(0xFFA1AAC0);
+  static const Color actionActive = Color(0xFF8293CC);
+  static const Color actionDestructive = Color(0xFFFF8989);
+  static const Color actionPrimary = Color(0xFFA2B7FF);
+
+  // Pages
+  static const Color pageOverlay = Color(0xFF1C1E25);
+  static const Color pagePlaceholder = Color(0xFF616E99);
+  static const Color pageContainers = Color(0xFF2F3444);
+  static const Color pageGutter = Color(0xFF292D3A);
+  static const Color pageBackground = Color(0xFF1C1E25);
+  static const Color pageSpacer = Color(0xFF33343B);
 }

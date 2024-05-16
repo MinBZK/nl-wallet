@@ -1,71 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/button/link_button.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 
 void main() {
-  const kGoldenSize = Size(140, 50);
-
-  group('goldens', () {
-    testGoldens(
-      'light button',
-      (tester) async {
-        await tester.pumpWidgetBuilder(
-          LinkButton(
-            onPressed: () {},
-            child: const Text('Link Button'),
-          ),
-          wrapper: walletAppWrapper(brightness: Brightness.light),
-          surfaceSize: kGoldenSize,
-        );
-        await screenMatchesGolden(tester, 'link_button/light');
-      },
-    );
-    testGoldens(
-      'dark button',
-      (tester) async {
-        await tester.pumpWidgetBuilder(
-          LinkButton(
-            onPressed: () {},
-            child: const Text('Link Button'),
-          ),
-          wrapper: walletAppWrapper(brightness: Brightness.dark),
-          surfaceSize: kGoldenSize,
-        );
-        await screenMatchesGolden(tester, 'link_button/dark');
-      },
-    );
-    testGoldens(
-      'light button zero padding',
-      (tester) async {
-        await tester.pumpWidgetBuilder(
-          LinkButton(
-            onPressed: () {},
-            customPadding: EdgeInsets.zero,
-            child: const Text('Link Button'),
-          ),
-          wrapper: walletAppWrapper(brightness: Brightness.light),
-          surfaceSize: const Size(116, 30),
-        );
-        await screenMatchesGolden(tester, 'link_button/light.nopadding');
-      },
-    );
-  });
-
   group('widgets', () {
-    testWidgets('button is visible', (tester) async {
+    testWidgets('button text is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        LinkButton(
-          onPressed: () {},
-          child: const Text('B'),
+        const LinkButton(
+          text: Text('Button'),
         ),
       );
 
-      // Validate that the button exists
-      final linkButtonFinder = find.text('B');
-      expect(linkButtonFinder, findsOneWidget);
+      final textFinder = find.text('Button');
+      expect(textFinder, findsOneWidget);
+    });
+
+    testWidgets('default icon is visible', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const LinkButton(
+          text: Text('Button'),
+        ),
+      );
+
+      final iconFinder = find.byIcon(Icons.arrow_forward_outlined);
+      expect(iconFinder, findsOneWidget);
+    });
+
+    testWidgets('default icon is invisible when icon is set to null', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const LinkButton(
+          text: Text('Button'),
+          icon: null,
+        ),
+      );
+
+      final iconFinder = find.byIcon(Icons.arrow_forward_outlined);
+      expect(iconFinder, findsNothing);
+    });
+
+    testWidgets('custom icon is visible', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const LinkButton(
+          text: Text('Button'),
+          icon: FlutterLogo(),
+        ),
+      );
+
+      final iconFinder = find.byType(FlutterLogo);
+      expect(iconFinder, findsOneWidget);
+    });
+
+    testWidgets('onPressed callback is triggered when clicked', (tester) async {
+      bool isPressed = false;
+      await tester.pumpWidgetWithAppWrapper(
+        LinkButton(
+          text: const Text('Button'),
+          onPressed: () => isPressed = true,
+        ),
+      );
+
+      final textFinder = find.text('Button');
+      await tester.tap(textFinder);
+      expect(isPressed, isTrue, reason: 'button callback not triggered');
     });
   });
 }

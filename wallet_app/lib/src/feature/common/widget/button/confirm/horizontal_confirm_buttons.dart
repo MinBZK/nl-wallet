@@ -4,6 +4,9 @@ import '../../../../../wallet_constants.dart';
 import 'confirm_buttons.dart';
 
 class HorizontalConfirmButtons extends StatefulWidget {
+  @visibleForTesting
+  static const secondaryButtonAlignmentKey = Key('secondaryButtonAlignment');
+
   final Widget primaryButton;
   final Widget secondaryButton;
   final bool hideSecondaryButton;
@@ -62,12 +65,16 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
           clipBehavior: Clip.none,
           children: [
             Align(
+              key: HorizontalConfirmButtons.secondaryButtonAlignmentKey,
               alignment: Alignment(secondaryButtonXAlignmentTween.evaluate(animation), 0.0),
               child: FractionallySizedBox(
                 widthFactor: defaultButtonSizeAsFraction,
                 child: Padding(
                   padding: EdgeInsets.only(right: centralPaddingTween.evaluate(animation)),
-                  child: widget.secondaryButton,
+                  child: ExcludeSemantics(
+                    excluding: animation.value == 1,
+                    child: widget.secondaryButton,
+                  ),
                 ),
               ),
             ),

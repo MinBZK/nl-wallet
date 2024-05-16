@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/text/body_text.dart';
 
@@ -55,18 +56,16 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
         const Divider(height: 1),
         ConfirmButtons(
           forceVertical: !context.isLandscape,
-          primaryButton: ConfirmButton(
+          primaryButton: PrimaryButton(
             key: const Key('applyForDigidCta'),
             onPressed: () => _openRequestDigidUrl(),
-            text: context.l10n.walletPersonalizeNoDigidPageRequestDigidCta,
-            buttonType: ConfirmButtonType.primary,
-            icon: Icons.arrow_forward_rounded,
+            text: Text(context.l10n.walletPersonalizeNoDigidPageRequestDigidCta),
+            icon: const Icon(Icons.arrow_forward_rounded),
           ),
-          secondaryButton: ConfirmButton(
+          secondaryButton: TertiaryButton(
             onPressed: () => Navigator.maybePop(context),
-            text: context.l10n.generalBottomBackCta,
-            icon: Icons.arrow_back_rounded,
-            buttonType: ConfirmButtonType.text,
+            text: Text(context.l10n.generalBottomBackCta),
+            icon: const Icon(Icons.arrow_back_rounded),
           ),
         ),
       ],

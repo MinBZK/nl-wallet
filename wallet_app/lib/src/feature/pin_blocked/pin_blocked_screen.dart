@@ -5,8 +5,11 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
-import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/text/body_text.dart';
 
 class PinBlockedScreen extends StatelessWidget {
   const PinBlockedScreen({
@@ -16,59 +19,51 @@ class PinBlockedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: WalletAppBar(
-        title: Text(context.l10n.pinBlockedScreenTitle),
-        automaticallyImplyLeading: false,
-      ),
       body: SafeArea(
-        child: PrimaryScrollController(
-          controller: ScrollController(),
-          child: Scrollbar(
-            thumbVisibility: true,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: CustomScrollView(
-                slivers: [
-                  const SliverSizedBox(height: 24),
-                  const SliverToBoxAdapter(
-                    child: PageIllustration(
-                      asset: WalletAssets.svg_blocked_final,
-                      padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            Expanded(
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: context.l10n.pinBlockedScreenHeadline,
+                      actions: const [HelpIconButton()],
                     ),
-                  ),
-                  const SliverSizedBox(height: 24),
-                  SliverToBoxAdapter(
-                    child: Text(
-                      context.l10n.pinBlockedScreenHeadline,
-                      textAlign: TextAlign.start,
-                      style: context.textTheme.displayMedium,
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverToBoxAdapter(
+                        child: BodyText(context.l10n.pinBlockedScreenDescription),
+                      ),
                     ),
-                  ),
-                  const SliverSizedBox(height: 8),
-                  SliverToBoxAdapter(
-                    child: Text(context.l10n.pinBlockedScreenDescription),
-                  ),
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    fillOverscroll: true,
-                    child: _buildBottomSection(context),
-                  )
-                ],
+                    const SliverSizedBox(height: 24),
+                    const SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverToBoxAdapter(
+                        child: PageIllustration(
+                          asset: WalletAssets.svg_blocked_final,
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                    const SliverSizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-          ),
+            const Divider(height: 1),
+            SizedBox(height: context.orientationBasedVerticalPadding),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: PrimaryButton(
+                text: Text(context.l10n.pinBlockedScreenResetWalletCta),
+                onPressed: () => ResetWalletDialog.show(context),
+              ),
+            ),
+            SizedBox(height: context.orientationBasedVerticalPadding),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomSection(BuildContext context) {
-    return Container(
-      alignment: Alignment.bottomCenter,
-      padding: const EdgeInsets.symmetric(vertical: 24),
-      child: ElevatedButton(
-        onPressed: () => ResetWalletDialog.show(context),
-        child: Text(context.l10n.pinBlockedScreenResetWalletCta),
       ),
     );
   }
