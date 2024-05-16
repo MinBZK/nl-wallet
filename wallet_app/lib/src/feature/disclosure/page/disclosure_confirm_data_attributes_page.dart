@@ -175,7 +175,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             const Icon(Icons.credit_card_outlined, size: 24),
             const SizedBox(height: 16),
             Text(
-              context.l10n.disclosureConfirmDataAttributesSubtitleData,
+              context.l10n.disclosureConfirmDataAttributesSubtitleData(totalNrOfAttributes),
               style: context.textTheme.displaySmall,
               textAlign: TextAlign.start,
             ),

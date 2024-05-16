@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-05-03T10:56:11+02:00",
+    "@@last_modified": "2024-05-15T16:13:25+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -10,14 +10,16 @@
     "aboutScreenTermsCta": "Terms of use",
     "aboutScreenTitle": "About the NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
-    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} card added.} other {{count} cards added.}}",
+    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {added {count} card} other {added {count} cards}}",
     "activitySummaryEmpty": "No activities",
-    "activitySummaryLastMonth": "Last month",
-    "activitySummaryLastWeek": "Last week",
-    "activitySummarySharedWith": "Shared with {organization}.",
-    "activitySummarySharedWithMultiple": "Shared with {organizations} and {organization}.",
+    "activitySummaryLastMonth": "Activities last month",
+    "activitySummaryLastWeek": "Activities last week",
+    "activitySummaryPrefix": "You have",
+    "activitySummarySeparator": "and",
+    "activitySummarySharedWith": "shared with {organization}.",
+    "activitySummarySharedWithMultiple": "shared with {organizations} and {organization}.",
     "activitySummarySharedWithOthers": "{nrOrganizations} other organizations",
-    "activitySummaryToday": "Today",
+    "activitySummaryToday": "Activities today",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Yes, next",
     "approveOrganizationPageDenyCta": "No, decline",
@@ -96,6 +98,7 @@
         }
     },
     "cardDetailScreenDataAttributesTitle": "Details in this card",
+    "cardDetailScreenIssuerCta": "About the issuer",
     "cardDetailScreenLatestIssuedOperation": "Latest update {dateTime}",
     "@cardDetailScreenLatestIssuedOperation": {
         "placeholders": {
@@ -127,8 +130,18 @@
     "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Close",
     "cardDetailScreenNoUpdateAvailableSheetDescription": "At the moment, there are no new data available for this card.\n\nExpecting new data? It may take a few days before you can retrieve the new data. Please try again later.",
     "cardDetailScreenNoUpdateAvailableSheetTitle": "You have the latest version.",
+    "cardHistoryDisclosureCancelled": "Sharing stopped",
+    "cardHistoryDisclosureError": "Failed to share",
+    "cardHistoryDisclosureSuccess": "Data shared",
+    "cardHistoryIssuanceSuccess": "Card created",
+    "cardHistoryLoginCancelled": "Log in is stopped",
+    "cardHistoryLoginError": "Log in failed",
+    "cardHistoryLoginSuccess": "Logged in",
     "cardHistoryScreenBackCta": "Back",
     "cardHistoryScreenTitle": "Card activities",
+    "cardHistorySigningCancelled": "Signing stopped",
+    "cardHistorySigningError": "Signing failed",
+    "cardHistorySigningSuccess": "Signed",
     "cardHistoryTimelineInteractionFailed": "Failed to share",
     "cardHistoryTimelineInteractionRejected": "Sharing stopped",
     "cardHistoryTimelineInteractionSuccess": "Data shared",
@@ -280,7 +293,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSubtitleData": "Data in this card",
+    "disclosureConfirmDataAttributesSubtitleData": "{count, plural, other {Requested data}}",
     "disclosureConfirmDataAttributesSubtitlePurpose": "Reason",
     "disclosureConfirmDataAttributesSubtitleTerms": "Agreements",
     "disclosureConfirmPinPageDescription": "By entering your PIN code you agree to share your data.",
@@ -594,6 +607,24 @@
         }
     },
     "helpSheetTitle": "Need help?",
+    "historyDetailScreenDisclosureCancelledDescription": "No data has been shared with {organization}, because you stopped sharing.",
+    "@historyDetailScreenDisclosureCancelledDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenDisclosureErrorDescription": "No data has been shared with {organization}, because something went wrong.",
+    "@historyDetailScreenDisclosureErrorDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
     "historyDetailScreenHelpdeskTitle": "Open support",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {Shared 1 data} other {Shared {attributes} data}}",
@@ -624,6 +655,7 @@
             }
         }
     },
+    "historyDetailScreenIssuanceSuccessDescription": "Card created",
     "historyDetailScreenIssueSubtitle": "About the data, the request or the receiver",
     "historyDetailScreenIssueTitle": "Report a problem?",
     "historyDetailScreenOperationAttributesTitle": "Retrieved data",
@@ -986,6 +1018,7 @@
             }
         }
     },
+    "pinErrorDialogRestartSetupWarning": "You can try 1 more time. If the following PIN code is invalid, the setup process will restart from the beginning.",
     "pinErrorDialogTitle": "Wrong PIN code",
     "pinFieldAnnouncementLabel": "{count, plural, one {Access PIN Code, {count} digit left} other {Access PIN Code, {count} digits left}}",
     "pinFieldSemanticsLabel": "Access PIN code, {enteredDigits} of {totalDigits} entered.",
@@ -1162,6 +1195,7 @@
     "setupSecuritySelectPinErrorPageTitle": "This PIN code is too simple",
     "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Choose a PIN code with different digits.",
     "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN code",
+    "sharedAttributesCardCta": "View",
     "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "showDetailsCta": "View",
     "signConfirmPinPageDescription": "By entering your PIN code you agree to exchange your data.",

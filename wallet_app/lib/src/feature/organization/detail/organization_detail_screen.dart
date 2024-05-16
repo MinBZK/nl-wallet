@@ -127,7 +127,7 @@ class OrganizationDetailScreen extends StatelessWidget {
         onReportIssuePressed == null
             ? const SizedBox()
             : LinkTileButton(
-                child: Text(context.l10n.organizationDetailScreenReportIssueCta),
+                child: Expanded(child: Text(context.l10n.organizationDetailScreenReportIssueCta)),
                 onPressed: () {
                   Navigator.pop(context);
                   onReportIssuePressed?.call();
