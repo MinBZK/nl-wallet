@@ -42,6 +42,7 @@ thiserror.workspace = true
 tokio = { workspace = true }
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
+x509-parser.workspace = true
 
 wallet_common.path = "../wallet_common"
 nl_wallet_mdoc.path = "../mdoc"

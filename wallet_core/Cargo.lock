@@ -2729,6 +2729,7 @@ dependencies = [
  "url",
  "wallet_common",
  "wiremock",
+ "x509-parser",
 ]
 
 [[package]]

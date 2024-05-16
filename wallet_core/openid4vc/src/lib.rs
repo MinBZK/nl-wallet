@@ -20,6 +20,7 @@ pub mod metadata;
 
 pub mod oidc;
 
+pub mod openid4vp;
 pub mod presentation_exchange;
 
 #[cfg(feature = "mock")]
