@@ -92,6 +92,10 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   @override
   Future<WalletInstructionResult> acceptPidIssuance({required String pin, hint}) async {
     final result = _pinManager.checkPin(pin);
+    if (result is WalletInstructionResult_InstructionError && result.error is WalletInstructionError_Timeout) {
+      /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
+      await resetWallet();
+    }
     if (result is! WalletInstructionResult_Ok) return result;
 
     assert(_wallet.isEmpty, 'We can only accept the pid if the wallet was previously empty');

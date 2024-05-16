@@ -42,6 +42,9 @@ class LightWalletTheme {
     backgroundColor: sheetBackgroundColor,
     titleTextStyle: textTheme.headlineSmall,
     surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+    ),
   );
 
   //region Modified (colored) BaseThemes

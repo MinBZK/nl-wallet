@@ -223,9 +223,6 @@ class SetupSecurityScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
           semanticLabel: Platform.isAndroid ? title : null,
           title: Text(title, style: context.textTheme.displayMedium),
           content: Text(body, style: context.textTheme.bodyLarge),
@@ -254,9 +251,6 @@ class SetupSecurityScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
           semanticLabel: Platform.isAndroid ? title : null,
           title: Text(title, style: context.textTheme.displayMedium),
           content: Text(
