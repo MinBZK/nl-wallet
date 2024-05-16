@@ -5,7 +5,7 @@ import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
-import '../../common/widget/button/link_tile_button.dart';
+import '../../common/widget/button/list_button.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
@@ -80,9 +80,9 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
   }
 
   Widget _buildHowToProceedButton(BuildContext context) {
-    return LinkTileButton(
+    return ListButton(
       onPressed: () => PlaceholderScreen.show(context),
-      child: Text(context.l10n.disclosureMissingAttributesPageHowToProceedCta),
+      text: Text(context.l10n.disclosureMissingAttributesPageHowToProceedCta),
     );
   }
 

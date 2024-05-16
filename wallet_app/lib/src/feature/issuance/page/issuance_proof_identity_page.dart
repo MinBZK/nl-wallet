@@ -6,9 +6,10 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
-import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/list_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
@@ -43,23 +44,25 @@ class IssuanceProofIdentityPage extends StatelessWidget {
           SliverList(delegate: _getDataAttributesDelegate()),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: PolicySection(policy)),
-          const SliverToBoxAdapter(child: Divider(height: 32)),
+          const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
-          const SliverToBoxAdapter(child: Divider(height: 32)),
+          const SliverSizedBox(height: 24),
           SliverFillRemaining(
             hasScrollBody: false,
             fillOverscroll: true,
             child: Container(
               alignment: Alignment.bottomCenter,
               child: ConfirmButtons(
-                primaryButton: ConfirmButton.accept(
+                primaryButton: PrimaryButton(
+                  key: const Key('acceptButton'),
                   onPressed: onAcceptPressed,
-                  icon: Icons.arrow_forward,
-                  text: context.l10n.issuanceProofIdentityPagePositiveCta,
+                  text: Text(context.l10n.issuanceProofIdentityPagePositiveCta),
                 ),
-                secondaryButton: ConfirmButton.reject(
+                secondaryButton: SecondaryButton(
+                  key: const Key('rejectButton'),
+                  icon: const Icon(Icons.block_flipped),
                   onPressed: onDeclinePressed,
-                  text: context.l10n.issuanceProofIdentityPageNegativeCta,
+                  text: Text(context.l10n.issuanceProofIdentityPageNegativeCta),
                 ),
               ),
             ),
@@ -107,15 +110,9 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   }
 
   Widget _buildDataIncorrectButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: LinkButton(
-          onPressed: () => PlaceholderScreen.show(context),
-          child: Text(context.l10n.issuanceProofIdentityPageIncorrectCta),
-        ),
-      ),
+    return ListButton(
+      text: Text(context.l10n.issuanceProofIdentityPageIncorrectCta),
+      onPressed: () => PlaceholderScreen.show(context),
     );
   }
 }

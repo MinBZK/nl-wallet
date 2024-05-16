@@ -4,14 +4,14 @@ import '../../../../util/extension/build_context_extension.dart';
 import 'button_content.dart';
 import 'confirm/confirm_buttons.dart';
 
-class SecondaryButton extends StatelessWidget implements FitsWidthWidget {
+class TertiaryButton extends StatelessWidget implements FitsWidthWidget {
   final VoidCallback? onPressed;
   final Text text;
   final Widget? icon;
   final IconPosition iconPosition;
   final MainAxisAlignment mainAxisAlignment;
 
-  const SecondaryButton({
+  const TertiaryButton({
     this.onPressed,
     required this.text,
     this.icon = const Icon(Icons.arrow_forward_outlined),
@@ -22,7 +22,7 @@ class SecondaryButton extends StatelessWidget implements FitsWidthWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return TextButton(
       onPressed: onPressed,
       child: _buildContent(),
     );
@@ -39,7 +39,7 @@ class SecondaryButton extends StatelessWidget implements FitsWidthWidget {
   bool fitsWidth(BuildContext context, double availableWidth) {
     final leftOverWidth = availableWidth - context.theme.buttonTheme.padding.horizontal;
     final contentWidth =
-        _buildContent().contentWidth(context, context.theme.outlinedButtonTheme.style!.textStyle!.resolve({})!);
+        _buildContent().contentWidth(context, context.theme.textButtonTheme.style!.textStyle!.resolve({})!);
     return contentWidth <= leftOverWidth;
   }
 }

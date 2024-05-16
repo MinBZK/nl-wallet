@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../widget/button/secondary_button.dart';
+import '../widget/button/tertiary_button.dart';
 
 class ExplanationSheet extends StatelessWidget {
   final String title;
@@ -52,11 +52,10 @@ class ExplanationSheet extends StatelessWidget {
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SecondaryButton(
+            child: TertiaryButton(
               onPressed: () => Navigator.pop(context),
-              text: closeButtonText,
-              centerText: true,
-              icon: Icons.close,
+              text: Text(closeButtonText),
+              icon: const Icon(Icons.close),
             ),
           ),
         ],

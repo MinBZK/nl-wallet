@@ -9,7 +9,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/attribute_value_formatter.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
-import '../common/widget/button/link_tile_button.dart';
+import '../common/widget/button/list_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
@@ -135,9 +135,9 @@ class CheckAttributesScreen extends StatelessWidget {
 
   Widget _buildDataIncorrectButton(BuildContext context) {
     if (onDataIncorrectPressed == null) return const SizedBox.shrink();
-    return LinkTileButton(
+    return ListButton(
       onPressed: onDataIncorrectPressed,
-      child: Text(context.l10n.checkAttributesScreenDataIncorrectCta),
+      text: Text(context.l10n.checkAttributesScreenDataIncorrectCta),
     );
   }
 

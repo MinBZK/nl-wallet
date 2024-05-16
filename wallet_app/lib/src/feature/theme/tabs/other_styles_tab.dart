@@ -168,7 +168,7 @@ class OtherStylesTab extends StatelessWidget {
               context,
               title: 'Title goes here',
               description: 'Description goes here. This is a demo of the ExplanationSheet!',
-              closeButtonText: 'close',
+              closeButtonText: 'Close',
             );
           },
           child: const Text('Explanation Sheet'),

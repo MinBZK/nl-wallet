@@ -4,8 +4,9 @@ import '../../../../domain/model/attribute/ui_attribute.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/widget/attribute/attribute_row.dart';
-import '../../../common/widget/button/confirm/confirm_button.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../../common/widget/button/primary_button.dart';
+import '../../../common/widget/button/secondary_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../common/widget/text/body_text.dart';
@@ -78,16 +79,20 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return ConfirmButtons(
-      primaryButton: ConfirmButton.accept(
+      primaryButton: PrimaryButton(
+        key: const Key('acceptButton'),
         onPressed: onAcceptPressed,
-        icon: Icons.check_rounded,
-        text: context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta,
+        icon: const Icon(Icons.check_rounded),
+        text: Text(context.l10n.walletPersonalizeCheckDataOfferingPageAcceptCta),
       ),
-      secondaryButton: ConfirmButton.reject(
+      secondaryButton: SecondaryButton(
+        key: const Key('rejectButton'),
         onPressed: () => WalletPersonalizeDataIncorrectScreen.show(context, onRejectPressed),
-        text: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
-        semanticsLabel: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel,
-        icon: Icons.block_flipped,
+        text: Text(
+          context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCta,
+          semanticsLabel: context.l10n.walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel,
+        ),
+        icon: const Icon(Icons.block_flipped),
       ),
     );
   }

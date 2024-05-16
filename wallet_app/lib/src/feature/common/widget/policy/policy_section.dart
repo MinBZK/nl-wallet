@@ -43,17 +43,19 @@ class PolicySection extends StatelessWidget {
           ),
         Align(
           alignment: AlignmentDirectional.centerStart,
-          child: LinkButton(
-            customPadding: const EdgeInsets.only(left: 8),
-            onPressed: () => Navigator.pushNamed(
-              context,
-              WalletRoutes.policyRoute,
-              arguments: PolicyScreenArguments(
-                policy: policy,
-                showSignatureRow: addSignatureRow,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24),
+            child: LinkButton(
+              onPressed: () => Navigator.pushNamed(
+                context,
+                WalletRoutes.policyRoute,
+                arguments: PolicyScreenArguments(
+                  policy: policy,
+                  showSignatureRow: addSignatureRow,
+                ),
               ),
+              text: Text(context.l10n.generalPolicyAllTermsCta),
             ),
-            child: Text(context.l10n.generalPolicyAllTermsCta),
           ),
         ),
       ],

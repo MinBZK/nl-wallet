@@ -4,7 +4,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../../environment.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../common/sheet/explanation_sheet.dart';
-import '../../../common/widget/button/text_icon_button.dart';
+import '../../../common/widget/button/button_content.dart';
+import '../../../common/widget/button/tertiary_button.dart';
 import '../../../common/widget/utility/max_brightness.dart';
 
 const _kLandscapeQrSize = 200.0;
@@ -34,8 +35,9 @@ class MyQrTab extends StatelessWidget {
               ),
             ),
           ),
-          TextIconButton(
-            child: Text(context.l10n.qrMyCodeTabHowToCta),
+          TertiaryButton(
+            text: Text(context.l10n.qrMyCodeTabHowToCta),
+            iconPosition: IconPosition.end,
             onPressed: () => _showHowToSheet(context),
           ),
           const SizedBox(height: 16),

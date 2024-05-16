@@ -9,9 +9,10 @@ import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/app_image.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
-import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/list_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
@@ -39,8 +40,9 @@ class ConfirmAgreementPage extends StatelessWidget {
           const SliverSizedBox(height: 8),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           SliverList(delegate: _getDataAttributesDelegate()),
+          const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: _buildDataIncorrectButton(context)),
-          const SliverToBoxAdapter(child: Divider(height: 32)),
+          const SliverSizedBox(height: 16),
           SliverToBoxAdapter(child: PolicySection(policy, addSignatureRow: true)),
           const SliverToBoxAdapter(child: Divider(height: 32)),
           SliverToBoxAdapter(child: _buildTrustProvider(context)),
@@ -51,14 +53,17 @@ class ConfirmAgreementPage extends StatelessWidget {
             child: Container(
                 alignment: Alignment.bottomCenter,
                 child: ConfirmButtons(
-                  primaryButton: ConfirmButton.accept(
+                  primaryButton: PrimaryButton(
+                    key: const Key('acceptButton'),
                     onPressed: onAcceptPressed,
-                    text: context.l10n.confirmAgreementPageConfirmCta,
+                    text: Text(context.l10n.confirmAgreementPageConfirmCta),
+                    icon: null,
                   ),
-                  secondaryButton: ConfirmButton.reject(
+                  secondaryButton: SecondaryButton(
+                    key: const Key('rejectButton'),
                     onPressed: onDeclinePressed,
-                    icon: Icons.block_flipped,
-                    text: context.l10n.confirmAgreementPageCancelCta,
+                    icon: const Icon(Icons.block_flipped),
+                    text: Text(context.l10n.confirmAgreementPageCancelCta),
                   ),
                 )),
           ),
@@ -100,13 +105,9 @@ class ConfirmAgreementPage extends StatelessWidget {
   }
 
   Widget _buildDataIncorrectButton(BuildContext context) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: LinkButton(
-        customPadding: const EdgeInsets.only(left: 8),
-        onPressed: () => PlaceholderScreen.show(context),
-        child: Text(context.l10n.confirmAgreementPageDataIncorrectCta),
-      ),
+    return ListButton(
+      onPressed: () => PlaceholderScreen.show(context),
+      text: Text(context.l10n.confirmAgreementPageDataIncorrectCta),
     );
   }
 
