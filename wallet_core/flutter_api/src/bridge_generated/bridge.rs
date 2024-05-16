@@ -758,6 +758,7 @@ impl support::IntoDart for WalletEvent {
                 requested_cards,
                 request_policy,
                 status,
+                disclosure_type,
             } => vec![
                 0.into_dart(),
                 date_time.into_into_dart().into_dart(),
@@ -766,6 +767,7 @@ impl support::IntoDart for WalletEvent {
                 requested_cards.into_dart(),
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
+                disclosure_type.into_into_dart().into_dart(),
             ],
             Self::Issuance { date_time, card } => vec![
                 1.into_dart(),

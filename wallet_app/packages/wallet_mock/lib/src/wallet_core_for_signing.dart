@@ -72,6 +72,10 @@ class WalletCoreForSigning {
         _activeSignRequest!.policy,
         _disclosureCardsForActiveRequest,
         DisclosureStatus.Success,
+        purpose: [
+          LocalizedString(language: 'en', value: 'Signing'),
+          LocalizedString(language: 'en', value: 'Ondertekenen'),
+        ],
       );
     }
     return result;
@@ -84,6 +88,10 @@ class WalletCoreForSigning {
         _activeSignRequest!.policy,
         _disclosureCardsForActiveRequest,
         DisclosureStatus.Cancelled,
+        purpose: [
+          LocalizedString(language: 'en', value: 'Signing'),
+          LocalizedString(language: 'en', value: 'Ondertekenen'),
+        ],
       );
     }
     _activeSignRequest = null;

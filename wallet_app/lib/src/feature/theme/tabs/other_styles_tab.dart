@@ -6,11 +6,10 @@ import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/missing_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
 import '../../../domain/model/card_front.dart';
+import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
-import '../../../domain/model/timeline/operation_timeline_attribute.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
@@ -28,8 +27,8 @@ import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/fade_in_at_offset.dart';
-import '../../common/widget/history/timeline_attribute_row.dart';
-import '../../common/widget/history/timeline_section_header.dart';
+import '../../common/widget/history/history_section_header.dart';
+import '../../common/widget/history/wallet_event_row.dart';
 import '../../common/widget/icon_row.dart';
 import '../../common/widget/info_row.dart';
 import '../../common/widget/loading_indicator.dart';
@@ -47,6 +46,7 @@ import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
+import '../../history/detail/widget/history_detail_wallet_event_row.dart';
 import '../theme_screen.dart';
 
 final _kSampleCardFront = CardFront(
@@ -90,19 +90,17 @@ final _kSampleOrganization = Organization(
   logo: const AppAssetImage(WalletAssets.logo_rijksoverheid),
 );
 
-final _kSampleOperationAttribute = OperationTimelineAttribute(
+final _kSampleIssuanceEvent = WalletEvent.issuance(
   dateTime: DateTime.now(),
-  organization: _kSampleOrganization,
-  dataAttributes: const [],
-  status: OperationStatus.issued,
+  status: EventStatus.success,
   card: _kSampleCard,
 );
 
-final _kSampleInteractionAttribute = InteractionTimelineAttribute(
+final _kSampleInteractionAttribute = WalletEvent.disclosure(
   dateTime: DateTime.now(),
-  organization: _kSampleOrganization,
-  dataAttributes: const [],
-  status: InteractionStatus.success,
+  relyingParty: _kSampleOrganization,
+  cards: [_kSampleCard],
+  status: EventStatus.success,
   policy: const Policy(
     storageDuration: Duration(days: 90),
     dataPurpose: 'Kaart uitgifte',
@@ -110,7 +108,8 @@ final _kSampleInteractionAttribute = InteractionTimelineAttribute(
     deletionCanBeRequested: true,
     privacyPolicyUrl: 'https://www.example.org',
   ),
-  requestPurpose: 'Kaart uitgifte'.untranslated,
+  purpose: 'Kaart uitgifte'.untranslated,
+  disclosureType: DisclosureType.regular,
 );
 
 class OtherStylesTab extends StatelessWidget {
@@ -308,13 +307,12 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         const ThemeSectionHeader(title: 'History'),
         const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'TimelineAttributeRow'),
-        TimelineAttributeRow(
-          attribute: InteractionTimelineAttribute(
+        const ThemeSectionSubHeader(title: 'WalletEventRow'),
+        WalletEventRow(
+          event: WalletEvent.disclosure(
             dateTime: DateTime.now(),
-            organization: _kSampleOrganization,
-            dataAttributes: const [],
-            status: InteractionStatus.success,
+            relyingParty: _kSampleOrganization,
+            status: EventStatus.success,
             policy: const Policy(
               storageDuration: Duration(days: 90),
               dataPurpose: 'Kaart uitgifte',
@@ -322,12 +320,48 @@ class OtherStylesTab extends StatelessWidget {
               deletionCanBeRequested: true,
               privacyPolicyUrl: 'https://www.example.org',
             ),
-            requestPurpose: 'Kaart uitgifte'.untranslated,
+            purpose: 'Kaart uitgifte'.untranslated,
+            cards: [
+              WalletCard(
+                id: 'id',
+                docType: 'docType',
+                front: _kSampleCardFront,
+                attributes: const [],
+                issuer: _kSampleOrganization,
+              ),
+            ],
+            disclosureType: DisclosureType.regular,
           ),
           onPressed: () {},
         ),
-        const ThemeSectionSubHeader(title: 'TimelineSectionHeader'),
-        TimelineSectionHeader(dateTime: DateTime.now()),
+        const ThemeSectionSubHeader(title: 'WalletEventStatusHeader'),
+        WalletEventStatusHeader(
+          event: WalletEvent.disclosure(
+            dateTime: DateTime.now(),
+            relyingParty: _kSampleOrganization,
+            status: EventStatus.cancelled,
+            policy: const Policy(
+              storageDuration: Duration(days: 90),
+              dataPurpose: 'Kaart uitgifte',
+              dataIsShared: false,
+              deletionCanBeRequested: true,
+              privacyPolicyUrl: 'https://www.example.org',
+            ),
+            purpose: 'Kaart uitgifte'.untranslated,
+            cards: [
+              WalletCard(
+                id: 'id',
+                docType: 'docType',
+                front: _kSampleCardFront,
+                attributes: const [],
+                issuer: _kSampleOrganization,
+              ),
+            ],
+            disclosureType: DisclosureType.regular,
+          ),
+        ),
+        const ThemeSectionSubHeader(title: 'HistorySectionHeader'),
+        HistorySectionHeader(dateTime: DateTime.now()),
       ],
     );
   }
@@ -412,9 +446,9 @@ class OtherStylesTab extends StatelessWidget {
         ),
         const ThemeSectionSubHeader(title: 'ActivitySummary'),
         ActivitySummary(
-          attributes: [
-            _kSampleOperationAttribute,
-            _kSampleOperationAttribute,
+          events: [
+            _kSampleIssuanceEvent,
+            _kSampleIssuanceEvent,
             _kSampleInteractionAttribute,
             _kSampleInteractionAttribute,
             _kSampleInteractionAttribute,

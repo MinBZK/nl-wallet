@@ -147,7 +147,7 @@ class DashboardScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             sliver: SliverToBoxAdapter(
               child: ActivitySummary(
-                attributes: state.history ?? [],
+                events: state.history ?? [],
                 onTap: () => Navigator.pushNamed(context, WalletRoutes.walletHistoryRoute),
               ),
             ),

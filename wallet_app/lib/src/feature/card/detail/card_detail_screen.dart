@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
-import '../../../domain/model/timeline/operation_timeline_attribute.dart';
+import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
 import '../../../navigation/wallet_routes.dart';
@@ -14,7 +13,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
-import '../../../util/formatter/timeline_attribute_status_formatter.dart';
+import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/animated_fade_in.dart';
@@ -178,7 +177,7 @@ class CardDetailScreen extends StatelessWidget {
       InfoRow(
         icon: Icons.history_outlined,
         title: Text(context.l10n.cardDetailScreenCardHistoryCta),
-        subtitle: Text(_createInteractionText(context, detail.latestSuccessInteraction)),
+        subtitle: Text(_createInteractionText(context, detail.mostRecentSuccessfulDisclosure)),
         onTap: () => _onCardHistoryPressed(context, card.docType),
       ),
       InfoRow(
@@ -192,7 +191,7 @@ class CardDetailScreen extends StatelessWidget {
         InfoRow(
           icon: Icons.replay_outlined,
           title: Text(context.l10n.cardDetailScreenCardUpdateCta),
-          subtitle: Text(_createOperationText(context, detail.latestIssuedOperation)),
+          subtitle: Text(_createOperationText(context, detail.mostRecentIssuance)),
           onTap: () => _onCardUpdatePressed(context, card),
         ),
       if (card.config.removable)
@@ -219,12 +218,12 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  String _createInteractionText(BuildContext context, InteractionTimelineAttribute? attribute) {
+  String _createInteractionText(BuildContext context, DisclosureEvent? attribute) {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
-      final String status = TimelineAttributeStatusTextFormatter.map(context, attribute).toLowerCase();
+      final String status = WalletEventStatusTextMapper().map(context, attribute).toLowerCase();
       return context.l10n.cardDetailScreenLatestSuccessInteraction(
-        attribute.organization.displayName.l10nValue(context),
+        attribute.relyingParty.displayName.l10nValue(context),
         status,
         timeAgo,
       );
@@ -233,20 +232,18 @@ class CardDetailScreen extends StatelessWidget {
     }
   }
 
-  String _createOperationText(BuildContext context, OperationTimelineAttribute? attribute) {
-    if (attribute != null) {
-      DateTime issued = attribute.dateTime;
-      String issuedTime = OperationIssuedTimeFormatter.format(context, issued);
-      String issuedText = context.l10n.cardDetailScreenLatestIssuedOperation(issuedTime);
+  String _createOperationText(BuildContext context, IssuanceEvent? event) {
+    if (event == null) return context.l10n.cardDetailScreenLatestIssuedOperationUnknown;
 
-      DateTime validUntil = issued.add(const Duration(days: _kCardExpiresInDays));
-      String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
-      String validUntilText = context.l10n.cardDetailScreenCardValidUntil(validUntilTime);
+    String issuedTime = OperationIssuedTimeFormatter.format(context, event.dateTime);
+    String issuedText = context.l10n.cardDetailScreenLatestIssuedOperation(issuedTime);
 
-      return '$issuedText\n$validUntilText';
-    } else {
-      return context.l10n.cardDetailScreenLatestIssuedOperationUnknown;
-    }
+    // TODO: Don't hardcode expiry
+    DateTime validUntil = event.dateTime.add(const Duration(days: _kCardExpiresInDays));
+    String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
+    String validUntilText = context.l10n.cardDetailScreenCardValidUntil(validUntilTime);
+
+    return '$issuedText\n$validUntilText';
   }
 
   Widget _buildError(BuildContext context, CardDetailLoadFailure state) {

@@ -4,7 +4,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
-import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart';
+import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
@@ -14,7 +14,6 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
-import 'package:wallet/src/domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
 import 'package:wallet/src/domain/usecase/history/observe_recent_history_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
@@ -47,7 +46,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<DisclosureRepository>()])
 @GenerateNiceMocks([MockSpec<WalletRepository>()])
 @GenerateNiceMocks([MockSpec<WalletCardRepository>()])
-@GenerateNiceMocks([MockSpec<TimelineAttributeRepository>()])
+@GenerateNiceMocks([MockSpec<WalletEventRepository>()])
 @GenerateNiceMocks([MockSpec<ConfigurationRepository>()])
 
 /// Mock services
@@ -70,7 +69,6 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<AcceptIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<StartDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelDisclosureUseCase>()])
-@GenerateNiceMocks([MockSpec<GetWalletTimelineAttributesUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveWalletCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveRecentHistoryUseCase>()])
 

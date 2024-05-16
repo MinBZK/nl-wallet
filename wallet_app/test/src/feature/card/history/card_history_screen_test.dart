@@ -2,7 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
+import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/feature/card/history/bloc/card_history_bloc.dart';
 import 'package:wallet/src/feature/card/history/card_history_screen.dart';
 
@@ -14,14 +14,14 @@ import '../../../util/test_utils.dart';
 class MockCardHistoryBloc extends MockBloc<CardHistoryEvent, CardHistoryState> implements CardHistoryBloc {}
 
 void main() {
-  final cardHistoryLoadSuccessMock = CardHistoryLoadSuccess(WalletMockData.card, [
-    WalletMockData.operationTimelineAttribute,
-    WalletMockData.signingTimelineAttribute,
-    WalletMockData.interactionTimelineAttribute.copyWith(
-      status: InteractionStatus.failed,
-      dateTime: DateTime(2022, 12, 10),
-    )
-  ]);
+  final cardHistoryLoadSuccessMock = CardHistoryLoadSuccess(
+    WalletMockData.card,
+    [
+      WalletMockData.disclosureEvent,
+      WalletMockData.issuanceEvent,
+      WalletMockData.signEvent,
+    ],
+  );
 
   group('goldens', () {
     testGoldens('CardHistoryLoadSuccess light', (tester) async {
@@ -91,14 +91,20 @@ void main() {
         const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
           MockCardHistoryBloc(),
           CardHistoryLoadSuccess(WalletMockData.card, [
-            WalletMockData.interactionTimelineAttribute.copyWith(
+            WalletEvent.issuance(
               dateTime: DateTime(2023, 1, 1),
+              status: EventStatus.success,
+              card: WalletMockData.card,
             ),
-            WalletMockData.interactionTimelineAttribute.copyWith(
+            WalletEvent.issuance(
               dateTime: DateTime(2022, 12, 1),
+              status: EventStatus.success,
+              card: WalletMockData.card,
             ),
-            WalletMockData.interactionTimelineAttribute.copyWith(
+            WalletEvent.issuance(
               dateTime: DateTime(2022, 11, 1),
+              status: EventStatus.success,
+              card: WalletMockData.card,
             ),
           ]),
         ),

@@ -11,9 +11,8 @@ import '../data/repository/configuration/configuration_repository.dart';
 import '../data/repository/configuration/impl/configuration_repository_impl.dart';
 import '../data/repository/disclosure/core/core_disclosure_repository.dart';
 import '../data/repository/disclosure/disclosure_repository.dart';
-import '../data/repository/history/core/core_history_repository.dart';
-import '../data/repository/history/history_repository.dart';
-import '../data/repository/history/timeline_attribute_repository.dart';
+import '../data/repository/event/core/core_wallet_event_repository.dart';
+import '../data/repository/event/wallet_event_repository.dart';
 import '../data/repository/issuance/core/core_issuance_repository.dart';
 import '../data/repository/issuance/issuance_repository.dart';
 import '../data/repository/language/impl/language_repository_impl.dart';
@@ -46,9 +45,6 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<WalletCardRepository>(create: (context) => WalletCardRepositoryImpl(context.read())),
         RepositoryProvider<DataAttributeRepository>(
           create: (context) => DataAttributeRepositoryImpl(context.read()),
-        ),
-        RepositoryProvider<TimelineAttributeRepository>(
-          create: (context) => CoreHistoryRepository(context.read(), context.read()),
         ),
         RepositoryProvider<DisclosureRepository>(
           create: (context) => CoreDisclosureRepository(
@@ -87,8 +83,8 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<UriRepository>(
           create: (context) => CoreUriRepository(context.read()),
         ),
-        RepositoryProvider<HistoryRepository>(
-          create: (context) => CoreHistoryRepository(context.read(), context.read()),
+        RepositoryProvider<WalletEventRepository>(
+          create: (context) => CoreWalletEventRepository(context.read(), context.read()),
         ),
         RepositoryProvider<SignRepository>(
           create: (context) => CoreSignRepository(
