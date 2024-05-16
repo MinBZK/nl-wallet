@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-04-30T09:41:14+02:00",
+    "@@last_modified": "2024-05-03T10:56:11+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -960,7 +960,7 @@
     "pidIdCardTitle": "Personal data",
     "pinBlockedScreenDescription": "You have entered your PIN code incorrectly too many times.\n\nDo you want to use the Wallet again? Then you have to start again. Clear the Wallet and choose a new PIN code.",
     "pinBlockedScreenHeadline": "Your app has been blocked",
-    "pinBlockedScreenResetWalletCta": "Remove Wallet",
+    "pinBlockedScreenResetWalletCta": "Delete Wallet",
     "pinBlockedScreenTitle": "App blocked",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} digit left} other {{count} digits left}}",
     "pinErrorDialogCloseCta": "CLOSE",
@@ -1018,8 +1018,9 @@
     "pinScreenForgotPinCta": "Forgot PIN code?",
     "pinScreenHeader": "Open with your PIN code",
     "pinScreenTitle": "Login",
+    "pinTimeoutScreenClearWalletCta": "Delete wallet",
     "pinTimeoutScreenForgotPinCta": "Forgot PIN code?",
-    "pinTimeoutScreenHeadline": "Temporary block",
+    "pinTimeoutScreenHeadline": "Temporarily blocked",
     "pinTimeoutScreenTimeoutCountdown": "You have entered your PIN code incorrectly too many times. Please try again in {timeLeft}.",
     "@pinTimeoutScreenTimeoutCountdown": {
         "placeholders": {
