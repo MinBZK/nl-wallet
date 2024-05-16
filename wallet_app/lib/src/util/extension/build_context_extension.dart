@@ -23,4 +23,6 @@ extension BuildContextExtension on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this);
 
   String get locale => l10n.localeName;
+
+  double get orientationBasedVerticalPadding => isLandscape ? 12 : 24;
 }

@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
+import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
-import '../common/widget/button/icon/info_icon_button.dart';
-import '../common/widget/button/link_button.dart';
-import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/button/confirm/confirm_button.dart';
+import '../common/widget/button/confirm/confirm_buttons.dart';
+import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
 import 'widget/pin_timeout_description.dart';
@@ -34,46 +37,59 @@ class PinTimeoutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: WalletAppBar(
-        title: Text(context.l10n.pinTimeoutScreenTitle),
-        automaticallyImplyLeading: false,
-        actions: const [InfoIconButton()],
-      ),
       body: SafeArea(
-        child: PrimaryScrollController(
-          controller: ScrollController(),
-          child: Scrollbar(
-            thumbVisibility: true,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              children: [
-                const PageIllustration(
-                  asset: WalletAssets.svg_blocked_temporary,
-                  padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            Expanded(
+              child: Scrollbar(
+                thumbVisibility: true,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: context.l10n.pinTimeoutScreenHeadline,
+                      actions: const [HelpIconButton()],
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverToBoxAdapter(
+                        child: PinTimeoutDescription(
+                          expiryTime: expiryTime,
+                          onExpire: () => _onTimeoutExpired(context),
+                        ),
+                      ),
+                    ),
+                    const SliverSizedBox(height: 24),
+                    const SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverToBoxAdapter(
+                        child: PageIllustration(
+                          asset: WalletAssets.svg_blocked_temporary,
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                    const SliverSizedBox(height: 24),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  context.l10n.pinTimeoutScreenHeadline,
-                  textAlign: TextAlign.start,
-                  style: context.textTheme.displayMedium,
-                ),
-                const SizedBox(height: 8),
-                PinTimeoutDescription(
-                  expiryTime: expiryTime,
-                  onExpire: () => _onTimeoutExpired(context),
-                ),
-                const SizedBox(height: 24),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: LinkButton(
-                    customPadding: EdgeInsets.zero,
-                    child: Text(context.l10n.pinTimeoutScreenForgotPinCta),
-                    onPressed: () => ForgotPinScreen.show(context),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            const Divider(height: 1),
+            ConfirmButtons(
+              forceVertical: !context.isLandscape,
+              primaryButton: ConfirmButton(
+                text: context.l10n.pinTimeoutScreenClearWalletCta,
+                onPressed: () => ResetWalletDialog.show(context),
+                icon: Icons.arrow_forward_outlined,
+                buttonType: ConfirmButtonType.primary,
+              ),
+              secondaryButton: ConfirmButton(
+                text: context.l10n.pinTimeoutScreenForgotPinCta,
+                onPressed: () => ForgotPinScreen.show(context),
+                icon: Icons.arrow_forward_outlined,
+                buttonType: ConfirmButtonType.text,
+              ),
+            )
+          ],
         ),
       ),
     );
