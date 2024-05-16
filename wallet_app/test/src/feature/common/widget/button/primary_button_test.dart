@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/feature/common/widget/button/link_button.dart';
+import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 
@@ -8,7 +8,7 @@ void main() {
   group('widgets', () {
     testWidgets('button text is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const LinkButton(
+        const PrimaryButton(
           text: Text('Button'),
         ),
       );
@@ -19,7 +19,7 @@ void main() {
 
     testWidgets('default icon is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const LinkButton(
+        const PrimaryButton(
           text: Text('Button'),
         ),
       );
@@ -30,7 +30,7 @@ void main() {
 
     testWidgets('default icon is invisible when icon is set to null', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const LinkButton(
+        const PrimaryButton(
           text: Text('Button'),
           icon: null,
         ),
@@ -42,7 +42,7 @@ void main() {
 
     testWidgets('custom icon is visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const LinkButton(
+        const PrimaryButton(
           text: Text('Button'),
           icon: FlutterLogo(),
         ),
@@ -55,7 +55,7 @@ void main() {
     testWidgets('onPressed callback is triggered when clicked', (tester) async {
       bool isPressed = false;
       await tester.pumpWidgetWithAppWrapper(
-        LinkButton(
+        PrimaryButton(
           text: const Text('Button'),
           onPressed: () => isPressed = true,
         ),

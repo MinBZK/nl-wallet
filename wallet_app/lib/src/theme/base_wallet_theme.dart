@@ -55,6 +55,7 @@ class BaseWalletTheme {
       textStyle: buttonTextStyle,
       minimumSize: const Size.fromHeight(buttonMinHeight),
       shape: buttonShape,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
   );
 
@@ -69,6 +70,7 @@ class BaseWalletTheme {
       minimumSize: const Size.fromHeight(buttonMinHeight),
       shape: buttonShape,
       textStyle: buttonTextStyle,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
   );
 
@@ -76,6 +78,7 @@ class BaseWalletTheme {
     style: TextButton.styleFrom(
       minimumSize: const Size(0.0, buttonMinHeight),
       shape: buttonShape,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
   );
 

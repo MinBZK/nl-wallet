@@ -79,6 +79,12 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
     // Check if correct pin was provided
     final result = _pinManager.checkPin(pin);
     if (result is WalletInstructionResult_InstructionError) {
+      switch (result.error) {
+        case WalletInstructionError_Timeout():
+        case WalletInstructionError_Blocked():
+          _wallet.lock();
+          break;
+      }
       return AcceptDisclosureResult.instructionError(error: result.error);
     }
 

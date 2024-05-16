@@ -211,8 +211,7 @@ class LoginDetailScreen extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: LinkButton(
-              customPadding: EdgeInsets.zero,
-              child: Text(context.l10n.loginDetailScreenAgreementCta),
+              text: Text(context.l10n.loginDetailScreenAgreementCta),
               onPressed: () => PolicyScreen.show(context, policy),
             ),
           ),

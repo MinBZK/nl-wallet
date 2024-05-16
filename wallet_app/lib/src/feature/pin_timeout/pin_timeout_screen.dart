@@ -6,9 +6,10 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
-import '../common/widget/button/confirm/confirm_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/secondary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
@@ -76,17 +77,13 @@ class PinTimeoutScreen extends StatelessWidget {
             const Divider(height: 1),
             ConfirmButtons(
               forceVertical: !context.isLandscape,
-              primaryButton: ConfirmButton(
-                text: context.l10n.pinTimeoutScreenClearWalletCta,
+              primaryButton: PrimaryButton(
+                text: Text(context.l10n.pinTimeoutScreenClearWalletCta),
                 onPressed: () => ResetWalletDialog.show(context),
-                icon: Icons.arrow_forward_outlined,
-                buttonType: ConfirmButtonType.primary,
               ),
-              secondaryButton: ConfirmButton(
-                text: context.l10n.pinTimeoutScreenForgotPinCta,
+              secondaryButton: SecondaryButton(
+                text: Text(context.l10n.pinTimeoutScreenForgotPinCta),
                 onPressed: () => ForgotPinScreen.show(context),
-                icon: Icons.arrow_forward_outlined,
-                buttonType: ConfirmButtonType.text,
               ),
             )
           ],

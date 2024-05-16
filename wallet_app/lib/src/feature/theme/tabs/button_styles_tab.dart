@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../common/widget/button/destructive_button.dart';
 import '../../common/widget/button/link_button.dart';
-import '../../common/widget/button/link_tile_button.dart';
+import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
-import '../../common/widget/button/text_icon_button.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/text_with_link.dart';
 import '../theme_screen.dart';
 
@@ -36,43 +36,50 @@ class ButtonStylesTab extends StatelessWidget {
           child: const Text('OutlinedButton'),
         ),
         const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'Primary & Secondary Buttons'),
+        const ThemeSectionSubHeader(title: 'Wallet Buttons'),
         const SizedBox(height: 16),
-        PrimaryButton(onPressed: () => {}, text: 'PrimaryButton'),
+        PrimaryButton(onPressed: () => {}, text: const Text('Primary')),
         const SizedBox(height: 16),
-        SecondaryButton(onPressed: () => {}, text: 'SecondaryButton'),
+        SecondaryButton(onPressed: () => {}, text: const Text('Secondary')),
         const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'TextIconButton'),
-        TextIconButton(
-          onPressed: () => {},
-          child: const Text('TextIconButton'),
-        ),
+        TertiaryButton(onPressed: () => {}, text: const Text('Tertiary')),
+        const SizedBox(height: 16),
+        DestructiveButton(onPressed: () => {}, text: const Text('Destructive')),
+        const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'TextWithLink'),
         TextWithLink(
           fullText: 'This is the full text {WITH} a clickable placeholder.',
           ctaText: 'WITH',
           onCtaPressed: () {},
         ),
-        const ThemeSectionSubHeader(title: 'LinkTileButton'),
-        LinkTileButton(
+        const ThemeSectionSubHeader(title: 'ListButton'),
+        ListButton(
           onPressed: () => {},
-          child: const Text('LinkTileButton'),
+          dividerSide: DividerSide.none,
+          text: const Text('ListButton'),
         ),
         const ThemeSectionSubHeader(title: 'LinkButton'),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: LinkButton(
             onPressed: () => {},
-            child: const Text('LinkButton'),
+            text: const Text('LinkButton'),
           ),
         ),
-        const SizedBox(height: 16),
         const ThemeSectionSubHeader(title: 'BottomBackButton'),
         const BottomBackButton(),
         const ThemeSectionSubHeader(title: 'ConfirmButtons'),
         const ConfirmButtons(
-          primaryButton: ConfirmButton.accept(text: 'Accept'),
-          secondaryButton: ConfirmButton.reject(text: 'Decline'),
+          primaryButton: PrimaryButton(
+            key: Key('acceptButton'),
+            text: Text('Accept'),
+            icon: null,
+          ),
+          secondaryButton: SecondaryButton(
+            key: Key('rejectButton'),
+            icon: null,
+            text: Text('Decline'),
+          ),
         ),
       ],
     );

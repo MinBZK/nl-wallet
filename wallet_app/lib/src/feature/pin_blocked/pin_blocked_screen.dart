@@ -5,8 +5,8 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
-import '../common/widget/button/confirm/confirm_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
@@ -56,10 +56,8 @@ class PinBlockedScreen extends StatelessWidget {
             SizedBox(height: context.orientationBasedVerticalPadding),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ConfirmButton(
-                text: context.l10n.pinBlockedScreenResetWalletCta,
-                icon: Icons.arrow_forward_outlined,
-                buttonType: ConfirmButtonType.primary,
+              child: PrimaryButton(
+                text: Text(context.l10n.pinBlockedScreenResetWalletCta),
                 onPressed: () => ResetWalletDialog.show(context),
               ),
             ),

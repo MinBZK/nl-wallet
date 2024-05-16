@@ -8,7 +8,7 @@ import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
-import '../../common/widget/button/link_tile_button.dart';
+import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
@@ -115,8 +115,8 @@ class CardDataScreen extends StatelessWidget {
   }
 
   Widget _buildIncorrectButton(BuildContext context) {
-    return LinkTileButton(
-      child: Text(context.l10n.cardDataScreenIncorrectCta),
+    return ListButton(
+      text: Text(context.l10n.cardDataScreenIncorrectCta),
       onPressed: () => CardDataIncorrectScreen.show(context),
     );
   }

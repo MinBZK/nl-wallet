@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../widget/button/bottom_button.dart';
-import '../widget/button/text_icon_button.dart';
+import '../widget/button/list_button.dart';
 import '../widget/loading_indicator.dart';
 import '../widget/wallet_app_bar.dart';
 
@@ -77,12 +76,14 @@ class GenericLoadingPage extends StatelessWidget {
     return SafeArea(
       left: false,
       right: false,
-      child: BottomButton(
-        button: TextIconButton(
-          iconPosition: IconPosition.start,
-          icon: Icons.block_outlined,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ListButton(
+          icon: const Icon(Icons.block_outlined),
           onPressed: onCancel,
-          child: Text(cancelCta ?? context.l10n.generalCancelCta),
+          dividerSide: DividerSide.top,
+          mainAxisAlignment: MainAxisAlignment.center,
+          text: Text(cancelCta ?? context.l10n.generalCancelCta),
         ),
       ),
     );

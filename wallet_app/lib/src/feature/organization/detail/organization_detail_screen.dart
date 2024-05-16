@@ -11,7 +11,7 @@ import '../../../util/formatter/country_code_formatter.dart';
 import '../../../util/launch_util.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
-import '../../common/widget/button/link_tile_button.dart';
+import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
@@ -126,8 +126,8 @@ class OrganizationDetailScreen extends StatelessWidget {
         ),
         onReportIssuePressed == null
             ? const SizedBox()
-            : LinkTileButton(
-                child: Expanded(child: Text(context.l10n.organizationDetailScreenReportIssueCta)),
+            : ListButton(
+                text: Text(context.l10n.organizationDetailScreenReportIssueCta),
                 onPressed: () {
                   Navigator.pop(context);
                   onReportIssuePressed?.call();
