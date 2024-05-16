@@ -159,6 +159,7 @@ impl<P: PkcePair> HttpOidcClient<P> {
             }),
             scope: self.provider.scopes_supported.clone(),
             nonce: Some(self.nonce.clone()),
+            response_mode: None,
         };
 
         Ok(serde_urlencoded::to_string(params)?)

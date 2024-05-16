@@ -29,6 +29,21 @@ pub struct AuthorizationRequest {
     pub scope: Option<IndexSet<String>>,
 
     pub nonce: Option<String>,
+    pub response_mode: Option<ResponseMode>,
+}
+
+/// Defined in https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResponseMode {
+    Query,
+    #[default]
+    Fragment,
+
+    // The following two are defined in OpenID4VP
+    DirectPost,
+    #[serde(rename = "direct_post.jwt")]
+    DirectPostJwt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -43,11 +58,12 @@ pub enum PkceCodeChallenge {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ResponseType {
     #[default]
     Code,
+    VpToken,
 }
 
 /// Format-specific data for the [`AuthorizationDetails`].
