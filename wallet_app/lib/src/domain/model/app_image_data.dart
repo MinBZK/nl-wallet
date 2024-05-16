@@ -15,6 +15,9 @@ sealed class AppImageData extends Equatable {
 
 class SvgImage extends AppImageData {
   const SvgImage(super.data);
+
+  @override
+  String toString() => 'SvgImage hashCode: ${data.hashCode}';
 }
 
 class AppAssetImage extends AppImageData {
@@ -23,4 +26,7 @@ class AppAssetImage extends AppImageData {
 
 class Base64Image extends AppImageData {
   const Base64Image(super.data);
+
+  @override
+  String toString() => 'Base64Image hashCode: ${data.hashCode}';
 }

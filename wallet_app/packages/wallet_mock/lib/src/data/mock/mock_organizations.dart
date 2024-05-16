@@ -60,9 +60,9 @@ final _kRvigOrganization = Organization(
     LocalizedString(language: 'nl', value: 'Den Haag, Nederland'),
   ],
   image: Image.asset(path: MockAssets.logo_rijksoverheid),
-  kvk: '27373207',
   webUrl: 'https://www.rvig.nl/',
   privacyPolicyUrl: 'https://www.rvig.nl/over-deze-site/privacyverklaring-rijksdienst-voor-identiteitsgegevens',
+  kvk: '27373207',
 );
 
 final _kRdwOrganization = Organization(
