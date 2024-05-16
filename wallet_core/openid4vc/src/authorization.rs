@@ -23,7 +23,7 @@ pub struct AuthorizationRequest {
     pub request_uri: Option<String>,
 
     #[serde(flatten)]
-    pub code_challenge: PkceCodeChallenge,
+    pub code_challenge: Option<PkceCodeChallenge>,
 
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
     pub scope: Option<IndexSet<String>>,

@@ -154,9 +154,9 @@ impl<P: PkcePair> HttpOidcClient<P> {
             state: Some(self.state.clone()),
             authorization_details: None,
             request_uri: None,
-            code_challenge: PkceCodeChallenge::S256 {
+            code_challenge: Some(PkceCodeChallenge::S256 {
                 code_challenge: self.pkce_pair.code_challenge().to_string(),
-            },
+            }),
             scope: self.provider.scopes_supported.clone(),
             nonce: Some(self.nonce.clone()),
         };
