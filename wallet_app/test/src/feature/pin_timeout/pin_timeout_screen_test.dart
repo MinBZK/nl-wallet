@@ -49,12 +49,10 @@ void main() {
       );
 
       final AppLocalizations locale = await TestUtils.englishLocalizations;
-      final titleFinder = find.textContaining(locale.pinTimeoutScreenTitle, findRichText: true);
       final headlineFinder = find.textContaining(locale.pinTimeoutScreenHeadline, findRichText: true);
       final ctaFinder = find.textContaining(locale.pinTimeoutScreenForgotPinCta, findRichText: true);
 
-      expect(titleFinder, findsOneWidget);
-      expect(headlineFinder, findsOneWidget);
+      expect(headlineFinder, findsNWidgets(2) /*In content and appbar*/);
       expect(ctaFinder, findsOneWidget);
     });
   });

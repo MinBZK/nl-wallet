@@ -6,7 +6,8 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/page/page_illustration.dart';
 import '../common/sheet/help_sheet.dart';
-import '../common/widget/button/text_icon_button.dart';
+import '../common/widget/button/button_content.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 
 class ErrorPage extends StatelessWidget {
@@ -160,9 +161,10 @@ class ErrorPage extends StatelessWidget {
         if (secondaryActionText != null) ...[
           const SizedBox(height: 8),
           Center(
-            child: TextIconButton(
+            child: TertiaryButton(
               onPressed: onSecondaryActionPressed,
-              child: Text(secondaryActionText!),
+              iconPosition: IconPosition.end,
+              text: Text(secondaryActionText!),
             ),
           ),
         ],

@@ -10,19 +10,20 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
 import '../../check_attributes/check_attributes_screen.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
+import '../../info/info_screen.dart';
 import '../../policy/policy_screen.dart';
 
 class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
-  final VoidCallback? onReportIssuePressed;
 
   final Organization relyingParty;
   final Map<WalletCard, List<DataAttribute>> requestedAttributes;
@@ -36,7 +37,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   const DisclosureConfirmDataAttributesPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
-    this.onReportIssuePressed,
     required this.relyingParty,
     required this.requestedAttributes,
     required this.policy,
@@ -49,7 +49,6 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
     return SafeArea(
       child: Scrollbar(
         thumbVisibility: true,
-        trackVisibility: true,
         child: CustomScrollView(
           restorationId: 'confirm_data_attributes_scrollview',
           slivers: <Widget>[
@@ -90,10 +89,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             context,
             card: entry.key,
             attributes: entry.value,
-            onDataIncorrectPressed: () {
-              Navigator.pop(context);
-              onReportIssuePressed?.call();
-            },
+            onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
           ),
         );
       },
@@ -128,15 +124,16 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
       children: [
         const Divider(height: 1),
         ConfirmButtons(
-          primaryButton: ConfirmButton.accept(
+          primaryButton: PrimaryButton(
+            key: const Key('acceptButton'),
             onPressed: onAcceptPressed,
-            text: context.l10n.disclosureConfirmDataAttributesPageApproveCta,
-            icon: Icons.arrow_forward,
+            text: Text(context.l10n.disclosureConfirmDataAttributesPageApproveCta),
           ),
-          secondaryButton: ConfirmButton.reject(
+          secondaryButton: SecondaryButton(
+            key: const Key('rejectButton'),
             onPressed: onDeclinePressed,
-            icon: Icons.block_flipped,
-            text: context.l10n.disclosureConfirmDataAttributesPageDenyCta,
+            icon: const Icon(Icons.block_flipped),
+            text: Text(context.l10n.disclosureConfirmDataAttributesPageDenyCta),
           ),
         ),
       ],
@@ -179,7 +176,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             const Icon(Icons.credit_card_outlined, size: 24),
             const SizedBox(height: 16),
             Text(
-              context.l10n.disclosureConfirmDataAttributesSubtitleData,
+              context.l10n.disclosureConfirmDataAttributesSubtitleData(totalNrOfAttributes),
               style: context.textTheme.displaySmall,
               textAlign: TextAlign.start,
             ),
@@ -223,13 +220,8 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           LinkButton(
-            customPadding: EdgeInsets.zero,
-            child: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
-            onPressed: () => PolicyScreen.show(
-              context,
-              policy,
-              onReportIssuePressed: onReportIssuePressed,
-            ),
+            text: Text(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta),
+            onPressed: () => PolicyScreen.show(context, policy),
           ),
         ],
       ),

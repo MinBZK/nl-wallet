@@ -47,8 +47,7 @@ class DataIncorrectOptionRow extends StatelessWidget {
                   ),
                   LinkButton(
                     onPressed: onTap,
-                    customPadding: EdgeInsets.zero,
-                    child: Text(cta),
+                    text: Text(cta),
                   ),
                 ],
               ),

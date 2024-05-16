@@ -7,8 +7,8 @@ import '../../domain/model/bloc/error_state.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
-import '../common/widget/button/bottom_button.dart';
-import '../common/widget/button/text_icon_button.dart';
+import '../common/widget/button/button_content.dart';
+import '../common/widget/button/list_button.dart';
 import '../common/widget/pin_header.dart';
 import '../error/error_screen.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
@@ -255,15 +255,13 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _buildForgotCodeButton(BuildContext context) {
-    return BottomButton(
-      button: TextIconButton(
-        iconPosition: IconPosition.start,
-        centerChild: false,
-        contentAlignment: context.isLandscape ? Alignment.centerLeft : Alignment.center,
-        icon: Icons.help_outline_rounded,
-        onPressed: () => ForgotPinScreen.show(context),
-        child: Text(context.l10n.pinScreenForgotPinCta),
-      ),
+    return ListButton(
+      mainAxisAlignment: context.isLandscape ? MainAxisAlignment.start : MainAxisAlignment.center,
+      icon: const Icon(Icons.help_outline_rounded),
+      onPressed: () => ForgotPinScreen.show(context),
+      iconPosition: IconPosition.start,
+      text: Text(context.l10n.pinScreenForgotPinCta),
+      dividerSide: DividerSide.top,
     );
   }
 
@@ -339,21 +337,21 @@ class PinPage extends StatelessWidget {
   }
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
-    final title = context.l10n.pinErrorDialogTitle;
     final body = _pinErrorDialogBody(context, reason);
+    return showPinErrorDialog(context, body);
+  }
 
+  static Future<void> showPinErrorDialog(BuildContext context, String description) async {
+    final title = context.l10n.pinErrorDialogTitle;
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
           semanticLabel: title,
           title: Text(title, style: context.textTheme.displayMedium),
-          content: Text(body, style: context.textTheme.bodyLarge),
+          content: Text(description, style: context.textTheme.bodyLarge),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase()),

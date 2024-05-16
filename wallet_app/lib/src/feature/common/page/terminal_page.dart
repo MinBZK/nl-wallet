@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/primary_button.dart';
-import '../widget/button/text_icon_button.dart';
+import '../widget/button/tertiary_button.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 
@@ -102,8 +102,8 @@ class TerminalPage extends StatelessWidget {
       child: PrimaryButton(
         key: const Key('primaryButtonCta'),
         onPressed: onPrimaryPressed,
-        text: primaryButtonCta,
-        icon: primaryButtonIcon,
+        text: Text(primaryButtonCta),
+        icon: Icon(primaryButtonIcon),
       ),
     );
   }
@@ -112,12 +112,10 @@ class TerminalPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       width: double.infinity,
-      child: TextIconButton(
+      child: TertiaryButton(
         key: const Key('secondaryButtonCta'),
         onPressed: onSecondaryButtonPressed,
-        iconPosition: IconPosition.start,
-        centerChild: false,
-        child: Text(secondaryButtonCta!),
+        text: Text(secondaryButtonCta!),
       ),
     );
   }

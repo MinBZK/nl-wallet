@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../wallet_assets.dart';
-import '../../../common/widget/button/confirm/confirm_button.dart';
 import '../../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../../common/widget/button/primary_button.dart';
+import '../../../common/widget/button/tertiary_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 
 class WalletPersonalizeDigidErrorPage extends StatelessWidget {
@@ -79,17 +80,15 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
       children: [
         const Divider(height: 1),
         ConfirmButtons(
-          primaryButton: ConfirmButton(
-            text: context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta,
-            buttonType: ConfirmButtonType.primary,
+          primaryButton: PrimaryButton(
+            text: Text(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta),
             onPressed: onRetryPressed,
-            iconProvider: const AssetImage(WalletAssets.logo_digid),
+            icon: Image.asset(WalletAssets.logo_digid),
           ),
-          secondaryButton: ConfirmButton(
+          secondaryButton: TertiaryButton(
             onPressed: onHelpPressed,
-            text: context.l10n.walletPersonalizeDigidErrorPageNoDigidCta,
-            buttonType: ConfirmButtonType.text,
-            icon: Icons.help_outline_rounded,
+            text: Text(context.l10n.walletPersonalizeDigidErrorPageNoDigidCta),
+            icon: const Icon(Icons.help_outline_rounded),
           ),
         ),
       ],

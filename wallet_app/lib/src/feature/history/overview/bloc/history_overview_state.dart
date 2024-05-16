@@ -17,12 +17,12 @@ class HistoryOverviewLoadInProgress extends HistoryOverviewState {
 }
 
 class HistoryOverviewLoadSuccess extends HistoryOverviewState {
-  final List<TimelineAttribute> attributes;
+  final List<WalletEvent> events;
 
-  const HistoryOverviewLoadSuccess(this.attributes);
+  const HistoryOverviewLoadSuccess(this.events);
 
   @override
-  List<Object> get props => [attributes];
+  List<Object> get props => [events];
 }
 
 class HistoryOverviewLoadFailure extends HistoryOverviewState {

@@ -20,7 +20,7 @@ void main() {
           ..addScenario(
             widget: const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, [WalletMockData.card]),
+              HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
             ),
           ),
         wrapper: walletAppWrapper(),
@@ -34,7 +34,7 @@ void main() {
           ..addScenario(
             widget: const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, [WalletMockData.card]),
+              HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
             ),
           ),
         wrapper: walletAppWrapper(brightness: Brightness.dark),
@@ -68,13 +68,13 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          HistoryDetailLoadSuccess(WalletMockData.operationTimelineAttribute, [WalletMockData.card]),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEvent, [WalletMockData.card]),
         ),
       );
 
       // Validate that the card details are rendered
       expect(find.text(WalletMockData.cardFront.title.testValue), findsOneWidget);
-      for (final attribute in WalletMockData.operationTimelineAttribute.dataAttributes) {
+      for (final attribute in WalletMockData.issuanceEvent.attributes) {
         expect(find.textContaining(attribute.label.testValue), findsOneWidget);
         expect(find.textContaining(attribute.value.toString()), findsOneWidget);
       }

@@ -1,18 +1,17 @@
 import '../../../../data/repository/card/wallet_card_repository.dart';
-import '../../../../data/repository/history/timeline_attribute_repository.dart';
-import '../../../model/timeline/interaction_timeline_attribute.dart';
-import '../../../model/timeline/operation_timeline_attribute.dart';
+import '../../../../data/repository/event/wallet_event_repository.dart';
+import '../../../model/event/wallet_event.dart';
 import '../../../model/wallet_card.dart';
 import '../../../model/wallet_card_detail.dart';
 import '../observe_wallet_card_detail_usecase.dart';
 
 class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCase {
   final WalletCardRepository _walletCardRepository;
-  final TimelineAttributeRepository _timelineAttributeRepository;
+  final WalletEventRepository _walletEventRepository;
 
   ObserveWalletCardDetailUseCaseImpl(
     this._walletCardRepository,
-    this._timelineAttributeRepository,
+    this._walletEventRepository,
   );
 
   @override
@@ -24,18 +23,18 @@ class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCa
   }
 
   Future<WalletCardDetail> _getWalletCardDetail(WalletCard card) async {
-    InteractionTimelineAttribute? interaction = await _timelineAttributeRepository.readMostRecentInteraction(
+    DisclosureEvent? disclosureEvent = await _walletEventRepository.readMostRecentDisclosureEvent(
       card.docType,
-      InteractionStatus.success,
+      EventStatus.success,
     );
-    OperationTimelineAttribute? operation = await _timelineAttributeRepository.readMostRecentOperation(
+    IssuanceEvent? issuanceEvent = await _walletEventRepository.readMostRecentIssuanceEvent(
       card.docType,
-      OperationStatus.issued,
+      EventStatus.success,
     );
     return WalletCardDetail(
       card: card,
-      latestSuccessInteraction: interaction,
-      latestIssuedOperation: operation,
+      mostRecentSuccessfulDisclosure: disclosureEvent,
+      mostRecentIssuance: issuanceEvent,
     );
   }
 }

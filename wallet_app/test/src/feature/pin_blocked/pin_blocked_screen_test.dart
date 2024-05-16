@@ -41,13 +41,11 @@ void main() {
       await tester.pumpWidget(const WalletAppTestWidget(child: PinBlockedScreen()));
 
       final AppLocalizations l10n = await TestUtils.englishLocalizations;
-      final titleFinder = find.textContaining(l10n.pinBlockedScreenTitle, findRichText: true);
       final headlineFinder = find.textContaining(l10n.pinBlockedScreenHeadline, findRichText: true);
       final descriptionFinder = find.textContaining(l10n.pinBlockedScreenDescription, findRichText: true);
       final ctaFinder = find.textContaining(l10n.pinBlockedScreenResetWalletCta, findRichText: true);
 
-      expect(titleFinder, findsOneWidget);
-      expect(headlineFinder, findsOneWidget);
+      expect(headlineFinder, findsNWidgets(2) /*In content and appbar*/);
       expect(descriptionFinder, findsOneWidget);
       expect(ctaFinder, findsOneWidget);
     });

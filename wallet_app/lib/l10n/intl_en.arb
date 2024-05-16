@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-04-30T09:41:14+02:00",
+    "@@last_modified": "2024-05-16T15:57:13+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -10,14 +10,19 @@
     "aboutScreenTermsCta": "Terms of use",
     "aboutScreenTitle": "About the NL Wallet",
     "aboutScreenUrl": "edi.pleio.nl",
-    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} card added.} other {{count} cards added.}}",
+    "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {added {count} card} other {added {count} cards}}",
     "activitySummaryEmpty": "No activities",
-    "activitySummaryLastMonth": "Last month",
-    "activitySummaryLastWeek": "Last week",
-    "activitySummarySharedWith": "Shared with {organization}.",
-    "activitySummarySharedWithMultiple": "Shared with {organizations} and {organization}.",
+    "activitySummaryLastMonth": "Activities last month",
+    "activitySummaryLastWeek": "Activities last week",
+    "activitySummaryLoggedInMultiple": "logged in to {organizations} and {organization}",
+    "activitySummaryLoggedInWith": "logged in at {organization}",
+    "activitySummaryLoggedInWithOthers": "{nrOrganizations} other organizations",
+    "activitySummaryPrefix": "You have",
+    "activitySummarySeparator": "and",
+    "activitySummarySharedWith": "shared with {organization}",
+    "activitySummarySharedWithMultiple": "shared with {organizations} and {organization}",
     "activitySummarySharedWithOthers": "{nrOrganizations} other organizations",
-    "activitySummaryToday": "Today",
+    "activitySummaryToday": "Activities today",
     "appTitle": "NL Wallet",
     "approveOrganizationPageApproveCta": "Yes, next",
     "approveOrganizationPageDenyCta": "No, decline",
@@ -96,6 +101,7 @@
         }
     },
     "cardDetailScreenDataAttributesTitle": "Details in this card",
+    "cardDetailScreenIssuerCta": "About the issuer",
     "cardDetailScreenLatestIssuedOperation": "Latest update {dateTime}",
     "@cardDetailScreenLatestIssuedOperation": {
         "placeholders": {
@@ -127,8 +133,18 @@
     "cardDetailScreenNoUpdateAvailableSheetCloseCta": "Close",
     "cardDetailScreenNoUpdateAvailableSheetDescription": "At the moment, there are no new data available for this card.\n\nExpecting new data? It may take a few days before you can retrieve the new data. Please try again later.",
     "cardDetailScreenNoUpdateAvailableSheetTitle": "You have the latest version.",
+    "cardHistoryDisclosureCancelled": "Sharing stopped",
+    "cardHistoryDisclosureError": "Failed to share",
+    "cardHistoryDisclosureSuccess": "Data shared",
+    "cardHistoryIssuanceSuccess": "Card created",
+    "cardHistoryLoginCancelled": "Log in is stopped",
+    "cardHistoryLoginError": "Log in failed",
+    "cardHistoryLoginSuccess": "Logged in",
     "cardHistoryScreenBackCta": "Back",
     "cardHistoryScreenTitle": "Card activities",
+    "cardHistorySigningCancelled": "Signing stopped",
+    "cardHistorySigningError": "Signing failed",
+    "cardHistorySigningSuccess": "Signed",
     "cardHistoryTimelineInteractionFailed": "Failed to share",
     "cardHistoryTimelineInteractionRejected": "Sharing stopped",
     "cardHistoryTimelineInteractionSuccess": "Data shared",
@@ -213,6 +229,8 @@
     "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
     "dataIncorrectScreenHeaderTitle": "Is the data incorrect?",
     "dataIncorrectScreenTitle": "Retrieve data",
+    "detailsIncorrectScreenDescription": "It can cause issues if your details are incorrect. Contact your municipality to change your details.\n\nAre you still waiting for an adjustment? It can take a while before changes appear in the app.",
+    "detailsIncorrectScreenTitle": "Are your details incorrect?",
     "digidHelpScreenHelpNeededCta": "Open DigiD help",
     "digidHelpScreenHelpNeededDescription": "DigiD Help can help you with DigiD.",
     "digidHelpScreenHelpNeededTitle": "Still having trouble?",
@@ -278,7 +296,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSubtitleData": "Data in this card",
+    "disclosureConfirmDataAttributesSubtitleData": "{count, plural, other {Requested data}}",
     "disclosureConfirmDataAttributesSubtitlePurpose": "Reason",
     "disclosureConfirmDataAttributesSubtitleTerms": "Agreements",
     "disclosureConfirmPinPageDescription": "By entering your PIN code you agree to share your data.",
@@ -592,6 +610,24 @@
         }
     },
     "helpSheetTitle": "Need help?",
+    "historyDetailScreenDisclosureCancelledDescription": "No data has been shared with {organization}, because you stopped sharing.",
+    "@historyDetailScreenDisclosureCancelledDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenDisclosureErrorDescription": "No data has been shared with {organization}, because something went wrong.",
+    "@historyDetailScreenDisclosureErrorDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
     "historyDetailScreenHelpdeskTitle": "Open support",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {Shared 1 data} other {Shared {attributes} data}}",
@@ -622,6 +658,7 @@
             }
         }
     },
+    "historyDetailScreenIssuanceSuccessDescription": "Card created",
     "historyDetailScreenIssueSubtitle": "About the data, the request or the receiver",
     "historyDetailScreenIssueTitle": "Report a problem?",
     "historyDetailScreenOperationAttributesTitle": "Retrieved data",
@@ -958,7 +995,7 @@
     "pidIdCardTitle": "Personal data",
     "pinBlockedScreenDescription": "You have entered your PIN code incorrectly too many times.\n\nDo you want to use the Wallet again? Then you have to start again. Clear the Wallet and choose a new PIN code.",
     "pinBlockedScreenHeadline": "Your app has been blocked",
-    "pinBlockedScreenResetWalletCta": "Remove Wallet",
+    "pinBlockedScreenResetWalletCta": "Delete Wallet",
     "pinBlockedScreenTitle": "App blocked",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} digit left} other {{count} digits left}}",
     "pinErrorDialogCloseCta": "CLOSE",
@@ -984,6 +1021,7 @@
             }
         }
     },
+    "pinErrorDialogRestartSetupWarning": "You can try 1 more time. If the following PIN code is invalid, the setup process will restart from the beginning.",
     "pinErrorDialogTitle": "Wrong PIN code",
     "pinFieldAnnouncementLabel": "{count, plural, one {Access PIN Code, {count} digit left} other {Access PIN Code, {count} digits left}}",
     "pinFieldSemanticsLabel": "Access PIN code, {enteredDigits} of {totalDigits} entered.",
@@ -1016,8 +1054,9 @@
     "pinScreenForgotPinCta": "Forgot PIN code?",
     "pinScreenHeader": "Open with your PIN code",
     "pinScreenTitle": "Login",
+    "pinTimeoutScreenClearWalletCta": "Delete wallet",
     "pinTimeoutScreenForgotPinCta": "Forgot PIN code?",
-    "pinTimeoutScreenHeadline": "Temporary block",
+    "pinTimeoutScreenHeadline": "Temporarily blocked",
     "pinTimeoutScreenTimeoutCountdown": "You have entered your PIN code incorrectly too many times. Please try again in {timeLeft}.",
     "@pinTimeoutScreenTimeoutCountdown": {
         "placeholders": {
@@ -1159,6 +1198,7 @@
     "setupSecuritySelectPinErrorPageTitle": "This PIN code is too simple",
     "setupSecuritySelectPinErrorPageTooFewUniqueDigitsError": "Choose a PIN code with different digits.",
     "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN code",
+    "sharedAttributesCardCta": "View",
     "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "showDetailsCta": "View",
     "signConfirmPinPageDescription": "By entering your PIN code you agree to exchange your data.",

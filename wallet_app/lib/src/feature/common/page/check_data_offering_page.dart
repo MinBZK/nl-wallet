@@ -120,7 +120,7 @@ class CheckDataOfferingPage extends StatelessWidget {
             alignment: AlignmentDirectional.centerStart,
             child: LinkButton(
               onPressed: () => PlaceholderScreen.show(context),
-              child: Text(footerCta),
+              text: Text(footerCta),
             ),
           ),
         ),

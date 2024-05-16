@@ -19,6 +19,7 @@ import '../common/widget/organization/organization_logo.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../info/info_screen.dart';
 import '../organization/detail/organization_detail_screen.dart';
 import '../policy/policy_screen.dart';
 import 'argument/login_detail_screen_argument.dart';
@@ -144,7 +145,7 @@ class LoginDetailScreen extends StatelessWidget {
             context,
             card: entry.key,
             attributes: entry.value,
-            onDataIncorrectPressed: () => PlaceholderScreen.show(context, secured: true),
+            onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
           ),
         );
       },
@@ -210,8 +211,7 @@ class LoginDetailScreen extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: LinkButton(
-              customPadding: EdgeInsets.zero,
-              child: Text(context.l10n.loginDetailScreenAgreementCta),
+              text: Text(context.l10n.loginDetailScreenAgreementCta),
               onPressed: () => PolicyScreen.show(context, policy),
             ),
           ),

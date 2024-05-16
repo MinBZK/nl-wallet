@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/primary_button.dart';
-import '../../common/widget/button/secondary_button.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/numbered_list.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
@@ -88,13 +88,13 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
             SizedBox(height: verticalPadding),
             PrimaryButton(
               onPressed: onDataRejected,
-              text: context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta,
+              text: Text(context.l10n.walletPersonalizeDataIncorrectScreenPrimaryCta),
             ),
             const SizedBox(height: 12),
-            SecondaryButton(
+            TertiaryButton(
               onPressed: () => Navigator.maybePop(context),
-              text: context.l10n.generalBottomBackCta,
-              icon: Icons.arrow_back,
+              text: Text(context.l10n.generalBottomBackCta),
+              icon: const Icon(Icons.arrow_back),
             ),
           ],
         ),

@@ -87,7 +87,8 @@ class MenuScreen extends StatelessWidget {
               ),
             ),
           ),
-        )
+        ),
+        const SliverSizedBox(height: 40),
       ],
     );
   }

@@ -79,15 +79,14 @@ void main() {
     ),
     setUp: () {
       when(observeWalletCardsUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.altCard]));
-      when(observeRecentHistoryUseCase.invoke())
-          .thenAnswer((_) => Stream.value([WalletMockData.interactionTimelineAttribute]));
+      when(observeRecentHistoryUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.disclosureEvent]));
     },
     act: (bloc) => bloc.add(const DashboardLoadTriggered()),
     expect: () => [
       const DashboardLoadInProgress(),
       DashboardLoadSuccess(
         cards: [WalletMockData.altCard],
-        history: [WalletMockData.interactionTimelineAttribute],
+        history: [WalletMockData.disclosureEvent],
       ),
     ],
   );
@@ -116,8 +115,7 @@ void main() {
     ),
     setUp: () {
       when(observeWalletCardsUseCase.invoke()).thenAnswer((_) => Stream.error('Failed to load cards'));
-      when(observeRecentHistoryUseCase.invoke())
-          .thenAnswer((_) => Stream.value([WalletMockData.interactionTimelineAttribute]));
+      when(observeRecentHistoryUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.disclosureEvent]));
     },
     act: (bloc) => bloc.add(const DashboardLoadTriggered()),
     expect: () => [

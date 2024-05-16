@@ -5,7 +5,7 @@ import '../../domain/model/policy/policy.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/button/link_tile_button.dart';
+import '../common/widget/button/list_button.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
@@ -91,8 +91,8 @@ class PolicyScreen extends StatelessWidget {
 
   Widget _buildReportIssueButton(BuildContext context) {
     if (onReportIssuePressed == null) return const SizedBox.shrink();
-    return LinkTileButton(
-      child: Text(context.l10n.policyScreenReportIssueCta),
+    return ListButton(
+      text: Text(context.l10n.policyScreenReportIssueCta),
       onPressed: () {
         Navigator.pop(context);
         onReportIssuePressed?.call();

@@ -1,24 +1,24 @@
-import '../../../../domain/model/timeline/timeline_attribute.dart';
+import '../../../../domain/model/event/wallet_event.dart';
 
 class HistoryDetailScreenArgument {
-  static const _kTimelineAttributeKey = 'timelineAttribute';
+  static const _kWalletEventKey = 'walletEvent';
   static const _kCardDocType = 'docType';
 
-  final TimelineAttribute timelineAttribute;
+  final WalletEvent walletEvent;
   final String? docType;
 
-  const HistoryDetailScreenArgument({required this.timelineAttribute, this.docType});
+  const HistoryDetailScreenArgument({required this.walletEvent, this.docType});
 
   Map<String, dynamic> toMap() {
     return {
-      _kTimelineAttributeKey: timelineAttribute,
+      _kWalletEventKey: walletEvent,
       _kCardDocType: docType,
     };
   }
 
   static HistoryDetailScreenArgument fromMap(Map<String, dynamic> map) {
     return HistoryDetailScreenArgument(
-      timelineAttribute: map[_kTimelineAttributeKey],
+      walletEvent: map[_kWalletEventKey],
       docType: map[_kCardDocType],
     );
   }
@@ -28,13 +28,13 @@ class HistoryDetailScreenArgument {
       identical(this, other) ||
       other is HistoryDetailScreenArgument &&
           runtimeType == other.runtimeType &&
-          timelineAttribute == other.timelineAttribute &&
+          walletEvent == other.walletEvent &&
           docType == other.docType;
 
   @override
   int get hashCode => Object.hash(
         runtimeType,
-        timelineAttribute,
+        walletEvent,
         docType,
       );
 }

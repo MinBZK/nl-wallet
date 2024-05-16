@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../screen/placeholder_screen.dart';
 import '../widget/button/link_button.dart';
-import '../widget/button/secondary_button.dart';
+import '../widget/button/tertiary_button.dart';
 import '../widget/os_version_text.dart';
 import '../widget/version_text.dart';
 
@@ -47,21 +47,22 @@ class HelpSheet extends StatelessWidget {
         ),
         const Divider(height: 1),
         const SizedBox(height: 16),
-        LinkButton(
-          onPressed: () => PlaceholderScreen.show(context, secured: false),
-          customPadding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(context.l10n.helpSheetHelpdeskCta),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: LinkButton(
+            onPressed: () => PlaceholderScreen.show(context, secured: false),
+            text: Text(context.l10n.helpSheetHelpdeskCta),
+          ),
         ),
         const SizedBox(height: 16),
         const Divider(height: 1),
         const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: SecondaryButton(
+          child: TertiaryButton(
             onPressed: () => Navigator.pop(context),
-            text: context.l10n.helpSheetCloseCta,
-            centerText: true,
-            icon: Icons.close,
+            text: Text(context.l10n.helpSheetCloseCta),
+            icon: const Icon(Icons.close),
           ),
         ),
       ],

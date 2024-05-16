@@ -5,7 +5,7 @@ import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
 import '../common/widget/button/primary_button.dart';
-import '../common/widget/button/secondary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/paragraphed_list.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
@@ -64,13 +64,13 @@ class ForgotPinScreen extends StatelessWidget {
             children: [
               PrimaryButton(
                 onPressed: () => ResetWalletDialog.show(context),
-                text: context.l10n.forgotPinScreenCta,
+                text: Text(context.l10n.forgotPinScreenCta),
               ),
               const SizedBox(height: 12),
-              SecondaryButton(
+              TertiaryButton(
                 onPressed: () => Navigator.maybePop(context),
-                text: context.l10n.generalBottomBackCta,
-                icon: Icons.arrow_back,
+                text: Text(context.l10n.generalBottomBackCta),
+                icon: const Icon(Icons.arrow_back),
               ),
             ],
           ),

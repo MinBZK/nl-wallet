@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/page/check_data_offering_page.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 
 class IssuanceCheckCardPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -37,14 +38,17 @@ class IssuanceCheckCardPage extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return ConfirmButtons(
-      primaryButton: ConfirmButton.accept(
+      primaryButton: PrimaryButton(
+        key: const Key('acceptButton'),
         onPressed: onAcceptPressed,
-        text: context.l10n.issuanceCheckCardPageConfirmCta,
+        text: Text(context.l10n.issuanceCheckCardPageConfirmCta),
+        icon: null,
       ),
-      secondaryButton: ConfirmButton.reject(
+      secondaryButton: SecondaryButton(
+        key: const Key('rejectButton'),
         onPressed: onDeclinePressed,
-        icon: Icons.block_flipped,
-        text: context.l10n.issuanceCheckCardPageRejectCta,
+        icon: const Icon(Icons.block_flipped),
+        text: Text(context.l10n.issuanceCheckCardPageRejectCta),
       ),
     );
   }
