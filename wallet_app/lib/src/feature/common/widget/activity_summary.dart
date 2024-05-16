@@ -89,10 +89,23 @@ class ActivitySummary extends StatelessWidget {
   String _resolveSubtitleForAttributes(BuildContext context, List<TimelineAttribute> relevantAttributes) {
     List<String?> subtitleLines = [
       _generateCardsAddedLine(context, relevantAttributes),
+      _generatedLoggedInLine(context, relevantAttributes),
       _generateSharedWithLine(context, relevantAttributes),
     ];
-    if (subtitleLines.nonNulls.isEmpty) return context.l10n.activitySummaryEmpty;
-    return subtitleLines.nonNulls.join(' ');
+    final subtitles = subtitleLines.nonNulls.toList();
+    final separator = ' ${context.l10n.activitySummarySeparator} ';
+    switch (subtitles.length) {
+      case 0:
+        return context.l10n.activitySummaryEmpty;
+      case 1:
+        return '${context.l10n.activitySummaryPrefix} ${subtitles.first}.';
+      case 2:
+        return '${context.l10n.activitySummaryPrefix} ${subtitles.join(separator)}';
+      case 3:
+        return '${context.l10n.activitySummaryPrefix} ${subtitles.first}, ${subtitles.sublist(1).join(separator)}';
+      default:
+        throw UnsupportedError('Unsupported subtitles state (length = ${subtitles.length})');
+    }
   }
 
   /// Generate the 'x cards added' line, or return null when no cards were added.
@@ -103,6 +116,12 @@ class ActivitySummary extends StatelessWidget {
         .length;
     if (addedCardsCount == 0) return null;
     return context.l10n.activitySummaryCardsAdded(addedCardsCount, addedCardsCount);
+  }
+
+  String? _generatedLoggedInLine(BuildContext context, List<TimelineAttribute> relevantAttributes) {
+    // Can be implemented after [PVW-2740]. But added this placeholder so the text joining logic
+    // could already be implemented. (see [_resolveSubtitleForAttributes])
+    return null;
   }
 
   /// Generate the 'Shared with orgX, orgY and orgZ' line, or return null when data was shared.
@@ -145,6 +164,7 @@ class ActivitySummary extends StatelessWidget {
   }
 
   ActivityDisplayMode get mode {
+    if (attributes.isEmpty) return ActivityDisplayMode.lastMonth;
     if (attributes.every((attribute) => attribute.dateTime.isToday)) return ActivityDisplayMode.today;
     if (attributes.any((element) => element.dateTime.isInLastWeek)) return ActivityDisplayMode.lastWeek;
     if (attributes.any((element) => element.dateTime.isInLastMonth)) return ActivityDisplayMode.lastMonth;

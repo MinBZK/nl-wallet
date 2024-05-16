@@ -15,6 +15,42 @@ void main() {
     l10n = await TestUtils.englishLocalizations;
   });
 
+  group(
+    'mode',
+    () {
+      test('when no activities are provided, the mode defaults to last month', () {
+        const summary = ActivitySummary(attributes: []);
+        expect(summary.mode, ActivityDisplayMode.lastMonth);
+      });
+
+      test('when all provided activities occurred today, the mode is today', () {
+        final summary = ActivitySummary(attributes: [
+          WalletMockData.operationTimelineAttribute.copyWith(dateTime: DateTime.now()),
+          WalletMockData.operationTimelineAttribute.copyWith(dateTime: DateTime.now()),
+        ]);
+        expect(summary.mode, ActivityDisplayMode.today);
+      });
+
+      test('when the provided activities include activities from the last week, the mode is lastWeek', () {
+        final summary = ActivitySummary(attributes: [
+          WalletMockData.operationTimelineAttribute.copyWith(dateTime: DateTime.now()),
+          WalletMockData.operationTimelineAttribute.copyWith(dateTime: DateTime.now().add(const Duration(days: 3))),
+          WalletMockData.operationTimelineAttribute.copyWith(dateTime: DateTime.now().add(const Duration(days: 20))),
+        ]);
+        expect(summary.mode, ActivityDisplayMode.lastWeek);
+      });
+
+      test('when the provided activities only include activities from the more than a week ago, the mode is lastMonth',
+          () {
+        final summary = ActivitySummary(attributes: [
+          WalletMockData.operationTimelineAttribute.copyWith(dateTime: DateTime.now().add(const Duration(days: 8))),
+          WalletMockData.operationTimelineAttribute.copyWith(dateTime: DateTime.now().add(const Duration(days: 20))),
+        ]);
+        expect(summary.mode, ActivityDisplayMode.lastWeek);
+      });
+    },
+  );
+
   group('widgets', () {
     testWidgets('empty state shows no activities', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const ActivitySummary(attributes: []));
@@ -64,7 +100,7 @@ void main() {
         ),
       );
 
-      final organizationFinder = find.text(
+      final organizationFinder = find.textContaining(
         l10n.activitySummarySharedWith(WalletMockData.interactionTimelineAttribute.organization.displayName.testValue),
       );
       expect(organizationFinder, findsOneWidget);
@@ -81,7 +117,7 @@ void main() {
         ),
       );
 
-      final organizationFinder = find.text(
+      final organizationFinder = find.textContaining(
         l10n.activitySummarySharedWith(WalletMockData.interactionTimelineAttribute.organization.displayName.testValue),
       );
       expect(organizationFinder, findsOneWidget);
