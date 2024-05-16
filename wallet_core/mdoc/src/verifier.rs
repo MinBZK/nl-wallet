@@ -357,7 +357,7 @@ where
     ) -> Result<SessionToken> {
         info!("create verifier session: {usecase_id}");
 
-        if !self.keys.contains_key(&usecase_id) {
+        if !self.keys.contains_key_pair(&usecase_id) {
             return Err(VerificationError::UnknownCertificate(usecase_id).into());
         }
 
@@ -728,7 +728,7 @@ impl Session<Created> {
         let session_transcript = SessionTranscript::new(session_type, &reader_engagement, device_engagement).unwrap();
 
         let cert_pair = keys
-            .private_key(&self.state().usecase_id)
+            .key_pair(&self.state().usecase_id)
             .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
 
         // Generate a nonce and add it the return URL, if provided.

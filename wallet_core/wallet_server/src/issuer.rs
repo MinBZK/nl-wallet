@@ -35,11 +35,11 @@ struct ApplicationState<A, K, S> {
 pub struct IssuerKeyRing(pub HashMap<String, KeyPair>);
 
 impl KeyRing for IssuerKeyRing {
-    fn private_key(&self, id: &str) -> Option<&KeyPair> {
+    fn key_pair(&self, id: &str) -> Option<&KeyPair> {
         self.0.get(id)
     }
 
-    fn contains_key(&self, id: &str) -> bool {
+    fn contains_key_pair(&self, id: &str) -> bool {
         self.0.contains_key(id)
     }
 }
