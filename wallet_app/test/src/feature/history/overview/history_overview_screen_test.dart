@@ -15,9 +15,9 @@ class MockHistoryOverviewBloc extends MockBloc<HistoryOverviewEvent, HistoryOver
 
 void main() {
   final historyOverviewLoadSuccessMock = HistoryOverviewLoadSuccess([
-    WalletMockData.operationTimelineAttribute,
-    WalletMockData.signingTimelineAttribute,
-    WalletMockData.interactionTimelineAttribute,
+    WalletMockData.disclosureEvent,
+    WalletMockData.signEvent,
+    WalletMockData.issuanceEvent,
   ]);
 
   group('goldens', () {
@@ -76,13 +76,13 @@ void main() {
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
           HistoryOverviewLoadSuccess([
-            WalletMockData.operationTimelineAttribute,
+            WalletMockData.issuanceEvent,
           ]),
         ),
       );
 
       // Operation renders the title of the card twice, once as the row title, and once inside the card thumbnail
-      expect(find.text(WalletMockData.operationTimelineAttribute.card.front.title.testValue), findsNWidgets(2));
+      expect(find.text(WalletMockData.issuanceEvent.card.front.title.testValue), findsNWidgets(2));
     });
 
     testWidgets('SignAttribute renders the organization title', (tester) async {
@@ -90,7 +90,7 @@ void main() {
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
           HistoryOverviewLoadSuccess([
-            WalletMockData.signingTimelineAttribute,
+            WalletMockData.signEvent,
           ]),
         ),
       );
@@ -104,7 +104,7 @@ void main() {
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
           HistoryOverviewLoadSuccess([
-            WalletMockData.interactionTimelineAttribute,
+            WalletMockData.disclosureEvent,
           ]),
         ),
       );

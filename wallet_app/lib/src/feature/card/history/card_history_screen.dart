@@ -2,15 +2,14 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../domain/model/timeline/timeline_attribute.dart';
-import '../../../domain/model/timeline/timeline_section.dart';
+import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/timeline/timeline_section_list_factory.dart';
+import '../../../util/extension/wallet_event_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/history/timeline_section_sliver.dart';
+import '../../common/widget/history/history_section_sliver.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../history/detail/argument/history_detail_screen_argument.dart';
@@ -47,17 +46,17 @@ class CardHistoryScreen extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     return BlocBuilder<CardHistoryBloc, CardHistoryState>(
       builder: (context, state) {
-        final slivers = switch (state) {
-          CardHistoryInitial() => [_buildLoadingSliver()],
-          CardHistoryLoadInProgress() => [_buildLoadingSliver()],
-          CardHistoryLoadSuccess() => _buildTimelineSliver(context, state),
-          CardHistoryLoadFailure() => [_buildErrorSliver(context)],
+        final sliver = switch (state) {
+          CardHistoryInitial() => _buildLoadingSliver(),
+          CardHistoryLoadInProgress() => _buildLoadingSliver(),
+          CardHistoryLoadSuccess() => _buildSuccessSliver(context, state),
+          CardHistoryLoadFailure() => _buildErrorSliver(context),
         };
         return Scrollbar(
           child: CustomScrollView(
             slivers: [
               SliverWalletAppBar(title: context.l10n.cardHistoryScreenTitle),
-              ...slivers,
+              sliver,
             ],
           ),
         );
@@ -71,25 +70,24 @@ class CardHistoryScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildTimelineSliver(BuildContext context, CardHistoryLoadSuccess state) {
-    final List<TimelineSection> sections = TimelineSectionListFactory.create(state.attributes);
-    List<Widget> slivers = sections
+  Widget _buildSuccessSliver(BuildContext context, CardHistoryLoadSuccess state) {
+    List<Widget> sections = state.events.sectionedByMonth
         .map(
-          (section) => TimelineSectionSliver(
+          (section) => HistorySectionSliver(
             section: section,
-            onRowPressed: (attribute) => _onTimelineRowPressed(context, attribute, state.card),
+            onRowPressed: (event) => _onEventPressed(context, event, state.card),
           ),
         )
         .toList();
-    return [...slivers, const SliverSizedBox(height: 24)];
+    return SliverMainAxisGroup(slivers: [...sections, const SliverSizedBox(height: 24)]);
   }
 
-  void _onTimelineRowPressed(BuildContext context, TimelineAttribute attribute, WalletCard card) {
+  void _onEventPressed(BuildContext context, WalletEvent event, WalletCard card) {
     Navigator.pushNamed(
       context,
       WalletRoutes.historyDetailRoute,
       arguments: HistoryDetailScreenArgument(
-        timelineAttribute: attribute,
+        walletEvent: event,
         docType: card.docType,
       ).toMap(),
     );

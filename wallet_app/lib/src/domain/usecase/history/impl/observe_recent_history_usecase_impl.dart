@@ -1,12 +1,12 @@
-import '../../../../data/repository/history/timeline_attribute_repository.dart';
-import '../../../model/timeline/timeline_attribute.dart';
+import '../../../../data/repository/event/wallet_event_repository.dart';
+import '../../../model/event/wallet_event.dart';
 import '../observe_recent_history_usecase.dart';
 
 class ObserveRecentHistoryUseCaseImpl implements ObserveRecentHistoryUseCase {
-  final TimelineAttributeRepository timelineAttributeRepository;
+  final WalletEventRepository walletEventRepository;
 
-  ObserveRecentHistoryUseCaseImpl(this.timelineAttributeRepository);
+  ObserveRecentHistoryUseCaseImpl(this.walletEventRepository);
 
   @override
-  Stream<List<TimelineAttribute>> invoke() => timelineAttributeRepository.observeRecentHistory();
+  Stream<List<WalletEvent>> invoke() => walletEventRepository.observeRecentEvents();
 }

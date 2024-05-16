@@ -18,12 +18,12 @@ class CardHistoryLoadInProgress extends CardHistoryState {
 
 class CardHistoryLoadSuccess extends CardHistoryState {
   final WalletCard card;
-  final List<TimelineAttribute> attributes;
+  final List<WalletEvent> events;
 
-  const CardHistoryLoadSuccess(this.card, this.attributes);
+  const CardHistoryLoadSuccess(this.card, this.events);
 
   @override
-  List<Object> get props => [card, attributes];
+  List<Object> get props => [card, events];
 }
 
 class CardHistoryLoadFailure extends CardHistoryState {

@@ -17,8 +17,8 @@ void main() {
   final cardDetailLoadSuccessMock = CardDetailLoadSuccess(
     WalletCardDetail(
       card: WalletMockData.card,
-      latestIssuedOperation: WalletMockData.operationTimelineAttribute,
-      latestSuccessInteraction: WalletMockData.interactionTimelineAttribute,
+      mostRecentIssuance: WalletMockData.issuanceEvent,
+      mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
     ),
   );
 

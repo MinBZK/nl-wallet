@@ -68,6 +68,10 @@ class WalletCoreForIssuance {
         _activeIssuanceResponse!.policy,
         _disclosureCardsForActiveRequest,
         DisclosureStatus.Success,
+        purpose: [
+          LocalizedString(language: 'en', value: 'Issuance'),
+          LocalizedString(language: 'en', value: 'Uitgave'),
+        ],
       );
     }
 
@@ -97,6 +101,10 @@ class WalletCoreForIssuance {
         _activeIssuanceResponse!.policy,
         _disclosureCardsForActiveRequest,
         DisclosureStatus.Cancelled,
+        purpose: [
+          LocalizedString(language: 'en', value: 'Issuance'),
+          LocalizedString(language: 'en', value: 'Uitgave'),
+        ],
       );
     }
     _activeIssuanceResponse = null;
