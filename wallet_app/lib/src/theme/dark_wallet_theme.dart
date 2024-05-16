@@ -20,7 +20,7 @@ class DarkWalletTheme {
     onPrimary: Color(0xFF002C71),
     onBackground: primaryColorDark,
     onSurface: Color(0xFF8292CC),
-    outlineVariant: Color(0xFF44464F),
+    outlineVariant: Color(0xFF33343B),
     shadow: Color(0x14FFFFFF),
   );
 
