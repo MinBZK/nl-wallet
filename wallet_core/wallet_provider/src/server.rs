@@ -3,6 +3,8 @@ use std::{
     net::{SocketAddr, TcpListener},
 };
 
+use sentry_tower::{NewSentryLayer, SentryHttpLayer};
+use tower::ServiceBuilder;
 use tracing::debug;
 
 use super::{router, router_state::RouterState, settings::Settings};
@@ -14,7 +16,12 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
 
     let router_state = RouterState::new_from_settings(settings).await?;
 
-    let app = router::router(router_state);
+    let app = router::router(router_state).layer(
+        ServiceBuilder::new()
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryHttpLayer::with_transaction()),
+    );
+
     axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
 
     Ok(())

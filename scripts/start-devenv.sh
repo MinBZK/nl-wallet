@@ -341,6 +341,15 @@ then
 
     cd "${WP_DIR}"
 
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
+
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}wallet_provider${NC}"
