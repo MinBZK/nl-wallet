@@ -339,21 +339,21 @@ class PinPage extends StatelessWidget {
   }
 
   Future<void> _showErrorDialog(BuildContext context, PinValidateFailure reason) async {
-    final title = context.l10n.pinErrorDialogTitle;
     final body = _pinErrorDialogBody(context, reason);
+    return showPinErrorDialog(context, body);
+  }
 
+  static Future<void> showPinErrorDialog(BuildContext context, String description) async {
+    final title = context.l10n.pinErrorDialogTitle;
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
           semanticLabel: title,
           title: Text(title, style: context.textTheme.displayMedium),
-          content: Text(body, style: context.textTheme.bodyLarge),
+          content: Text(description, style: context.textTheme.bodyLarge),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase()),

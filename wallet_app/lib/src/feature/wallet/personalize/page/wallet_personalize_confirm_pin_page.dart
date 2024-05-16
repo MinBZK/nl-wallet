@@ -36,6 +36,12 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
         onPinValidated: onPidAccepted,
         onPinError: onAcceptPidFailed,
         onStateChanged: (context, state) {
+          /// PVW-2759: Edge case where we want to provide contextualized error copy during the initial setup.
+          if (state is PinValidateFailure && state.attemptsLeftInRound == 1) {
+            PinPage.showPinErrorDialog(context, context.l10n.pinErrorDialogRestartSetupWarning);
+            return true;
+          }
+
           /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
           bool forcedReset = state is PinValidateTimeout || state is PinValidateBlocked;
           if (forcedReset) WalletPersonalizeSetupFailedScreen.show(context);
