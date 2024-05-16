@@ -44,11 +44,25 @@ final _kRvigOrganization = Organization(
   //id: kRvigId,
   legalName: _kRvigOrganizationName.untranslated,
   displayName: _kRvigOrganizationName.untranslated,
-  category: 'Overheid'.untranslated,
-  description:
-      '$_kRvigOrganizationName is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteits­gegevens.'
-          .untranslated,
+  category: [
+    LocalizedString(language: 'en', value: 'Government'),
+    LocalizedString(language: 'nl', value: 'Overheid'),
+  ],
+  description: [
+    LocalizedString(
+        language: 'en', value: 'RvIG is the authority and director for the secure and reliable use of identity data.'),
+    LocalizedString(
+        language: 'nl',
+        value: 'RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteits­gegevens.'),
+  ],
+  city: [
+    LocalizedString(language: 'en', value: 'The Hague, The Netherlands'),
+    LocalizedString(language: 'nl', value: 'Den Haag, Nederland'),
+  ],
   image: Image.asset(path: MockAssets.logo_rijksoverheid),
+  kvk: '27373207',
+  webUrl: 'https://www.rvig.nl/',
+  privacyPolicyUrl: 'https://www.rvig.nl/over-deze-site/privacyverklaring-rijksdienst-voor-identiteitsgegevens',
 );
 
 final _kRdwOrganization = Organization(
@@ -97,15 +111,31 @@ final _kJustisOrganization = Organization(
 
 final _kMarketPlaceOrganization = Organization(
   //id: kMarketplaceId,
-  legalName: 'Online Marketplace'.untranslated,
-  displayName: 'Online Marketplace'.untranslated,
-  category: 'Webwinkel'.untranslated,
-  description: 'De winkel van ons allemaal.'.untranslated,
+  legalName: [
+    LocalizedString(language: 'en', value: 'Marktplek B.V.'),
+    LocalizedString(language: 'nl', value: 'Marktplek B.V.'),
+  ],
+  displayName: [
+    LocalizedString(language: 'en', value: 'Marktplek'),
+    LocalizedString(language: 'nl', value: 'Marktplek'),
+  ],
+  category: [
+    LocalizedString(language: 'en', value: 'Trading'),
+    LocalizedString(language: 'nl', value: 'Winkelen'),
+  ],
+  description: [
+    LocalizedString(language: 'en', value: 'Easily sell your second-hand items online at Marktplek.'),
+    LocalizedString(language: 'nl', value: 'Verkoop eenvoudig je tweedehands spullen via Marktplek.'),
+  ],
   image: Image.asset(path: MockAssets.logo_ecommerce),
-  department: 'Afdeling online marketing'.untranslated,
-  city: 'Utrecht'.untranslated,
+  city: [
+    LocalizedString(language: 'en', value: 'Zwolle, The Netherlands'),
+    LocalizedString(language: 'nl', value: 'Zwolle, Nederland'),
+  ],
+  kvk: '98765432',
   countryCode: 'nl',
-  webUrl: 'https://online-marketplace.nl',
+  webUrl: 'https://www.marktplek.nl',
+  privacyPolicyUrl: 'https://www.marktplek.nl/privacy',
 );
 
 final _kBarOrganization = Organization(
@@ -163,10 +193,22 @@ final _kFirstAidOrganization = Organization(
 
 final _kMunicipalityAmsterdamOrganization = Organization(
   //id: kMunicipalityAmsterdamId,
-  legalName: 'Gemeente Amsterdam'.untranslated,
-  displayName: 'Gemeente Amsterdam'.untranslated,
-  category: 'Gemeente'.untranslated,
-  description: 'Alles wat we doen, doen we voor de stad en de Amsterdammers.'.untranslated,
+  legalName: [
+    LocalizedString(language: 'en', value: 'City of Amsterdam'),
+    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam')
+  ],
+  displayName: [
+    LocalizedString(language: 'en', value: 'City of Amsterdam'),
+    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam')
+  ],
+  category: [
+    LocalizedString(language: 'en', value: 'Municipality'),
+    LocalizedString(language: 'nl', value: 'Gemeente')
+  ],
+  description: [
+    LocalizedString(language: 'en', value: 'Everything we do, we do for the city and the people of Amsterdam.'),
+    LocalizedString(language: 'nl', value: 'Alles wat we doen, doen we voor de stad en de Amsterdammers.')
+  ],
   image: Image.asset(path: MockAssets.logo_municipality_amsterdam),
   city: 'Amsterdam'.untranslated,
   countryCode: 'nl',
@@ -192,27 +234,61 @@ final _kMunicipalityTheHagueOrganization = Organization(
 
 final _kBankOrganization = Organization(
   //id: kBankId,
-  legalName: 'Jouw Bank'.untranslated,
-  displayName: 'Jouw Bank'.untranslated,
-  category: 'Bank'.untranslated,
-  description: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.'.untranslated,
+  legalName: [
+    LocalizedString(language: 'en', value: 'XYZ Bank N.V.'),
+    LocalizedString(language: 'nl', value: 'XYZ Bank N.V.')
+  ],
+  displayName: [
+    LocalizedString(language: 'en', value: 'XYZ Bank'),
+    LocalizedString(language: 'nl', value: 'XYZ Bank'),
+  ],
+  category: [LocalizedString(language: 'en', value: 'Bank'), LocalizedString(language: 'nl', value: 'Bank')],
+  description: [
+    LocalizedString(language: 'en', value: 'The accessible bank for paying, saving and investing.'),
+    LocalizedString(language: 'nl', value: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.')
+  ],
   image: Image.asset(path: MockAssets.logo_bank),
-  department: 'Klantenservice'.untranslated,
+  department: [
+    LocalizedString(language: 'en', value: 'Customer service'),
+    LocalizedString(language: 'nl', value: 'Klantenservice')
+  ],
   countryCode: 'nl',
-  city: 'Amsterdam'.untranslated,
+  city: [
+    LocalizedString(language: 'en', value: 'Utrecht, The Netherlands'),
+    LocalizedString(language: 'nl', value: 'Utrecht, Nederland')
+  ],
   webUrl: 'https://jouwbank.nl',
 );
 
 final _kMonkeyBikeOrganization = Organization(
   //id: kMonkeyBikeId,
-  legalName: 'MonkeyBike'.untranslated,
-  displayName: 'MonkeyBike'.untranslated,
-  category: 'Bezorgdienst'.untranslated,
-  description: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.'.untranslated,
+  legalName: [
+    LocalizedString(language: 'en', value: 'MonkeyBike Bezorgdiensten B.V.'),
+    LocalizedString(language: 'nl', value: 'MonkeyBike Bezorgdiensten B.V.')
+  ],
+  displayName: [
+    LocalizedString(language: 'en', value: 'MonkeyBike'),
+    LocalizedString(language: 'nl', value: 'MonkeyBike')
+  ],
+  category: [
+    LocalizedString(language: 'en', value: 'Delivery service'),
+    LocalizedString(language: 'nl', value: 'Bezorgdienst')
+  ],
+  description: [
+    LocalizedString(language: 'en', value: 'Your groceries delivered to your home within 10 minutes.'),
+    LocalizedString(
+        language: 'nl', value: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.')
+  ],
   image: Image.asset(path: MockAssets.logo_monkeybike),
-  department: 'Online marketing'.untranslated,
+  department: [
+    LocalizedString(language: 'en', value: 'Online marketing'),
+    LocalizedString(language: 'nl', value: 'Online marketing')
+  ],
   countryCode: 'nl',
-  city: 'Groningen'.untranslated,
+  city: [
+    LocalizedString(language: 'en', value: 'Groningen, The Netherlands'),
+    LocalizedString(language: 'nl', value: 'Groningen, Nederland')
+  ],
   webUrl: 'https://flitsbezorger-monkeybike.nl',
   kvk: '3945-2932',
 );
