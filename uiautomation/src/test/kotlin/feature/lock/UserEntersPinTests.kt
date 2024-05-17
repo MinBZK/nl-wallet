@@ -33,14 +33,14 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The User can enter a six digit PIN on an in-app keyboard.")
+    @DisplayName("$USE_CASE.1 The User can enter a six digit PIN on an in-app keyboard. [${JIRA_ID}]")
     fun verifyPinScreenVisible() {
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The PIN is not visible at any time, only the length of the entered PIN.")
+    @DisplayName("$USE_CASE.2 The PIN is not visible at any time, only the length of the entered PIN. [${JIRA_ID}]")
     fun verifyHiddenPin() {
         val pin = "34567"
         pinScreen.enterPin(pin)
@@ -68,7 +68,7 @@ class UserEntersPinTests : TestBase() {
     inner class UnsuccessfulPinEntry {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.6.1 (non-final round, initial attempt) if this was the initial PIN entry in the round, the app simply indicates that the PIN was wrong.")
+        @DisplayName("$USE_CASE.6.1 (non-final round, initial attempt) if this was the initial PIN entry in the round, the app simply indicates that the PIN was wrong. [${JIRA_ID}]")
         fun verifyNonFinalRoundInitialAttempt() {
             pinScreen.enterPin("123456")
 
@@ -92,7 +92,7 @@ class UserEntersPinTests : TestBase() {
      */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.9 The app offers an entry to the ‘Forgot PIN’ flow.")
+    @DisplayName("$USE_CASE.9 The app offers an entry to the ‘Forgot PIN’ flow. [${JIRA_ID}]")
     fun verifyForgotPinEntry() {
         pinScreen.clickForgotPinButton()
 
@@ -101,7 +101,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.10 Upon valid PIN entry, the last active screen is displayed, or the onboarding if it has not completed, or the dashboard if the app boots.")
+    @DisplayName("$USE_CASE.10 Upon valid PIN entry, the last active screen is displayed, or the onboarding if it has not completed, or the dashboard if the app boots. [${JIRA_ID}]")
     fun verifyLastActiveScreen() {
         pinScreen.enterPin(OnboardingNavigator.PIN)
 
@@ -110,7 +110,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.11 The PIN entry screen offers an entrance to the App Info page.")
+    @DisplayName("$USE_CASE.11 The PIN entry screen offers an entrance to the App Info page. [${JIRA_ID}]")
     fun verifyAppInfoButton() {
         pinScreen.clickAppInfoButton()
 
