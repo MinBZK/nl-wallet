@@ -28,14 +28,14 @@ class SecurityChoosePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The User can enter a six digit PIN on an in-app keyboard.")
+    @DisplayName("$USE_CASE.1 The User can enter a six digit PIN on an in-app keyboard. [$JIRA_ID]")
     fun verifyChoosePinScreenVisible() {
         assertTrue(pinScreen.choosePinScreenVisible(), "choose pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The PIN is not visible at any time, only the length of the entered PIN.")
+    @DisplayName("$USE_CASE.2 The PIN is not visible at any time, only the length of the entered PIN. [$JIRA_ID]")
     fun verifyHiddenPin() {
         val pin = "34567"
         pinScreen.enterPin(pin)
@@ -48,7 +48,7 @@ class SecurityChoosePinTests : TestBase() {
      */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 Upon PIN entry, the app checks that the PIN matches the security requirements.")
+    @DisplayName("$USE_CASE.4 Upon PIN entry, the app checks that the PIN matches the security requirements. [$JIRA_ID]")
     fun verifyPinTwoUniqueDigitsError() {
         pinScreen.enterPin("111111")
         assertTrue(
@@ -58,7 +58,7 @@ class SecurityChoosePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.5 Upon failing the security requirements, the App rejects the PIN and explains why.")
+    @DisplayName("$USE_CASE.5 Upon failing the security requirements, the App rejects the PIN and explains why. [$JIRA_ID]")
     fun verifyPinAscendingDescendingError() {
         pinScreen.enterPin("123456")
         assertTrue(
@@ -75,14 +75,14 @@ class SecurityChoosePinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.6 Upon successful PIN entry, go to Feature 'User confirms PIN'.")
+    @DisplayName("$USE_CASE.6 Upon successful PIN entry, go to Feature 'User confirms PIN'. [$JIRA_ID]")
     fun verifySuccessfulPinEntry() {
         pinScreen.enterPin("122222")
         assertTrue(pinScreen.confirmPinScreenVisible(), "confirm pin screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.7 The screen offers an entrance to the App Info screen.")
+    @DisplayName("$USE_CASE.7 The screen offers an entrance to the App Info screen. [$JIRA_ID]")
     fun verifyAppInfoButton() {
         pinScreen.clickAppInfoButton()
 

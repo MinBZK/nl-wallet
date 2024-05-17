@@ -29,7 +29,7 @@ class AppLockedStateTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 When the app boots it is locked and displays the PIN entry screen.")
+    @DisplayName("$USE_CASE.1 When the app boots it is locked and displays the PIN entry screen. [${JIRA_ID}]")
     fun verifyAppLocked() {
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
     }

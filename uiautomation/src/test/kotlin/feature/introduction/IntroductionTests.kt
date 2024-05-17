@@ -25,24 +25,24 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1. The App shows a welcome screen so the user knows they are using the NL wallet.")
+    @DisplayName("$USE_CASE.1. The App shows a welcome screen so the user knows they are using the NL wallet. [${JIRA_ID}]")
     fun verifyWelcomeScreen() {
         assertTrue(introductionScreen.page1Visible(), "page 1 is not visible")
     }
 
     @Nested
-    @DisplayName("$USE_CASE.2 The App shows a series of explanation screens containing the following:")
+    @DisplayName("$USE_CASE.2 The App shows a series of explanation screens containing the following: [${JIRA_ID}]")
     inner class IntroductoryScreens {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.2.1 The security benefits of the app (online identification).")
+        @DisplayName("$USE_CASE.2.1 The security benefits of the app (online identification). [${JIRA_ID}]")
         fun verifySecurityScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
             assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.2.2 The privacy benefits of the app (selective disclosure).")
+        @DisplayName("$USE_CASE.2.2 The privacy benefits of the app (selective disclosure). [${JIRA_ID}]")
         fun verifyPrivacyScreen() {
             introductionScreen.clickNextButton() // page 1 -> 2
             assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
@@ -53,7 +53,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The App offers a button to skip the intro, leading to the privacy summary.")
+    @DisplayName("$USE_CASE.3 The App offers a button to skip the intro, leading to the privacy summary. [${JIRA_ID}]")
     fun verifySkipIntroButton() {
         val privacyScreen = IntroductionPrivacyScreen()
 
@@ -81,7 +81,7 @@ class IntroductionTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 The explanation screens all display a back-button.")
+    @DisplayName("$USE_CASE.4 The explanation screens all display a back-button. [${JIRA_ID}]")
     fun verifyPageBackButtons() {
         introductionScreen.clickNextButton() // page 1 -> 2
         assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
