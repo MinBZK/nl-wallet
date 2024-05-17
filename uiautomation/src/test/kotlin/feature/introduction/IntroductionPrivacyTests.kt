@@ -29,13 +29,13 @@ class IntroductionPrivacyTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The App displays the summary of the privacy statement.")
+    @DisplayName("$USE_CASE.1 The App displays the summary of the privacy statement. [${JIRA_ID}]")
     fun verifyPrivacyScreen() {
         assertTrue(privacyScreen.visible(), "privacy screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The App offers an entrance to the full privacy statement, which is embedded in the app.")
+    @DisplayName("$USE_CASE.2 The App offers an entrance to the full privacy statement, which is embedded in the app. [${JIRA_ID}]")
     fun verifyPrivacyPolicyButton() {
         privacyScreen.clickPrivacyButton()
 
@@ -44,7 +44,7 @@ class IntroductionPrivacyTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The User can proceed to terms & conditions.")
+    @DisplayName("$USE_CASE.3 The User can proceed to terms & conditions. [${JIRA_ID}]")
     fun verifyNextButton() {
         privacyScreen.clickNextButton()
 
@@ -53,7 +53,7 @@ class IntroductionPrivacyTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 The App offers a return to the previous screen.")
+    @DisplayName("$USE_CASE.4 The App offers a return to the previous screen. [${JIRA_ID}]")
     fun verifyBackButton() {
         privacyScreen.clickBackButton()
         assertTrue(privacyScreen.absent(), "privacy screen is visible")
