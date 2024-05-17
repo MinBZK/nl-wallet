@@ -23,7 +23,6 @@ pub struct PresentationDefinition {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputDescriptor {
-    // Must not conflict with other input descriptors.
     pub id: String,
     pub format: Format,
     pub constraints: Constraints,
@@ -33,6 +32,13 @@ pub struct InputDescriptor {
 #[serde(rename_all = "snake_case")]
 pub enum Format {
     MsoMdoc { alg: Vec<FormatAlg> },
+}
+
+#[derive(Debug, Clone, Default, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FormatDesignation {
+    #[default]
+    MsoMdoc,
 }
 
 #[derive(Debug, Clone, Default, Hash, Serialize, Deserialize)]
@@ -150,6 +156,24 @@ fn parse_paths(paths: &[String]) -> Result<(String, String), PdConversionError> 
     }
 
     Ok((captures[1].to_string(), captures[2].to_string()))
+}
+
+/// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-submission.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresentationSubmission {
+    pub id: String,
+    /// Must be the id value of a valid presentation definition
+    pub definition_id: String,
+    pub descriptor_map: Vec<InputDescriptorMappingObject>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InputDescriptorMappingObject {
+    /// Matches the `id` property of the Input Descriptor in the Presentation Definition that this Presentation
+    /// Submission is related to.
+    pub id: String,
+    pub format: FormatDesignation,
+    pub path: String,
 }
 
 #[cfg(test)]
