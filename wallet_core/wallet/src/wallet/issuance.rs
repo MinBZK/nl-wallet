@@ -6,7 +6,6 @@ use url::Url;
 use nl_wallet_mdoc::utils::{cose::CoseError, issuer_auth::IssuerRegistration, x509::MdocCertificateExtension};
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError},
-    oidc::{HttpOidcClient, OidcClient, OidcError},
     token::AttestationPreviewError,
 };
 use platform_support::hw_keystore::PlatformEcdsaKey;
@@ -19,13 +18,14 @@ use crate::{
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     document::{Document, DocumentMdocError},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
+    issuance::{DigidSession, DigidSessionError, HttpDigidSession},
     storage::{Storage, StorageError, WalletEvent},
 };
 
 use super::{documents::DocumentsError, history::EventStorageError, Wallet};
 
-pub(super) enum PidIssuanceSession<OIC = HttpOidcClient, IS = HttpIssuanceSession> {
-    Digid(OIC),
+pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSession> {
+    Digid(DS),
     Openid4vci(IS),
 }
 
@@ -38,9 +38,9 @@ pub enum PidIssuanceError {
     #[error("issuance session is not in the correct state")]
     SessionState,
     #[error("could not start DigiD session: {0}")]
-    DigidSessionStart(#[source] OidcError),
+    DigidSessionStart(#[source] DigidSessionError),
     #[error("could not finish DigiD session: {0}")]
-    DigidSessionFinish(#[source] OidcError),
+    DigidSessionFinish(#[source] DigidSessionError),
     #[error("could not retrieve PID from issuer: {0}")]
     PidIssuer(#[from] IssuanceSessionError),
     #[error("error sending instruction to Wallet Provider: {0}")]
@@ -67,10 +67,10 @@ pub enum PidIssuanceError {
     AttestationPreview(#[from] AttestationPreviewError),
 }
 
-impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
 where
     CR: ConfigurationRepository,
-    OIC: OidcClient,
+    DS: DigidSession,
     IS: IssuanceSession,
     S: Storage,
 {
@@ -94,13 +94,9 @@ where
         }
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
-        let (session, auth_url) = OIC::start(
-            trusted_reqwest_client_builder(pid_issuance_config.digid_trust_anchors())
-                .build()
-                .unwrap(),
-            pid_issuance_config.digid_url.clone(),
-            pid_issuance_config.digid_client_id.to_string(),
-            WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL)
+        let (session, auth_url) = DS::start(
+            pid_issuance_config.clone(),
+            WalletConfiguration::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
                 .as_ref()
                 .to_owned(),
         )
@@ -108,7 +104,6 @@ where
         .map_err(PidIssuanceError::DigidSessionStart)?;
 
         info!("DigiD auth URL generated");
-
         self.issuance_session.replace(PidIssuanceSession::Digid(session));
 
         Ok(auth_url)
@@ -159,7 +154,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn continue_pid_issuance(&mut self, redirect_uri: &Url) -> Result<Vec<Document>, PidIssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Document>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         info!("Checking if registered");
@@ -185,6 +180,7 @@ where
 
         let token_request = session
             .into_token_request(redirect_uri)
+            .await
             .map_err(PidIssuanceError::DigidSessionFinish)?;
 
         let pid_issuance_config = &self.config_repository.config().pid_issuance;
@@ -349,7 +345,7 @@ mod tests {
     use mockall::predicate::*;
     use openid4vc::{
         mock::MockIssuanceSession,
-        oidc::MockOidcClient,
+        oidc::OidcError,
         token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
     };
     use rstest::rstest;
@@ -358,6 +354,7 @@ mod tests {
 
     use crate::{
         document::{self, DocumentPersistence},
+        issuance::MockDigidSession,
         storage::StorageState,
         wallet::history::HistoryEvent,
     };
@@ -368,7 +365,7 @@ mod tests {
     };
 
     #[tokio::test]
-    #[serial(MockOidcClient)]
+    #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url() {
         const AUTH_URL: &str = "http://example.com/auth";
 
@@ -377,9 +374,9 @@ mod tests {
         assert!(wallet.issuance_session.is_none());
 
         // Set up a mock DigiD session.
-        let session_start_context = MockOidcClient::start_context();
-        session_start_context.expect().returning(|_, _, _, _| {
-            let client = MockOidcClient::default();
+        let session_start_context = MockDigidSession::start_context();
+        session_start_context.expect().returning(|_, _| {
+            let client = MockDigidSession::default();
             Ok((client, Url::parse(AUTH_URL).unwrap()))
         });
 
@@ -429,7 +426,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up a mock DigiD session.
-        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockOidcClient::default()));
+        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockDigidSession::default()));
 
         // Creating a DigiD authentication URL on a `Wallet` that
         // has an active DigiD session should return an error.
@@ -459,15 +456,15 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockOidcClient)]
+    #[serial(MockDigidSession)]
     async fn test_create_pid_issuance_auth_url_error_digid_session_start() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Make DigiD session starting return an error.
-        let session_start_context = MockOidcClient::start_context();
+        let session_start_context = MockDigidSession::start_context();
         session_start_context
             .expect()
-            .return_once(|_, _, _, _| Err(OidcError::NoAuthCode));
+            .return_once(|_, _| Err(OidcError::NoAuthCode.into()));
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
         let error = wallet
@@ -483,7 +480,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up a mock DigiD session.
-        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockOidcClient::default()));
+        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockDigidSession::default()));
 
         assert!(wallet.issuance_session.is_some());
 
@@ -573,7 +570,7 @@ mod tests {
 
         // Set up a mock DigiD session that returns a token request.
         let issuance_session = {
-            let mut session = MockOidcClient::default();
+            let mut session = MockDigidSession::default();
 
             session.expect_into_token_request().return_once(|_uri| {
                 Ok(TokenRequest {
@@ -604,7 +601,7 @@ mod tests {
 
         // Continuing PID issuance should result in one preview `Document`.
         let documents = wallet
-            .continue_pid_issuance(&Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect("Could not continue PID issuance");
 
@@ -621,7 +618,7 @@ mod tests {
 
         // Continuing PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .continue_pid_issuance(&Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -635,7 +632,7 @@ mod tests {
 
         // Continuing PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .continue_pid_issuance(&Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -649,7 +646,7 @@ mod tests {
 
         // Continuing PID issuance on a wallet with no active `DigidSession` should result in an error.
         let error = wallet
-            .continue_pid_issuance(&Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -664,7 +661,7 @@ mod tests {
 
         // Set up a mock DigiD session that returns a token request.
         let digid_session = {
-            let mut session = MockOidcClient::default();
+            let mut session = MockDigidSession::default();
 
             session.expect_into_token_request().return_once(|_uri| {
                 Ok(TokenRequest {
@@ -689,7 +686,7 @@ mod tests {
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
-            .continue_pid_issuance(&Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -704,7 +701,7 @@ mod tests {
 
         // Set up a mock DigiD session that returns a token request.
         let digid_session = {
-            let mut session = MockOidcClient::default();
+            let mut session = MockDigidSession::default();
 
             session.expect_into_token_request().return_once(|_uri| {
                 Ok(TokenRequest {
@@ -738,7 +735,7 @@ mod tests {
 
         // Continuing PID issuance when receiving an unknown mdoc should result in an error.
         let error = wallet
-            .continue_pid_issuance(&Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 

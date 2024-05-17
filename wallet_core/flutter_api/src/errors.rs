@@ -5,8 +5,9 @@ use serde::Serialize;
 
 use wallet::{
     errors::{
-        reqwest, AccountProviderError, DisclosureError, HistoryError, InstructionError, PidIssuanceError, ResetError,
-        UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
+        reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
+        PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
+        WalletUnlockError,
     },
     openid4vc::{IssuanceSessionError, OidcError},
 };
@@ -157,16 +158,18 @@ impl FlutterApiErrorFields for PidIssuanceError {
                 FlutterApiErrorType::WalletState
             }
 
-            PidIssuanceError::DigidSessionFinish(OidcError::RedirectUriError(_)) => FlutterApiErrorType::RedirectUri,
+            PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(_))) => {
+                FlutterApiErrorType::RedirectUri
+            }
 
             PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(_))
             | PidIssuanceError::PidIssuer(IssuanceSessionError::CredentialRequest(_))
-            | PidIssuanceError::DigidSessionStart(OidcError::RedirectUriError(_))
-            | PidIssuanceError::DigidSessionStart(OidcError::RequestingAccessToken(_))
-            | PidIssuanceError::DigidSessionStart(OidcError::RequestingUserInfo(_))
-            | PidIssuanceError::DigidSessionFinish(OidcError::RequestingAccessToken(_))
-            | PidIssuanceError::DigidSessionFinish(OidcError::RequestingUserInfo(_)) => {
-                crate::errors::FlutterApiErrorType::Server
+            | PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(_)))
+            | PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingAccessToken(_)))
+            | PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_)))
+            | PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingAccessToken(_)))
+            | PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
+                FlutterApiErrorType::Server
             }
             _ => FlutterApiErrorType::Generic,
         }
@@ -174,7 +177,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
 
     fn data(&self) -> Option<serde_json::Value> {
         match self {
-            Self::DigidSessionFinish(OidcError::RedirectUriError(err)) => {
+            Self::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(err))) => {
                 [("redirect_error", format!("{:?}", &err.error))]
                     .into_iter()
                     .collect::<serde_json::Value>()
