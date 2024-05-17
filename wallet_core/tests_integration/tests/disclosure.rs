@@ -13,9 +13,9 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType, StatusResponse},
     ItemsRequest,
 };
-use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
+use openid4vc::token::TokenRequest;
 use tests_integration::common::*;
-use wallet::errors::DisclosureError;
+use wallet::{errors::DisclosureError, mock::MockDigidSession};
 use wallet_common::utils;
 use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
 
@@ -59,9 +59,9 @@ async fn test_disclosure_usecases_ok(
         return_url_template: return_url,
     };
 
-    let digid_context = MockOidcClient::start_context();
-    digid_context.expect().return_once(|_, _, _, _| {
-        let mut session = MockOidcClient::default();
+    let digid_context = MockDigidSession::start_context();
+    digid_context.expect().return_once(|_, _| {
+        let mut session = MockDigidSession::default();
 
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
@@ -156,9 +156,9 @@ async fn test_disclosure_usecases_ok(
 #[tokio::test]
 #[serial]
 async fn test_disclosure_without_pid() {
-    let digid_context = MockOidcClient::start_context();
-    digid_context.expect().return_once(|_, _, _, _| {
-        let session = MockOidcClient::default();
+    let digid_context = MockDigidSession::start_context();
+    digid_context.expect().return_once(|_, _| {
+        let session = MockDigidSession::default();
         Ok((session, Url::parse("http://localhost/").unwrap()))
     });
 

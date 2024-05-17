@@ -225,7 +225,7 @@ pub async fn continue_pid_issuance(uri: String) -> Result<Vec<Card>> {
 
     let mut wallet = wallet().write().await;
 
-    let documents = wallet.continue_pid_issuance(&url).await?;
+    let documents = wallet.continue_pid_issuance(url).await?;
 
     let cards = documents.into_iter().map(Card::from).collect();
 

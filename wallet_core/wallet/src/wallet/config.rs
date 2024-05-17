@@ -4,7 +4,7 @@ use crate::config::ObservableConfigurationRepository;
 
 use super::Wallet;
 
-impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
 where
     CR: ObservableConfigurationRepository,
 {
