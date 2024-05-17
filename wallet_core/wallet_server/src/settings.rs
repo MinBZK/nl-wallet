@@ -23,7 +23,7 @@ use {indexmap::IndexMap, wallet_common::reqwest::deserialize_certificates};
 
 const MIN_KEY_LENGTH_BYTES: usize = 16;
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
     pub wallet_server: Server,
@@ -46,13 +46,13 @@ pub struct Settings {
     pub verifier: Verifier,
 }
 
-#[derive(Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum Authentication {
-    ApiKey(String),
+#[derive(Clone, Deserialize)]
+pub struct Server {
+    pub ip: IpAddr,
+    pub port: u16,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 pub enum RequesterAuth {
     #[serde(rename = "authentication")]
     Authentication(Authentication),
@@ -66,7 +66,13 @@ pub enum RequesterAuth {
     InternalEndpoint(Server),
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Authentication {
+    ApiKey(String),
+}
+
+#[derive(Clone, Deserialize)]
 pub struct Storage {
     /// Supported schemes are: `memory://` (default) and `postgres://`.
     pub url: Url,
@@ -75,23 +81,8 @@ pub struct Storage {
     pub failed_deletion_minutes: NonZeroU64,
 }
 
-#[derive(Deserialize, Clone)]
-pub struct Server {
-    pub ip: IpAddr,
-    pub port: u16,
-}
-
 #[cfg(feature = "issuance")]
-#[derive(Deserialize, Clone)]
-pub struct Digid {
-    pub issuer_url: BaseUrl,
-    pub bsn_privkey: String,
-    #[serde(deserialize_with = "deserialize_certificates", default)]
-    pub trust_anchors: Vec<reqwest::Certificate>,
-}
-
-#[cfg(feature = "issuance")]
-#[derive(Deserialize, Clone)]
+#[derive(Clone, Deserialize)]
 pub struct Issuer {
     // Issuer private keys index per doctype
     pub private_keys: HashMap<String, KeyPair>,
@@ -105,6 +96,15 @@ pub struct Issuer {
     pub digid: Digid,
 
     pub brp_server: BaseUrl,
+}
+
+#[cfg(feature = "issuance")]
+#[derive(Clone, Deserialize)]
+pub struct Digid {
+    pub issuer_url: BaseUrl,
+    pub bsn_privkey: String,
+    #[serde(deserialize_with = "deserialize_certificates", default)]
+    pub trust_anchors: Vec<reqwest::Certificate>,
 }
 
 #[serde_as]
