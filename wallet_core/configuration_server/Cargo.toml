@@ -25,6 +25,8 @@ config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
 mime.workspace = true
+sentry.workspace = true
+sentry-tower = { workspace = true, features = ["axum-matched-path"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 tokio = { workspace = true, features = [
@@ -32,8 +34,9 @@ tokio = { workspace = true, features = [
     "parking_lot",
     "macros",
 ] }
+tower.workspace = true
 tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
 
-wallet_common = { path = "../wallet_common" }
+wallet_common = { path = "../wallet_common", features = ["sentry"] }

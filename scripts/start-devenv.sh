@@ -378,6 +378,15 @@ then
 
     cd "${CS_DIR}"
 
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export CONFIGURATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export CONFIGURATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
+
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}configuration_server${NC}"
