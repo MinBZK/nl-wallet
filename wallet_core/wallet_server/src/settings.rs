@@ -2,18 +2,23 @@ use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf
 
 use config::{Config, ConfigError, Environment, File};
 use nutype::nutype;
+use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use serde::Deserialize;
 use serde_with::{base64::Base64, hex::Hex, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::server_state::SessionStoreTimeouts;
+use nl_wallet_mdoc::{
+    server_state::SessionStoreTimeouts,
+    utils::x509::Certificate,
+    verifier::{SessionTypeReturnUrl, UseCase, UseCases},
+};
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
     trust_anchor::DerTrustAnchor,
 };
 
 #[cfg(feature = "issuance")]
-use {indexmap::IndexMap, nl_wallet_mdoc::utils::x509::Certificate, wallet_common::reqwest::deserialize_certificates};
+use {indexmap::IndexMap, wallet_common::reqwest::deserialize_certificates};
 
 const MIN_KEY_LENGTH_BYTES: usize = 16;
 
@@ -69,15 +74,6 @@ pub struct Storage {
     pub failed_deletion_minutes: NonZeroU64,
 }
 
-#[serde_as]
-#[derive(Deserialize, Clone)]
-pub struct Verifier {
-    pub usecases: HashMap<String, KeyPair>,
-    pub trust_anchors: Vec<DerTrustAnchor>,
-    #[serde_as(as = "Hex")]
-    pub ephemeral_id_secret: EhpemeralIdSecret,
-}
-
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, Deserialize))]
 pub struct EhpemeralIdSecret(Vec<u8>);
 
@@ -85,15 +81,6 @@ pub struct EhpemeralIdSecret(Vec<u8>);
 pub struct Server {
     pub ip: IpAddr,
     pub port: u16,
-}
-
-#[serde_as]
-#[derive(Deserialize, Clone)]
-pub struct KeyPair {
-    #[serde_as(as = "Base64")]
-    pub certificate: Vec<u8>,
-    #[serde_as(as = "Base64")]
-    pub private_key: Vec<u8>,
 }
 
 #[cfg(feature = "issuance")]
@@ -122,6 +109,43 @@ pub struct Issuer {
     pub brp_server: BaseUrl,
 }
 
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct KeyPair {
+    #[serde_as(as = "Base64")]
+    pub certificate: Vec<u8>,
+    #[serde_as(as = "Base64")]
+    pub private_key: Vec<u8>,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct Verifier {
+    pub usecases: VerifierUseCases,
+    pub trust_anchors: Vec<DerTrustAnchor>,
+    #[serde_as(as = "Hex")]
+    pub ephemeral_id_secret: EhpemeralIdSecret,
+}
+
+#[nutype(derive(Clone, Deserialize))]
+pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
+
+#[derive(Clone, Deserialize)]
+pub struct VerifierUseCase {
+    #[serde(with = "SessionTypeReturnUrlDef", default)]
+    pub session_type_return_url: SessionTypeReturnUrl,
+    #[serde(flatten)]
+    pub key_pair: KeyPair,
+}
+
+#[derive(Deserialize)]
+#[serde(remote = "SessionTypeReturnUrl", rename_all = "snake_case")]
+pub enum SessionTypeReturnUrlDef {
+    Neither,
+    SameDevice,
+    Both,
+}
+
 impl From<&Storage> for SessionStoreTimeouts {
     fn from(value: &Storage) -> Self {
         SessionStoreTimeouts {
@@ -139,6 +163,51 @@ impl Issuer {
             .iter()
             .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone().into()))
             .collect()
+    }
+}
+
+impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
+    type Error = p256::pkcs8::Error;
+
+    fn try_from(value: &KeyPair) -> Result<Self, Self::Error> {
+        let key_pair = Self::new(
+            SigningKey::from_pkcs8_der(&value.private_key)?,
+            Certificate::from(&value.certificate),
+        );
+
+        Ok(key_pair)
+    }
+}
+
+impl TryFrom<VerifierUseCases> for UseCases {
+    type Error = p256::pkcs8::Error;
+
+    fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
+        let use_cases = value
+            .into_inner()
+            .into_iter()
+            .map(|(id, use_case)| {
+                let use_case = UseCase::try_from(&use_case)?;
+
+                Ok((id, use_case))
+            })
+            .collect::<Result<HashMap<_, _>, Self::Error>>()?
+            .into();
+
+        Ok(use_cases)
+    }
+}
+
+impl TryFrom<&VerifierUseCase> for UseCase {
+    type Error = p256::pkcs8::Error;
+
+    fn try_from(value: &VerifierUseCase) -> Result<Self, Self::Error> {
+        let use_case = UseCase {
+            key_pair: (&value.key_pair).try_into()?,
+            session_type_return_url: value.session_type_return_url,
+        };
+
+        Ok(use_case)
     }
 }
 

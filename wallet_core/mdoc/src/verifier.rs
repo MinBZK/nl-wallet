@@ -1,6 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use base64::prelude::*;
 use chrono::{DateTime, SecondsFormat, Utc};
@@ -304,39 +304,72 @@ impl ReturnUrlTemplate {
     }
 }
 
-pub struct Verifier<K, S> {
-    keys: K,
+#[nutype(derive(Debug, From, AsRef))]
+pub struct UseCases(HashMap<String, UseCase>);
+
+#[derive(Debug)]
+pub struct UseCase {
+    pub key_pair: KeyPair,
+    pub session_type_return_url: SessionTypeReturnUrl, // TODO: use this field
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub enum SessionTypeReturnUrl {
+    Neither,
+    #[default]
+    SameDevice,
+    Both,
+}
+
+impl KeyRing for UseCases {
+    fn key_pair(&self, id: &str) -> Option<&KeyPair> {
+        self.as_ref().get(id).map(|use_case| &use_case.key_pair)
+    }
+
+    fn contains_key_pair(&self, id: &str) -> bool {
+        self.as_ref().contains_key(id)
+    }
+}
+
+pub struct Verifier<S> {
+    use_cases: UseCases,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<OwnedTrustAnchor>,
     ephemeral_id_secret: hmac::Key,
 }
 
-impl<K, S> Drop for Verifier<K, S> {
+impl<S> Drop for Verifier<S> {
     fn drop(&mut self) {
         // Stop the task at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<K, S> Verifier<K, S>
+impl<S> Verifier<S>
 where
-    K: KeyRing,
     S: SessionStore<DisclosureData>,
 {
     /// Create a new [`Verifier`].
     ///
-    /// - `keys` contains for each usecase a certificate and corresponding private key for use in RP authentication.
+    /// - `use_cases` contains configuration per use case, including a certificate
+    ///    and corresponding private key for use in RP authentication.
     /// - `sessions` will contain all sessions.
     /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
-    pub fn new(keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>, ephemeral_id_secret: hmac::Key) -> Self
+    pub fn new(
+        use_cases: UseCases,
+        sessions: S,
+        trust_anchors: Vec<OwnedTrustAnchor>,
+        ephemeral_id_secret: hmac::Key,
+    ) -> Self
     where
         S: Send + Sync + 'static,
     {
         let sessions = Arc::new(sessions);
+
         Self {
-            keys,
+            use_cases,
             cleanup_task: Arc::clone(&sessions).start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
             sessions,
             trust_anchors,
@@ -357,7 +390,7 @@ where
     ) -> Result<SessionToken> {
         info!("create verifier session: {usecase_id}");
 
-        if !self.keys.contains_key_pair(&usecase_id) {
+        if !self.use_cases.as_ref().contains_key(&usecase_id) {
             return Err(VerificationError::UnknownCertificate(usecase_id).into());
         }
 
@@ -430,7 +463,7 @@ where
                     Self::format_verifier_url(&verifier_base_url, session_token, session_type, time, ephemeral_id)
                         .map_err(VerificationError::UrlEncoding)?;
                 let (response, session) = session
-                    .process_device_engagement(&cbor_deserialize(msg)?, verifier_url, session_type, &self.keys)
+                    .process_device_engagement(&cbor_deserialize(msg)?, verifier_url, session_type, &self.use_cases)
                     .await;
                 match session {
                     Ok(next) => Ok((response, next.state.into())),
@@ -551,7 +584,7 @@ where
     }
 }
 
-impl<K, S> Verifier<K, S> {
+impl<S> Verifier<S> {
     fn generate_verifier_url(
         verifier_base_url: &BaseUrl,
         ephemeral_id_secret: &hmac::Key,
@@ -1243,7 +1276,7 @@ mod tests {
             EXAMPLE_NAMESPACE,
         },
         identifiers::AttributeIdentifierHolder,
-        server_keys::{KeyPair, SingleKeyRing},
+        server_keys::KeyPair,
         server_state::{MemorySessionStore, SessionToken},
         test::{self, DebugCollapseBts},
         utils::{
@@ -1358,7 +1391,7 @@ mod tests {
         .into()
     }
 
-    fn create_verifier() -> Verifier<SingleKeyRing, MemorySessionStore<DisclosureData>> {
+    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
         // Initialize server state
         let ca = KeyPair::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![
@@ -1366,12 +1399,20 @@ mod tests {
                 .unwrap()
                 .owned_trust_anchor,
         ];
-        let rp_privkey = ca.generate_reader_mock(ReaderRegistration::new_mock().into()).unwrap();
-        let keys = SingleKeyRing(rp_privkey);
+        let key_pair = ca.generate_reader_mock(ReaderRegistration::new_mock().into()).unwrap();
+        let use_cases = HashMap::from([(
+            DISCLOSURE_USECASE.to_string(),
+            UseCase {
+                key_pair,
+                session_type_return_url: Default::default(),
+            },
+        )])
+        .into();
+
         let session_store = MemorySessionStore::default();
 
         Verifier::new(
-            keys,
+            use_cases,
             session_store,
             trust_anchors,
             hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
@@ -1381,7 +1422,7 @@ mod tests {
     async fn init_and_start_disclosure(
         time: &impl Generator<DateTime<Utc>>,
     ) -> (
-        Verifier<SingleKeyRing, MemorySessionStore<DisclosureData>>,
+        Verifier<MemorySessionStore<DisclosureData>>,
         ReaderEngagement,
         DeviceEngagement,
         SecretKey,
@@ -1814,7 +1855,7 @@ mod tests {
         let ephemeral_id_secret = hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap();
 
         // Create a verifier URL, given the provided parameters.
-        let verifier_url = Verifier::<(), ()>::generate_verifier_url(
+        let verifier_url = Verifier::<()>::generate_verifier_url(
             &"https://example.com".parse().unwrap(),
             &ephemeral_id_secret,
             &"foobar".into(),

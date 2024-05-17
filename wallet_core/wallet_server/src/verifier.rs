@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     body::Bytes,
@@ -9,7 +9,6 @@ use axum::{
     Json, Router,
 };
 use http::Method;
-use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use ring::hmac;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
@@ -17,9 +16,7 @@ use tracing::{error, info, warn};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyPair, KeyRing},
     server_state::{SessionStore, SessionToken},
-    utils::x509::Certificate,
     verifier::{
         DisclosedAttributes, DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse,
         VerificationError, Verifier, VerifierUrlParameters,
@@ -64,20 +61,8 @@ impl IntoResponse for Error {
     }
 }
 
-struct RelyingPartyKeyRing(HashMap<String, KeyPair>);
-
-impl KeyRing for RelyingPartyKeyRing {
-    fn key_pair(&self, id: &str) -> Option<&KeyPair> {
-        self.0.get(id)
-    }
-
-    fn contains_key_pair(&self, id: &str) -> bool {
-        self.0.contains_key(id)
-    }
-}
-
 struct ApplicationState<S> {
-    verifier: Verifier<RelyingPartyKeyRing, S>,
+    verifier: Verifier<S>,
     internal_url: BaseUrl,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
@@ -89,22 +74,7 @@ where
 {
     let application_state = Arc::new(ApplicationState {
         verifier: Verifier::new(
-            RelyingPartyKeyRing(
-                settings
-                    .verifier
-                    .usecases
-                    .into_iter()
-                    .map(|(usecase, keypair)| {
-                        Ok((
-                            usecase,
-                            KeyPair::new(
-                                SigningKey::from_pkcs8_der(&keypair.private_key)?,
-                                Certificate::from(&keypair.certificate),
-                            ),
-                        ))
-                    })
-                    .collect::<anyhow::Result<HashMap<_, _>>>()?,
-            ),
+            settings.verifier.usecases.try_into()?,
             sessions,
             settings
                 .verifier

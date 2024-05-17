@@ -17,7 +17,7 @@ use webpki::TrustAnchor;
 use nl_wallet_mdoc::{
     holder::{DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, StoredMdoc},
     iso::mdocs::DocType,
-    server_keys::{KeyPair, SingleKeyRing},
+    server_keys::KeyPair,
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
     test::{
@@ -30,14 +30,16 @@ use nl_wallet_mdoc::{
         x509::Certificate,
     },
     verifier::{
-        DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse, VerificationError, Verifier,
-        VerifierUrlParameters,
+        DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse, UseCase, VerificationError,
+        Verifier, VerifierUrlParameters,
     },
     Error, ReaderEngagement,
 };
 use wallet_common::generator::TimeGenerator;
 
-type MockVerifier = Verifier<SingleKeyRing, MemorySessionStore<DisclosureData>>;
+const DISCLOSURE_USECASE: &str = "test_usecase";
+
+type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;
 
 struct MockDisclosureHttpClient {
     verifier: Arc<MockVerifier>,
@@ -85,10 +87,18 @@ fn setup_verifier_test(
 ) -> (MockDisclosureHttpClient, Arc<MockVerifier>, Certificate) {
     let reader_registration = ReaderRegistration::new_mock_from_requests(authorized_requests);
     let ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let disclosure_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
+    let key_pair = ca.generate_reader_mock(reader_registration.into()).unwrap();
+    let use_cases = HashMap::from([(
+        DISCLOSURE_USECASE.to_string(),
+        UseCase {
+            key_pair,
+            session_type_return_url: Default::default(),
+        },
+    )])
+    .into();
 
     let verifier = MockVerifier::new(
-        SingleKeyRing(disclosure_key),
+        use_cases,
         MemorySessionStore::default(),
         mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect(),
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
@@ -180,7 +190,11 @@ async fn test_disclosure(
         setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()], authorized_documents);
 
     let session_token = verifier
-        .new_session(requested_documents, Default::default(), return_url_template.clone())
+        .new_session(
+            requested_documents,
+            DISCLOSURE_USECASE.to_string(),
+            return_url_template.clone(),
+        )
         .await
         .expect("creating new verifier session should succeed");
 

@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Formatter};
+
 use p256::{
     ecdsa::{Signature, SigningKey},
     pkcs8::DecodePrivateKey,
@@ -42,6 +44,14 @@ impl KeyPair {
 
     pub fn certificate(&self) -> &Certificate {
         &self.certificate
+    }
+}
+
+impl Debug for KeyPair {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("KeyPair")
+            .field("certificate", &self.certificate)
+            .finish_non_exhaustive()
     }
 }
 
