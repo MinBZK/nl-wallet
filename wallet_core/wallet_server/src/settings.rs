@@ -3,6 +3,7 @@ use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf
 use config::{Config, ConfigError, Environment, File};
 use nutype::nutype;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
+use ring::hmac;
 use serde::Deserialize;
 use serde_with::{base64::Base64, hex::Hex, serde_as};
 use url::Url;
@@ -74,9 +75,6 @@ pub struct Storage {
     pub failed_deletion_minutes: NonZeroU64,
 }
 
-#[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, Deserialize))]
-pub struct EhpemeralIdSecret(Vec<u8>);
-
 #[derive(Deserialize, Clone)]
 pub struct Server {
     pub ip: IpAddr,
@@ -146,6 +144,9 @@ pub enum SessionTypeReturnUrlDef {
     Both,
 }
 
+#[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
+pub struct EhpemeralIdSecret(Vec<u8>);
+
 impl From<&Storage> for SessionStoreTimeouts {
     fn from(value: &Storage) -> Self {
         SessionStoreTimeouts {
@@ -208,6 +209,12 @@ impl TryFrom<&VerifierUseCase> for UseCase {
         };
 
         Ok(use_case)
+    }
+}
+
+impl From<&EhpemeralIdSecret> for hmac::Key {
+    fn from(value: &EhpemeralIdSecret) -> Self {
+        hmac::Key::new(hmac::HMAC_SHA256, value.as_ref())
     }
 }
 

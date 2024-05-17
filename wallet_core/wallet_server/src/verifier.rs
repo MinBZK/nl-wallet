@@ -9,7 +9,6 @@ use axum::{
     Json, Router,
 };
 use http::Method;
-use ring::hmac;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
@@ -82,7 +81,7 @@ where
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),
-            hmac::Key::new(hmac::HMAC_SHA256, &settings.verifier.ephemeral_id_secret.into_inner()),
+            (&settings.verifier.ephemeral_id_secret).into(),
         ),
         internal_url: settings.internal_url,
         public_url: settings.public_url,
