@@ -9,6 +9,8 @@ use axum::{
     Json, Router,
 };
 use http::StatusCode;
+use sentry_tower::{NewSentryLayer, SentryHttpLayer};
+use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, info};
 
@@ -40,7 +42,12 @@ where
                 .route("/personen", post(personen::<T>))
                 .with_state(app_state),
         )
-        .layer(TraceLayer::new_for_http());
+        .layer(
+            ServiceBuilder::new()
+                .layer(NewSentryLayer::new_from_top())
+                .layer(SentryHttpLayer::with_transaction())
+                .layer(TraceLayer::new_for_http()),
+        );
 
     axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
 
