@@ -1,16 +1,20 @@
 use anyhow::Result;
 
 use mock_relying_party::{server, settings::Settings};
+use wallet_common::try_init_sentry;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+// Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
+fn main() -> Result<()> {
     // Initialize tracing.
     tracing_subscriber::fmt::init();
 
     let settings = Settings::new()?;
 
-    // This will block until the server shuts down.
-    server::serve(settings).await?;
+    // Retain [`ClientInitGuard`]
+    let _guard = try_init_sentry!(settings.sentry);
 
-    Ok(())
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(async { server::serve(settings).await })
 }

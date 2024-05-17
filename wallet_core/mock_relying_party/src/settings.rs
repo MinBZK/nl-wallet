@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 use config::{Config, ConfigError, Environment, File};
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use serde::Deserialize;
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -11,6 +11,7 @@ pub struct Settings {
     pub wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
     pub usecases: HashMap<String, ItemsRequests>,
+    pub sentry: Option<Sentry>,
 }
 
 #[derive(Deserialize, Clone)]

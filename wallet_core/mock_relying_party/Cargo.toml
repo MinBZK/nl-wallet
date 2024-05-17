@@ -32,6 +32,8 @@ base64.workspace = true
 config.workspace = true
 dashmap.workspace = true
 reqwest.workspace = true
+sentry.workspace = true
+sentry-tower = { workspace = true, features = ["axum-matched-path"] }
 serde = { workspace = true, features = ["derive"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
@@ -47,5 +49,5 @@ tracing-subscriber = { workspace = true, features = ["parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["sentry"] }
 wallet_server.path = "../wallet_server"

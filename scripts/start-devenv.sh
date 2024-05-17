@@ -245,6 +245,15 @@ then
 
     cd "${MOCK_RELYING_PARTY_DIR}"
 
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
+
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}mock_relying_party${NC}"
