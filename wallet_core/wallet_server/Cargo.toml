@@ -78,6 +78,8 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-chrono",
     "with-json",
 ] }
+sentry.workspace = true
+sentry-tower = { workspace = true, features = ["axum-matched-path"] }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
@@ -87,6 +89,7 @@ strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["macros", "parking_lot", "rt-multi-thread"] }
+tower.workspace = true
 tower-http = { workspace = true, features = ["auth", "cors", "trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
@@ -94,7 +97,7 @@ url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", optional = true }
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["sentry"] }
 
 [dev-dependencies]
 rstest.workspace = true

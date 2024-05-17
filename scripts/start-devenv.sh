@@ -270,6 +270,15 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
+
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}pid_issuer${NC}"
@@ -306,6 +315,15 @@ then
     echo -e "${SECTION}Manage wallet_server${NC}"
 
     cd "${WALLET_SERVER_DIR}"
+
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export WALLET_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
 
     if [ "${STOP}" == "0" ]
     then
