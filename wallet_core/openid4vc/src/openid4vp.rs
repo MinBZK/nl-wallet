@@ -1,5 +1,12 @@
-use jsonwebtoken::jwk::Jwk;
-use p256::ecdsa::VerifyingKey;
+use std::string::FromUtf8Error;
+
+use base64::DecodeError;
+use josekit::{
+    jwe::{alg::ecdh_es::EcdhEsJweAlgorithm, JweHeader},
+    jwk::{alg::ec::EcKeyPair, Jwk},
+    jwt::JwtPayload,
+    JoseError,
+};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use x509_parser::{error::X509Error, extensions::GeneralName};
@@ -7,19 +14,26 @@ use x509_parser::{error::X509Error, extensions::GeneralName};
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::KeyPair,
-    utils::x509::{Certificate, CertificateError},
+    utils::{
+        serialization::CborBase64,
+        x509::{Certificate, CertificateError},
+    },
     verifier::ItemsRequests,
+    DeviceResponse,
 };
 use wallet_common::{
     config::wallet_config::BaseUrl,
     generator::TimeGenerator,
     jwt::{Jwt, JwtError},
+    utils::random_string,
 };
 
 use crate::{
     authorization::{AuthorizationRequest, ResponseMode, ResponseType},
     jwt::{self, JwkConversionError, JwtX5cError},
-    presentation_exchange::{FormatAlg, PresentationDefinition},
+    presentation_exchange::{
+        FormatAlg, FormatDesignation, InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission,
+    },
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -36,6 +50,10 @@ pub enum AuthRequestError {
     },
     #[error("field {0}_uri found, expected field directly")]
     UriVariantNotSupported(&'static str),
+    #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
+    UnexpectedJwkAmount(usize),
+    #[error("JWK of unsupported type or curve (kty or crv field)")]
+    UnsupportedJwk,
 
     #[error("error parsing X.509 certificate: {0}")]
     CertificateParsing(#[from] CertificateError),
@@ -212,15 +230,29 @@ fn parse_dns_san(cert: &Certificate) -> Result<String, AuthRequestError> {
     }
 }
 
+use nutype::nutype;
+#[nutype(
+    derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
+    validate(predicate = |u| JwePublicKey::supported(u)),
+)]
+pub struct JwePublicKey(Jwk);
+
+impl JwePublicKey {
+    fn supported(jwk: &Jwk) -> bool {
+        // Avoid jwk.key_type() which panics if `kty` is not set.
+        jwk.parameter("kty").is_some_and(|kty| kty == "EC") && jwk.curve() == Some("P-256")
+    }
+}
+
 impl VpAuthorizationRequest {
-    pub async fn new_signed(
+    pub fn new(
         items_requests: &ItemsRequests,
-        keypair: KeyPair,
+        keypair: &KeyPair,
         nonce: String,
-        encryption_pubkey: &VerifyingKey,
+        encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
-    ) -> Result<Jwt<Self>, AuthRequestError> {
-        let auth_request = VpAuthorizationRequest {
+    ) -> Result<Self, AuthRequestError> {
+        Ok(VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             auth_request: AuthorizationRequest {
                 response_type: ResponseType::VpToken,
@@ -237,7 +269,7 @@ impl VpAuthorizationRequest {
             presentation_definition: VpPresentationDefinition::Direct(items_requests.into()),
             client_metadata: Some(VpClientMetadata::Direct(ClientMetadata {
                 jwks: VpJwks::Direct {
-                    keys: vec![jwt::jwk_from_p256(encryption_pubkey)?],
+                    keys: vec![encryption_pubkey.into_inner()],
                 },
                 vp_formats: VpFormat::MsoMdoc {
                     alg: vec![FormatAlg::ES256],
@@ -247,8 +279,17 @@ impl VpAuthorizationRequest {
             })),
             client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(response_uri),
-        };
+        })
+    }
 
+    pub async fn new_signed(
+        items_requests: &ItemsRequests,
+        keypair: KeyPair,
+        nonce: String,
+        encryption_pubkey: JwePublicKey,
+        response_uri: BaseUrl,
+    ) -> Result<Jwt<Self>, AuthRequestError> {
+        let auth_request = Self::new(items_requests, &keypair, nonce, encryption_pubkey, response_uri)?;
         let jws = jwt::sign_with_certificate(&auth_request, &keypair).await?;
         Ok(jws)
     }
@@ -342,31 +383,187 @@ impl VpAuthorizationRequest {
             return Err(AuthRequestError::UriVariantNotSupported("presentation_definition"));
         }
 
+        // check that we received exactly one EC/P256 curve
+        let jwks = client_metadata.jwks.direct();
+        if jwks.len() != 1 {
+            return Err(AuthRequestError::UnexpectedJwkAmount(jwks.len()));
+        }
+        if !JwePublicKey::supported(jwks.first().unwrap()) {
+            return Err(AuthRequestError::UnsupportedJwk);
+        }
+
         Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AuthResponseError {
+    #[error("error (de)serializing JWE payload: {0}")]
+    Json(#[from] serde_json::Error),
+    #[error("error parsing JWK: {0}")]
+    JwkConversion(#[source] JoseError),
+    #[error("error encrypting/decrypting JWE: {0}")]
+    Jwe(#[source] JoseError),
+    #[error("apv (nonce) field in JWE had incorrect value")]
+    NonceIncorrect,
+    #[error("failed to base64 decode JWE header fields: {0}")]
+    Base64(#[from] DecodeError),
+    #[error("missing apu field from JWE")]
+    MissingApu,
+    #[error("missing apv field from JWE")]
+    MissingApv,
+    #[error("failed to decode apu/apv field from JWE")]
+    Utf8(#[from] FromUtf8Error),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VpAuthorizationResponse {
+    vp_token: CborBase64<DeviceResponse>,
+    presentation_submission: PresentationSubmission,
+}
+
+impl VpAuthorizationResponse {
+    pub fn new(device_response: DeviceResponse, presentation_definition: &PresentationDefinition) -> Self {
+        let presentation_submission = PresentationSubmission {
+            id: random_string(16),
+            definition_id: presentation_definition.id.clone(),
+            descriptor_map: device_response
+                .documents
+                .as_ref()
+                .unwrap() // we never produce DeviceResponse instances without documents in it
+                .iter()
+                .map(|doc| InputDescriptorMappingObject {
+                    id: doc.doc_type.clone(),
+                    format: FormatDesignation::MsoMdoc,
+                    path: "$".to_string(),
+                })
+                .collect(),
+        };
+
+        VpAuthorizationResponse {
+            vp_token: device_response.into(),
+            presentation_submission,
+        }
+    }
+
+    /// Encrypt an Authorization Request into a JWE.
+    ///
+    /// NB: this method assumes that the provided Authorization Request has been validated with
+    ///  `auth_request.validate()?` before.
+    pub fn encrypt(
+        &self,
+        auth_request: &VpAuthorizationRequest,
+        mdoc_nonce: String,
+    ) -> Result<String, AuthResponseError> {
+        // All .unwrap() and .direct() calls on `auth_request` are safe because they are checked earlier
+        // by auth_request.validate().
+
+        let mut header = JweHeader::new();
+        header.set_token_type("JWT");
+
+        // Set the `apu` and `apv` fields to the mdoc nonce and nonce, per the ISO 18013-7 profile.
+        header.set_agreement_partyuinfo(mdoc_nonce);
+        header.set_agreement_partyvinfo(auth_request.auth_request.nonce.as_ref().unwrap().clone());
+
+        // Use the AES key size that the server wants.
+        let client_metadata = auth_request.client_metadata.as_ref().unwrap().direct();
+        header.set_content_encryption(match client_metadata.authorization_encryption_enc_values_supported {
+            VpEncValues::A128GCM => "A128GCM",
+            VpEncValues::A192GCM => "A192GCM",
+            VpEncValues::A256GCM => "A256GCM",
+        });
+
+        // VpAuthorizationRequest always serializes to a JSON object useable as a JWT payload.
+        let payload = serde_json::to_value(self)?.as_object().unwrap().clone();
+        let payload = JwtPayload::from_map(payload).unwrap();
+
+        // The key the RP wants us to encrypt our response to.
+        let jwk = client_metadata.jwks.direct().first().unwrap();
+
+        let encrypter = EcdhEsJweAlgorithm::EcdhEs
+            .encrypter_from_jwk(jwk)
+            .map_err(AuthResponseError::JwkConversion)?;
+        let jwe = josekit::jwt::encode_with_encrypter(&payload, &header, &encrypter).map_err(AuthResponseError::Jwe)?;
+
+        Ok(jwe)
+    }
+
+    pub fn decrypt(
+        jwe: String,
+        private_key: EcKeyPair,
+        nonce: String,
+    ) -> Result<(VpAuthorizationResponse, String), AuthResponseError> {
+        let decrypter = EcdhEsJweAlgorithm::EcdhEs
+            .decrypter_from_jwk(&private_key.to_jwk_key_pair())
+            .map_err(AuthResponseError::JwkConversion)?;
+        let (payload, header) = josekit::jwt::decode_with_decrypter(jwe, &decrypter).map_err(AuthResponseError::Jwe)?;
+
+        let jwe_nonce = String::from_utf8(header.agreement_partyvinfo().ok_or(AuthResponseError::MissingApv)?)?;
+        if nonce != jwe_nonce {
+            return Err(AuthResponseError::NonceIncorrect);
+        }
+        let mdoc_nonce = String::from_utf8(header.agreement_partyuinfo().ok_or(AuthResponseError::MissingApu)?)?;
+
+        let payload = serde_json::from_value(serde_json::Value::Object(payload.into()))?;
+        Ok((payload, mdoc_nonce))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
+    use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
     use serde_json::json;
 
-    use nl_wallet_mdoc::{server_keys::KeyPair, test::example_items_requests};
+    use nl_wallet_mdoc::{examples::Example, server_keys::KeyPair, test::example_items_requests, DeviceResponse};
+    use wallet_common::utils::random_string;
 
-    use crate::openid4vp::VpAuthorizationRequest;
+    use crate::openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse};
+
+    #[test]
+    fn test_encrypt_decrypt_authorization_response() {
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let rp_keypair = ca.generate_reader_mock(None).unwrap();
+
+        let nonce = "nonce".to_string();
+
+        let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let auth_request = VpAuthorizationRequest::new(
+            &example_items_requests(),
+            &rp_keypair,
+            nonce.clone(),
+            encryption_privkey.to_jwk_public_key().try_into().unwrap(),
+            "https://example.com/response_uri".parse().unwrap(),
+        )
+        .unwrap();
+
+        // NB: the example DeviceResponse verifies as an ISO 18013-5 DeviceResponse while here we use it in
+        // an OpenID4VP setting, i.e. with different SessionTranscript contents, so it can't be verified.
+        // This is not an issue here because this code only deals with en/decrypting the DeviceResponse into
+        // an Authorization Response JWE.
+        let mdoc_nonce = random_string(16);
+        let device_response = DeviceResponse::example();
+        let jwe = VpAuthorizationResponse::new(device_response, auth_request.presentation_definition.direct())
+            .encrypt(&auth_request, mdoc_nonce.clone())
+            .unwrap();
+
+        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, encryption_privkey, nonce).unwrap();
+
+        assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
+    }
 
     #[tokio::test]
     async fn test_authorization_request_jwt() {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
-        let encryption_privkey = SigningKey::random(&mut OsRng);
+        let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
+        dbg!(encryption_privkey.to_jwk_public_key());
 
         let auth_request_jwt = VpAuthorizationRequest::new_signed(
             &example_items_requests(),
             rp_keypair,
             "nonce".to_string(),
-            encryption_privkey.verifying_key(),
+            encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             "https://example.com/response_uri".parse().unwrap(),
         )
         .await

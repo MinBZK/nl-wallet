@@ -2714,6 +2714,7 @@ dependencies = [
  "mime",
  "mockall",
  "nl_wallet_mdoc",
+ "nutype",
  "p256",
  "regex",
  "reqwest",
