@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
 
-use crate::{account::serialization::DerVerifyingKey, trust_anchor::DerTrustAnchor};
+use crate::{
+    account::serialization::DerVerifyingKey, config::digid::DigidApp2AppConfiguration, trust_anchor::DerTrustAnchor,
+};
 
 #[nutype(
     validate(predicate = |u| !u.cannot_be_a_base()),
@@ -37,7 +39,7 @@ impl BaseUrl {
 }
 
 pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";
-const DIGID_REDIRECT_PATH: &str = "authentication";
+const ISSUANCE_BASE_PATH: &str = "return-from-digid";
 const DISCLOSURE_BASE_PATH: &str = "disclosure";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]
@@ -65,8 +67,8 @@ impl WalletConfiguration {
     }
 
     #[inline]
-    pub fn issuance_redirect_uri(universal_link_base: &BaseUrl) -> BaseUrl {
-        universal_link_base.join_base_url(DIGID_REDIRECT_PATH)
+    pub fn issuance_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
+        universal_link_base.join_base_url(ISSUANCE_BASE_PATH)
     }
 
     #[inline]
@@ -114,6 +116,8 @@ pub struct PidIssuanceConfiguration {
     pub digid_client_id: String,
     #[serde(default)]
     pub digid_trust_anchors: Vec<DerTrustAnchor>,
+    #[serde(default)]
+    pub digid_app2app: Option<DigidApp2AppConfiguration>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash)]

@@ -33,11 +33,13 @@ mime.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 parking_lot.workspace = true
+regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring = { workspace = true, features = ["std"] }
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-uuid"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["sync", "fs"] }
@@ -67,7 +69,7 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 wiremock.workspace = true
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "examples", "software_keys", "mdocs_map", "test", "mock"] }
+nl_wallet_mdoc = { path = "../mdoc", features = ["examples", "generate", "mdocs_map", "mock", "software_keys", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock"] }
 # enable the "software" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["software"] }

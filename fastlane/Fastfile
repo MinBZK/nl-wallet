@@ -23,10 +23,10 @@ end
 
 private_lane :ci_get_basic_auth do
   registry_user = ENV["CI_REGISTRY_USER"]
-  UI.user_error!("No CI_REGISTRY_USER environment variable set") unless registry_user
+  UI.user_error!("No CI_REGISTRY_USER environment variable set") unless registry_user && !registry_user.empty?
 
   job_token = ENV["CI_JOB_TOKEN"]
-  UI.user_error!("No CI_JOB_TOKEN environment variable set") unless job_token
+  UI.user_error!("No CI_JOB_TOKEN environment variable set") unless job_token && !job_token.empty?
 
   Base64.strict_encode64("#{registry_user}:#{job_token}")
 end
@@ -129,7 +129,7 @@ platform :android do
   desc "Deploy Android app from GitLab CI"
   lane :ci_deploy do |options|
     json_key_data = ENV["JSON_KEY_DATA"]
-    UI.user_error!("No JSON_KEY_DATA environment variable set") unless json_key_data
+    UI.user_error!("No JSON_KEY_DATA environment variable set") unless json_key_data && !json_key_data.empty?
 
     package_name = options[:package_name]
     UI.user_error!("No package_name or package_name option set") unless package_name
@@ -144,14 +144,17 @@ platform :android do
 
   desc "Upload Android app to BrowserStack from GitLab CI"
   lane :ci_browserstack do |options|
+    browserstack_user = ENV["BROWSERSTACK_USER"]
+    browserstack_key = ENV["BROWSERSTACK_KEY"]
+
+    UI.user_error!("No BROWSERSTACK_USER environment variable set") unless browserstack_user && !browserstack_user.empty?
+    UI.user_error!("No BROWSERSTACK_KEY environment variable set") unless browserstack_key && !browserstack_key.empty?
+
     package_name = options[:package_name]
     UI.user_error!("No package_name or package_name option set") unless package_name
 
     local_version, _ = get_local_version_and_build
     version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
-
-    browserstack_user = ENV["BROWSERSTACK_USER"]
-    browserstack_key = ENV["BROWSERSTACK_KEY"]
 
     browserstack(
       file: "#{package_name}-#{version || local_version}-profile.apk",
