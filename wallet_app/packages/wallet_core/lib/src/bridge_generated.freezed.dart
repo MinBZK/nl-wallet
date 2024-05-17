@@ -2655,24 +2655,42 @@ mixin _$WalletEvent {
   String get dateTime => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+    required TResult Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+    TResult? Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+    TResult Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
@@ -2746,7 +2764,8 @@ abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEve
       List<LocalizedString> purpose,
       List<DisclosureCard>? requestedCards,
       RequestPolicy requestPolicy,
-      DisclosureStatus status});
+      DisclosureStatus status,
+      DisclosureType disclosureType});
 }
 
 /// @nodoc
@@ -2766,6 +2785,7 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
     Object? requestedCards = freezed,
     Object? requestPolicy = null,
     Object? status = null,
+    Object? disclosureType = null,
   }) {
     return _then(_$WalletEvent_DisclosureImpl(
       dateTime: null == dateTime
@@ -2792,6 +2812,10 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as DisclosureStatus,
+      disclosureType: null == disclosureType
+          ? _value.disclosureType
+          : disclosureType // ignore: cast_nullable_to_non_nullable
+              as DisclosureType,
     ));
   }
 }
@@ -2805,7 +2829,8 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
       required final List<LocalizedString> purpose,
       final List<DisclosureCard>? requestedCards,
       required this.requestPolicy,
-      required this.status})
+      required this.status,
+      required this.disclosureType})
       : _purpose = purpose,
         _requestedCards = requestedCards;
 
@@ -2835,10 +2860,12 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   final RequestPolicy requestPolicy;
   @override
   final DisclosureStatus status;
+  @override
+  final DisclosureType disclosureType;
 
   @override
   String toString() {
-    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status)';
+    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status, disclosureType: $disclosureType)';
   }
 
   @override
@@ -2851,12 +2878,13 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
             const DeepCollectionEquality().equals(other._purpose, _purpose) &&
             const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
             (identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy) &&
-            (identical(other.status, status) || other.status == status));
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.disclosureType, disclosureType) || other.disclosureType == disclosureType));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
-      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status);
+      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, disclosureType);
 
   @JsonKey(ignore: true)
   @override
@@ -2867,36 +2895,54 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+    required TResult Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) {
-    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
+    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, disclosureType);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+    TResult? Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) {
-    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
+    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, disclosureType);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+    TResult Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
   }) {
     if (disclosure != null) {
-      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status);
+      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, disclosureType);
     }
     return orElse();
   }
@@ -2940,7 +2986,8 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
       required final List<LocalizedString> purpose,
       final List<DisclosureCard>? requestedCards,
       required final RequestPolicy requestPolicy,
-      required final DisclosureStatus status}) = _$WalletEvent_DisclosureImpl;
+      required final DisclosureStatus status,
+      required final DisclosureType disclosureType}) = _$WalletEvent_DisclosureImpl;
 
   @override
   String get dateTime;
@@ -2949,6 +2996,7 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
   List<DisclosureCard>? get requestedCards;
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
+  DisclosureType get disclosureType;
   @override
   @JsonKey(ignore: true)
   _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
@@ -3027,8 +3075,14 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)
+    required TResult Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) {
@@ -3038,8 +3092,14 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+    TResult? Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) {
@@ -3049,8 +3109,14 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String dateTime, Organization relyingParty, List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards, RequestPolicy requestPolicy, DisclosureStatus status)?
+    TResult Function(
+            String dateTime,
+            Organization relyingParty,
+            List<LocalizedString> purpose,
+            List<DisclosureCard>? requestedCards,
+            RequestPolicy requestPolicy,
+            DisclosureStatus status,
+            DisclosureType disclosureType)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),

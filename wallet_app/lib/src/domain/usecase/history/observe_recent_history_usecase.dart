@@ -1,5 +1,5 @@
-import '../../model/timeline/timeline_attribute.dart';
+import '../../model/event/wallet_event.dart';
 
 abstract class ObserveRecentHistoryUseCase {
-  Stream<List<TimelineAttribute>> invoke();
+  Stream<List<WalletEvent>> invoke();
 }

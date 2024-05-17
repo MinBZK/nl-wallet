@@ -2,18 +2,14 @@
   "${WALLET_CLIENT_ID}": {
     "name": "NL Wallet",
     "external_id": "87654321",
-    "external_ids": [
-      "87654321"
-    ],
+    "external_ids": ["87654321"],
     "token_endpoint_auth_method": "none",
     "redirect_uris": [
-      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication/",
-      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication"
+      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid/",
+      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid"
     ],
-    "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/authentication",
-    "response_types": [
-      "code"
-    ],
+    "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
+    "response_types": ["code"],
     "pubkey_type": "RSA",
     "client_public_key_path": "secrets/clients/test_client/test_client.crt"
   }

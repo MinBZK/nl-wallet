@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-05-15T16:13:25+02:00",
+    "@@last_modified": "2024-05-16T15:57:13+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -14,10 +14,13 @@
     "activitySummaryEmpty": "No activities",
     "activitySummaryLastMonth": "Activities last month",
     "activitySummaryLastWeek": "Activities last week",
+    "activitySummaryLoggedInMultiple": "logged in to {organizations} and {organization}",
+    "activitySummaryLoggedInWith": "logged in at {organization}",
+    "activitySummaryLoggedInWithOthers": "{nrOrganizations} other organizations",
     "activitySummaryPrefix": "You have",
     "activitySummarySeparator": "and",
-    "activitySummarySharedWith": "shared with {organization}.",
-    "activitySummarySharedWithMultiple": "shared with {organizations} and {organization}.",
+    "activitySummarySharedWith": "shared with {organization}",
+    "activitySummarySharedWithMultiple": "shared with {organizations} and {organization}",
     "activitySummarySharedWithOthers": "{nrOrganizations} other organizations",
     "activitySummaryToday": "Activities today",
     "appTitle": "NL Wallet",

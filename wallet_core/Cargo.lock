@@ -5299,6 +5299,7 @@ dependencies = [
  "parking_lot",
  "platform_support",
  "rand_core 0.6.4",
+ "regex",
  "reqwest",
  "ring 0.17.5",
  "rstest",
@@ -5956,9 +5957,9 @@ dependencies = [
 
 [[package]]
 name = "wiremock"
-version = "0.5.19"
+version = "0.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6f71803d3a1c80377a06221e0530be02035d5b3e854af56c6ece7ac20ac441d"
+checksum = "13a3a53eaf34f390dd30d7b1b078287dd05df2aa2e21a589ccb80f5c7253c2e9"
 dependencies = [
  "assert-json-diff",
  "async-trait",

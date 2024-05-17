@@ -17,12 +17,12 @@ use nl_wallet_mdoc::{server_state::SessionState, utils::x509};
 use openid4vc::{
     issuance_session::HttpIssuanceSession,
     issuer::{AttributeService, Created},
-    oidc::{self, MockOidcClient},
+    oidc,
     token::{AttestationPreview, TokenRequest},
 };
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use wallet::{
-    mock::{default_configuration, MockStorage},
+    mock::{default_configuration, MockDigidSession, MockStorage},
     wallet_deps::{
         ConfigServerConfiguration, HttpAccountProviderClient, HttpConfigurationRepository,
         UpdateableConfigurationRepository,
@@ -79,7 +79,7 @@ pub type WalletWithMocks = Wallet<
     MockStorage,
     SoftwareEcdsaKey,
     HttpAccountProviderClient,
-    MockOidcClient,
+    MockDigidSession,
     HttpIssuanceSession,
 >;
 
@@ -293,7 +293,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
         .await
         .expect("Could not create pid issuance auth url");
     let _unsigned_mdocs = wallet
-        .continue_pid_issuance(&redirect_url)
+        .continue_pid_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
     wallet

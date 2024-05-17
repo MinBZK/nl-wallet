@@ -3,14 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
-import '../../../domain/model/timeline/operation_timeline_attribute.dart';
-import '../../../domain/model/timeline/signing_timeline_attribute.dart';
-import '../../../domain/model/timeline/timeline_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/wallet_event_extension.dart';
 import '../../../util/formatter/history_details_time_formatter.dart';
-import '../../../util/formatter/timeline_attribute_status_description_text_formatter.dart';
+import '../../../util/mapper/event/wallet_event_status_description_mapper.dart';
 import '../../../wallet_assets.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/data_attribute_section.dart';
@@ -26,7 +24,7 @@ import '../../organization/detail/organization_detail_screen.dart';
 import '../../policy/policy_screen.dart';
 import 'argument/history_detail_screen_argument.dart';
 import 'bloc/history_detail_bloc.dart';
-import 'widget/history_detail_timeline_attribute_row.dart';
+import 'widget/history_detail_wallet_event_row.dart';
 
 const _kOrganizationLogoSize = 24.0;
 
@@ -99,39 +97,37 @@ class HistoryDetailScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessSliver(BuildContext context, HistoryDetailLoadSuccess state) {
-    final TimelineAttribute attribute = state.timelineAttribute;
-    final bool showTimelineStatusRow = _showTimelineStatusRow(attribute);
-    final bool showDataAttributesSection = _showDataAttributesSection(attribute);
-    final bool showContractSection = _showContractSection(attribute);
+    final WalletEvent event = state.event;
+    final bool showStatusRow = _showStatusRow(event);
+    final bool showDataAttributesSection = _showDataAttributesSection(event);
+    final bool showContractSection = _showContractSection(event);
     final List<Widget> slivers = [];
     final Color iconColor = context.colorScheme.onSurface;
 
+    // Organization
     slivers.addAll([
-      // Organization
       const SliverDivider(),
       SliverToBoxAdapter(
-        child: _buildOrganizationRow(context, attribute),
+        child: _buildOrganizationRow(context, event),
       ),
       const SliverDivider(),
     ]);
 
     // Interaction request purpose
-    if (attribute is InteractionTimelineAttribute && attribute.status == InteractionStatus.success) {
+    if (event is DisclosureEvent && event.status == EventStatus.success) {
       slivers.addAll([
         SliverToBoxAdapter(
-          child: _buildInteractionRequestPurposeRow(context, attribute),
+          child: _buildInteractionRequestPurposeRow(context, event.purpose),
         ),
         const SliverDivider(),
       ]);
     }
 
     // Interaction/operation type
-    if (showTimelineStatusRow) {
+    if (showStatusRow) {
       slivers.addAll([
         SliverToBoxAdapter(
-          child: HistoryDetailTimelineAttributeRow(
-            attribute: attribute,
-          ),
+          child: WalletEventStatusHeader(event: event),
         ),
         const SliverDivider(),
       ]);
@@ -142,19 +138,19 @@ class HistoryDetailScreen extends StatelessWidget {
       // Section title
       slivers.add(
         SliverToBoxAdapter(
-          child: _buildDataAttributesSectionTitle(context, attribute),
+          child: _buildDataAttributesSectionTitle(context, event),
         ),
       );
 
       // Signed contract (optional)
-      if (showContractSection) {
-        final signingAttribute = (attribute as SigningTimelineAttribute);
+      if (showContractSection && event is SignEvent) {
+        final signEvent = event;
         slivers.addAll([
           SliverToBoxAdapter(
             child: DocumentSection(
               padding: const EdgeInsets.only(left: 56, right: 16),
-              document: signingAttribute.document,
-              organization: signingAttribute.organization,
+              document: signEvent.document,
+              organization: signEvent.relyingParty,
             ),
           ),
           const SliverDivider(height: 32),
@@ -169,8 +165,7 @@ class HistoryDetailScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(left: 56, bottom: 8, right: 16),
               child: DataAttributeSection(
-                sourceCardTitle:
-                    attribute is InteractionTimelineAttribute ? entry.key.front.title.l10nValue(context) : null,
+                sourceCardTitle: event is DisclosureEvent ? entry.key.front.title.l10nValue(context) : null,
                 attributes: entry.value,
               ),
             ),
@@ -180,7 +175,7 @@ class HistoryDetailScreen extends StatelessWidget {
       slivers.add(const SliverSizedBox(height: 16));
 
       // Policy section
-      final Policy? policy = _getPolicyToDisplay(attribute);
+      final Policy? policy = _getPolicyToDisplay(event);
       if (policy != null) {
         slivers.addAll(
           [
@@ -188,8 +183,11 @@ class HistoryDetailScreen extends StatelessWidget {
             SliverToBoxAdapter(
               child: InfoRow(
                 title: Text(context.l10n.historyDetailScreenTermsTitle),
-                subtitle: Text(context.l10n
-                    .historyDetailScreenTermsSubtitle(attribute.organization.displayName.l10nValue(context))),
+                subtitle: Text(
+                  context.l10n.historyDetailScreenTermsSubtitle(
+                    event.relyingPartyOrIssuer.displayName.l10nValue(context),
+                  ),
+                ),
                 leading: Icon(Icons.policy_outlined, color: iconColor),
                 onTap: () => PolicyScreen.show(context, policy),
               ),
@@ -230,10 +228,10 @@ class HistoryDetailScreen extends StatelessWidget {
     return SliverMainAxisGroup(slivers: slivers);
   }
 
-  Widget _buildInteractionRequestPurposeRow(BuildContext context, InteractionTimelineAttribute attribute) {
+  Widget _buildInteractionRequestPurposeRow(BuildContext context, LocalizedText purpose) {
     return InfoRow(
       title: Text(context.l10n.historyDetailScreenInteractionRequestPurposeTitle),
-      subtitle: Text(attribute.requestPurpose.l10nValue(context)),
+      subtitle: Text(purpose.l10nValue(context)),
       leading: Icon(
         Icons.outlined_flag_outlined,
         color: context.colorScheme.onSurface,
@@ -241,9 +239,9 @@ class HistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrganizationRow(BuildContext context, TimelineAttribute attribute) {
-    final organization = attribute.organization;
-    final status = _getOrganizationNamePrefixBasedOnStatus(context, attribute);
+  Widget _buildOrganizationRow(BuildContext context, WalletEvent event) {
+    final organization = event.relyingPartyOrIssuer;
+    final status = _getOrganizationNamePrefixBasedOnStatus(context, event);
     return InfoRow(
       leading: ExcludeSemantics(
         child: OrganizationLogo(
@@ -260,71 +258,60 @@ class HistoryDetailScreen extends StatelessWidget {
     );
   }
 
-  String _getOrganizationNamePrefixBasedOnStatus(BuildContext context, TimelineAttribute attribute) {
-    if (attribute is InteractionTimelineAttribute) {
-      return attribute.status == InteractionStatus.success
+  String _getOrganizationNamePrefixBasedOnStatus(BuildContext context, WalletEvent event) {
+    return switch (event) {
+      DisclosureEvent() => event.status == EventStatus.success
           ? context.l10n.historyDetailScreenOrganizationNamePrefixInteractionStatusSuccess
-          : context.l10n.historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess;
-    } else if (attribute is OperationTimelineAttribute) {
-      return context.l10n.historyDetailScreenOrganizationNamePrefixOperationStatusAll;
-    } else if (attribute is SigningTimelineAttribute) {
-      return context.l10n.historyDetailScreenOrganizationNamePrefixSigningStatusAll;
-    }
-    return '';
+          : context.l10n.historyDetailScreenOrganizationNamePrefixInteractionStatusNonSuccess,
+      IssuanceEvent() => context.l10n.historyDetailScreenOrganizationNamePrefixOperationStatusAll,
+      SignEvent() => context.l10n.historyDetailScreenOrganizationNamePrefixSigningStatusAll,
+    };
   }
 
-  bool _showTimelineStatusRow(TimelineAttribute attribute) {
-    if (attribute is InteractionTimelineAttribute) {
-      return attribute.status != InteractionStatus.success;
-    } else if (attribute is SigningTimelineAttribute) {
-      return attribute.status != SigningStatus.success;
-    }
-    return false;
+  bool _showStatusRow(WalletEvent event) {
+    return switch (event) {
+      DisclosureEvent() => event.status != EventStatus.success,
+      IssuanceEvent() => false,
+      SignEvent() => event.status != EventStatus.success,
+    };
   }
 
-  bool _showDataAttributesSection(TimelineAttribute attribute) {
-    if (attribute is InteractionTimelineAttribute) {
-      return attribute.status == InteractionStatus.success;
-    } else if (attribute is SigningTimelineAttribute) {
-      return attribute.status == SigningStatus.success;
-    }
-    return true;
+  bool _showDataAttributesSection(WalletEvent event) {
+    return switch (event) {
+      DisclosureEvent() => event.status == EventStatus.success,
+      IssuanceEvent() => true,
+      SignEvent() => event.status == EventStatus.success,
+    };
   }
 
-  bool _showContractSection(TimelineAttribute attribute) {
-    return (attribute is SigningTimelineAttribute) && attribute.status == SigningStatus.success;
+  bool _showContractSection(WalletEvent event) => event is SignEvent && event.status == EventStatus.success;
+
+  Policy? _getPolicyToDisplay(WalletEvent event) {
+    return switch (event) {
+      DisclosureEvent(status: var status) when status == EventStatus.success => event.policy,
+      DisclosureEvent() => null,
+      IssuanceEvent() => null,
+      SignEvent(status: var status) when status == EventStatus.success => event.policy,
+      SignEvent() => null,
+    };
   }
 
-  Policy? _getPolicyToDisplay(TimelineAttribute attribute) {
-    if (attribute is InteractionTimelineAttribute && attribute.status == InteractionStatus.success) {
-      return attribute.policy;
-    } else if (attribute is SigningTimelineAttribute && attribute.status == SigningStatus.success) {
-      return attribute.policy;
-    }
-    return null;
-  }
-
-  Widget _buildDataAttributesSectionTitle(BuildContext context, TimelineAttribute attribute) {
+  Widget _buildDataAttributesSectionTitle(BuildContext context, WalletEvent event) {
+    // Declare variables / defaults
     final iconColor = context.colorScheme.onSurface;
-
     String title = '';
     String subtitle = '';
-    Widget icon = Image.asset(
-      WalletAssets.icon_card_share,
-      color: iconColor,
-    );
+    Widget icon = Image.asset(WalletAssets.icon_card_share, color: iconColor);
 
-    if (attribute is InteractionTimelineAttribute) {
-      title = context.l10n.historyDetailScreenInteractionAttributesTitle(attribute.dataAttributes.length);
-    } else if (attribute is OperationTimelineAttribute) {
-      title = attribute.card.front.title.l10nValue(context);
-      subtitle = TimelineAttributeStatusDescriptionTextFormatter.map(context, attribute);
-      icon = Icon(
-        Icons.credit_card_outlined,
-        color: iconColor,
-      );
-    } else if (attribute is SigningTimelineAttribute) {
-      title = context.l10n.historyDetailScreenSigningAttributesTitle;
+    switch (event) {
+      case DisclosureEvent():
+        title = context.l10n.historyDetailScreenInteractionAttributesTitle(event.attributes.length);
+      case IssuanceEvent():
+        title = event.card.front.title.l10nValue(context);
+        subtitle = WalletEventStatusDescriptionMapper().map(context, event);
+        icon = Icon(Icons.credit_card_outlined, color: iconColor);
+      case SignEvent():
+        title = context.l10n.historyDetailScreenSigningAttributesTitle;
     }
 
     return Padding(
@@ -356,7 +343,7 @@ class HistoryDetailScreen extends StatelessWidget {
                     const SizedBox(height: 2),
                   ],
                   Text(
-                    HistoryDetailsTimeFormatter.format(context, attribute.dateTime),
+                    HistoryDetailsTimeFormatter.format(context, event.dateTime),
                     style: context.textTheme.bodySmall,
                   ),
                 ],
@@ -390,7 +377,7 @@ class HistoryDetailScreen extends StatelessWidget {
                   final args = getArgument(settings);
                   context.read<HistoryDetailBloc>().add(
                         HistoryDetailLoadTriggered(
-                          attribute: args.timelineAttribute,
+                          event: args.walletEvent,
                           docType: args.docType,
                         ),
                       );

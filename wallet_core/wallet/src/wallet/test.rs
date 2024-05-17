@@ -8,7 +8,7 @@ use rand_core::OsRng;
 use nl_wallet_mdoc::{
     holder::Mdoc, server_keys::KeyPair, unsigned::UnsignedMdoc, utils::issuer_auth::IssuerRegistration, IssuerSigned,
 };
-use openid4vc::{mock::MockIssuanceSession, oidc::MockOidcClient};
+use openid4vc::mock::MockIssuanceSession;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::{
     account::messages::auth::{WalletCertificate, WalletCertificateClaims},
@@ -24,6 +24,7 @@ use crate::{
     config::{default_configuration, LocalConfigurationRepository, UpdatingConfigurationRepository},
     disclosure::MockMdocDisclosureSession,
     document,
+    issuance::MockDigidSession,
     pin::key as pin_key,
     storage::{KeyedData, MockStorage, RegistrationData, StorageState},
     Document, HistoryEvent,
@@ -65,7 +66,7 @@ pub type WalletWithMocks = Wallet<
     MockStorage,
     FallibleSoftwareEcdsaKey,
     MockAccountProviderClient,
-    MockOidcClient,
+    MockDigidSession,
     MockIssuanceSession,
     MockMdocDisclosureSession,
 >;

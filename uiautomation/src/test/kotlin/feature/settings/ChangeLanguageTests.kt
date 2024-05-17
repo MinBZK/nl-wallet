@@ -37,24 +37,24 @@ class ChangeLanguageTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 App settings menu displays option to change language.")
+    @DisplayName("$USE_CASE.1 App settings menu displays option to change language. [$JIRA_ID]")
     fun verifyChangeLanguageScreen() {
         assertTrue(changeLanguageScreen.visible(), "change language screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 Language screen offers two options: English & Dutch.")
+    @DisplayName("$USE_CASE.2 Language screen offers two options: English & Dutch. [$JIRA_ID]")
     fun verifyLanguageButtonsVisible() {
         assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible")
     }
 
     @Nested
-    @DisplayName("$USE_CASE.3 When the User selects a language, the app immediately uses the newly selected language.")
+    @DisplayName("$USE_CASE.3 When the User selects a language, the app immediately uses the newly selected language. [$JIRA_ID]")
     inner class LanguageChange {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
-        @DisplayName("$USE_CASE.3.1 When the User selects Dutch, the app immediately uses Dutch.")
+        @DisplayName("$USE_CASE.3.1 When the User selects Dutch, the app immediately uses Dutch. [$JIRA_ID]")
         fun verifyDutchLanguageSelect() {
             assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible")
             changeLanguageScreen.clickDutchButton()
@@ -64,7 +64,7 @@ class ChangeLanguageTests : TestBase() {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("dutch"))
-        @DisplayName("$USE_CASE.3.2 When the User selects English, the app immediately uses English.")
+        @DisplayName("$USE_CASE.3.2 When the User selects English, the app immediately uses English. [$JIRA_ID]")
         fun verifyEnglishLanguageSelect() {
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
             changeLanguageScreen.clickEnglishButton()

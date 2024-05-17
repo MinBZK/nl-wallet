@@ -473,39 +473,21 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for CborBase64<T> {
 }
 
 pub mod cbor_hex {
-    use std::fmt::Formatter;
-
     use serde::{
-        de::{self, DeserializeOwned, Visitor},
-        ser::Error,
-        Deserializer, Serialize, Serializer,
+        de::{self, DeserializeOwned},
+        ser, Deserializer, Serialize, Serializer,
     };
+    use serde_with::{formats::Uppercase, hex::Hex, DeserializeAs, SerializeAs};
 
     use super::{cbor_deserialize, cbor_serialize};
 
     pub fn serialize<S: Serializer, T: Serialize>(input: T, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&hex::encode(cbor_serialize(&input).map_err(S::Error::custom)?))
+        Hex::<Uppercase>::serialize_as(&cbor_serialize(&input).map_err(ser::Error::custom)?, serializer)
     }
 
     pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<T, D::Error> {
-        // based on https://github.com/marshallpierce/base64-serde/blob/master/src/lib.rs
-        struct HexVisitor;
-
-        impl Visitor<'_> for HexVisitor {
-            type Value = Vec<u8>;
-
-            fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-                formatter.write_str("hex encoded string")
-            }
-
-            fn visit_str<E: de::Error>(self, v: &str) -> Result<Self::Value, E> {
-                hex::decode(v).map_err(E::custom)
-            }
-        }
-
-        deserializer
-            .deserialize_str(HexVisitor)
-            .map(|bts| cbor_deserialize(bts.as_slice()).map_err(de::Error::custom))?
+        let x: Vec<u8> = Hex::<Uppercase>::deserialize_as(deserializer)?;
+        cbor_deserialize(x.as_slice()).map_err(de::Error::custom)
     }
 }
 

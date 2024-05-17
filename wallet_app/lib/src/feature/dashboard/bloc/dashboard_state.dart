@@ -20,7 +20,7 @@ class DashboardLoadInProgress extends DashboardState {
 
 class DashboardLoadSuccess extends DashboardState {
   final List<WalletCard> cards;
-  final List<TimelineAttribute>? history;
+  final List<WalletEvent>? history;
 
   const DashboardLoadSuccess({
     required this.cards,

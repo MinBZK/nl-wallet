@@ -15,11 +15,7 @@ doctest = false
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
 # Include SoftwareEcdsaKey, which implements EcdsaKey and related traits for testing
-software_keys = [
-    "mock_secure_keys",
-    "dep:parking_lot",
-    "dep:rand_core",
-]
+software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Enable helper code for integration tests
 integration_test = []
 # Enable sentry feature

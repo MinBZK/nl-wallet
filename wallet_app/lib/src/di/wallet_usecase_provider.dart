@@ -5,10 +5,8 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../domain/usecase/app/impl/check_is_app_initialized_usecase_impl.dart';
-import '../domain/usecase/card/get_wallet_card_timeline_attributes_usecase.dart';
 import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
-import '../domain/usecase/card/impl/get_wallet_card_timeline_attributes_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_card_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_cards_usecase_impl.dart';
 import '../domain/usecase/card/impl/lock_wallet_usecase_impl.dart';
@@ -25,8 +23,12 @@ import '../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/cancel_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
-import '../domain/usecase/history/get_wallet_timeline_attributes_usecase.dart';
-import '../domain/usecase/history/impl/get_wallet_timeline_attributes_usecase_impl.dart';
+import '../domain/usecase/event/get_wallet_events_for_card_usecase.dart';
+import '../domain/usecase/event/get_wallet_events_usecase.dart';
+import '../domain/usecase/event/impl/get_wallet_events_for_card_usecase_impl.dart';
+import '../domain/usecase/event/impl/get_wallet_events_usecase_impl.dart';
+import '../domain/usecase/event/impl/observe_recent_wallet_events_usecase_impl.dart';
+import '../domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import '../domain/usecase/history/impl/observe_recent_history_usecase_impl.dart';
 import '../domain/usecase/history/observe_recent_history_usecase.dart';
 import '../domain/usecase/issuance/accept_issuance_usecase.dart';
@@ -132,17 +134,11 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
           ),
         ),
-        RepositoryProvider<GetWalletCardTimelineAttributesUseCase>(
-          create: (context) => GetWalletCardTimelineAttributesUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<DecodeQrUseCase>(
           create: (context) => DecodeQrUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CancelPidIssuanceUseCase>(
           create: (context) => CancelPidIssuanceUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<GetWalletTimelineAttributesUseCase>(
-          create: (context) => GetWalletTimelineAttributesUseCaseImpl(context.read()),
         ),
         RepositoryProvider<SetupMockedWalletUseCase>(
           create: (context) => SetupMockedWalletUseCaseImpl(
@@ -223,6 +219,15 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ObserveRecentHistoryUseCase>(
           create: (context) => ObserveRecentHistoryUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObserveRecentWalletEventsUseCase>(
+          create: (context) => ObserveRecentWalletEventsUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetWalletEventsUseCase>(
+          create: (context) => GetWalletEventsUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetWalletEventsForCardUseCase>(
+          create: (context) => GetWalletEventsForCardUseCaseImpl(context.read()),
         ),
       ],
       child: child,
