@@ -86,8 +86,8 @@ pub enum VerificationError {
     MissingVerifierUrlParameters,
     #[error("session is done")]
     SessionIsDone,
-    #[error("unknown certificate")]
-    UnknownCertificate(String),
+    #[error("unknown use case: {0}")]
+    UnknownUseCase(String),
     #[error("unknown session ID: {0}")]
     UnknownSessionId(SessionToken),
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
@@ -391,7 +391,7 @@ where
         info!("create verifier session: {usecase_id}");
 
         if !self.use_cases.as_ref().contains_key(&usecase_id) {
-            return Err(VerificationError::UnknownCertificate(usecase_id).into());
+            return Err(VerificationError::UnknownUseCase(usecase_id).into());
         }
 
         if items_requests.0.is_empty() {
@@ -767,7 +767,7 @@ impl Session<Created> {
 
         let cert_pair = keys
             .key_pair(&self.state().usecase_id)
-            .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
+            .ok_or_else(|| VerificationError::UnknownUseCase(self.state().usecase_id.clone()))?;
 
         // Generate a nonce and add it the return URL, if provided.
         let (return_url, return_url_nonce) = match self.state().return_url.clone().map(Self::add_nonce_to_return_url) {
