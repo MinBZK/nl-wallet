@@ -30,25 +30,25 @@ class UserForgetsPinTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The app explains that the user has to reset the wallet in order to regain access.")
+    @DisplayName("$USE_CASE.1 The app explains that the user has to reset the wallet in order to regain access. [${JIRA_ID}]")
     fun verifyForgotPin() {
         assertTrue(forgotPinScreen.visible(), "forgot pin screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The app explains that upon resetting the wallet, data CANNOT be recovered.")
+    @DisplayName("$USE_CASE.2 The app explains that upon resetting the wallet, data CANNOT be recovered. [${JIRA_ID}]")
     fun verifyDataLoss() {
         assertTrue(forgotPinScreen.dataLossTextVisible(), "data loss description text is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The app offers an entrance to resetting the app.")
+    @DisplayName("$USE_CASE.3 The app offers an entrance to resetting the app. [${JIRA_ID}]")
     fun verifyResetButton() {
         assertTrue(forgotPinScreen.resetButtonVisible(), "reset wallet button is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 The user can go back to the PIN entry screen.")
+    @DisplayName("$USE_CASE.4 The user can go back to the PIN entry screen. [${JIRA_ID}]")
     fun verifyBackButton() {
         forgotPinScreen.clickBottomBackButton()
 

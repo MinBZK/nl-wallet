@@ -11,7 +11,7 @@ pub use josekit::{
 use reqwest::header;
 use url::Url;
 
-use wallet_common::{config::wallet_config::BaseUrl, utils};
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils};
 
 use crate::{
     authorization::{AuthorizationErrorCode, AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge},
@@ -64,7 +64,7 @@ const APPLICATION_JWT: &str = "application/jwt";
 pub trait OidcClient {
     /// Create a new instance by using OpenID discovery, and return an authorization URL.
     async fn start(
-        http_client: reqwest::Client,
+        trust_anchors: Vec<reqwest::Certificate>,
         issuer_url: BaseUrl,
         client_id: String,
         redirect_uri: Url,
@@ -98,11 +98,12 @@ pub struct HttpOidcClient<P = S256PkcePair> {
 
 impl<P: PkcePair> OidcClient for HttpOidcClient<P> {
     async fn start(
-        http_client: reqwest::Client,
+        trust_anchors: Vec<reqwest::Certificate>,
         issuer: BaseUrl,
         client_id: String,
         redirect_uri: Url,
     ) -> Result<(Self, Url), OidcError> {
+        let http_client = trusted_reqwest_client_builder(trust_anchors).build()?;
         let config = Config::discover(&http_client, &issuer).await?;
         let jwks = config.jwks(&http_client).await?;
 
@@ -338,7 +339,7 @@ mod tests {
         let (_server, server_url) = start_discovery_server().await;
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
         let (client, auth_url) = HttpOidcClient::<MockPkcePair>::start(
-            reqwest::Client::new(),
+            vec![],
             server_url.clone(),
             CLIENT_ID.to_string(),
             redirect_uri.clone(),

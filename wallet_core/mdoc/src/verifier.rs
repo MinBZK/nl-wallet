@@ -582,7 +582,12 @@ impl<K, S> Verifier<K, S> {
     // formats the payload to hash to the ephemeral ID in a consistent way
     fn format_ephemeral_id_payload(session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
         // default (de)serialization of DateTime is the RFC 3339 format
-        format!("{}|{}", session_token, time.to_rfc3339_opts(SecondsFormat::Secs, true)).into()
+        format!(
+            "{}|{}",
+            session_token,
+            time.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+        )
+        .into()
     }
 
     fn format_verifier_url(

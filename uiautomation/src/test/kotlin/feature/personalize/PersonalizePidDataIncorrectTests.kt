@@ -31,13 +31,13 @@ class PersonalizePidDataIncorrectTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 When the User rejects, the App shows the 'Incorrect data support screen' that informs the User about what to do in case the data are not correct.")
+    @DisplayName("$USE_CASE.1 When the User rejects, the App shows the 'Incorrect data support screen' that informs the User about what to do in case the data are not correct. [$JIRA_ID]")
     fun verifyPersonalizePidDataIncorrectScreen() {
         assertTrue(personalizePidDataIncorrectScreen.visible(), "personalize pid data incorrect screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The App offers a button for the user to go back to the process.")
+    @DisplayName("$USE_CASE.2 The App offers a button for the user to go back to the process. [$JIRA_ID]")
     fun verifyBackButton() {
         personalizePidDataIncorrectScreen.clickBottomBackButton()
 
@@ -46,7 +46,7 @@ class PersonalizePidDataIncorrectTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The App offers a button to not add the data, which returns to the 'login with DigiD screen'.")
+    @DisplayName("$USE_CASE.3 The App offers a button to not add the data, which returns to the 'login with DigiD screen'. [$JIRA_ID]")
     fun verifyRejectPidPreviewButton() {
         personalizePidDataIncorrectScreen.clickBottomPrimaryButton()
 

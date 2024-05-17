@@ -796,7 +796,8 @@ build-ios-app-mock:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - bundle install
-    - JSON_KEY_DATA="$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)"
+    - JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
+    - export JSON_KEY_DATA
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
@@ -847,8 +848,10 @@ deploy-android-app-demo:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - BROWSERSTACK_USER="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)"
-    - BROWSERSTACK_KEY="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)"
+    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_USER
+    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - export BROWSERSTACK_KEY
     - bundle install
     - |
       bundle exec fastlane android ci_browserstack \
@@ -891,11 +894,11 @@ upload-browserstack-android-app-demo:
 #  script:
 #    - bundle install
 #    - bundle exec fastlane disable_flutter_analytics
-#    - bundle exec fastlane ios ci_deploy
-# # TODO: Authentication
-# # - JSON_KEY_DATA="$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)"
-# #         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-# #         version:"${RELEASE_VERSION}"
+#    # TODO: Authentication
+#    - |
+#      bundle exec fastlane ios ci_deploy \
+#        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+#        version:"${RELEASE_VERSION}"
 
 # deploy-ios-app-latest:
 #   extends: .deploy-ios-app
@@ -937,14 +940,16 @@ upload-browserstack-android-app-demo:
 #     LANG: "C.UTF-8"
 #     FASTLANE_OPT_OUT_USAGE: "YES"
 #   script:
-#     - BROWSERSTACK_USER="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)"
-#     - BROWSERSTACK_KEY="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)"
+#     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+#     - export BROWSERSTACK_USER
+#     - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+#     - export BROWSERSTACK_KEY
 #     - bundle install
-#     - |
-#       bundle exec fastlane ios ci_browserstack \
 # # TODO:
-#         # package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-#         # version:"${RELEASE_VERSION}"
+#    - |
+#      bundle exec fastlane ios ci_browserstack \
+#        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+#        version:"${RELEASE_VERSION}"
 
 # upload-browserstack-ios-app-latest:
 #   extends: [.env-ont-k8s, .upload-browserstack-ios-app]
@@ -1171,8 +1176,10 @@ check-gitlab-ci-changed:
       - uiautomation/build/test-results
       - uiautomation/build/reports
   before_script:
-    - BROWSERSTACK_USER="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)"
-    - BROWSERSTACK_KEY="$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)"
+    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_USER
+    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - export BROWSERSTACK_KEY
     - set -euxo pipefail
     - java -version
     - git fetch origin

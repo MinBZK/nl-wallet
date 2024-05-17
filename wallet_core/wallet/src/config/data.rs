@@ -149,6 +149,7 @@ pub fn default_configuration() -> WalletConfiguration {
             digid_url: config_default!(DIGID_URL).parse().unwrap(),
             digid_client_id: String::from(config_default!(DIGID_CLIENT_ID)),
             digid_trust_anchors: parse_optional_trust_anchors(config_default!(DIGID_TRUST_ANCHORS)),
+            digid_app2app: None,
         },
         disclosure: DisclosureConfiguration {
             rp_trust_anchors: parse_trust_anchors(config_default!(RP_TRUST_ANCHORS)),

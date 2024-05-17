@@ -29,13 +29,13 @@ class IntroductionConditionsTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The App displays the summary of the terms & conditions.")
+    @DisplayName("$USE_CASE.1 The App displays the summary of the terms & conditions. [${JIRA_ID}]")
     fun verifyConditionsScreen() {
         assertTrue(conditionsScreen.visible(), "expectations screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The App offers an entrance to the full terms & conditions, which is embedded in the app.")
+    @DisplayName("$USE_CASE.2 The App offers an entrance to the full terms & conditions, which is embedded in the app. [${JIRA_ID}]")
     fun verifyConditionsButton() {
         conditionsScreen.clickConditionsButton()
 
@@ -44,7 +44,7 @@ class IntroductionConditionsTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The App offers an option to accept the terms and conditions, leading to setup pin")
+    @DisplayName("$USE_CASE.3 The App offers an option to accept the terms and conditions, leading to setup pin. [${JIRA_ID}]")
     fun verifyNextButton() {
         conditionsScreen.clickNextButton()
 
@@ -53,7 +53,7 @@ class IntroductionConditionsTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 The App offers a return to the previous screen.")
+    @DisplayName("$USE_CASE.4 The App offers a return to the previous screen. [${JIRA_ID}]")
     fun verifyBackButton() {
         conditionsScreen.clickBackButton()
         assertTrue(conditionsScreen.absent(), "conditions screen is visible")

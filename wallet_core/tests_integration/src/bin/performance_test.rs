@@ -11,14 +11,14 @@ use nl_wallet_mdoc::{
     verifier::{SessionType, StatusResponse},
     ItemsRequest,
 };
-use openid4vc::{issuance_session::HttpIssuanceSession, oidc::HttpOidcClient};
+use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::utils::{software::SoftwareUtilities, PlatformUtilities};
 use tests_integration::{fake_digid::fake_digid_auth, logging::init_logging};
 use wallet::{
     mock::{default_configuration, MockStorage},
     wallet_deps::{
         ConfigServerConfiguration, ConfigurationRepository, HttpAccountProviderClient, HttpConfigurationRepository,
-        UpdateableConfigurationRepository,
+        HttpDigidSession, UpdateableConfigurationRepository,
     },
     Wallet,
 };
@@ -61,7 +61,7 @@ async fn main() {
         MockStorage,
         SoftwareEcdsaKey,
         HttpAccountProviderClient,
-        HttpOidcClient,
+        HttpDigidSession,
         HttpIssuanceSession,
         DisclosureSession<CborHttpClient, Uuid>,
     > = Wallet::init_registration(
@@ -89,7 +89,7 @@ async fn main() {
     .await;
 
     let _unsigned_mdocs = wallet
-        .continue_pid_issuance(&redirect_url)
+        .continue_pid_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
     wallet

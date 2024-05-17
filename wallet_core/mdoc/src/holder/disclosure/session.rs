@@ -113,7 +113,7 @@ where
         let verifier_url = reader_engagement.verifier_url()?;
 
         // Parse the `SessionType` from the verifier URL.
-        let VerifierUrlParameters { session_type, .. } =
+        let VerifierUrlParameters { session_type } =
             serde_urlencoded::from_str(verifier_url.query().unwrap_or_default())
                 .map_err(HolderError::VerifierUrlSessionType)?;
 

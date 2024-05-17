@@ -2,15 +2,18 @@ use std::{net::IpAddr, process, str::FromStr};
 
 use openid4vc::{
     issuance_session::{HttpIssuanceSession, HttpOpenidMessageClient, IssuanceSession},
-    oidc::{HttpOidcClient, OidcClient},
-    pkce::S256PkcePair,
+    oidc::HttpOidcClient,
 };
 
 use gba_hc_converter::settings::Settings as GbaSettings;
 use nl_wallet_mdoc::{holder::TrustAnchor, software_key_factory::SoftwareKeyFactory};
 use tests_integration::{common::*, fake_digid::fake_digid_auth};
-use wallet::{mock::default_configuration, wallet_common::WalletConfiguration};
-use wallet_common::{config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE, reqwest::trusted_reqwest_client_builder};
+use wallet::{
+    mock::default_configuration,
+    wallet_common::WalletConfiguration,
+    wallet_deps::{DigidSession, HttpDigidSession},
+};
+use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
 use wallet_server::pid::{attributes::BrpPidAttributeService, brp::client::HttpBrpClient};
 
 fn gba_hc_converter_settings() -> GbaSettings {
@@ -67,13 +70,9 @@ async fn test_pid_issuance_digid_bridge() {
     let wallet_config = default_configuration();
 
     // Prepare DigiD flow
-    let (digid_session, authorization_url) = HttpOidcClient::<S256PkcePair>::start(
-        trusted_reqwest_client_builder(wallet_config.pid_issuance.digid_trust_anchors().clone())
-            .build()
-            .unwrap(),
-        settings.issuer.digid.issuer_url.clone(),
-        wallet_config.pid_issuance.digid_client_id.clone(),
-        WalletConfiguration::issuance_redirect_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
+    let (digid_session, authorization_url) = HttpDigidSession::<HttpOidcClient>::start(
+        wallet_config.pid_issuance.clone(),
+        WalletConfiguration::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
     )
     .await
     .unwrap();
@@ -85,7 +84,7 @@ async fn test_pid_issuance_digid_bridge() {
         wallet_config.pid_issuance.digid_trust_anchors(),
     )
     .await;
-    let token_request = digid_session.into_token_request(&redirect_url).unwrap();
+    let token_request = digid_session.into_token_request(redirect_url).await.unwrap();
 
     let server_url = local_pid_base_url(&settings.public_url.as_ref().port().unwrap());
 

@@ -3,6 +3,7 @@ mod config;
 mod disclosure;
 mod document;
 mod instruction;
+mod issuance;
 mod lock;
 mod pin;
 mod storage;
@@ -55,6 +56,7 @@ pub mod wallet_deps {
         disclosure::{
             MdocDisclosureMissingAttributes, MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
         },
+        issuance::{DigidSession, HttpDigidSession},
         storage::Storage,
     };
 }
@@ -65,6 +67,7 @@ pub mod mock {
         account_provider::MockAccountProviderClient,
         config::{default_configuration, LocalConfigurationRepository},
         disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
+        issuance::MockDigidSession,
         storage::MockStorage,
     };
 }

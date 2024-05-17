@@ -1,4 +1,3 @@
-use openid4vc::oidc::OidcClient;
 use tracing::{info, instrument};
 use url::Url;
 
@@ -6,6 +5,7 @@ use wallet_common::config::wallet_config::WalletConfiguration;
 
 use crate::{
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
+    issuance::DigidSession,
     wallet::PidIssuanceSession,
 };
 
@@ -25,10 +25,10 @@ pub enum UriIdentificationError {
     Unknown,
 }
 
-impl<CR, S, PEK, APC, OIC, IS, MDS> Wallet<CR, S, PEK, APC, OIC, IS, MDS>
+impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
 where
     CR: ConfigurationRepository,
-    OIC: OidcClient,
+    DS: DigidSession,
 {
     #[instrument(skip_all)]
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
@@ -36,10 +36,12 @@ where
 
         let uri = Url::parse(uri_str)?;
 
-        let redirect_uri = WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL).to_owned();
-
         if matches!(self.issuance_session, Some(PidIssuanceSession::Digid(_)))
-            && uri.as_str().starts_with(redirect_uri.as_ref().as_str())
+            && uri.as_str().starts_with(
+                WalletConfiguration::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
+                    .as_ref()
+                    .as_str(),
+            )
         {
             return Ok(UriType::PidIssuance(uri));
         }
@@ -60,9 +62,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use openid4vc::oidc::MockOidcClient;
-
-    use crate::{config::UNIVERSAL_LINK_BASE_URL, wallet::PidIssuanceSession};
+    use crate::{config::UNIVERSAL_LINK_BASE_URL, issuance::MockDigidSession, wallet::PidIssuanceSession};
 
     use super::{super::test::WalletWithMocks, *};
 
@@ -76,7 +76,7 @@ mod tests {
 
         let disclosure_uri_base = WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL);
 
-        let digid_uri = WalletConfiguration::issuance_redirect_uri(&UNIVERSAL_LINK_BASE_URL);
+        let digid_uri = WalletConfiguration::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
         let digid_uri = digid_uri.as_ref().as_str();
 
         let disclosure_uri = disclosure_uri_base.join("abcd");
@@ -94,7 +94,7 @@ mod tests {
         );
 
         // Set up a `DigidSession` that will match the URI.
-        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockOidcClient::new()));
+        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockDigidSession::new()));
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance(_));
