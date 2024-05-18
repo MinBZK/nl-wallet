@@ -57,7 +57,8 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
+#[derive(Debug, Clone, Serialize)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: DeviceEngagementBytes,
     pub ereader_key_bytes: ESenderKeyBytes,
@@ -101,14 +102,25 @@ impl SessionTranscript {
 
 pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 
-#[derive(Debug, Clone)]
+/// Bytes/transcript of the first RP message with which the wallet and RP first established contact.
+/// Differs per communication channel.
+/// Through the [`SessionTranscript`], this is part of the [`DeviceAuthentication`] so it is signed
+/// with each mdoc private key. This message is never sent but instead indenpendently computed by
+/// the wallet and RP. If both sides do not agree on this message then mdoc verification fails.
+///
+/// The ISO standard(s) only uses serializations of this, and does not require the wallet or the RP
+/// to ever deserialize this. (We have a custom deserializer for in test code, however.)
+/// Serde's `untagged` enum representation ignores the enum variant name, and serializes instead
+/// the contained data of the enum variant.
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
 pub enum Handover {
     QRHandover,
-    NFCHandover(NFCHandover),
+    NFCHandover(CborSeq<NFCHandover>),
     SchemeHandoverBytes(TaggedBytes<ReaderEngagement>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NFCHandover {
     pub handover_select_message: ByteBuf,
     pub handover_request_message: Option<ByteBuf>,
