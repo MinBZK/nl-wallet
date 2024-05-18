@@ -13,12 +13,13 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
 
 use url::Url;
+use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
 
 use crate::{
     iso::disclosure::*,
     utils::{
         cose::CoseKey,
-        serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
+        serialization::{cbor_serialize, CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
     },
     verifier::SessionType,
 };
@@ -60,8 +61,8 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
 #[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
 #[derive(Debug, Clone, Serialize)]
 pub struct SessionTranscriptKeyed {
-    pub device_engagement_bytes: DeviceEngagementBytes,
-    pub ereader_key_bytes: ESenderKeyBytes,
+    pub device_engagement_bytes: Option<DeviceEngagementBytes>,
+    pub ereader_key_bytes: Option<ESenderKeyBytes>,
     pub handover: Handover,
 }
 
@@ -87,12 +88,36 @@ impl SessionTranscript {
             .ok_or(SessionTranscriptError::MissingReaderEngagementSecurity)?;
 
         let transcript = SessionTranscriptKeyed {
-            device_engagement_bytes: device_engagement.clone().into(),
+            device_engagement_bytes: Some(device_engagement.clone().into()),
             handover: match session_type {
                 SessionType::SameDevice => Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
                 SessionType::CrossDevice => Handover::QRHandover,
             },
-            ereader_key_bytes: reader_security.0.e_sender_key_bytes.clone(),
+            ereader_key_bytes: Some(reader_security.0.e_sender_key_bytes.clone()),
+        }
+        .into();
+
+        Ok(transcript)
+    }
+
+    pub fn new_oid4vp(
+        response_uri: &BaseUrl,
+        client_id: String,
+        nonce: String,
+        mdoc_nonce: String,
+    ) -> Result<Self, SessionTranscriptError> {
+        let handover = OID4VPHandover {
+            client_id_hash: ByteBuf::from(sha256(&cbor_serialize(&[&client_id, &mdoc_nonce]).unwrap())),
+            response_uri_hash: ByteBuf::from(sha256(
+                &cbor_serialize(&[&response_uri.to_string(), &mdoc_nonce]).unwrap(),
+            )),
+            nonce,
+        };
+
+        let transcript = SessionTranscriptKeyed {
+            device_engagement_bytes: None,
+            ereader_key_bytes: None,
+            handover: Handover::OID4VPHandover(handover.into()),
         }
         .into();
 
@@ -118,6 +143,14 @@ pub enum Handover {
     QRHandover,
     NFCHandover(CborSeq<NFCHandover>),
     SchemeHandoverBytes(TaggedBytes<ReaderEngagement>),
+    OID4VPHandover(CborSeq<OID4VPHandover>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OID4VPHandover {
+    pub client_id_hash: ByteBuf,
+    pub response_uri_hash: ByteBuf,
+    pub nonce: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

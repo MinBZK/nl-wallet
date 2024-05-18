@@ -273,6 +273,7 @@ impl<'de> Deserialize<'de> for Handover {
             ))),
             Value::Array(ref bts_vec) => match bts_vec.len() {
                 1 | 2 => Ok(Handover::NFCHandover(val.deserialized().unwrap())),
+                3 => Ok(Handover::OID4VPHandover(val.deserialized().unwrap())),
                 _ => panic!("unexpected index"),
             },
             _ => panic!("unexpected value"),
@@ -541,6 +542,24 @@ mod tests {
             assert_matches!(nfc_handover, Handover::NFCHandover(..));
             assert_eq!(Value::serialized(&nfc_handover).unwrap(), nfc_handover_cbor);
         }
+    }
+
+    #[test]
+    fn test_handover_serialization_openid4vp() {
+        // The OpenID4VP handover is structured as an array of bytes/bytes/text.
+        let oid4vp_handover_cbor = Array(vec![
+            Bytes(b"bytes1".to_vec()),
+            Bytes(b"bytes2".to_vec()),
+            Text("nonce".to_string()),
+        ]);
+
+        let oid4vp_handover: Handover = oid4vp_handover_cbor.deserialized().unwrap();
+        assert_matches!(
+            &oid4vp_handover,
+            Handover::OID4VPHandover(CborSeq(OID4VPHandover { nonce, ..})) if nonce == "nonce"
+        );
+
+        assert_eq!(Value::serialized(&oid4vp_handover).unwrap(), oid4vp_handover_cbor);
     }
 
     #[test]
