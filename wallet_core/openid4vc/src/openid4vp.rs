@@ -9,6 +9,7 @@ use josekit::{
     JoseError,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use serde_with::skip_serializing_none;
 use x509_parser::{error::X509Error, extensions::GeneralName};
 
@@ -38,23 +39,8 @@ use crate::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
-    #[error("unexpected field: {0}")]
-    UnexpectedField(&'static str),
-    #[error("missing required field: {0}")]
-    ExpectedFieldMissing(&'static str),
-    #[error("unsupported value for field {field}: expected {expected}, found {found}")]
-    UnsupportedFieldValue {
-        field: &'static str,
-        expected: &'static str,
-        found: String,
-    },
-    #[error("field {0}_uri found, expected field directly")]
-    UriVariantNotSupported(&'static str),
-    #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
-    UnexpectedJwkAmount(usize),
-    #[error("JWK of unsupported type or curve (kty or crv field)")]
-    UnsupportedJwk,
-
+    #[error("error validating Authorization Request: {0}")]
+    Validation(#[from] AuthRequestValidationError),
     #[error("error parsing X.509 certificate: {0}")]
     CertificateParsing(#[from] CertificateError),
     #[error("failed to verify Authorization Request JWT: {0}")]
@@ -67,18 +53,17 @@ pub enum AuthRequestError {
     UnexpectedSANType,
     #[error("failed to convert encryption key to JWK format")]
     JwkConversion(#[from] JwkConversionError),
-
     #[error("error verifying Authorization Request JWT: {0}")]
     AuthRequestJwtVerification(#[from] JwtX5cError),
-
     #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
     UnauthorizedClientId { client_id: String, dns_san: String },
 }
 
+/// A Request URI object, as defined in RFC 9101.
 /// Contains URL from which the wallet is to retrieve the Authorization Request.
 /// To be URL-encoded in the wallet's UL, which can then be put on a website directly, or in a QR code.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VpAuthorizationRequestReference {
+pub struct VpRequestUriObject {
     /// URL at which the full Authorization Request is to be retrieved.
     pub request_uri: BaseUrl,
 
@@ -86,13 +71,14 @@ pub struct VpAuthorizationRequestReference {
     pub client_id: String,
 }
 
+/// An OpenID4VP Authorization Request, allowing an RP to request a set of attestations/attributes from a wallet.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationRequest {
     pub aud: VpAuthorizationRequestAudience,
 
     #[serde(flatten)]
-    pub auth_request: AuthorizationRequest,
+    pub oauth_request: AuthorizationRequest,
 
     /// Contains requirements on the attestations and/or attributes to be disclosed.
     #[serde(flatten)]
@@ -240,8 +226,28 @@ pub struct JwePublicKey(Jwk);
 impl JwePublicKey {
     fn supported(jwk: &Jwk) -> bool {
         // Avoid jwk.key_type() which panics if `kty` is not set.
-        jwk.parameter("kty").is_some_and(|kty| kty == "EC") && jwk.curve() == Some("P-256")
+        jwk.parameter("kty") == Some(&json!("EC")) && jwk.curve() == Some("P-256")
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AuthRequestValidationError {
+    #[error("unexpected field: {0}")]
+    UnexpectedField(&'static str),
+    #[error("missing required field: {0}")]
+    ExpectedFieldMissing(&'static str),
+    #[error("unsupported value for field {field}: expected {expected}, found {found}")]
+    UnsupportedFieldValue {
+        field: &'static str,
+        expected: &'static str,
+        found: String,
+    },
+    #[error("field {0}_uri found, expected field directly")]
+    UriVariantNotSupported(&'static str),
+    #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
+    UnexpectedJwkAmount(usize),
+    #[error("JWK of unsupported type or curve (kty or crv field)")]
+    UnsupportedJwk,
 }
 
 impl VpAuthorizationRequest {
@@ -254,7 +260,7 @@ impl VpAuthorizationRequest {
     ) -> Result<Self, AuthRequestError> {
         Ok(VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
-            auth_request: AuthorizationRequest {
+            oauth_request: AuthorizationRequest {
                 response_type: ResponseType::VpToken,
                 client_id: parse_dns_san(rp_certificate)?,
                 nonce: Some(nonce),
@@ -282,102 +288,111 @@ impl VpAuthorizationRequest {
         })
     }
 
+    /// Verify an Authorization Request JWT against the specified trust anchors, additionally checking that
+    /// - the request contents are compliant with the profile from ISO 18013-7 Appendix B,
+    /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the
+    ///   [`x509_san_dns` value for `client_id_scheme`](https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-5.7-12.2),
+    ///   which is used by the mentioned profile.
     pub fn verify(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<VpAuthorizationRequest, AuthRequestError> {
         let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(jws, trust_anchors, &TimeGenerator)?;
 
+        auth_request.validate()?;
+
         let dns_san = parse_dns_san(&rp_cert)?;
-        if dns_san != auth_request.auth_request.client_id {
+        if dns_san != auth_request.oauth_request.client_id {
             return Err(AuthRequestError::UnauthorizedClientId {
-                client_id: auth_request.auth_request.client_id.clone(),
+                client_id: auth_request.oauth_request.client_id.clone(),
                 dns_san,
             });
         }
 
-        auth_request.validate()?;
-
         Ok(auth_request)
     }
 
-    pub fn validate(&self) -> Result<(), AuthRequestError> {
-        // Check absence of fields that may not be present in an OpenID4VP Authorization Request
-        if self.auth_request.authorization_details.is_some() {
-            return Err(AuthRequestError::UnexpectedField("authorization_details"));
+    /// Validate that the request contents are compliant with the profile from ISO 18013-7 Appendix B.
+    fn validate(&self) -> Result<(), AuthRequestError> {
+        // Check absence of fields that must not be present in an OpenID4VP Authorization Request
+        if self.oauth_request.authorization_details.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("authorization_details").into());
         }
-        if self.auth_request.code_challenge.is_some() {
-            return Err(AuthRequestError::UnexpectedField("code_challenge"));
+        if self.oauth_request.code_challenge.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("code_challenge").into());
         }
-        if self.auth_request.redirect_uri.is_some() {
-            return Err(AuthRequestError::UnexpectedField("redirect_uri"));
+        if self.oauth_request.redirect_uri.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri").into());
         }
-        if self.auth_request.scope.is_some() {
-            return Err(AuthRequestError::UnexpectedField("scope"));
+        if self.oauth_request.scope.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("scope").into());
         }
-        if self.auth_request.request_uri.is_some() {
-            return Err(AuthRequestError::UnexpectedField("request_uri"));
+        if self.oauth_request.request_uri.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("request_uri").into());
         }
 
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
-        if self.auth_request.nonce.is_none() {
-            return Err(AuthRequestError::ExpectedFieldMissing("nonce"));
+        if self.oauth_request.nonce.is_none() {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce").into());
         }
-        if self.auth_request.response_mode.is_none() {
-            return Err(AuthRequestError::ExpectedFieldMissing("response_mode"));
+        if self.oauth_request.response_mode.is_none() {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode").into());
         }
         if self.client_metadata.is_none() {
-            return Err(AuthRequestError::ExpectedFieldMissing("client_metadata"));
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata").into());
         }
         if self.client_id_scheme.is_none() {
-            return Err(AuthRequestError::ExpectedFieldMissing("client_id_scheme"));
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme").into());
         }
         if self.response_uri.is_none() {
-            return Err(AuthRequestError::ExpectedFieldMissing("response_uri"));
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri").into());
         }
 
         // Check that various enums have the expected values
-        if self.auth_request.response_type != ResponseType::VpToken {
-            return Err(AuthRequestError::UnsupportedFieldValue {
+        if self.oauth_request.response_type != ResponseType::VpToken {
+            return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 expected: "vp_token",
-                found: serde_json::to_string(&self.auth_request.response_type).unwrap(),
-            });
+                found: serde_json::to_string(&self.oauth_request.response_type).unwrap(),
+            }
+            .into());
         }
-        if *self.auth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
-            return Err(AuthRequestError::UnsupportedFieldValue {
+        if *self.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
+            return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
-                found: serde_json::to_string(&self.auth_request.response_type).unwrap(),
-            });
+                found: serde_json::to_string(&self.oauth_request.response_mode).unwrap(),
+            }
+            .into());
         }
         if *self.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
-            return Err(AuthRequestError::UnsupportedFieldValue {
+            return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "client_id_scheme",
                 expected: "x509_san_dns",
                 found: serde_json::to_string(&self.client_id_scheme).unwrap(),
-            });
+            }
+            .into());
         }
 
         // Of fields that have an "_uri" variant, check that they are not used
         if matches!(self.presentation_definition, VpPresentationDefinition::Indirect(..)) {
-            return Err(AuthRequestError::UriVariantNotSupported("presentation_definition"));
+            return Err(AuthRequestValidationError::UriVariantNotSupported("presentation_definition").into());
         }
         if matches!(*self.client_metadata.as_ref().unwrap(), VpClientMetadata::Indirect(..)) {
-            return Err(AuthRequestError::UriVariantNotSupported("client_metadata"));
+            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata").into());
         }
         let client_metadata = self.client_metadata.as_ref().unwrap().direct();
         if matches!(client_metadata.jwks, VpJwks::Indirect(..)) {
-            return Err(AuthRequestError::UriVariantNotSupported("presentation_definition"));
+            return Err(AuthRequestValidationError::UriVariantNotSupported("presentation_definition").into());
         }
 
         // check that we received exactly one EC/P256 curve
         let jwks = client_metadata.jwks.direct();
         if jwks.len() != 1 {
-            return Err(AuthRequestError::UnexpectedJwkAmount(jwks.len()));
+            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()).into());
         }
         if !JwePublicKey::supported(jwks.first().unwrap()) {
-            return Err(AuthRequestError::UnsupportedJwk);
+            return Err(AuthRequestValidationError::UnsupportedJwk.into());
         }
 
         Ok(())
@@ -394,6 +409,11 @@ pub enum AuthResponseError {
     Jwe(#[source] JoseError),
     #[error("apv (nonce) field in JWE had incorrect value")]
     NonceIncorrect,
+    #[error("state had incorrect value: expected {expected:?}, found {found:?}")]
+    StateIncorrect {
+        expected: Option<String>,
+        found: Option<String>,
+    },
     #[error("failed to base64 decode JWE header fields: {0}")]
     Base64(#[from] DecodeError),
     #[error("missing apu field from JWE")]
@@ -402,31 +422,39 @@ pub enum AuthResponseError {
     MissingApv,
     #[error("failed to decode apu/apv field from JWE")]
     Utf8(#[from] FromUtf8Error),
-    #[error("error verifying disclosed mdoc: {0}")]
+    #[error("error verifying disclosed mdoc(s): {0}")]
     Verification(#[source] nl_wallet_mdoc::Error),
     #[error("missing requested attributes: {0}")]
     MissingAttributes(#[source] nl_wallet_mdoc::Error),
     #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
     UnexpectedDescriptorCount { expected: usize, found: usize },
-    #[error("received unexpected Presentation Submission ID: expected {expected}, found {found}")]
+    #[error("received unexpected Presentation Submission ID: expected '{expected}', found '{found}'")]
     UnexpectedSubmissionId { expected: String, found: String },
     #[error("received unexpected path in Presentation Submission Input Descriptor: expected '$', found '{0}'")]
     UnexpectedInputDescriptorPath(String),
-    #[error("received unexpected Presentation Submission Input Descriptor ID: expected {expected}, found {found}")]
+    #[error("received unexpected Presentation Submission Input Descriptor ID: expected '{expected}', found '{found}'")]
     UnexpectedInputDescriptorId { expected: String, found: String },
 }
 
+// We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
+// of OpenID4VP that we (plan to) support do we need the `code` field from that struct, which is its primary citizen.
+/// An OpenID4VP Authorization Response, with the wallet's disclosed attesations/attributes in the `vp_token`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationResponse {
     pub vp_token: CborBase64<DeviceResponse>,
     pub presentation_submission: PresentationSubmission,
+
+    /// MUST equal the `state` from the Authorization Request.
+    /// May be used by the RP to link incoming Authorization Responses to its corresponding Authorization Request,
+    /// for example in case the `response_uri` contains no session token or other identifier.
+    pub state: Option<String>,
 }
 
 impl VpAuthorizationResponse {
-    fn new(device_response: DeviceResponse, presentation_definition: &PresentationDefinition) -> Self {
+    fn new(device_response: DeviceResponse, auth_request: &VpAuthorizationRequest) -> Self {
         let presentation_submission = PresentationSubmission {
             id: random_string(16),
-            definition_id: presentation_definition.id.clone(),
+            definition_id: auth_request.presentation_definition.direct().id.clone(),
             descriptor_map: device_response
                 .documents
                 .as_ref()
@@ -443,6 +471,7 @@ impl VpAuthorizationResponse {
         VpAuthorizationResponse {
             vp_token: device_response.into(),
             presentation_submission,
+            state: auth_request.oauth_request.state.clone(),
         }
     }
 
@@ -455,7 +484,7 @@ impl VpAuthorizationResponse {
         auth_request: &VpAuthorizationRequest,
         mdoc_nonce: String,
     ) -> Result<String, AuthResponseError> {
-        Self::new(device_response, auth_request.presentation_definition.direct()).encrypt(auth_request, mdoc_nonce)
+        Self::new(device_response, auth_request).encrypt(auth_request, mdoc_nonce)
     }
 
     fn encrypt(&self, auth_request: &VpAuthorizationRequest, mdoc_nonce: String) -> Result<String, AuthResponseError> {
@@ -467,7 +496,7 @@ impl VpAuthorizationResponse {
 
         // Set the `apu` and `apv` fields to the mdoc nonce and nonce, per the ISO 18013-7 profile.
         header.set_agreement_partyuinfo(mdoc_nonce);
-        header.set_agreement_partyvinfo(auth_request.auth_request.nonce.as_ref().unwrap().clone());
+        header.set_agreement_partyvinfo(auth_request.oauth_request.nonce.as_ref().unwrap().clone());
 
         // Use the AES key size that the server wants.
         let client_metadata = auth_request.client_metadata.as_ref().unwrap().direct();
@@ -525,8 +554,8 @@ impl VpAuthorizationResponse {
         // Verify the cryptographic integrity of the disclosed attributes.
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri.as_ref().unwrap().clone(),
-            auth_request.auth_request.client_id.clone(),
-            auth_request.auth_request.nonce.as_ref().unwrap().clone(),
+            auth_request.oauth_request.client_id.clone(),
+            auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
             mdoc_nonce,
         );
         let device_response = &self.vp_token.0;
@@ -542,6 +571,14 @@ impl VpAuthorizationResponse {
 
         // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO 18013-7.
         self.verify_presentation_submission(auth_request.presentation_definition.direct())?;
+
+        // If `state` is provided it must equal the `state` from the Authorization Request.
+        if self.state != auth_request.oauth_request.state {
+            return Err(AuthResponseError::StateIncorrect {
+                expected: auth_request.oauth_request.state.clone(),
+                found: self.state.clone(),
+            });
+        }
 
         Ok(disclosed_attrs)
     }
@@ -566,27 +603,27 @@ impl VpAuthorizationResponse {
             });
         }
 
-        self.vp_token
+        for (doc, input_descriptor) in self
+            .vp_token
             .0
             .documents
             .as_ref()
-            .unwrap()
+            .unwrap() // The calling function (`Self::verify`) already established that this is not None.
             .iter()
             .zip(&self.presentation_submission.descriptor_map)
-            .try_for_each(|(doc, input_descriptor)| {
-                if input_descriptor.path != "$" {
-                    return Err(AuthResponseError::UnexpectedInputDescriptorPath(
-                        input_descriptor.path.to_string(),
-                    ));
-                }
-                if input_descriptor.id != doc.doc_type {
-                    return Err(AuthResponseError::UnexpectedInputDescriptorId {
-                        expected: doc.doc_type.clone(),
-                        found: input_descriptor.id.clone(),
-                    });
-                }
-                Ok::<_, AuthResponseError>(())
-            })?;
+        {
+            if input_descriptor.path != "$" {
+                return Err(AuthResponseError::UnexpectedInputDescriptorPath(
+                    input_descriptor.path.to_string(),
+                ));
+            }
+            if input_descriptor.id != doc.doc_type {
+                return Err(AuthResponseError::UnexpectedInputDescriptorId {
+                    expected: doc.doc_type.clone(),
+                    found: input_descriptor.id.clone(),
+                });
+            }
+        }
 
         Ok(())
     }
@@ -598,7 +635,6 @@ mod tests {
     use serde_json::json;
 
     use nl_wallet_mdoc::{examples::Example, server_keys::KeyPair, test::example_items_requests, DeviceResponse};
-    use wallet_common::utils::random_string;
 
     use crate::{
         jwt,
@@ -626,11 +662,9 @@ mod tests {
         // an OpenID4VP setting, i.e. with different SessionTranscript contents, so it can't be verified.
         // This is not an issue here because this code only deals with en/decrypting the DeviceResponse into
         // an Authorization Response JWE.
-        let mdoc_nonce = random_string(16);
+        let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
-        let jwe = VpAuthorizationResponse::new(device_response, auth_request.presentation_definition.direct())
-            .encrypt(&auth_request, mdoc_nonce.clone())
-            .unwrap();
+        let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce.clone()).unwrap();
 
         let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, encryption_privkey, nonce).unwrap();
 
@@ -656,12 +690,10 @@ mod tests {
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
         VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
-
-        dbg!(auth_request_jwt.0);
     }
 
     #[test]
-    fn deserialize_example() {
+    fn deserialize_authorization_request_example() {
         let example_json = json!(
             {
                 "aud": "https://self-issued.me/v2",

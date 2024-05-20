@@ -5,10 +5,11 @@
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 
 use indexmap::IndexMap;
-use nl_wallet_mdoc::{verifier::ItemsRequests, ItemsRequest};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+
+use nl_wallet_mdoc::{verifier::ItemsRequests, ItemsRequest};
 use wallet_common::utils::random_string;
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
@@ -118,15 +119,13 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
             .iter()
             .map(|input_descriptor| {
                 let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
-
-                input_descriptor.constraints.fields.iter().try_for_each(|field| {
+                for field in &input_descriptor.constraints.fields {
                     let (namespace, attr) = parse_paths(&field.path)?;
                     name_spaces
                         .entry(namespace)
                         .or_default()
                         .insert(attr, field.intent_to_retain);
-                    Ok::<_, PdConversionError>(())
-                })?;
+                }
 
                 Ok(ItemsRequest {
                     doc_type: input_descriptor.id.clone(),
@@ -197,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_example() {
+    fn deserialize_example_presentation_definition() {
         let example_json = json!(
             {
                 "id": "mDL-sample-req",

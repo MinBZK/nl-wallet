@@ -31,7 +31,7 @@ async fn disclosure() {
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
-        response_uri.clone(),
+        response_uri,
     )
     .unwrap();
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
@@ -40,7 +40,7 @@ async fn disclosure() {
     let jwe = disclosure_jwe(auth_request_jws, &[ca.certificate().try_into().unwrap()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
-    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, encryption_keypair, nonce.clone()).unwrap();
+    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, encryption_keypair, nonce).unwrap();
     let disclosed_attrs = auth_response
         .verify(
             &auth_request,
@@ -66,8 +66,8 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     // Check if we have the requested attributes.
     let session_transcript = SessionTranscript::new_oid4vp(
         auth_request.response_uri.as_ref().unwrap(),
-        auth_request.auth_request.client_id.clone(),
-        auth_request.auth_request.nonce.as_ref().unwrap().clone(),
+        auth_request.oauth_request.client_id.clone(),
+        auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
         mdoc_nonce.clone(),
     );
     let DeviceRequestMatch::Candidates(candidates) = device_request

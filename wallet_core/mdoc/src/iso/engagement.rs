@@ -58,8 +58,7 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
     }
 }
 
-#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: Option<DeviceEngagementBytes>,
     pub ereader_key_bytes: Option<ESenderKeyBytes>,
@@ -126,10 +125,9 @@ pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 /// with each mdoc private key. This message is never sent but instead indenpendently computed by
 /// the wallet and RP. If both sides do not agree on this message then mdoc verification fails.
 ///
-/// The ISO standard(s) only uses serializations of this, and does not require the wallet or the RP
-/// to ever deserialize this. (We have a custom deserializer for in test code, however.)
 /// Serde's `untagged` enum representation ignores the enum variant name, and serializes instead
-/// the contained data of the enum variant.
+/// the contained data of the enum variant. It is unfortunately not able to deserialize the `SchemeHandoverBytes`
+/// variant, so there is a custom deserializer in `serialization.rs`.
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum Handover {

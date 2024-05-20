@@ -260,23 +260,25 @@ where
 // deserialize the SchemeHandoverBytes variant.
 // For the other direction (serializing), however, the `untagged` enum serializer is used and works fine.
 // For each variant a unit test is included to check that serializing and deserializing agree with each other.
-//
-// NB this is only used in test code, so we just unwrap in case of errors.
-#[cfg(any(test, feature = "examples"))]
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let val = Value::deserialize(deserializer).unwrap();
+        let val = Value::deserialize(deserializer)?;
         match val {
             Value::Null => Ok(Handover::QRHandover),
             Value::Tag(24, b) => Ok(Handover::SchemeHandoverBytes(TaggedBytes(
-                cbor_deserialize(b.as_bytes().unwrap().as_slice()).unwrap(),
+                cbor_deserialize(
+                    b.as_bytes()
+                        .ok_or(de::Error::custom("tagged value of unexpected type, expected bytes"))?
+                        .as_slice(),
+                )
+                .map_err(de::Error::custom)?,
             ))),
             Value::Array(ref bts_vec) => match bts_vec.len() {
-                1 | 2 => Ok(Handover::NFCHandover(val.deserialized().unwrap())),
-                3 => Ok(Handover::OID4VPHandover(val.deserialized().unwrap())),
-                _ => panic!("unexpected index"),
+                1 | 2 => Ok(Handover::NFCHandover(val.deserialized().map_err(de::Error::custom)?)),
+                3 => Ok(Handover::OID4VPHandover(val.deserialized().map_err(de::Error::custom)?)),
+                _ => Err(de::Error::custom("CBOR array had unexpected length")),
             },
-            _ => panic!("unexpected value"),
+            _ => Err(de::Error::custom("CBOR value of unexpected type")),
         }
     }
 }

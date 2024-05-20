@@ -11,6 +11,12 @@ use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
     Algorithm, Header,
 };
+use p256::{
+    ecdsa::{signature, VerifyingKey},
+    EncodedPoint,
+};
+use serde::{de::DeserializeOwned, Serialize};
+
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
     server_keys::KeyPair,
@@ -19,11 +25,6 @@ use nl_wallet_mdoc::{
         x509::{Certificate, CertificateError, CertificateUsage},
     },
 };
-use p256::{
-    ecdsa::{signature, VerifyingKey},
-    EncodedPoint,
-};
-use serde::{de::DeserializeOwned, Serialize};
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
@@ -151,12 +152,13 @@ pub enum JwtX5cError {
     MissingCertificates,
     #[error("error base64-decoding certificate: {0}")]
     CertificateBase64(#[source] DecodeError),
-    #[error("error parsing certificate: {0}")]
+    #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),
     #[error("error parsing public key from certificate: {0}")]
     CertificatePublicKey(#[source] CertificateError),
 }
 
+/// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT header.
 pub fn verify_against_trust_anchors<T: DeserializeOwned>(
     jwt: &Jwt<T>,
     trust_anchors: &[TrustAnchor],
@@ -176,20 +178,22 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned>(
         })
         .collect::<Result<Vec<_>, JwtX5cError>>()?;
 
+    // Verify the certificate chain against the trust anchors.
     let leaf_cert = certs.pop().ok_or(JwtX5cError::MissingCertificates)?;
     let intermediate_certs = certs.iter().map(|cert| cert.as_bytes()).collect_vec();
-
     leaf_cert
         .verify(CertificateUsage::ReaderAuth, &intermediate_certs, time, trust_anchors)
         .map_err(JwtX5cError::CertificateValidation)?;
 
+    // The leaf certificate is trusted, we can now use its public key to verify the JWS.
     let pubkey = leaf_cert.public_key().map_err(JwtX5cError::CertificatePublicKey)?;
-
     let payload = jwt.parse_and_verify(&DerVerifyingKey(pubkey).into(), &jwt::validations())?;
 
     Ok((payload, leaf_cert))
 }
 
+/// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
+/// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
 pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair) -> Result<Jwt<T>, JwtError> {
     let jwt = Jwt::sign(
         payload,
@@ -229,16 +233,16 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-        let rp_keypair = ca.generate_reader_mock(None).unwrap();
+        let keypair = ca.generate_reader_mock(None).unwrap();
 
         let payload = json!({"hello": "world"});
-        let jwt = sign_with_certificate(&payload, &rp_keypair).await.unwrap();
+        let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
 
         let (deserialized, leaf_cert) =
             verify_against_trust_anchors(&jwt, &[ca.certificate().try_into().unwrap()], &TimeGenerator).unwrap();
 
         assert_eq!(deserialized, payload);
-        assert_eq!(leaf_cert, *rp_keypair.certificate());
+        assert_eq!(leaf_cert, *keypair.certificate());
     }
 
     #[test]
