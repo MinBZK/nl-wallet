@@ -8,9 +8,14 @@ rust-version.workspace = true
 workspace = true
 
 [[test]]
-name = "test"
+name = "issuance"
 path = "tests/issuance.rs"
 required-features = ["integration"]
+
+[[test]]
+name = "disclosure"
+path = "tests/disclosure.rs"
+required-features = ["mock"]
 
 [features]
 # Include mock implementations for testing
