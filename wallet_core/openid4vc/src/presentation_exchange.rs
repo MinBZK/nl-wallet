@@ -34,7 +34,7 @@ pub enum Format {
     MsoMdoc { alg: Vec<FormatAlg> },
 }
 
-#[derive(Debug, Clone, Default, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FormatDesignation {
     #[default]

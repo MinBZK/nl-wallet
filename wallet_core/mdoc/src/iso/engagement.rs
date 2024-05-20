@@ -100,12 +100,7 @@ impl SessionTranscript {
         Ok(transcript)
     }
 
-    pub fn new_oid4vp(
-        response_uri: &BaseUrl,
-        client_id: String,
-        nonce: String,
-        mdoc_nonce: String,
-    ) -> Result<Self, SessionTranscriptError> {
+    pub fn new_oid4vp(response_uri: &BaseUrl, client_id: String, nonce: String, mdoc_nonce: String) -> Self {
         let handover = OID4VPHandover {
             client_id_hash: ByteBuf::from(sha256(&cbor_serialize(&[&client_id, &mdoc_nonce]).unwrap())),
             response_uri_hash: ByteBuf::from(sha256(
@@ -114,14 +109,12 @@ impl SessionTranscript {
             nonce,
         };
 
-        let transcript = SessionTranscriptKeyed {
+        SessionTranscriptKeyed {
             device_engagement_bytes: None,
             ereader_key_bytes: None,
             handover: Handover::OID4VPHandover(handover.into()),
         }
-        .into();
-
-        Ok(transcript)
+        .into()
     }
 }
 
@@ -148,7 +141,9 @@ pub enum Handover {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OID4VPHandover {
+    /// Must be `SHA256(CBOR_encode([client_id, mdoc_nonce]))`
     pub client_id_hash: ByteBuf,
+    /// Must be `SHA256(CBOR_encode([response_uri, mdoc_nonce]))`
     pub response_uri_hash: ByteBuf,
     pub nonce: String,
 }

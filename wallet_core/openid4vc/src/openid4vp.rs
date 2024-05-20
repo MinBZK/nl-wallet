@@ -1,6 +1,7 @@
 use std::string::FromUtf8Error;
 
 use base64::DecodeError;
+use chrono::{DateTime, Utc};
 use josekit::{
     jwe::{alg::ecdh_es::EcdhEsJweAlgorithm, JweHeader},
     jwk::{alg::ec::EcKeyPair, Jwk},
@@ -13,17 +14,16 @@ use x509_parser::{error::X509Error, extensions::GeneralName};
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
-    server_keys::KeyPair,
     utils::{
         serialization::CborBase64,
         x509::{Certificate, CertificateError},
     },
-    verifier::ItemsRequests,
-    DeviceResponse,
+    verifier::{DisclosedAttributes, ItemsRequests},
+    DeviceResponse, SessionTranscript,
 };
 use wallet_common::{
     config::wallet_config::BaseUrl,
-    generator::TimeGenerator,
+    generator::{Generator, TimeGenerator},
     jwt::{Jwt, JwtError},
     utils::random_string,
 };
@@ -247,7 +247,7 @@ impl JwePublicKey {
 impl VpAuthorizationRequest {
     pub fn new(
         items_requests: &ItemsRequests,
-        keypair: &KeyPair,
+        rp_certificate: &Certificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
@@ -256,7 +256,7 @@ impl VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             auth_request: AuthorizationRequest {
                 response_type: ResponseType::VpToken,
-                client_id: parse_dns_san(keypair.certificate())?,
+                client_id: parse_dns_san(rp_certificate)?,
                 nonce: Some(nonce),
                 response_mode: Some(ResponseMode::DirectPostJwt),
                 redirect_uri: None,
@@ -280,18 +280,6 @@ impl VpAuthorizationRequest {
             client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(response_uri),
         })
-    }
-
-    pub async fn new_signed(
-        items_requests: &ItemsRequests,
-        keypair: KeyPair,
-        nonce: String,
-        encryption_pubkey: JwePublicKey,
-        response_uri: BaseUrl,
-    ) -> Result<Jwt<Self>, AuthRequestError> {
-        let auth_request = Self::new(items_requests, &keypair, nonce, encryption_pubkey, response_uri)?;
-        let jws = jwt::sign_with_certificate(&auth_request, &keypair).await?;
-        Ok(jws)
     }
 
     pub fn verify(
@@ -414,16 +402,28 @@ pub enum AuthResponseError {
     MissingApv,
     #[error("failed to decode apu/apv field from JWE")]
     Utf8(#[from] FromUtf8Error),
+    #[error("error verifying disclosed mdoc: {0}")]
+    Verification(#[source] nl_wallet_mdoc::Error),
+    #[error("missing requested attributes: {0}")]
+    MissingAttributes(#[source] nl_wallet_mdoc::Error),
+    #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
+    UnexpectedDescriptorCount { expected: usize, found: usize },
+    #[error("received unexpected Presentation Submission ID: expected {expected}, found {found}")]
+    UnexpectedSubmissionId { expected: String, found: String },
+    #[error("received unexpected path in Presentation Submission Input Descriptor: expected '$', found '{0}'")]
+    UnexpectedInputDescriptorPath(String),
+    #[error("received unexpected Presentation Submission Input Descriptor ID: expected {expected}, found {found}")]
+    UnexpectedInputDescriptorId { expected: String, found: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationResponse {
-    vp_token: CborBase64<DeviceResponse>,
-    presentation_submission: PresentationSubmission,
+    pub vp_token: CborBase64<DeviceResponse>,
+    pub presentation_submission: PresentationSubmission,
 }
 
 impl VpAuthorizationResponse {
-    pub fn new(device_response: DeviceResponse, presentation_definition: &PresentationDefinition) -> Self {
+    fn new(device_response: DeviceResponse, presentation_definition: &PresentationDefinition) -> Self {
         let presentation_submission = PresentationSubmission {
             id: random_string(16),
             definition_id: presentation_definition.id.clone(),
@@ -446,15 +446,19 @@ impl VpAuthorizationResponse {
         }
     }
 
-    /// Encrypt an Authorization Request into a JWE.
+    /// Create a JWE containing a new encrypted Authorization Request.
     ///
     /// NB: this method assumes that the provided Authorization Request has been validated with
     ///  `auth_request.validate()?` before.
-    pub fn encrypt(
-        &self,
+    pub fn new_encrypted(
+        device_response: DeviceResponse,
         auth_request: &VpAuthorizationRequest,
         mdoc_nonce: String,
     ) -> Result<String, AuthResponseError> {
+        Self::new(device_response, auth_request.presentation_definition.direct()).encrypt(auth_request, mdoc_nonce)
+    }
+
+    fn encrypt(&self, auth_request: &VpAuthorizationRequest, mdoc_nonce: String) -> Result<String, AuthResponseError> {
         // All .unwrap() and .direct() calls on `auth_request` are safe because they are checked earlier
         // by auth_request.validate().
 
@@ -507,6 +511,85 @@ impl VpAuthorizationResponse {
         let payload = serde_json::from_value(serde_json::Value::Object(payload.into()))?;
         Ok((payload, mdoc_nonce))
     }
+
+    pub fn verify(
+        &self,
+        auth_request: &VpAuthorizationRequest,
+        mdoc_nonce: String,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<DisclosedAttributes, AuthResponseError> {
+        // All .unwrap() and .direct() calls on `auth_request` are safe because we (the RP) constructed
+        // the `auth_request` ourselves earlier in the session.
+
+        // Verify the cryptographic integrity of the disclosed attributes.
+        let session_transcript = SessionTranscript::new_oid4vp(
+            &auth_request.response_uri.as_ref().unwrap().clone(),
+            auth_request.auth_request.client_id.clone(),
+            auth_request.auth_request.nonce.as_ref().unwrap().clone(),
+            mdoc_nonce,
+        );
+        let device_response = &self.vp_token.0;
+        let disclosed_attrs = device_response
+            .verify(None, &session_transcript, time, trust_anchors)
+            .map_err(AuthResponseError::Verification)?;
+
+        // Check that we received all attributes that we requested.
+        let items_requests: ItemsRequests = auth_request.presentation_definition.direct().try_into().unwrap();
+        items_requests
+            .match_against_response(device_response)
+            .map_err(AuthResponseError::MissingAttributes)?;
+
+        // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO 18013-7.
+        self.verify_presentation_submission(auth_request.presentation_definition.direct())?;
+
+        Ok(disclosed_attrs)
+    }
+
+    fn verify_presentation_submission(
+        &self,
+        presentation_definition: &PresentationDefinition,
+    ) -> Result<(), AuthResponseError> {
+        if self.presentation_submission.definition_id != presentation_definition.id {
+            return Err(AuthResponseError::UnexpectedSubmissionId {
+                expected: presentation_definition.id.clone(),
+                found: self.presentation_submission.definition_id.clone(),
+            });
+        }
+
+        if self.presentation_submission.descriptor_map.len()
+            != self.vp_token.0.documents.as_ref().map_or(0, |docs| docs.len())
+        {
+            return Err(AuthResponseError::UnexpectedDescriptorCount {
+                expected: self.vp_token.0.documents.as_ref().map_or(0, |docs| docs.len()),
+                found: self.presentation_submission.descriptor_map.len(),
+            });
+        }
+
+        self.vp_token
+            .0
+            .documents
+            .as_ref()
+            .unwrap()
+            .iter()
+            .zip(&self.presentation_submission.descriptor_map)
+            .try_for_each(|(doc, input_descriptor)| {
+                if input_descriptor.path != "$" {
+                    return Err(AuthResponseError::UnexpectedInputDescriptorPath(
+                        input_descriptor.path.to_string(),
+                    ));
+                }
+                if input_descriptor.id != doc.doc_type {
+                    return Err(AuthResponseError::UnexpectedInputDescriptorId {
+                        expected: doc.doc_type.clone(),
+                        found: input_descriptor.id.clone(),
+                    });
+                }
+                Ok::<_, AuthResponseError>(())
+            })?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -517,7 +600,10 @@ mod tests {
     use nl_wallet_mdoc::{examples::Example, server_keys::KeyPair, test::example_items_requests, DeviceResponse};
     use wallet_common::utils::random_string;
 
-    use crate::openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse};
+    use crate::{
+        jwt,
+        openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse},
+    };
 
     #[test]
     fn test_encrypt_decrypt_authorization_response() {
@@ -529,7 +615,7 @@ mod tests {
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
         let auth_request = VpAuthorizationRequest::new(
             &example_items_requests(),
-            &rp_keypair,
+            rp_keypair.certificate(),
             nonce.clone(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             "https://example.com/response_uri".parse().unwrap(),
@@ -559,15 +645,15 @@ mod tests {
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
         dbg!(encryption_privkey.to_jwk_public_key());
 
-        let auth_request_jwt = VpAuthorizationRequest::new_signed(
+        let auth_request = VpAuthorizationRequest::new(
             &example_items_requests(),
-            rp_keypair,
+            rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             "https://example.com/response_uri".parse().unwrap(),
         )
-        .await
         .unwrap();
+        let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
         VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
 
