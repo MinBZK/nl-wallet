@@ -13,15 +13,6 @@ bsn_privkey = '${BSN_PRIVKEY}'
 trust_anchors = [${DIGID_CA_CRT}]
 
 # Integration test cases
-[verifier.usecases.bsn]
-certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
-private_key = "${MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 [verifier.usecases.multiple_cards]
-certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
-private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
-[verifier.usecases.duplicate_cards]
-certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
-private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
-[verifier.usecases.duplicate_attributes]
 certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
