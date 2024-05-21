@@ -30,11 +30,52 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
 }
 
 #[rstest]
-#[case(SessionType::SameDevice, None, "xyz_bank", pid_full_name(), pid_full_name())]
-#[case(SessionType::SameDevice, Some("http://localhost:3004/return".parse().unwrap()), "xyz_bank", pid_full_name(), pid_full_name())]
-#[case(SessionType::CrossDevice, None, "xyz_bank", pid_full_name(), pid_full_name())]
-#[case(SessionType::CrossDevice, Some("http://localhost:3004/return".parse().unwrap()), "xyz_bank", pid_full_name(), pid_full_name())]
-#[case(SessionType::SameDevice, None, "xyz_bank", pid_family_name() + pid_given_name(), pid_full_name())]
+#[case(
+    SessionType::SameDevice,
+    None,
+    "xyz_bank_no_return_url",
+    pid_full_name(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    "xyz_bank",
+    pid_full_name(),
+    pid_full_name())
+]
+#[case(
+    SessionType::SameDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    "xyz_bank_all_return_url",
+    pid_full_name(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    None,
+    "xyz_bank_no_return_url",
+    pid_full_name(),
+    pid_full_name()
+)]
+#[case(SessionType::CrossDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    "xyz_bank",
+    pid_full_name(),
+    pid_full_name()
+)]
+#[case(SessionType::CrossDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    "xyz_bank_all_return_url",
+    pid_full_name(),
+    pid_full_name()
+)]
+#[case(SessionType::SameDevice,
+    None,
+    "xyz_bank_no_return_url",
+    pid_family_name() + pid_given_name(),
+    pid_full_name()
+)]
 #[case(
     SessionType::SameDevice,
     None,
@@ -42,22 +83,27 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_given_name() + addr_street(),
     pid_given_name() + addr_street()
 )]
-#[case(SessionType::SameDevice, None, "multiple_cards", pid_given_name() + addr_street(), pid_given_name() + addr_street())]
+#[case(
+    SessionType::SameDevice,
+    None,
+    "multiple_cards",
+    pid_given_name() + addr_street(), pid_given_name() + addr_street()
+)]
 #[tokio::test]
 #[serial]
 async fn test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
-    #[case] return_url: Option<ReturnUrlTemplate>,
+    #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] usecase: String,
     #[case] test_documents: TestDocuments,
     #[case] expected_documents: TestDocuments,
 ) {
     let start_request = StartDisclosureRequest {
-        usecase,
+        usecase: usecase.clone(),
         items_requests: test_documents.into(),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
-        return_url_template: return_url,
+        return_url_template,
     };
 
     let digid_context = MockDigidSession::start_context();
@@ -143,6 +189,15 @@ async fn test_disclosure_usecases_ok(
     // after disclosure it should have status "Done"
     assert_matches!(get_verifier_status(&client, status_url).await, StatusResponse::Done);
 
+    // Check if we received a return URL when we should have, based on the use case and session type.
+    let should_have_return_url = match (usecase, session_type) {
+        (usecase, _) if usecase == "xyz_bank_no_return_url" || usecase == "multiple_cards" => false,
+        (usecase, _) if usecase == "xyz_bank_all_return_url" => true,
+        (_, SessionType::SameDevice) => true,
+        (_, SessionType::CrossDevice) => false,
+    };
+    assert_eq!(return_url.is_some(), should_have_return_url);
+
     // Copy the nonce from the received return URL to the disclosed attributes request.
     if let Some(url) = return_url {
         let nonce = url
@@ -189,7 +244,7 @@ async fn test_disclosure_without_pid() {
     let client = reqwest::Client::new();
 
     let start_request = StartDisclosureRequest {
-        usecase: "xyz_bank".to_owned(),
+        usecase: "xyz_bank_no_return_url".to_owned(),
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
             request_info: None,
