@@ -434,6 +434,8 @@ pub enum AuthResponseError {
     UnexpectedInputDescriptorPath(String),
     #[error("received unexpected Presentation Submission Input Descriptor ID: expected '{expected}', found '{found}'")]
     UnexpectedInputDescriptorId { expected: String, found: String },
+    #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
+    UnexpectedVpCount(usize),
 }
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
@@ -441,13 +443,28 @@ pub enum AuthResponseError {
 /// An OpenID4VP Authorization Response, with the wallet's disclosed attesations/attributes in the `vp_token`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationResponse {
-    pub vp_token: CborBase64<DeviceResponse>,
+    /// One or more Verifiable Presentations.
+    #[serde(with = "value_or_array")]
+    pub vp_token: Vec<VerifiablePresentation>,
+
     pub presentation_submission: PresentationSubmission,
 
     /// MUST equal the `state` from the Authorization Request.
     /// May be used by the RP to link incoming Authorization Responses to its corresponding Authorization Request,
     /// for example in case the `response_uri` contains no session token or other identifier.
     pub state: Option<String>,
+}
+
+/// Disclosure of an attestation, generally containing the issuer-signed attestation itself, the disclosed attributes,
+/// and a holder signature over some nonce provided by the verifier.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum VerifiablePresentation {
+    // NB: a `DeviceResponse` can contain disclosures of multiple mdocs.
+    // In case of other (not yet supported) formats, each attestation is expected to result in a separate
+    // Verifiable Presentation. See e.g. this example:
+    // https://openid.github.io/OpenID4VP/openid-4-verifiable-presentations-wg-draft.html#section-6.1-13
+    MsoMdoc(CborBase64<DeviceResponse>),
 }
 
 impl VpAuthorizationResponse {
@@ -469,7 +486,7 @@ impl VpAuthorizationResponse {
         };
 
         VpAuthorizationResponse {
-            vp_token: device_response.into(),
+            vp_token: vec![VerifiablePresentation::MsoMdoc(device_response.into())],
             presentation_submission,
             state: auth_request.oauth_request.state.clone(),
         }
@@ -541,6 +558,15 @@ impl VpAuthorizationResponse {
         Ok((payload, mdoc_nonce))
     }
 
+    fn device_response(&self) -> Result<&DeviceResponse, AuthResponseError> {
+        if self.vp_token.len() != 1 {
+            return Err(AuthResponseError::UnexpectedVpCount(self.vp_token.len()));
+        }
+
+        let VerifiablePresentation::MsoMdoc(device_response) = &self.vp_token.first().unwrap();
+        Ok(&device_response.0)
+    }
+
     pub fn verify(
         &self,
         auth_request: &VpAuthorizationRequest,
@@ -558,7 +584,7 @@ impl VpAuthorizationResponse {
             auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
             mdoc_nonce,
         );
-        let device_response = &self.vp_token.0;
+        let device_response = self.device_response()?;
         let disclosed_attrs = device_response
             .verify(None, &session_transcript, time, trust_anchors)
             .map_err(AuthResponseError::Verification)?;
@@ -594,19 +620,16 @@ impl VpAuthorizationResponse {
             });
         }
 
-        if self.presentation_submission.descriptor_map.len()
-            != self.vp_token.0.documents.as_ref().map_or(0, |docs| docs.len())
-        {
+        let documents = &self.device_response()?.documents;
+
+        if self.presentation_submission.descriptor_map.len() != documents.as_ref().map_or(0, |docs| docs.len()) {
             return Err(AuthResponseError::UnexpectedDescriptorCount {
-                expected: self.vp_token.0.documents.as_ref().map_or(0, |docs| docs.len()),
+                expected: documents.as_ref().map_or(0, |docs| docs.len()),
                 found: self.presentation_submission.descriptor_map.len(),
             });
         }
 
-        for (doc, input_descriptor) in self
-            .vp_token
-            .0
-            .documents
+        for (doc, input_descriptor) in documents
             .as_ref()
             .unwrap() // The calling function (`Self::verify`) already established that this is not None.
             .iter()
@@ -629,16 +652,51 @@ impl VpAuthorizationResponse {
     }
 }
 
+/// Serialize a Vec<T> with one item directly to the JSON serialization of T, and a Vec<T> with more items just to a
+/// JSON array of serialized T's.
+mod value_or_array {
+    use serde::{
+        de::{self, DeserializeOwned},
+        ser, Deserialize, Deserializer, Serialize, Serializer,
+    };
+
+    pub fn serialize<S: Serializer, T: Serialize>(input: &[T], serializer: S) -> Result<S::Ok, S::Error> {
+        match input.len() {
+            0 => Err(ser::Error::custom("can't serialize empty JsonVec")),
+            1 => input.first().unwrap().serialize(serializer),
+            _ => input.serialize(serializer),
+        }
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<Vec<T>, D::Error> {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let vec = match value {
+            josekit::Value::Array(_) => serde_json::from_value(value).map_err(de::Error::custom)?,
+            josekit::Value::String(_) | josekit::Value::Object(_) => {
+                vec![serde_json::from_value(value).map_err(de::Error::custom)?]
+            }
+            _ => return Err(de::Error::custom("unexpected JSON type")),
+        };
+
+        Ok(vec)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
+    use josekit::{
+        jwk::alg::ec::{EcCurve, EcKeyPair},
+        Value,
+    };
+    use rstest::rstest;
+    use serde::{Deserialize, Serialize};
     use serde_json::json;
 
     use nl_wallet_mdoc::{examples::Example, server_keys::KeyPair, test::example_items_requests, DeviceResponse};
 
     use crate::{
         jwt,
-        openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse},
+        openid4vp::{value_or_array, VpAuthorizationRequest, VpAuthorizationResponse},
     };
 
     #[test]
@@ -746,5 +804,30 @@ mod tests {
         auth_request.validate().unwrap();
 
         dbg!(auth_request);
+    }
+
+    #[rstest]
+    #[case(vec!["one".to_string()], Some(json!("one")))]
+    #[case(vec!["one".to_string(), "two".to_string()], Some(json!(["one", "two"])))]
+    #[case(vec![], None)]
+    fn value_or_array_serialization(#[case] values: Vec<String>, #[case] serialization: Option<Value>) {
+        #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+        struct Test {
+            #[serde(with = "value_or_array")]
+            test: Vec<String>,
+        }
+
+        let result = serde_json::to_value(Test { test: values.clone() });
+        match serialization {
+            None => assert!(result.is_err()),
+            Some(serialization) => {
+                let serialization = json!({"test": serialization});
+                assert_eq!(result.unwrap(), serialization);
+                assert_eq!(
+                    serde_json::from_value::<Test>(serialization).unwrap(),
+                    Test { test: values }
+                );
+            }
+        };
     }
 }
