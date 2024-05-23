@@ -1,5 +1,6 @@
 wallet_server_url = 'http://${SERVICES_HOST}:${MOCK_RP_RS_PORT}'
 public_url = 'http://${SERVICES_HOST}:${MOCK_RP_PORT}/'
+allow_origins = ["http://localhost:5175", "http://localhost:5174", "http://localhost:5173"]
 
 [webserver]
 ip = '0.0.0.0'

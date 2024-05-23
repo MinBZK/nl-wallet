@@ -1,8 +1,11 @@
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
+use axum::{headers::HeaderValue, http::header::InvalidHeaderValue};
 use config::{Config, ConfigError, Environment, File};
-use nl_wallet_mdoc::verifier::ItemsRequests;
 use serde::Deserialize;
+use url::Url;
+
+use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::config::wallet_config::BaseUrl;
 
 #[derive(Deserialize, Clone)]
@@ -10,6 +13,8 @@ pub struct Settings {
     pub webserver: Server,
     pub wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
+    #[serde(default)]
+    pub allow_origins: Vec<Origin>,
     pub usecases: HashMap<String, ItemsRequests>,
 }
 
@@ -17,6 +22,17 @@ pub struct Settings {
 pub struct Server {
     pub ip: IpAddr,
     pub port: u16,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Origin(Url);
+
+impl TryFrom<Origin> for HeaderValue {
+    type Error = InvalidHeaderValue;
+
+    fn try_from(value: Origin) -> Result<Self, Self::Error> {
+        HeaderValue::try_from(value.0.as_str())
+    }
 }
 
 impl Settings {

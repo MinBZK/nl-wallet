@@ -32,7 +32,7 @@
 
 	<article>
 		<h1>Leeftijd aantonen</h1>
-		<div>
+		<div class="img-container">
 			<img src="{kloveniersburgwal}" alt="Kloveniersburgwal">
 		</div>
 		<p class="text-xl">
@@ -79,6 +79,41 @@
         padding-right: 14rem;
         margin-left: auto;
         margin-right: auto;
+    }
+
+    @media (min-width: 1400px) {
+        main {
+            max-width: 1400px;
+        }
+    }
+
+    @media (width <= 700px) {
+        header, nav, article {
+            max-width: 700px;
+        }
+    }
+
+    @media (width <= 900px) {
+        main {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        header, nav, article {
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 1rem;
+        }
+
+        header .logo {
+            margin-left: 0;
+        }
+
+        .img-container {
+            overflow: clip;
+            padding-right: 1rem;
+        }
     }
 
     header {
