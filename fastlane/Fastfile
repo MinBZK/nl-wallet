@@ -51,6 +51,18 @@ private_lane :get_newest_file do |options|
   end
 end
 
+# Upload debug symbols to Sentry.
+# Requires the following environment variables: [SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL].
+# SENTRY_AUTH_TOKEN enables the sentry_dart_plugin, after which the existense of the other variables is checked.
+private_lane :upload_sentry_symbols do
+  unless ENV["SENTRY_AUTH_TOKEN"].empty? then
+    UI.user_error!("Missing environment variable 'SENTRY_ORG'") if ENV["SENTRY_ORG"].empty?
+    UI.user_error!("Missing environment variable 'SENTRY_PROJECT'") if ENV["SENTRY_PROJECT"].empty?
+    UI.user_error!("Missing environment variable 'SENTRY_URL'") if ENV["SENTRY_URL"].empty?
+    sh(*flutter_cmd, "packages", "pub", "run", "sentry_dart_plugin")
+  end
+end
+
 lane :upload_to_play_store_internal_track do |options|
   package_name = options[:package_name]
   version = options[:version]
@@ -85,8 +97,9 @@ platform :android do
     app_name = options[:app_name] || DEFAULT_APP_NAME
 
     universal_link_base = options[:universal_link_base]
-    sentry_dsn = options[:sentry_dsn]
-    sentry_environment = options[:sentry_environment]
+    sentry_dsn = ENV["SENTRY_DSN"]
+    sentry_environment = ENV["SENTRY_ENVIRONMENT"]
+    sentry_release = ENV["SENTRY_RELEASE"]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -117,10 +130,13 @@ platform :android do
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
+            "--dart-define=SENTRY_RELEASE=#{sentry_release}",
 
             # ENV_CONFIGURATION is ignored when mock repositories are configured
             "--dart-define=ENV_CONFIGURATION=true",
       )
+
+      upload_sentry_symbols
 
       sh("mv", "build/app/outputs/#{file_format_path}/#{build_mode}/app-#{build_mode}.#{file_format}", "../#{package_name}-#{version}-#{build_mode}.#{file_format}")
     end
@@ -251,8 +267,9 @@ platform :ios do
     app_name = options[:app_name] || DEFAULT_APP_NAME
 
     universal_link_base = options[:universal_link_base]
-    sentry_dsn = options[:sentry_dsn]
-    sentry_environment = options[:sentry_environment]
+    sentry_dsn = ENV["SENTRY_DSN"]
+    sentry_environment = ENV["SENTRY_ENVIRONMENT"]
+    sentry_release = ENV["SENTRY_RELEASE"]
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
@@ -302,10 +319,13 @@ platform :ios do
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
+            "--dart-define=SENTRY_RELEASE=#{sentry_release}",
 
             # ENV_CONFIGURATION is ignored when mock repositories are configured
             "--dart-define=ENV_CONFIGURATION=true",
       )
+
+      upload_sentry_symbols
     end
 
     # Create an .ipa file from the archive produce by Flutter

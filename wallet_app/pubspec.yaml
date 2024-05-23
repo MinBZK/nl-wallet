@@ -65,6 +65,7 @@ dev_dependencies:
   get_it: ^7.7.0
   mockito: ^5.4.4
   rename: ^3.0.2
+  sentry_dart_plugin: ^1.0.0
   test: ^1.24.9
 
 flutter:
@@ -103,3 +104,19 @@ flutter_native_splash:
     icon_background_color: "#FCFCFC"
     image_dark: assets/non-free/logos/splash_logo.png
     icon_background_color_dark: "#1C1E25"
+
+# See: https://pub.dev/packages/sentry_dart_plugin
+sentry:
+  # project: wallet # Env. variable: SENTRY_PROJECT
+  # org: wallet # Env. variable: SENTRY_ORG
+  # auth_token: ... # Env. variable: SENTRY_AUTH_TOKEN
+  # url: ... # Env. variable: SENTRY_URL
+  # release: ... # Use default: name@version from pubspec, Env. variable: SENTRY_RELEASE
+  # web_build_path: build/web # Not applicable
+  upload_debug_symbols: true
+  upload_source_maps: false
+  upload_sources: false
+  wait_for_processing: true
+  log_level: debug # Env. variable: SENTRY_LOG_LEVEL
+  commits: false
+  ignore_missing: true
