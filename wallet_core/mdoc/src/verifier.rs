@@ -1616,10 +1616,17 @@ mod tests {
             Error::Verification(VerificationError::ReturnUrlNonceMissing)
         );
 
-        // The expired session should always return an error.
+        // The expired session should always return an error, with or without a nonce.
         assert_matches!(
             verifier
                 .disclosed_attributes(&"token3".into(), None)
+                .await
+                .expect_err("should fail to return disclosed attributes"),
+            Error::Verification(VerificationError::SessionNotDone)
+        );
+        assert_matches!(
+            verifier
+                .disclosed_attributes(&"token3".into(), "noncesense".to_string().into())
                 .await
                 .expect_err("should fail to return disclosed attributes"),
             Error::Verification(VerificationError::SessionNotDone)
