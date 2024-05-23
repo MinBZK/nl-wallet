@@ -1239,7 +1239,7 @@ run-automation-tests-14:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:fde8c80553826d9bb81d6ef165fccf896391258c7e6d5e4c10e184f9dff829bd"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:0692a6bbdadb6606ff9b7661a47599562506cb6ea9b8bc0134311427575f1879"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json
