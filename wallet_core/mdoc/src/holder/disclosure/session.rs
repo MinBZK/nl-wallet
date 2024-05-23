@@ -114,8 +114,8 @@ where
 
         // Parse the `SessionType` from the verifier URL.
         let VerifierUrlParameters { session_type } =
-            serde_urlencoded::from_str(verifier_url.query().unwrap_or_default())
-                .map_err(HolderError::VerifierUrlSessionType)?;
+            serde_urlencoded::from_str(verifier_url.query().ok_or(HolderError::MissingSessionType)?)
+                .map_err(HolderError::MalformedSessionType)?;
 
         // Create a new `DeviceEngagement` message and private key. Use a
         // static referrer URL, as this is not a feature we actually use.
@@ -781,7 +781,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_disclosure_session_start_error_verifier_url_session_type_missing() {
+    async fn test_disclosure_session_start_error_missing_session_type() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that contains
         // a verifier URL without a session_type should result in an error.
         let mut payloads = Vec::new();
@@ -803,12 +803,12 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(error, Error::Holder(HolderError::VerifierUrlSessionType(_)));
+        assert_matches!(error, Error::Holder(HolderError::MissingSessionType));
         assert!(payloads.is_empty());
     }
 
     #[tokio::test]
-    async fn test_disclosure_session_start_error_verifier_url_session_type_invalid() {
+    async fn test_disclosure_session_start_error_malformed_session_type() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that contains
         // a verifier URL with an invalid session_type should result in an error.
         let mut payloads = Vec::new();
@@ -829,7 +829,7 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(error, Error::Holder(HolderError::VerifierUrlSessionType(_)));
+        assert_matches!(error, Error::Holder(HolderError::MalformedSessionType(_)));
         assert!(payloads.is_empty());
     }
 
