@@ -50,7 +50,7 @@ class PolicyEntryRow extends StatelessWidget {
                 : Icon(
                     icon,
                     size: 24,
-                    color: context.colorScheme.onSurface,
+                    color: context.colorScheme.onSurfaceVariant,
                   ),
             SizedBox(width: icon == null ? 0 : 16),
             Expanded(

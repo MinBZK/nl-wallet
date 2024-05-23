@@ -36,29 +36,29 @@ class LinkButton extends StatelessWidget {
   }
 
   ButtonStyle _resolveButtonStyle(BuildContext context) => context.theme.textButtonTheme.style!.copyWith(
-        minimumSize: MaterialStateProperty.all(
+        minimumSize: WidgetStateProperty.all(
           const Size(0, 48),
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           const LinearBorder(),
         ),
-        overlayColor: MaterialStateProperty.all(Colors.transparent),
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
         splashFactory: NoSplash.splashFactory,
-        foregroundColor: MaterialStateProperty.resolveWith(
+        foregroundColor: WidgetStateProperty.resolveWith(
           _getForegroundColor(context),
         ),
         animationDuration: Duration.zero,
-        padding: MaterialStateProperty.all(
+        padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
         ),
       );
 
-  Color Function(Set<MaterialState> states) _getForegroundColor(BuildContext context) {
-    return (Set<MaterialState> states) {
-      const Set<MaterialState> interactiveStates = <MaterialState>{
-        MaterialState.pressed,
-        MaterialState.hovered,
-        MaterialState.focused,
+  Color Function(Set<WidgetState> states) _getForegroundColor(BuildContext context) {
+    return (Set<WidgetState> states) {
+      const Set<WidgetState> interactiveStates = <WidgetState>{
+        WidgetState.pressed,
+        WidgetState.hovered,
+        WidgetState.focused,
       };
       if (states.any(interactiveStates.contains)) {
         return context.theme.primaryColorLight;

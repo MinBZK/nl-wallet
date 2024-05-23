@@ -142,7 +142,7 @@ class SharedAttributesCard extends StatelessWidget {
   BoxDecoration _createBorderDecoration(BuildContext context) {
     return BoxDecoration(
       borderRadius: _kBorderRadius,
-      color: context.colorScheme.background,
+      color: context.colorScheme.surface,
       border: Border.all(
         color: context.colorScheme.outlineVariant,
         width: 1,

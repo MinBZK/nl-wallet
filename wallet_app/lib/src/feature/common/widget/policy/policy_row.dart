@@ -21,7 +21,7 @@ class PolicyRow extends StatelessWidget {
         children: [
           Icon(
             icon,
-            color: context.colorScheme.onSurface,
+            color: context.colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 16),
           Expanded(

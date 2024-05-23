@@ -103,26 +103,20 @@ class MockAppLinks implements AppLinks {
   }
 
   @override
-  Stream<String> get allStringLinkStream => throw UnimplementedError();
-
-  @override
-  Stream<Uri> get allUriLinkStream => _uriStreamController.stream;
-
-  @override
-  Future<Uri?> getInitialAppLink() async => null;
-
-  @override
-  Future<String?> getInitialAppLinkString() => throw UnimplementedError();
-
-  @override
-  Future<Uri?> getLatestAppLink() => throw UnimplementedError();
-
-  @override
-  Future<String?> getLatestAppLinkString() => throw UnimplementedError();
-
-  @override
   Stream<String> get stringLinkStream => throw UnimplementedError();
 
   @override
-  Stream<Uri> get uriLinkStream => throw UnimplementedError();
+  Stream<Uri> get uriLinkStream => _uriStreamController.stream;
+
+  @override
+  Future<Uri?> getInitialLink() async => null;
+
+  @override
+  Future<String?> getInitialLinkString() => throw UnimplementedError();
+
+  @override
+  Future<Uri?> getLatestLink() => throw UnimplementedError();
+
+  @override
+  Future<String?> getLatestLinkString() => throw UnimplementedError();
 }

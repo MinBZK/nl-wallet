@@ -102,7 +102,7 @@ class HistoryDetailScreen extends StatelessWidget {
     final bool showDataAttributesSection = _showDataAttributesSection(event);
     final bool showContractSection = _showContractSection(event);
     final List<Widget> slivers = [];
-    final Color iconColor = context.colorScheme.onSurface;
+    final Color iconColor = context.colorScheme.onSurfaceVariant;
 
     // Organization
     slivers.addAll([
@@ -234,7 +234,7 @@ class HistoryDetailScreen extends StatelessWidget {
       subtitle: Text(purpose.l10nValue(context)),
       leading: Icon(
         Icons.outlined_flag_outlined,
-        color: context.colorScheme.onSurface,
+        color: context.colorScheme.onSurfaceVariant,
       ),
     );
   }
@@ -298,7 +298,7 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Widget _buildDataAttributesSectionTitle(BuildContext context, WalletEvent event) {
     // Declare variables / defaults
-    final iconColor = context.colorScheme.onSurface;
+    final iconColor = context.colorScheme.onSurfaceVariant;
     String title = '';
     String subtitle = '';
     Widget icon = Image.asset(WalletAssets.icon_card_share, color: iconColor);

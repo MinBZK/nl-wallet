@@ -41,13 +41,13 @@ class ListButton extends StatelessWidget {
   }
 
   ButtonStyle _resolveButtonStyle(BuildContext context) => context.theme.textButtonTheme.style!.copyWith(
-        minimumSize: MaterialStateProperty.all(
+        minimumSize: WidgetStateProperty.all(
           Size(0, context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight),
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           const LinearBorder(),
         ),
-        padding: MaterialStateProperty.all(
+        padding: WidgetStateProperty.all(
           EdgeInsets.symmetric(
               horizontal: 16, vertical: context.isLandscape ? _kLandscapeVerticalPadding : _kVerticalPadding),
         ),
