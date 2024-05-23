@@ -151,7 +151,7 @@ default:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e4f242877ebb2c9548e69c8cb5a9a615f6bc995cb38fdd8102f381f7b9a9609d"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7e741ecb10b07adec21f7328bbb8e8407ab80f299050fbff32ba764314390f97"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -242,7 +242,7 @@ test-rust:
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:7db692251c9374b9faf00a6df847d0d84472a1c6bf4a8a02640acd8c43e85c7e"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:aed8e17cb3479ea2ad62942a4f00871400436a0c6bd802123be09c322a35d8fe"
   script:
     - !reference [.test-rust-compilation, script]
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
@@ -307,7 +307,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:5a1d7011d329b757afee6471b56f091bc13c4cd19c49e2a6b3efd9688a3e8a4c"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:028589dc922c156aa2056dccf2e0c71bd793f325b4ba3701fffb152b88f95358"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -420,7 +420,7 @@ sonar-flutter:
     - job: dependency-check
       artifacts: true
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:82cc7a4bf1bc970e4191ad45cdd6b5c0300e4dfa4de4bdf72ed8cc744bb8ece2"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:56bb32022328b2f9067181494540787088eed9d750f62606047f33dd26533468"
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -589,7 +589,7 @@ build-gba-hc-converter-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:7db692251c9374b9faf00a6df847d0d84472a1c6bf4a8a02640acd8c43e85c7e"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:aed8e17cb3479ea2ad62942a4f00871400436a0c6bd802123be09c322a35d8fe"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -983,7 +983,7 @@ dependency-check-images:
     - job: build-wallet-server-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:82cc7a4bf1bc970e4191ad45cdd6b5c0300e4dfa4de4bdf72ed8cc744bb8ece2"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:56bb32022328b2f9067181494540787088eed9d750f62606047f33dd26533468"
   variables:
     GIT_STRATEGY: none
   before_script:
