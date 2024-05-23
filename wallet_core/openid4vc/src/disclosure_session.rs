@@ -129,7 +129,7 @@ impl VpMessageClient for HttpVpMessageClient {
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.http_client
             .post(url.into_inner())
-            .form(&HashMap::<&str, String>::from_iter([("response", jwe)]))
+            .form(&HashMap::from([("response", jwe)]))
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
@@ -163,8 +163,8 @@ impl VpMessageClient for HttpVpMessageClient {
     }
 }
 
-/// If the RP does not wish to specify a redirect URI, then the spec does not say whether the RP
-/// should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
+/// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
+/// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
 async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
     let response_bytes = response.bytes().await?;
     if response_bytes.is_empty() {
@@ -202,7 +202,7 @@ struct CommonDisclosureData<H> {
     auth_request: VpAuthorizationRequest,
 }
 
-pub enum VerifierSessionDataCheckResult<I> {
+enum VerifierSessionDataCheckResult<I> {
     MissingAttributes(Vec<AttributeIdentifier>),
     ProposedDocuments(Vec<ProposedDocument<I>>),
 }
@@ -245,9 +245,8 @@ where
             &request_uri_object,
             mdoc_data_source,
         )
+        .or_else(|error| Self::report_error_back(error, &client, auth_request.response_uri.as_ref().unwrap().clone()))
         .await?;
-
-        // todo report error back?
 
         let data = CommonDisclosureData {
             client,
@@ -277,9 +276,26 @@ where
         Ok(session)
     }
 
-    // async fn report_error_back<T>(error: VpClientError, client: &H, verifier_url: &Url) -> Result<T, VpClientError> {
-    //     todo!()
-    // }
+    async fn report_error_back<T>(error: VpClientError, client: &H, url: BaseUrl) -> Result<T, VpClientError> {
+        let error_code = match error {
+            VpClientError::IncorrectClientId { .. }
+            | VpClientError::MissingReaderRegistration
+            | VpClientError::RequestedAttributesValidation(_)
+            | VpClientError::RpCertificate(_) => {
+                VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
+            }
+            _ => return Err(error), // don't report other errors
+        };
+
+        let error_response = ErrorResponse {
+            error: error_code,
+            error_description: Some(error.to_string()),
+            error_uri: None,
+        };
+
+        let _ = client.send_error(url, error_response).await; // ignore errors in sending this error
+        Err(error)
+    }
 
     /// Internal helper function for processing and checking the Authorization Request,
     /// including checking whether or not we have the requested attributes.
