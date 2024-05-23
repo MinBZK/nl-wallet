@@ -736,7 +736,7 @@ impl Session<Created> {
             .private_key(&self.state().usecase_id)
             .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
 
-        // Generate a nonce and add it the return URL, if provided.
+        // Generate a nonce and add it to the return URL, if provided.
         let (return_url, return_url_nonce) = match self.state().return_url.clone().map(Self::add_nonce_to_return_url) {
             Some((return_url, nonce)) => (return_url.into(), nonce.into()),
             None => (None, None),
