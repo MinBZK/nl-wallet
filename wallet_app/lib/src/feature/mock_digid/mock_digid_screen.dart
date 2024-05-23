@@ -68,7 +68,7 @@ class MockDigidScreen extends StatelessWidget {
   OutlinedButtonThemeData outlinedButtonTheme(BuildContext context) {
     return OutlinedButtonThemeData(
       style: context.theme.outlinedButtonTheme.style?.copyWith(
-        side: const MaterialStatePropertyAll(
+        side: const WidgetStatePropertyAll(
           BorderSide(
             color: Color(0xFFD2762B),
             width: 1,
@@ -81,7 +81,7 @@ class MockDigidScreen extends StatelessWidget {
   ElevatedButtonThemeData elevatedButtonTheme(BuildContext context) {
     return ElevatedButtonThemeData(
       style: context.theme.elevatedButtonTheme.style?.copyWith(
-        backgroundColor: const MaterialStatePropertyAll(_kDigidOrange),
+        backgroundColor: const WidgetStatePropertyAll(_kDigidOrange),
       ),
     );
   }

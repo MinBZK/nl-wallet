@@ -73,16 +73,6 @@ class ColorStylesTab extends StatelessWidget {
           textColor: colorScheme.onTertiaryContainer,
         ),
         _ColorRow(
-          name: 'colorScheme.background',
-          color: colorScheme.background,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onBackground',
-          color: colorScheme.onBackground,
-          bgColor: colorScheme.background,
-          textColor: colorScheme.onBackground,
-        ),
-        _ColorRow(
           name: 'colorScheme.error',
           color: colorScheme.error,
         ),
@@ -117,13 +107,13 @@ class ColorStylesTab extends StatelessWidget {
           color: colorScheme.surfaceTint,
         ),
         _ColorRow(
-          name: 'colorScheme.surfaceVariant',
-          color: colorScheme.surfaceVariant,
+          name: 'colorScheme.surfaceContainerHighest',
+          color: colorScheme.surfaceContainerHighest,
         ),
         _ColorRow(
           name: 'colorScheme.onSurfaceVariant',
           color: colorScheme.onSurfaceVariant,
-          bgColor: colorScheme.surfaceVariant,
+          bgColor: colorScheme.surfaceContainerHighest,
           textColor: colorScheme.onSurfaceVariant,
         ),
         _ColorRow(

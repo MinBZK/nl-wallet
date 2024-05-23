@@ -32,7 +32,7 @@ class QrNoPermission extends StatelessWidget {
           const Spacer(),
           Icon(
             Icons.camera_alt_outlined,
-            color: context.colorScheme.onSurface,
+            color: context.colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),
           CheckPermissionOnResume(

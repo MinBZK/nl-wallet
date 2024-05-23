@@ -14,14 +14,14 @@ class LightWalletTheme {
     secondary: Color(0x332065E0),
     onSecondary: Color(0XFF383EDE),
     error: Color(0xFFAB0065),
-    background: Color(0xFFFCFCFC),
+    surface: Color(0xFFFCFCFC),
     inverseSurface: Color(0xFFEBE4FD),
     primaryContainer: Color(0xFFF1F5FF),
     onPrimaryContainer: textColor,
     secondaryContainer: Color(0xFFF3F4F7),
     onPrimary: Color(0xFFFCFCFC),
-    onBackground: primaryColorDark,
-    onSurface: Color(0xFF445581),
+    onSurface: primaryColorDark,
+    onSurfaceVariant: Color(0xFF445581),
     outlineVariant: Color(0xFFE8EAEF),
     shadow: Color(0x14000000),
   );
@@ -55,47 +55,47 @@ class LightWalletTheme {
   );
 
   static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
-    backgroundColor: colorScheme.background,
-    surfaceTintColor: colorScheme.background,
+    backgroundColor: colorScheme.surface,
+    surfaceTintColor: colorScheme.surface,
     iconTheme: const IconThemeData(color: primary, size: 24),
     titleTextStyle: textTheme.displayMedium,
     shadowColor: colorScheme.shadow,
   );
 
   static final bottomNavigationBarTheme = BaseWalletTheme.baseBottomNavigationBarThemeData.copyWith(
-    backgroundColor: colorScheme.background,
+    backgroundColor: colorScheme.surface,
     unselectedItemColor: bottomNavigationUnselectedColor,
   );
 
   static final elevatedButtonTheme = ElevatedButtonThemeData(
     style: BaseWalletTheme.baseElevatedButtonTheme.style?.copyWith(
-      foregroundColor: MaterialStatePropertyAll(colorScheme.onPrimary),
-      backgroundColor: MaterialStatePropertyAll(colorScheme.primary),
-      overlayColor: MaterialStatePropertyAll(colorScheme.secondary),
+      foregroundColor: WidgetStatePropertyAll(colorScheme.onPrimary),
+      backgroundColor: WidgetStatePropertyAll(colorScheme.primary),
+      overlayColor: WidgetStatePropertyAll(colorScheme.secondary),
     ),
   );
 
   static final outlinedButtonTheme = OutlinedButtonThemeData(
     style: BaseWalletTheme.outlinedButtonTheme.style?.copyWith(
-      side: MaterialStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
+      side: WidgetStatePropertyAll(BorderSide(color: colorScheme.primary, width: 0.5)),
     ),
   );
 
   static final textButtonTheme = TextButtonThemeData(
     style: BaseWalletTheme.textButtonTheme.style?.copyWith(
-      textStyle: MaterialStatePropertyAll(BaseWalletTheme.buttonTextStyle.copyWith(letterSpacing: 1.15)),
-      foregroundColor: MaterialStatePropertyAll(colorScheme.primary),
+      textStyle: WidgetStatePropertyAll(BaseWalletTheme.buttonTextStyle.copyWith(letterSpacing: 1.15)),
+      foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
     ),
   );
 
   static final tabBarTheme = BaseWalletTheme.tabBarTheme.copyWith(
     labelColor: colorScheme.primary,
-    unselectedLabelColor: colorScheme.onBackground,
+    unselectedLabelColor: colorScheme.onSurface,
     indicatorColor: colorScheme.primary,
   );
 
   static final scrollBarTheme = BaseWalletTheme.baseScrollbarTheme.copyWith(
-    thumbColor: const MaterialStatePropertyAll(primaryColorDark),
+    thumbColor: const WidgetStatePropertyAll(primaryColorDark),
   );
 
   static final bottomSheetTheme = BaseWalletTheme.baseBottomSheetTheme.copyWith(
@@ -105,7 +105,7 @@ class LightWalletTheme {
 
   //endregion Modified (colored) BaseThemes
 
-  static final iconTheme = IconThemeData(color: colorScheme.onBackground, size: 16);
+  static final iconTheme = IconThemeData(color: colorScheme.onSurface, size: 16);
 
   static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFFF2F2FA));
 }
