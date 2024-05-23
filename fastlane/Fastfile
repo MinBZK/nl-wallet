@@ -1,3 +1,6 @@
+require 'active_support'
+require 'active_support/core_ext'
+
 # taken from previous GitHub repository
 BUILD_OFFSET = 861
 DEFAULT_APP_NAME = "NL Wallet"
@@ -10,7 +13,7 @@ skip_docs
 
 private_lane :get_app_identifier do
   app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-  UI.user_error!("No app_identifier set") unless app_identifier
+  UI.user_error!("No app_identifier set") if app_identifier.blank?
 
   app_identifier
 end
@@ -23,10 +26,10 @@ end
 
 private_lane :ci_get_basic_auth do
   registry_user = ENV["CI_REGISTRY_USER"]
-  UI.user_error!("No CI_REGISTRY_USER environment variable set") unless registry_user && !registry_user.empty?
+  UI.user_error!("No CI_REGISTRY_USER environment variable set") if registry_user.blank?
 
   job_token = ENV["CI_JOB_TOKEN"]
-  UI.user_error!("No CI_JOB_TOKEN environment variable set") unless job_token && !job_token.empty?
+  UI.user_error!("No CI_JOB_TOKEN environment variable set") if job_token.blank?
 
   Base64.strict_encode64("#{registry_user}:#{job_token}")
 end
@@ -55,10 +58,10 @@ end
 # Requires the following environment variables: [SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, SENTRY_URL].
 # SENTRY_AUTH_TOKEN enables the sentry_dart_plugin, after which the existense of the other variables is checked.
 private_lane :upload_sentry_symbols do
-  unless ENV["SENTRY_AUTH_TOKEN"].empty? then
-    UI.user_error!("Missing environment variable 'SENTRY_ORG'") if ENV["SENTRY_ORG"].empty?
-    UI.user_error!("Missing environment variable 'SENTRY_PROJECT'") if ENV["SENTRY_PROJECT"].empty?
-    UI.user_error!("Missing environment variable 'SENTRY_URL'") if ENV["SENTRY_URL"].empty?
+  unless ENV["SENTRY_AUTH_TOKEN"].blank? then
+    UI.user_error!("Missing environment variable 'SENTRY_ORG'") if ENV["SENTRY_ORG"].blank?
+    UI.user_error!("Missing environment variable 'SENTRY_PROJECT'") if ENV["SENTRY_PROJECT"].blank?
+    UI.user_error!("Missing environment variable 'SENTRY_URL'") if ENV["SENTRY_URL"].blank?
     sh(*flutter_cmd, "packages", "pub", "run", "sentry_dart_plugin")
   end
 end
@@ -79,7 +82,15 @@ end
 
 private_lane :upload_to_browserstack do |options|
   Dir.chdir("..") do
-    sh("curl", "-u", "#{options[:user]}:#{options[:key]}", "-X", "POST", "https://api-cloud.browserstack.com/app-automate/upload", "-F", "file=@#{options[:file]}", "-F", "custom_id=#{options[:custom_id]}", log: false)
+    sh(
+      "curl",
+      "-u", "#{options[:user]}:#{options[:key]}",
+      "-X", "POST",
+      "https://api-cloud.browserstack.com/app-automate/upload",
+      "-F", "file=@#{options[:file]}",
+      "-F", "custom_id=#{options[:custom_id]}",
+      log: false
+    )
   end
 end
 
@@ -92,7 +103,7 @@ platform :android do
   desc "Build and sign Android app"
   lane :build do |options|
     package_name = options[:package_name] || get_app_identifier
-    UI.user_error!("No package_name option set") unless package_name
+    UI.user_error!("No package_name option set") if package_name.blank?
 
     app_name = options[:app_name] || DEFAULT_APP_NAME
 
@@ -103,7 +114,7 @@ platform :android do
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
-    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
+    version = options[:version].blank? ? local_version : options[:version]
     file_format = options[:file_format] || "aab"
     build_mode = options[:build_mode] || "release"
     mock_repositories = options[:mock] || false
@@ -145,14 +156,14 @@ platform :android do
   desc "Deploy Android app from GitLab CI"
   lane :ci_deploy do |options|
     json_key_data = ENV["JSON_KEY_DATA"]
-    UI.user_error!("No JSON_KEY_DATA environment variable set") unless json_key_data && !json_key_data.empty?
+    UI.user_error!("No JSON_KEY_DATA environment variable set") if json_key_data.blank?
 
     package_name = options[:package_name]
-    UI.user_error!("No package_name or package_name option set") unless package_name
+    UI.user_error!("No package_name or package_name option set") if package_name.blank?
 
     # retrieve local version
     local_version, _ = get_local_version_and_build
-    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
+    version = options[:version].blank? ? local_version : options[:version]
 
     # upload non-mock app
     upload_to_play_store_internal_track(package_name: package_name, version: version, json_key_data: json_key_data)
@@ -163,14 +174,14 @@ platform :android do
     browserstack_user = ENV["BROWSERSTACK_USER"]
     browserstack_key = ENV["BROWSERSTACK_KEY"]
 
-    UI.user_error!("No BROWSERSTACK_USER environment variable set") unless browserstack_user && !browserstack_user.empty?
-    UI.user_error!("No BROWSERSTACK_KEY environment variable set") unless browserstack_key && !browserstack_key.empty?
+    UI.user_error!("No BROWSERSTACK_USER environment variable set") if browserstack_user.blank?
+    UI.user_error!("No BROWSERSTACK_KEY environment variable set") if browserstack_key.blank?
 
     package_name = options[:package_name]
-    UI.user_error!("No package_name or package_name option set") unless package_name
+    UI.user_error!("No package_name or package_name option set") if package_name.blank?
 
     local_version, _ = get_local_version_and_build
-    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
+    version = options[:version].blank? ? local_version : options[:version]
 
     browserstack(
       file: "#{package_name}-#{version || local_version}-profile.apk",
@@ -262,7 +273,7 @@ platform :ios do
   desc "Build and sign iOS app"
   lane :build do |options|
     bundle_id = options[:bundle_id] || get_app_identifier
-    UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
+    UI.user_error!("No app_identifier or bundle_id option set") if bundle_id.blank?
 
     app_name = options[:app_name] || DEFAULT_APP_NAME
 
@@ -273,7 +284,7 @@ platform :ios do
 
     local_version, local_build = get_local_version_and_build
     build = options[:build] || local_build
-    version = if options[:version].nil? || options[:version]&.empty? then local_version else options[:version] end
+    version = options[:version].blank? ? local_version : options[:version]
 
     build_mode = options[:build_mode] || "release"
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
@@ -339,7 +350,7 @@ platform :ios do
   desc "Deploy iOS app"
   lane :deploy do |options|
     bundle_id = options[:bundle_id] || get_app_identifier
-    UI.user_error!("No app_identifier or bundle_id option set") unless bundle_id
+    UI.user_error!("No app_identifier or bundle_id option set") if bundle_id.blank?
 
     upload_to_testflight(skip_submission: true, app_identifier: bundle_id)
   end

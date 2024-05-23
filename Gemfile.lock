@@ -299,6 +299,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  activesupport
   cocoapods
   fastlane
   nokogiri (~> 1.15.6)
