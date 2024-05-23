@@ -92,7 +92,7 @@ class QrScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.qr_code, color: context.colorScheme.onSurface),
+            Icon(Icons.qr_code, color: context.colorScheme.onSurfaceVariant),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.read<QrBloc>().add(const QrScanReset()),

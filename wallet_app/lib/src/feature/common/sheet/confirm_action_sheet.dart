@@ -124,7 +124,7 @@ class ConfirmActionSheet extends StatelessWidget {
     if (confirmButtonColor == null) return null;
     return ElevatedButtonThemeData(
       style: ElevatedButtonTheme.of(context).style?.copyWith(
-            backgroundColor: MaterialStatePropertyAll(confirmButtonColor!),
+            backgroundColor: WidgetStatePropertyAll(confirmButtonColor!),
           ),
     );
   }

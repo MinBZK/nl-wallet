@@ -54,7 +54,7 @@ class MenuRow extends StatelessWidget {
       child: Center(
         child: Icon(
           icon,
-          color: context.colorScheme.onSurface,
+          color: context.colorScheme.onSurfaceVariant,
         ),
       ),
     );
