@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashSet, convert::Infallible};
 
 use indexmap::IndexSet;
 
 use nl_wallet_mdoc::{
-    holder::{MdocCopies, TrustAnchor},
+    holder::{Mdoc, MdocCopies, MdocDataSource, StoredMdoc, TrustAnchor},
     utils::keys::{KeyFactory, MdocEcdsaKey},
 };
 use wallet_common::config::wallet_config::BaseUrl;
@@ -139,5 +139,45 @@ impl TokenRequest {
             client_id: None,
             redirect_uri: None,
         }
+    }
+}
+
+/// A type that implements `MdocDataSource` and simply returns
+/// the [`Mdoc`] contained in `DeviceResponse::example()`, if its
+/// `doc_type` is requested.
+#[derive(Debug)]
+pub struct MockMdocDataSource {
+    pub mdocs: Vec<Mdoc>,
+}
+pub type MdocIdentifier = String;
+impl Default for MockMdocDataSource {
+    fn default() -> Self {
+        MockMdocDataSource {
+            mdocs: vec![Mdoc::new_example_mock()],
+        }
+    }
+}
+
+impl MdocDataSource for MockMdocDataSource {
+    type MdocIdentifier = MdocIdentifier;
+    type Error = Infallible;
+
+    async fn mdoc_by_doc_types(
+        &self,
+        doc_types: &HashSet<&str>,
+    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
+        let stored_mdocs = self
+            .mdocs
+            .iter()
+            .filter(|mdoc| doc_types.contains(mdoc.doc_type.as_str()))
+            .cloned()
+            .enumerate()
+            .map(|(index, mdoc)| StoredMdoc {
+                id: format!("id_{}", index + 1),
+                mdoc,
+            })
+            .collect();
+
+        Ok(vec![stored_mdocs])
     }
 }

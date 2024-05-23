@@ -1,10 +1,8 @@
-use std::{collections::HashSet, convert::Infallible};
-
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
-    holder::{DeviceRequestMatch, Mdoc, MdocDataSource, ProposedDocument, StoredMdoc, TrustAnchor},
+    holder::{DeviceRequestMatch, ProposedDocument, TrustAnchor},
     server_keys::KeyPair,
     software_key_factory::SoftwareKeyFactory,
     test::{example_items_requests, DebugCollapseBts},
@@ -13,6 +11,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     jwt,
+    mock::MockMdocDataSource,
     openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse},
 };
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt};
@@ -59,7 +58,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
-    let auth_request = VpAuthorizationRequest::verify(&auth_request, trust_anchors).unwrap();
+    let (auth_request, _) = VpAuthorizationRequest::verify(&auth_request, trust_anchors).unwrap();
     let items_requests: ItemsRequests = auth_request.presentation_definition.direct().try_into().unwrap();
     let device_request = DeviceRequest::from_items_requests(items_requests.0.clone());
 
@@ -95,44 +94,4 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce).unwrap()
-}
-
-/// A type that implements `MdocDataSource` and simply returns
-/// the [`Mdoc`] contained in `DeviceResponse::example()`, if its
-/// `doc_type` is requested.
-#[derive(Debug)]
-pub struct MockMdocDataSource {
-    pub mdocs: Vec<Mdoc>,
-}
-pub type MdocIdentifier = String;
-impl Default for MockMdocDataSource {
-    fn default() -> Self {
-        MockMdocDataSource {
-            mdocs: vec![Mdoc::new_example_mock()],
-        }
-    }
-}
-
-impl MdocDataSource for MockMdocDataSource {
-    type MdocIdentifier = MdocIdentifier;
-    type Error = Infallible;
-
-    async fn mdoc_by_doc_types(
-        &self,
-        doc_types: &HashSet<&str>,
-    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
-        let stored_mdocs = self
-            .mdocs
-            .iter()
-            .filter(|mdoc| doc_types.contains(mdoc.doc_type.as_str()))
-            .cloned()
-            .enumerate()
-            .map(|(index, mdoc)| StoredMdoc {
-                id: format!("id_{}", index + 1),
-                mdoc,
-            })
-            .collect();
-
-        Ok(vec![stored_mdocs])
-    }
 }

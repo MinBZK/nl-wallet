@@ -247,6 +247,8 @@ pub enum AuthRequestValidationError {
     UnexpectedJwkAmount(usize),
     #[error("JWK of unsupported type or curve (kty or crv field)")]
     UnsupportedJwk,
+    #[error("no attributes were requested")]
+    NoAttributesRequested,
 }
 
 impl VpAuthorizationRequest {
@@ -295,7 +297,7 @@ impl VpAuthorizationRequest {
     pub fn verify(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<VpAuthorizationRequest, AuthRequestError> {
+    ) -> Result<(VpAuthorizationRequest, Certificate), AuthRequestError> {
         let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(jws, trust_anchors, &TimeGenerator)?;
 
         auth_request.validate()?;
@@ -308,7 +310,7 @@ impl VpAuthorizationRequest {
             });
         }
 
-        Ok(auth_request)
+        Ok((auth_request, rp_cert))
     }
 
     /// Validate that the request contents are compliant with the profile from ISO 18013-7 Appendix B.
@@ -392,6 +394,18 @@ impl VpAuthorizationRequest {
         }
         if !JwePublicKey::supported(jwks.first().unwrap()) {
             return Err(AuthRequestValidationError::UnsupportedJwk.into());
+        }
+
+        if self
+            .presentation_definition
+            .direct()
+            .input_descriptors
+            .iter()
+            .map(|i| i.constraints.fields.len())
+            .sum::<usize>()
+            == 0
+        {
+            return Err(AuthRequestValidationError::NoAttributesRequested.into());
         }
 
         Ok(())
@@ -649,6 +663,11 @@ impl VpAuthorizationResponse {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VpResponse {
+    pub redirect_uri: Option<BaseUrl>,
 }
 
 /// Serialize a Vec<T> with one item directly to the JSON serialization of T, and a Vec<T> with more items just to a

@@ -46,6 +46,7 @@ serde_urlencoded.workspace = true
 serde_with = { workspace = true }
 thiserror.workspace = true
 tokio = { workspace = true }
+tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
