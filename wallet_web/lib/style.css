@@ -1,3 +1,6 @@
+*:not(style, svg, path) {
+    all: unset;
+}
 
 :root, :host {
     --blue-color: #01689B;
@@ -6,4 +9,203 @@
 
 a {
     color: var(--blue-color) !important;
+}
+
+.xs {
+    width: 0.8rem;
+}
+
+.hidden {
+    display: none;
+    opacity: 0;
+}
+
+.visible {
+    opacity: 1;
+    display: block;
+    animation: fadeIn 300ms;
+}
+
+button {
+    background-color: var(--blue-color);
+    border: none;
+    border-radius: 16px;
+    color: white;
+    cursor: pointer;
+    padding: 10px 12px 10px 12px;
+}
+
+button:hover {
+    background-color: var(--bluer-color);
+}
+
+/* Button */
+button.default-button {
+    background-color: var(--blue-color);
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    padding: 10px 12px 10px 12px;
+}
+
+button.default-button:hover {
+    background-color: var(--bluer-color);
+}
+
+
+@-webkit-keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(1px);
+}
+
+
+.link {
+    background-color: white;
+    color: var(--blue-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.link:hover {
+    color: white;
+}
+
+.modal {
+    position: fixed;
+    display: block;
+
+    transform: translate(-50%, -30%);
+    top: 30%;
+    left: 50%;
+
+    width: 500px;
+    max-width: 100vw;
+
+    height: 690px;
+    max-height: 100vh;
+    z-index: 1050;
+
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: black 0 0 0 0, black 0 0 0 0, rgba(0, 0, 0, 0.4) 0 25px 50px -12px;
+
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.modal-guts {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-guts article {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 0 1rem;
+}
+
+.modal h1 {
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid #ececec;
+    font-size: 1rem;
+    margin-top: 10px;
+    padding: 25px 0;
+}
+
+.modal h2 {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    font-size: 1.2rem;
+    font-weight: bolder;
+}
+
+section.qr {
+    display: flex;
+    justify-content: center;
+    padding: 32px 0;
+}
+
+section.help {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+section.help div {
+    display: block;
+    padding-top: 18px;
+}
+
+section.footer {
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid #ececec;
+    margin-top: 20px;
+    padding: 25px 0;
+    font-size: 1rem;
+}
+
+section.device-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    margin-top: 2rem;
+}
+
+section.device-choice button {
+    display: flex;
+    justify-content: center;
+    width: 20rem;
+    padding: 16px 10px;
+}
+
+
+@media (max-width: 700px) {
+    .modal {
+        height: 90vh;
+        width: 90vw;
+    }
+
+    section.device-choice button {
+        width: 90%;
+    }
 }

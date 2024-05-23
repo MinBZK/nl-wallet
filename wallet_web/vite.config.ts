@@ -1,4 +1,5 @@
 import vue from "@vitejs/plugin-vue"
+import { fileURLToPath, URL } from "node:url"
 import { resolve } from "path"
 import { defineConfig } from "vite"
 import dts from "vite-plugin-dts"
@@ -11,7 +12,7 @@ export default defineConfig({
     "process.env": process.env
   },
   plugins: [
-    vue(),
+    vue({ customElement: true }),
     dts({ tsconfigPath: "tsconfig.build.json", cleanVueFileName: true, rollupTypes: true })
   ],
   build: {
@@ -24,5 +25,9 @@ export default defineConfig({
     },
     rollupOptions: {}
   },
-  resolve: { alias: { src: resolve("lib/") } }
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./lib", import.meta.url))
+    }
+  }
 })
