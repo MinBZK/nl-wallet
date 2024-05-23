@@ -243,7 +243,7 @@ impl From<SessionState<Done>> for SessionState<DisclosureData> {
 
 /// status without the underlying data
 #[derive(Debug, Deserialize, Serialize, strum::Display)]
-#[serde(rename_all = "UPPERCASE", tag = "status")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
 pub enum StatusResponse {
     Created { engagement_url: Url },
     WaitingForResponse,

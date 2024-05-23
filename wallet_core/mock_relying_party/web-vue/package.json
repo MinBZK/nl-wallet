@@ -15,8 +15,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "vue": "^3.4.21",
-    "nl-wallet-web": "file:../../../wallet_web"
+    "nl-wallet-web": "file:../../../wallet_web",
+    "vue": "^3.4.21"
   },
   "devDependencies": {
     "@playwright/test": "^1.43.0",
