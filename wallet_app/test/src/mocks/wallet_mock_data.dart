@@ -3,11 +3,9 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/model/card_front.dart';
 import 'package:wallet/src/domain/model/document.dart';
+import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
-import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
-import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
-import 'package:wallet/src/domain/model/timeline/signing_timeline_attribute.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -48,8 +46,8 @@ abstract class WalletMockData {
 
   static final WalletCardDetail cardDetail = WalletCardDetail(
     card: card,
-    latestIssuedOperation: null,
-    latestSuccessInteraction: null,
+    mostRecentIssuance: null,
+    mostRecentSuccessfulDisclosure: null,
   );
 
   static final Organization organization = Organization(
@@ -82,29 +80,27 @@ abstract class WalletMockData {
     url: 'https://example.org/agreement.pdf',
   );
 
-  static InteractionTimelineAttribute get interactionTimelineAttribute => InteractionTimelineAttribute(
-        dataAttributes: [WalletMockData.textDataAttribute],
-        dateTime: DateTime(2023, 1, 1),
-        organization: WalletMockData.organization,
-        status: InteractionStatus.success,
-        requestPurpose: 'Purpose'.untranslated,
-        policy: WalletMockData.policy,
-      );
+  static DisclosureEvent get disclosureEvent => WalletEvent.disclosure(
+        dateTime: DateTime(2024, 2, 1),
+        status: EventStatus.success,
+        relyingParty: organization,
+        purpose: 'disclosure'.untranslated,
+        cards: [card],
+        policy: policy,
+        disclosureType: DisclosureType.regular,
+      ) as DisclosureEvent;
 
-  static SigningTimelineAttribute get signingTimelineAttribute => SigningTimelineAttribute(
-        dataAttributes: [WalletMockData.textDataAttribute],
-        dateTime: DateTime(2023, 1, 1),
-        organization: WalletMockData.organization,
-        status: SigningStatus.success,
-        policy: WalletMockData.policy,
-        document: WalletMockData.document,
-      );
+  static SignEvent get signEvent => WalletEvent.sign(
+        dateTime: DateTime(2024, 1, 1),
+        status: EventStatus.success,
+        relyingParty: organization,
+        policy: policy,
+        document: document,
+      ) as SignEvent;
 
-  static OperationTimelineAttribute get operationTimelineAttribute => OperationTimelineAttribute(
-        dataAttributes: WalletMockData.card.attributes,
-        dateTime: DateTime(2023, 1, 1),
-        organization: WalletMockData.organization,
-        status: OperationStatus.issued,
-        card: WalletMockData.card,
-      );
+  static IssuanceEvent get issuanceEvent => WalletEvent.issuance(
+        dateTime: DateTime(2023, 12, 1),
+        status: EventStatus.success,
+        card: card,
+      ) as IssuanceEvent;
 }

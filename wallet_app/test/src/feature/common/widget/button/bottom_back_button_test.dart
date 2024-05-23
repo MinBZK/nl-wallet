@@ -1,39 +1,25 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/button/bottom_back_button.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
+import '../../../../util/test_utils.dart';
 
 void main() {
-  group('goldens', () {
-    testGoldens('light', (tester) async {
-      await tester.pumpWidgetBuilder(
-        const BottomBackButton(),
-        wrapper: walletAppWrapper(),
-        surfaceSize: const Size(200, 300),
-      );
-      await screenMatchesGolden(tester, 'bottom_back_button/light.divider');
-    });
-
-    testGoldens('dark', (tester) async {
-      await tester.pumpWidgetBuilder(
-        const BottomBackButton(),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
-        surfaceSize: const Size(200, 300),
-      );
-      await screenMatchesGolden(tester, 'bottom_back_button/dark.divider');
-    });
-  });
-
   group('widgets', () {
-    testWidgets('back button is visible', (tester) async {
+    testWidgets('buttons uses generic back button text', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const BottomBackButton());
 
-      // Validate that the back button exists
-      final buttonFinder = find.text('Back');
-      expect(buttonFinder, findsOneWidget);
+      final l10n = await TestUtils.englishLocalizations;
+      final textFinder = find.text(l10n.generalBottomBackCta);
+      expect(textFinder, findsOneWidget);
+    });
+
+    testWidgets('expected back icon is visible', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const BottomBackButton());
+
+      final iconFinder = find.byIcon(Icons.arrow_back);
+      expect(iconFinder, findsOneWidget);
     });
   });
 }

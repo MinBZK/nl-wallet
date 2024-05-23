@@ -8,10 +8,11 @@ import '../../wallet_constants.dart';
 import '../common/page/page_illustration.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
-import '../common/widget/button/confirm/confirm_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
@@ -71,19 +72,17 @@ class IntroductionPrivacyScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final nextButton = ConfirmButton(
+    FitsWidthWidget nextButton = PrimaryButton(
       key: const Key('introductionPrivacyScreenNextCta'),
       onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionConditionsRoute),
-      text: context.l10n.introductionPrivacyScreenNextCta,
-      icon: Icons.arrow_forward_rounded,
-      buttonType: ConfirmButtonType.primary,
+      text: Text(context.l10n.introductionPrivacyScreenNextCta),
+      icon: const Icon(Icons.arrow_forward_rounded),
     );
-    final privacyButton = ConfirmButton(
+    FitsWidthWidget privacyButton = TertiaryButton(
       key: const Key('introductionPrivacyScreenPrivacyCta'),
       onPressed: () => PlaceholderScreen.show(context, secured: false),
-      text: context.l10n.introductionPrivacyScreenPrivacyCta,
-      icon: Icons.arrow_forward_rounded,
-      buttonType: ConfirmButtonType.text,
+      text: Text(context.l10n.introductionPrivacyScreenPrivacyCta),
+      icon: const Icon(Icons.arrow_forward_rounded),
     );
     return Column(
       mainAxisSize: MainAxisSize.min,

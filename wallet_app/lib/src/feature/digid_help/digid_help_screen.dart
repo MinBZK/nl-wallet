@@ -77,8 +77,7 @@ class DigidHelpScreen extends StatelessWidget {
         ),
         LinkButton(
           onPressed: () => launchUriCatching(kRequestDigidUri, mode: LaunchMode.externalApplication),
-          customPadding: EdgeInsets.zero,
-          child: Text(context.l10n.digidHelpScreenNoDigidCta),
+          text: Text(context.l10n.digidHelpScreenNoDigidCta),
         ),
       ],
     );
@@ -100,8 +99,7 @@ class DigidHelpScreen extends StatelessWidget {
         ),
         LinkButton(
           onPressed: () => launchUriCatching(kDigidHelpUri, mode: LaunchMode.externalApplication),
-          customPadding: EdgeInsets.zero,
-          child: Text(context.l10n.digidHelpScreenHelpNeededCta),
+          text: Text(context.l10n.digidHelpScreenHelpNeededCta),
         ),
       ],
     );

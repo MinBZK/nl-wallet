@@ -31,14 +31,14 @@ class CardDataTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The Card attributes page displays all attributes on the card.")
+    @DisplayName("$USE_CASE.1 The Card attributes page displays all attributes on the card. [${JIRA_ID}]")
     fun verifyCardData() {
         assertTrue(cardDataScreen.visible(), "card data screen is not visible")
         assertTrue(cardDataScreen.dataAttributesVisible(), "data attributes are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The User can go back to the Card detail page.")
+    @DisplayName("$USE_CASE.2 The User can go back to the Card detail page. [${JIRA_ID}]")
     fun verifyBackButton() {
         cardDataScreen.clickBottomBackButton()
 
@@ -47,14 +47,14 @@ class CardDataTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The App displays a warning indicating that the shown data is only for the User to see.")
+    @DisplayName("$USE_CASE.3 The App displays a warning indicating that the shown data is only for the User to see. [${JIRA_ID}]")
     fun verifyDataPrivacyBanner() {
         assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "data privacy banner not visible")
     }
 
     //This test is commented out because of a missing UI element and click behaviour, bug ticket link: https://SSSS/browse/PVW-2401
     /*@RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 Clicking the warning provides: A motivation why it is important to keep data to yourself AND An explanation how the User can share this data (with QR).")
+    @DisplayName("$USE_CASE.4 Clicking the warning provides: A motivation why it is important to keep data to yourself AND An explanation how the User can share this data (with QR). [${JIRA_ID}]")
     fun verifyDataPrivacySheet() {
         cardDataScreen.clickDataPrivacyBanner()
 
@@ -63,20 +63,20 @@ class CardDataTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("$USE_CASE.5 The Card attribute labels are multi-lingual.")
+    @DisplayName("$USE_CASE.5 The Card attribute labels are multi-lingual. [${JIRA_ID}]")
     fun verifyDataLabelMultiLingual() {
         assertTrue(cardDataScreen.englishDataLabelsVisible(), "english data labels are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("$USE_CASE.6 The Card attribute values are multi-lingual if applicable and are rendered according to their schema.")
+    @DisplayName("$USE_CASE.6 The Card attribute values are multi-lingual if applicable and are rendered according to their schema. [${JIRA_ID}]")
     fun verifyDataValueMultiLingual() {
         assertTrue(cardDataScreen.englishDataValuesVisible(), "english data values are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.7 The App provides a button for help if the data seems incorrect. This leads to a help screen explaining what to do in case of incorrect data.")
+    @DisplayName("$USE_CASE.7 The App provides a button for help if the data seems incorrect. This leads to a help screen explaining what to do in case of incorrect data. [${JIRA_ID}]")
     fun verifyDataIncorrectButton() {
         cardDataScreen.scrollToEnd()
         cardDataScreen.clickDataIncorrectButton()

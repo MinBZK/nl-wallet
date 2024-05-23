@@ -31,24 +31,26 @@ class SetupSecurityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<SetupSecurityBloc>().state;
     return ScrollOffsetProvider(
       debugLabel: 'setup_security',
       child: Scaffold(
         restorationId: 'setup_security_scaffold',
         appBar: WalletAppBar(
-          leading: _buildBackButton(context),
-          actions: [_buildAboutAction(context)],
-          title: _buildTitle(context),
+          automaticallyImplyLeading: false,
+          leading: _buildBackButton(context, state),
+          actions: [_buildAboutAction(context, state)],
+          title: _buildTitle(context, state),
         ),
         body: PopScope(
-          canPop: !context.bloc.state.canGoBack,
+          canPop: state is SetupSecuritySelectPinInProgress,
           onPopInvoked: (didPop) {
             if (!didPop) context.bloc.add(SetupSecurityBackPressed());
           },
           child: SafeArea(
             child: Column(
               children: [
-                _buildStepper(),
+                _buildStepper(state),
                 Expanded(child: _buildPage()),
               ],
             ),
@@ -58,13 +60,10 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStepper() {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
-      buildWhen: (prev, current) => prev.stepperProgress != current.stepperProgress,
-      builder: (context, state) => StepperIndicator(
-        currentStep: state.stepperProgress.currentStep,
-        totalSteps: state.stepperProgress.totalSteps,
-      ),
+  Widget _buildStepper(SetupSecurityState state) {
+    return StepperIndicator(
+      currentStep: state.stepperProgress.currentStep,
+      totalSteps: state.stepperProgress.totalSteps,
     );
   }
 
@@ -128,24 +127,23 @@ class SetupSecurityScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildBackButton(BuildContext context) {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
-      builder: (context, state) {
-        return AnimatedVisibilityBackButton(
-          visible: state.canGoBack,
-          onPressed: () => context.bloc.add(SetupSecurityBackPressed()),
-        );
+  Widget? _buildBackButton(BuildContext context, SetupSecurityState state) {
+    if (state is SetupSecurityCompleted) return null; // Allow title to align to the left in [WalletAppBar].
+    return AnimatedVisibilityBackButton(
+      visible: state.canGoBack,
+      onPressed: () {
+        if (state is SetupSecuritySelectPinInProgress) {
+          Navigator.maybePop(context);
+        } else {
+          context.bloc.add(SetupSecurityBackPressed());
+        }
       },
     );
   }
 
-  Widget _buildAboutAction(BuildContext context) {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
-      builder: (context, state) {
-        if (state is SetupSecurityCompleted) return const SizedBox.shrink();
-        return const InfoIconButton();
-      },
-    );
+  Widget _buildAboutAction(BuildContext context, SetupSecurityState state) {
+    if (state is SetupSecurityCompleted) return const SizedBox.shrink();
+    return const InfoIconButton();
   }
 
   Widget _buildSelectPinPage(BuildContext context, {required int enteredDigits}) {
@@ -180,8 +178,10 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildSetupCompletedPage(BuildContext context, SetupSecurityCompleted state) {
     return SetupSecurityCompletedPage(
       key: const Key('setupSecurityCompletedPage'),
-      onSetupWalletPressed: () =>
-          Navigator.restorablePushReplacementNamed(context, WalletRoutes.walletPersonalizeRoute),
+      onSetupWalletPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
+        WalletRoutes.walletPersonalizeRoute,
+        ModalRoute.withName(WalletRoutes.splashRoute),
+      ),
     );
   }
 
@@ -223,9 +223,6 @@ class SetupSecurityScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
           semanticLabel: Platform.isAndroid ? title : null,
           title: Text(title, style: context.textTheme.displayMedium),
           content: Text(body, style: context.textTheme.bodyLarge),
@@ -254,9 +251,6 @@ class SetupSecurityScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           scrollable: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
           semanticLabel: Platform.isAndroid ? title : null,
           title: Text(title, style: context.textTheme.displayMedium),
           content: Text(
@@ -274,25 +268,22 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTitle(BuildContext context) {
-    return BlocBuilder<SetupSecurityBloc, SetupSecurityState>(
-      builder: (context, state) {
-        String title = switch (state) {
-          SetupSecuritySelectPinInProgress() => '',
-          SetupSecuritySelectPinFailed() => '',
-          SetupSecurityPinConfirmationInProgress() => '',
-          SetupSecurityPinConfirmationFailed() => '',
-          SetupSecurityCreatingWallet() => '',
-          SetupSecurityCompleted() => context.l10n.setupSecurityCompletedPageTitle,
-          SetupSecurityGenericError() => '',
-          SetupSecurityNetworkError() => '',
-        };
-        return FadeInAtOffset(
-          appearOffset: 30,
-          visibleOffset: 60,
-          child: Text(title),
-        );
-      },
+  Widget _buildTitle(BuildContext context, SetupSecurityState state) {
+    String title = switch (state) {
+      SetupSecuritySelectPinInProgress() => '',
+      SetupSecuritySelectPinFailed() => '',
+      SetupSecurityPinConfirmationInProgress() => '',
+      SetupSecurityPinConfirmationFailed() => '',
+      SetupSecurityCreatingWallet() => '',
+      SetupSecurityCompleted() => context.l10n.setupSecurityCompletedPageTitle,
+      SetupSecurityGenericError() => '',
+      SetupSecurityNetworkError() => '',
+    };
+    if (title.isEmpty) return const SizedBox.shrink();
+    return FadeInAtOffset(
+      appearOffset: 30,
+      visibleOffset: 60,
+      child: Text(title),
     );
   }
 }

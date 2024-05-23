@@ -9,8 +9,6 @@ members = [
     "openid4vc",
     "platform_support",
     "tests_integration",
-    "tests_integration/common",
-    "tests_integration/performance",
     "wallet",
     "wallet/entity",
     "wallet/migration",
@@ -125,14 +123,15 @@ tempfile = "3.9.0"
 thiserror = "1.0.39"
 time = "0.3.31"
 tokio = { version = "1.27.0", default-features = false }
+tower = { version = "0.4.0", default-features = false }
 tower-http = { version = "0.4.0", default-features = false }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 trait-variant = "0.1.1"
-uniffi = { version = "0.24.1", default-features = false }
+uniffi = { version = "0.27.1", default-features = false }
 url = "2.4.0"
 uuid = "1.4.0"
-wiremock = "0.5.19"
+wiremock = "0.5.21"
 x509-parser = "0.15.1"
 
 [patch.crates-io]

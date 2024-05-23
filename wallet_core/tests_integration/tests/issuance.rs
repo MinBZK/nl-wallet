@@ -2,16 +2,16 @@ use std::sync::Arc;
 
 use url::Url;
 
-use openid4vc::{oidc::MockOidcClient, token::TokenRequest};
-use tests_integration_common::*;
-use wallet::{AttributeValue, Document};
+use openid4vc::token::TokenRequest;
+use tests_integration::common::*;
+use wallet::{mock::MockDigidSession, AttributeValue, Document};
 use wallet_common::utils;
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let digid_context = MockOidcClient::start_context();
-    digid_context.expect().return_once(|_, _, _, _| {
-        let mut session = MockOidcClient::default();
+    let digid_context = MockDigidSession::start_context();
+    digid_context.expect().return_once(|_, _| {
+        let mut session = MockDigidSession::default();
 
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {

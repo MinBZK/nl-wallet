@@ -10,7 +10,7 @@ class DataPrivacyBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.colorScheme.onBackground,
+        color: context.colorScheme.onSurface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -19,7 +19,7 @@ class DataPrivacyBanner extends StatelessWidget {
             child: Text(
               context.l10n.cardDataScreenDataPrivacyBanner,
               style: context.textTheme.bodyLarge?.copyWith(
-                color: context.colorScheme.background,
+                color: context.colorScheme.surface,
               ),
             ),
           ),
@@ -29,7 +29,7 @@ class DataPrivacyBanner extends StatelessWidget {
             width: 24,
             child: Icon(
               Icons.back_hand_outlined,
-              color: context.colorScheme.background,
+              color: context.colorScheme.surface,
             ),
           ),
         ],

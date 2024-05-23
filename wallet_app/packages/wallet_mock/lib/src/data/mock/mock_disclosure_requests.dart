@@ -137,6 +137,14 @@ final _kMarketplaceLoginRequestedAttributes = [
     key: 'mock.birthDate',
   ),
   RequestedAttribute(
+    label: 'Straatnaam',
+    key: 'mock.streetName',
+  ),
+  RequestedAttribute(
+    label: 'Huisnummer',
+    key: 'mock.houseNumber',
+  ),
+  RequestedAttribute(
     label: 'Postcode',
     key: 'mock.postalCode',
   ),

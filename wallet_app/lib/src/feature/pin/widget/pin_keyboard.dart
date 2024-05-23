@@ -17,7 +17,7 @@ class PinKeyboard extends StatelessWidget {
   final VoidCallback? onBackspacePressed;
   final VoidCallback? onBackspaceLongPressed;
 
-  /// The color used to draw the digits and backspace icon, defaults to [ColorScheme.onBackground]
+  /// The color used to draw the digits and backspace icon, defaults to [ColorScheme.onSurface]
   final Color? color;
 
   const PinKeyboard({
@@ -30,7 +30,7 @@ class PinKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final keyColor = color ?? context.colorScheme.onBackground;
+    final keyColor = color ?? context.colorScheme.onSurface;
     return KeyboardListener(
       key: const Key('pinKeyboard'),
       focusNode: _keyboardFocusNode,

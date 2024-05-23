@@ -28,6 +28,7 @@ class WalletEventLog {
       .toList();
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
+    bool isLogin = disclosure.mapOrNull(request: (request) => request.requestedCards.onlyDisclosesBsn) == true;
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: disclosure.relyingParty,
@@ -49,19 +50,23 @@ class WalletEventLog {
         },
       ),
       status: status,
+      disclosureType: isLogin ? DisclosureType.Login : DisclosureType.Regular,
     );
     _logEvent(event);
   }
 
+  /// Log the moment where attributes are disclosed as part of the sign/issuance process
   void logDisclosureStep(
-      Organization organization, RequestPolicy policy, List<DisclosureCard> requestedCards, DisclosureStatus status) {
+      Organization organization, RequestPolicy policy, List<DisclosureCard> requestedCards, DisclosureStatus status,
+      {List<LocalizedString>? purpose}) {
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: organization,
-      purpose: ''.untranslated,
+      purpose: purpose ?? ''.untranslated,
       requestedCards: requestedCards,
       requestPolicy: policy,
       status: status,
+      disclosureType: requestedCards.onlyDisclosesBsn ? DisclosureType.Login : DisclosureType.Regular,
     );
     _logEvent(event);
   }
@@ -96,4 +101,10 @@ class WalletEventLog {
   }
 
   void reset() => _log.clear();
+}
+
+extension _DisclosureCardsExtension on List<DisclosureCard> {
+  bool get onlyDisclosesBsn {
+    return length == 1 && first.attributes.length == 1 && first.attributes.first.key == 'mock.citizenshipNumber';
+  }
 }

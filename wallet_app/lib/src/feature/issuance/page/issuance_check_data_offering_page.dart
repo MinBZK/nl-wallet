@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/page/check_data_offering_page.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 
 class IssuanceCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -30,14 +31,17 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
 
   Widget _buildBottomSection(BuildContext context) {
     return ConfirmButtons(
-      primaryButton: ConfirmButton.accept(
+      primaryButton: PrimaryButton(
+        key: const Key('acceptButton'),
         onPressed: onAcceptPressed,
-        text: context.l10n.issuanceCheckDataOfferingPagePositiveCta,
-        icon: Icons.check,
+        text: Text(context.l10n.issuanceCheckDataOfferingPagePositiveCta),
+        icon: const Icon(Icons.check),
       ),
-      secondaryButton: ConfirmButton.reject(
+      secondaryButton: SecondaryButton(
+        key: const Key('rejectButton'),
+        icon: null,
         onPressed: onDeclinePressed,
-        text: context.l10n.issuanceCheckDataOfferingPageNegativeCta,
+        text: Text(context.l10n.issuanceCheckDataOfferingPageNegativeCta),
       ),
     );
   }

@@ -43,7 +43,7 @@ class SecuritySetupCompletedTests : TestBase() {
      */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 Wallet confirms setup to user and offers button to start personalization flow.")
+    @DisplayName("$USE_CASE.4 Wallet confirms setup to user and offers button to start personalization flow. [$JIRA_ID]")
     fun verifyStartPersonalization() {
         securitySetupCompletedScreen.clickNextButton()
 

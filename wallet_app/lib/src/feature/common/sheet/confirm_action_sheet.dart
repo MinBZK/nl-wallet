@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../widget/button/confirm/confirm_button.dart';
 import '../widget/button/confirm/confirm_buttons.dart';
+import '../widget/button/primary_button.dart';
+import '../widget/button/secondary_button.dart';
 
 class ConfirmActionSheet extends StatelessWidget {
   final VoidCallback? onCancelPressed;
@@ -71,15 +72,17 @@ class ConfirmActionSheet extends StatelessWidget {
             ],
             const Divider(height: 1),
             ConfirmButtons(
-              primaryButton: ConfirmButton.accept(
+              primaryButton: PrimaryButton(
+                key: const Key('acceptButton'),
                 onPressed: onConfirmPressed,
-                text: confirmButtonText,
-                icon: confirmIcon,
+                text: Text(confirmButtonText),
+                icon: confirmIcon == null ? null : Icon(confirmIcon),
               ),
-              secondaryButton: ConfirmButton.reject(
+              secondaryButton: SecondaryButton(
+                key: const Key('rejectButton'),
                 onPressed: onCancelPressed,
-                text: cancelButtonText,
-                icon: cancelIcon,
+                text: Text(cancelButtonText),
+                icon: cancelIcon == null ? null : Icon(cancelIcon),
               ),
             ),
           ],
@@ -121,7 +124,7 @@ class ConfirmActionSheet extends StatelessWidget {
     if (confirmButtonColor == null) return null;
     return ElevatedButtonThemeData(
       style: ElevatedButtonTheme.of(context).style?.copyWith(
-            backgroundColor: MaterialStatePropertyAll(confirmButtonColor!),
+            backgroundColor: WidgetStatePropertyAll(confirmButtonColor!),
           ),
     );
   }

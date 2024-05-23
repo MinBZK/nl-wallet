@@ -5,9 +5,10 @@ import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/launch_util.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
-import '../../common/widget/button/link_tile_button.dart';
+import '../../common/widget/button/list_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text/title_text.dart';
@@ -65,9 +66,9 @@ class OrganizationApprovePage extends StatelessWidget {
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
             const SliverSizedBox(height: 32),
             SliverToBoxAdapter(
-              child: LinkTileButton(
+              child: ListButton(
                 onPressed: onShowDetailsPressed,
-                child: Text(context.l10n.organizationApprovePageMoreInfoCta),
+                text: Text(context.l10n.organizationApprovePageMoreInfoCta),
               ),
             ),
             const SliverSizedBox(height: 32),
@@ -79,15 +80,17 @@ class OrganizationApprovePage extends StatelessWidget {
                 children: [
                   const Divider(height: 1),
                   ConfirmButtons(
-                    primaryButton: ConfirmButton.accept(
+                    primaryButton: PrimaryButton(
+                      key: const Key('acceptButton'),
                       onPressed: onAcceptPressed,
-                      text: _approveButtonText(context),
-                      icon: _primaryIcon(),
+                      text: Text(_approveButtonText(context)),
+                      icon: Icon(_primaryIcon()),
                     ),
-                    secondaryButton: ConfirmButton.reject(
+                    secondaryButton: SecondaryButton(
+                      key: const Key('rejectButton'),
                       onPressed: onDeclinePressed,
-                      text: _declineButtonText(context),
-                      icon: Icons.block_flipped,
+                      text: Text(_declineButtonText(context)),
+                      icon: const Icon(Icons.block_flipped),
                     ),
                   ),
                 ],

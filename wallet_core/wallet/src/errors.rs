@@ -8,6 +8,7 @@ pub use crate::{
     config::{ConfigurationError, FileStorageError},
     document::{AttributeValueType, DocumentMdocError},
     instruction::{InstructionError, RemoteEcdsaKeyError},
+    issuance::DigidSessionError,
     pin::{key::PinKeyError, validation::PinValidationError},
     storage::{KeyFileError, StorageError},
     wallet::{

@@ -67,7 +67,7 @@ default:
 
 .demo-release-tag:
   before_script:
-    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^demo-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^demo-v//')
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^demo-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^demo-v//')"
   rules:
     - if: $CI_COMMIT_TAG =~ /^demo-v\d+\.\d+\.\d+$/
       variables:
@@ -75,7 +75,7 @@ default:
 
 .mock-release-tag:
   before_script:
-    - export RELEASE_VERSION=$(echo $CI_COMMIT_TAG | grep -E '^mock-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^mock-v//')
+    - RELEASE_VERSION="$(echo $CI_COMMIT_TAG | grep -E '^mock-v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$' | sed -E 's/^mock-v//')"
   rules:
     - if: $CI_COMMIT_TAG =~ /^mock-v\d+\.\d+\.\d+$/
       variables:
@@ -151,7 +151,7 @@ default:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:29fdd4a4d07cbed3f0e359e449aed46a672d122a0c66fd2eb06c330648b89da2"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:e4f242877ebb2c9548e69c8cb5a9a615f6bc995cb38fdd8102f381f7b9a9609d"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -197,23 +197,6 @@ test-rust:
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
   cache: !reference [.rust-cache, cache]
-  script:
-    # Run tests, generate code coverage reports
-    - (cd wallet_core; cargo llvm-cov test --locked --lcov --output-path lcov.info)
-    - (cd wallet_core; cargo llvm-cov report --locked --cobertura --output-path unit-coverage.xml)
-  artifacts:
-    reports:
-      coverage_report:
-        path: wallet_core/unit-coverage.xml
-        coverage_format: cobertura
-    paths:
-      - wallet_core/lcov.info
-
-test-rust-integration:
-  rules: !reference [.default-or-release-or-merge-request, rules]
-  image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-rust@sha256:befd6633cdf0ea52c4e99ae08dd4746eed327e4467d2236df5ddff1f8eb9fc6a"
-  cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
@@ -233,15 +216,15 @@ test-rust-integration:
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
     - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migration --locked -- up
-    - cargo llvm-cov test --features db_test,hsm_test --test '*' --locked --lcov --output-path lcov_integration.info
-    - cargo llvm-cov report --locked --cobertura --output-path integration-coverage.xml
+    - cargo llvm-cov test --features integration_test --locked --lcov --output-path lcov.info
+    - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   artifacts:
     reports:
       coverage_report:
-        path: wallet_core/integration-coverage.xml
+        path: wallet_core/rust-coverage.xml
         coverage_format: cobertura
     paths:
-      - wallet_core/lcov_integration.info
+      - wallet_core/lcov.info
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -254,11 +237,12 @@ test-rust-integration:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package gba_hc_converter --bin gba_hc_converter
 
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:7db692251c9374b9faf00a6df847d0d84472a1c6bf4a8a02640acd8c43e85c7e"
   script:
     - !reference [.test-rust-compilation, script]
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
@@ -323,7 +307,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:e3d6a435449e3bb00611642c1fd780fe1a698559cd0b81cfb3da60e912149159"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:5a1d7011d329b757afee6471b56f091bc13c4cd19c49e2a6b3efd9688a3e8a4c"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -334,20 +318,41 @@ test-codegen:
     - git diff
     - if [ $(git diff --shortstat | wc -l) -gt 0 ]; then echo "Code generation results in different files!"; exit 1; fi
 
-dependency-check:
+build-frontend-lib:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:88a6ff08245ccee24e4625fc19533985ebc745223a600e193b5e9b0c946f2c8b"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
+  script:
+    - (cd wallet_web; npm ci && npm run build)
+    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/vanillajs/
+    - (cd wallet_core/mock_relying_party/web-vue; npm ci && npm run type-check && npx vite build --base="/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/vue")
+  artifacts:
+    paths:
+      - wallet_web/dist
+      - wallet_core/mock_relying_party/web-vue/dist
+      - wallet_core/mock_relying_party/assets/vanillajs/nl-wallet-web.iife.js
+
+dependency-check:
+  extends: [.env-ont-k8s]
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:4c32c66768c6e1de95dda6bc51dc4a637f9ca7ed16a8ad1a29079281dda9dcc7"
   before_script:
+    - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
+    - (cd wallet_web; npm ci)
+    - (cd wallet_core/mock_relying_party/web-vue; npm ci)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
   script:
     - dependency-check.sh
       --data $CI_PROJECT_DIR/dependency_check_data
       --disableDart
+      --disableAssembly
+      --disableYarnAudit
       --enableExperimental
       --format "HTML" --format "JSON" --format "XML"
       --scan "."
       --suppression $CI_PROJECT_DIR/dependency_check_suppressions.xml
+      --nvdApiKey "$NVD_API_KEY"
   artifacts:
     when: always
     paths:
@@ -396,8 +401,6 @@ sonar-rust:
   needs:
     - job: test-rust
       artifacts: true
-    - job: test-rust-integration
-      artifacts: true
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -407,7 +410,7 @@ sonar-rust:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
-      -Dcommunity.rust.lcov.reportPaths="lcov.info,lcov_integration.info"
+      -Dcommunity.rust.lcov.reportPaths="lcov.info"
 
 sonar-flutter:
   rules: !reference [.default-or-merge-request, rules]
@@ -417,7 +420,7 @@ sonar-flutter:
     - job: dependency-check
       artifacts: true
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:2471ff5240b2f966e27aa34b901f6fc310f8d9972889b61153b12f8f1ffdf7b4"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:82cc7a4bf1bc970e4191ad45cdd6b5c0300e4dfa4de4bdf72ed8cc744bb8ece2"
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -475,8 +478,6 @@ build-wp-image:
   needs:
     - job: test-rust
       artifacts: false
-    - job: test-rust-integration
-      artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
   script:
@@ -493,8 +494,6 @@ build-wp-migrations-image:
   rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
-      artifacts: false
-    - job: test-rust-integration
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
@@ -515,6 +514,8 @@ build-mock-relying-party-image:
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
+    - job: build-frontend-lib
+      artifacts: true
   script:
     - /kaniko/executor
       --context wallet_core
@@ -546,8 +547,6 @@ build-ws-migrations-image:
   rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - job: test-rust
-      artifacts: false
-    - job: test-rust-integration
       artifacts: false
     - job: test-rust-compilation-android-linux
       artifacts: false
@@ -590,7 +589,7 @@ build-gba-hc-converter-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:7db692251c9374b9faf00a6df847d0d84472a1c6bf4a8a02640acd8c43e85c7e"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -817,7 +816,8 @@ build-ios-app-mock:
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
     - bundle install
-    - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
+    - JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
+    - export JSON_KEY_DATA
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
@@ -868,8 +868,10 @@ deploy-android-app-demo:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_USER
+    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - export BROWSERSTACK_KEY
     - bundle install
     - |
       bundle exec fastlane android ci_browserstack \
@@ -912,11 +914,11 @@ upload-browserstack-android-app-demo:
 #  script:
 #    - bundle install
 #    - bundle exec fastlane disable_flutter_analytics
-#    - bundle exec fastlane ios ci_deploy
-# # TODO: Authentication
-# # - export JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
-# #         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-# #         version:"${RELEASE_VERSION}"
+#    # TODO: Authentication
+#    - |
+#      bundle exec fastlane ios ci_deploy \
+#        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+#        version:"${RELEASE_VERSION}"
 
 # deploy-ios-app-latest:
 #   extends: .deploy-ios-app
@@ -958,14 +960,16 @@ upload-browserstack-android-app-demo:
 #     LANG: "C.UTF-8"
 #     FASTLANE_OPT_OUT_USAGE: "YES"
 #   script:
-#     - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-#     - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+#     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+#     - export BROWSERSTACK_USER
+#     - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+#     - export BROWSERSTACK_KEY
 #     - bundle install
-#     - |
-#       bundle exec fastlane ios ci_browserstack \
 # # TODO:
-#         # package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-#         # version:"${RELEASE_VERSION}"
+#    - |
+#      bundle exec fastlane ios ci_browserstack \
+#        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+#        version:"${RELEASE_VERSION}"
 
 # upload-browserstack-ios-app-latest:
 #   extends: [.env-ont-k8s, .upload-browserstack-ios-app]
@@ -999,7 +1003,7 @@ dependency-check-images:
     - job: build-wallet-server-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:2471ff5240b2f966e27aa34b901f6fc310f8d9972889b61153b12f8f1ffdf7b4"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:82cc7a4bf1bc970e4191ad45cdd6b5c0300e4dfa4de4bdf72ed8cc744bb8ece2"
   variables:
     GIT_STRATEGY: none
   before_script:
@@ -1192,8 +1196,10 @@ check-gitlab-ci-changed:
       - uiautomation/build/test-results
       - uiautomation/build/reports
   before_script:
-    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_USER
+    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - export BROWSERSTACK_KEY
     - set -euxo pipefail
     - java -version
     - git fetch origin

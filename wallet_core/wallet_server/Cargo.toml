@@ -19,7 +19,7 @@ required-features = ["cfg_test"]
 [[test]]
 name = "postgres"
 path = "tests/postgres.rs"
-required-features = ["postgres", "db_test"]
+required-features = ["db_test"]
 
 [features]
 default = ["postgres"]
@@ -28,9 +28,14 @@ allow_http_return_url = ["nl_wallet_mdoc/allow_http_return_url"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = ["cfg_test"]
-# Include and run test that depend on a valid configuration file
-cfg_test = []
+db_test = ["postgres", "cfg_test", "dep:serial_test", "nl_wallet_mdoc/test"]
+cfg_test = [
+    "dep:assert_matches",
+    "dep:indexmap",
+    "dep:parking_lot",
+    "tokio/test-util",
+    "nl_wallet_mdoc/mock_time",
+] # Include and run test that depend on a valid configuration file
 # Enable issuance
 issuance = [
     "axum/form",
@@ -46,15 +51,8 @@ mock = ["dep:rand", "issuance"]
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = [
-    "headers",
-    "http1",
-    "json",
-    "query",
-    "tokio",
-    "tower-log",
-    "tracing",
-] }
+assert_matches = { workspace = true, optional = true }
+axum = { workspace = true, features = ["headers", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
 ciborium = { workspace = true, optional = true }
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
@@ -69,10 +67,9 @@ mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 openssl = { workspace = true, features = ["vendored"] }
 p256 = { workspace = true, features = ["ecdsa"] }
+parking_lot = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = [
-    "rustls-tls-webpki-roots",
-] }
+reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 ring.workspace = true
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
@@ -85,14 +82,11 @@ serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
 serde_with = { workspace = true, features = ["base64", "hex"] }
+serial_test = { workspace = true, optional = true }
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = [
-    "macros",
-    "parking_lot",
-    "rt-multi-thread",
-] }
+tokio = { workspace = true, features = ["macros", "parking_lot", "rt-multi-thread"] }
 tower-http = { workspace = true, features = ["auth", "cors", "trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["parking_lot"] }
@@ -103,15 +97,4 @@ openid4vc = { path = "../openid4vc", optional = true }
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
-assert_matches.workspace = true
-indexmap.workspace = true
-parking_lot.workspace = true
 rstest.workspace = true
-serial_test.workspace = true
-tokio = { workspace = true, features = ["test-util"] }
-
-nl_wallet_mdoc = { path = "../mdoc", features = [
-    "generate",
-    "test",
-    "mock_time",
-] }

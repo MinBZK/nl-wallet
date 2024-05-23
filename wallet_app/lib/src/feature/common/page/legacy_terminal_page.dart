@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../widget/button/button_content.dart';
 import '../widget/button/link_button.dart';
 import '../widget/button/primary_button.dart';
-import '../widget/button/text_icon_button.dart';
+import '../widget/button/tertiary_button.dart';
 import '../widget/status_icon.dart';
 
 /// Base widget for the terminal (ending) page of the issuance/disclosure flow.
@@ -88,10 +89,12 @@ class LegacyTerminalPage extends StatelessWidget {
               ),
             ),
             if (tertiaryButtonCta != null)
-              LinkButton(
-                customPadding: const EdgeInsets.symmetric(horizontal: 16),
-                onPressed: onTertiaryButtonPressed,
-                child: Text(tertiaryButtonCta!),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: LinkButton(
+                  onPressed: onTertiaryButtonPressed,
+                  text: Text(tertiaryButtonCta!),
+                ),
               ),
             if (content != null) content!,
           ],
@@ -103,9 +106,10 @@ class LegacyTerminalPage extends StatelessWidget {
   Widget _buildBottomSection(BuildContext context) {
     Widget? secondaryButton;
     if (secondaryButtonCta != null) {
-      secondaryButton = TextIconButton(
+      secondaryButton = TertiaryButton(
         onPressed: onSecondaryButtonPressed,
-        child: Text(secondaryButtonCta!),
+        text: Text(secondaryButtonCta!),
+        iconPosition: IconPosition.end,
       );
     }
     return Column(
@@ -121,7 +125,7 @@ class LegacyTerminalPage extends StatelessWidget {
               PrimaryButton(
                 key: const Key('primaryButtonCta'),
                 onPressed: onPrimaryPressed,
-                text: primaryButtonCta,
+                text: Text(primaryButtonCta),
               ),
             ],
           ),

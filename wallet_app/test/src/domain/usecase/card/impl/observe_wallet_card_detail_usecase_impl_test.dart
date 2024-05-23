@@ -2,9 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
-import 'package:wallet/src/data/repository/history/timeline_attribute_repository.dart';
-import 'package:wallet/src/domain/model/timeline/interaction_timeline_attribute.dart';
-import 'package:wallet/src/domain/model/timeline/operation_timeline_attribute.dart';
+import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
+import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/domain/usecase/card/impl/observe_wallet_card_detail_usecase_impl.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecase.dart';
@@ -15,18 +14,18 @@ import '../../../../mocks/wallet_mocks.dart';
 void main() {
   late BehaviorSubject<List<WalletCard>> mockWalletCardsStream;
   late WalletCardRepository mockWalletCardRepository;
-  late TimelineAttributeRepository mockTimelineAttributeRepository;
+  late WalletEventRepository mockWalletEventRepository;
 
   late ObserveWalletCardDetailUseCase usecase;
 
   setUp(() {
     mockWalletCardsStream = BehaviorSubject<List<WalletCard>>();
     mockWalletCardRepository = MockWalletCardRepository();
-    mockTimelineAttributeRepository = MockTimelineAttributeRepository();
+    mockWalletEventRepository = MockWalletEventRepository();
 
     usecase = ObserveWalletCardDetailUseCaseImpl(
       mockWalletCardRepository,
-      mockTimelineAttributeRepository,
+      mockWalletEventRepository,
     );
   });
 
@@ -35,9 +34,9 @@ void main() {
       final WalletCard mockCard = WalletMockData.card;
 
       when(mockWalletCardRepository.observeWalletCards()).thenAnswer((_) => mockWalletCardsStream);
-      when(mockTimelineAttributeRepository.readMostRecentInteraction(mockCard.id, InteractionStatus.success))
+      when(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.id, EventStatus.success))
           .thenAnswer((_) => Future.value(null));
-      when(mockTimelineAttributeRepository.readMostRecentOperation(mockCard.id, OperationStatus.issued))
+      when(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.id, EventStatus.success))
           .thenAnswer((_) => Future.value(null));
 
       expectLater(usecase.invoke(WalletMockData.card.id), emits(WalletMockData.cardDetail));
@@ -45,7 +44,8 @@ void main() {
       mockWalletCardsStream.add([WalletMockData.altCard, WalletMockData.card]);
 
       verify(mockWalletCardRepository.read(mockCard.id)).called(1);
-      verify(mockTimelineAttributeRepository.readFiltered(docType: mockCard.docType)).called(1);
+      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.id, EventStatus.success)).called(1);
+      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.id, EventStatus.success)).called(1);
     });
   });
 }

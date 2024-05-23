@@ -18,6 +18,7 @@ class BaseWalletTheme {
   static const _displaySmallTextStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
   static const _headlineMediumTextStyle = TextStyle(fontSize: 18, fontWeight: FontWeight.bold);
   static const _headlineSmallTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.w400, height: 32 / 24);
+  static const _titleLargeTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.4);
   static const _titleMediumTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.4);
   static const _titleSmallTextStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);
   static const _bodyLargeTextStyle = TextStyle(fontSize: 16, height: 1.5);
@@ -32,6 +33,7 @@ class BaseWalletTheme {
     displaySmall: _displaySmallTextStyle,
     headlineMedium: _headlineMediumTextStyle,
     headlineSmall: _headlineSmallTextStyle,
+    titleLarge: _titleLargeTextStyle,
     titleMedium: _titleMediumTextStyle,
     titleSmall: _titleSmallTextStyle,
     bodyLarge: _bodyLargeTextStyle,
@@ -55,6 +57,7 @@ class BaseWalletTheme {
       textStyle: buttonTextStyle,
       minimumSize: const Size.fromHeight(buttonMinHeight),
       shape: buttonShape,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
   );
 
@@ -69,6 +72,7 @@ class BaseWalletTheme {
       minimumSize: const Size.fromHeight(buttonMinHeight),
       shape: buttonShape,
       textStyle: buttonTextStyle,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
   );
 
@@ -76,6 +80,7 @@ class BaseWalletTheme {
     style: TextButton.styleFrom(
       minimumSize: const Size(0.0, buttonMinHeight),
       shape: buttonShape,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
   );
 
@@ -111,8 +116,8 @@ class BaseWalletTheme {
     crossAxisMargin: 8.0,
     mainAxisMargin: 8.0,
     radius: Radius.circular(8),
-    thickness: MaterialStatePropertyAll(4.0),
-    thumbVisibility: MaterialStatePropertyAll(true),
+    thickness: WidgetStatePropertyAll(4.0),
+    thumbVisibility: WidgetStatePropertyAll(true),
   );
 
 //endregion Other Themes

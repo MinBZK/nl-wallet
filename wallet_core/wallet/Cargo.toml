@@ -40,6 +40,7 @@ mime.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 parking_lot.workspace = true
+regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring = { workspace = true, features = ["std"] }
 sea-orm = { workspace = true, features = [
@@ -85,12 +86,12 @@ tokio = { workspace = true, features = [
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = [
-    "generate",
     "examples",
-    "software_keys",
+    "generate",
     "mdocs_map",
-    "test",
     "mock",
+    "software_keys",
+    "test",
 ] }
 openid4vc = { path = "../openid4vc", features = ["mock"] }
 # enable the "software" feature for platform_support when running tests

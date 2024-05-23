@@ -11,9 +11,6 @@ class ResetWalletDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
       title: Text(
         context.l10n.resetWalletDialogTitle,
         style: context.textTheme.displayMedium,

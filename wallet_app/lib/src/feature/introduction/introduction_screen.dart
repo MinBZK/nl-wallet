@@ -13,10 +13,11 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/screen/placeholder_screen.dart';
-import '../common/widget/button/confirm/confirm_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
@@ -264,19 +265,17 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           totalSteps: _kNrOfPages,
         ),
         ConfirmButtons(
-          primaryButton: ConfirmButton(
-            text: context.l10n.introductionNextPageCta,
+          primaryButton: PrimaryButton(
+            text: Text(context.l10n.introductionNextPageCta),
             onPressed: () => _onNextPressed(context),
-            icon: Icons.arrow_forward,
-            buttonType: ConfirmButtonType.primary,
+            icon: const Icon(Icons.arrow_forward),
             key: const Key('introductionNextPageCta'),
           ),
-          secondaryButton: ConfirmButton(
-            text: context.l10n.introductionSkipCta,
+          secondaryButton: TertiaryButton(
+            text: Text(context.l10n.introductionSkipCta),
             onPressed: () => _onSkipPressed(context),
-            icon: Icons.arrow_forward,
+            icon: const Icon(Icons.arrow_forward),
             key: const Key('introductionSkipCta'),
-            buttonType: ConfirmButtonType.text,
           ),
           hideSecondaryButton: _currentPage >= _kNrOfPages - 1.5,
         ),

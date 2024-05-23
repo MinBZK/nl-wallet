@@ -8,10 +8,11 @@ import '../../wallet_constants.dart';
 import '../common/page/page_illustration.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/bullet_list.dart';
-import '../common/widget/button/confirm/confirm_button.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 
@@ -71,20 +72,15 @@ class IntroductionConditionsScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    final nextButton = ConfirmButton(
+    FitsWidthWidget nextButton = PrimaryButton(
       key: const Key('introductionConditionsScreenNextCta'),
-      onPressed: () => Navigator.of(context).restorablePushNamedAndRemoveUntil(
-        WalletRoutes.setupSecurityRoute,
-        ModalRoute.withName(WalletRoutes.splashRoute),
-      ),
-      icon: Icons.arrow_forward_rounded,
-      text: context.l10n.introductionConditionsScreenNextCta,
-      buttonType: ConfirmButtonType.primary,
+      onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.setupSecurityRoute),
+      icon: const Icon(Icons.arrow_forward_rounded),
+      text: Text(context.l10n.introductionConditionsScreenNextCta),
     );
-    final conditionsButton = ConfirmButton(
-      text: context.l10n.introductionConditionsScreenConditionsCta,
-      icon: Icons.arrow_forward_rounded,
-      buttonType: ConfirmButtonType.text,
+    FitsWidthWidget conditionsButton = TertiaryButton(
+      text: Text(context.l10n.introductionConditionsScreenConditionsCta),
+      icon: const Icon(Icons.arrow_forward_rounded),
       onPressed: () => PlaceholderScreen.show(context, secured: false),
       key: const Key('introductionConditionsScreenConditionsCta'),
     );

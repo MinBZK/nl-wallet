@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/widget/button/text_icon_button.dart';
+import '../../common/widget/button/button_content.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/utility/check_permission_on_resume.dart';
 import '../bloc/qr_bloc.dart';
 
@@ -31,23 +32,24 @@ class QrNoPermission extends StatelessWidget {
           const Spacer(),
           Icon(
             Icons.camera_alt_outlined,
-            color: context.colorScheme.onSurface,
+            color: context.colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),
           CheckPermissionOnResume(
             permission: Permission.camera,
             onPermissionGranted: () => context.read<QrBloc>().add(const QrScanCheckPermission()),
-            child: TextIconButton(
-              onPressed: () {
-                if (isPermanentlyDenied) {
-                  openAppSettings();
-                } else {
-                  context.read<QrBloc>().add(const QrScanCheckPermission());
-                }
-              },
-              child: Text(
-                context.l10n.qrScanTabGrantPermissionCta,
-                textAlign: TextAlign.center,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: TertiaryButton(
+                onPressed: () {
+                  if (isPermanentlyDenied) {
+                    openAppSettings();
+                  } else {
+                    context.read<QrBloc>().add(const QrScanCheckPermission());
+                  }
+                },
+                iconPosition: IconPosition.end,
+                text: Text(context.l10n.qrScanTabGrantPermissionCta),
               ),
             ),
           ),

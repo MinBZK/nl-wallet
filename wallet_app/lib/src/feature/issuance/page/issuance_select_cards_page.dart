@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/screen/placeholder_screen.dart';
-import '../../common/widget/button/confirm/confirm_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/sliver_sized_box.dart';
 
@@ -76,10 +77,12 @@ class IssuanceSelectCardsPage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LinkButton(
-          customPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Text(context.l10n.issuanceSelectCardsPageDataIncorrectCta),
-          onPressed: () => PlaceholderScreen.show(context),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: LinkButton(
+            text: Text(context.l10n.issuanceSelectCardsPageDataIncorrectCta),
+            onPressed: () => PlaceholderScreen.show(context),
+          ),
         ),
         const Divider(
           height: 1,
@@ -112,15 +115,16 @@ class IssuanceSelectCardsPage extends StatelessWidget {
         children: [
           if (showNoSelectionError) _buildNoSelectionRow(context),
           ConfirmButtons(
-            primaryButton: ConfirmButton.accept(
+            primaryButton: PrimaryButton(
+              key: const Key('acceptButton'),
               onPressed: onAddSelectedPressed,
-              icon: Icons.arrow_forward,
-              text: context.l10n.issuanceSelectCardsPageAddCta,
+              text: Text(context.l10n.issuanceSelectCardsPageAddCta),
             ),
-            secondaryButton: ConfirmButton.reject(
+            secondaryButton: SecondaryButton(
+              key: const Key('rejectButton'),
               onPressed: onStopPressed,
-              icon: Icons.block,
-              text: context.l10n.issuanceSelectCardsPageStopCta,
+              icon: const Icon(Icons.block),
+              text: Text(context.l10n.issuanceSelectCardsPageStopCta),
             ),
           ),
         ],

@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/timeline/interaction_timeline_attribute.dart';
-import '../../../domain/model/timeline/operation_timeline_attribute.dart';
+import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
 import '../../../navigation/wallet_routes.dart';
@@ -14,7 +13,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/formatter/card_valid_until_time_formatter.dart';
 import '../../../util/formatter/operation_issued_time_formatter.dart';
 import '../../../util/formatter/time_ago_formatter.dart';
-import '../../../util/formatter/timeline_attribute_status_formatter.dart';
+import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/animated_fade_in.dart';
@@ -22,9 +21,11 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
+import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../organization/detail/organization_detail_screen.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
@@ -159,6 +160,7 @@ class CardDetailScreen extends StatelessWidget {
             child: _buildDetailContent(context, detail),
           ),
         ),
+        const SliverDivider(),
         const SliverSizedBox(height: 24),
       ],
     );
@@ -166,40 +168,44 @@ class CardDetailScreen extends StatelessWidget {
 
   Widget _buildDetailContent(BuildContext context, WalletCardDetail detail) {
     final card = detail.card;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
+    final rows = [
+      InfoRow(
+        icon: Icons.description_outlined,
+        title: Text(context.l10n.cardDetailScreenCardDataCta),
+        onTap: () => _onCardDataPressed(context, card),
+      ),
+      InfoRow(
+        icon: Icons.history_outlined,
+        title: Text(context.l10n.cardDetailScreenCardHistoryCta),
+        subtitle: Text(_createInteractionText(context, detail.mostRecentSuccessfulDisclosure)),
+        onTap: () => _onCardHistoryPressed(context, card.docType),
+      ),
+      InfoRow(
+        leading: OrganizationLogo(image: card.issuer.logo, size: 24),
+        title: Text(context.l10n.cardDetailScreenIssuerCta),
+        subtitle: Text(card.issuer.displayName.l10nValue(context)),
+        onTap: () => OrganizationDetailScreen.showPreloaded(context, card.issuer, false,
+            onReportIssuePressed: () => PlaceholderScreen.show(context)),
+      ),
+      if (card.config.updatable)
         InfoRow(
-          icon: Icons.description_outlined,
-          title: Text(context.l10n.cardDetailScreenCardDataCta),
-          onTap: () => _onCardDataPressed(context, card),
+          icon: Icons.replay_outlined,
+          title: Text(context.l10n.cardDetailScreenCardUpdateCta),
+          subtitle: Text(_createOperationText(context, detail.mostRecentIssuance)),
+          onTap: () => _onCardUpdatePressed(context, card),
         ),
-        const Divider(height: 1),
+      if (card.config.removable)
         InfoRow(
-          icon: Icons.history_outlined,
-          title: Text(context.l10n.cardDetailScreenCardHistoryCta),
-          subtitle: Text(_createInteractionText(context, detail.latestSuccessInteraction)),
-          onTap: () => _onCardHistoryPressed(context, card.docType),
+          icon: Icons.delete_outline_rounded,
+          title: Text(context.l10n.cardDetailScreenCardDeleteCta),
+          onTap: () => _onCardDeletePressed(context),
         ),
-        const Divider(height: 1),
-        if (card.config.updatable) ...[
-          InfoRow(
-            icon: Icons.replay_outlined,
-            title: Text(context.l10n.cardDetailScreenCardUpdateCta),
-            subtitle: Text(_createOperationText(context, detail.latestIssuedOperation)),
-            onTap: () => _onCardUpdatePressed(context, card),
-          ),
-          const Divider(height: 1),
-        ],
-        if (card.config.removable) ...[
-          InfoRow(
-            icon: Icons.delete_outline_rounded,
-            title: Text(context.l10n.cardDetailScreenCardDeleteCta),
-            onTap: () => _onCardDeletePressed(context),
-          ),
-          const Divider(height: 1)
-        ],
-      ],
+    ];
+    return ListView.separated(
+      shrinkWrap: true,
+      itemBuilder: (c, i) => rows[i],
+      separatorBuilder: (c, i) => const Divider(height: 1),
+      itemCount: rows.length,
     );
   }
 
@@ -212,12 +218,12 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  String _createInteractionText(BuildContext context, InteractionTimelineAttribute? attribute) {
+  String _createInteractionText(BuildContext context, DisclosureEvent? attribute) {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
-      final String status = TimelineAttributeStatusTextFormatter.map(context, attribute).toLowerCase();
+      final String status = WalletEventStatusTextMapper().map(context, attribute).toLowerCase();
       return context.l10n.cardDetailScreenLatestSuccessInteraction(
-        attribute.organization.displayName.l10nValue(context),
+        attribute.relyingParty.displayName.l10nValue(context),
         status,
         timeAgo,
       );
@@ -226,20 +232,18 @@ class CardDetailScreen extends StatelessWidget {
     }
   }
 
-  String _createOperationText(BuildContext context, OperationTimelineAttribute? attribute) {
-    if (attribute != null) {
-      DateTime issued = attribute.dateTime;
-      String issuedTime = OperationIssuedTimeFormatter.format(context, issued);
-      String issuedText = context.l10n.cardDetailScreenLatestIssuedOperation(issuedTime);
+  String _createOperationText(BuildContext context, IssuanceEvent? event) {
+    if (event == null) return context.l10n.cardDetailScreenLatestIssuedOperationUnknown;
 
-      DateTime validUntil = issued.add(const Duration(days: _kCardExpiresInDays));
-      String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
-      String validUntilText = context.l10n.cardDetailScreenCardValidUntil(validUntilTime);
+    String issuedTime = OperationIssuedTimeFormatter.format(context, event.dateTime);
+    String issuedText = context.l10n.cardDetailScreenLatestIssuedOperation(issuedTime);
 
-      return '$issuedText\n$validUntilText';
-    } else {
-      return context.l10n.cardDetailScreenLatestIssuedOperationUnknown;
-    }
+    // TODO: Don't hardcode expiry
+    DateTime validUntil = event.dateTime.add(const Duration(days: _kCardExpiresInDays));
+    String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
+    String validUntilText = context.l10n.cardDetailScreenCardValidUntil(validUntilTime);
+
+    return '$issuedText\n$validUntilText';
   }
 
   Widget _buildError(BuildContext context, CardDetailLoadFailure state) {
