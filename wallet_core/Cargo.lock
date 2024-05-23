@@ -2456,6 +2456,7 @@ dependencies = [
  "base64 0.21.4",
  "config",
  "dashmap",
+ "futures",
  "nl_wallet_mdoc",
  "reqwest",
  "serde",
