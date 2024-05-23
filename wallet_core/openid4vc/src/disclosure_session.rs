@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use futures::TryFutureExt;
 use itertools::Itertools;
+use reqwest::Response;
 use tracing::{info, warn};
 
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
@@ -21,9 +22,10 @@ use nl_wallet_mdoc::{
 };
 
 use crate::{
+    authorization::AuthorizationErrorCode,
     openid4vp::{
-        AuthRequestError, AuthResponseError, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject,
-        VpResponse,
+        AuthRequestError, AuthResponseError, VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse,
+        VpRequestUriObject, VpResponse,
     },
     ErrorResponse,
 };
@@ -74,6 +76,24 @@ pub trait VpMessageClient {
         url: BaseUrl,
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError>;
+
+    async fn send_error(
+        &self,
+        url: BaseUrl,
+        error: ErrorResponse<VpAuthorizationErrorCode>,
+    ) -> Result<Option<BaseUrl>, VpMessageClientError>;
+
+    async fn terminate(&self, url: BaseUrl) -> Result<Option<BaseUrl>, VpMessageClientError> {
+        self.send_error(
+            url,
+            ErrorResponse {
+                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                error_description: None,
+                error_uri: None,
+            },
+        )
+        .await
+    }
 }
 
 pub struct HttpVpMessageClient {
@@ -119,18 +139,39 @@ impl VpMessageClient for HttpVpMessageClient {
                     let error = response.json::<ErrorResponse<String>>().await?;
                     Err(VpMessageClientError::ErrorResponse(error))
                 } else {
-                    // If the RP does not wish to specify a redirect URI, then the spec does not say whether the RP
-                    // should send an empty JSON object, i.e. `{}`, or no body at all. So we accept both.
-                    let response_bytes = response.bytes().await?;
-                    if response_bytes.is_empty() {
-                        return Ok(None);
-                    }
-                    let response: VpResponse = serde_json::from_slice(&response_bytes)?;
-                    Ok(response.redirect_uri)
+                    deserialize_vp_response(response).await
                 }
             })
             .await
     }
+
+    async fn send_error(
+        &self,
+        url: BaseUrl,
+        error: ErrorResponse<VpAuthorizationErrorCode>,
+    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+        let response = self
+            .http_client
+            .post(url.into_inner())
+            .json(&error)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let response = deserialize_vp_response(response).await?;
+        Ok(response)
+    }
+}
+
+/// If the RP does not wish to specify a redirect URI, then the spec does not say whether the RP
+/// should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
+async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    let response_bytes = response.bytes().await?;
+    if response_bytes.is_empty() {
+        return Ok(None);
+    }
+    let response: VpResponse = serde_json::from_slice(&response_bytes)?;
+    Ok(response.redirect_uri)
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -151,7 +192,6 @@ pub struct DisclosureProposal<H, I> {
     data: CommonDisclosureData<H>,
     proposed_documents: Vec<ProposedDocument<I>>,
     mdoc_nonce: String,
-    auth_request: VpAuthorizationRequest,
 }
 
 #[derive(Debug)]
@@ -159,6 +199,7 @@ struct CommonDisclosureData<H> {
     client: H,
     certificate: Certificate,
     reader_registration: ReaderRegistration,
+    auth_request: VpAuthorizationRequest,
 }
 
 pub enum VerifierSessionDataCheckResult<I> {
@@ -189,7 +230,7 @@ where
 
         // In the remainder of the session, all .unwrap() and .direct() calls on the auth_request are safe
         // because presence of the various fields have been checked by verify() above.
-        let mdoc_nonce = random_string(16);
+        let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
             auth_request.response_uri.as_ref().unwrap(),
             auth_request.oauth_request.client_id.clone(),
@@ -212,6 +253,7 @@ where
             client,
             certificate,
             reader_registration,
+            auth_request,
         };
 
         // Create the appropriate `DisclosureSession` invariant, which contains
@@ -228,7 +270,6 @@ where
                     data,
                     proposed_documents,
                     mdoc_nonce,
-                    auth_request,
                 })
             }
         };
@@ -323,7 +364,11 @@ where
     }
 
     pub async fn terminate(self) -> Result<(), VpClientError> {
-        todo!()
+        let data = self.data();
+        data.client
+            .terminate(data.auth_request.response_uri.as_ref().unwrap().clone())
+            .await?;
+        Ok(())
     }
 }
 
@@ -373,15 +418,16 @@ where
 
         info!("serialize and encrypt Authorization Response");
 
-        let jwe = VpAuthorizationResponse::new_encrypted(device_response, &self.auth_request, self.mdoc_nonce.clone())
-            .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err)))?;
+        let jwe =
+            VpAuthorizationResponse::new_encrypted(device_response, &self.data.auth_request, self.mdoc_nonce.clone())
+                .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err)))?;
 
         info!("send Authorization Response to verifier");
 
         let redirect_uri = self
             .data
             .client
-            .send_authorization_response(self.auth_request.response_uri.as_ref().unwrap().clone(), jwe)
+            .send_authorization_response(self.data.auth_request.response_uri.as_ref().unwrap().clone(), jwe)
             .await
             .map_err(|err| {
                 warn!("sending Authorization Response failed: {err:?}");
@@ -432,7 +478,8 @@ mod tests {
         disclosure_session::DisclosureSession,
         jwt,
         mock::MockMdocDataSource,
-        openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+        openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+        ErrorResponse,
     };
     use nl_wallet_mdoc::{
         examples::{Examples, IsoCertTimeGenerator},
@@ -541,6 +588,14 @@ mod tests {
             dbg!(DebugCollapseBts::from(disclosed_attrs));
 
             Ok(None)
+        }
+
+        async fn send_error(
+            &self,
+            _url: BaseUrl,
+            error: ErrorResponse<VpAuthorizationErrorCode>,
+        ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+            panic!("error: {:?}", error)
         }
     }
 

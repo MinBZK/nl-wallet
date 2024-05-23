@@ -30,7 +30,7 @@ use wallet_common::{
 };
 
 use crate::{
-    authorization::{AuthorizationRequest, ResponseMode, ResponseType},
+    authorization::{AuthorizationErrorCode, AuthorizationRequest, ResponseMode, ResponseType},
     jwt::{self, JwkConversionError, JwtX5cError},
     presentation_exchange::{FormatAlg, InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission},
     Format,
@@ -668,6 +668,16 @@ impl VpAuthorizationResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpResponse {
     pub redirect_uri: Option<BaseUrl>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum VpAuthorizationErrorCode {
+    AuthorizationError(AuthorizationErrorCode),
+    VpFormatsNotSupported,
+    InvalidPresentationDefinitionUri,
+    InvalidPresentationDefinitionReference,
+    InvalidRequestUriMethod,
 }
 
 /// Serialize a Vec<T> with one item directly to the JSON serialization of T, and a Vec<T> with more items just to a
