@@ -9,10 +9,8 @@ use axum::{
     routing::{get, post},
     Form, Json, Router,
 };
-use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use tower::ServiceBuilder;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use tracing::warn;
 use url::Url;
@@ -65,12 +63,7 @@ pub fn create_router(settings: Settings) -> Router {
             "/disclosure/sessions/:session_token/disclosed_attributes",
             get(disclosed_attributes),
         )
-        .layer(
-            ServiceBuilder::new()
-                .layer(NewSentryLayer::new_from_top())
-                .layer(SentryHttpLayer::with_transaction())
-                .layer(TraceLayer::new_for_http()),
-        )
+        .layer(TraceLayer::new_for_http())
         .with_state(application_state)
         .fallback_service(
             ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),

@@ -3,8 +3,6 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use axum::{routing::get, Router};
 use nl_wallet_mdoc::{server_state::SessionStore, verifier::DisclosureData};
-use sentry_tower::{NewSentryLayer, SentryHttpLayer};
-use tower::ServiceBuilder;
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 use tracing::debug;
 
@@ -28,12 +26,7 @@ fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
         router = router.layer(axum::middleware::from_fn(log_request_response));
     }
 
-    router.layer(
-        ServiceBuilder::new()
-            .layer(NewSentryLayer::new_from_top())
-            .layer(SentryHttpLayer::with_transaction())
-            .layer(TraceLayer::new_for_http()),
-    )
+    router.layer(TraceLayer::new_for_http())
 }
 
 fn setup_disclosure<S>(

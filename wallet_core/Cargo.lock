@@ -842,11 +842,9 @@ dependencies = [
  "http",
  "mime",
  "sentry",
- "sentry-tower",
  "serde",
  "serde_with",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
@@ -1696,7 +1694,6 @@ dependencies = [
  "reqwest",
  "rstest",
  "sentry",
- "sentry-tower",
  "serde",
  "serde-xml-rs",
  "serde_json",
@@ -1705,7 +1702,6 @@ dependencies = [
  "strum",
  "thiserror",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
@@ -2465,12 +2461,10 @@ dependencies = [
  "nl_wallet_mdoc",
  "reqwest",
  "sentry",
- "sentry-tower",
  "serde",
  "strum",
  "thiserror",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
@@ -3907,21 +3901,6 @@ checksum = "74fbf1c163f8b6a9d05912e1b272afa27c652e8b47ea60cb9a57ad5e481eea99"
 dependencies = [
  "sentry-backtrace",
  "sentry-core",
-]
-
-[[package]]
-name = "sentry-tower"
-version = "0.31.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88e782e369edac4adfc5bf528b27577270bc3e7023c388ebad9db08e1d56b30b"
-dependencies = [
- "axum",
- "http",
- "pin-project",
- "sentry-core",
- "tower-layer",
- "tower-service",
- "url",
 ]
 
 [[package]]
@@ -5385,13 +5364,11 @@ dependencies = [
  "p256",
  "rand_core 0.6.4",
  "sentry",
- "sentry-tower",
  "serde",
  "serde_json",
  "serde_with",
  "serial_test",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
@@ -5520,7 +5497,6 @@ dependencies = [
  "rstest",
  "sea-orm",
  "sentry",
- "sentry-tower",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5530,7 +5506,6 @@ dependencies = [
  "strum",
  "thiserror",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",

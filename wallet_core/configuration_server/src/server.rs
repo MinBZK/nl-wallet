@@ -12,8 +12,6 @@ use axum::{
 use axum_server::tls_rustls::RustlsConfig;
 use etag::EntityTag;
 use http::{header, HeaderMap, HeaderValue, StatusCode};
-use sentry_tower::{NewSentryLayer, SentryHttpLayer};
-use tower::ServiceBuilder;
 use tracing::{debug, info};
 
 use super::settings::Settings;
@@ -25,19 +23,12 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(socket)?;
     debug!("listening on {}", socket);
 
-    let app = Router::new()
-        .nest("/", health_router())
-        .nest(
-            "/config/v1",
-            Router::new()
-                .route("/wallet-config", get(configuration))
-                .with_state(settings.wallet_config_jwt.into_bytes()),
-        )
-        .layer(
-            ServiceBuilder::new()
-                .layer(NewSentryLayer::new_from_top())
-                .layer(SentryHttpLayer::with_transaction()),
-        );
+    let app = Router::new().nest("/", health_router()).nest(
+        "/config/v1",
+        Router::new()
+            .route("/wallet-config", get(configuration))
+            .with_state(settings.wallet_config_jwt.into_bytes()),
+    );
 
     axum_server::from_tcp_rustls(listener, config)
         .serve(app.into_make_service())
