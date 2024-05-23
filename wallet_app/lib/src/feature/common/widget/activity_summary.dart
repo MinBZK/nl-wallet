@@ -42,7 +42,7 @@ class ActivitySummary extends StatelessWidget {
                   children: [
                     Text(
                       _resolveTitle(context),
-                      style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurface),
+                      style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 8),
                     Text(

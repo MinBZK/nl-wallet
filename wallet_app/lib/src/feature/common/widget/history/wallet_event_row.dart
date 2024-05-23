@@ -68,7 +68,7 @@ class WalletEventRow extends StatelessWidget {
                 ExcludeSemantics(
                   child: Icon(
                     Icons.chevron_right,
-                    color: context.colorScheme.onBackground,
+                    color: context.colorScheme.onSurface,
                   ),
                 ),
               ],

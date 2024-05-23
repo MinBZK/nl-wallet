@@ -151,7 +151,7 @@ default:
 test-flutter:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:29fdd4a4d07cbed3f0e359e449aed46a672d122a0c66fd2eb06c330648b89da2"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7e741ecb10b07adec21f7328bbb8e8407ab80f299050fbff32ba764314390f97"
   script:
     - set -euxo pipefail
     - flutter --version
@@ -242,7 +242,7 @@ test-rust:
 test-rust-compilation-android-linux:
   extends: .test-rust-compilation
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:aed8e17cb3479ea2ad62942a4f00871400436a0c6bd802123be09c322a35d8fe"
   script:
     - !reference [.test-rust-compilation, script]
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
@@ -307,7 +307,7 @@ test-ios:
 test-codegen:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:e3d6a435449e3bb00611642c1fd780fe1a698559cd0b81cfb3da60e912149159"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter-rust@sha256:028589dc922c156aa2056dccf2e0c71bd793f325b4ba3701fffb152b88f95358"
   cache: !reference [.rust-cache, cache]
   script:
     - set -euxo pipefail
@@ -420,7 +420,7 @@ sonar-flutter:
     - job: dependency-check
       artifacts: true
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:2471ff5240b2f966e27aa34b901f6fc310f8d9972889b61153b12f8f1ffdf7b4"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:56bb32022328b2f9067181494540787088eed9d750f62606047f33dd26533468"
   variables:
     GIT_STRATEGY: clone
   before_script:
@@ -589,7 +589,7 @@ build-gba-hc-converter-image:
     - job: test-rust-compilation-android-linux
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:d45ba2611ae433d868f1910397d6ea6e4c1bef31e5df3982e644d495204019dc"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-android-flutter-rust@sha256:aed8e17cb3479ea2ad62942a4f00871400436a0c6bd802123be09c322a35d8fe"
   cache: !reference [.rust-cache, cache]
   artifacts:
     name: "wallet-android"
@@ -615,8 +615,6 @@ build-gba-hc-converter-image:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
-        sentry_dsn:"${SENTRY_DSN:-}" \
-        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION}"
   after_script:
@@ -638,6 +636,10 @@ build-android-app-latest-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_ONT}"
     SENTRY_ENVIRONMENT: "ont"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
+    SENTRY_ORG: "${SENTRY_ORG_ONT}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-latest-profile:
   extends: .build-android-app-latest
@@ -660,6 +662,10 @@ build-android-app-mock-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
+    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
+    SENTRY_URL: "https://sentry.io/"
 
 .build-android-app-demo:
   extends: [.env-demo-k8s, .build-android-app]
@@ -677,6 +683,10 @@ build-android-app-demo-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_DEMO}"
     SENTRY_ENVIRONMENT: "demo"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
+    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-android-app-demo-profile:
   extends: .build-android-app-demo
@@ -726,8 +736,6 @@ build-android-app-demo-profile:
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
         universal_link_base:"${UL_HOSTNAME}" \
-        sentry_dsn:"${SENTRY_DSN:-}" \
-        sentry_environment:"${SENTRY_ENVIRONMENT:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
@@ -746,6 +754,10 @@ build-ios-app-latest-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_ONT}"
     SENTRY_ENVIRONMENT: "ont"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ONT}"
+    SENTRY_ORG: "${SENTRY_ORG_ONT}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_ONT}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-latest-profile:
   extends: .build-ios-app-latest
@@ -766,6 +778,10 @@ build-ios-app-demo-release:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_DEMO}"
     SENTRY_ENVIRONMENT: "demo"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
+    SENTRY_ORG: "${SENTRY_ORG_DEMO}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
+    SENTRY_URL: "https://sentry.io/"
 
 build-ios-app-demo-profile:
   extends: .build-ios-app-demo
@@ -781,6 +797,10 @@ build-ios-app-mock:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
+    SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
+    SENTRY_ORG: "${SENTRY_ORG_MOCK}"
+    SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
+    SENTRY_URL: "https://sentry.io/"
 
 ### Android deploying
 .deploy-android-app:
@@ -983,7 +1003,7 @@ dependency-check-images:
     - job: build-wallet-server-image
       artifacts: false
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:2471ff5240b2f966e27aa34b901f6fc310f8d9972889b61153b12f8f1ffdf7b4"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:56bb32022328b2f9067181494540787088eed9d750f62606047f33dd26533468"
   variables:
     GIT_STRATEGY: none
   before_script:
@@ -1239,7 +1259,7 @@ run-automation-tests-14:
 build-sbom:
   rules: !reference [.default-branch, rules]
   image:
-    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:fde8c80553826d9bb81d6ef165fccf896391258c7e6d5e4c10e184f9dff829bd"
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-cyclonedx@sha256:0692a6bbdadb6606ff9b7661a47599562506cb6ea9b8bc0134311427575f1879"
   script:
     ## Rust
     - cargo cyclonedx --manifest-path wallet_core/Cargo.toml --format json

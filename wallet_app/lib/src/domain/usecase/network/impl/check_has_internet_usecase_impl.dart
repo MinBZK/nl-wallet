@@ -14,7 +14,7 @@ class CheckHasInternetUseCaseImpl implements CheckHasInternetUseCase {
   Future<bool> invoke() async {
     try {
       final result = await connectivity.checkConnectivity();
-      if (result == ConnectivityResult.none) return false;
+      if (result.firstOrNull == ConnectivityResult.none) return false;
       return await connectionChecker.hasConnection;
     } catch (ex, stack) {
       Fimber.e('Failed to check connectivity', ex: ex, stacktrace: stack);
