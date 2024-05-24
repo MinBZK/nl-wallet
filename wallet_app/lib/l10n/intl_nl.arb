@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-05-16T15:57:13+02:00",
+    "@@last_modified": "2024-05-23T14:48:47+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -735,7 +735,7 @@
     },
     "introductionWCAGDutchGovernmentLogoLabel": "Rijksoverheid logo",
     "invalidQrDialogCta": "OK",
-    "invalidQrDialogDescription": "Deze QR-code is niet geldig.",
+    "invalidQrDialogDescription": "De QR-code die je hebt gescand werd niet herkent. Controleer of je een Wallet QR-code gebruikt en probeer opnieuw.",
     "invalidQrDialogTitle": "Ongeldige QR-code",
     "issuanceCardAddedCloseCta": "Naar mijn overzicht",
     "issuanceCardAddedSubtitle": "Je kunt de gegevens vinden in je kaarten overzicht.",

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-05-16T15:57:13+02:00",
+    "@@last_modified": "2024-05-23T14:48:47+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -739,7 +739,7 @@
     },
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
     "invalidQrDialogCta": "OK",
-    "invalidQrDialogDescription": "This QR code is not valid.",
+    "invalidQrDialogDescription": "The scanned QR code is invalid. Ensure you are scanning a QR code for the NL Wallet and try again.",
     "invalidQrDialogTitle": "Invalid QR code",
     "issuanceCardAddedCloseCta": "To my overview",
     "issuanceCardAddedSubtitle": "Your card has been added",
