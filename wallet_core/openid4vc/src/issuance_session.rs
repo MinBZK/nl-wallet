@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, fmt::Debug};
 
 use futures::{future::try_join_all, TryFutureExt};
 use itertools::Itertools;
@@ -109,6 +109,7 @@ pub trait IssuanceSession<H = HttpOpenidMessageClient> {
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 }
 
+#[derive(Debug)]
 pub struct HttpIssuanceSession<H = HttpOpenidMessageClient> {
     message_client: H,
     session_state: IssuanceState,
@@ -264,6 +265,18 @@ struct IssuanceState {
     issuer_url: BaseUrl,
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
+}
+
+impl Debug for IssuanceState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IssuanceState")
+            .field("access_token", &self.access_token)
+            .field("c_nonce", &self.c_nonce)
+            .field("attestation_previews", &self.attestation_previews)
+            .field("issuer_url", &self.issuer_url)
+            .field("dpop_nonce", &self.dpop_nonce)
+            .finish_non_exhaustive() // don't show dpop_private_key
+    }
 }
 
 impl<H: OpenidMessageClient> HttpIssuanceSession<H> {
@@ -659,17 +672,14 @@ mod tests {
 
         let token_request = token_request();
 
-        let Err(error) = HttpIssuanceSession::start_issuance(
+        let error = HttpIssuanceSession::start_issuance(
             mock_msg_client,
             "https://example.com".parse().unwrap(),
             token_request,
             trust_anchors,
         )
         .await
-        else {
-            // Can't use .unwrap_err() because HttpIssuanceSession does not implement Debug
-            panic!("starting session should have returned an error")
-        };
+        .unwrap_err();
 
         assert_matches!(
             error,
@@ -704,17 +714,14 @@ mod tests {
 
         let token_request = token_request();
 
-        let Ok((client, previews)) = HttpIssuanceSession::start_issuance(
+        let (client, previews) = HttpIssuanceSession::start_issuance(
             mock_msg_client,
             "https://example.com".parse().unwrap(),
             token_request,
             trust_anchors,
         )
         .await
-        else {
-            // Can't use .unwrap_err() because HttpIssuanceSession does not implement Debug
-            panic!("starting session should not have returned an error")
-        };
+        .unwrap();
 
         assert_eq!(previews.len(), 2);
 
