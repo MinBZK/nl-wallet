@@ -20,7 +20,7 @@ use openid4vc::{
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     metadata::IssuerMetadata,
     oidc,
-    token::{AccessToken, AttestationPreview, TokenRequest, TokenRequestGrantType, TokenResponseWithPreviews},
+    token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
@@ -52,7 +52,7 @@ async fn accept_issuance() {
     let (session, previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
-        token_request(),
+        TokenRequest::new_mock(),
         &[(&ca).try_into().unwrap()],
     )
     .await
@@ -84,7 +84,7 @@ async fn reject_issuance() {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url,
-        token_request(),
+        TokenRequest::new_mock(),
         &[(&ca).try_into().unwrap()],
     )
     .await
@@ -104,7 +104,7 @@ async fn wrong_access_token() {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
-        token_request(),
+        TokenRequest::new_mock(),
         &[(&ca).try_into().unwrap()],
     )
     .await
@@ -132,7 +132,7 @@ async fn invalid_dpop() {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
-        token_request(),
+        TokenRequest::new_mock(),
         &[(&ca).try_into().unwrap()],
     )
     .await
@@ -160,7 +160,7 @@ async fn invalid_pop() {
     let (session, _previews) = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
-        token_request(),
+        TokenRequest::new_mock(),
         &[(&ca).try_into().unwrap()],
     )
     .await
@@ -178,17 +178,6 @@ async fn invalid_pop() {
 }
 
 // Helpers and mocks
-
-fn token_request() -> TokenRequest {
-    TokenRequest {
-        grant_type: TokenRequestGrantType::PreAuthorizedCode {
-            pre_authorized_code: "123".to_string().into(),
-        },
-        code_verifier: None,
-        client_id: None,
-        redirect_uri: None,
-    }
-}
 
 /// An implementation of [`OpenidMessageClient`] that sends its messages to the contained issuer
 /// directly by function invocation, optionally allowing the caller to mess with the input to trigger

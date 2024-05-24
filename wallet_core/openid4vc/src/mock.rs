@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use indexmap::IndexSet;
+
 use nl_wallet_mdoc::{
     holder::{MdocCopies, TrustAnchor},
     utils::keys::{KeyFactory, MdocEcdsaKey},
@@ -11,7 +12,7 @@ use crate::{
     issuance_session::{HttpOpenidMessageClient, IssuanceSession, IssuanceSessionError},
     metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
     oidc::Config,
-    token::{AttestationPreview, TokenRequest},
+    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
 };
 
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
@@ -124,6 +125,19 @@ impl IssuerMetadata {
                 credential_configurations_supported: HashMap::new(),
             },
             signed_metadata: None,
+        }
+    }
+}
+
+impl TokenRequest {
+    pub fn new_mock() -> TokenRequest {
+        TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                pre_authorized_code: "123".to_string().into(),
+            },
+            code_verifier: None,
+            client_id: None,
+            redirect_uri: None,
         }
     }
 }

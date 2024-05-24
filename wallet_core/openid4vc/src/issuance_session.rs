@@ -592,20 +592,9 @@ mod tests {
         nonempty::NonEmpty,
     };
 
-    use crate::token::{TokenRequestGrantType, TokenResponse};
+    use crate::token::TokenResponse;
 
     use super::*;
-
-    fn token_request() -> TokenRequest {
-        TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode {
-                code: "123".to_string().into(),
-            },
-            code_verifier: None,
-            client_id: None,
-            redirect_uri: None,
-        }
-    }
 
     fn mock_openid_message_client() -> MockOpenidMessageClient {
         let mut mock_msg_client = MockOpenidMessageClient::new();
@@ -670,7 +659,7 @@ mod tests {
                 ))
             });
 
-        let token_request = token_request();
+        let token_request = TokenRequest::new_mock();
 
         let error = HttpIssuanceSession::start_issuance(
             mock_msg_client,
@@ -712,7 +701,7 @@ mod tests {
             },
         );
 
-        let token_request = token_request();
+        let token_request = TokenRequest::new_mock();
 
         let (client, previews) = HttpIssuanceSession::start_issuance(
             mock_msg_client,
