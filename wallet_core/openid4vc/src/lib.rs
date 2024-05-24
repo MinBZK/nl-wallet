@@ -28,9 +28,10 @@ pub mod mock;
 
 pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {
+    #[default]
     MsoMdoc,
 
     // Other formats we don't currently support; we include them here so we can give the appropriate error message

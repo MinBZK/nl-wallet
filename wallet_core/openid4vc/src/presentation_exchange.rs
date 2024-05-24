@@ -12,6 +12,8 @@ use serde_with::skip_serializing_none;
 use nl_wallet_mdoc::{verifier::ItemsRequests, ItemsRequest};
 use wallet_common::utils::random_string;
 
+use crate::Format;
+
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,21 +27,14 @@ pub struct PresentationDefinition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputDescriptor {
     pub id: String,
-    pub format: Format,
+    pub format: RequestedFormat,
     pub constraints: Constraints,
 }
 
 #[derive(Debug, Clone, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum Format {
+pub enum RequestedFormat {
     MsoMdoc { alg: Vec<FormatAlg> },
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum FormatDesignation {
-    #[default]
-    MsoMdoc,
 }
 
 #[derive(Debug, Clone, Default, Hash, Serialize, Deserialize)]
@@ -78,7 +73,7 @@ impl From<&ItemsRequests> for PresentationDefinition {
                 .iter()
                 .map(|items_request| InputDescriptor {
                     id: items_request.doc_type.clone(),
-                    format: Format::MsoMdoc {
+                    format: RequestedFormat::MsoMdoc {
                         alg: vec![FormatAlg::ES256],
                     },
                     constraints: Constraints {
@@ -171,7 +166,7 @@ pub struct InputDescriptorMappingObject {
     /// Matches the `id` property of the Input Descriptor in the Presentation Definition that this Presentation
     /// Submission is related to.
     pub id: String,
-    pub format: FormatDesignation,
+    pub format: Format,
     pub path: String,
 }
 
@@ -182,7 +177,7 @@ mod tests {
 
     use nl_wallet_mdoc::{test::example_items_requests, verifier::ItemsRequests};
 
-    use crate::presentation_exchange::{Format, FormatAlg, LimitDisclosure};
+    use crate::presentation_exchange::{FormatAlg, LimitDisclosure, RequestedFormat};
 
     use super::PresentationDefinition;
 
@@ -230,7 +225,7 @@ mod tests {
         assert_eq!(input_descriptor.id, "org.iso.18013.5.1.mDL");
         assert_matches!(
             &input_descriptor.format,
-            Format::MsoMdoc { alg } if alg.len() == 1 && matches!(alg[0], FormatAlg::ES256)
+            RequestedFormat::MsoMdoc { alg } if alg.len() == 1 && matches!(alg[0], FormatAlg::ES256)
         );
         assert_matches!(input_descriptor.constraints.limit_disclosure, LimitDisclosure::Required);
 

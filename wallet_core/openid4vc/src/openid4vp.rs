@@ -32,9 +32,8 @@ use wallet_common::{
 use crate::{
     authorization::{AuthorizationRequest, ResponseMode, ResponseType},
     jwt::{self, JwkConversionError, JwtX5cError},
-    presentation_exchange::{
-        FormatAlg, FormatDesignation, InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission,
-    },
+    presentation_exchange::{FormatAlg, InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission},
+    Format,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -479,7 +478,7 @@ impl VpAuthorizationResponse {
                 .iter()
                 .map(|doc| InputDescriptorMappingObject {
                     id: doc.doc_type.clone(),
-                    format: FormatDesignation::MsoMdoc,
+                    format: Format::MsoMdoc,
                     path: "$".to_string(),
                 })
                 .collect(),
