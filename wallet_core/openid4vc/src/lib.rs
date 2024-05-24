@@ -20,7 +20,7 @@ pub mod metadata;
 
 pub mod oidc;
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
 pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
