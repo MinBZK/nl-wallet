@@ -9,7 +9,7 @@ use nl_wallet_mdoc::{
 use wallet_common::config::wallet_config::BaseUrl;
 
 use crate::{
-    issuance_session::{HttpOpenidMessageClient, IssuanceSession, IssuanceSessionError},
+    issuance_session::{HttpVcMessageClient, IssuanceSession, IssuanceSessionError},
     metadata::{CredentialResponseEncryption, IssuerData, IssuerMetadata},
     oidc::Config,
     token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
@@ -34,7 +34,7 @@ mockall::mock! {
 
 impl IssuanceSession for MockIssuanceSession {
     async fn start_issuance(
-        _: HttpOpenidMessageClient,
+        _: HttpVcMessageClient,
         _: BaseUrl,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
