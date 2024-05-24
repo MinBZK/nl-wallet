@@ -323,7 +323,7 @@ build-frontend-lib:
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
   script:
-    - (cd wallet_web; npm ci && npm run build)
+    - (cd wallet_web; npm ci && npm run test -- --run && npm run build)
     - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/vanillajs/
     - (cd wallet_core/mock_relying_party/web-vue; npm ci && npm run type-check && npx vite build --base="/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/vue")
   artifacts:
