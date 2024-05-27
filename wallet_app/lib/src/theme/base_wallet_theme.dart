@@ -118,6 +118,7 @@ class BaseWalletTheme {
     radius: Radius.circular(8),
     thickness: WidgetStatePropertyAll(4.0),
     thumbVisibility: WidgetStatePropertyAll(true),
+    trackVisibility: WidgetStatePropertyAll(true),
   );
 
 //endregion Other Themes

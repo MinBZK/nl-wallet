@@ -15,10 +15,12 @@ class SliverWalletAppBar extends StatefulWidget {
   final FlowProgress? progress;
   final List<Widget>? actions;
   final Widget? leading;
+  final bool automaticallyImplyLeading;
 
   const SliverWalletAppBar({
     required this.title,
     this.leading,
+    this.automaticallyImplyLeading = true,
     this.progress,
     this.actions,
     super.key,
@@ -52,9 +54,12 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
   @override
   Widget build(BuildContext context) {
     _topPadding = context.mediaQuery.padding.top;
-    final canPop = Navigator.of(context).canPop();
+
+    /// Decide if we should show the [WalletBackButton] when no [leading] widget is provided.
+    final showBackButton = Navigator.of(context).canPop() && widget.automaticallyImplyLeading;
     return SliverAppBar(
       pinned: true,
+      automaticallyImplyLeading: false,
       title: ValueListenableBuilder<double>(
         builder: (context, collapsedRatio, child) {
           return Opacity(
@@ -65,8 +70,8 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
         valueListenable: collapsedRatio,
         child: TitleText(widget.title),
       ),
-      leading: widget.leading ?? (canPop ? const BackIconButton() : null),
-      titleSpacing: widget.leading == null && !canPop ? null : 0.0,
+      leading: widget.leading ?? (showBackButton ? const BackIconButton() : null),
+      titleSpacing: widget.leading == null && !showBackButton ? null : 0.0,
       actions: widget.actions,
       collapsedHeight: toolbarHeight,
       expandedHeight: expandedHeight,

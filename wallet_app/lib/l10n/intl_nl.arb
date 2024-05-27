@@ -458,13 +458,16 @@
     "disclosureSuccessPageTitle": "Gelukt!",
     "disclosureSuccessPageToDashboardCta": "Naar mijn overzicht",
     "disclosureSuccessPageToWebsiteCta": "Ga naar website",
+    "errorDetailsSheetTitle": "Fout details",
     "errorScreenGeneralHelpCta": "Hulp nodig?",
     "errorScreenGenericCloseCta": "Sluiten",
     "errorScreenGenericDescription": "Het is niet gelukt. Wil je het opnieuw proberen?",
+    "errorScreenGenericDescriptionCloseVariant": "Het is niet gelukt. Wil je het opnieuw proberen?",
     "errorScreenGenericHeadline": "Er gaat iets mis",
     "errorScreenGenericTitle": "Fout",
-    "errorScreenNoInternetDescription": "Verbind met het internet. Probeer het daarna opnieuw.",
-    "errorScreenNoInternetHeadline": "Internetverbinding nodig",
+    "errorScreenNoInternetDescription": "Het lijkt erop dat je momenteel geen verbinding hebt met het internet. Controleer je internet-verbinding of probeer een ander netwerk. Probeer het vervolgens opnieuw.",
+    "errorScreenNoInternetDescriptionCloseVariant": "Het lijkt erop dat je momenteel geen verbinding hebt met het internet. Controleer je internet-verbinding of probeer een ander netwerk. Sluit de app en probeer het later opnieuw.",
+    "errorScreenNoInternetHeadline": "Sorry, geen internet",
     "errorScreenNoInternetTitle": "Fout",
     "errorScreenServerCloseCta": "Sluiten",
     "errorScreenServerDescription": "Controleer of je verbonden bent met het internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
@@ -478,15 +481,8 @@
     "forgotPinScreenTitle": "Pincode vergeten?",
     "generalBottomBackCta": "Terug",
     "generalCancelCta": "Annuleren",
-    "generalConfigVersionText": "Config versie: {versionCode}",
-    "@generalConfigVersionText": {
-        "placeholders": {
-            "versionCode": {
-                "example": "1337",
-                "type": "int"
-            }
-        }
-    },
+    "generalClose": "Sluiten",
+    "generalConfigVersionText": "App config.:",
     "generalDays": "{days, plural, one {{days} dag} other {{days} dagen}}",
     "@generalDays": {
         "placeholders": {
@@ -520,15 +516,7 @@
     "generalOkCta": "OK",
     "generalOn": "Aan",
     "generalOnDate": "Op",
-    "generalOsVersionText": "Besturingssysteem: {versionName}",
-    "@generalOsVersionText": {
-        "placeholders": {
-            "versionName": {
-                "example": "0.1.3",
-                "type": "String"
-            }
-        }
-    },
+    "generalOsVersionText": "Besturingssysteem:",
     "generalPolicyAllTermsCta": "Alle voorwaarden",
     "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
     "generalPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
@@ -557,22 +545,11 @@
         }
     },
     "generalSheetCloseCta": "Sluiten",
+    "generalShowDetailsCta": "Bekijk details",
     "generalTimeAgo": "geleden",
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
     "generalTrueValue": "Ja",
-    "generalVersionText": "App versie: {versionName} ({versionCode})",
-    "@generalVersionText": {
-        "placeholders": {
-            "versionCode": {
-                "example": "1337",
-                "type": "String"
-            },
-            "versionName": {
-                "example": "0.1.3",
-                "type": "String"
-            }
-        }
-    },
+    "generalVersionText": "App versie:",
     "generalWCAGBack": "Terug",
     "generalWCAGChangeLanguage": "Taal te selecteren",
     "generalWCAGClose": "Sluiten",

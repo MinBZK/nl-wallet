@@ -4,9 +4,14 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 class VersionText extends StatelessWidget {
-  final TextStyle? textStyle;
+  final TextStyle? prefixTextStyle;
+  final TextStyle? valueTextStyle;
 
-  const VersionText({this.textStyle, super.key});
+  const VersionText({
+    this.prefixTextStyle,
+    this.valueTextStyle,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,12 +20,18 @@ class VersionText extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final data = snapshot.data!;
-          return Text(
-            context.l10n.generalVersionText(
-              data.buildNumber,
-              data.version,
-            ),
-            style: textStyle ?? context.textTheme.bodyMedium,
+          return Row(
+            children: [
+              Text(
+                context.l10n.generalVersionText,
+                style: prefixTextStyle ?? context.textTheme.bodyMedium,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${data.version} (${data.buildNumber})',
+                style: valueTextStyle ?? context.textTheme.bodyMedium,
+              ),
+            ],
           );
         } else {
           return const SizedBox.shrink();
