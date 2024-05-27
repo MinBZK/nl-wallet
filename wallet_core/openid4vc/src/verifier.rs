@@ -15,7 +15,6 @@ use serde_with::{hex::Hex, serde_as};
 use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
-use url::Url;
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
@@ -70,7 +69,7 @@ pub enum VerificationError {
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
     #[error("redirect URI '{0}' does not match expected")]
-    RedirectUriMismatch(Url),
+    RedirectUriMismatch(BaseUrl),
     #[error("missing DNS SAN from RP certificate")]
     MissingSAN,
     #[error("RP certificate error: {0}")]
@@ -128,7 +127,7 @@ pub struct Created {
 pub struct WaitingForResponse {
     auth_request: VpAuthorizationRequest,
     encryption_key: EncryptionPrivateKey,
-    redirect_uri: Option<Url>,
+    redirect_uri: Option<BaseUrl>,
 }
 
 #[derive(Debug, Clone)]
@@ -146,7 +145,7 @@ pub struct Done {
 pub enum SessionResult {
     Done {
         disclosed_attributes: DisclosedAttributes,
-        redirect_uri: Option<Url>,
+        redirect_uri: Option<BaseUrl>,
     },
     Failed {
         error: String,
@@ -511,7 +510,7 @@ where
     pub async fn disclosed_attributes(
         &self,
         session_token: &SessionToken,
-        redirect_uri: Option<Url>,
+        redirect_uri: Option<BaseUrl>,
     ) -> Result<DisclosedAttributes, VerificationError> {
         match self
             .sessions
@@ -652,13 +651,13 @@ impl Session<Created> {
         Ok((session_token, session))
     }
 
-    fn new_redirect_uri(&self, session_token: &SessionToken, session_type: &SessionType) -> Option<Url> {
+    fn new_redirect_uri(&self, session_token: &SessionToken, session_type: &SessionType) -> Option<BaseUrl> {
         self.state.data.return_url_template.as_ref().map(|u| {
             let mut url = u.clone().into_url(session_token);
-            if matches!(session_type, SessionType::SameDevice) {
+            if *session_type == SessionType::SameDevice {
                 url.query_pairs_mut().append_pair("return_nonce", &random_string(32));
             }
-            url
+            url.try_into().unwrap() // ReturnUrlTemplate always starts with http(s):// so it is a BaseUrl
         })
     }
 
@@ -777,13 +776,17 @@ impl Session<WaitingForResponse> {
         let disclosed = auth_response.verify(&data.auth_request, mdoc_nonce, time, trust_anchors)?;
 
         let response = VpResponse {
-            redirect_uri: data.redirect_uri.clone().map(|u| u.try_into().unwrap()), // TODO
+            redirect_uri: data.redirect_uri.clone(),
         };
 
         Ok((response, disclosed))
     }
 
-    fn transition_finish(self, disclosed_attributes: DisclosedAttributes, redirect_uri: Option<Url>) -> Session<Done> {
+    fn transition_finish(
+        self,
+        disclosed_attributes: DisclosedAttributes,
+        redirect_uri: Option<BaseUrl>,
+    ) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Done {
                 disclosed_attributes,

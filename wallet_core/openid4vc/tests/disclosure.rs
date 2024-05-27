@@ -157,7 +157,7 @@ async fn test_client_and_server() {
 
     // Retrieve the attributes disclosed by the wallet
     let disclosed = verifier
-        .disclosed_attributes(&session_token, redirect_uri.map(|uri| uri.into_inner()))
+        .disclosed_attributes(&session_token, redirect_uri)
         .await
         .unwrap();
     dbg!(DebugCollapseBts::from(disclosed));
