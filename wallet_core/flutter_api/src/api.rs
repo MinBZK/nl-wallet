@@ -257,7 +257,8 @@ pub async fn has_active_pid_issuance_session() -> Result<bool> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
+#[allow(unused_variables)] // TODO: Actually use is_qr_code.
+pub async fn start_disclosure(uri: String, is_qr_code: bool) -> Result<StartDisclosureResult> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;

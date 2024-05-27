@@ -2902,6 +2902,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
   @override
   _i9.Future<_i7.StartDisclosureResult> startDisclosure({
     required String? uri,
+    required bool? isQrCode,
     dynamic hint,
   }) =>
       (super.noSuchMethod(
@@ -2910,6 +2911,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
           [],
           {
             #uri: uri,
+            #isQrCode: isQrCode,
             #hint: hint,
           },
         ),
@@ -2920,6 +2922,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
             [],
             {
               #uri: uri,
+              #isQrCode: isQrCode,
               #hint: hint,
             },
           ),
@@ -2931,6 +2934,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
             [],
             {
               #uri: uri,
+              #isQrCode: isQrCode,
               #hint: hint,
             },
           ),

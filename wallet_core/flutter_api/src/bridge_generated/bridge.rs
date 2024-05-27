@@ -279,7 +279,11 @@ fn wire_has_active_pid_issuance_session_impl(port_: MessagePort) {
         move || move |task_callback| has_active_pid_issuance_session(),
     )
 }
-fn wire_start_disclosure_impl(port_: MessagePort, uri: impl Wire2Api<String> + UnwindSafe) {
+fn wire_start_disclosure_impl(
+    port_: MessagePort,
+    uri: impl Wire2Api<String> + UnwindSafe,
+    is_qr_code: impl Wire2Api<bool> + UnwindSafe,
+) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, StartDisclosureResult, _>(
         WrapInfo {
             debug_name: "start_disclosure",
@@ -288,7 +292,8 @@ fn wire_start_disclosure_impl(port_: MessagePort, uri: impl Wire2Api<String> + U
         },
         move || {
             let api_uri = uri.wire2api();
-            move |task_callback| start_disclosure(api_uri)
+            let api_is_qr_code = is_qr_code.wire2api();
+            move |task_callback| start_disclosure(api_uri, api_is_qr_code)
         },
     )
 }
@@ -381,6 +386,11 @@ where
     }
 }
 
+impl Wire2Api<bool> for bool {
+    fn wire2api(self) -> bool {
+        self
+    }
+}
 impl Wire2Api<u8> for u8 {
     fn wire2api(self) -> u8 {
         self
