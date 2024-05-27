@@ -33,6 +33,7 @@ cfg_test = [
     "dep:assert_matches",
     "dep:indexmap",
     "dep:parking_lot",
+    "dep:serde_urlencoded",
     "tokio/test-util",
     "nl_wallet_mdoc/mock_time",
 ] # Include and run test that depend on a valid configuration file

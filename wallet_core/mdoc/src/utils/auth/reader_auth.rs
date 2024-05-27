@@ -283,7 +283,7 @@ mod tests {
     use indexmap::IndexMap;
     use rstest::rstest;
 
-    use crate::{utils::serialization::TaggedBytes, DeviceRequestVersion, DocRequest, ItemsRequest};
+    use crate::ItemsRequest;
 
     use super::*;
 
@@ -380,7 +380,7 @@ mod tests {
 
     #[test]
     fn verify_requested_attributes_in_device_request() {
-        let device_request = device_request_from_items_requests(vec![
+        let device_request = DeviceRequest::from_items_requests(vec![
             create_items_request(vec![(
                 "some_doctype",
                 vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     fn verify_requested_attributes_in_device_request_missing() {
-        let device_request = device_request_from_items_requests(vec![
+        let device_request = DeviceRequest::from_items_requests(vec![
             create_items_request(vec![(
                 "some_doctype",
                 vec![("some_namespace", vec!["some_attribute", "missing_attribute"])],
@@ -460,7 +460,7 @@ mod tests {
 
     #[test]
     fn validate_items_request() {
-        let request = device_request_from_items_requests(vec![create_items_request(vec![(
+        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
             "some_doctype",
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )])]);
@@ -485,7 +485,7 @@ mod tests {
 
     #[test]
     fn validate_items_request_missing_attribute() {
-        let request = device_request_from_items_requests(vec![create_items_request(vec![(
+        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
             "some_doctype",
             vec![("some_namespace", vec!["missing_attribute", "another_attribute"])],
         )])]);
@@ -502,7 +502,7 @@ mod tests {
 
     #[test]
     fn validate_items_request_missing_namespace() {
-        let request = device_request_from_items_requests(vec![create_items_request(vec![(
+        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
             "some_doctype",
             vec![("missing_namespace", vec!["some_attribute", "another_attribute"])],
         )])]);
@@ -520,7 +520,7 @@ mod tests {
 
     #[test]
     fn validate_items_request_missing_doctype() {
-        let request = device_request_from_items_requests(vec![create_items_request(vec![(
+        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
             "missing_doctype",
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )])]);
@@ -580,20 +580,6 @@ mod tests {
         ReaderRegistration {
             attributes,
             ..ReaderRegistration::new_mock()
-        }
-    }
-
-    fn doc_request_from_items_request(items_request: ItemsRequest) -> DocRequest {
-        DocRequest {
-            items_request: TaggedBytes(items_request),
-            reader_auth: None,
-        }
-    }
-
-    fn device_request_from_items_requests(items_requests: Vec<ItemsRequest>) -> DeviceRequest {
-        DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: items_requests.into_iter().map(doc_request_from_items_request).collect(),
         }
     }
 }

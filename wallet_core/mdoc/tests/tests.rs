@@ -5,16 +5,12 @@ use std::{
     sync::Arc,
 };
 
+use assert_matches::assert_matches;
 use base64::prelude::*;
 use futures::future;
 use ring::{hmac, rand};
 use rstest::rstest;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{
-    base64::{Base64, UrlSafe},
-    formats::Unpadded,
-    serde_as,
-};
+use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use webpki::TrustAnchor;
 
@@ -34,9 +30,10 @@ use nl_wallet_mdoc::{
         x509::Certificate,
     },
     verifier::{
-        DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse, Verifier, VerifierUrlParameters,
+        DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse, VerificationError, Verifier,
+        VerifierUrlParameters,
     },
-    ReaderEngagement,
+    Error, ReaderEngagement,
 };
 use wallet_common::generator::TimeGenerator;
 
@@ -199,18 +196,14 @@ async fn test_disclosure(
         setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()], authorized_documents);
 
     let session_token = verifier
-        .new_session(
-            requested_documents,
-            session_type,
-            Default::default(),
-            return_url_template.clone(),
-        )
+        .new_session(requested_documents, Default::default(), return_url_template.clone())
         .await
         .expect("creating new verifier session should succeed");
 
     let response = verifier
         .status_response(
             &session_token,
+            session_type,
             &"https://app.example.com/app".parse().unwrap(),
             &"https://example.com/disclosure".parse().unwrap(),
             &TimeGenerator,
@@ -232,20 +225,11 @@ async fn test_disclosure(
     )
     .expect("should always deserialize");
 
-    // Parse the return URL from the engagement URL (if present)
-    let return_url = engagement_url
-        .query_pairs()
-        .find(|(key, _)| key == "return_url")
-        .map(|(_, url)| url.parse().unwrap());
-    assert!(return_url_template.is_some() == return_url.is_some());
-
     // Encode the `ReaderEngagement` and start the disclosure session on the holder side.
     let reader_engagement_bytes = serialization::cbor_serialize(&reader_engagement).unwrap();
     let disclosure_session = DisclosureSession::start(
         verifier_client,
         &reader_engagement_bytes,
-        return_url,
-        session_type,
         &mdoc_data_source,
         &[(&verifier_ca).try_into().unwrap()],
     )
@@ -264,22 +248,32 @@ async fn test_disclosure(
         .await
         .expect("disclosure of proposed attributes should succeed");
 
-    // Note: same as in wallet_server, but not needed anywhere else in this crate
-    #[serde_as]
-    #[derive(Deserialize)]
-    struct DisclosedAttributesParams {
-        #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
-        transcript_hash: Option<Vec<u8>>,
+    let return_url_nonce = disclosure_session_proposal
+        .return_url()
+        .and_then(|return_url| return_url.query_pairs().find(|(key, _)| key == "nonce"))
+        .map(|(_, nonce)| nonce.into_owned());
+
+    if return_url_nonce.is_some() {
+        let error = verifier
+            .disclosed_attributes(&session_token, None)
+            .await
+            .expect_err("fetching disclosed attributes without a return URL nonce should fail");
+
+        assert_matches!(error, Error::Verification(VerificationError::ReturnUrlNonceMissing));
+
+        let error = verifier
+            .disclosed_attributes(&session_token, "incorrect".to_string().into())
+            .await
+            .expect_err("fetching disclosed attributes with incorrect return URL nonce should fail");
+
+        assert_matches!(
+            error,
+            Error::Verification(VerificationError::ReturnUrlNonceMismatch(nonce)) if nonce == "incorrect"
+        );
     }
 
-    let transcript_hash = disclosure_session_proposal.return_url().and_then(|u| {
-        serde_urlencoded::from_str::<DisclosedAttributesParams>(u.query().unwrap_or(""))
-            .expect("query of return URL should always parse")
-            .transcript_hash
-    });
-
     let disclosed_documents = verifier
-        .disclosed_attributes(&session_token, transcript_hash)
+        .disclosed_attributes(&session_token, return_url_nonce)
         .await
         .expect("verifier disclosed attributes should be present");
 
