@@ -1,7 +1,5 @@
 use std::error::Error;
 
-use wallet_common::try_init_sentry;
-
 use crate::settings::Settings;
 
 mod server;
@@ -14,7 +12,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let settings = Settings::new().unwrap();
 
     // Retain [`ClientInitGuard`]
-    let _guard = try_init_sentry!(settings.sentry);
+    let _guard = settings
+        .sentry
+        .as_ref()
+        .map(|sentry| sentry.init(sentry::release_name!()));
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()

@@ -1,7 +1,6 @@
 use anyhow::Result;
 
 use mock_relying_party::{server, settings::Settings};
-use wallet_common::try_init_sentry;
 
 // Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
 fn main() -> Result<()> {
@@ -11,7 +10,10 @@ fn main() -> Result<()> {
     let settings = Settings::new()?;
 
     // Retain [`ClientInitGuard`]
-    let _guard = try_init_sentry!(settings.sentry);
+    let _guard = settings
+        .sentry
+        .as_ref()
+        .map(|sentry| sentry.init(sentry::release_name!()));
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()

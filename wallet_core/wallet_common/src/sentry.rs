@@ -26,13 +26,3 @@ impl Sentry {
         ))
     }
 }
-
-/// Helper macro, to initialize Sentry from an `Option<Sentry>` reference.
-/// This macro ensures that the `release_name` of the main application is used.
-/// When the argument is `None`, sentry will not be initialized.
-#[macro_export]
-macro_rules! try_init_sentry {
-    ($x:expr) => {
-        $x.as_ref().map(|sentry| sentry.init(sentry::release_name!()))
-    };
-}

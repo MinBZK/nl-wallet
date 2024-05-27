@@ -1,7 +1,6 @@
 use anyhow::Result;
 use clap::Parser;
 
-use wallet_common::try_init_sentry;
 use wallet_server::{server, settings::Settings, store::SessionStores};
 
 #[cfg(feature = "issuance")]
@@ -31,7 +30,10 @@ fn main() -> Result<()> {
     let settings = Settings::new_custom(&args.config_file, &args.env_prefix)?;
 
     // Retain [`ClientInitGuard`]
-    let _guard = try_init_sentry!(settings.sentry);
+    let _guard = settings
+        .sentry
+        .as_ref()
+        .map(|sentry| sentry.init(sentry::release_name!()));
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
