@@ -264,7 +264,7 @@ pub enum SessionType {
     CrossDevice,
 }
 
-const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
+pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -30,6 +30,7 @@ chrono = { workspace = true, features = ["std", "clock"] }
 ciborium = { workspace = true, optional = true }
 derive_more.workspace = true
 futures.workspace = true
+hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit.workspace = true
@@ -38,12 +39,16 @@ mime.workspace = true
 mockall = { workspace = true, optional = true }
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
+rand_core.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json"] }
+ring.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true }
+strfmt.workspace = true
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true }
 tracing.workspace = true

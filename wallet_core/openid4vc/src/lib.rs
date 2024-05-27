@@ -23,6 +23,7 @@ pub mod oidc;
 pub mod disclosure_session;
 pub mod openid4vp;
 pub mod presentation_exchange;
+pub mod verifier;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;

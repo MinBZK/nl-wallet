@@ -11,7 +11,6 @@ use josekit::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_with::skip_serializing_none;
-use x509_parser::{error::X509Error, extensions::GeneralName};
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
@@ -44,12 +43,8 @@ pub enum AuthRequestError {
     CertificateParsing(#[from] CertificateError),
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtError),
-    #[error("error reading Subject Alternative Name in X.509 certificate: {0}")]
-    X509(#[source] X509Error),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
-    #[error("Subject Alternative Name in X.509 certificate was not a DNS name")]
-    UnexpectedSANType,
     #[error("failed to convert encryption key to JWK format")]
     JwkConversion(#[from] JwkConversionError),
     #[error("error verifying Authorization Request JWT: {0}")]
@@ -199,22 +194,6 @@ pub enum VpFormat {
     MsoMdoc { alg: Vec<FormatAlg> },
 }
 
-fn parse_dns_san(cert: &Certificate) -> Result<String, AuthRequestError> {
-    match cert
-        .to_x509()?
-        .subject_alternative_name()
-        .map_err(AuthRequestError::X509)?
-        .ok_or(AuthRequestError::MissingSAN)?
-        .value
-        .general_names
-        .first()
-        .ok_or(AuthRequestError::MissingSAN)?
-    {
-        GeneralName::DNSName(name) => Ok(name.to_string()),
-        _ => Err(AuthRequestError::UnexpectedSANType),
-    }
-}
-
 use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
@@ -263,7 +242,10 @@ impl VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             oauth_request: AuthorizationRequest {
                 response_type: ResponseType::VpToken,
-                client_id: parse_dns_san(rp_certificate)?,
+                client_id: rp_certificate
+                    .san_dns_name()
+                    .map_err(AuthRequestError::CertificateParsing)?
+                    .ok_or(AuthRequestError::MissingSAN)?,
                 nonce: Some(nonce),
                 response_mode: Some(ResponseMode::DirectPostJwt),
                 redirect_uri: None,
@@ -302,7 +284,7 @@ impl VpAuthorizationRequest {
 
         auth_request.validate()?;
 
-        let dns_san = parse_dns_san(&rp_cert)?;
+        let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestError::MissingSAN)?;
         if dns_san != auth_request.oauth_request.client_id {
             return Err(AuthRequestError::UnauthorizedClientId {
                 client_id: auth_request.oauth_request.client_id.clone(),
@@ -553,7 +535,7 @@ impl VpAuthorizationResponse {
 
     pub fn decrypt(
         jwe: String,
-        private_key: EcKeyPair,
+        private_key: &EcKeyPair,
         nonce: String,
     ) -> Result<(VpAuthorizationResponse, String), AuthResponseError> {
         let decrypter = EcdhEsJweAlgorithm::EcdhEs
@@ -690,7 +672,7 @@ mod value_or_array {
 
     pub fn serialize<S: Serializer, T: Serialize>(input: &[T], serializer: S) -> Result<S::Ok, S::Error> {
         match input.len() {
-            0 => Err(ser::Error::custom("can't serialize empty JsonVec")),
+            0 => Err(ser::Error::custom("can't serialize empty vec")),
             1 => input.first().unwrap().serialize(serializer),
             _ => input.serialize(serializer),
         }
@@ -699,8 +681,8 @@ mod value_or_array {
     pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<Vec<T>, D::Error> {
         let value = serde_json::Value::deserialize(deserializer)?;
         let vec = match value {
-            josekit::Value::Array(_) => serde_json::from_value(value).map_err(de::Error::custom)?,
-            josekit::Value::String(_) | josekit::Value::Object(_) => {
+            serde_json::Value::Array(_) => serde_json::from_value(value).map_err(de::Error::custom)?,
+            serde_json::Value::String(_) | serde_json::Value::Object(_) => {
                 vec![serde_json::from_value(value).map_err(de::Error::custom)?]
             }
             _ => return Err(de::Error::custom("unexpected JSON type")),
@@ -752,7 +734,7 @@ mod tests {
         let device_response = DeviceResponse::example();
         let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce.clone()).unwrap();
 
-        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, encryption_privkey, nonce).unwrap();
+        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_privkey, nonce).unwrap();
 
         assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
     }

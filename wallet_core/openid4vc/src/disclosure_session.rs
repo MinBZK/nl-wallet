@@ -546,26 +546,9 @@ mod tests {
         }
 
         fn start_session(&self) -> VpRequestUriObject {
-            let client_id = match self
-                .auth_keypair
-                .certificate()
-                .to_x509()
-                .unwrap()
-                .subject_alternative_name()
-                .unwrap()
-                .unwrap()
-                .value
-                .general_names
-                .first()
-                .unwrap()
-            {
-                x509_parser::extensions::GeneralName::DNSName(name) => name.to_string(),
-                _ => panic!("expected DNS name"),
-            };
-
             VpRequestUriObject {
                 request_uri: self.request_uri.clone(),
-                client_id,
+                client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
             }
         }
     }
@@ -591,7 +574,7 @@ mod tests {
             assert_eq!(url, self.response_uri);
 
             let (auth_response, mdoc_nonce) =
-                VpAuthorizationResponse::decrypt(jwe, self.encryption_keypair.clone(), self.nonce.clone()).unwrap();
+                VpAuthorizationResponse::decrypt(jwe, &self.encryption_keypair, self.nonce.clone()).unwrap();
             let disclosed_attrs = auth_response
                 .verify(
                     &self.auth_request,
