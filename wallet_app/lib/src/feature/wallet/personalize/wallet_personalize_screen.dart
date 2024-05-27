@@ -331,6 +331,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         body: ErrorPage.noInternet(
           context,
           onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+          style: ErrorCtaStyle.retry,
         ),
       );
     }

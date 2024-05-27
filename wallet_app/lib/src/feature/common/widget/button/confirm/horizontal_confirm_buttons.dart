@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../../../wallet_constants.dart';
 import 'confirm_buttons.dart';
@@ -6,6 +8,8 @@ import 'confirm_buttons.dart';
 class HorizontalConfirmButtons extends StatefulWidget {
   @visibleForTesting
   static const secondaryButtonAlignmentKey = Key('secondaryButtonAlignment');
+  @visibleForTesting
+  static const kHiddenXAlignment = -3.2;
 
   final Widget primaryButton;
   final Widget secondaryButton;
@@ -28,6 +32,7 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
 
   @override
   void initState() {
+    super.initState();
     controller = AnimationController(
       vsync: this,
       duration: kDefaultAnimationDuration,
@@ -37,7 +42,6 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
       parent: controller,
       curve: Curves.easeInOutCubic,
     );
-    super.initState();
   }
 
   @override
@@ -48,8 +52,8 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
 
   @override
   void didUpdateWidget(covariant HorizontalConfirmButtons oldWidget) {
-    controller.animateTo(widget.hideSecondaryButton ? 1 : 0);
     super.didUpdateWidget(oldWidget);
+    controller.animateTo(widget.hideSecondaryButton ? 1 : 0);
   }
 
   @override
@@ -59,14 +63,14 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
       builder: (context, child) {
         const defaultButtonSizeAsFraction = 0.5;
         final primarySizeTween = Tween(begin: defaultButtonSizeAsFraction, end: 1.0);
-        final secondaryButtonXAlignmentTween = Tween(begin: -1.0, end: -3.0);
+        final secondaryButtonXAlignmentTween = Tween(begin: -1.0, end: HorizontalConfirmButtons.kHiddenXAlignment);
         final centralPaddingTween = Tween(begin: ConfirmButtons.kButtonSpacing / 2.0, end: 0.0);
         return Stack(
           clipBehavior: Clip.none,
           children: [
             Align(
               key: HorizontalConfirmButtons.secondaryButtonAlignmentKey,
-              alignment: Alignment(secondaryButtonXAlignmentTween.evaluate(animation), 0.0),
+              alignment: Alignment(secondaryButtonXAlignmentTween.evaluate(animation), 1.0),
               child: FractionallySizedBox(
                 widthFactor: defaultButtonSizeAsFraction,
                 child: Padding(
@@ -79,7 +83,7 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
               ),
             ),
             Align(
-              alignment: Alignment.centerRight,
+              alignment: Alignment.bottomRight,
               child: FractionallySizedBox(
                 widthFactor: primarySizeTween.evaluate(animation),
                 child: Padding(

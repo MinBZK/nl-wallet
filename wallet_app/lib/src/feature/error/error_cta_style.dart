@@ -1,0 +1,1 @@
+enum ErrorCtaStyle { retry, close }

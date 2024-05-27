@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-05-16T15:57:13+02:00",
+    "@@last_modified": "2024-05-23T14:48:47+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -462,13 +462,16 @@
     "disclosureSuccessPageTitle": "Success!",
     "disclosureSuccessPageToDashboardCta": "To my overview",
     "disclosureSuccessPageToWebsiteCta": "Go to website",
+    "errorDetailsSheetTitle": "Error details",
     "errorScreenGeneralHelpCta": "Need help?",
     "errorScreenGenericCloseCta": "Close",
-    "errorScreenGenericDescription": "It didn't work. Would you like to try again?",
+    "errorScreenGenericDescription": "This action was unsuccessful. This may have several reasons. Please try again.",
+    "errorScreenGenericDescriptionCloseVariant": "This action was unsuccessful and this may have several reasons. Please close this app and try again later.",
     "errorScreenGenericHeadline": "Something went wrong",
     "errorScreenGenericTitle": "Error",
-    "errorScreenNoInternetDescription": "Connect to the internet. Then try again.",
-    "errorScreenNoInternetHeadline": "Internet connection needed",
+    "errorScreenNoInternetDescription": "It looks like you are currently not connected to the internet. Check your internet connection or try a different network. Then try again.",
+    "errorScreenNoInternetDescriptionCloseVariant": "It looks like you are currently not connected to the internet. Check your internet connection or try a different network. Close the app and try again later.",
+    "errorScreenNoInternetHeadline": "Sorry, no internet connection",
     "errorScreenNoInternetTitle": "Error",
     "errorScreenServerCloseCta": "Close",
     "errorScreenServerDescription": "Check if you are connected to the internet or use another network. Try again after doing so.",
@@ -482,15 +485,8 @@
     "forgotPinScreenTitle": "Forgot PIN code?",
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
-    "generalConfigVersionText": "Config version: {versionCode}",
-    "@generalConfigVersionText": {
-        "placeholders": {
-            "versionCode": {
-                "example": "1337",
-                "type": "int"
-            }
-        }
-    },
+    "generalClose": "Close",
+    "generalConfigVersionText": "App config.:",
     "generalDays": "{days, plural, one {{days} day} other {{days} days}}",
     "@generalDays": {
         "placeholders": {
@@ -524,15 +520,7 @@
     "generalOkCta": "OK",
     "generalOn": "On",
     "generalOnDate": "On",
-    "generalOsVersionText": "Operating System version: {versionName}",
-    "@generalOsVersionText": {
-        "placeholders": {
-            "versionName": {
-                "example": "0.1.3",
-                "type": "String"
-            }
-        }
-    },
+    "generalOsVersionText": "OS version:",
     "generalPolicyAllTermsCta": "All terms",
     "generalPolicyDataCanBeDeleted": "You can have data deleted.",
     "generalPolicyDataCanNotBeDeleted": "You can not delete data",
@@ -561,22 +549,11 @@
         }
     },
     "generalSheetCloseCta": "Close",
+    "generalShowDetailsCta": "See details",
     "generalTimeAgo": "ago",
     "generalTimeAgoLessThenOneMinute": "less then a minute",
     "generalTrueValue": "Yes",
-    "generalVersionText": "App version: {versionName} ({versionCode})",
-    "@generalVersionText": {
-        "placeholders": {
-            "versionCode": {
-                "example": "1337",
-                "type": "String"
-            },
-            "versionName": {
-                "example": "0.1.3",
-                "type": "String"
-            }
-        }
-    },
+    "generalVersionText": "App version:",
     "generalWCAGBack": "Back",
     "generalWCAGChangeLanguage": "Change language",
     "generalWCAGClose": "Close",
@@ -739,7 +716,7 @@
     },
     "introductionWCAGDutchGovernmentLogoLabel": "Dutch government logo",
     "invalidQrDialogCta": "OK",
-    "invalidQrDialogDescription": "This QR code is not valid.",
+    "invalidQrDialogDescription": "The scanned QR code is invalid. Ensure you are scanning a QR code for the NL Wallet and try again.",
     "invalidQrDialogTitle": "Invalid QR code",
     "issuanceCardAddedCloseCta": "To my overview",
     "issuanceCardAddedSubtitle": "Your card has been added",

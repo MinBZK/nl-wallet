@@ -70,12 +70,11 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
-        final String errorScreenTitle = context.l10n.setupSecurityScreenTitle;
         if (state is SetupSecurityGenericError) {
-          ErrorScreen.showGeneric(context, title: errorScreenTitle, secured: false);
+          ErrorScreen.showGeneric(context, secured: false);
         }
         if (state is SetupSecurityNetworkError) {
-          ErrorScreen.showNetwork(context, title: errorScreenTitle, networkError: tryCast(state), secured: false);
+          ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
         }
         if (state is SetupSecuritySelectPinFailed) {
           _showErrorDialog(context, state.reason).then((_) => context.bloc.add(PinBackspacePressed()));
