@@ -11,14 +11,14 @@ class WalletEventStatusColorMapper extends ContextMapper<WalletEvent, Color> {
   Color map(BuildContext context, WalletEvent input) {
     return switch (input) {
       DisclosureEvent() => mapDisclosureEvent(context, input),
-      IssuanceEvent() => context.colorScheme.onBackground,
-      SignEvent() => context.colorScheme.onBackground,
+      IssuanceEvent() => context.colorScheme.onSurface,
+      SignEvent() => context.colorScheme.onSurface,
     };
   }
 
   Color mapDisclosureEvent(BuildContext context, DisclosureEvent input) {
     return switch (input.status) {
-      EventStatus.success => context.colorScheme.onBackground,
+      EventStatus.success => context.colorScheme.onSurface,
       EventStatus.cancelled => context.colorScheme.error,
       EventStatus.error => context.colorScheme.error,
     };

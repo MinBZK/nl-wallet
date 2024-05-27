@@ -108,8 +108,8 @@
         </script>
         {% endif %}
         <script>
-            sessionUrl = '{{ urls.0 }}' // overwrite sessionUrl
-            disclosedAttributesUrl = '{{ urls.1 }}' // overwrite disclosedAttributesUrl
+            sessionUrl = '{{ urls.status_url }}' // overwrite sessionUrl
+            disclosedAttributesUrl = '{{ urls.disclosed_attributes_url }}' // overwrite disclosedAttributesUrl
         </script>
         {% when None -%}
         {% endmatch -%}

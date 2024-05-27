@@ -58,7 +58,7 @@ class _PrivacyCoverState extends State<PrivacyCover> with WidgetsBindingObserver
   Color _resolveBgColor(BuildContext context) {
     final brightness = context.mediaQuery.platformBrightness;
     bool isDarkMode = brightness == Brightness.dark;
-    return isDarkMode ? DarkWalletTheme.colorScheme.background : LightWalletTheme.colorScheme.background;
+    return isDarkMode ? DarkWalletTheme.colorScheme.surface : LightWalletTheme.colorScheme.surface;
   }
 
   @override

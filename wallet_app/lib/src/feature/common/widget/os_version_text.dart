@@ -7,9 +7,14 @@ import '../../../../environment.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 class OsVersionText extends StatelessWidget {
-  final TextStyle? textStyle;
+  final TextStyle? prefixTextStyle;
+  final TextStyle? valueTextStyle;
 
-  const OsVersionText({this.textStyle, super.key});
+  const OsVersionText({
+    this.prefixTextStyle,
+    this.valueTextStyle,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +42,18 @@ class OsVersionText extends StatelessWidget {
   }
 
   Widget _buildOsVersionText(BuildContext context, String? versionName) {
-    return Text(
-      context.l10n.generalOsVersionText(versionName ?? '-'),
-      style: textStyle ?? context.textTheme.bodyMedium,
+    return Row(
+      children: [
+        Text(
+          context.l10n.generalOsVersionText,
+          style: prefixTextStyle ?? context.textTheme.bodyMedium,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          versionName ?? '-',
+          style: valueTextStyle ?? context.textTheme.bodyMedium,
+        ),
+      ],
     );
   }
 }

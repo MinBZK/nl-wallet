@@ -14,6 +14,7 @@ import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bl
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
 import 'package:wallet/src/util/mapper/pid/mock_pid_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/pid/pid_attribute_mapper.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -392,5 +393,31 @@ void main() {
         expect(find.text(l10n.walletPersonalizeCheckDataOfferingPageTitle), findsNWidgets(2));
       },
     );
+
+    testWidgets(
+        'WalletPersonalizeScreen shows the no internet error for WalletPersonalizeNetworkError(hasInternet=false)',
+        (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeNetworkError(
+            error: CoreNetworkError('no internet'),
+            hasInternet: false,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'no internet' title is shown
+      final noInternetHeadlineFinder = find.text(l10n.errorScreenNoInternetHeadline);
+      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+    });
   });
 }

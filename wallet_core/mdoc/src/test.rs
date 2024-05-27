@@ -5,10 +5,12 @@ use indexmap::{IndexMap, IndexSet};
 
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    iso::mdocs::DataElementValue,
+    iso::{
+        device_retrieval::{DeviceRequest, DocRequest, ItemsRequest},
+        mdocs::DataElementValue,
+    },
     unsigned::{Entry, UnsignedMdoc},
     verifier::{DisclosedAttributes, DocumentDisclosedAttributes, ItemsRequests},
-    DeviceRequest, ItemsRequest,
 };
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
@@ -110,6 +112,27 @@ pub fn assert_disclosure_contains(
 
     assert_eq!(disclosed_attr.name, *name);
     assert_eq!(disclosed_attr.value, *value);
+}
+
+impl DeviceRequest {
+    pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
+        DeviceRequest {
+            doc_requests,
+            ..Default::default()
+        }
+    }
+
+    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
+        Self::from_doc_requests(
+            items_requests
+                .into_iter()
+                .map(|items_request| DocRequest {
+                    items_request: items_request.into(),
+                    reader_auth: None,
+                })
+                .collect(),
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

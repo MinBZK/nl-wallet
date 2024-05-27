@@ -4,14 +4,18 @@ use askama::Template;
 use axum::{
     extract::{Path, Query, State},
     handler::HandlerWithoutStateExt,
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Form, Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use tower_http::{services::ServeDir, trace::TraceLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+    trace::TraceLayer,
+};
 use tracing::warn;
 use url::Url;
 
@@ -20,9 +24,13 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests, SessionType},
 };
 use wallet_common::config::wallet_config::BaseUrl;
-use wallet_server::verifier::StatusParams;
+use wallet_server::verifier::{DisclosedAttributesParams, StatusParams};
 
-use crate::{askama_axum, client::WalletServerClient, settings::Settings};
+use crate::{
+    askama_axum,
+    client::WalletServerClient,
+    settings::{Origin, Settings},
+};
 
 #[derive(Debug)]
 pub struct Error(anyhow::Error);
@@ -48,6 +56,27 @@ struct ApplicationState {
     usecases: HashMap<String, ItemsRequests>,
 }
 
+fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
+    if allow_origins.is_empty() {
+        return None;
+    }
+
+    let layer = CorsLayer::new()
+        .allow_origin(
+            allow_origins
+                .into_iter()
+                .map(|url| {
+                    url.try_into()
+                        .expect("cross_origin base_url should be parseable to header value")
+                })
+                .collect::<Vec<_>>(),
+        )
+        .allow_headers(Any)
+        .allow_methods([Method::GET, Method::POST]);
+
+    Some(layer)
+}
+
 pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
     let application_state = Arc::new(ApplicationState {
         client: WalletServerClient::new(settings.wallet_server_url.clone()),
@@ -57,18 +86,23 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
 
     let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/", get(index))
         .route("/", post(engage))
+        .route("/engagement", post(create_engagement))
         .route(
             "/disclosure/sessions/:session_token/disclosed_attributes",
             get(disclosed_attributes),
         )
-        .layer(TraceLayer::new_for_http())
-        .with_state(application_state)
         .fallback_service(
             ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
-        );
+        )
+        .with_state(application_state)
+        .layer(TraceLayer::new_for_http());
+
+    if let Some(cors) = cors_layer(settings.allow_origins) {
+        app = app.layer(cors)
+    }
 
     Ok(app)
 }
@@ -89,12 +123,18 @@ enum MrpSessionType {
     CrossDeviceWithReturn,
 }
 
-#[derive(Template)]
+#[derive(Template, Serialize)]
 #[template(path = "disclosure.html")]
 struct DisclosureTemplate {
-    urls: Option<(String, String)>,
+    urls: Option<EngagementUrls>,
     selected: Option<SelectForm>,
     usecases: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct EngagementUrls {
+    status_url: String,
+    disclosed_attributes_url: String,
 }
 
 impl From<MrpSessionType> for SessionType {
@@ -115,6 +155,19 @@ async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
 }
 
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
+    let result = start_engagement(state, selected).await?;
+    Ok(askama_axum::into_response(&result))
+}
+
+async fn create_engagement(
+    State(state): State<Arc<ApplicationState>>,
+    Json(selected): Json<SelectForm>,
+) -> Result<Json<DisclosureTemplate>> {
+    let result = start_engagement(state, selected).await?;
+    Ok(result.into())
+}
+
+async fn start_engagement(state: Arc<ApplicationState>, selected: SelectForm) -> Result<DisclosureTemplate> {
     // return URL is just http://public.url/#{session_token}
     let return_url_template = match selected.session_type {
         MrpSessionType::CrossDeviceWithReturn | MrpSessionType::SameDevice => Some(
@@ -148,20 +201,19 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
 
     let mrp_disclosed_attributes_url: Url = state.public_url.join(&disclosed_attributes_url.path()[1..]); // `.path()` always starts with a `/`
 
-    Ok(askama_axum::into_response(&DisclosureTemplate {
-        urls: Some((status_url.to_string(), mrp_disclosed_attributes_url.to_string())),
+    let result = DisclosureTemplate {
+        urls: Some(EngagementUrls {
+            status_url: status_url.to_string(),
+            disclosed_attributes_url: mrp_disclosed_attributes_url.to_string(),
+        }),
         selected: Some(SelectForm {
             usecase: selected.usecase,
             session_type: selected.session_type,
         }),
         usecases: state.usecases.keys().cloned().collect(),
-    }))
-}
+    };
 
-#[derive(Deserialize)]
-struct DisclosedAttributesParams {
-    // Use the same query parameter as is present in the return_url here, as this is easier on the frontend.
-    nonce: Option<String>,
+    Ok(result)
 }
 
 // for now this just passes the disclosed attributes on as they are received

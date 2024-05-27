@@ -95,29 +95,3 @@ pub type DataElements = IndexMap<DataElementIdentifier, IndentToRetain>;
 ///  Claimed intention of the RP to (not) retain the attribute value after receiving and verifying it, as part of
 /// [`DataElements`] within a [`ItemsRequest`].
 pub type IndentToRetain = bool;
-
-#[cfg(any(test, feature = "test"))]
-mod test {
-    use super::*;
-
-    impl DeviceRequest {
-        pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
-            DeviceRequest {
-                doc_requests,
-                ..Default::default()
-            }
-        }
-
-        pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
-            Self::from_doc_requests(
-                items_requests
-                    .into_iter()
-                    .map(|items_request| DocRequest {
-                        items_request: items_request.into(),
-                        reader_auth: None,
-                    })
-                    .collect(),
-            )
-        }
-    }
-}

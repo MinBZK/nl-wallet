@@ -25,8 +25,10 @@ pub use mdocs::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum HolderError {
-    #[error("could not get session_type from verifier URL: {0}")]
-    VerifierUrlSessionType(serde_urlencoded::de::Error),
+    #[error("missing session_type query parameter in verifier URL")]
+    MissingSessionType,
+    #[error("malformed session_type query parameter in verifier URL: {0}")]
+    MalformedSessionType(serde_urlencoded::de::Error),
     #[error("readerAuth not present for all documents")]
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]

@@ -56,7 +56,7 @@ class SelectCardRow extends StatelessWidget {
                 Checkbox(
                   value: isSelected,
                   onChanged: (checked) => onCardSelectionToggled(card),
-                  fillColor: showError ? MaterialStatePropertyAll(context.colorScheme.error) : null,
+                  fillColor: showError ? WidgetStatePropertyAll(context.colorScheme.error) : null,
                 ),
                 const SizedBox(width: 8),
               ],

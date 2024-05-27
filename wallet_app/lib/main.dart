@@ -35,6 +35,7 @@ void main() async {
       (options) => options
         ..dsn = Environment.sentryDsn
         ..environment = Environment.sentryEnvironment
+        ..release = Environment.sentryRelease() // default applies when SENTRY_RELEASE not set
         ..debug = kDebugMode,
       appRunner: () => mainImpl(),
     );

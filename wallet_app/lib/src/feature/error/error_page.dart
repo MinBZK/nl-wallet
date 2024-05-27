@@ -1,34 +1,34 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/page/page_illustration.dart';
+import '../common/sheet/error_details_sheet.dart';
 import '../common/sheet/help_sheet.dart';
-import '../common/widget/button/button_content.dart';
+import '../common/widget/button/confirm/confirm_buttons.dart';
+import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/text/body_text.dart';
+import '../common/widget/text/title_text.dart';
+import 'error_button_builder.dart';
+import 'error_cta_style.dart';
+
+export 'error_cta_style.dart';
 
 class ErrorPage extends StatelessWidget {
   final String? illustration;
   final String headline;
   final String description;
-  final String primaryActionText;
-  final IconData? primaryActionIcon;
-  final String? secondaryActionText;
-  final VoidCallback onPrimaryActionPressed;
-  final VoidCallback? onSecondaryActionPressed;
+  final FitsWidthWidget primaryButton;
+  final FitsWidthWidget? secondaryButton;
 
   const ErrorPage({
     required this.headline,
     required this.description,
-    required this.primaryActionText,
-    this.primaryActionIcon,
-    required this.onPrimaryActionPressed,
+    required this.primaryButton,
+    this.secondaryButton,
     this.illustration,
-    this.secondaryActionText,
-    this.onSecondaryActionPressed,
     super.key,
   });
 
@@ -47,11 +47,17 @@ class ErrorPage extends StatelessWidget {
       headline: headline ?? context.l10n.errorScreenGenericHeadline,
       description: description ?? context.l10n.errorScreenGenericDescription,
       illustration: WalletAssets.svg_error_general,
-      primaryActionText: primaryActionText ?? context.l10n.errorScreenGenericCloseCta,
-      primaryActionIcon: primaryActionIcon,
-      onPrimaryActionPressed: onPrimaryActionPressed ?? () => Navigator.pop(context),
-      secondaryActionText: hasSecondaryAction ? (secondaryActionText ?? context.l10n.errorScreenGeneralHelpCta) : null,
-      onSecondaryActionPressed: onSecondaryActionPressed,
+      primaryButton: PrimaryButton(
+        text: Text(primaryActionText ?? context.l10n.errorScreenGenericCloseCta),
+        onPressed: onPrimaryActionPressed ?? () => Navigator.maybePop(context),
+        icon: Icon(primaryActionIcon),
+      ),
+      secondaryButton: hasSecondaryAction
+          ? TertiaryButton(
+              text: Text(context.l10n.errorScreenGeneralHelpCta),
+              onPressed: onSecondaryActionPressed,
+            )
+          : null,
     );
   }
 
@@ -66,124 +72,98 @@ class ErrorPage extends StatelessWidget {
       headline: context.l10n.errorScreenServerHeadline,
       description: context.l10n.errorScreenServerDescription,
       illustration: WalletAssets.svg_error_server_outage,
-      primaryActionText: primaryActionText ?? context.l10n.errorScreenServerCloseCta,
-      primaryActionIcon: primaryActionIcon,
-      onPrimaryActionPressed: onPrimaryActionPressed ?? () => Navigator.pop(context),
-      secondaryActionText: showHelpSheetAsSecondaryCta ? context.l10n.errorScreenServerHelpCta : null,
-      onSecondaryActionPressed: showHelpSheetAsSecondaryCta ? () => HelpSheet.show(context) : null,
+      primaryButton: PrimaryButton(
+        text: Text(primaryActionText ?? context.l10n.errorScreenServerCloseCta),
+        onPressed: onPrimaryActionPressed ?? () => Navigator.maybePop(context),
+        icon: Icon(primaryActionIcon),
+      ),
+      secondaryButton: showHelpSheetAsSecondaryCta
+          ? TertiaryButton(
+              text: Text(context.l10n.errorScreenServerHelpCta),
+              onPressed: () => HelpSheet.show(context),
+            )
+          : null,
     );
   }
 
   factory ErrorPage.noInternet(
     BuildContext context, {
-    String? primaryActionText,
-    IconData? primaryActionIcon,
-    VoidCallback? onPrimaryActionPressed,
+    required VoidCallback onPrimaryActionPressed,
+    ErrorCtaStyle style = ErrorCtaStyle.close,
   }) {
     return ErrorPage(
       headline: context.l10n.errorScreenNoInternetHeadline,
-      description: context.l10n.errorScreenNoInternetDescription,
+      description: style == ErrorCtaStyle.close
+          ? context.l10n.errorScreenNoInternetDescriptionCloseVariant
+          : context.l10n.errorScreenNoInternetDescription,
       illustration: WalletAssets.svg_error_no_internet,
-      primaryActionText: primaryActionText ?? context.l10n.generalRetry,
-      primaryActionIcon: primaryActionIcon,
-      onPrimaryActionPressed: onPrimaryActionPressed ?? () => Navigator.pop(context),
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
+        onPressed: onPrimaryActionPressed,
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.generalShowDetailsCta),
+        icon: const Icon(Icons.info_outline_rounded),
+        onPressed: () => ErrorDetailsSheet.show(context),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      bottom: false, // handled by _buildBottomSection
       child: Scrollbar(
-        thumbVisibility: true,
-        trackVisibility: true,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: CustomScrollView(
-            slivers: [
-              const SliverSizedBox(height: 24),
-              SliverToBoxAdapter(
-                child: Text(
-                  headline,
-                  textAlign: TextAlign.start,
-                  style: context.textTheme.displayMedium,
+        child: CustomScrollView(
+          slivers: [
+            const SliverSizedBox(height: 24),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TitleText(headline),
+              ),
+            ),
+            const SliverSizedBox(height: 8),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: BodyText(description),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: PageIllustration(
+                  asset: illustration ?? WalletAssets.svg_error_general,
                 ),
               ),
-              const SliverSizedBox(height: 8),
-              SliverToBoxAdapter(
-                child: Text(
-                  description,
-                  textAlign: TextAlign.start,
-                  style: context.textTheme.bodyLarge,
-                ),
-              ),
-              const SliverSizedBox(height: 24),
-              SliverToBoxAdapter(
-                child: _buildIllustration(),
-              ),
-              const SliverSizedBox(height: 24),
-              SliverFillRemaining(
-                hasScrollBody: false,
-                fillOverscroll: true,
-                child: _buildBottomSection(context),
-              ),
-            ],
-          ),
+            ),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              fillOverscroll: true,
+              child: _buildBottomSection(),
+            )
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildIllustration() {
-    if (illustration == null) {
-      return Container(
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5FD),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        width: double.infinity,
-        height: 100,
-      );
+  Widget _buildBottomSection() {
+    Widget content;
+    if (secondaryButton == null) {
+      content = primaryButton;
     } else {
-      return PageIllustration(
-        asset: illustration!,
-        padding: EdgeInsets.zero,
+      content = ConfirmButtons(
+        forceVertical: true,
+        flipVertical: true,
+        secondaryButton: secondaryButton!,
+        primaryButton: primaryButton,
       );
     }
-  }
-
-  Widget _buildBottomSection(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        _buildPrimaryButton(),
-        if (secondaryActionText != null) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: TertiaryButton(
-              onPressed: onSecondaryActionPressed,
-              iconPosition: IconPosition.end,
-              text: Text(secondaryActionText!),
-            ),
-          ),
-        ],
-        SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
-      ],
-    );
-  }
-
-  Widget _buildPrimaryButton() {
-    return ElevatedButton(
-      onPressed: onPrimaryActionPressed,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (primaryActionIcon != null) Icon(primaryActionIcon!, size: 16),
-          if (primaryActionIcon != null) const SizedBox(width: 12),
-          Text(primaryActionText),
-        ],
-      ),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: content,
     );
   }
 }
