@@ -10,6 +10,7 @@ import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/disclosure/disclosure_screen.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
@@ -265,6 +266,31 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.disclosureSuccessPageShowHistoryCta), findsOneWidget);
+    });
+
+    testWidgets('DisclosureScreen shows the no internet error for DisclosureNetworkError(hasInternet=false)',
+        (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureNetworkError(error: CoreNetworkError('no internet'), hasInternet: false),
+        ),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+
+      await tester.pumpAndSettle();
+
+      // Verify the 'no internet' title is shown
+      final noInternetHeadlineFinder = find.text(l10n.errorScreenNoInternetHeadline);
+      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'close' cta is shown
+      final closeCtaFinder = find.text(l10n.generalClose);
+      expect(closeCtaFinder, findsOneWidget);
+
+      // Verify the 'close' icon is shown
+      final closeIconFinder = find.byIcon(Icons.close_outlined);
+      expect(closeIconFinder, findsOneWidget);
     });
   });
 }

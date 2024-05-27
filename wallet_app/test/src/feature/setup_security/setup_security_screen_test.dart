@@ -5,9 +5,11 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 class MockSetupSecurityBloc extends MockBloc<SetupSecurityEvent, SetupSecurityState> implements SetupSecurityBloc {}
 
@@ -127,6 +129,72 @@ void main() {
         wrapper: walletAppWrapper(brightness: Brightness.dark),
       );
       await screenMatchesGolden(tester, 'error.dark');
+    });
+  });
+
+  group('widgets', () {
+    testWidgets('SetupSecurityScreen shows the correct title for SetupSecuritySelectPinInProgress state',
+        (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecuritySelectPinInProgress(0),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the title is shown
+      final titleFinder = find.text(l10n.setupSecuritySelectPinPageTitle);
+      expect(titleFinder, findsOneWidget);
+    });
+
+    testWidgets('SetupSecurityScreen shows the correct title for SetupSecurityPinConfirmationInProgress state',
+        (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityPinConfirmationInProgress(0),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the title is shown
+      final titleFinder = find.text(l10n.setupSecurityConfirmationPageTitle);
+      expect(titleFinder, findsOneWidget);
+    });
+
+    testWidgets('SetupSecurityScreen shows the no internet error for SetupSecurityNetworkError(hasInternet=false)',
+        (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityNetworkError(hasInternet: false, error: CoreNetworkError('no internet')),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'no internet' title is shown
+      final noInternetHeadlineFinder = find.text(l10n.errorScreenNoInternetHeadline);
+      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
     });
   });
 }

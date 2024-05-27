@@ -14,6 +14,7 @@ import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
+import '../../common/sheet/error_details_sheet.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/sheet/help_sheet.dart';
 import '../../common/widget/activity_summary.dart';
@@ -46,6 +47,7 @@ import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
+import '../../error/error_screen.dart';
 import '../../history/detail/widget/history_detail_wallet_event_row.dart';
 import '../theme_screen.dart';
 
@@ -56,6 +58,15 @@ final _kSampleCardFront = CardFront(
   info: 'Info'.untranslated,
   logoImage: WalletAssets.logo_card_rijksoverheid,
   subtitle: 'Subtitle'.untranslated,
+);
+
+final _kAltSampleCardFront = CardFront(
+  title: 'Alt Sample Card'.untranslated,
+  backgroundImage: WalletAssets.svg_rijks_card_bg_light,
+  theme: CardFrontTheme.light,
+  info: 'Alt Info'.untranslated,
+  logoImage: WalletAssets.logo_card_rijksoverheid,
+  subtitle: 'Alt Subtitle'.untranslated,
 );
 
 final _kSampleAttributes = [
@@ -77,6 +88,14 @@ final _kSampleCard = WalletCard(
   id: 'id',
   docType: 'docType',
   front: _kSampleCardFront,
+  attributes: _kSampleAttributes,
+  issuer: _kSampleOrganization,
+);
+
+final _kAltSampleCard = WalletCard(
+  id: 'alt_id',
+  docType: 'alt_docType',
+  front: _kAltSampleCardFront,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
 );
@@ -122,6 +141,7 @@ class OtherStylesTab extends StatelessWidget {
       children: [
         _buildAppBarSection(context),
         _buildSheetSection(context),
+        _buildErrorScreensSection(context),
         _buildAttributeSection(context),
         _buildCardSection(context),
         _buildHistorySection(context),
@@ -185,7 +205,7 @@ class OtherStylesTab extends StatelessWidget {
           },
           child: const Text('Confirm Action Sheet'),
         ),
-        const ThemeSectionSubHeader(title: '(Error) Help Sheet'),
+        const ThemeSectionSubHeader(title: 'Help Sheet'),
         TextButton(
           onPressed: () {
             HelpSheet.show(
@@ -194,7 +214,12 @@ class OtherStylesTab extends StatelessWidget {
               supportCode: '1337',
             );
           },
-          child: const Text('(Error) Help Sheet'),
+          child: const Text('Help Sheet'),
+        ),
+        const ThemeSectionSubHeader(title: 'Error Details Sheet'),
+        TextButton(
+          onPressed: () => ErrorDetailsSheet.show(context),
+          child: const Text('Error Details'),
         ),
         const ThemeSectionSubHeader(title: 'Disclosure Stop Sheet'),
         TextButton(
@@ -205,6 +230,30 @@ class OtherStylesTab extends StatelessWidget {
             );
           },
           child: const Text('Disclosure Stop Sheet'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorScreensSection(BuildContext context) {
+    return Column(
+      children: [
+        const ThemeSectionHeader(title: 'Errors'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'Generic Error Screen'),
+        TextButton(
+          onPressed: () => ErrorScreen.showGeneric(context),
+          child: const Text('Generic Error Screen'),
+        ),
+        const ThemeSectionSubHeader(title: 'Network Error Screen'),
+        TextButton(
+          onPressed: () => ErrorScreen.showNetwork(context),
+          child: const Text('Network Error Screen'),
+        ),
+        const ThemeSectionSubHeader(title: 'No Internet Error Screen'),
+        TextButton(
+          onPressed: () => ErrorScreen.showNoInternet(context),
+          child: const Text('No Internet Error Screen'),
         ),
       ],
     );
@@ -289,7 +338,7 @@ class OtherStylesTab extends StatelessWidget {
         ),
         const ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(cards: [
-          _kSampleCard,
+          _kAltSampleCard,
           _kSampleCard,
         ]),
         const ThemeSectionSubHeader(title: 'SharedWalletCard'),
@@ -408,7 +457,7 @@ class OtherStylesTab extends StatelessWidget {
         SelectCardRow(
           onCardSelectionToggled: (_) {},
           card: WalletCard(
-            id: 'id',
+            id: 'row_id',
             docType: 'docType',
             front: _kSampleCardFront,
             attributes: const [],

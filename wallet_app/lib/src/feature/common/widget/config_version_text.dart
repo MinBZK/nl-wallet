@@ -4,18 +4,31 @@ import '../../../util/extension/build_context_extension.dart';
 import 'flutter_app_configuration_provider.dart';
 
 class ConfigVersionText extends StatelessWidget {
-  final TextStyle? textStyle;
+  final TextStyle? prefixTextStyle;
+  final TextStyle? valueTextStyle;
 
-  const ConfigVersionText({this.textStyle, super.key});
+  const ConfigVersionText({
+    this.prefixTextStyle,
+    this.valueTextStyle,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return FlutterAppConfigurationProvider(
-        builder: (config) => Text(
-              context.l10n.generalConfigVersionText(
-                config.version,
-              ),
-              style: textStyle ?? context.textTheme.bodyMedium,
-            ));
+      builder: (config) => Row(
+        children: [
+          Text(
+            context.l10n.generalConfigVersionText,
+            style: prefixTextStyle ?? context.textTheme.bodyMedium,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            config.version.toString(),
+            style: valueTextStyle ?? context.textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
   }
 }
