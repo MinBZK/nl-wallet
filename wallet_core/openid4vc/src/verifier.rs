@@ -5,7 +5,10 @@ use std::sync::Arc;
 use base64::prelude::*;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
+use josekit::{
+    jwk::alg::ec::{EcCurve, EcKeyPair},
+    JoseError,
+};
 use ring::hmac;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as};
@@ -16,88 +19,92 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
-    identifiers::AttributeIdentifier,
-    iso::*,
     server_keys::KeyRing,
     server_state::{
         Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
         CLEANUP_INTERVAL_SECONDS,
     },
-    verifier::{
-        DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, ValidityError,
-        EPHEMERAL_ID_VALIDITY_SECONDS,
-    },
+    utils::x509::CertificateError,
+    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, EPHEMERAL_ID_VALIDITY_SECONDS},
 };
 use wallet_common::{
-    config::wallet_config::BaseUrl, generator::Generator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,
+    config::wallet_config::BaseUrl,
+    generator::Generator,
+    jwt::{Jwt, JwtError},
+    trust_anchor::OwnedTrustAnchor,
     utils::random_string,
 };
 
 use crate::{
     jwt,
-    openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse},
+    openid4vp::{
+        AuthRequestError, AuthResponseError, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject,
+        VpResponse,
+    },
 };
 
-// TODO check these
+/// Errors that can occur during processing of any of the endpoints.
+#[derive(thiserror::Error, Debug)]
+pub enum DisclosureError {
+    #[error("session not in expected state")]
+    UnexpectedState,
+    #[error("unknown session: {0}")]
+    UnknownSession(SessionToken),
+    #[error("error with sessionstore: {0}")]
+    SessionStore(SessionStoreError),
+}
+
+/// Errors returned by endpoints used by the RP.
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
-    #[error("errors in device response: {0:#?}")]
-    DeviceResponseErrors(Vec<DocumentError>),
-    #[error("unexpected status: {0}")]
-    UnexpectedStatus(u64),
-    #[error("no documents found in device response")]
-    NoDocuments,
-    #[error("inconsistent doctypes: document contained {document}, mso contained {mso}")]
-    WrongDocType { document: DocType, mso: DocType },
-    #[error("namespace {0} not found in mso")]
-    MissingNamespace(NameSpace),
-    #[error("digest ID {0} not found in mso")]
-    MissingDigestID(DigestID),
-    #[error("attribute verification failed: did not hash to the value in the MSO")]
-    AttributeVerificationFailed,
-    #[error("missing ephemeral key")]
-    EphemeralKeyMissing,
-    #[error("validity error: {0}")]
-    Validity(#[from] ValidityError),
-    #[error("missing OriginInfo in engagement: {0}")]
-    MissingOriginInfo(usize),
-    #[error("incorrect OriginInfo in engagement")]
-    IncorrectOriginInfo,
-    #[error("missing verifier URL params")]
-    MissingVerifierUrlParameters,
+    #[error("disclosure error: {0}")]
+    DisclosureError(#[from] DisclosureError),
+
+    // RP errors
     #[error("session is done")]
     SessionIsDone,
     #[error("unknown certificate")]
     UnknownCertificate(String),
-    #[error("unknown session ID: {0}")]
-    UnknownSessionId(SessionToken),
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
     NoItemsRequests,
-    #[error("attributes mismatch: {0:?}")]
-    MissingAttributes(Vec<AttributeIdentifier>),
-    #[error("error with sessionstore: {0}")]
-    SessionStore(SessionStoreError),
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
     #[error("redirect URI '{0}' does not match expected")]
     RedirectUriMismatch(Url),
+    #[error("missing DNS SAN from RP certificate")]
+    MissingSAN,
+    #[error("RP certificate error: {0}")]
+    Certificate(#[from] CertificateError),
+
+    // status endpoint error
+    #[error("URL encoding error: {0}")]
+    UrlEncoding(#[from] serde_urlencoded::ser::Error),
+}
+
+/// Errors returned by the endpoint that returns the Authorization Request.
+#[derive(thiserror::Error, Debug)]
+pub enum GetAuthRequestError {
+    #[error("disclosure error: {0}")]
+    DisclosureError(#[from] DisclosureError),
     #[error("the ephemeral ID {} is invalid", hex::encode(.0))]
     InvalidEphemeralId(Vec<u8>),
     #[error("the ephemeral ID {} has expired", hex::encode(.0))]
     ExpiredEphemeralId(Vec<u8>),
-    #[error("URL encoding error: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
-
-    #[error("TODO")]
-    UnexpectedState,
+    #[error("error creating ephemeral encryption keypair: {0}")]
+    EncryptionKey(#[from] JoseError),
+    #[error("error creating Authorization Request: {0}")]
+    AuthRequest(#[from] AuthRequestError),
+    #[error("error signing Authorization Request JWE: {0}")]
+    Jwt(#[from] JwtError),
 }
 
-// TODO
 #[derive(thiserror::Error, Debug)]
-pub enum AuthorizationRequestError {}
-
-#[derive(thiserror::Error, Debug)]
-pub enum AuthorizationResponseError {}
+pub enum PostAuthResponseError {
+    #[error("disclosure error: {0}")]
+    DisclosureError(#[from] DisclosureError),
+    #[error("error decrypting or verifying Authorization Response JWE: {0}")]
+    AuthResponse(#[from] AuthResponseError),
+}
 
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
 /// The session progresses through the possible states using a state engine that uses the typestate pattern:
@@ -162,10 +169,10 @@ impl<'de> Deserialize<'de> for EncryptionPrivateKey {
             EcKeyPair::from_der(
                 BASE64_URL_SAFE_NO_PAD
                     .decode(String::deserialize(deserializer)?)
-                    .unwrap(),
+                    .map_err(serde::de::Error::custom)?,
                 None,
             )
-            .unwrap(),
+            .map_err(serde::de::Error::custom)?,
         ))
     }
 }
@@ -226,11 +233,11 @@ impl From<Session<Created>> for SessionState<DisclosureData> {
 }
 
 impl TryFrom<SessionState<DisclosureData>> for Session<Created> {
-    type Error = VerificationError;
+    type Error = DisclosureError;
 
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
         let DisclosureData::Created(session_data) = value.data else {
-            return Err(VerificationError::UnexpectedState);
+            return Err(DisclosureError::UnexpectedState);
         };
         Ok(Session::<Created> {
             state: SessionState {
@@ -253,11 +260,11 @@ impl From<Session<WaitingForResponse>> for SessionState<DisclosureData> {
 }
 
 impl TryFrom<SessionState<DisclosureData>> for Session<WaitingForResponse> {
-    type Error = VerificationError;
+    type Error = DisclosureError;
 
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
         let DisclosureData::WaitingForResponse(session_data) = value.data else {
-            return Err(VerificationError::UnexpectedState);
+            return Err(DisclosureError::UnexpectedState);
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
@@ -353,7 +360,10 @@ where
         let Some(private_key) = self.keys.private_key(&usecase_id) else {
             return Err(VerificationError::UnknownCertificate(usecase_id.clone()));
         };
-        let client_id = private_key.certificate().san_dns_name().unwrap().unwrap();
+        let client_id = private_key
+            .certificate()
+            .san_dns_name()?
+            .ok_or(VerificationError::MissingSAN)?;
 
         let (session_token, session_state) =
             Session::<Created>::new(items_requests, usecase_id, client_id, return_url_template)?;
@@ -361,7 +371,7 @@ where
         self.sessions
             .write(session_state.into(), true)
             .await
-            .map_err(VerificationError::SessionStore)?;
+            .map_err(DisclosureError::SessionStore)?;
 
         info!("Session({session_token}): session created");
         Ok(session_token)
@@ -371,16 +381,16 @@ where
         &self,
         session_token: &SessionToken,
         url_params: &VerifierUrlParameters,
-    ) -> Result<(), VerificationError> {
+    ) -> Result<(), GetAuthRequestError> {
         if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > url_params.time {
-            return Err(VerificationError::ExpiredEphemeralId(url_params.ephemeral_id.clone()));
+            return Err(GetAuthRequestError::ExpiredEphemeralId(url_params.ephemeral_id.clone()));
         }
         hmac::verify(
             &self.ephemeral_id_secret,
             &Self::format_ephemeral_id_payload(session_token, &url_params.time),
             &url_params.ephemeral_id,
         )
-        .map_err(|_| VerificationError::InvalidEphemeralId(url_params.ephemeral_id.clone()))?;
+        .map_err(|_| GetAuthRequestError::InvalidEphemeralId(url_params.ephemeral_id.clone()))?;
 
         Ok(())
     }
@@ -390,15 +400,14 @@ where
         session_token: &SessionToken,
         verifier_base_url: &BaseUrl,
         url_params: VerifierUrlParameters,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VerificationError> {
+    ) -> Result<Jwt<VpAuthorizationRequest>, GetAuthRequestError> {
         let session: Session<Created> = self
             .sessions
             .get(session_token)
             .await
-            .map_err(VerificationError::SessionStore)?
-            .ok_or_else(|| VerificationError::UnknownSessionId(session_token.clone()))?
-            .try_into()
-            .unwrap();
+            .map_err(DisclosureError::SessionStore)?
+            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
+            .try_into()?;
 
         info!("Session({session_token}): get request");
 
@@ -415,8 +424,7 @@ where
         self.sessions
             .write(next, false)
             .await
-            .map_err(VerificationError::SessionStore)
-            .unwrap();
+            .map_err(DisclosureError::SessionStore)?;
 
         result
     }
@@ -426,15 +434,14 @@ where
         session_token: &SessionToken,
         authorization_response_jwe: String,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VpResponse, VerificationError> {
+    ) -> Result<VpResponse, PostAuthResponseError> {
         let session: Session<WaitingForResponse> = self
             .sessions
             .get(session_token)
             .await
-            .map_err(VerificationError::SessionStore)?
-            .ok_or_else(|| VerificationError::UnknownSessionId(session_token.clone()))?
-            .try_into()
-            .unwrap();
+            .map_err(DisclosureError::SessionStore)?
+            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
+            .try_into()?;
 
         let (result, next) = session.process_authorization_response(
             authorization_response_jwe,
@@ -449,8 +456,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(VerificationError::SessionStore)
-            .unwrap();
+            .map_err(DisclosureError::SessionStore)?;
 
         result
     }
@@ -466,8 +472,8 @@ where
             .sessions
             .get(session_token)
             .await
-            .map_err(VerificationError::SessionStore)?
-            .ok_or_else(|| VerificationError::UnknownSessionId(session_token.clone()))?
+            .map_err(DisclosureError::SessionStore)?
+            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
             .data
         {
             DisclosureData::Created(Created { client_id, .. }) => {
@@ -511,8 +517,8 @@ where
             .sessions
             .get(session_token)
             .await
-            .map_err(VerificationError::SessionStore)?
-            .ok_or_else(|| VerificationError::UnknownSessionId(session_token.clone()))?
+            .map_err(DisclosureError::SessionStore)?
+            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
             .data
         {
             DisclosureData::Done(Done {
@@ -573,11 +579,11 @@ impl<K, S> Verifier<K, S> {
 
         let mut ul = base_ul.clone().into_inner();
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUriObject {
-            request_uri: request_uri.try_into().unwrap(),
+            request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
             client_id,
         })?));
 
-        Ok(ul.try_into().unwrap())
+        Ok(ul.try_into().unwrap()) // safe because we constructed request_uri from a BaseUrl
     }
 
     // formats the payload to hash to the ephemeral ID in a consistent way
@@ -664,7 +670,7 @@ impl Session<Created> {
         session_token: &SessionToken,
         session_type: SessionType,
         keys: &impl KeyRing,
-    ) -> Result<(Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>), (VerificationError, Session<Done>)> {
+    ) -> Result<(Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>), (GetAuthRequestError, Session<Done>)> {
         // TODO return error object
         info!("Session({}): process get request", self.state.token);
 
@@ -696,27 +702,26 @@ impl Session<Created> {
         &self,
         verifier_base_url: &BaseUrl,
         keys: &impl KeyRing,
-    ) -> Result<(Jwt<VpAuthorizationRequest>, VpAuthorizationRequest, EcKeyPair), VerificationError> {
+    ) -> Result<(Jwt<VpAuthorizationRequest>, VpAuthorizationRequest, EcKeyPair), GetAuthRequestError> {
         let cert_pair = keys
             .private_key(&self.state().usecase_id)
-            .ok_or_else(|| VerificationError::UnknownCertificate(self.state().usecase_id.clone()))?;
+            .expect("usecase_id always refers to existing key");
 
         let nonce = random_string(32);
         let response_uri = verifier_base_url
             .join_base_url("response_uri")
             .join_base_url(self.state.token.as_ref());
-        let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let encryption_keypair = EcKeyPair::generate(EcCurve::P256)?;
 
         let auth_request = VpAuthorizationRequest::new(
             &self.state.data.items_requests,
             cert_pair.certificate(),
             nonce.clone(),
-            encryption_keypair.to_jwk_public_key().try_into().unwrap(),
+            encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
             response_uri,
-        )
-        .unwrap();
+        )?;
 
-        let jws = jwt::sign_with_certificate(&auth_request, cert_pair).await.unwrap();
+        let jws = jwt::sign_with_certificate(&auth_request, cert_pair).await?;
 
         Ok((jws, auth_request, encryption_keypair))
     }
@@ -730,7 +735,7 @@ impl Session<WaitingForResponse> {
         authorization_response_jwe: String,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> (Result<VpResponse, VerificationError>, Session<Done>) {
+    ) -> (Result<VpResponse, PostAuthResponseError>, Session<Done>) {
         info!("Session({}): process response", self.state.token);
 
         let (response, next) =
@@ -758,7 +763,7 @@ impl Session<WaitingForResponse> {
         jwe: String,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(VpResponse, DisclosedAttributes), VerificationError> {
+    ) -> Result<(VpResponse, DisclosedAttributes), PostAuthResponseError> {
         debug!(
             "Session({}): decrypting and deserializing Authorization Response JWE",
             self.state.token
@@ -768,13 +773,11 @@ impl Session<WaitingForResponse> {
         let nonce = data.auth_request.oauth_request.nonce.as_ref().unwrap().clone();
 
         // Decrypt and verify the Authorization Response
-        let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &data.encryption_key.0, nonce).unwrap();
-        let disclosed = auth_response
-            .verify(&data.auth_request, mdoc_nonce, time, trust_anchors)
-            .unwrap();
+        let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &data.encryption_key.0, nonce)?;
+        let disclosed = auth_response.verify(&data.auth_request, mdoc_nonce, time, trust_anchors)?;
 
         let response = VpResponse {
-            redirect_uri: data.redirect_uri.clone().map(|u| u.try_into().unwrap()),
+            redirect_uri: data.redirect_uri.clone().map(|u| u.try_into().unwrap()), // TODO
         };
 
         Ok((response, disclosed))
