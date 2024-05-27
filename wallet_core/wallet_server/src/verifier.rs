@@ -231,7 +231,7 @@ where
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DisclosedAttributesParams {
-    pub return_url_nonce: Option<String>,
+    pub nonce: Option<String>,
 }
 
 async fn disclosed_attributes<S>(
@@ -244,7 +244,7 @@ where
 {
     let disclosed_attributes = state
         .verifier
-        .disclosed_attributes(&session_token, params.return_url_nonce)
+        .disclosed_attributes(&session_token, params.nonce)
         .await
         .map_err(Error::DisclosedAttributes)?;
     Ok(Json(disclosed_attributes))

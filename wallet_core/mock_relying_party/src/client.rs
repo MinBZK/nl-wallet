@@ -56,13 +56,11 @@ impl WalletServerClient {
 
         let queries = nonce
             .map(|nonce| {
-                let query = serde_urlencoded::to_string(DisclosedAttributesParams {
-                    return_url_nonce: nonce.into(),
-                })?;
+                let query = serde_urlencoded::to_string(DisclosedAttributesParams { nonce: nonce.into() })?;
 
                 // Create a separate error query, where the nonce is masked with "X" characters.
                 let error_query = serde_urlencoded::to_string(DisclosedAttributesParams {
-                    return_url_nonce: "X".repeat(16).into(),
+                    nonce: "X".repeat(16).into(),
                 })?;
 
                 Ok::<_, serde_urlencoded::ser::Error>((query, error_query))

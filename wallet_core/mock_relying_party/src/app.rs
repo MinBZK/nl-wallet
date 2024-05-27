@@ -24,7 +24,7 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests, SessionType},
 };
 use wallet_common::config::wallet_config::BaseUrl;
-use wallet_server::verifier::StatusParams;
+use wallet_server::verifier::{DisclosedAttributesParams, StatusParams};
 
 use crate::{
     askama_axum,
@@ -214,12 +214,6 @@ async fn start_engagement(state: Arc<ApplicationState>, selected: SelectForm) ->
     };
 
     Ok(result)
-}
-
-#[derive(Deserialize)]
-struct DisclosedAttributesParams {
-    // Use the same query parameter as is present in the return_url here, as this is easier on the frontend.
-    nonce: Option<String>,
 }
 
 // for now this just passes the disclosed attributes on as they are received

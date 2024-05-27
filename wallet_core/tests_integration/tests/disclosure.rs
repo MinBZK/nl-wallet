@@ -150,10 +150,8 @@ async fn test_disclosure_usecases_ok(
             .find(|(key, _)| key == "nonce")
             .map(|(_, value)| value.into_owned())
             .expect("nonce should be present on return URL");
-        let disclosed_attributes_query = serde_urlencoded::to_string(DisclosedAttributesParams {
-            return_url_nonce: nonce.into(),
-        })
-        .unwrap();
+        let disclosed_attributes_query =
+            serde_urlencoded::to_string(DisclosedAttributesParams { nonce: nonce.into() }).unwrap();
         disclosed_attributes_url.set_query(disclosed_attributes_query.as_str().into());
     }
 
