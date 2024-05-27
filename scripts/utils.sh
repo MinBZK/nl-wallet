@@ -217,15 +217,13 @@ function generate_mock_relying_party_root_ca {
 #
 # $1 - READER_NAME: Name of the Relying Party
 function generate_mock_relying_party_key_pair {
-    render_template "${DEVENV}/$1_reader_auth.json" "${TARGET_DIR}/mock_relying_party/$1_reader_auth.json"
-
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --features "allow_http_return_url" \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
         --common-name "$1.example.com" \
-        --reader-auth-file "${TARGET_DIR}/mock_relying_party/$1_reader_auth.json" \
+        --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/mock_relying_party/$1" \
         --force
 
