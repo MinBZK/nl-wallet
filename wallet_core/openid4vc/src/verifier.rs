@@ -26,6 +26,7 @@ use nl_wallet_mdoc::{
     utils::x509::CertificateError,
     verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, EPHEMERAL_ID_VALIDITY_SECONDS},
 };
+use url::Url;
 use wallet_common::{
     config::wallet_config::BaseUrl,
     generator::Generator,
@@ -68,8 +69,8 @@ pub enum VerificationError {
     NoItemsRequests,
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
-    #[error("redirect URI '{0}' does not match expected")]
-    RedirectUriMismatch(BaseUrl),
+    #[error("redirect URI nonce '{0}' does not match expected")]
+    RedirectUriMismatch(String),
     #[error("missing redirect URI")]
     RedirectUriMissing,
     #[error("missing DNS SAN from RP certificate")]
@@ -99,6 +100,7 @@ pub enum GetAuthRequestError {
     Jwt(#[from] JwtError),
 }
 
+/// Errors returned by the endpoint to which the user posts the Authorization Response.
 #[derive(thiserror::Error, Debug)]
 pub enum PostAuthResponseError {
     #[error("disclosure error: {0}")]
@@ -121,7 +123,7 @@ pub struct Created {
     items_requests: ItemsRequests,
     usecase_id: String,
     client_id: String,
-    return_url_template: Option<ReturnUrlTemplate>,
+    redirect_uri_template: Option<ReturnUrlTemplate>,
 }
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
@@ -129,11 +131,8 @@ pub struct Created {
 pub struct WaitingForResponse {
     auth_request: VpAuthorizationRequest,
     encryption_key: EncryptionPrivateKey,
-    redirect_uri: Option<BaseUrl>,
+    redirect_uri: Option<RedirectUri>,
 }
-
-#[derive(Debug, Clone)]
-struct EncryptionPrivateKey(EcKeyPair);
 
 /// State for a session that has ended (for any reason).
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -147,7 +146,7 @@ pub struct Done {
 pub enum SessionResult {
     Done {
         disclosed_attributes: DisclosedAttributes,
-        redirect_uri: Option<BaseUrl>,
+        redirect_uri_nonce: Option<String>,
     },
     Failed {
         error: String,
@@ -155,6 +154,24 @@ pub enum SessionResult {
     Cancelled,
     Expired,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct RedirectUri {
+    redirect_uri_template: ReturnUrlTemplate,
+    nonce: String,
+}
+
+impl RedirectUri {
+    fn into_url(self, session_token: &SessionToken) -> Url {
+        let mut url = self.redirect_uri_template.into_url(session_token);
+        url.query_pairs_mut().append_pair("nonce", &self.nonce);
+        url
+    }
+}
+
+/// Wrapper for [`EcKeyPair`] that can be serialized.
+#[derive(Debug, Clone)]
+struct EncryptionPrivateKey(EcKeyPair);
 
 impl Serialize for EncryptionPrivateKey {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -415,7 +432,7 @@ where
         self.verify_ephemeral_id(session_token, &url_params)?;
 
         let (result, next) = match session
-            .process_get_request(verifier_base_url, session_token, url_params.session_type, &self.keys)
+            .process_get_request(verifier_base_url, url_params.session_type, &self.keys)
             .await
         {
             Ok((jws, next)) => (Ok(jws), next.into()),
@@ -445,6 +462,7 @@ where
             .try_into()?;
 
         let (result, next) = session.process_authorization_response(
+            session_token,
             authorization_response_jwe,
             time,
             self.trust_anchors
@@ -512,7 +530,7 @@ where
     pub async fn disclosed_attributes(
         &self,
         session_token: &SessionToken,
-        redirect_uri: Option<BaseUrl>,
+        redirect_uri_nonce: Option<String>,
     ) -> Result<DisclosedAttributes, VerificationError> {
         let disclosure_data = self
             .sessions
@@ -526,10 +544,10 @@ where
             DisclosureData::Done(Done {
                 session_result:
                     SessionResult::Done {
-                        redirect_uri: expected_redirect_uri,
+                        redirect_uri_nonce: expected_nonce,
                         disclosed_attributes,
                     },
-            }) => match (redirect_uri, expected_redirect_uri) {
+            }) => match (redirect_uri_nonce, expected_nonce) {
                 (_, None) => Ok(disclosed_attributes),
                 (None, Some(_)) => Err(VerificationError::RedirectUriMissing),
                 (Some(received), Some(expected)) if received == expected => Ok(disclosed_attributes),
@@ -637,7 +655,7 @@ impl Session<Created> {
                     items_requests,
                     usecase_id,
                     client_id,
-                    return_url_template,
+                    redirect_uri_template: return_url_template,
                 },
             ),
         };
@@ -645,34 +663,36 @@ impl Session<Created> {
         Ok((session_token, session))
     }
 
-    fn new_redirect_uri(&self, session_token: &SessionToken, session_type: &SessionType) -> Option<BaseUrl> {
-        self.state.data.return_url_template.as_ref().map(|u| {
-            let mut url = u.clone().into_url(session_token);
-            if *session_type == SessionType::SameDevice {
-                url.query_pairs_mut().append_pair("return_nonce", &random_string(32));
-            }
-            url.try_into().unwrap() // ReturnUrlTemplate always starts with http(s):// so it is a BaseUrl
-        })
-    }
-
     /// Process the device's request for the Authorization Request,
     /// returning a response to answer the device with and the next session state.
     async fn process_get_request(
         self,
         verifier_base_url: &BaseUrl,
-        session_token: &SessionToken,
         session_type: SessionType,
         keys: &impl KeyRing,
     ) -> Result<(Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>), (GetAuthRequestError, Session<Done>)> {
         // TODO return error object
         info!("Session({}): process get request", self.state.token);
 
+        let redirect_uri = if session_type == SessionType::CrossDevice {
+            // TODO support hybrid sessions
+            None
+        } else {
+            self.state()
+                .redirect_uri_template
+                .as_ref()
+                .map(|uri_template| RedirectUri {
+                    redirect_uri_template: uri_template.clone(),
+                    nonce: random_string(32),
+                })
+        };
+
         let (response, next) = match self.process_get_request_inner(verifier_base_url, keys).await {
             Ok((jws, auth_request, enc_keypair)) => {
                 let next = WaitingForResponse {
                     auth_request,
-                    redirect_uri: self.new_redirect_uri(session_token, &session_type),
                     encryption_key: EncryptionPrivateKey(enc_keypair),
+                    redirect_uri,
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -725,27 +745,32 @@ impl Session<WaitingForResponse> {
     /// returning a response to answer the device with and the next session state.
     fn process_authorization_response(
         self,
+        session_token: &SessionToken,
         authorization_response_jwe: String,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> (Result<VpResponse, PostAuthResponseError>, Session<Done>) {
         info!("Session({}): process response", self.state.token);
 
-        let (response, next) =
-            match self.process_authorization_response_inner(authorization_response_jwe, time, trust_anchors) {
-                Ok((response, disclosed_attributes)) => {
-                    let redirect_uri = self.state.data.redirect_uri.clone();
-                    (Ok(response), self.transition_finish(disclosed_attributes, redirect_uri))
-                }
-                Err(err) => {
-                    warn!(
-                        "Session({}): process response failed, returning decoding error",
-                        self.state.token
-                    );
-                    let next = self.transition_fail(&err);
-                    (Err(err), next)
-                }
-            };
+        let (response, next) = match self.process_authorization_response_inner(
+            session_token,
+            authorization_response_jwe,
+            time,
+            trust_anchors,
+        ) {
+            Ok((response, disclosed_attributes)) => (Ok(response), {
+                let nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
+                self.transition_finish(disclosed_attributes, nonce)
+            }),
+            Err(err) => {
+                warn!(
+                    "Session({}): process response failed, returning decoding error",
+                    self.state.token
+                );
+                let next = self.transition_fail(&err);
+                (Err(err), next)
+            }
+        };
 
         (response, next)
     }
@@ -753,6 +778,7 @@ impl Session<WaitingForResponse> {
     // Helper function that returns ordinary errors instead of `Session<Done>`
     fn process_authorization_response_inner(
         &self,
+        session_token: &SessionToken,
         jwe: String,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -770,21 +796,20 @@ impl Session<WaitingForResponse> {
         let disclosed = auth_response.verify(&data.auth_request, mdoc_nonce, time, trust_anchors)?;
 
         let response = VpResponse {
-            redirect_uri: data.redirect_uri.clone(),
+            redirect_uri: data
+                .redirect_uri
+                .as_ref()
+                .map(|u| u.clone().into_url(session_token).try_into().unwrap()),
         };
 
         Ok((response, disclosed))
     }
 
-    fn transition_finish(
-        self,
-        disclosed_attributes: DisclosedAttributes,
-        redirect_uri: Option<BaseUrl>,
-    ) -> Session<Done> {
+    fn transition_finish(self, disclosed_attributes: DisclosedAttributes, nonce: Option<String>) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Done {
                 disclosed_attributes,
-                redirect_uri,
+                redirect_uri_nonce: nonce,
             },
         })
     }

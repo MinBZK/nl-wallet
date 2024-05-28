@@ -157,7 +157,14 @@ async fn test_client_and_server() {
 
     // Retrieve the attributes disclosed by the wallet
     let disclosed = verifier
-        .disclosed_attributes(&session_token, redirect_uri)
+        .disclosed_attributes(
+            &session_token,
+            redirect_uri.and_then(|uri| {
+                uri.as_ref()
+                    .query_pairs()
+                    .find_map(|(name, val)| if name == "nonce" { Some(val.to_string()) } else { None })
+            }),
+        )
         .await
         .unwrap();
     dbg!(DebugCollapseBts::from(disclosed));
