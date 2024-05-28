@@ -3,6 +3,10 @@ pub mod reqwest {
     pub use reqwest::Error;
 }
 
+pub mod openid4vc {
+    pub use openid4vc::{issuance_session::IssuanceSessionError, oidc::OidcError};
+}
+
 pub use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError},
     config::{ConfigurationError, FileStorageError},

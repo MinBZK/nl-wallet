@@ -3,13 +3,10 @@ use std::{error::Error, fmt::Display};
 use anyhow::Chain;
 use serde::Serialize;
 
-use wallet::{
-    errors::{
-        reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
-        PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
-        WalletUnlockError,
-    },
+use wallet::errors::{
     openid4vc::{IssuanceSessionError, OidcError},
+    reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
+    PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that

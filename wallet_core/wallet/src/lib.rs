@@ -34,10 +34,6 @@ pub mod mdoc {
     };
 }
 
-pub mod openid4vc {
-    pub use openid4vc::{issuance_session::IssuanceSessionError, oidc::OidcError};
-}
-
 pub mod wallet_common {
     pub use wallet_common::config::wallet_config::{
         AccountServerConfiguration, BaseUrl, DisclosureConfiguration, LockTimeoutConfiguration,
