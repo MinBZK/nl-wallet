@@ -36,7 +36,7 @@ quick-xml = { workspace = true, features = ["async-tokio", "serialize", "overlap
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 rstest.workspace = true
-sentry.workspace = true
+sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }

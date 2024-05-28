@@ -48,7 +48,7 @@ url = { workspace = true, features = ["serde"] }
 
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
-sentry = { workspace = true, optional = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
+sentry = { workspace = true, optional = true }
 
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }

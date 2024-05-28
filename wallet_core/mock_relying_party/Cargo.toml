@@ -32,7 +32,7 @@ base64.workspace = true
 config.workspace = true
 dashmap.workspace = true
 reqwest.workspace = true
-sentry.workspace = true
+sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["derive"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true

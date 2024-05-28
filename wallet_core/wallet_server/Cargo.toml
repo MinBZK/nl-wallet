@@ -78,7 +78,7 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-chrono",
     "with-json",
 ] }
-sentry.workspace = true
+sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
