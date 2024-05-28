@@ -245,6 +245,15 @@ then
 
     cd "${MOCK_RELYING_PARTY_DIR}"
 
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
+
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}mock_relying_party${NC}"
@@ -269,6 +278,15 @@ then
     echo -e "${SECTION}Manage pid_issuer${NC}"
 
     cd "${WALLET_SERVER_DIR}"
+
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -307,6 +325,15 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export WALLET_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
+
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC}"
@@ -341,6 +368,15 @@ then
 
     cd "${WP_DIR}"
 
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
+
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}wallet_provider${NC}"
@@ -368,6 +404,15 @@ then
     echo -e "${SECTION}Manage configuration_server${NC}"
 
     cd "${CS_DIR}"
+
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export CONFIGURATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export CONFIGURATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
 
     if [ "${STOP}" == "0" ]
     then
@@ -412,6 +457,15 @@ then
     echo -e "${SECTION}Manage gba_hc_converter${NC}"
 
     cd "${GBA_HC_CONVERTER_DIR}"
+
+    if [ "${SENTRY_DSN}" != "" ]
+    then
+        export GBA_HC_CONVERTER_SENTRY__DSN="${SENTRY_DSN}"
+    fi
+    if [ "${SENTRY_ENVIRONMENT}" != "" ]
+    then
+        export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+    fi
 
     if [ "${STOP}" == "0" ]
     then

@@ -77,7 +77,7 @@ fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
     Some(layer)
 }
 
-pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
+pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
         client: WalletServerClient::new(settings.wallet_server_url.clone()),
         public_url: settings.public_url,
@@ -104,7 +104,7 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
         app = app.layer(cors)
     }
 
-    Ok(app)
+    app
 }
 
 #[derive(Deserialize, Serialize)]

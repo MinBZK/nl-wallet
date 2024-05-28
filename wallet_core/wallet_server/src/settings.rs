@@ -9,6 +9,7 @@ use url::Url;
 use nl_wallet_mdoc::server_state::SessionStoreTimeouts;
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
+    sentry::Sentry,
     trust_anchor::DerTrustAnchor,
 };
 
@@ -38,6 +39,7 @@ pub struct Settings {
     pub issuer: Issuer,
 
     pub verifier: Verifier,
+    pub sentry: Option<Sentry>,
 }
 
 #[derive(Deserialize, Clone)]
