@@ -4,6 +4,7 @@ use anyhow::Chain;
 use serde::Serialize;
 
 use wallet::errors::{
+    mdoc::{self, HolderError},
     openid4vc::{IssuanceSessionError, OidcError},
     reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
     PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
@@ -35,6 +36,9 @@ enum FlutterApiErrorType {
 
     /// Failed to finish the DigiD session and get an authorization code.
     RedirectUri,
+
+    /// The disclosure URI source (universal link or QR code) does not match the received session type.
+    DisclosureQrCodeMismatch,
 
     /// Indicating something unexpected went wrong.
     Generic,
@@ -191,6 +195,10 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
+            DisclosureError::DisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+                _,
+                _,
+            ))) => FlutterApiErrorType::DisclosureQrCodeMismatch,
             DisclosureError::DisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }

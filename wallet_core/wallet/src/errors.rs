@@ -3,6 +3,10 @@ pub mod reqwest {
     pub use reqwest::Error;
 }
 
+pub mod mdoc {
+    pub use nl_wallet_mdoc::{holder::HolderError, Error};
+}
+
 pub mod openid4vc {
     pub use openid4vc::{issuance_session::IssuanceSessionError, oidc::OidcError};
 }
