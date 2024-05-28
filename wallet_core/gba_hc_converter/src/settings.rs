@@ -4,7 +4,7 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
 
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::deserialize_certificate};
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::deserialize_certificate, sentry::Sentry};
 
 use crate::gba::{
     self,
@@ -20,6 +20,7 @@ pub struct Settings {
     pub structured_logging: bool,
 
     pub run_mode: RunMode,
+    pub sentry: Option<Sentry>,
 }
 
 #[serde_as]

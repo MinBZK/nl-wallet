@@ -3,6 +3,7 @@ use std::{env, net::IpAddr, path::PathBuf};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{base64::Base64, serde_as};
+use wallet_common::sentry::Sentry;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -14,6 +15,7 @@ pub struct Settings {
     pub config_server_cert: Vec<u8>,
     #[serde_as(as = "Base64")]
     pub config_server_key: Vec<u8>,
+    pub sentry: Option<Sentry>,
 }
 
 impl Settings {
