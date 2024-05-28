@@ -36,6 +36,7 @@ quick-xml = { workspace = true, features = ["async-tokio", "serialize", "overlap
 regex.workspace = true
 reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 rstest.workspace = true
+sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
@@ -43,7 +44,6 @@ serde_with = { workspace = true, features = ["base64"] }
 serde-xml-rs.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-trait-variant.workspace = true
 tokio = { workspace = true, features = [
     "rt-multi-thread",
     "parking_lot",
@@ -56,10 +56,10 @@ tracing-subscriber = { workspace = true, features = [
     "parking_lot",
     "json",
 ] }
+trait-variant.workspace = true
 
-wallet_common = { path = "../wallet_common" }
+wallet_common = { path = "../wallet_common", features = ["sentry"] }
 
 [dev-dependencies]
 assert-json-diff.workspace = true
 ctor.workspace = true
-

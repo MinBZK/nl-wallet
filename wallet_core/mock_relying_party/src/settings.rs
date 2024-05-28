@@ -6,7 +6,7 @@ use serde::Deserialize;
 use url::Url;
 
 use nl_wallet_mdoc::verifier::ItemsRequests;
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -16,6 +16,7 @@ pub struct Settings {
     #[serde(default)]
     pub allow_origins: Vec<Origin>,
     pub usecases: HashMap<String, ItemsRequests>,
+    pub sentry: Option<Sentry>,
 }
 
 #[derive(Deserialize, Clone)]
