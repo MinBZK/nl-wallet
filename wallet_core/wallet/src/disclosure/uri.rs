@@ -1,8 +1,5 @@
 use base64::prelude::*;
-use serde::Deserialize;
 use url::Url;
-
-use nl_wallet_mdoc::verifier::SessionType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DisclosureUriError {
@@ -10,21 +7,11 @@ pub enum DisclosureUriError {
     Malformed(Url),
     #[error("could not decode reader engagement: {0}")]
     Base64(#[from] base64::DecodeError),
-    #[error("could not parse URL parameters: {0}")]
-    InvalidParameters(#[from] serde_urlencoded::de::Error),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisclosureUriData {
     pub reader_engagement_bytes: Vec<u8>,
-    pub return_url: Option<Url>,
-    pub session_type: SessionType,
-}
-
-#[derive(Deserialize)]
-struct DisclosureParams {
-    pub return_url: Option<Url>,
-    pub session_type: SessionType,
 }
 
 impl DisclosureUriData {
@@ -61,17 +48,8 @@ impl DisclosureUriData {
         // Decode the `ReaderEngagement` bytes from base64.
         let reader_engagement_bytes = BASE64_URL_SAFE_NO_PAD.decode(reader_engagement_base64)?;
 
-        // Parse an optional return URL and session type from the query parameters.
-        let DisclosureParams {
-            return_url,
-            session_type,
-        } = serde_urlencoded::from_str::<DisclosureParams>(uri.query().unwrap_or(""))
-            .map_err(DisclosureUriError::InvalidParameters)?;
-
         let disclosure_uri = DisclosureUriData {
             reader_engagement_bytes,
-            return_url,
-            session_type,
         };
 
         Ok(disclosure_uri)
@@ -86,54 +64,22 @@ mod tests {
     use super::*;
 
     #[rstest]
+    #[case("scheme://host.name/some/path/Zm9vYmFy", "scheme://host.name/some/path", b"foobar")]
     #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device",
+        "scheme://host.name/some/path/cmVhZGVyLWVuZ2FnZW1lbnQtYnl0ZXM",
         "scheme://host.name/some/path",
-        b"foobar",
-        Some(Url::parse("https://example.com").unwrap()),
-        SessionType::SameDevice
+        b"reader-engagement-bytes"
     )]
     #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=same_device&irrelevant_parameter=value",
+        "scheme://host.name/some/path/MTIzNDU2Nzg5MA",
         "scheme://host.name/some/path",
-        b"foobar",
-        Some(Url::parse("https://example.com").unwrap()),
-        SessionType::SameDevice
+        b"1234567890"
     )]
-    #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?session_type=same_device&return_url=https%3A%2F%2Fexample.com",
-        "scheme://host.name/some/path",
-        b"foobar",
-        Some(Url::parse("https://example.com").unwrap()),
-        SessionType::SameDevice
-    )]
-    #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?return_url=https%3A%2F%2Fexample.com&session_type=cross_device",
-        "scheme://host.name/some/path",
-        b"foobar",
-        Some(Url::parse("https://example.com").unwrap()),
-        SessionType::CrossDevice
-    )]
-    #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?session_type=same_device",
-        "scheme://host.name/some/path",
-        b"foobar",
-        None,
-        SessionType::SameDevice
-    )]
-    fn test_parse_disclosure_uri(
-        #[case] uri: Url,
-        #[case] base_uri: Url,
-        #[case] expected_bytes: &[u8],
-        #[case] expected_return_url: Option<Url>,
-        #[case] expected_session_type: SessionType,
-    ) {
+    fn test_parse_disclosure_uri(#[case] uri: Url, #[case] base_uri: Url, #[case] expected_bytes: &[u8]) {
         let disclosure_uri =
             DisclosureUriData::parse_from_uri(&uri, &base_uri).expect("Could not parse disclosure URI");
 
         assert_eq!(disclosure_uri.reader_engagement_bytes, expected_bytes);
-        assert_eq!(disclosure_uri.session_type, expected_session_type);
-        assert_eq!(disclosure_uri.return_url, expected_return_url);
     }
 
     #[rstest]
@@ -158,29 +104,5 @@ mod tests {
             .expect_err("Parsing disclosure URI should have resulted in error");
 
         assert_matches!(error, DisclosureUriError::Base64(_));
-    }
-
-    #[rstest]
-    #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?return_url=foobar",
-        "scheme://host.name/some/path"
-    )]
-    #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?session_type=not_a_session",
-        "scheme://host.name/some/path"
-    )]
-    #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?return_url=&session_type=same_device",
-        "scheme://host.name/some/path"
-    )]
-    #[case(
-        "scheme://host.name/some/path/Zm9vYmFy?session_type=",
-        "scheme://host.name/some/path"
-    )]
-    fn test_parse_disclosure_uri_error_return_url(#[case] uri: Url, #[case] base_uri: Url) {
-        let error = DisclosureUriData::parse_from_uri(&uri, &base_uri)
-            .expect_err("Parsing disclosure URI should have resulted in error");
-
-        assert_matches!(error, DisclosureUriError::InvalidParameters(_));
     }
 }

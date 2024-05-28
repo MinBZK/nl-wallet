@@ -289,10 +289,7 @@ mod tests {
 
     use crate::{
         errors::Error,
-        iso::{
-            device_retrieval::DeviceRequestVersion,
-            mdocs::{Attributes, IssuerNameSpaces, IssuerSignedItem},
-        },
+        iso::mdocs::{Attributes, IssuerNameSpaces, IssuerSignedItem},
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         test::{
@@ -300,6 +297,7 @@ mod tests {
             TestDocument, TestDocuments,
         },
         unsigned::Entry,
+        verifier::SessionType,
     };
 
     use super::{super::test::*, *};
@@ -313,19 +311,16 @@ mod tests {
         let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
         let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
 
-        let session_transcript = create_basic_session_transcript();
+        let session_transcript = create_basic_session_transcript(SessionType::SameDevice);
 
         // Create an empty `ItemsRequest` and generate `DeviceRequest` with two `DocRequest`s
         // from it, each signed with the same certificate.
         let items_request = emtpy_items_request();
 
-        let device_request = DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: vec![
-                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
-                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
-            ],
-        };
+        let device_request = DeviceRequest::from_doc_requests(vec![
+            create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
+            create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
+        ]);
 
         // Verifying this `DeviceRequest` should succeed and return the `ReaderRegistration`.
         let trust_anchors = der_trust_anchors
@@ -343,19 +338,7 @@ mod tests {
         );
 
         // Verifying a `DeviceRequest` that has no reader auth at all should succeed and return `None`.
-        let device_request = DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: vec![
-                DocRequest {
-                    items_request: items_request.clone().into(),
-                    reader_auth: None,
-                },
-                DocRequest {
-                    items_request: items_request.clone().into(),
-                    reader_auth: None,
-                },
-            ],
-        };
+        let device_request = DeviceRequest::from_items_requests(vec![items_request.clone(), items_request.clone()]);
 
         let no_reader_registration = device_request
             .verify(&session_transcript, &TimeGenerator, &trust_anchors)
@@ -365,13 +348,10 @@ mod tests {
 
         // Generate `DeviceRequest` with two `DocRequest`s, each signed
         // with a different key and including a different certificate.
-        let device_request = DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: vec![
-                create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
-                create_doc_request(items_request, &session_transcript, &private_key2).await,
-            ],
-        };
+        let device_request = DeviceRequest::from_doc_requests(vec![
+            create_doc_request(items_request.clone(), &session_transcript, &private_key1).await,
+            create_doc_request(items_request, &session_transcript, &private_key2).await,
+        ]);
 
         // Verifying this `DeviceRequest` should result in a `HolderError::ReaderAuthsInconsistent` error.
         let error = device_request
@@ -415,7 +395,7 @@ mod tests {
 
         let device_request = DeviceRequest::from(requested_documents);
 
-        let session_transcript = create_basic_session_transcript();
+        let session_transcript = create_basic_session_transcript(SessionType::SameDevice);
         let match_result = device_request
             .match_stored_documents(&mdoc_data_source, &session_transcript)
             .await
@@ -434,7 +414,7 @@ mod tests {
         let der_trust_anchor = DerTrustAnchor::from_der(ca.certificate().as_bytes().to_vec()).unwrap();
 
         // Create a basic session transcript, item request and a `DocRequest`.
-        let session_transcript = create_basic_session_transcript();
+        let session_transcript = create_basic_session_transcript(SessionType::SameDevice);
         let items_request = emtpy_items_request();
         let doc_request = create_doc_request(items_request.clone(), &session_transcript, &private_key).await;
 

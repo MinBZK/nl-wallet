@@ -7,6 +7,7 @@ use coset::CoseSign1;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
+use url::Url;
 
 use crate::{
     iso::{engagement::*, mdocs::*},
@@ -18,26 +19,14 @@ use crate::{
 
 /// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
 /// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceRequest {
     pub version: DeviceRequestVersion,
     pub doc_requests: Vec<DocRequest>,
-}
-
-impl DeviceRequest {
-    pub fn new(items_requests: Vec<ItemsRequest>) -> DeviceRequest {
-        DeviceRequest {
-            version: DeviceRequestVersion::V1_0,
-            doc_requests: items_requests
-                .into_iter()
-                .map(|items_request| DocRequest {
-                    items_request: items_request.into(),
-                    reader_auth: None,
-                })
-                .collect(),
-        }
-    }
+    /// This is a custom and optional field. Other implementations should ignore it.
+    pub return_url: Option<Url>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]

@@ -1,12 +1,13 @@
+use futures::TryFutureExt;
 use reqwest::Client;
 use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::SessionToken,
-    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate},
 };
 use wallet_common::config::wallet_config::BaseUrl;
-use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse};
+use wallet_server::verifier::{DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse};
 
 pub struct WalletServerClient {
     client: Client,
@@ -25,7 +26,6 @@ impl WalletServerClient {
         &self,
         usecase: String,
         items_requests: ItemsRequests,
-        session_type: SessionType,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<(Url, Url), anyhow::Error> {
         let response = self
@@ -34,7 +34,6 @@ impl WalletServerClient {
             .json(&StartDisclosureRequest {
                 usecase,
                 items_requests,
-                session_type,
                 return_url_template,
             })
             .send()
@@ -45,37 +44,43 @@ impl WalletServerClient {
         Ok((response.status_url, response.disclosed_attributes_url))
     }
 
-    pub async fn status(&self, session_token: SessionToken) -> Result<StatusResponse, anyhow::Error> {
-        Ok(self
-            .client
-            .get(self.base_url.join(&format!("/disclosure/{session_token}/status")))
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<StatusResponse>()
-            .await?)
-    }
-
     pub async fn disclosed_attributes(
         &self,
         session_token: SessionToken,
-        transcript_hash: Option<String>,
+        nonce: Option<String>,
     ) -> Result<DisclosedAttributes, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
-            .clone()
             .join(&format!("/disclosure/sessions/{session_token}/disclosed_attributes"));
-        if let Some(hash) = transcript_hash {
-            disclosed_attributes_url.set_query(Some(&format!("transcript_hash={}", hash)));
+        let mut error_url = disclosed_attributes_url.clone();
+
+        let queries = nonce
+            .map(|nonce| {
+                let query = serde_urlencoded::to_string(DisclosedAttributesParams { nonce: nonce.into() })?;
+
+                // Create a separate error query, where the nonce is masked with "X" characters.
+                let error_query = serde_urlencoded::to_string(DisclosedAttributesParams {
+                    nonce: "X".repeat(16).into(),
+                })?;
+
+                Ok::<_, serde_urlencoded::ser::Error>((query, error_query))
+            })
+            .transpose()?;
+
+        if let Some((query, error_query)) = queries {
+            disclosed_attributes_url.set_query(query.as_str().into());
+            error_url.set_query(error_query.as_str().into());
         }
 
-        Ok(self
+        let disclosed_attributes = self
             .client
             .get(disclosed_attributes_url)
             .send()
-            .await?
-            .error_for_status()?
-            .json::<DisclosedAttributes>()
-            .await?)
+            .and_then(|response| async { response.error_for_status() })
+            .and_then(|response| async { response.json::<DisclosedAttributes>().await })
+            .map_err(|error| error.with_url(error_url)) // Show the prepared error query instead for all reqwest errors.
+            .await?;
+
+        Ok(disclosed_attributes)
     }
 }
