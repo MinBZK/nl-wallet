@@ -41,7 +41,8 @@ void main() {
         ),
       );
 
-      const hiddenXAlignment = -3; // The alignment to draw the button off-screen
+      const hiddenXAlignment =
+          HorizontalConfirmButtons.kHiddenXAlignment; // The alignment to draw the button off-screen
       await tester.pumpAndSettle();
 
       final secondaryButtonFinder = find.text('D');

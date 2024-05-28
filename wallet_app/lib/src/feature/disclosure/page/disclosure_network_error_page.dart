@@ -26,8 +26,6 @@ class DisclosureNetworkErrorPage extends StatelessWidget {
     } else {
       return ErrorPage.noInternet(
         context,
-        primaryActionText: context.l10n.disclosureGenericErrorPageCloseCta,
-        primaryActionIcon: Icons.not_interested_rounded,
         onPrimaryActionPressed: onStopPressed,
       );
     }

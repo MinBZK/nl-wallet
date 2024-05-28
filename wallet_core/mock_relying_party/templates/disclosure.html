@@ -45,7 +45,7 @@
             let sessionId = window.location.hash.substring(1)
             let publicUrl = [window.location.protocol, '//', window.location.host, window.location.pathname].join('');
             disclosedAttributesUrl = `${publicUrl}${window.location.pathname.endsWith('/') ? '' : '/'}disclosure/sessions/${sessionId}/disclosed_attributes`
-            if (window.location.search.startsWith("?transcript_hash=")) {
+            if (window.location.search.startsWith("?nonce=")) {
                 let end = window.location.search.search("&")
                 end = end === -1 ? window.location.search.length : end
                 disclosedAttributesUrl += window.location.search.substring(0, end)

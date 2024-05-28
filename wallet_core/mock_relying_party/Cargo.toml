@@ -17,23 +17,16 @@ allow_http_return_url = ["wallet_server/allow_http_return_url"]
 [dependencies]
 anyhow.workspace = true
 askama.workspace = true
-axum = { workspace = true, features = [
-    "form",
-    "headers",
-    "http1",
-    "macros",
-    "query",
-    "tokio",
-    "tower-log",
-    "tracing",
-] }
+axum = { workspace = true, features = ["form", "headers", "http1", "macros", "query", "tokio", "tower-log", "tracing"] }
 axum-extra.workspace = true
 base64.workspace = true
 config.workspace = true
 dashmap.workspace = true
+futures.workspace = true
 reqwest.workspace = true
 sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["derive"] }
+serde_urlencoded.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = [

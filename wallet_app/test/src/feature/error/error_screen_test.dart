@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
+import 'package:wallet/src/feature/common/widget/button/tertiary_button.dart';
 import 'package:wallet/src/feature/error/error_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -11,13 +13,16 @@ void main() {
     return DeviceUtils.deviceBuilderWithPrimaryScrollController
       ..addScenario(
         widget: ErrorScreen(
-          title: 'Title',
           headline: 'Headline',
           description: 'Description',
-          primaryActionText: 'Primary',
-          onPrimaryActionPressed: () {},
-          secondaryActionText: 'Secondary',
-          onSecondaryActionPressed: () {},
+          primaryButton: PrimaryButton(
+            text: const Text('Primary'),
+            onPressed: () {},
+          ),
+          secondaryButton: TertiaryButton(
+            text: const Text('Secondary'),
+            onPressed: () {},
+          ),
         ),
         name: 'error_screen',
       );
@@ -100,28 +105,29 @@ void main() {
       await tester.pumpWidget(
         WalletAppTestWidget(
           child: ErrorScreen(
-            title: 'T',
             description: 'D',
             headline: 'H',
-            primaryActionText: 'P',
-            onPrimaryActionPressed: () {},
-            secondaryActionText: 'S',
-            onSecondaryActionPressed: () {},
+            primaryButton: PrimaryButton(
+              text: const Text('P'),
+              onPressed: () {},
+            ),
+            secondaryButton: TertiaryButton(
+              text: const Text('S'),
+              onPressed: () {},
+            ),
           ),
         ),
       );
 
       // Setup finders
-      final titleFinder = find.text('T');
       final descriptionFinder = find.text('D');
       final headlineFinder = find.text('H');
       final primaryActionFinder = find.text('P');
       final secondaryActionFinder = find.text('S');
 
       // Verify all expected widgets show up once
-      expect(titleFinder, findsOneWidget);
       expect(descriptionFinder, findsOneWidget);
-      expect(headlineFinder, findsOneWidget);
+      expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
       expect(primaryActionFinder, findsOneWidget);
       expect(secondaryActionFinder, findsOneWidget);
     });
