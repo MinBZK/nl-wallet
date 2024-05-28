@@ -787,7 +787,10 @@ impl Session<Created> {
             }
             // A return URL being absent when it is needed should never happen because of checks when creating
             // the session, yet we should not panic since the session state is persisted externally.
-            _ => return Err(VerificationError::ReturnUrlConfigurationMismatch.into()),
+            (SessionTypeReturnUrl::Both, _, None)
+            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, None) => {
+                return Err(VerificationError::ReturnUrlConfigurationMismatch.into())
+            }
         };
 
         // Generate a nonce and add it to the return URL, if required.
