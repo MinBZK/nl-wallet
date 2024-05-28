@@ -14,7 +14,6 @@ use ring::hmac;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as};
 use strfmt::strfmt;
-use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
 use url::Url;
@@ -84,8 +83,8 @@ pub enum VerificationError {
     IncorrectOriginInfo,
     #[error("missing verifier URL params")]
     MissingVerifierUrlParameters,
-    #[error("session is done")]
-    SessionIsDone,
+    #[error("session is done: {0}")]
+    SessionIsDone(SessionResultState),
     #[error("unknown use case: {0}")]
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
@@ -156,7 +155,13 @@ pub struct Done {
 
 /// The outcome of a session: the disclosed attributes if they have been successfully received and verified.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "UPPERCASE", tag = "status")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
+#[derive(strum::EnumDiscriminants)]
+#[strum_discriminants(
+    name(SessionResultState),
+    derive(strum::Display),
+    strum(serialize_all = "SCREAMING_SNAKE_CASE")
+)]
 pub enum SessionResult {
     Done {
         disclosed_attributes: DisclosedAttributes,
@@ -503,7 +508,9 @@ where
                 );
                 Ok((response, session.state.into()))
             }
-            DisclosureData::Done(_) => Err(VerificationError::SessionIsDone),
+            DisclosureData::Done(Done { session_result }) => {
+                Err(VerificationError::SessionIsDone(session_result.into()))
+            }
         }?;
 
         self.sessions
