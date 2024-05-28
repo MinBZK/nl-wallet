@@ -312,7 +312,7 @@ pub struct UseCases(HashMap<String, UseCase>);
 #[derive(Debug)]
 pub struct UseCase {
     pub key_pair: KeyPair,
-    pub session_type_return_url: SessionTypeReturnUrl, // TODO: use this field
+    pub session_type_return_url: SessionTypeReturnUrl,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
