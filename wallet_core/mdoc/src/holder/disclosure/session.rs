@@ -87,6 +87,7 @@ struct CommonDisclosureData<H> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "snake_case")] // Symmetrical to `SessionType`.
 pub enum ReaderEngagementSource {
     Link,
     QrCode,
