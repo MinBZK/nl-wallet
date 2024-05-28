@@ -6,7 +6,7 @@ use serde::Deserialize;
 #[derive(Clone, Deserialize)]
 pub struct Sentry {
     pub dsn: String,
-    pub environment: Option<String>,
+    pub environment: String,
 }
 
 impl Sentry {
@@ -19,7 +19,7 @@ impl Sentry {
             self.dsn.clone(),
             ClientOptions {
                 release,
-                environment: self.environment.as_ref().map(|e| Cow::from(e.clone())),
+                environment: Cow::from(self.environment.clone()).into(),
                 debug: cfg!(debug_assertions),
                 ..Default::default()
             },
