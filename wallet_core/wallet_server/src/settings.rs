@@ -38,6 +38,7 @@ pub struct Settings {
     #[cfg(feature = "issuance")]
     pub issuer: Issuer,
 
+    #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
     pub sentry: Option<Sentry>,
 }

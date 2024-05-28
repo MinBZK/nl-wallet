@@ -138,7 +138,7 @@ do
             BRP_PROXY=0
             shift
             ;;
-        gba_hc_converter)
+        gba|gba_hc_converter)
             GBA_HC=0
             shift
             ;;
@@ -301,13 +301,10 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        cargo build --features "allow_http_return_url,issuance" --bin wallet_server \
+        cargo build --features "allow_http_return_url,issuance" --bin pid_issuer \
               > "${TARGET_DIR}/pid_issuer.log" \
               2>&1
-        mv "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/pid_issuer"
         RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/pid_issuer" \
-                       --config-file pid_issuer.toml \
-                       --env-prefix pid_issuer \
                        >> "${TARGET_DIR}/pid_issuer.log" \
                        2>&1 &
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
@@ -327,17 +324,17 @@ then
 
     if [ "${SENTRY_DSN}" != "" ]
     then
-        export WALLET_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+        export WS_VERIFIER_SENTRY__DSN="${SENTRY_DSN}"
     fi
     if [ "${SENTRY_ENVIRONMENT}" != "" ]
     then
-        export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export WS_VERIFIER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC}"
-        killall mrp_wallet_server || true
+        killall wallet_server_verifier || true
     fi
     if [ "${START}" == "0" ]
     then
@@ -347,11 +344,10 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
-        cargo build --features "allow_http_return_url" --bin wallet_server \
+        cargo build --features "allow_http_return_url,disclosure" --bin wallet_server_verifier \
               > "${TARGET_DIR}/mrp_wallet_server.log" \
               2>&1
-        mv "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server"
-        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server" \
+        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/wallet_server_verifier" \
                        >> "${TARGET_DIR}/mrp_wallet_server.log" \
                        2>&1 &
         echo -e "wallet_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_wallet_server.log${NC}"
@@ -407,11 +403,11 @@ then
 
     if [ "${SENTRY_DSN}" != "" ]
     then
-        export CONFIGURATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+        export CONFIG_SERVER_SENTRY__DSN="${SENTRY_DSN}"
     fi
     if [ "${SENTRY_ENVIRONMENT}" != "" ]
     then
-        export CONFIGURATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]

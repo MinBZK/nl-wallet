@@ -6,20 +6,19 @@ use nl_wallet_mdoc::{server_state::SessionStore, verifier::DisclosureData};
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 use tracing::debug;
 
-#[cfg(feature = "issuance")]
-use openid4vc::issuer::AttributeService;
-
 use crate::{
     log_requests::log_request_response,
     settings::{Authentication, RequesterAuth, Settings},
-    verifier,
 };
+
+#[cfg(all(feature = "issuance", feature = "disclosure"))]
+use openid4vc::issuer::AttributeService;
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
+pub fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
     let mut router = Router::new().nest(prefix, router).nest(prefix, health_router());
 
     if log_requests {
@@ -29,16 +28,17 @@ fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
     router.layer(TraceLayer::new_for_http())
 }
 
-fn setup_disclosure<S>(
-    settings: Settings,
-    disclosure_sessions: S,
-) -> Result<(SocketAddr, Option<SocketAddr>, Router, Router)>
+pub fn create_wallet_socket(settings: &Settings) -> SocketAddr {
+    SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port)
+}
+
+#[cfg(feature = "disclosure")]
+pub fn setup_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<(Option<SocketAddr>, Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let wallet_socket = SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port);
     let (wallet_disclosure_router, mut requester_router) =
-        verifier::create_routers(settings.clone(), disclosure_sessions)?;
+        crate::verifier::create_routers(settings.clone(), disclosure_sessions)?;
 
     let requester_socket = match settings.requester_server {
         RequesterAuth::Authentication(Authentication::ApiKey(api_key)) => {
@@ -55,21 +55,18 @@ where
         RequesterAuth::InternalEndpoint(server) => Some(SocketAddr::new(server.ip, server.port)),
     };
 
-    Ok((
-        wallet_socket,
-        requester_socket,
-        wallet_disclosure_router,
-        requester_router,
-    ))
+    Ok((requester_socket, wallet_disclosure_router, requester_router))
 }
 
+#[cfg(feature = "disclosure")]
 pub async fn serve_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<()>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let log_requests = settings.log_requests;
 
-    let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
+    let wallet_socket = create_wallet_socket(&settings);
+    let (requester_socket, wallet_disclosure_router, requester_router) =
         setup_disclosure(settings, disclosure_sessions)?;
 
     listen(
@@ -83,7 +80,7 @@ where
     Ok(())
 }
 
-#[cfg(feature = "issuance")]
+#[cfg(all(feature = "issuance", feature = "disclosure"))]
 pub async fn serve_full<A, DS, IS>(
     attr_service: A,
     settings: Settings,
@@ -97,7 +94,8 @@ where
 {
     let log_requests = settings.log_requests;
 
-    let (wallet_socket, requester_socket, wallet_disclosure_router, requester_router) =
+    let wallet_socket = create_wallet_socket(&settings);
+    let (requester_socket, wallet_disclosure_router, requester_router) =
         setup_disclosure(settings.clone(), disclosure_sessions)?;
 
     let wallet_issuance_router =
@@ -118,7 +116,7 @@ where
     Ok(())
 }
 
-async fn listen(
+pub async fn listen(
     wallet_socket: SocketAddr,
     requester_socket: Option<SocketAddr>,
     wallet_router: Router,

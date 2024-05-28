@@ -224,13 +224,13 @@ MRP_WALLET_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephe
 export MRP_WALLET_SERVER_EPHEMERAL_ID_SECRET
 
 # And the mrp's wallet_server config
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/wallet_server.toml"
+render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/ws_verifier.toml"
 render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/ws_verifier.toml"
 render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
-render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/ws_verifier.toml"
 
-# And the pid_issuer config, for integration tests append to `wallet_server.toml`
+# And the pid_issuer config, for integration tests append to `ws_verifier.toml`
 render_template "${DEVENV}/pid_issuer.toml.template" "${WALLET_SERVER_DIR}/pid_issuer.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"

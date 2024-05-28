@@ -79,11 +79,11 @@ struct ApplicationState<S> {
     universal_link_base_url: BaseUrl,
 }
 
-pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
+fn create_application_state<S>(settings: Settings, sessions: S) -> anyhow::Result<ApplicationState<S>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let application_state = Arc::new(ApplicationState {
+    let application_state = ApplicationState {
         verifier: Verifier::new(
             RelyingPartyKeyRing(
                 settings
@@ -113,7 +113,15 @@ where
         internal_url: settings.internal_url,
         public_url: settings.public_url,
         universal_link_base_url: settings.universal_link_base_url,
-    });
+    };
+    Ok(application_state)
+}
+
+pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
+where
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+{
+    let application_state = Arc::new(create_application_state(settings, sessions)?);
 
     let wallet_router = Router::new()
         .route("/:session_token", post(session::<S>))
