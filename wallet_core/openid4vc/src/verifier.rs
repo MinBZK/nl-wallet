@@ -70,6 +70,8 @@ pub enum VerificationError {
     SessionNotDone,
     #[error("redirect URI '{0}' does not match expected")]
     RedirectUriMismatch(BaseUrl),
+    #[error("missing redirect URI")]
+    RedirectUriMissing,
     #[error("missing DNS SAN from RP certificate")]
     MissingSAN,
     #[error("RP certificate error: {0}")]
@@ -512,35 +514,27 @@ where
         session_token: &SessionToken,
         redirect_uri: Option<BaseUrl>,
     ) -> Result<DisclosedAttributes, VerificationError> {
-        match self
+        let disclosure_data = self
             .sessions
             .get(session_token)
             .await
             .map_err(DisclosureError::SessionStore)?
             .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
-            .data
-        {
+            .data;
+
+        match disclosure_data {
             DisclosureData::Done(Done {
                 session_result:
                     SessionResult::Done {
-                        redirect_uri: None,
+                        redirect_uri: expected_redirect_uri,
                         disclosed_attributes,
                     },
-            }) => Ok(disclosed_attributes),
-            DisclosureData::Done(Done {
-                session_result:
-                    SessionResult::Done {
-                        redirect_uri: Some(expected_redirect_uri),
-                        disclosed_attributes,
-                    },
-            }) if redirect_uri.as_ref().is_some_and(|h| h == &expected_redirect_uri) => Ok(disclosed_attributes),
-            DisclosureData::Done(Done {
-                session_result:
-                    SessionResult::Done {
-                        redirect_uri: Some(expected_redirect_uri),
-                        ..
-                    },
-            }) => Err(VerificationError::RedirectUriMismatch(expected_redirect_uri)),
+            }) => match (redirect_uri, expected_redirect_uri) {
+                (_, None) => Ok(disclosed_attributes),
+                (None, Some(_)) => Err(VerificationError::RedirectUriMissing),
+                (Some(received), Some(expected)) if received == expected => Ok(disclosed_attributes),
+                (Some(received), Some(_)) => Err(VerificationError::RedirectUriMismatch(received)),
+            },
             _ => Err(VerificationError::SessionNotDone),
         }
     }
