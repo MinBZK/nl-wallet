@@ -25,7 +25,7 @@ use crate::{
     document::{DisclosureDocument, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
     storage::{Storage, StorageError, StoredMdocCopy, WalletEvent},
-    EventStatus,
+    DisclosureUriSource, EventStatus,
 };
 
 use super::{history::EventStorageError, Wallet};
@@ -77,7 +77,11 @@ where
     S: Storage,
 {
     #[instrument(skip_all)]
-    pub async fn start_disclosure(&mut self, uri: &Url) -> Result<DisclosureProposal, DisclosureError> {
+    pub async fn start_disclosure(
+        &mut self,
+        uri: &Url,
+        source: DisclosureUriSource,
+    ) -> Result<DisclosureProposal, DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
 
         info!("Checking if registered");
@@ -104,7 +108,7 @@ where
         .map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
-        let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors())
+        let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors())
             .await
             .map_err(DisclosureError::DisclosureSession)?;
 
@@ -513,7 +517,7 @@ mod tests {
 
         // Starting disclosure should not fail.
         let proposal = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
             .await
             .expect("Could not start disclosure");
 
@@ -521,7 +525,7 @@ mod tests {
         // with the items parsed from the disclosure URI.
         assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUriData {
             reader_engagement_bytes: b"foobar".to_vec(),
-        });
+        } && session.reader_engagement_source == DisclosureUriSource::QrCode );
 
         // Test that the returned `DisclosureProposal` contains the
         // `ReaderRegistration` we set up earlier, as well as the
@@ -553,7 +557,7 @@ mod tests {
 
         // Starting disclosure on a locked wallet should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -568,7 +572,7 @@ mod tests {
 
         // Starting disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -585,7 +589,7 @@ mod tests {
 
         // Starting disclosure on a wallet with an active disclosure should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -599,7 +603,7 @@ mod tests {
 
         // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse("http://example.com").unwrap())
+            .start_disclosure(&Url::parse("http://example.com").unwrap(), DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -617,7 +621,7 @@ mod tests {
 
         // Starting disclosure with a malformed disclosure URI should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -645,7 +649,7 @@ mod tests {
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -682,7 +686,7 @@ mod tests {
         // Starting disclosure where an attribute that is both unavailable
         // and unknown is requested should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -729,7 +733,7 @@ mod tests {
 
         // Starting disclosure where unknown attributes are requested should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -781,7 +785,7 @@ mod tests {
 
         // Start a disclosure session, to ensure a proper session exists that can be cancelled.
         let _ = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect("Could not start disclosure");
 
@@ -843,7 +847,7 @@ mod tests {
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
         let _error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
         assert!(wallet.disclosure_session.is_some());

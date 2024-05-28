@@ -6,6 +6,7 @@ pub mod reqwest {
 pub use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError},
     config::{ConfigurationError, FileStorageError},
+    disclosure::DisclosureUriError,
     document::{AttributeValueType, DocumentMdocError},
     instruction::{InstructionError, RemoteEcdsaKeyError},
     issuance::DigidSessionError,
