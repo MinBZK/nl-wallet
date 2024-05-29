@@ -10,12 +10,14 @@ vi.mock("@/api/status")
 
 describe("WalletButton", () => {
   it("shows the provided text in buttons", () => {
-    const wrapper = mount(WalletButton, { props: { text: "Wallet button test 123" } })
+    const wrapper = mount(WalletButton, {
+      props: { text: "Wallet button test 123", usecase: "test123" },
+    })
     expect(wrapper.text()).toContain("Wallet button test 123")
   })
 
   it("should open modal", async () => {
-    const wrapper = mount(WalletButton, { props: { text: "inloggen" } })
+    const wrapper = mount(WalletButton, { props: { text: "inloggen", usecase: "test123" } })
     await wrapper.find("[data-testid=wallet_button]").trigger("click")
     await nextTick()
     await flushPromises()

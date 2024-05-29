@@ -1,73 +1,68 @@
 <script setup lang="ts">
-import { createEngagement } from "@/api/engagement"
 import { getStatus } from "@/api/status"
-import DeviceChoice from "@/components/DeviceChoice.vue"
-import Error from "@/components/Error.vue"
-import ModalFooter from "@/components/ModalFooter.vue"
+import ErrorSection from "@/components/ErrorSection.vue"
+import InProgressSection from "@/components/InProgressSection.vue"
 import ModalHeader from "@/components/ModalHeader.vue"
 import QrCode from "@/components/QrCode.vue"
-import Success from "@/components/Success.vue"
+import StartEngagement from "@/components/StartEngagement.vue"
+import SuccessSection from "@/components/SuccessSection.vue"
+import { useWindowsSize } from "@/composables/use-windows-size"
 import { type EngagementUrls, SessionType } from "@/models/engagement"
-import { Status } from "@/models/status"
-import { isDesktop } from "@/util/useragent"
+import { type ModalState, type StatusUrl } from "@/models/modal-state"
 import { onUnmounted, ref, watch } from "vue"
 
 const POLL_INTERVAL_IN_MS = 2000
 
 export interface Props {
   baseUrl: string
+  usecase: string
   pollIntervalInMs?: number
 }
 
-enum ShowComponent {
-  DeviceChoice,
-  Qr,
-  Success,
-  Error,
-}
-
 const props = withDefaults(defineProps<Props>(), {
-  pollIntervalInMs: () => POLL_INTERVAL_IN_MS
+  pollIntervalInMs: () => POLL_INTERVAL_IN_MS,
 })
 
-const emit = defineEmits(["close"])
+const emit = defineEmits(["close", "open_link"])
 
-const urls = ref<EngagementUrls | null>()
-const engagementUrl = ref<string | null>()
-const sessionType = ref<SessionType | null>(isDesktop(window.navigator.userAgent) ? SessionType.CrossDevice : null)
 const pollHandle = ref()
-const showComponent = ref<ShowComponent>()
+const modalState = ref<ModalState>({ kind: "starting" })
+const linkOpened = ref(false)
 
-watch(sessionType, async (type) => {
-  if (type) {
-    let response = await createEngagement(props.baseUrl, { session_type: type, usecase: "mijn_amsterdam" })
-    if (response.urls) {
-      urls.value = response.urls
-      await checkStatus(response.urls.status_url)
-      startPolling(response.urls.status_url)
+const { height } = useWindowsSize()
+
+watch(modalState, (state) => {
+  switch (state.kind) {
+    case "starting": {
+      cancelPolling()
+      break
+    }
+    case "created": {
+      if (state.session_type === SessionType.SameDevice && !linkOpened.value) {
+        linkOpened.value = true
+        emit("open_link", state.engagement_url)
+      }
+      startPolling(state.status_url, state.session_type)
+      break
+    }
+    case "in_progress": {
+      break
+    }
+    case "success":
+    case "error": {
+      cancelPolling()
+      break
     }
   }
-}, { immediate: true })
+})
 
-watch([engagementUrl, sessionType], ([url, type]) => {
-  if (!!url && !!type) {
-    if (type === SessionType.SameDevice) {
-      window.open(url, "_blank")
-      return
-    } else if (type === SessionType.CrossDevice) {
-      showComponent.value = ShowComponent.Qr
-      return
-    }
+function startPolling(statusUrl: StatusUrl, sessionType: SessionType) {
+  if (!pollHandle.value) {
+    pollHandle.value = setInterval(
+      async () => await checkStatus(statusUrl, sessionType),
+      props.pollIntervalInMs,
+    )
   }
-
-  if (!url && !type) {
-    showComponent.value = ShowComponent.DeviceChoice
-    return
-  }
-}, { immediate: true })
-
-function startPolling(statusUrl: string) {
-  pollHandle.value = setInterval(async () => await checkStatus(statusUrl), props.pollIntervalInMs)
 }
 
 function cancelPolling() {
@@ -76,50 +71,111 @@ function cancelPolling() {
   }
 }
 
-async function checkStatus(statusUrl: string) {
-  let statusResponse = await getStatus(statusUrl)
-  switch (statusResponse.status) {
-    case Status.Created:
-      engagementUrl.value = statusResponse.engagement_url
-      break
-    case Status.WaitingForResponse:
-      console.log(statusResponse)
-      break
-    case Status.Done:
-      console.log(statusResponse)
-      showComponent.value = ShowComponent.Success
-      break
-    case Status.Cancelled:
-    case Status.Failed:
-      console.log(statusResponse)
-      showComponent.value = ShowComponent.Error
-      cancelPolling()
-      break
+async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType) {
+  try {
+    let statusResponse = await getStatus(statusUrl)
+
+    switch (statusResponse.status) {
+      case "CREATED":
+        modalState.value = {
+          kind: "created",
+          engagement_url: statusResponse.engagement_url,
+          status_url: statusUrl,
+          session_type: sessionType,
+        }
+        break
+      case "WAITING_FOR_RESPONSE":
+        modalState.value = { kind: "in_progress" }
+        break
+      case "DONE":
+        modalState.value = { kind: "success", session_type: sessionType }
+        break
+      case "EXPIRED":
+        modalState.value = {
+          kind: "error",
+          error_type: "expired",
+        }
+        break
+      case "CANCELLED":
+        modalState.value = {
+          kind: "error",
+          error_type: "cancelled",
+        }
+        break
+      case "FAILED":
+        modalState.value = {
+          kind: "error",
+          error_type: "failed",
+        }
+        break
+    }
+  } catch {
+    modalState.value = {
+      kind: "error",
+      error_type: "failed",
+    }
   }
 }
 
-async function handleChoice(choice: SessionType) {
-  sessionType.value = choice
+async function engagementStarted(type: SessionType, urls: EngagementUrls) {
+  await checkStatus(urls.status_url, type)
+}
+
+function close() {
+  emit("close")
+}
+
+function retry() {
+  modalState.value = { kind: "starting" }
+  linkOpened.value = false
 }
 
 onUnmounted(cancelPolling)
 </script>
 
 <template>
-  <aside
-    class="modal reset visible" data-testid="wallet_modal">
-
-    <div class="modal-guts">
+  <div class="modal-anchor">
+    <aside class="modal reset visible" data-testid="wallet_modal">
       <modal-header></modal-header>
-      <article>
-        <device-choice v-if="showComponent === ShowComponent.DeviceChoice" @choice="handleChoice"></device-choice>
-        <qr-code v-if="showComponent === ShowComponent.Qr && engagementUrl" :text="engagementUrl"></qr-code>
-        <success v-if="showComponent === ShowComponent.Success"></success>
-        <error v-if="showComponent === ShowComponent.Error"></error>
-      </article>
-      <modal-footer @close="emit('close')"></modal-footer>
-    </div>
-  </aside>
 
+      <start-engagement
+        v-if="modalState.kind === 'starting'"
+        :baseUrl
+        :usecase
+        @close="close"
+        @created="engagementStarted"
+        @failed="
+          modalState = {
+            kind: 'error',
+            error_type: 'failed',
+          }
+        "
+      ></start-engagement>
+      <qr-code
+        v-if="modalState.kind === 'created' && modalState.session_type === SessionType.CrossDevice"
+        :text="modalState.engagement_url"
+        :small="height <= 900"
+        @close="close"
+      ></qr-code>
+      <in-progress-section
+        v-if="
+          modalState.kind === 'in_progress' ||
+          (modalState.kind === 'created' && modalState.session_type === SessionType.SameDevice)
+        "
+        @stop="close"
+      ></in-progress-section>
+      <success-section
+        v-if="modalState.kind === 'success'"
+        :sessionType="modalState.session_type"
+        @close="close"
+      ></success-section>
+      <error-section
+        v-if="modalState.kind === 'error'"
+        :error_type="modalState.error_type"
+        @close="close"
+        @retry="retry"
+      ></error-section>
+    </aside>
+  </div>
   <div class="bg"></div>
 </template>

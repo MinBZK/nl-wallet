@@ -1,6 +1,7 @@
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>
 
 <template>
-  <h1>NL Wallet</h1>
+  <header>
+    <h1>NL Wallet</h1>
+  </header>
 </template>

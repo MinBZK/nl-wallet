@@ -1,10 +1,11 @@
+import { createEngagement } from "@/api/engagement"
 import { getStatus } from "@/api/status"
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
 import WalletModal from "@/components/WalletModal.vue"
-import { flushPromises, mount } from "@vue/test-utils"
+import { isMobileKey } from "@/util/projection_keys"
+import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { nextTick } from "vue"
 
 await import("../setup")
 
@@ -14,40 +15,192 @@ vi.mock("@/api/status")
 describe("WalletModal", () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    vi.clearAllTimers()
   })
 
   it("should show qr code directly for desktop mode", async () => {
-    const wrapper = mount(WalletModal, { props: { baseUrl: "http://localhost" } })
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: {
+        provide: { [isMobileKey as symbol]: false },
+      },
+    })
     await flushPromises()
-    const qr = wrapper.getComponent(QrCode)
+    expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+  })
 
-    expect(qr.text()).toContain("Scan de QR-code met je NL Wallet app")
+  it("should show qr code for mobile after choosing", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: {
+        provide: { [isMobileKey as symbol]: true },
+      },
+    })
+    await flushPromises()
+    await wrapper.find("[data-testid=cross_device_button]").trigger("click")
+    await vi.waitFor(() => {
+      expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+    })
   })
 
   it("should refresh qr code", async () => {
     vi.clearAllMocks()
 
     const status = vi.mocked(getStatus)
-    const wrapper = mount(WalletModal, { props: { baseUrl: "http://localhost", pollIntervalInMs: 10 } })
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+    })
     await flushPromises()
-    await nextTick()
     const qr = wrapper.getComponent(QrCode)
 
-    vi.advanceTimersByTime(30)
+    await vi.advanceTimersToNextTimerAsync()
+    expect(qr.find("[data-testid=qr]").exists()).toBe(true)
 
-    expect(qr.text()).toContain("Scan de QR-code met je NL Wallet app")
+    expect(status.mock.calls.length).toBe(2)
+  })
 
-    expect(status.mock.calls.length).toBe(4)
+  it("should show in progress when qr code is scanned", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+    })
+    await flushPromises()
+    const qr = wrapper.getComponent(QrCode)
+    expect(qr.find("[data-testid=qr]").exists()).toBe(true)
+
+    await vi.mocked(getStatus).withImplementation(
+      async () => ({ status: "WAITING_FOR_RESPONSE" }),
+      async () => {
+        await vi.advanceTimersToNextTimerAsync()
+        await vi.waitFor(() => {
+          expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(true)
+        })
+      },
+    )
   })
 
   it("should ask where the wallet is for mobile mode", async () => {
-    happyDOM.settings.navigator.userAgent =
-      "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1"
-
-    const wrapper = mount(WalletModal, { props: { baseUrl: "http://localhost" } })
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: {
+        provide: { [isMobileKey as symbol]: true },
+      },
+    })
     await flushPromises()
     const choice = wrapper.getComponent(DeviceChoice)
 
-    expect(choice.text()).toContain("Op welk apparaat staat je NL Wallet app?")
+    expect(choice.find("[data-testid=device_choice]").exists()).toBe(true)
+  })
+
+  it("should emit open_link event for same device flow and show in progress screen", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: {
+        provide: { [isMobileKey as symbol]: true },
+      },
+    })
+    await flushPromises()
+    await wrapper.find("[data-testid=same_device_button]").trigger("click")
+
+    const event = await vi.waitFor(() => {
+      const openLinkEvent = wrapper.emitted("open_link") || []
+      expect(openLinkEvent).toHaveLength(1)
+      return openLinkEvent as unknown[][]
+    })
+
+    expect(event).not.toBeUndefined
+    expect(event).not.toBeNull
+    expect(event[0][0]).toEqual("engagement_url_123")
+  })
+
+  describe("error screens for status", () => {
+    let wrapper: VueWrapper
+
+    beforeEach(async () => {
+      wrapper = mount(WalletModal, {
+        props: { baseUrl: "http://localhost", usecase: "test123" },
+      })
+      await flushPromises()
+      expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+    })
+
+    it("should show error for expired state", async () => {
+      vi.mocked(getStatus).mockResolvedValueOnce({ status: "EXPIRED" })
+      await vi.advanceTimersToNextTimerAsync()
+      expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(true)
+    })
+
+    it("should show error for canceled state", async () => {
+      vi.mocked(getStatus).mockResolvedValueOnce({ status: "CANCELLED" })
+      await vi.advanceTimersToNextTimerAsync()
+      expect(wrapper.find("[data-testid=cancelled_header]").exists()).toBe(true)
+    })
+
+    it("should show error for failed state", async () => {
+      vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+      await vi.advanceTimersToNextTimerAsync()
+      expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+    })
+
+    it("should show error for get status failure", async () => {
+      vi.mocked(getStatus).mockRejectedValueOnce(new Error("http error"))
+      await vi.advanceTimersToNextTimerAsync()
+      expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+    })
+  })
+
+  it("should show error for post engagement failure", async () => {
+    vi.mocked(createEngagement).mockRejectedValueOnce(new Error("http error"))
+
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+    })
+    await flushPromises()
+
+    expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+  })
+
+  it("should show qr code again after retrying for desktop mode", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+    })
+    await flushPromises()
+
+    expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+
+    vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+    await vi.advanceTimersToNextTimerAsync()
+    expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+    expect(wrapper.find("[data-testid=qr]").exists()).toBe(false)
+
+    await wrapper.find("[data-testid=retry_button]").trigger("click")
+
+    await vi.waitFor(() => {
+      expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+    })
+  })
+
+  it("should show device choice again after retrying for mobile mode", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: {
+        provide: { [isMobileKey as symbol]: true },
+      },
+    })
+    await flushPromises()
+
+    vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+    expect(wrapper.find("[data-testid=device_choice]").exists()).toBe(true)
+    await wrapper.find("[data-testid=same_device_button]").trigger("click")
+
+    await flushPromises()
+    await vi.advanceTimersToNextTimerAsync()
+
+    expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
+    expect(wrapper.find("[data-testid=device_choice]").exists()).toBe(false)
+
+    await wrapper.find("[data-testid=retry_button]").trigger("click")
+    await flushPromises()
+
+    expect(wrapper.find("[data-testid=device_choice]").exists()).toBe(true)
   })
 })
