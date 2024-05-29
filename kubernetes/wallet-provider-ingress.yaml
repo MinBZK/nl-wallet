@@ -2,10 +2,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nl-wallet-provider-vpn
-  labels:
-    odcn.rijksapps.nl/inet-loadbalancer: ""
-  annotations:
-    odcn.rijksapps.nl/inet-loadbalancer-hostnames: "$WALLET_PROVIDER_INTERNAL_HOSTNAME"
 spec:
   ingressClassName: nginx
   rules:
