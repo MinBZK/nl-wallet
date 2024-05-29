@@ -36,11 +36,13 @@ use wallet_common::{
 };
 
 use crate::{
+    authorization::AuthorizationErrorCode,
     jwt,
     openid4vp::{
-        AuthRequestError, AuthResponseError, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject,
-        VpResponse,
+        AuthRequestError, AuthResponseError, VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse,
+        VpRequestUriObject, VpResponse,
     },
+    ErrorResponse,
 };
 
 /// Errors that can occur during processing of any of the endpoints.
@@ -107,6 +109,8 @@ pub enum PostAuthResponseError {
     DisclosureError(#[from] DisclosureError),
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
+    #[error("user aborted with error: {0:?}")]
+    UserError(ErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
@@ -193,6 +197,15 @@ impl<'de> Deserialize<'de> for EncryptionPrivateKey {
             .map_err(serde::de::Error::custom)?,
         ))
     }
+}
+
+/// Sent by the wallet to the `response_uri`: either an Authorization Request or an error, which either indicates that
+/// they refuse disclosure, or is an actual error that the wallet encountered during the session.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum WalletAuthResponse {
+    Response(String),
+    Error(ErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
@@ -450,7 +463,7 @@ where
     pub async fn process_authorization_response(
         &self,
         session_token: &SessionToken,
-        authorization_response_jwe: String,
+        wallet_response: WalletAuthResponse,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VpResponse, PostAuthResponseError> {
         let session: Session<WaitingForResponse> = self
@@ -463,7 +476,7 @@ where
 
         let (result, next) = session.process_authorization_response(
             session_token,
-            authorization_response_jwe,
+            wallet_response,
             time,
             self.trust_anchors
                 .iter()
@@ -743,66 +756,71 @@ impl Session<Created> {
 impl Session<WaitingForResponse> {
     /// Process the user's encrypted `VpAuthorizationResponse`, i.e. its disclosure,
     /// returning a response to answer the device with and the next session state.
+    ///
+    /// Unlike many similar method, this method does not have an `_inner()` version that returns `Result<_,_>`
+    /// because it differs from similar methods in the following aspect: in some cases (to wit, if the user
+    /// sent an error instead of a disclosure) then we should respond with HTTP 200 to the user (mandated by
+    /// the OpenID4VP spec), while we fail our session. This does not neatly fit in the `_inner()` method pattern.
     fn process_authorization_response(
         self,
         session_token: &SessionToken,
-        authorization_response_jwe: String,
+        wallet_response: WalletAuthResponse,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> (Result<VpResponse, PostAuthResponseError>, Session<Done>) {
-        info!("Session({}): process response", self.state.token);
+        debug!("Session({}): process response", self.state.token);
 
-        let (response, next) = match self.process_authorization_response_inner(
-            session_token,
-            authorization_response_jwe,
-            time,
-            trust_anchors,
-        ) {
-            Ok((response, disclosed_attributes)) => (Ok(response), {
-                let nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
-                self.transition_finish(disclosed_attributes, nonce)
-            }),
-            Err(err) => {
-                warn!(
-                    "Session({}): process response failed, returning decoding error",
-                    self.state.token
-                );
-                let next = self.transition_fail(&err);
-                (Err(err), next)
-            }
-        };
-
-        (response, next)
-    }
-
-    // Helper function that returns ordinary errors instead of `Session<Done>`
-    fn process_authorization_response_inner(
-        &self,
-        session_token: &SessionToken,
-        jwe: String,
-        time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<(VpResponse, DisclosedAttributes), PostAuthResponseError> {
-        debug!(
-            "Session({}): decrypting and deserializing Authorization Response JWE",
-            self.state.token
-        );
-
-        let data = &self.state.data;
-        let nonce = data.auth_request.oauth_request.nonce.as_ref().unwrap().clone();
-
-        // Decrypt and verify the Authorization Response
-        let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &data.encryption_key.0, nonce)?;
-        let disclosed = auth_response.verify(&data.auth_request, mdoc_nonce, time, trust_anchors)?;
-
+        // Precompute the response to the wallet we need to return in a number of branches below.
         let response = VpResponse {
-            redirect_uri: data
+            redirect_uri: self
+                .state()
                 .redirect_uri
                 .as_ref()
                 .map(|u| u.clone().into_url(session_token).try_into().unwrap()),
         };
 
-        Ok((response, disclosed))
+        let jwe = match wallet_response {
+            WalletAuthResponse::Response(jwe) => jwe,
+            WalletAuthResponse::Error(err) => {
+                // Check if the error code indicates that the user refused to disclose.
+                let user_refused = matches!(
+                    err.error,
+                    VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
+                );
+                let next = if user_refused {
+                    self.transition_abort()
+                } else {
+                    // If the user sent any other error, fail the session.
+                    self.transition_fail(&PostAuthResponseError::UserError(err))
+                };
+                // Return a non-error response to the wallet (including the redirect URI) to indicate
+                // we successfully processed its error response.
+                return (Ok(response), next);
+            }
+        };
+
+        debug!(
+            "Session({}): process response: decrypting and deserializing Authorization Response JWE",
+            self.state.token
+        );
+        let (result, next) = match VpAuthorizationResponse::decrypt_and_verify(
+            jwe,
+            &self.state().encryption_key.0,
+            &self.state().auth_request,
+            time,
+            trust_anchors,
+        ) {
+            Ok(disclosed) => {
+                let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|r| r.nonce.clone());
+                (Ok(response), self.transition_finish(disclosed, redirect_uri_nonce))
+            }
+            Err(err) => {
+                let next = self.transition_fail(&err);
+                (Err(err.into()), next)
+            }
+        };
+
+        (result, next)
     }
 
     fn transition_finish(self, disclosed_attributes: DisclosedAttributes, nonce: Option<String>) -> Session<Done> {
@@ -811,6 +829,12 @@ impl Session<WaitingForResponse> {
                 disclosed_attributes,
                 redirect_uri_nonce: nonce,
             },
+        })
+    }
+
+    fn transition_abort(self) -> Session<Done> {
+        self.transition(Done {
+            session_result: SessionResult::Cancelled,
         })
     }
 }

@@ -20,7 +20,7 @@ use openid4vc::{
     jwt,
     mock::MockMdocDataSource,
     openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
-    verifier::{DisclosureData, StatusResponse, Verifier},
+    verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
     ErrorResponse,
 };
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::OwnedTrustAnchor};
@@ -242,7 +242,7 @@ impl VpMessageClient for MockVpMessageClient {
 
         let response = self
             .verifier
-            .process_authorization_response(&session_token, jwe, &IsoCertTimeGenerator)
+            .process_authorization_response(&session_token, WalletAuthResponse::Response(jwe), &IsoCertTimeGenerator)
             .await
             .unwrap();
 

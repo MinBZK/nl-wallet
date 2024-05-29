@@ -533,6 +533,22 @@ impl VpAuthorizationResponse {
         Ok(jwe)
     }
 
+    pub fn decrypt_and_verify(
+        jwe: String,
+        private_key: &EcKeyPair,
+        auth_request: &VpAuthorizationRequest,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<DisclosedAttributes, AuthResponseError> {
+        let (response, mdoc_nonce) = Self::decrypt(
+            jwe,
+            private_key,
+            auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
+        )?;
+
+        response.verify(auth_request, mdoc_nonce, time, trust_anchors)
+    }
+
     pub fn decrypt(
         jwe: String,
         private_key: &EcKeyPair,
