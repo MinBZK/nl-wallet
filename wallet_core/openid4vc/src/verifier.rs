@@ -15,6 +15,7 @@ use serde_with::{hex::Hex, serde_as};
 use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
+use url::Url;
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
@@ -28,7 +29,6 @@ use nl_wallet_mdoc::{
         EPHEMERAL_ID_VALIDITY_SECONDS,
     },
 };
-use url::Url;
 use wallet_common::{
     config::wallet_config::BaseUrl,
     generator::Generator,
@@ -49,7 +49,7 @@ use crate::{
 
 /// Errors that can occur during processing of any of the endpoints.
 #[derive(thiserror::Error, Debug)]
-pub enum DisclosureError {
+pub enum SessionError {
     #[error("session not in expected state")]
     UnexpectedState,
     #[error("unknown session: {0}")]
@@ -61,8 +61,8 @@ pub enum DisclosureError {
 /// Errors returned by endpoints used by the RP.
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
-    #[error("disclosure error: {0}")]
-    DisclosureError(#[from] DisclosureError),
+    #[error("session error: {0}")]
+    Session(#[from] SessionError),
 
     // RP errors
     #[error("session is done")]
@@ -92,8 +92,8 @@ pub enum VerificationError {
 /// Errors returned by the endpoint that returns the Authorization Request.
 #[derive(thiserror::Error, Debug)]
 pub enum GetAuthRequestError {
-    #[error("disclosure error: {0}")]
-    DisclosureError(#[from] DisclosureError),
+    #[error("session error: {0}")]
+    Session(#[from] SessionError),
     #[error("the ephemeral ID {} is invalid", hex::encode(.0))]
     InvalidEphemeralId(Vec<u8>),
     #[error("the ephemeral ID {} has expired", hex::encode(.0))]
@@ -109,8 +109,8 @@ pub enum GetAuthRequestError {
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
 #[derive(thiserror::Error, Debug)]
 pub enum PostAuthResponseError {
-    #[error("disclosure error: {0}")]
-    DisclosureError(#[from] DisclosureError),
+    #[error("session error: {0}")]
+    Session(#[from] SessionError),
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
     #[error("user aborted with error: {0:?}")]
@@ -203,8 +203,8 @@ impl<'de> Deserialize<'de> for EncryptionPrivateKey {
     }
 }
 
-/// Sent by the wallet to the `response_uri`: either an Authorization Request or an error, which either indicates that
-/// they refuse disclosure, or is an actual error that the wallet encountered during the session.
+/// Sent by the wallet to the `response_uri`: either an Authorization Response JWE or an error, which either indicates
+/// that they refuse disclosure, or is an actual error that the wallet encountered during the session.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WalletAuthResponse {
@@ -268,11 +268,11 @@ impl From<Session<Created>> for SessionState<DisclosureData> {
 }
 
 impl TryFrom<SessionState<DisclosureData>> for Session<Created> {
-    type Error = DisclosureError;
+    type Error = SessionError;
 
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
         let DisclosureData::Created(session_data) = value.data else {
-            return Err(DisclosureError::UnexpectedState);
+            return Err(SessionError::UnexpectedState);
         };
         Ok(Session::<Created> {
             state: SessionState {
@@ -295,11 +295,11 @@ impl From<Session<WaitingForResponse>> for SessionState<DisclosureData> {
 }
 
 impl TryFrom<SessionState<DisclosureData>> for Session<WaitingForResponse> {
-    type Error = DisclosureError;
+    type Error = SessionError;
 
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
         let DisclosureData::WaitingForResponse(session_data) = value.data else {
-            return Err(DisclosureError::UnexpectedState);
+            return Err(SessionError::UnexpectedState);
         };
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
@@ -321,7 +321,7 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
     }
 }
 
-/// status without the underlying data
+/// Session status for the frontend.
 #[derive(Debug, Deserialize, Serialize, strum::Display)]
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum StatusResponse {
@@ -424,7 +424,7 @@ where
         self.sessions
             .write(session_state.into(), true)
             .await
-            .map_err(DisclosureError::SessionStore)?;
+            .map_err(SessionError::SessionStore)?;
 
         info!("Session({session_token}): session created");
         Ok(session_token)
@@ -458,12 +458,15 @@ where
             .sessions
             .get(session_token)
             .await
-            .map_err(DisclosureError::SessionStore)?
-            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
+            .map_err(SessionError::SessionStore)?
+            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
             .try_into()?;
 
         info!("Session({session_token}): get request");
 
+        // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
+        // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
+        // session. This means that the QR code/UL stays on the website so that the user can try again.
         self.verify_ephemeral_id(session_token, &url_params)?;
 
         let (result, next) = match session
@@ -477,7 +480,7 @@ where
         self.sessions
             .write(next, false)
             .await
-            .map_err(DisclosureError::SessionStore)?;
+            .map_err(SessionError::SessionStore)?;
 
         result
     }
@@ -492,8 +495,8 @@ where
             .sessions
             .get(session_token)
             .await
-            .map_err(DisclosureError::SessionStore)?
-            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
+            .map_err(SessionError::SessionStore)?
+            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
             .try_into()?;
 
         let (result, next) = session.process_authorization_response(
@@ -510,7 +513,7 @@ where
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(DisclosureError::SessionStore)?;
+            .map_err(SessionError::SessionStore)?;
 
         result
     }
@@ -526,8 +529,8 @@ where
             .sessions
             .get(session_token)
             .await
-            .map_err(DisclosureError::SessionStore)?
-            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
+            .map_err(SessionError::SessionStore)?
+            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
             .data
         {
             DisclosureData::Created(Created { client_id, .. }) => {
@@ -571,8 +574,8 @@ where
             .sessions
             .get(session_token)
             .await
-            .map_err(DisclosureError::SessionStore)?
-            .ok_or_else(|| DisclosureError::UnknownSession(session_token.clone()))?
+            .map_err(SessionError::SessionStore)?
+            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
             .data;
 
         match disclosure_data {
@@ -653,7 +656,6 @@ pub struct VerifierUrlParameters {
 
 // Transitioning functions and helpers valid for any state
 impl<T: DisclosureState> Session<T> {
-    // TODO check if this suffices for VP error handling
     fn transition_fail(self, error: &impl ToString) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Failed {
@@ -706,7 +708,6 @@ impl Session<Created> {
         session_type: SessionType,
         use_cases: &UseCases,
     ) -> Result<(Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>), (GetAuthRequestError, Session<Done>)> {
-        // TODO return error object
         info!("Session({}): process get request", self.state.token);
 
         let (response, next) = match self
@@ -769,7 +770,7 @@ impl Session<Created> {
             (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
                 None
             }
-            _ => panic!("return URL configuration mismatch"),
+            _ => panic!("return URL configuration mismatch"), // We checked for this case when the session was created
         };
 
         // Construct the Authorization Request.
@@ -809,15 +810,6 @@ impl Session<WaitingForResponse> {
     ) -> (Result<VpResponse, PostAuthResponseError>, Session<Done>) {
         debug!("Session({}): process response", self.state.token);
 
-        // Precompute the response to the wallet we need to return in a number of branches below.
-        let response = VpResponse {
-            redirect_uri: self
-                .state()
-                .redirect_uri
-                .as_ref()
-                .map(|u| u.clone().into_url(session_token).try_into().unwrap()),
-        };
-
         let jwe = match wallet_response {
             WalletAuthResponse::Response(jwe) => jwe,
             WalletAuthResponse::Error(err) => {
@@ -827,6 +819,7 @@ impl Session<WaitingForResponse> {
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
+                let response = self.ok_response(session_token);
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
@@ -852,7 +845,9 @@ impl Session<WaitingForResponse> {
         ) {
             Ok(disclosed) => {
                 let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|r| r.nonce.clone());
-                (Ok(response), self.transition_finish(disclosed, redirect_uri_nonce))
+                let response = self.ok_response(session_token);
+                let next = self.transition_finish(disclosed, redirect_uri_nonce);
+                (Ok(response), next)
             }
             Err(err) => {
                 let next = self.transition_fail(&err);
@@ -861,6 +856,16 @@ impl Session<WaitingForResponse> {
         };
 
         (result, next)
+    }
+
+    fn ok_response(&self, session_token: &SessionToken) -> VpResponse {
+        VpResponse {
+            redirect_uri: self
+                .state()
+                .redirect_uri
+                .as_ref()
+                .map(|u| u.clone().into_url(session_token).try_into().unwrap()),
+        }
     }
 
     fn transition_finish(self, disclosed_attributes: DisclosedAttributes, nonce: Option<String>) -> Session<Done> {

@@ -3,6 +3,7 @@ use std::{collections::HashMap, str::FromStr, sync::Arc};
 use itertools::Itertools;
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
 use ring::{hmac, rand};
+use rstest::rstest;
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
@@ -11,6 +12,7 @@ use nl_wallet_mdoc::{
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
     test::{example_items_requests, DebugCollapseBts},
+    unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
     verifier::{ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCase},
     DeviceRequest, DeviceResponse, DeviceResponseVersion, SessionTranscript,
@@ -105,8 +107,11 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce).unwrap()
 }
 
+#[rstest]
+#[case(SessionType::SameDevice)]
+#[case(SessionType::CrossDevice)]
 #[tokio::test]
-async fn test_client_and_server() {
+async fn test_client_and_server(#[case] session_type: SessionType) {
     let items_requests = example_items_requests();
 
     // Initialize key material
@@ -145,7 +150,7 @@ async fn test_client_and_server() {
         .unwrap();
 
     // frontend receives the UL to feed to the wallet when fetching the session status
-    let request_uri_object = get_uri_from_status_endpoint(verifier.as_ref(), &session_token).await;
+    let request_uri_object = request_uri_from_status_endpoint(verifier.as_ref(), &session_token, session_type).await;
 
     // Start session in the wallet
     let mdocs = MockMdocDataSource::default();
@@ -162,28 +167,42 @@ async fn test_client_and_server() {
     // Finish the disclosure.
     let redirect_uri = proposal.disclose(&key_factory).await.unwrap();
 
+    // If a redirect URI is present then the wallet would navigate to it, informing the RP of the
+    // redirect URI nonce which it will need when retrieving the disclosed attributes.
+    let redirect_uri_nonce = redirect_uri.and_then(|uri| {
+        uri.as_ref()
+            .query_pairs()
+            .find_map(|(name, val)| if name == "nonce" { Some(val.to_string()) } else { None })
+    });
+
     // Retrieve the attributes disclosed by the wallet
     let disclosed = verifier
-        .disclosed_attributes(
-            &session_token,
-            redirect_uri.and_then(|uri| {
-                uri.as_ref()
-                    .query_pairs()
-                    .find_map(|(name, val)| if name == "nonce" { Some(val.to_string()) } else { None })
-            }),
-        )
+        .disclosed_attributes(&session_token, redirect_uri_nonce)
         .await
         .unwrap();
-    dbg!(DebugCollapseBts::from(disclosed));
+
+    assert_eq!(
+        *disclosed["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
+            .first()
+            .unwrap(),
+        Entry {
+            name: "family_name".to_string(),
+            value: "Doe".into()
+        }
+    );
 }
 
-async fn get_uri_from_status_endpoint(verifier: &MockVerifier, session_token: &SessionToken) -> VpRequestUriObject {
+async fn request_uri_from_status_endpoint(
+    verifier: &MockVerifier,
+    session_token: &SessionToken,
+    session_type: SessionType,
+) -> VpRequestUriObject {
     let StatusResponse::Created { ul } = verifier
         .status_response(
             session_token,
             &"https://example.com/ul".parse().unwrap(),
             &"https://example.com/verifier_base_url".parse().unwrap(),
-            SessionType::SameDevice,
+            session_type,
         )
         .await
         .unwrap()
@@ -244,7 +263,7 @@ impl VpMessageClient for MockVpMessageClient {
         &self,
         _url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, openid4vc::disclosure_session::VpMessageClientError> {
+    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         panic!("error: {:?}", error)
     }
 }
