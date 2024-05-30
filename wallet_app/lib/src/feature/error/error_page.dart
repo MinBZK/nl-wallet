@@ -46,7 +46,7 @@ class ErrorPage extends StatelessWidget {
         onPressed: onPrimaryActionPressed,
       ),
       secondaryButton: TertiaryButton(
-        text: Text(context.l10n.errorScreenGeneralHelpCta),
+        text: Text(context.l10n.generalShowDetailsCta),
         icon: const Icon(Icons.help_outline_rounded),
         onPressed: () => ErrorDetailsSheet.show(context),
       ),
@@ -68,7 +68,7 @@ class ErrorPage extends StatelessWidget {
         onPressed: onPrimaryActionPressed,
       ),
       secondaryButton: TertiaryButton(
-        text: Text(context.l10n.errorScreenGeneralHelpCta),
+        text: Text(context.l10n.generalShowDetailsCta),
         icon: const Icon(Icons.help_outline_rounded),
         onPressed: () => ErrorDetailsSheet.show(context),
       ),
@@ -91,11 +91,7 @@ class ErrorPage extends StatelessWidget {
         style,
         onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: TertiaryButton(
-        text: Text(context.l10n.generalShowDetailsCta),
-        icon: const Icon(Icons.info_outline_rounded),
-        onPressed: () => ErrorDetailsSheet.show(context),
-      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );
   }
 

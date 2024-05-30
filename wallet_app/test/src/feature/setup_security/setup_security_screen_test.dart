@@ -195,6 +195,38 @@ void main() {
       // Verify the 'try again' cta is shown
       final tryAgainCtaFinder = find.text(l10n.generalRetry);
       expect(tryAgainCtaFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
+    });
+
+    testWidgets('SetupSecurityScreen shows the server error for SetupSecurityNetworkError(hasInternet=true)',
+        (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityNetworkError(hasInternet: true, error: CoreNetworkError('server')),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'server error' title is shown
+      final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline);
+      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
     });
 
     testWidgets('SetupSecurityScreen shows the generic error for SetupSecurityGenericError state', (tester) async {
@@ -217,6 +249,59 @@ void main() {
 
       // Verify the 'try again' cta is shown
       final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
+    });
+
+    testWidgets('SetupSecurityScreen shows the generic error for SetupSecurityGenericError state', (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityGenericError(error: CoreGenericError('generic')),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'something went wrong' title is shown
+      final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+    });
+
+    testWidgets('SetupSecurityScreen shows the device incompatible error for SetupSecurityDeviceIncompatibleError',
+        (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityDeviceIncompatibleError(error: 'n/a'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'device not supported' explanation is shown
+      final headlineFinder = find.text(l10n.errorScreenDeviceIncompatibleHeadline);
+      final descriptionFinder = find.text(l10n.errorScreenDeviceIncompatibleDescription);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+      expect(descriptionFinder, findsOneWidget);
+
+      // Verify the 'close' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalClose);
       expect(tryAgainCtaFinder, findsOneWidget);
     });
   });

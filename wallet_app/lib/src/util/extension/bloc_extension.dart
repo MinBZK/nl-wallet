@@ -20,6 +20,7 @@ extension BlocExtensions on Bloc {
     Function(CoreGenericError)? onGenericError,
     Function(CoreNetworkError, bool /* hasInternet */)? onNetworkError,
     Function(CoreRedirectUriError)? onRedirectUriError,
+    Function(CoreHardwareKeyUnsupportedError)? onHardwareKeyUnsupportedError,
     Function(CoreError)? onCoreError,
     required Function(Object) onUnhandledError,
   }) async {
@@ -38,6 +39,11 @@ extension BlocExtensions on Bloc {
         case CoreRedirectUriError():
           if (onRedirectUriError != null) {
             await onRedirectUriError.call(ex);
+            return;
+          }
+        case CoreHardwareKeyUnsupportedError():
+          if (onHardwareKeyUnsupportedError != null) {
+            await onHardwareKeyUnsupportedError.call(ex);
             return;
           }
         case CoreStateError():

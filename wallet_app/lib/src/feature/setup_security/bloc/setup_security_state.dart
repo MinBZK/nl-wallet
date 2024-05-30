@@ -46,6 +46,9 @@ class SetupSecuritySelectPinFailed extends SetupSecurityState {
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kSetupSteps);
+
+  @override
+  List<Object?> get props => [reason, ...super.props];
 }
 
 class SetupSecurityPinConfirmationInProgress extends SetupSecurityState {
@@ -95,6 +98,22 @@ class SetupSecurityGenericError extends SetupSecurityState implements ErrorState
   final Object error;
 
   const SetupSecurityGenericError({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
+}
+
+class SetupSecurityDeviceIncompatibleError extends SetupSecurityState implements ErrorState {
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
+
+  @override
+  final Object error;
+
+  const SetupSecurityDeviceIncompatibleError({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
 }
 
 class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErrorState {
