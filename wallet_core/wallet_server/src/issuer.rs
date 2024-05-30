@@ -8,6 +8,7 @@ use axum::{
     routing::{delete, get, post},
     Form, Json, Router, TypedHeader,
 };
+use nutype::nutype;
 use serde::Serialize;
 
 use nl_wallet_mdoc::{
@@ -32,24 +33,34 @@ struct ApplicationState<A, K, S> {
     issuer: Issuer<A, K, S>,
 }
 
-pub struct IssuerKeyRing(pub HashMap<String, KeyPair>);
+#[nutype(derive(From, AsRef))]
+pub struct IssuerKeyRing(HashMap<String, KeyPair>);
 
 impl KeyRing for IssuerKeyRing {
-    fn private_key(&self, usecase: &str) -> Option<&KeyPair> {
-        self.0.get(usecase)
+    fn key_pair(&self, id: &str) -> Option<&KeyPair> {
+        self.as_ref().get(id)
+    }
+
+    fn contains_key_pair(&self, id: &str) -> bool {
+        self.as_ref().contains_key(id)
     }
 }
 
 impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
-    type Error = nl_wallet_mdoc::Error;
+    type Error = p256::pkcs8::Error;
 
     fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
-        Ok(Self(
-            private_keys
-                .into_iter()
-                .map(|(doctype, keypair)| Ok((doctype, KeyPair::from_der(&keypair.private_key, &keypair.certificate)?)))
-                .collect::<Result<_, Self::Error>>()?,
-        ))
+        let key_ring = private_keys
+            .into_iter()
+            .map(|(doctype, key_pair)| {
+                let key_pair = (&key_pair).try_into()?;
+
+                Ok((doctype, key_pair))
+            })
+            .collect::<Result<HashMap<_, _>, Self::Error>>()?
+            .into();
+
+        Ok(key_ring)
     }
 }
 

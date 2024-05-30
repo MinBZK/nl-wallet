@@ -28,7 +28,7 @@ use wallet_server::{
 
 fn start_disclosure_request() -> StartDisclosureRequest {
     StartDisclosureRequest {
-        usecase: String::from("xyz_bank"),
+        usecase: String::from("xyz_bank_no_return_url"),
         return_url_template: None,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
