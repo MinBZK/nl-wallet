@@ -313,7 +313,8 @@ pub struct UseCase {
     pub session_type_return_url: SessionTypeReturnUrl,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum SessionTypeReturnUrl {
     Neither,
     #[default]

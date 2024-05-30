@@ -132,18 +132,10 @@ pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
 
 #[derive(Clone, Deserialize)]
 pub struct VerifierUseCase {
-    #[serde(with = "SessionTypeReturnUrlDef", default)]
+    #[serde(default)]
     pub session_type_return_url: SessionTypeReturnUrl,
     #[serde(flatten)]
     pub key_pair: KeyPair,
-}
-
-#[derive(Deserialize)]
-#[serde(remote = "SessionTypeReturnUrl", rename_all = "snake_case")]
-pub enum SessionTypeReturnUrlDef {
-    Neither,
-    SameDevice,
-    Both,
 }
 
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
