@@ -38,7 +38,7 @@ enum FlutterApiErrorType {
     RedirectUri,
 
     /// The disclosure URI source (universal link or QR code) does not match the received session type.
-    DisclosureQrCodeMismatch,
+    DisclosureSourceMismatch,
 
     /// Indicating something unexpected went wrong.
     Generic,
