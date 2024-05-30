@@ -198,12 +198,27 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::DisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
                 _,
                 _,
-            ))) => FlutterApiErrorType::DisclosureQrCodeMismatch,
+            ))) => FlutterApiErrorType::DisclosureSourceMismatch,
             DisclosureError::DisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> Option<serde_json::Value> {
+        match self {
+            DisclosureError::DisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+                session_type,
+                _,
+            ))) => {
+                [("session_type", serde_json::to_value(session_type).unwrap())] // This conversion should never fail.
+                    .into_iter()
+                    .collect::<serde_json::Value>()
+                    .into()
+            }
+            _ => None,
         }
     }
 }
