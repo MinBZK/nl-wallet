@@ -245,13 +245,11 @@ then
 
     cd "${MOCK_RELYING_PARTY_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
-        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -279,13 +277,11 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
-        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -304,7 +300,7 @@ then
         cargo build --features "allow_http_return_url,issuance" --bin wallet_server \
               > "${TARGET_DIR}/pid_issuer.log" \
               2>&1
-        mv "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/pid_issuer"
+        mv --force "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/pid_issuer" || true
         RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/pid_issuer" \
                        --config-file pid_issuer.toml \
                        --env-prefix pid_issuer \
@@ -325,13 +321,11 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export WALLET_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
-        export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -350,7 +344,7 @@ then
         cargo build --features "allow_http_return_url" --bin wallet_server \
               > "${TARGET_DIR}/mrp_wallet_server.log" \
               2>&1
-        mv "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server"
+        mv --force "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server" || true
         RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server" \
                        >> "${TARGET_DIR}/mrp_wallet_server.log" \
                        2>&1 &
@@ -368,13 +362,11 @@ then
 
     cd "${WP_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
-        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -405,13 +397,11 @@ then
 
     cd "${CS_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
-        export CONFIGURATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
-        export CONFIGURATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+	echo "Sentry DSN: '${SENTRY_DSN}'"
+        export CONFIG_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+        export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -458,13 +448,11 @@ then
 
     cd "${GBA_HC_CONVERTER_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export GBA_HC_CONVERTER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
-        export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -498,6 +486,6 @@ then
             --dart-define ENV_CONFIGURATION=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \
-            --dart-define SENTRY_ENVIRONMENT="local"
+            --dart-define SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
     fi
 fi
