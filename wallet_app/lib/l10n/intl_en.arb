@@ -304,7 +304,6 @@
     "errorDetailsSheetTitle": "Error details",
     "errorScreenDeviceIncompatibleDescription": "It is not possible to use the NL Wallet app on this device. Uninstall the app from this device and download the app to a suitable device.",
     "errorScreenDeviceIncompatibleHeadline": "Sorry, this device is not suitable",
-    "errorScreenGenericCloseCta": "Close",
     "errorScreenGenericDescription": "This action was unsuccessful. This may have several reasons. Please try again.",
     "errorScreenGenericDescriptionCloseVariant": "This action was unsuccessful and this may have several reasons. Please close this app and try again later.",
     "errorScreenGenericHeadline": "Sorry, something went wrong",

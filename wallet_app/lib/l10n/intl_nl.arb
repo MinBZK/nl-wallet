@@ -300,7 +300,6 @@
     "errorDetailsSheetTitle": "Fout details",
     "errorScreenDeviceIncompatibleDescription": "Het is niet mogelijk om de NL Wallet app te gebruiken op dit apparaat. Verwijder de app van dit apparaat en download de app op een geschikt apparaat.",
     "errorScreenDeviceIncompatibleHeadline": "Sorry, dit apparaat is niet geschikt",
-    "errorScreenGenericCloseCta": "Sluiten",
     "errorScreenGenericDescription": "Het is niet gelukt. Wil je het opnieuw proberen?",
     "errorScreenGenericDescriptionCloseVariant": "Het is niet gelukt. Sluit de app en probeer het later opnieuw.",
     "errorScreenGenericHeadline": "Sorry, er ging iets mis",
