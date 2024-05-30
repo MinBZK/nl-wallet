@@ -190,18 +190,18 @@ async fn get_uri_from_status_endpoint(verifier: &MockVerifier, session_token: &S
 type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
 
 struct MockKeyring {
-    private_key: KeyPair,
+    keypair: KeyPair,
 }
 
 impl MockKeyring {
-    pub fn new(private_key: KeyPair) -> Self {
-        MockKeyring { private_key }
+    pub fn new(keypair: KeyPair) -> Self {
+        MockKeyring { keypair }
     }
 }
 
 impl KeyRing for MockKeyring {
-    fn private_key(&self, _: &str) -> Option<&KeyPair> {
-        Some(&self.private_key)
+    fn key_pair(&self, _: &str) -> Option<&KeyPair> {
+        Some(&self.keypair)
     }
 }
 

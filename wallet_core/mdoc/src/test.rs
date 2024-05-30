@@ -141,18 +141,6 @@ impl DeviceRequest {
             ..Default::default()
         }
     }
-
-    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
-        Self::from_doc_requests(
-            items_requests
-                .into_iter()
-                .map(|items_request| DocRequest {
-                    items_request: items_request.into(),
-                    reader_auth: None,
-                })
-                .collect(),
-        )
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

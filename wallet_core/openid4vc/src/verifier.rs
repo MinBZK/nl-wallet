@@ -388,7 +388,7 @@ where
             return Err(VerificationError::NoItemsRequests);
         }
 
-        let Some(private_key) = self.keys.private_key(&usecase_id) else {
+        let Some(private_key) = self.keys.key_pair(&usecase_id) else {
             return Err(VerificationError::UnknownCertificate(usecase_id.clone()));
         };
         let client_id = private_key
@@ -730,7 +730,7 @@ impl Session<Created> {
         keys: &impl KeyRing,
     ) -> Result<(Jwt<VpAuthorizationRequest>, VpAuthorizationRequest, EcKeyPair), GetAuthRequestError> {
         let cert_pair = keys
-            .private_key(&self.state().usecase_id)
+            .key_pair(&self.state().usecase_id)
             .expect("usecase_id always refers to existing key");
 
         let nonce = random_string(32);

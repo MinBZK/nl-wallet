@@ -326,7 +326,7 @@ where
 
         // Verify that the requested attributes are included in the reader authentication.
         let items_requests: ItemsRequests = auth_request.presentation_definition.direct().try_into().unwrap();
-        let device_request = DeviceRequest::new(items_requests.0);
+        let device_request = DeviceRequest::from_items_requests(items_requests.0);
         device_request.verify_requested_attributes(&reader_registration)?;
 
         // Fetch documents from the database, calculate which ones satisfy the request and

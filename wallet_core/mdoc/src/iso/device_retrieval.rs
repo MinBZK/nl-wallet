@@ -29,6 +29,21 @@ pub struct DeviceRequest {
     pub return_url: Option<Url>,
 }
 
+impl DeviceRequest {
+    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
+        Self {
+            doc_requests: items_requests
+                .into_iter()
+                .map(|items_request| DocRequest {
+                    items_request: items_request.into(),
+                    reader_auth: None,
+                })
+                .collect(),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub enum DeviceRequestVersion {
     #[default]

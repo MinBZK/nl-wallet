@@ -1,4 +1,7 @@
-use std::{collections::HashSet, convert::Infallible};
+use std::{
+    collections::{HashMap, HashSet},
+    convert::Infallible,
+};
 
 use indexmap::IndexSet;
 

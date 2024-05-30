@@ -596,8 +596,8 @@ mod tests {
 
     use super::*;
 
-    fn mock_openid_message_client() -> MockOpenidMessageClient {
-        let mut mock_msg_client = MockOpenidMessageClient::new();
+    fn mock_openid_message_client() -> MockVcMessageClient {
+        let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_discover_metadata()
             .returning(|url| Ok(IssuerMetadata::new_mock(url.clone())));
