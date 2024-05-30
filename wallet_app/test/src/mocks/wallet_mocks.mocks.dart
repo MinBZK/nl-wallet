@@ -1225,16 +1225,26 @@ class MockPidRepository extends _i1.Mock implements _i15.PidRepository {
 /// See the documentation for Mockito's code generation for more information.
 class MockDisclosureRepository extends _i1.Mock implements _i17.DisclosureRepository {
   @override
-  _i9.Future<_i18.StartDisclosureResult> startDisclosure(String? disclosureUri) => (super.noSuchMethod(
+  _i9.Future<_i18.StartDisclosureResult> startDisclosure(
+    String? disclosureUri,
+    bool? isQrCode,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
-          [disclosureUri],
+          [
+            disclosureUri,
+            isQrCode,
+          ],
         ),
         returnValue: _i9.Future<_i18.StartDisclosureResult>.value(_i11.dummyValue<_i18.StartDisclosureResult>(
           this,
           Invocation.method(
             #startDisclosure,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
         returnValueForMissingStub:
@@ -1242,7 +1252,10 @@ class MockDisclosureRepository extends _i1.Mock implements _i17.DisclosureReposi
           this,
           Invocation.method(
             #startDisclosure,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
       ) as _i9.Future<_i18.StartDisclosureResult>);
@@ -1690,23 +1703,36 @@ class MockTypedWalletCore extends _i1.Mock implements _i25.TypedWalletCore {
       ) as _i9.Future<bool>);
 
   @override
-  _i9.Future<_i7.StartDisclosureResult> startDisclosure(String? uri) => (super.noSuchMethod(
+  _i9.Future<_i7.StartDisclosureResult> startDisclosure(
+    String? uri,
+    bool? isQrCode,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
-          [uri],
+          [
+            uri,
+            isQrCode,
+          ],
         ),
         returnValue: _i9.Future<_i7.StartDisclosureResult>.value(_FakeStartDisclosureResult_10(
           this,
           Invocation.method(
             #startDisclosure,
-            [uri],
+            [
+              uri,
+              isQrCode,
+            ],
           ),
         )),
         returnValueForMissingStub: _i9.Future<_i7.StartDisclosureResult>.value(_FakeStartDisclosureResult_10(
           this,
           Invocation.method(
             #startDisclosure,
-            [uri],
+            [
+              uri,
+              isQrCode,
+            ],
           ),
         )),
       ) as _i9.Future<_i7.StartDisclosureResult>);
@@ -2136,16 +2162,26 @@ class MockAcceptIssuanceUseCase extends _i1.Mock implements _i40.AcceptIssuanceU
 /// See the documentation for Mockito's code generation for more information.
 class MockStartDisclosureUseCase extends _i1.Mock implements _i41.StartDisclosureUseCase {
   @override
-  _i9.Future<_i18.StartDisclosureResult> invoke(String? disclosureUri) => (super.noSuchMethod(
+  _i9.Future<_i18.StartDisclosureResult> invoke(
+    String? disclosureUri,
+    bool? isQrCode,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #invoke,
-          [disclosureUri],
+          [
+            disclosureUri,
+            isQrCode,
+          ],
         ),
         returnValue: _i9.Future<_i18.StartDisclosureResult>.value(_i11.dummyValue<_i18.StartDisclosureResult>(
           this,
           Invocation.method(
             #invoke,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
         returnValueForMissingStub:
@@ -2153,7 +2189,10 @@ class MockStartDisclosureUseCase extends _i1.Mock implements _i41.StartDisclosur
           this,
           Invocation.method(
             #invoke,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
       ) as _i9.Future<_i18.StartDisclosureResult>);

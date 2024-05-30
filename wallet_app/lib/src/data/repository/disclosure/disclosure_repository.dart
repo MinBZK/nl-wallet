@@ -5,7 +5,7 @@ import '../../../domain/model/disclosure/start_disclosure_result.dart';
 export '../../../domain/model/disclosure/start_disclosure_result.dart';
 
 abstract class DisclosureRepository {
-  Future<StartDisclosureResult> startDisclosure(String disclosureUri);
+  Future<StartDisclosureResult> startDisclosure(String disclosureUri, bool isQrCode);
 
   Future<void> cancelDisclosure();
 

@@ -3,5 +3,5 @@ import '../../../data/repository/disclosure/disclosure_repository.dart';
 export '../../../data/repository/disclosure/disclosure_repository.dart';
 
 abstract class StartDisclosureUseCase {
-  Future<StartDisclosureResult> invoke(String disclosureUri);
+  Future<StartDisclosureResult> invoke(String disclosureUri, bool isQrCode);
 }
