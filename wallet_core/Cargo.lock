@@ -2550,6 +2550,7 @@ dependencies = [
  "dashmap",
  "futures",
  "nl_wallet_mdoc",
+ "nutype",
  "reqwest 0.11.22",
  "sentry",
  "serde",
