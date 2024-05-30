@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-05-23T14:48:47+02:00",
+    "@@last_modified": "2024-05-24T14:17:11+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -467,7 +467,7 @@
     "errorScreenGenericCloseCta": "Close",
     "errorScreenGenericDescription": "This action was unsuccessful. This may have several reasons. Please try again.",
     "errorScreenGenericDescriptionCloseVariant": "This action was unsuccessful and this may have several reasons. Please close this app and try again later.",
-    "errorScreenGenericHeadline": "Something went wrong",
+    "errorScreenGenericHeadline": "Sorry, something went wrong",
     "errorScreenGenericTitle": "Error",
     "errorScreenNoInternetDescription": "It looks like you are currently not connected to the internet. Check your internet connection or try a different network. Then try again.",
     "errorScreenNoInternetDescriptionCloseVariant": "It looks like you are currently not connected to the internet. Check your internet connection or try a different network. Close the app and try again later.",

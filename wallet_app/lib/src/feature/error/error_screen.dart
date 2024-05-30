@@ -13,7 +13,6 @@ import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
 import 'error_button_builder.dart';
-import 'error_cta_style.dart';
 
 export 'error_cta_style.dart';
 

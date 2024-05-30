@@ -5,6 +5,8 @@ import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/primary_button.dart';
 import 'error_cta_style.dart';
 
+export 'error_cta_style.dart';
+
 class ErrorButtonBuilder {
   ErrorButtonBuilder._();
 
@@ -17,12 +19,12 @@ class ErrorButtonBuilder {
       ErrorCtaStyle.retry => PrimaryButton(
           text: Text(context.l10n.generalRetry),
           icon: const Icon(Icons.replay_outlined),
-          onPressed: onPressed ?? () => Navigator.pop(context),
+          onPressed: onPressed ?? () => Navigator.maybePop(context),
         ),
       ErrorCtaStyle.close => PrimaryButton(
           text: Text(context.l10n.generalClose),
           icon: const Icon(Icons.close_outlined),
-          onPressed: onPressed ?? () => Navigator.pop(context),
+          onPressed: onPressed ?? () => Navigator.maybePop(context),
         ),
     };
   }
