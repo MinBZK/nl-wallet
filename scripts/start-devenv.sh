@@ -300,7 +300,7 @@ then
         cargo build --features "allow_http_return_url,issuance" --bin wallet_server \
               > "${TARGET_DIR}/pid_issuer.log" \
               2>&1
-        mv --force "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/pid_issuer" || true
+        mv -f "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/pid_issuer" || true
         RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/pid_issuer" \
                        --config-file pid_issuer.toml \
                        --env-prefix pid_issuer \
@@ -344,7 +344,7 @@ then
         cargo build --features "allow_http_return_url" --bin wallet_server \
               > "${TARGET_DIR}/mrp_wallet_server.log" \
               2>&1
-        mv --force "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server" || true
+        mv -f "${WALLET_CORE_DIR}/target/debug/wallet_server" "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server" || true
         RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/mrp_wallet_server" \
                        >> "${TARGET_DIR}/mrp_wallet_server.log" \
                        2>&1 &
