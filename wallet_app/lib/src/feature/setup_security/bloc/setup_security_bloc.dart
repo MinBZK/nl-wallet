@@ -98,6 +98,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
       Fimber.e('Failed to create wallet', ex: ex, stacktrace: stack);
       await handleError(
         ex,
+        onHardwareKeyUnsupportedError: (ex) => emit(SetupSecurityDeviceIncompatibleError(error: ex)),
         onNetworkError: (ex, hasInternet) => emit(SetupSecurityNetworkError(error: ex, hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(SetupSecurityGenericError(error: ex)),
       );

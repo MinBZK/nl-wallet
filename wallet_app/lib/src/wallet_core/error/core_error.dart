@@ -36,3 +36,7 @@ class CoreRedirectUriError extends CoreError {
 }
 
 enum RedirectError { accessDenied, serverError, unknown }
+
+class CoreHardwareKeyUnsupportedError extends CoreError {
+  const CoreHardwareKeyUnsupportedError(super.description);
+}

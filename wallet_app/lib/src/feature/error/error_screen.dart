@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../domain/model/bloc/network_error_state.dart';
 import '../../navigation/secured_page_route.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/page/page_illustration.dart';
-import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
-import '../common/widget/button/primary_button.dart';
-import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
 import 'error_button_builder.dart';
@@ -133,15 +131,8 @@ class ErrorScreen extends StatelessWidget {
           ? context.l10n.errorScreenGenericDescriptionCloseVariant
           : context.l10n.errorScreenGenericDescription,
       illustration: WalletAssets.svg_error_general,
-      primaryButton: PrimaryButton(
-        text: Text(style == ErrorCtaStyle.close ? context.l10n.errorScreenGenericCloseCta : context.l10n.generalRetry),
-        icon: Icon(style == ErrorCtaStyle.close ? Icons.close_outlined : Icons.replay_outlined),
-        onPressed: () => Navigator.pop(context),
-      ),
-      secondaryButton: TertiaryButton(
-        text: Text(context.l10n.generalShowDetailsCta),
-        onPressed: () => ErrorDetailsSheet.show(context),
-      ),
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );
   }
 
@@ -161,14 +152,8 @@ class ErrorScreen extends StatelessWidget {
         headline: context.l10n.errorScreenServerHeadline,
         description: context.l10n.errorScreenServerDescription,
         illustration: WalletAssets.svg_error_server_outage,
-        primaryButton: PrimaryButton(
-          text: Text(context.l10n.errorScreenServerCloseCta),
-          onPressed: () => Navigator.pop(context),
-        ),
-        secondaryButton: TertiaryButton(
-          text: Text(context.l10n.errorScreenServerHelpCta),
-          onPressed: () => ErrorDetailsSheet.show(context),
-        ),
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, ErrorCtaStyle.close),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
       );
     }
   }
@@ -183,12 +168,31 @@ class ErrorScreen extends StatelessWidget {
           : context.l10n.errorScreenNoInternetDescription,
       illustration: WalletAssets.svg_error_no_internet,
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
-      secondaryButton: TertiaryButton(
-        text: Text(context.l10n.generalShowDetailsCta),
-        icon: const Icon(Icons.info_outline_rounded),
-        onPressed: () => ErrorDetailsSheet.show(context),
-      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
       actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+    );
+  }
+
+  static void showDeviceIncompatible(BuildContext context) {
+    show(
+      context,
+      secured: false,
+      headline: context.l10n.errorScreenDeviceIncompatibleHeadline,
+      description: context.l10n.errorScreenDeviceIncompatibleDescription,
+      illustration: WalletAssets.svg_error_config_update,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        ErrorCtaStyle.close,
+        onPressed: () {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            WalletRoutes.splashRoute,
+            ModalRoute.withName(WalletRoutes.splashRoute),
+          );
+        },
+      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      actions: [],
     );
   }
 }
