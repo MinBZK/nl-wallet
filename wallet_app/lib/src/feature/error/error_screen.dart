@@ -122,7 +122,7 @@ class ErrorScreen extends StatelessWidget {
   /// i.e. 'something went wrong' and a close button. Useful when
   /// we only want to communicate something went wrong without going
   /// into any specifics.
-  static void showGeneric(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.close, bool secured = true}) {
+  static void showGeneric(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry, bool secured = true}) {
     show(
       context,
       secured: secured,
@@ -133,6 +133,7 @@ class ErrorScreen extends StatelessWidget {
       illustration: WalletAssets.svg_error_general,
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
     );
   }
 
@@ -141,24 +142,36 @@ class ErrorScreen extends StatelessWidget {
   /// based on the provided [NetworkErrorState], and defaults to
   /// 'something went wrong, check the internet and try again'
   /// when no [NetworkErrorState] is provided.
-  static void showNetwork(BuildContext context, {bool secured = true, NetworkErrorState? networkError}) {
+  static void showNetwork(
+    BuildContext context, {
+    bool secured = true,
+    NetworkErrorState? networkError,
+    ErrorCtaStyle style = ErrorCtaStyle.retry,
+  }) {
     if (networkError?.hasInternet == false) {
-      showNoInternet(context, secured: secured);
+      showNoInternet(context, style: style, secured: secured);
     } else {
       /// [networkError.statusCode] can eventually be used to show more specific errors
       show(
         context,
         secured: secured,
         headline: context.l10n.errorScreenServerHeadline,
-        description: context.l10n.errorScreenServerDescription,
+        description: style == ErrorCtaStyle.close
+            ? context.l10n.errorScreenServerDescriptionCloseVariant
+            : context.l10n.errorScreenServerDescription,
         illustration: WalletAssets.svg_error_server_outage,
-        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, ErrorCtaStyle.close),
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
         secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+        actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
       );
     }
   }
 
-  static void showNoInternet(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry, bool secured = true}) {
+  static void showNoInternet(
+    BuildContext context, {
+    ErrorCtaStyle style = ErrorCtaStyle.retry,
+    bool secured = true,
+  }) {
     show(
       context,
       secured: secured,

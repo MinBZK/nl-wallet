@@ -255,6 +255,11 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () => ErrorScreen.showNoInternet(context),
           child: const Text('No Internet Error Screen'),
         ),
+        const ThemeSectionSubHeader(title: 'Device Incompatible Screen'),
+        TextButton(
+          onPressed: () => ErrorScreen.showDeviceIncompatible(context),
+          child: const Text('Device Incompatible Screen'),
+        ),
       ],
     );
   }

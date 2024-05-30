@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-05-28T14:08:55+02:00",
+    "@@last_modified": "2024-05-30T15:12:09+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -308,7 +308,7 @@
     "errorScreenNoInternetDescriptionCloseVariant": "Het lijkt erop dat je momenteel geen verbinding hebt met het internet. Controleer je internet-verbinding of probeer een ander netwerk. Sluit de app en probeer het later opnieuw.",
     "errorScreenNoInternetHeadline": "Sorry, geen internet",
     "errorScreenServerDescription": "Het is niet gelukt om het systeem te bereiken. Dat kan verschillende redenen hebben.\nControleer of je verbonden bent met het internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
-    "errorScreenServerDescriptionCloseVariant": "Het is niet gelukt om het systeem te bereiken. Dat kan verschillende redenen hebben.\nControleer of je verbonden bent met het internet of gebruik een ander netwerk. Probeer het daarna opnieuw.",
+    "errorScreenServerDescriptionCloseVariant": "Het is niet gelukt om het systeem te bereiken. Dat kan verschillende redenen hebben.\nControleer of je verbonden bent met het internet of gebruik een ander netwerk. Sluit de app en probeer het later opnieuw.",
     "errorScreenServerHeadline": "Sorry, geen reactie",
     "flashlightDisabledWCAGAnnouncement": "Zaklamp is uitgezet",
     "flashlightEnabledWCAGAnnouncement": "Zaklamp is aangezet",
