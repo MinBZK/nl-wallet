@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Formatter};
+
 use p256::{
     ecdsa::{Signature, SigningKey},
     pkcs8::DecodePrivateKey,
@@ -45,6 +47,14 @@ impl KeyPair {
     }
 }
 
+impl Debug for KeyPair {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("KeyPair")
+            .field("certificate", &self.certificate)
+            .finish_non_exhaustive()
+    }
+}
+
 impl From<KeyPair> for Certificate {
     fn from(source: KeyPair) -> Certificate {
         source.certificate
@@ -65,9 +75,9 @@ impl EcdsaKey for KeyPair {
 impl SecureEcdsaKey for KeyPair {}
 
 pub trait KeyRing {
-    fn private_key(&self, id: &str) -> Option<&KeyPair>;
-    fn contains_key(&self, id: &str) -> bool {
-        self.private_key(id).is_some()
+    fn key_pair(&self, id: &str) -> Option<&KeyPair>;
+    fn contains_key_pair(&self, id: &str) -> bool {
+        self.key_pair(id).is_some()
     }
 }
 
@@ -75,7 +85,7 @@ pub trait KeyRing {
 pub struct SingleKeyRing(pub KeyPair);
 
 impl KeyRing for SingleKeyRing {
-    fn private_key(&self, _: &str) -> Option<&KeyPair> {
+    fn key_pair(&self, _: &str) -> Option<&KeyPair> {
         Some(&self.0)
     }
 }

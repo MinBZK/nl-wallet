@@ -43,7 +43,6 @@
     "kvk": "34366966",
     "privacyPolicyUrl": "https://www.amsterdam.nl/privacy"
   },
-  "returnUrlPrefix": "${RP_RETURN_URL}",
   "requestOriginBaseUrl": "https://www.amsterdam.nl",
   "attributes": {
     "com.example.pid": {

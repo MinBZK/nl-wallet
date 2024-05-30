@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../util/extension/build_context_extension.dart';
 import '../../error/error_page.dart';
 
 class DisclosureNetworkErrorPage extends StatelessWidget {
@@ -18,16 +17,13 @@ class DisclosureNetworkErrorPage extends StatelessWidget {
     if (hasInternet) {
       return ErrorPage.network(
         context,
-        primaryActionText: context.l10n.disclosureGenericErrorPageCloseCta,
-        primaryActionIcon: Icons.not_interested_rounded,
+        style: ErrorCtaStyle.close,
         onPrimaryActionPressed: onStopPressed,
-        showHelpSheetAsSecondaryCta: false,
       );
     } else {
       return ErrorPage.noInternet(
         context,
-        primaryActionText: context.l10n.disclosureGenericErrorPageCloseCta,
-        primaryActionIcon: Icons.not_interested_rounded,
+        style: ErrorCtaStyle.close,
         onPrimaryActionPressed: onStopPressed,
       );
     }

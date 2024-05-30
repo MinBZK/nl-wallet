@@ -1,11 +1,11 @@
 import { defineCustomElement } from "vue"
-import WalletButton from "./WalletButton.ce.vue"
+import WalletButton from "./components/WalletButton.ce.vue"
 
 const NLWalletButton = defineCustomElement(WalletButton)
 customElements.define("nl-wallet-button", NLWalletButton)
 
 declare module "vue" {
   export interface GlobalComponents {
-    "nl-wallet-button": typeof NLWalletButton,
+    "nl-wallet-button": typeof NLWalletButton
   }
 }

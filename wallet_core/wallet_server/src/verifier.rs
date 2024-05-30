@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     body::Bytes,
@@ -9,22 +9,13 @@ use axum::{
     Json, Router,
 };
 use http::Method;
-use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
-use ring::hmac;
 use serde::{Deserialize, Serialize};
-use serde_with::{
-    base64::{Base64, UrlSafe},
-    formats::Unpadded,
-    serde_as,
-};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyPair, KeyRing},
     server_state::{SessionStore, SessionToken},
-    utils::x509::Certificate,
     verifier::{
         DisclosedAttributes, DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse,
         VerificationError, Verifier, VerifierUrlParameters,
@@ -69,16 +60,8 @@ impl IntoResponse for Error {
     }
 }
 
-struct RelyingPartyKeyRing(HashMap<String, KeyPair>);
-
-impl KeyRing for RelyingPartyKeyRing {
-    fn private_key(&self, usecase: &str) -> Option<&KeyPair> {
-        self.0.get(usecase)
-    }
-}
-
 struct ApplicationState<S> {
-    verifier: Verifier<RelyingPartyKeyRing, S>,
+    verifier: Verifier<S>,
     internal_url: BaseUrl,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
@@ -90,22 +73,7 @@ where
 {
     let application_state = Arc::new(ApplicationState {
         verifier: Verifier::new(
-            RelyingPartyKeyRing(
-                settings
-                    .verifier
-                    .usecases
-                    .into_iter()
-                    .map(|(usecase, keypair)| {
-                        Ok((
-                            usecase,
-                            KeyPair::new(
-                                SigningKey::from_pkcs8_der(&keypair.private_key)?,
-                                Certificate::from(&keypair.certificate),
-                            ),
-                        ))
-                    })
-                    .collect::<anyhow::Result<HashMap<_, _>>>()?,
-            ),
+            settings.verifier.usecases.try_into()?,
             sessions,
             settings
                 .verifier
@@ -113,7 +81,7 @@ where
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),
-            hmac::Key::new(hmac::HMAC_SHA256, &settings.verifier.ephemeral_id_secret.into_inner()),
+            (&settings.verifier.ephemeral_id_secret).into(),
         ),
         internal_url: settings.internal_url,
         public_url: settings.public_url,
@@ -165,9 +133,15 @@ where
     Ok(Cbor(response))
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StatusParams {
+    pub session_type: SessionType,
+}
+
 async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
+    Query(params): Query<StatusParams>,
 ) -> Result<Json<StatusResponse>, Error>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -176,6 +150,7 @@ where
         .verifier
         .status_response(
             &session_token,
+            params.session_type,
             &state.universal_link_base_url.join_base_url("disclosure"),
             &state.public_url.join_base_url("disclosure"),
             &TimeGenerator,
@@ -190,7 +165,6 @@ where
 pub struct StartDisclosureRequest {
     pub usecase: String,
     pub items_requests: ItemsRequests,
-    pub session_type: SessionType,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -211,7 +185,6 @@ where
         .verifier
         .new_session(
             start_request.items_requests,
-            start_request.session_type,
             start_request.usecase,
             start_request.return_url_template,
         )
@@ -229,11 +202,9 @@ where
     }))
 }
 
-#[serde_as]
-#[derive(Deserialize)]
-struct DisclosedAttributesParams {
-    #[serde_as(as = "Option<Base64<UrlSafe, Unpadded>>")]
-    transcript_hash: Option<Vec<u8>>,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DisclosedAttributesParams {
+    pub nonce: Option<String>,
 }
 
 async fn disclosed_attributes<S>(
@@ -246,7 +217,7 @@ where
 {
     let disclosed_attributes = state
         .verifier
-        .disclosed_attributes(&session_token, params.transcript_hash)
+        .disclosed_attributes(&session_token, params.nonce)
         .await
         .map_err(Error::DisclosedAttributes)?;
     Ok(Json(disclosed_attributes))

@@ -4,14 +4,18 @@ use askama::Template;
 use axum::{
     extract::{Path, Query, State},
     handler::HandlerWithoutStateExt,
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
     Form, Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
-use tower_http::{services::ServeDir, trace::TraceLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    services::ServeDir,
+    trace::TraceLayer,
+};
 use tracing::warn;
 use url::Url;
 
@@ -20,8 +24,13 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests, SessionType},
 };
 use wallet_common::config::wallet_config::BaseUrl;
+use wallet_server::verifier::{DisclosedAttributesParams, StatusParams};
 
-use crate::{askama_axum, client::WalletServerClient, settings::Settings};
+use crate::{
+    askama_axum,
+    client::WalletServerClient,
+    settings::{Origin, Settings},
+};
 
 #[derive(Debug)]
 pub struct Error(anyhow::Error);
@@ -47,7 +56,28 @@ struct ApplicationState {
     usecases: HashMap<String, ItemsRequests>,
 }
 
-pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
+fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
+    if allow_origins.is_empty() {
+        return None;
+    }
+
+    let layer = CorsLayer::new()
+        .allow_origin(
+            allow_origins
+                .into_iter()
+                .map(|url| {
+                    url.try_into()
+                        .expect("cross_origin base_url should be parseable to header value")
+                })
+                .collect::<Vec<_>>(),
+        )
+        .allow_headers(Any)
+        .allow_methods([Method::GET, Method::POST]);
+
+    Some(layer)
+}
+
+pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
         client: WalletServerClient::new(settings.wallet_server_url.clone()),
         public_url: settings.public_url,
@@ -56,20 +86,25 @@ pub async fn create_router(settings: Settings) -> anyhow::Result<Router> {
 
     let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/", get(index))
         .route("/", post(engage))
+        .route("/engagement", post(create_engagement))
         .route(
             "/disclosure/sessions/:session_token/disclosed_attributes",
             get(disclosed_attributes),
         )
-        .layer(TraceLayer::new_for_http())
-        .with_state(application_state)
         .fallback_service(
             ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
-        );
+        )
+        .with_state(application_state)
+        .layer(TraceLayer::new_for_http());
 
-    Ok(app)
+    if let Some(cors) = cors_layer(settings.allow_origins) {
+        app = app.layer(cors)
+    }
+
+    app
 }
 
 #[derive(Deserialize, Serialize)]
@@ -78,7 +113,7 @@ struct SelectForm {
     usecase: String,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, strum::Display, strum::EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::Display, strum::EnumIter)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 enum MrpSessionType {
@@ -88,12 +123,27 @@ enum MrpSessionType {
     CrossDeviceWithReturn,
 }
 
-#[derive(Template)]
+#[derive(Template, Serialize)]
 #[template(path = "disclosure.html")]
 struct DisclosureTemplate {
-    urls: Option<(String, String)>,
+    urls: Option<EngagementUrls>,
     selected: Option<SelectForm>,
     usecases: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct EngagementUrls {
+    status_url: String,
+    disclosed_attributes_url: String,
+}
+
+impl From<MrpSessionType> for SessionType {
+    fn from(value: MrpSessionType) -> Self {
+        match value {
+            MrpSessionType::SameDevice | MrpSessionType::SameDeviceNoReturn => Self::SameDevice,
+            MrpSessionType::CrossDevice | MrpSessionType::CrossDeviceWithReturn => Self::CrossDevice,
+        }
+    }
 }
 
 async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
@@ -105,6 +155,19 @@ async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
 }
 
 async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
+    let result = start_engagement(state, selected).await?;
+    Ok(askama_axum::into_response(&result))
+}
+
+async fn create_engagement(
+    State(state): State<Arc<ApplicationState>>,
+    Json(selected): Json<SelectForm>,
+) -> Result<Json<DisclosureTemplate>> {
+    let result = start_engagement(state, selected).await?;
+    Ok(result.into())
+}
+
+async fn start_engagement(state: Arc<ApplicationState>, selected: SelectForm) -> Result<DisclosureTemplate> {
     // return URL is just http://public.url/#{session_token}
     let return_url_template = match selected.session_type {
         MrpSessionType::CrossDeviceWithReturn | MrpSessionType::SameDevice => Some(
@@ -115,7 +178,7 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
         _ => None,
     };
 
-    let (status_url, disclosed_attributes_url) = state
+    let (mut status_url, disclosed_attributes_url) = state
         .client
         .start(
             selected.usecase.clone(),
@@ -124,29 +187,33 @@ async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form
                 .get(&selected.usecase)
                 .ok_or(anyhow::Error::msg("usecase not found"))?
                 .clone(),
-            match selected.session_type {
-                MrpSessionType::SameDevice | MrpSessionType::SameDeviceNoReturn => SessionType::SameDevice,
-                _ => SessionType::CrossDevice,
-            },
             return_url_template,
         )
         .await?;
 
+    // For now just make the `session_type` part of the status URL that we send to the frontend.
+    // In a later iteration the frontend should be able to choose this freely.
+    let query = serde_urlencoded::to_string(StatusParams {
+        session_type: selected.session_type.into(),
+    })
+    .expect("all variants of SessionType should convert into query parameters");
+    status_url.set_query(query.as_str().into());
+
     let mrp_disclosed_attributes_url: Url = state.public_url.join(&disclosed_attributes_url.path()[1..]); // `.path()` always starts with a `/`
 
-    Ok(askama_axum::into_response(&DisclosureTemplate {
-        urls: Some((status_url.to_string(), mrp_disclosed_attributes_url.to_string())),
+    let result = DisclosureTemplate {
+        urls: Some(EngagementUrls {
+            status_url: status_url.to_string(),
+            disclosed_attributes_url: mrp_disclosed_attributes_url.to_string(),
+        }),
         selected: Some(SelectForm {
             usecase: selected.usecase,
             session_type: selected.session_type,
         }),
         usecases: state.usecases.keys().cloned().collect(),
-    }))
-}
+    };
 
-#[derive(Deserialize)]
-struct DisclosedAttributesParams {
-    transcript_hash: Option<String>,
+    Ok(result)
 }
 
 // for now this just passes the disclosed attributes on as they are received
@@ -155,9 +222,6 @@ async fn disclosed_attributes(
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Json<DisclosedAttributes>> {
-    let attributes = state
-        .client
-        .disclosed_attributes(session_token, params.transcript_hash)
-        .await?;
+    let attributes = state.client.disclosed_attributes(session_token, params.nonce).await?;
     Ok(Json(attributes))
 }

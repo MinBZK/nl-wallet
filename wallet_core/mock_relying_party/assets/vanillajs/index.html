@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
     <title>Mock Relying Party - VanillaJS</title>
     <style>
         body {
@@ -10,12 +10,6 @@
             padding: 0;
             background-color: rgb(229 231 235);
             font-family: Arial, serif;
-        }
-
-        @media (min-width: 1400px) {
-            main {
-                max-width: 1400px;
-            }
         }
 
         main {
@@ -103,6 +97,42 @@
             font-size: 2rem;
         }
 
+        @media (min-width: 1400px) {
+            main {
+                max-width: 1400px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            header, nav, article {
+                max-width: 700px;
+            }
+        }
+
+        @media (max-width: 1500px) {
+            main {
+                padding-left: 0;
+                padding-right: 0;
+            }
+
+            header, nav, article {
+                max-width: 900px;
+                margin-left: auto;
+                margin-right: auto;
+                padding: 0 1rem;
+            }
+
+            header .logo {
+                margin-left: 0;
+            }
+
+            .img-container {
+                overflow: clip;
+                padding-right: 1rem;
+            }
+
+        }
+
         nl-wallet-button::part(button) {
             background-color: rgb(236, 0, 0);
             border-radius: 0;
@@ -135,7 +165,7 @@
 
     <article>
         <h1>Leeftijd aantonen</h1>
-        <div>
+        <div class="img-container">
             <img src="70892-kloveniersburgwal-03-17apr2023-e-v-eis940.jpg" alt="Kloveniersburgwal">
         </div>
         <p class="text-xl">
@@ -155,7 +185,7 @@
             <a href="#">Waarom worden deze gegevens gevraagd?</a>
         </p>
         <div>
-            <nl-wallet-button text="18+ bewijzen met NL Wallet"></nl-wallet-button>
+            <nl-wallet-button text="18+ bewijzen met NL Wallet" usecase="mijn_amsterdam"></nl-wallet-button>
         </div>
     </article>
 </main>

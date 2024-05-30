@@ -34,6 +34,7 @@ config = { workspace = true, features = ["toml"] }
 http.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
 rand_core = { workspace = true, optional = true }
+sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono"] }
@@ -44,7 +45,7 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["env-filter", "parking_lot", "json"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["sentry"] }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
 wallet_provider_persistence.path = "persistence"

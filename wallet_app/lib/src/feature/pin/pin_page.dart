@@ -112,7 +112,7 @@ class PinPage extends StatelessWidget {
             ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
             break;
           case PinValidateGenericError():
-            ErrorScreen.showGeneric(context, secured: false);
+            ErrorScreen.showGeneric(context, style: ErrorCtaStyle.retry, secured: false);
             break;
           case PinValidateFailure():
             _showErrorDialog(context, state);

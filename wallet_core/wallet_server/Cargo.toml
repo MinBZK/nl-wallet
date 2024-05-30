@@ -33,6 +33,7 @@ cfg_test = [
     "dep:assert_matches",
     "dep:indexmap",
     "dep:parking_lot",
+    "dep:serde_urlencoded",
     "tokio/test-util",
     "nl_wallet_mdoc/mock_time",
 ] # Include and run test that depend on a valid configuration file
@@ -78,6 +79,7 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-chrono",
     "with-json",
 ] }
+sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded = { workspace = true, optional = true }
@@ -94,7 +96,7 @@ url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", optional = true }
-wallet_common.path = "../wallet_common"
+wallet_common = { path = "../wallet_common", features = ["sentry"] }
 
 [dev-dependencies]
 rstest.workspace = true

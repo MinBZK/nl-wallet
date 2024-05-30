@@ -6,10 +6,12 @@ use indexmap::{IndexMap, IndexSet};
 use crate::{
     examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
-    iso::mdocs::DataElementValue,
+    iso::{
+        device_retrieval::{DeviceRequest, DocRequest, ItemsRequest},
+        mdocs::DataElementValue,
+    },
     unsigned::{Entry, UnsignedMdoc},
     verifier::{DisclosedAttributes, DocumentDisclosedAttributes, ItemsRequests},
-    DeviceRequest, ItemsRequest,
 };
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
@@ -130,6 +132,27 @@ pub fn assert_disclosure_contains(
 
     assert_eq!(disclosed_attr.name, *name);
     assert_eq!(disclosed_attr.value, *value);
+}
+
+impl DeviceRequest {
+    pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
+        DeviceRequest {
+            doc_requests,
+            ..Default::default()
+        }
+    }
+
+    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
+        Self::from_doc_requests(
+            items_requests
+                .into_iter()
+                .map(|items_request| DocRequest {
+                    items_request: items_request.into(),
+                    reader_auth: None,
+                })
+                .collect(),
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -305,7 +328,7 @@ impl std::ops::Add for TestDocuments {
 impl From<TestDocuments> for DeviceRequest {
     fn from(value: TestDocuments) -> Self {
         let items_requests = ItemsRequests::from(value);
-        Self::new(items_requests.0)
+        Self::from_items_requests(items_requests.0)
     }
 }
 impl AttributeIdentifierHolder for TestDocuments {

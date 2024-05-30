@@ -520,20 +520,26 @@ impl Session<Created> {
         let dpop_nonce = random_string(32);
 
         let response = TokenResponseWithPreviews {
-            token_response: TokenResponse {
-                access_token: AccessToken::new(&code),
-                c_nonce: Some(c_nonce),
-                token_type: TokenType::DPoP,
-                expires_in: None,
-                refresh_token: None,
-                scope: None,
-                c_nonce_expires_in: None,
-                authorization_details: None,
-            },
+            token_response: TokenResponse::new(AccessToken::new(&code), c_nonce),
             attestation_previews: previews,
         };
 
         Ok((response, dpop_public_key, dpop_nonce))
+    }
+}
+
+impl TokenResponse {
+    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> TokenResponse {
+        TokenResponse {
+            access_token,
+            c_nonce: Some(c_nonce),
+            token_type: TokenType::DPoP,
+            expires_in: None,
+            refresh_token: None,
+            scope: None,
+            c_nonce_expires_in: None,
+            authorization_details: None,
+        }
     }
 }
 
@@ -781,9 +787,13 @@ pub(crate) async fn verify_pop_and_sign_attestation(
         .try_into()
         .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-    let private_key = issuer_data.private_keys.private_key(&unsigned_mdoc.doc_type).ok_or(
-        CredentialRequestError::MissingPrivateKey(unsigned_mdoc.doc_type.clone()),
-    )?;
+    let private_key =
+        issuer_data
+            .private_keys
+            .key_pair(&unsigned_mdoc.doc_type)
+            .ok_or(CredentialRequestError::MissingPrivateKey(
+                unsigned_mdoc.doc_type.clone(),
+            ))?;
     let issuer_signed = IssuerSigned::sign(unsigned_mdoc, mdoc_public_key, private_key)
         .await
         .map_err(CredentialRequestError::AttestationSigning)?;

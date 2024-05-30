@@ -23,13 +23,12 @@ use nl_wallet_mdoc::{
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
 use wallet_server::{
     settings::{Authentication, RequesterAuth, Server, Settings},
-    verifier::{StartDisclosureRequest, StartDisclosureResponse},
+    verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams},
 };
 
 fn start_disclosure_request() -> StartDisclosureRequest {
     StartDisclosureRequest {
-        usecase: String::from("xyz_bank"),
-        session_type: SessionType::CrossDevice,
+        usecase: String::from("xyz_bank_no_return_url"),
         return_url_template: None,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
@@ -325,9 +324,15 @@ async fn test_disclosure_expired<S>(
     assert_eq!(response.status(), StatusCode::OK);
 
     let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
+    let mut status_url = disclosure_response.status_url;
+    let status_query = serde_urlencoded::to_string(StatusParams {
+        session_type: SessionType::SameDevice,
+    })
+    .unwrap();
+    status_url.set_query(status_query.as_str().into());
 
     // Fetch the status, this should return OK and be in the Created state.
-    let response = client.get(disclosure_response.status_url.clone()).send().await.unwrap();
+    let response = client.get(status_url.clone()).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -358,7 +363,7 @@ async fn test_disclosure_expired<S>(
     }
 
     // Fetching the status should return OK and be in the Expired state.
-    let response = client.get(disclosure_response.status_url.clone()).send().await.unwrap();
+    let response = client.get(status_url.clone()).send().await.unwrap();
 
     let status = response.json::<StatusResponse>().await.unwrap();
 
@@ -386,7 +391,7 @@ async fn test_disclosure_expired<S>(
     }
 
     // Both the status and disclosed attribute requests should now return 404.
-    let response = client.get(disclosure_response.status_url).send().await.unwrap();
+    let response = client.get(status_url).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 

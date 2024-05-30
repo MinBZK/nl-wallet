@@ -15,6 +15,7 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let router_state = RouterState::new_from_settings(settings).await?;
 
     let app = router::router(router_state);
+
     axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
 
     Ok(())

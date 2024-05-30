@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -9,11 +10,13 @@ class VerticalConfirmButtons extends StatefulWidget {
   final Widget primaryButton;
   final Widget secondaryButton;
   final bool hideSecondaryButton;
+  final bool flipVertical;
 
   const VerticalConfirmButtons({
     required this.primaryButton,
     required this.secondaryButton,
     this.hideSecondaryButton = false,
+    this.flipVertical = false,
     super.key,
   });
 
@@ -27,6 +30,7 @@ class _VerticalConfirmButtonsState extends State<VerticalConfirmButtons> with Si
 
   @override
   void initState() {
+    super.initState();
     controller = AnimationController(
       vsync: this,
       duration: kDefaultAnimationDuration,
@@ -36,7 +40,6 @@ class _VerticalConfirmButtonsState extends State<VerticalConfirmButtons> with Si
       parent: controller,
       curve: Curves.easeInCubic,
     );
-    super.initState();
   }
 
   @override
@@ -47,8 +50,8 @@ class _VerticalConfirmButtonsState extends State<VerticalConfirmButtons> with Si
 
   @override
   void didUpdateWidget(covariant VerticalConfirmButtons oldWidget) {
-    controller.animateTo(widget.hideSecondaryButton ? 1 : 0);
     super.didUpdateWidget(oldWidget);
+    controller.animateTo(widget.hideSecondaryButton ? 1 : 0);
   }
 
   @override
@@ -61,19 +64,20 @@ class _VerticalConfirmButtonsState extends State<VerticalConfirmButtons> with Si
           TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 1),
           TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.0), weight: 3),
         ]);
+        final columnChildren = [
+          widget.primaryButton,
+          SizedBox(height: ConfirmButtons.kButtonSpacing * yScaleTween.evaluate(animation)),
+          Opacity(
+            opacity: opacityTween.evaluate(animation),
+            child: SizeTransition(
+              sizeFactor: animation.drive(yScaleTween),
+              child: widget.secondaryButton,
+            ),
+          ),
+        ];
         return Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            widget.primaryButton,
-            SizedBox(height: ConfirmButtons.kButtonSpacing * yScaleTween.evaluate(animation)),
-            Opacity(
-              opacity: opacityTween.evaluate(animation),
-              child: SizeTransition(
-                sizeFactor: animation.drive(yScaleTween),
-                child: widget.secondaryButton,
-              ),
-            ),
-          ],
+          children: columnChildren..reverseRange(0, widget.flipVertical ? columnChildren.length : 0),
         );
       },
     );

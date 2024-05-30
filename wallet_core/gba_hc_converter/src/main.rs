@@ -3,18 +3,17 @@ use std::error::Error;
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 
-use crate::settings::Settings;
+use gba_hc_converter::{app, haal_centraal, settings::Settings};
 
-mod app;
-mod error;
-mod gba;
-mod haal_centraal;
-mod server;
-mod settings;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+// Cannot use #[tokio::main], see: https://docs.sentry.io/platforms/rust/#async-main-function
+fn main() -> Result<(), Box<dyn Error>> {
     let settings = Settings::new()?;
+
+    // Retain [`ClientInitGuard`]
+    let _guard = settings
+        .sentry
+        .as_ref()
+        .map(|sentry| sentry.init(sentry::release_name!()));
 
     let builder = tracing_subscriber::fmt().with_env_filter(
         EnvFilter::builder()
@@ -31,7 +30,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Run mode: {}", settings.run_mode);
 
-    app::serve_from_settings(settings).await?;
-
-    Ok(())
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(async { app::serve_from_settings(settings).await })
 }

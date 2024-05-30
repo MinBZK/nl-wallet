@@ -169,7 +169,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
               style: Theme.of(context)
                   .textButtonTheme
                   .style
-                  ?.copyWith(foregroundColor: MaterialStatePropertyAll(context.colorScheme.error)),
+                  ?.copyWith(foregroundColor: WidgetStatePropertyAll(context.colorScheme.error)),
               onPressed: () => Navigator.pop(context, true),
               child: Text(context.l10n.walletPersonalizeScreenStopDigidDialogPositiveCta),
             ),
@@ -322,6 +322,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         appBar: WalletAppBar(progress: state.stepperProgress),
         body: ErrorPage.network(
           context,
+          style: ErrorCtaStyle.retry,
           onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
         ),
       );
@@ -331,6 +332,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         body: ErrorPage.noInternet(
           context,
           onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+          style: ErrorCtaStyle.retry,
         ),
       );
     }
@@ -341,6 +343,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       appBar: const WalletAppBar(progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps)),
       body: ErrorPage.generic(
         context,
+        style: ErrorCtaStyle.retry,
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       ),
     );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../util/extension/build_context_extension.dart';
 import '../../error/error_page.dart';
 
 class DisclosureGenericErrorPage extends StatelessWidget {
@@ -15,10 +14,7 @@ class DisclosureGenericErrorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ErrorPage.generic(
       context,
-      headline: context.l10n.disclosureGenericErrorPageTitle,
-      description: context.l10n.disclosureGenericErrorPageDescription,
-      primaryActionText: context.l10n.disclosureGenericErrorPageCloseCta,
-      primaryActionIcon: Icons.not_interested_rounded,
+      style: ErrorCtaStyle.close,
       onPrimaryActionPressed: onStopPressed,
     );
   }

@@ -4,6 +4,7 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use serde_with::{serde_as, DurationMilliSeconds, DurationSeconds};
 
+use wallet_common::sentry::Sentry;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]
@@ -19,6 +20,7 @@ pub struct Settings {
     pub hsm: Hsm,
     pub pin_policy: PinPolicySettings,
     pub structured_logging: bool,
+    pub sentry: Option<Sentry>,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]

@@ -61,7 +61,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     // Verify the Authorization Request JWE and read the requested attributes.
     let auth_request = VpAuthorizationRequest::verify(&auth_request, trust_anchors).unwrap();
     let items_requests: ItemsRequests = auth_request.presentation_definition.direct().try_into().unwrap();
-    let device_request = DeviceRequest::new(items_requests.0.clone());
+    let device_request = DeviceRequest::from_items_requests(items_requests.0.clone());
 
     // Check if we have the requested attributes.
     let session_transcript = SessionTranscript::new_oid4vp(

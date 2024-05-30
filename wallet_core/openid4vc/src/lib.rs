@@ -23,7 +23,7 @@ pub mod oidc;
 pub mod openid4vp;
 pub mod presentation_exchange;
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
 pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";

@@ -1,22 +1,61 @@
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
+use axum::{headers::HeaderValue, http::header::InvalidHeaderValue};
 use config::{Config, ConfigError, Environment, File};
-use nl_wallet_mdoc::verifier::ItemsRequests;
+use nutype::nutype;
 use serde::Deserialize;
-use wallet_common::config::wallet_config::BaseUrl;
+use url::Url;
+
+use nl_wallet_mdoc::verifier::ItemsRequests;
+use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     pub webserver: Server,
     pub wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
+    #[serde(default)]
+    pub allow_origins: Vec<Origin>,
     pub usecases: HashMap<String, ItemsRequests>,
+    pub sentry: Option<Sentry>,
 }
 
 #[derive(Deserialize, Clone)]
 pub struct Server {
     pub ip: IpAddr,
     pub port: u16,
+}
+
+#[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(TryFrom, Deserialize, Clone))]
+pub struct Origin(Url);
+
+impl Origin {
+    fn is_valid(u: &Url) -> bool {
+        #[cfg(feature = "allow_http_return_url")]
+        let allowed_schemes = ["https", "http"];
+        #[cfg(not(feature = "allow_http_return_url"))]
+        let allowed_schemes = ["https"];
+
+        (allowed_schemes.contains(&u.scheme()))
+            && u.has_host()
+            && u.fragment().is_none()
+            && u.query().is_none()
+            && u.path() == "/"
+        // trailing slash is stripped of when converting to `HeaderValue`
+    }
+}
+
+impl TryFrom<Origin> for HeaderValue {
+    type Error = InvalidHeaderValue;
+
+    fn try_from(value: Origin) -> Result<Self, Self::Error> {
+        let url = value.into_inner();
+        let mut str = format!("{0}://{1}", url.scheme(), url.host_str().unwrap(),);
+        if let Some(port) = url.port() {
+            str += &format!(":{0}", port);
+        }
+        HeaderValue::try_from(str)
+    }
 }
 
 impl Settings {

@@ -37,11 +37,11 @@ class DeeplinkService {
   void _startObservingAppLinks() {
     // Note: The [kResumeDebounceDuration] is important, as the apps 'locked' flag is set when the [AppLifecycleState]
     //       changes. Meaning that without the debounceTime the [ObserveWalletLockUseCase] could produce a stale value.
-    final initialLinkStream = Stream.fromFuture(_appLinks.getInitialAppLink()).whereNotNull();
+    final initialLinkStream = Stream.fromFuture(_appLinks.getInitialLink()).whereNotNull();
     // This clearController is used to make [allLinksStream] emit null after processing so that the same Uri is not
     // processed twice, which would otherwise happen when the user hides and shows the app.
     final clearController = StreamController<Uri?>();
-    final allLinksStream = Rx.merge<Uri?>([initialLinkStream, _appLinks.allUriLinkStream, clearController.stream]);
+    final allLinksStream = Rx.merge<Uri?>([initialLinkStream, _appLinks.uriLinkStream, clearController.stream]);
     final debounceUntilResumedStream = CombineLatestStream.combine2(allLinksStream, _appLifecycleService.observe(),
         (uri, state) => state == AppLifecycleState.resumed ? uri : null).whereNotNull();
     debounceUntilResumedStream.debounceTime(kResumeDebounceDuration).asyncMap((uri) async {

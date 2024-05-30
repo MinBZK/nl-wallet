@@ -11,7 +11,7 @@ function handleEvent(event: Event) {
     <header>
       <div class="logo">
         <span class="logoset">
-          <img src="./assets/adam_logo.svg" class="screen-logo" alt="Gemeente Amsterdam">
+          <img src="./assets/adam_logo.svg" class="screen-logo" alt="Gemeente Amsterdam" />
         </span>
         <div class="logotexts">
           <div class="logotext red">Gemeente</div>
@@ -30,12 +30,15 @@ function handleEvent(event: Event) {
 
     <article>
       <h1>Leeftijd aantonen</h1>
-      <div>
-        <img src="./assets/70892-kloveniersburgwal-03-17apr2023-e-v-eis940.jpg" alt="Kloveniersburgwal">
+      <div class="img-container">
+        <img
+          src="./assets/70892-kloveniersburgwal-03-17apr2023-e-v-eis940.jpg"
+          alt="Kloveniersburgwal"
+        />
       </div>
       <p class="text-xl">
-        Met NL Wallet kunt u bewijzen hoe oud u bent zonder uw geboortedatum prijs te geven. U blijft dus
-        anoniem.
+        Met NL Wallet kunt u bewijzen hoe oud u bent zonder uw geboortedatum prijs te geven. U
+        blijft dus anoniem.
       </p>
       <h2>Probeer het uit</h2>
       <p>
@@ -50,20 +53,17 @@ function handleEvent(event: Event) {
         <a href="#">Waarom worden deze gegevens gevraagd?</a>
       </p>
       <div>
-        <nl-wallet-button text="18+ bewijzen met NL Wallet" @close="handleEvent"></nl-wallet-button>
+        <nl-wallet-button
+          text="18+ bewijzen met NL Wallet"
+          usecase="mijn_amsterdam"
+          @close="handleEvent"
+        ></nl-wallet-button>
       </div>
     </article>
   </main>
 </template>
 
 <style scoped>
-
-@media (min-width: 1400px) {
-  main {
-    max-width: 1400px;
-  }
-}
-
 main {
   width: 100%;
   height: 100vh;
@@ -73,7 +73,9 @@ main {
   padding-right: 5rem;
 }
 
-header, nav, article {
+header,
+nav,
+article {
   max-width: 1536px;
   padding-left: 14rem;
   padding-right: 14rem;
@@ -147,6 +149,45 @@ article h1 {
   margin-top: 0;
   padding: 2rem 0 0 0;
   font-size: 2rem;
+}
+
+@media (max-width: 1400px) {
+  main {
+    max-width: 1400px;
+  }
+}
+
+@media (max-width: 700px) {
+  header,
+  nav,
+  article {
+    max-width: 700px;
+  }
+}
+
+@media (max-width: 1500px) {
+  main {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  header,
+  nav,
+  article {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 1rem;
+  }
+
+  header .logo {
+    margin-left: 0;
+  }
+
+  .img-container {
+    overflow: clip;
+    padding-right: 1rem;
+  }
 }
 
 nl-wallet-button::part(button) {

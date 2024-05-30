@@ -14,8 +14,11 @@ class ConfirmButtons extends StatelessWidget {
   final FitsWidthWidget primaryButton;
   final FitsWidthWidget secondaryButton;
 
-  /// Other config
   final bool forceVertical;
+
+  /// Flips the position of the primary and secondary buttons in the
+  /// vertical layout.
+  final bool flipVertical;
 
   /// Whether the [secondaryButton] should be shown,
   /// changing this will trigger an implicit animation.
@@ -25,6 +28,7 @@ class ConfirmButtons extends StatelessWidget {
     required this.primaryButton,
     required this.secondaryButton,
     this.forceVertical = false,
+    this.flipVertical = false,
     this.hideSecondaryButton = false,
     super.key,
   });
@@ -41,6 +45,7 @@ class ConfirmButtons extends StatelessWidget {
         primaryButton: primaryButton,
         secondaryButton: secondaryButton,
         hideSecondaryButton: hideSecondaryButton,
+        flipVertical: flipVertical,
       );
     } else {
       buttons = HorizontalConfirmButtons(
