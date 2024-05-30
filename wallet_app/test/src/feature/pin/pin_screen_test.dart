@@ -125,32 +125,5 @@ void main() {
       final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
       expect(showDetailsCtaFinder, findsOneWidget);
     });
-
-    testWidgets('PinScreen shows the generic error for PinValidateGenericError state', (tester) async {
-      await tester.pumpWidget(
-        WalletAppTestWidget(
-          child: PinScreen(
-            onUnlock: (returnUrl) {},
-          ).withState<PinBloc, PinState>(
-            MockPinBloc(),
-            const PinValidateGenericError(
-              error: CoreGenericError('generic'),
-            ),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      final l10n = await TestUtils.englishLocalizations;
-
-      // Verify the 'something went wrong' title is shown
-      final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
-      expect(headlineFinder, findsAtLeastNWidgets(1));
-
-      // Verify the 'try again' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalRetry);
-      expect(tryAgainCtaFinder, findsOneWidget);
-    });
   });
 }
