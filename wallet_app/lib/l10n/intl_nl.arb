@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-05-23T14:48:47+02:00",
+    "@@last_modified": "2024-05-24T14:17:11+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -462,8 +462,8 @@
     "errorScreenGeneralHelpCta": "Hulp nodig?",
     "errorScreenGenericCloseCta": "Sluiten",
     "errorScreenGenericDescription": "Het is niet gelukt. Wil je het opnieuw proberen?",
-    "errorScreenGenericDescriptionCloseVariant": "Het is niet gelukt. Wil je het opnieuw proberen?",
-    "errorScreenGenericHeadline": "Er gaat iets mis",
+    "errorScreenGenericDescriptionCloseVariant": "Het is niet gelukt. Sluit de app en probeer het later opnieuw.",
+    "errorScreenGenericHeadline": "Sorry, er ging iets mis",
     "errorScreenGenericTitle": "Fout",
     "errorScreenNoInternetDescription": "Het lijkt erop dat je momenteel geen verbinding hebt met het internet. Controleer je internet-verbinding of probeer een ander netwerk. Probeer het vervolgens opnieuw.",
     "errorScreenNoInternetDescriptionCloseVariant": "Het lijkt erop dat je momenteel geen verbinding hebt met het internet. Controleer je internet-verbinding of probeer een ander netwerk. Sluit de app en probeer het later opnieuw.",

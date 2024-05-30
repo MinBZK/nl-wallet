@@ -419,5 +419,28 @@ void main() {
       final tryAgainCtaFinder = find.text(l10n.generalRetry);
       expect(tryAgainCtaFinder, findsOneWidget);
     });
+
+    testWidgets('WalletPersonalizeScreen shows the generic error for SetupSecurityGenericError state', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeGenericError(
+            error: CoreGenericError('generic'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'something went wrong' title is shown
+      final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+    });
   });
 }
