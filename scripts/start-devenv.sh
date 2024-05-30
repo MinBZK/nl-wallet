@@ -249,7 +249,7 @@ then
     then
 	echo "Sentry DSN: '${SENTRY_DSN}'"
         export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
-        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
+        export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -281,7 +281,7 @@ then
     then
 	echo "Sentry DSN: '${SENTRY_DSN}'"
         export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
-        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
+        export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -325,7 +325,7 @@ then
     then
 	echo "Sentry DSN: '${SENTRY_DSN}'"
         export WALLET_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-        export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
+        export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -366,7 +366,7 @@ then
     then
 	echo "Sentry DSN: '${SENTRY_DSN}'"
         export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
-        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
+        export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -401,7 +401,7 @@ then
     then
 	echo "Sentry DSN: '${SENTRY_DSN}'"
         export CONFIG_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-        export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
+        export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -452,7 +452,7 @@ then
     then
 	echo "Sentry DSN: '${SENTRY_DSN}'"
         export GBA_HC_CONVERTER_SENTRY__DSN="${SENTRY_DSN}"
-        export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
+        export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
@@ -486,6 +486,6 @@ then
             --dart-define ENV_CONFIGURATION=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \
-            --dart-define SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT:-local}"
+            --dart-define SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 fi
