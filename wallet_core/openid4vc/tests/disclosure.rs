@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use itertools::Itertools;
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
@@ -7,12 +7,12 @@ use ring::{hmac, rand};
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
     holder::{DeviceRequestMatch, ProposedDocument, TrustAnchor},
-    server_keys::{KeyPair, KeyRing},
+    server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
     test::{example_items_requests, DebugCollapseBts},
     utils::reader_auth::ReaderRegistration,
-    verifier::{ItemsRequests, ReturnUrlTemplate, SessionType},
+    verifier::{ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCase},
     DeviceRequest, DeviceResponse, DeviceResponseVersion, SessionTranscript,
 };
 use openid4vc::{
@@ -118,7 +118,14 @@ async fn test_client_and_server() {
 
     // Initialize the vrifier
     let verifier = Arc::new(MockVerifier::new(
-        MockKeyring::new(disclosure_key),
+        HashMap::from([(
+            "usecase_id".to_string(),
+            UseCase {
+                key_pair: disclosure_key,
+                session_type_return_url: SessionTypeReturnUrl::SameDevice,
+            },
+        )])
+        .into(),
         MemorySessionStore::default(),
         Examples::iaca_trust_anchors()
             .iter()
@@ -187,23 +194,7 @@ async fn get_uri_from_status_endpoint(verifier: &MockVerifier, session_token: &S
     serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap()
 }
 
-type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
-
-struct MockKeyring {
-    keypair: KeyPair,
-}
-
-impl MockKeyring {
-    pub fn new(keypair: KeyPair) -> Self {
-        MockKeyring { keypair }
-    }
-}
-
-impl KeyRing for MockKeyring {
-    fn key_pair(&self, _: &str) -> Option<&KeyPair> {
-        Some(&self.keypair)
-    }
-}
+type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;
 
 struct MockVpMessageClient {
     verifier: Arc<MockVerifier>,

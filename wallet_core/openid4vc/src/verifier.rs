@@ -18,13 +18,15 @@ use tracing::{debug, info, warn};
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
-    server_keys::KeyRing,
     server_state::{
         Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
         CLEANUP_INTERVAL_SECONDS,
     },
     utils::x509::CertificateError,
-    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, EPHEMERAL_ID_VALIDITY_SECONDS},
+    verifier::{
+        DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCases,
+        EPHEMERAL_ID_VALIDITY_SECONDS,
+    },
 };
 use url::Url;
 use wallet_common::{
@@ -65,8 +67,10 @@ pub enum VerificationError {
     // RP errors
     #[error("session is done")]
     SessionIsDone,
-    #[error("unknown certificate")]
-    UnknownCertificate(String),
+    #[error("unknown use case: {0}")]
+    UnknownUseCase(String),
+    #[error("presence or absence of return url template does not match configuration for the required use case")]
+    ReturnUrlConfigurationMismatch,
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
     NoItemsRequests,
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
@@ -161,13 +165,13 @@ pub enum SessionResult {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct RedirectUri {
-    redirect_uri_template: ReturnUrlTemplate,
+    template: ReturnUrlTemplate,
     nonce: String,
 }
 
 impl RedirectUri {
     fn into_url(self, session_token: &SessionToken) -> Url {
-        let mut url = self.redirect_uri_template.into_url(session_token);
+        let mut url = self.template.into_url(session_token);
         url.query_pairs_mut().append_pair("nonce", &self.nonce);
         url
     }
@@ -329,40 +333,45 @@ pub enum StatusResponse {
     Expired,
 }
 
-pub struct Verifier<K, S> {
-    keys: K,
+pub struct Verifier<S> {
+    use_cases: UseCases,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<OwnedTrustAnchor>,
     ephemeral_id_secret: hmac::Key,
 }
 
-impl<K, S> Drop for Verifier<K, S> {
+impl<S> Drop for Verifier<S> {
     fn drop(&mut self) {
         // Stop the task at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<K, S> Verifier<K, S>
+impl<S> Verifier<S>
 where
-    K: KeyRing,
     S: SessionStore<DisclosureData>,
 {
     /// Create a new [`Verifier`].
     ///
-    /// - `keys` contains for each usecase a certificate and corresponding private key for use in RP authentication.
+    /// - `use_cases` contains configuration per use case, including a certificate
+    ///    and corresponding private key for use in RP authentication.
     /// - `sessions` will contain all sessions.
     /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
     ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these CAs.
     /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
-    pub fn new(keys: K, sessions: S, trust_anchors: Vec<OwnedTrustAnchor>, ephemeral_id_secret: hmac::Key) -> Self
+    pub fn new(
+        use_cases: UseCases,
+        sessions: S,
+        trust_anchors: Vec<OwnedTrustAnchor>,
+        ephemeral_id_secret: hmac::Key,
+    ) -> Self
     where
         S: Send + Sync + 'static,
     {
         let sessions = Arc::new(sessions);
         Self {
-            keys,
+            use_cases,
             cleanup_task: sessions.clone().start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
             sessions,
             trust_anchors,
@@ -388,10 +397,23 @@ where
             return Err(VerificationError::NoItemsRequests);
         }
 
-        let Some(private_key) = self.keys.key_pair(&usecase_id) else {
-            return Err(VerificationError::UnknownCertificate(usecase_id.clone()));
-        };
-        let client_id = private_key
+        let use_case = self
+            .use_cases
+            .as_ref()
+            .get(&usecase_id)
+            .ok_or_else(|| VerificationError::UnknownUseCase(usecase_id.clone()))?;
+
+        // Check if we should or should not have received a return URL
+        // template, based on the configuration for the use case.
+        if match use_case.session_type_return_url {
+            SessionTypeReturnUrl::Neither => return_url_template.is_some(),
+            SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => return_url_template.is_none(),
+        } {
+            return Err(VerificationError::ReturnUrlConfigurationMismatch);
+        }
+
+        let client_id = use_case
+            .key_pair
             .certificate()
             .san_dns_name()?
             .ok_or(VerificationError::MissingSAN)?;
@@ -445,7 +467,7 @@ where
         self.verify_ephemeral_id(session_token, &url_params)?;
 
         let (result, next) = match session
-            .process_get_request(verifier_base_url, url_params.session_type, &self.keys)
+            .process_get_request(verifier_base_url, url_params.session_type, &self.use_cases)
             .await
         {
             Ok((jws, next)) => (Ok(jws), next.into()),
@@ -571,7 +593,7 @@ where
     }
 }
 
-impl<K, S> Verifier<K, S> {
+impl<S> Verifier<S> {
     fn generate_ephemeral_id(&self, session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
         let ephemeral_id = hmac::sign(
             &self.ephemeral_id_secret,
@@ -682,26 +704,16 @@ impl Session<Created> {
         self,
         verifier_base_url: &BaseUrl,
         session_type: SessionType,
-        keys: &impl KeyRing,
+        use_cases: &UseCases,
     ) -> Result<(Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>), (GetAuthRequestError, Session<Done>)> {
         // TODO return error object
         info!("Session({}): process get request", self.state.token);
 
-        let redirect_uri = if session_type == SessionType::CrossDevice {
-            // TODO support hybrid sessions
-            None
-        } else {
-            self.state()
-                .redirect_uri_template
-                .as_ref()
-                .map(|uri_template| RedirectUri {
-                    redirect_uri_template: uri_template.clone(),
-                    nonce: random_string(32),
-                })
-        };
-
-        let (response, next) = match self.process_get_request_inner(verifier_base_url, keys).await {
-            Ok((jws, auth_request, enc_keypair)) => {
+        let (response, next) = match self
+            .process_get_request_inner(verifier_base_url, session_type, use_cases)
+            .await
+        {
+            Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
                 let next = WaitingForResponse {
                     auth_request,
                     encryption_key: EncryptionPrivateKey(enc_keypair),
@@ -727,29 +739,56 @@ impl Session<Created> {
     async fn process_get_request_inner(
         &self,
         verifier_base_url: &BaseUrl,
-        keys: &impl KeyRing,
-    ) -> Result<(Jwt<VpAuthorizationRequest>, VpAuthorizationRequest, EcKeyPair), GetAuthRequestError> {
-        let cert_pair = keys
-            .key_pair(&self.state().usecase_id)
-            .expect("usecase_id always refers to existing key");
+        session_type: SessionType,
+        use_cases: &UseCases,
+    ) -> Result<
+        (
+            Jwt<VpAuthorizationRequest>,
+            VpAuthorizationRequest,
+            Option<RedirectUri>,
+            EcKeyPair,
+        ),
+        GetAuthRequestError,
+    > {
+        let usecase = &use_cases
+            .as_ref()
+            .get(&self.state().usecase_id)
+            .expect("usecase_id should always refers to existing use case");
 
+        // Determine if we should include a redirect URI, based on the use case configuration and session type.
+        let redirect_uri = match (
+            usecase.session_type_return_url,
+            session_type,
+            self.state().redirect_uri_template.clone(),
+        ) {
+            (SessionTypeReturnUrl::Both, _, Some(uri_template))
+            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(uri_template)) => Some(RedirectUri {
+                template: uri_template.clone(),
+                nonce: random_string(32),
+            }),
+            (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
+                None
+            }
+            _ => panic!("return URL configuration mismatch"),
+        };
+
+        // Construct the Authorization Request.
         let nonce = random_string(32);
         let response_uri = verifier_base_url
             .join_base_url("response_uri")
             .join_base_url(self.state.token.as_ref());
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256)?;
-
         let auth_request = VpAuthorizationRequest::new(
             &self.state.data.items_requests,
-            cert_pair.certificate(),
+            usecase.key_pair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
             response_uri,
         )?;
 
-        let jws = jwt::sign_with_certificate(&auth_request, cert_pair).await?;
+        let jws = jwt::sign_with_certificate(&auth_request, &usecase.key_pair).await?;
 
-        Ok((jws, auth_request, encryption_keypair))
+        Ok((jws, auth_request, redirect_uri, encryption_keypair))
     }
 }
 
@@ -787,6 +826,7 @@ impl Session<WaitingForResponse> {
                     err.error,
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
+
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
