@@ -1,15 +1,16 @@
+import { type StatusUrl } from "./modal-state"
+
 export interface EngagementResponse {
-  urls?: EngagementUrls,
+  urls: EngagementUrls
 }
 
 export interface EngagementUrls {
-  status_url: string,
-  disclosed_attributes_url: string,
+  status_url: StatusUrl
 }
 
 export interface EngagementOptions {
-  session_type: SessionType,
-  usecase: string,
+  session_type: SessionType
+  usecase: string
 }
 
 export enum SessionType {

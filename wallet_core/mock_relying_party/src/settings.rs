@@ -2,6 +2,7 @@ use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
 use axum::{headers::HeaderValue, http::header::InvalidHeaderValue};
 use config::{Config, ConfigError, Environment, File};
+use nutype::nutype;
 use serde::Deserialize;
 use url::Url;
 
@@ -25,14 +26,35 @@ pub struct Server {
     pub port: u16,
 }
 
-#[derive(Deserialize, Clone)]
+#[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(TryFrom, Deserialize, Clone))]
 pub struct Origin(Url);
+
+impl Origin {
+    fn is_valid(u: &Url) -> bool {
+        #[cfg(feature = "allow_http_return_url")]
+        let allowed_schemes = ["https", "http"];
+        #[cfg(not(feature = "allow_http_return_url"))]
+        let allowed_schemes = ["https"];
+
+        (allowed_schemes.contains(&u.scheme()))
+            && u.has_host()
+            && u.fragment().is_none()
+            && u.query().is_none()
+            && u.path() == "/"
+        // trailing slash is stripped of when converting to `HeaderValue`
+    }
+}
 
 impl TryFrom<Origin> for HeaderValue {
     type Error = InvalidHeaderValue;
 
     fn try_from(value: Origin) -> Result<Self, Self::Error> {
-        HeaderValue::try_from(value.0.as_str())
+        let url = value.into_inner();
+        let mut str = format!("{0}://{1}", url.scheme(), url.host_str().unwrap(),);
+        if let Some(port) = url.port() {
+            str += &format!(":{0}", port);
+        }
+        HeaderValue::try_from(str)
     }
 }
 

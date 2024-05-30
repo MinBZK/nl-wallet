@@ -6,6 +6,6 @@ customElements.define("nl-wallet-button", NLWalletButton)
 
 declare module "vue" {
   export interface GlobalComponents {
-    "nl-wallet-button": typeof NLWalletButton,
+    "nl-wallet-button": typeof NLWalletButton
   }
 }

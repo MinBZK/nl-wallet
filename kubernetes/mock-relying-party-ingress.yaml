@@ -2,7 +2,10 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nl-mock-relying-party-public
+  labels:
+    odcn.rijksapps.nl/inet-loadbalancer: ""
   annotations:
+    odcn.rijksapps.nl/inet-loadbalancer-hostnames: "$MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME"
     nginx.ingress.kubernetes.io/rewrite-target: /$1
 spec:
   ingressClassName: nginx

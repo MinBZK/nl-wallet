@@ -1,13 +1,9 @@
-export interface StatusResponse {
-  status: Status;
-  engagement_url?: string;
-}
+export type EngagementUrl = string & { __typename: "engagement_url" }
 
-export enum Status {
-  Created = "CREATED",
-  WaitingForResponse = "WAITING_FOR_RESPONSE",
-  Done = "DONE",
-  Failed = "FAILED",
-  Cancelled = "CANCELLED",
-  Expired = "EXPIRED",
-}
+export type StatusResponse =
+  | { status: "CREATED"; engagement_url: EngagementUrl }
+  | { status: "WAITING_FOR_RESPONSE" }
+  | { status: "DONE" }
+  | { status: "FAILED" }
+  | { status: "CANCELLED" }
+  | { status: "EXPIRED" }

@@ -39,7 +39,6 @@ use crate::{
     utils::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
-        reader_auth::ReturnUrlPrefix,
         serialization::{cbor_deserialize, cbor_hex, cbor_serialize, CborSeq, TaggedBytes},
         x509::CertificateUsage,
     },
@@ -278,7 +277,7 @@ pub struct VerifierUrlParameters {
 }
 
 #[nutype(
-    derive(Debug, Clone, Serialize, Deserialize, FromStr),
+    derive(Debug, Clone, FromStr, Serialize, Deserialize),
     validate(predicate = ReturnUrlTemplate::is_valid_return_url_template),
 )]
 pub struct ReturnUrlTemplate(String);
@@ -292,17 +291,16 @@ impl ReturnUrlTemplate {
     }
 
     fn is_valid_return_url_template(s: &str) -> bool {
-        // it should be a valid ReturnUrlPrefix when removing the template parameter
+        #[cfg(feature = "allow_http_return_url")]
+        const ALLOWED_SCHEMES: [&str; 2] = ["https", "http"];
+        #[cfg(not(feature = "allow_http_return_url"))]
+        const ALLOWED_SCHEMES: [&str; 1] = ["https"];
+
+        // It should be a valid URL when removing the template parameter.
         let s = s.replace("{session_token}", "");
-        let url = s.parse::<Url>(); // this makes sure no Url-invalid characters are present
-        url.is_ok_and(|mut u| {
-            u.set_query(None); // query is allowed in a template but not in a prefix
-            u.set_fragment(None); // fragment is allowed in a template but not in a prefix
-            u = u
-                .join("path_segment_that_ends_with_a_slash/")
-                .expect("should always result in a valid URL"); // path not ending with a '/' is allowed in a template but not in prefix
-            TryInto::<ReturnUrlPrefix>::try_into(u).is_ok()
-        })
+        let url = s.parse::<Url>();
+
+        url.is_ok_and(|url| ALLOWED_SCHEMES.contains(&url.scheme()))
     }
 }
 
@@ -1929,6 +1927,11 @@ mod tests {
     #[case("file://etc/passwd", false)]
     #[case("file://etc/{session_token}", false)]
     #[case("https://{session_token}", false)]
+    #[cfg_attr(feature = "allow_http_return_url", case("http://example.com/{session_token}", true))]
+    #[cfg_attr(
+        not(feature = "allow_http_return_url"),
+        case("http://example.com/{session_token}", false)
+    )]
     fn test_return_url_template(#[case] return_url_string: String, #[case] should_parse: bool) {
         assert_eq!(return_url_string.parse::<ReturnUrlTemplate>().is_ok(), should_parse);
         assert_eq!(
