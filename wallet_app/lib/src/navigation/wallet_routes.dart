@@ -285,7 +285,10 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
       create: (BuildContext context) => DisclosureBloc(
         context.read(),
         context.read(),
-      )..add(DisclosureSessionStarted(args.uri!)),
+      )..add(DisclosureSessionStarted(
+          args.uri,
+          isQrCode: args.isQrCode,
+        )),
       child: const DisclosureScreen(),
     );
   };

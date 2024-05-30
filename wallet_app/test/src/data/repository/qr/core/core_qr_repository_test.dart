@@ -27,7 +27,7 @@ void main() {
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Disclosure);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
       expect(result, isA<DisclosureNavigationRequest>());
-      expect(result.argument, const DisclosureScreenArgument(uri: testUri),
+      expect(result.argument, const DisclosureScreenArgument(uri: testUri, isQrCode: true),
           reason: 'The original uri should be passed to the correct screen as an argument');
     });
 

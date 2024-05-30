@@ -110,9 +110,8 @@ class TypedWalletCore {
 
   Future<bool> hasActivePidIssuanceSession() => call((core) => core.hasActivePidIssuanceSession());
 
-  // TODO: Supply isQrCode if the source of the URI is the internal QR code scanner.
-  Future<StartDisclosureResult> startDisclosure(String uri) =>
-      call((core) => core.startDisclosure(uri: uri, isQrCode: false));
+  Future<StartDisclosureResult> startDisclosure(String uri, bool isQrCode) =>
+      call((core) => core.startDisclosure(uri: uri, isQrCode: isQrCode));
 
   Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());
 
