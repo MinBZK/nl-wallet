@@ -39,6 +39,9 @@ enum FlutterApiErrorType {
     /// Failed to finish the DigiD session and get an authorization code.
     RedirectUri,
 
+    /// Device does not support hardware backed keys.
+    HardwareKeyUnsupported,
+
     /// Indicating something unexpected went wrong.
     Generic,
 }
@@ -116,6 +119,7 @@ impl FlutterApiErrorFields for WalletRegistrationError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
+            WalletRegistrationError::HardwarePublicKey(_) => FlutterApiErrorType::HardwareKeyUnsupported,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,

@@ -20,9 +20,11 @@ import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisi
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
-import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
@@ -71,6 +73,9 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CancelDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveWalletCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveRecentHistoryUseCase>()])
+@GenerateNiceMocks([MockSpec<CheckIsValidPinUseCase>()])
+@GenerateNiceMocks([MockSpec<CreateWalletUseCase>()])
+@GenerateNiceMocks([MockSpec<UnlockWalletWithPinUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])
