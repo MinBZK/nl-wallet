@@ -1,7 +1,6 @@
 /pid_issuer.toml
 /wallet.toml
 /wallet_provider.toml
-/mock_relying_party.toml
 /wallet_server.toml
 /config_server.toml
 /gba_hc_converter.toml

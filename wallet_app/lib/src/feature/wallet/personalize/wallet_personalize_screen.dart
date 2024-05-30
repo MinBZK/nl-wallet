@@ -322,6 +322,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         appBar: WalletAppBar(progress: state.stepperProgress),
         body: ErrorPage.network(
           context,
+          style: ErrorCtaStyle.retry,
           onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
         ),
       );
@@ -342,6 +343,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
       appBar: const WalletAppBar(progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps)),
       body: ErrorPage.generic(
         context,
+        style: ErrorCtaStyle.retry,
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       ),
     );

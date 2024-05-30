@@ -4,7 +4,14 @@ import { qrcodegen } from "@/util/qrcodegen"
 // canvas element. The canvas's width and height is resized to (qr.size + border * 2) * scale.
 // The drawn image is purely dark and light, and fully opaque.
 // The scale must be a positive integer and the border must be a non-negative integer.
-export function drawCanvas(qr: qrcodegen.QrCode, scale: number, border: number, lightColor: string, darkColor: string, canvas: HTMLCanvasElement): void {
+export function drawCanvas(
+  qr: qrcodegen.QrCode,
+  scale: number,
+  border: number,
+  lightColor: string,
+  darkColor: string,
+  canvas: HTMLCanvasElement,
+): void {
   if (scale <= 0 || border < 0) {
     throw new RangeError("Value out of range")
   }

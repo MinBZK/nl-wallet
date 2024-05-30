@@ -1,11 +1,12 @@
-import type { EngagementResponse } from "@/models/engagement"
+import { type EngagementResponse } from "@/models/engagement"
+import { type StatusUrl } from "@/models/modal-state"
 import { vi } from "vitest"
 
 const engagementResponse: EngagementResponse = {
   urls: {
-    status_url: "http://localhost:3001/disclosure/mkwL0sHfP2cLJcRMuDzCHXEofujk9nnl/status",
-    disclosed_attributes_url: "http://localhost:3004/disclosure/sessions/mkwL0sHfP2cLJcRMuDzCHXEofujk9nnl/disclosed_attributes"
-  }
+    status_url:
+      "http://localhost:3001/disclosure/mkwL0sHfP2cLJcRMuDzCHXEofujk9nnl/status" as StatusUrl,
+  },
 }
 
-export const createEngagement = vi.fn().mockImplementation(async () => engagementResponse)
+export const createEngagement = vi.fn().mockResolvedValue(engagementResponse)

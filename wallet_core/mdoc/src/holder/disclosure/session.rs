@@ -270,16 +270,6 @@ where
             .verify(session_transcript, &TimeGenerator, trust_anchors)?
             .ok_or(HolderError::ReaderAuthMissing)?;
 
-        // Verify the return URL against the prefix in the `ReaderRegistration`,
-        // if it was provided when starting the disclosure session.
-        if let Some(return_url) = &device_request.return_url {
-            if !reader_registration.return_url_prefix.matches_url(return_url) {
-                let urls = Box::new((reader_registration.return_url_prefix.into(), return_url.clone()));
-
-                return Err(HolderError::ReturnUrlPrefix(urls).into());
-            }
-        }
-
         // Fetch documents from the database, calculate which ones satisfy the request and
         // formulate proposals for those documents. If there is a mismatch, return an error.
         let candidates_by_doc_type = match device_request
@@ -1219,38 +1209,6 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, Error::Holder(HolderError::ReaderRegistrationValidation(_)));
-        assert_eq!(payloads.len(), 2);
-
-        test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);
-    }
-
-    #[tokio::test]
-    async fn test_disclosure_session_start_error_return_url_prefix() {
-        // Starting a `DisclosureSession` where the the return URL does not match the return
-        // URL prefix contained in the verifier certificate should result in an error.
-        let mut payloads = Vec::with_capacity(2);
-        let error = disclosure_session_start(
-            SessionType::SameDevice,
-            ReaderEngagementSource::Link,
-            ReaderCertificateKind::WithReaderRegistration,
-            &mut payloads,
-            |mut verifier_session| {
-                verifier_session.return_url = Url::parse("https://not-example.com/return").unwrap().into();
-
-                verifier_session
-            },
-            identity,
-            identity,
-        )
-        .await
-        .expect_err("Starting disclosure session should have resulted in an error");
-
-        let expected_urls = (
-            "https://example.com/".parse().unwrap(),
-            "https://not-example.com/return".parse().unwrap(),
-        )
-            .into();
-        assert_matches!(error, Error::Holder(HolderError::ReturnUrlPrefix(urls)) if urls == expected_urls);
         assert_eq!(payloads.len(), 2);
 
         test_payload_session_data_error(payloads.last().unwrap(), SessionStatus::Termination);

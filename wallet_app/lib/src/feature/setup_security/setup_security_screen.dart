@@ -71,7 +71,7 @@ class SetupSecurityScreen extends StatelessWidget {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
         if (state is SetupSecurityGenericError) {
-          ErrorScreen.showGeneric(context, secured: false);
+          ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
         }
         if (state is SetupSecurityNetworkError) {
           ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
@@ -192,7 +192,7 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildSetupFailed(BuildContext context) {
     return ErrorPage.generic(
       context,
-      primaryActionText: context.l10n.generalRetry,
+      style: ErrorCtaStyle.retry,
       onPrimaryActionPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
     );
   }

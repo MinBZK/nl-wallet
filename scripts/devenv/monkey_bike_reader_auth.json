@@ -42,7 +42,6 @@
     "kvk": "13572468",
     "privacyPolicyUrl": "https://www.monkeybike.nl/privacy"
   },
-  "returnUrlPrefix": "${RP_RETURN_URL}",
   "requestOriginBaseUrl": "https://www.monkeybike.nl",
   "attributes": {
     "com.example.pid": {

@@ -11,7 +11,7 @@ function handleEvent(event: Event) {
     <header>
       <div class="logo">
         <span class="logoset">
-          <img src="./assets/adam_logo.svg" class="screen-logo" alt="Gemeente Amsterdam">
+          <img src="./assets/adam_logo.svg" class="screen-logo" alt="Gemeente Amsterdam" />
         </span>
         <div class="logotexts">
           <div class="logotext red">Gemeente</div>
@@ -31,11 +31,14 @@ function handleEvent(event: Event) {
     <article>
       <h1>Leeftijd aantonen</h1>
       <div class="img-container">
-        <img src="./assets/70892-kloveniersburgwal-03-17apr2023-e-v-eis940.jpg" alt="Kloveniersburgwal">
+        <img
+          src="./assets/70892-kloveniersburgwal-03-17apr2023-e-v-eis940.jpg"
+          alt="Kloveniersburgwal"
+        />
       </div>
       <p class="text-xl">
-        Met NL Wallet kunt u bewijzen hoe oud u bent zonder uw geboortedatum prijs te geven. U blijft dus
-        anoniem.
+        Met NL Wallet kunt u bewijzen hoe oud u bent zonder uw geboortedatum prijs te geven. U
+        blijft dus anoniem.
       </p>
       <h2>Probeer het uit</h2>
       <p>
@@ -50,7 +53,11 @@ function handleEvent(event: Event) {
         <a href="#">Waarom worden deze gegevens gevraagd?</a>
       </p>
       <div>
-        <nl-wallet-button text="18+ bewijzen met NL Wallet" @close="handleEvent"></nl-wallet-button>
+        <nl-wallet-button
+          text="18+ bewijzen met NL Wallet"
+          usecase="mijn_amsterdam"
+          @close="handleEvent"
+        ></nl-wallet-button>
       </div>
     </article>
   </main>
@@ -66,7 +73,9 @@ main {
   padding-right: 5rem;
 }
 
-header, nav, article {
+header,
+nav,
+article {
   max-width: 1536px;
   padding-left: 14rem;
   padding-right: 14rem;
@@ -149,7 +158,9 @@ article h1 {
 }
 
 @media (max-width: 700px) {
-  header, nav, article {
+  header,
+  nav,
+  article {
     max-width: 700px;
   }
 }
@@ -160,7 +171,9 @@ article h1 {
     padding-right: 0;
   }
 
-  header, nav, article {
+  header,
+  nav,
+  article {
     max-width: 900px;
     margin-left: auto;
     margin-right: auto;

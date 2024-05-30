@@ -20,7 +20,7 @@ use nl_wallet_mdoc::{
         StoredMdoc,
     },
     iso::mdocs::DocType,
-    server_keys::{KeyPair, KeyRing},
+    server_keys::KeyPair,
     server_state::MemorySessionStore,
     software_key_factory::SoftwareKeyFactory,
     test::{
@@ -33,30 +33,18 @@ use nl_wallet_mdoc::{
         x509::Certificate,
     },
     verifier::{
-        DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse, VerificationError, Verifier,
-        VerifierUrlParameters,
+        DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase,
+        VerificationError, Verifier, VerifierUrlParameters,
     },
     Error, ReaderEngagement,
 };
 use wallet_common::generator::TimeGenerator;
 
-type MockVerifier = Verifier<MockKeyring, MemorySessionStore<DisclosureData>>;
+const NO_RETURN_URL_USE_CASE: &str = "no_return_url";
+const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
+const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 
-struct MockKeyring {
-    private_key: KeyPair,
-}
-
-impl MockKeyring {
-    pub fn new(private_key: KeyPair) -> Self {
-        MockKeyring { private_key }
-    }
-}
-
-impl KeyRing for MockKeyring {
-    fn private_key(&self, _: &str) -> Option<&KeyPair> {
-        Some(&self.private_key)
-    }
-}
+type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;
 
 struct MockDisclosureHttpClient {
     verifier: Arc<MockVerifier>,
@@ -102,12 +90,36 @@ fn setup_verifier_test(
     mdoc_trust_anchors: &[TrustAnchor<'_>],
     authorized_requests: &ItemsRequests,
 ) -> (MockDisclosureHttpClient, Arc<MockVerifier>, Certificate) {
-    let reader_registration = ReaderRegistration::new_mock_from_requests(authorized_requests);
+    let reader_registration = Some(ReaderRegistration::new_mock_from_requests(authorized_requests));
     let ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let disclosure_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
+
+    let use_cases = HashMap::from([
+        (
+            NO_RETURN_URL_USE_CASE.to_string(),
+            UseCase {
+                key_pair: ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                session_type_return_url: SessionTypeReturnUrl::Neither,
+            },
+        ),
+        (
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            UseCase {
+                key_pair: ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                session_type_return_url: SessionTypeReturnUrl::SameDevice,
+            },
+        ),
+        (
+            ALL_RETURN_URL_USE_CASE.to_string(),
+            UseCase {
+                key_pair: ca.generate_reader_mock(reader_registration).unwrap(),
+                session_type_return_url: SessionTypeReturnUrl::Both,
+            },
+        ),
+    ])
+    .into();
 
     let verifier = MockVerifier::new(
-        MockKeyring::new(disclosure_key),
+        use_cases,
         MemorySessionStore::default(),
         mdoc_trust_anchors.iter().map(|anchor| anchor.into()).collect(),
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
@@ -160,21 +172,115 @@ impl MdocDataSource for MockMdocDataSource {
 }
 
 #[rstest]
-#[case(SessionType::SameDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
-#[case(SessionType::SameDevice, Some("https://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
-#[case(SessionType::CrossDevice, None, pid_full_name(), pid_full_name().into(), pid_full_name())]
-#[case(SessionType::CrossDevice, Some("https://example.com/return_url".parse().unwrap()), pid_full_name(), pid_full_name().into(), pid_full_name())]
-#[case(SessionType::SameDevice, None, pid_full_name(), pid_given_name().into(), pid_given_name())]
-#[case(SessionType::SameDevice, None, pid_given_name(), pid_given_name().into(), pid_given_name())]
-#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name() + addr_street())]
-#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), (pid_given_name() + addr_street()).into(), pid_given_name() + addr_street())]
-#[case(SessionType::SameDevice, None, pid_given_name() + addr_street(), pid_given_name().into(), pid_given_name())]
-#[case(SessionType::SameDevice, None, pid_full_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
-#[case(SessionType::SameDevice, None, pid_given_name(), (pid_given_name() + pid_given_name()).into(), pid_given_name())]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    ALL_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    ALL_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_given_name().into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name(),
+    pid_given_name().into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + addr_street(),
+    (pid_given_name() + addr_street()).into(),
+    pid_given_name() + addr_street()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + addr_street(),
+    (pid_given_name() + addr_street()).into(),
+    pid_given_name() + addr_street()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + addr_street(),
+    pid_given_name().into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name()
+)]
 #[tokio::test]
 async fn test_disclosure(
     #[case] session_type: SessionType,
     #[case] return_url_template: Option<ReturnUrlTemplate>,
+    #[case] use_case: &str,
     #[case] stored_documents: TestDocuments,
     #[case] requested_documents: ItemsRequests,
     #[case] expected_documents: TestDocuments,
@@ -199,7 +305,7 @@ async fn test_disclosure(
         setup_verifier_test(&[(&mdoc_ca).try_into().unwrap()], authorized_documents);
 
     let session_token = verifier
-        .new_session(requested_documents, Default::default(), return_url_template.clone())
+        .new_session(requested_documents, use_case.to_string(), return_url_template)
         .await
         .expect("creating new verifier session should succeed");
 
@@ -262,6 +368,15 @@ async fn test_disclosure(
         .return_url()
         .and_then(|return_url| return_url.query_pairs().find(|(key, _)| key == "nonce"))
         .map(|(_, nonce)| nonce.into_owned());
+
+    // Check if we received a return URL when we should have, based on the use case and session type.
+    let should_have_return_url = match (use_case, session_type) {
+        (use_case, _) if use_case == NO_RETURN_URL_USE_CASE => false,
+        (use_case, _) if use_case == ALL_RETURN_URL_USE_CASE => true,
+        (_, SessionType::SameDevice) => true,
+        (_, SessionType::CrossDevice) => false,
+    };
+    assert_eq!(return_url_nonce.is_some(), should_have_return_url);
 
     if return_url_nonce.is_some() {
         let error = verifier

@@ -292,5 +292,30 @@ void main() {
       final closeIconFinder = find.byIcon(Icons.close_outlined);
       expect(closeIconFinder, findsOneWidget);
     });
+
+    testWidgets('DisclosureScreen shows the generic error for CoreGenericError', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureGenericError(error: CoreGenericError('generic')),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'something went wrong' title is shown
+      final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'close' cta is shown
+      final closeCtaFinder = find.text(l10n.generalClose);
+      expect(closeCtaFinder, findsOneWidget);
+
+      // Verify the 'close' icon is shown
+      final closeIconFinder = find.byIcon(Icons.close_outlined);
+      expect(closeIconFinder, findsOneWidget);
+    });
   });
 }

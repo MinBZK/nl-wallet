@@ -1,7 +1,5 @@
 //! Holder software to store and disclose mdocs.
 
-use url::Url;
-
 pub use webpki::TrustAnchor;
 
 use crate::{
@@ -50,8 +48,6 @@ pub enum HolderError {
     NoReaderRegistration(Certificate),
     #[error("reader registration attribute validation failed: {0}")]
     ReaderRegistrationValidation(#[from] reader_auth::ValidationError),
-    #[error("return URL prefix in reader registration ({}) does not match return URL provided: {}", (.0).0, (.0).1)]
-    ReturnUrlPrefix(Box<(Url, Url)>), // Box these URLs, otherwise the error type becomes too big
     #[error("could not retrieve docs from source: {0}")]
     MdocDataSource(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]

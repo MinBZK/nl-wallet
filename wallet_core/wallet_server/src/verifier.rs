@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     body::Bytes,
@@ -9,17 +9,13 @@ use axum::{
     Json, Router,
 };
 use http::Method;
-use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
-use ring::hmac;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
 use url::Url;
 
 use nl_wallet_mdoc::{
-    server_keys::{KeyPair, KeyRing},
     server_state::{SessionStore, SessionToken},
-    utils::x509::Certificate,
     verifier::{
         DisclosedAttributes, DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse,
         VerificationError, Verifier, VerifierUrlParameters,
@@ -64,16 +60,8 @@ impl IntoResponse for Error {
     }
 }
 
-struct RelyingPartyKeyRing(HashMap<String, KeyPair>);
-
-impl KeyRing for RelyingPartyKeyRing {
-    fn private_key(&self, usecase: &str) -> Option<&KeyPair> {
-        self.0.get(usecase)
-    }
-}
-
 struct ApplicationState<S> {
-    verifier: Verifier<RelyingPartyKeyRing, S>,
+    verifier: Verifier<S>,
     internal_url: BaseUrl,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
@@ -85,22 +73,7 @@ where
 {
     let application_state = Arc::new(ApplicationState {
         verifier: Verifier::new(
-            RelyingPartyKeyRing(
-                settings
-                    .verifier
-                    .usecases
-                    .into_iter()
-                    .map(|(usecase, keypair)| {
-                        Ok((
-                            usecase,
-                            KeyPair::new(
-                                SigningKey::from_pkcs8_der(&keypair.private_key)?,
-                                Certificate::from(&keypair.certificate),
-                            ),
-                        ))
-                    })
-                    .collect::<anyhow::Result<HashMap<_, _>>>()?,
-            ),
+            settings.verifier.usecases.try_into()?,
             sessions,
             settings
                 .verifier
@@ -108,7 +81,7 @@ where
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),
-            hmac::Key::new(hmac::HMAC_SHA256, &settings.verifier.ephemeral_id_secret.into_inner()),
+            (&settings.verifier.ephemeral_id_secret).into(),
         ),
         internal_url: settings.internal_url,
         public_url: settings.public_url,

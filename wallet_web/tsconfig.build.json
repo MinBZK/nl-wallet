@@ -9,6 +9,7 @@
     "lib/**/__tests__/*"
   ],
   "compilerOptions": {
+    "strict": true,
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.build.tsbuildinfo",
     "paths": {

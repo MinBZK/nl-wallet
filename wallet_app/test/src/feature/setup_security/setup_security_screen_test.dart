@@ -196,5 +196,28 @@ void main() {
       final tryAgainCtaFinder = find.text(l10n.generalRetry);
       expect(tryAgainCtaFinder, findsOneWidget);
     });
+
+    testWidgets('SetupSecurityScreen shows the generic error for SetupSecurityGenericError state', (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityGenericError(error: CoreGenericError('generic')),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'something went wrong' title is shown
+      final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+    });
   });
 }
