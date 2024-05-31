@@ -30,6 +30,7 @@ use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::DisclosureCard;
 use crate::models::disclosure::DisclosureSessionType;
+use crate::models::disclosure::DisclosureStatus;
 use crate::models::disclosure::DisclosureType;
 use crate::models::disclosure::Image;
 use crate::models::disclosure::MissingAttribute;
@@ -40,7 +41,6 @@ use crate::models::instruction::WalletInstructionError;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
-use crate::models::wallet_event::DisclosureStatus;
 use crate::models::wallet_event::WalletEvent;
 
 // Section: wire functions
@@ -527,8 +527,8 @@ impl rust2dart::IntoIntoDart<DisclosureStatus> for DisclosureStatus {
 impl support::IntoDart for DisclosureType {
     fn into_dart(self) -> support::DartAbi {
         match self {
-            Self::Regular => 0,
-            Self::Login => 1,
+            Self::Login => 0,
+            Self::Regular => 1,
         }
         .into_dart()
     }
@@ -758,7 +758,7 @@ impl support::IntoDart for WalletEvent {
                 requested_cards,
                 request_policy,
                 status,
-                disclosure_type,
+                r#type,
             } => vec![
                 0.into_dart(),
                 date_time.into_into_dart().into_dart(),
@@ -767,7 +767,7 @@ impl support::IntoDart for WalletEvent {
                 requested_cards.into_dart(),
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
-                disclosure_type.into_into_dart().into_dart(),
+                r#type.into_into_dart().into_dart(),
             ],
             Self::Issuance { date_time, card } => vec![
                 1.into_dart(),

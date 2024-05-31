@@ -2,7 +2,7 @@ use wallet::{EventStatus, HistoryEvent};
 
 use crate::models::{
     card::{Card, LocalizedString},
-    disclosure::{DisclosureCard, DisclosureType, Organization, RPLocalizedStrings, RequestPolicy},
+    disclosure::{DisclosureCard, DisclosureStatus, DisclosureType, Organization, RPLocalizedStrings, RequestPolicy},
 };
 
 pub enum WalletEvent {
@@ -14,7 +14,7 @@ pub enum WalletEvent {
         requested_cards: Option<Vec<DisclosureCard>>,
         request_policy: RequestPolicy,
         status: DisclosureStatus,
-        disclosure_type: DisclosureType,
+        r#type: DisclosureType,
     },
     Issuance {
         //ISO8601
@@ -45,6 +45,7 @@ impl From<HistoryEvent> for WalletEvents {
                 .collect(),
             HistoryEvent::Disclosure {
                 status,
+                r#type,
                 timestamp,
                 reader_registration,
                 attributes,
@@ -57,18 +58,12 @@ impl From<HistoryEvent> for WalletEvents {
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
                     requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(DisclosureCard::from).collect()),
                     status: status.into(),
-                    disclosure_type: DisclosureType::Regular,
+                    r#type: r#type.into(),
                 }]
             }
         };
         WalletEvents(result)
     }
-}
-
-pub enum DisclosureStatus {
-    Success,
-    Cancelled,
-    Error,
 }
 
 impl From<EventStatus> for DisclosureStatus {
@@ -77,6 +72,15 @@ impl From<EventStatus> for DisclosureStatus {
             EventStatus::Success => DisclosureStatus::Success,
             EventStatus::Cancelled => DisclosureStatus::Cancelled,
             EventStatus::Error => DisclosureStatus::Error,
+        }
+    }
+}
+
+impl From<wallet::DisclosureType> for DisclosureType {
+    fn from(source: wallet::DisclosureType) -> Self {
+        match source {
+            wallet::DisclosureType::Login => DisclosureType::Login,
+            wallet::DisclosureType::Regular => DisclosureType::Regular,
         }
     }
 }
