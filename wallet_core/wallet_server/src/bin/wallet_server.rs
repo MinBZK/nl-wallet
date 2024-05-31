@@ -30,7 +30,7 @@ async fn async_main(settings: Settings) -> Result<()> {
     let sessions = SessionStores::init(storage_settings.url.clone(), storage_settings.into()).await?;
 
     // This will block until the server shuts down.
-    server::serve_full(
+    server::wallet_server::serve(
         BrpPidAttributeService::new(
             HttpBrpClient::new(settings.issuer.brp_server.clone()),
             settings.issuer.digid.issuer_url.clone(),

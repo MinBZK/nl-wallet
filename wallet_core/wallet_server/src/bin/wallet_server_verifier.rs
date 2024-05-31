@@ -26,7 +26,7 @@ async fn async_main(settings: Settings) -> Result<()> {
     let sessions = SessionStores::init(storage_settings.url.clone(), storage_settings.into()).await?;
 
     // This will block until the server shuts down.
-    server::serve_disclosure(settings, sessions.disclosure).await?;
+    server::wallet_server_verifier::serve(settings, sessions.disclosure).await?;
 
     Ok(())
 }
