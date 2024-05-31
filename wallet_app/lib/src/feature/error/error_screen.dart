@@ -8,6 +8,7 @@ import '../../wallet_assets.dart';
 import '../common/page/page_illustration.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
 import 'error_button_builder.dart';
@@ -37,32 +38,34 @@ class ErrorScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Scrollbar(
-          child: CustomScrollView(
-            slivers: [
-              SliverWalletAppBar(
-                title: headline,
-                automaticallyImplyLeading: false,
-                actions: actions,
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: BodyText(description),
+          child: Column(
+            children: [
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: headline,
+                      automaticallyImplyLeading: false,
+                      actions: actions,
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: BodyText(description),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: PageIllustration(
+                          asset: illustration ?? WalletAssets.svg_error_general,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: PageIllustration(
-                    asset: illustration ?? WalletAssets.svg_error_general,
-                  ),
-                ),
-              ),
-              SliverFillRemaining(
-                hasScrollBody: false,
-                fillOverscroll: true,
-                child: _buildBottomSection(),
-              )
+              _buildBottomSection(context),
             ],
           ),
         ),
@@ -70,21 +73,21 @@ class ErrorScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomSection() {
-    Widget content;
-    if (secondaryButton == null) {
-      content = primaryButton;
-    } else {
-      content = ConfirmButtons(
-        forceVertical: true,
-        flipVertical: true,
-        secondaryButton: secondaryButton!,
-        primaryButton: primaryButton,
-      );
-    }
+  Widget _buildBottomSection(BuildContext context) {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: content,
+      child: Column(
+        children: [
+          const Divider(height: 1),
+          ConfirmButtons(
+            forceVertical: !context.isLandscape,
+            flipVertical: true,
+            hideSecondaryButton: secondaryButton == null,
+            secondaryButton: secondaryButton ?? const TertiaryButton(text: Text('' /* invisible placeholder */)),
+            primaryButton: primaryButton,
+          ),
+        ],
+      ),
     );
   }
 
