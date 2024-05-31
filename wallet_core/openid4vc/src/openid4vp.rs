@@ -734,7 +734,6 @@ mod tests {
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
-        dbg!(encryption_privkey.to_jwk_public_key());
 
         let auth_request = VpAuthorizationRequest::new(
             &example_items_requests(),
@@ -801,8 +800,6 @@ mod tests {
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         auth_request.validate().unwrap();
-
-        dbg!(auth_request);
     }
 
     #[rstest]
