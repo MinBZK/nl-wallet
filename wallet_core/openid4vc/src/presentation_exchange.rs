@@ -5,6 +5,7 @@
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -76,8 +77,11 @@ impl Field {
         }
         let path = &self.path[0];
 
-        let captures = Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$")
-            .unwrap()
+        /// Per ISO 18013.7, the path must be a JSONPath expression of the form: "$['namespace']['attribute_name']"
+        /// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
+        static FIELD_PATH_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$").unwrap());
+
+        let captures = FIELD_PATH_REGEX
             .captures(path)
             .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
 

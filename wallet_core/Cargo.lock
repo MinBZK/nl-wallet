@@ -2720,6 +2720,7 @@ dependencies = [
  "mockall",
  "nl_wallet_mdoc",
  "nutype",
+ "once_cell",
  "p256",
  "regex",
  "reqwest",
