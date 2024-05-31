@@ -69,6 +69,26 @@ pub struct Field {
     pub intent_to_retain: bool,
 }
 
+impl Field {
+    fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
+        if self.path.len() != 1 {
+            return Err(PdConversionError::TooManyPaths);
+        }
+        let path = &self.path[0];
+
+        let captures = Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$")
+            .unwrap()
+            .captures(path)
+            .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
+
+        if captures.len() != 3 {
+            return Err(PdConversionError::MissingNamespaceOrAttribute);
+        }
+
+        Ok((captures[1].to_string(), captures[2].to_string()))
+    }
+}
+
 impl From<&ItemsRequests> for PresentationDefinition {
     fn from(items_requests: &ItemsRequests) -> Self {
         PresentationDefinition {
@@ -120,7 +140,7 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
             .map(|input_descriptor| {
                 let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
                 for field in &input_descriptor.constraints.fields {
-                    let (namespace, attr) = parse_paths(&field.path)?;
+                    let (namespace, attr) = field.parse_paths()?;
                     name_spaces
                         .entry(namespace)
                         .or_default()
@@ -137,24 +157,6 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
 
         Ok(items_requests.into())
     }
-}
-
-fn parse_paths(paths: &[String]) -> Result<(String, String), PdConversionError> {
-    if paths.len() != 1 {
-        return Err(PdConversionError::TooManyPaths);
-    }
-    let path = &paths[0];
-
-    let captures = Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$")
-        .unwrap()
-        .captures(path)
-        .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
-
-    if captures.len() != 3 {
-        return Err(PdConversionError::MissingNamespaceOrAttribute);
-    }
-
-    Ok((captures[1].to_string(), captures[2].to_string()))
 }
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-submission.
