@@ -7,7 +7,8 @@ use nl_wallet_mdoc::{
     holder::{DeviceRequestMatch, Mdoc, MdocDataSource, ProposedDocument, StoredMdoc, TrustAnchor},
     server_keys::KeyPair,
     software_key_factory::SoftwareKeyFactory,
-    test::{example_items_requests, DebugCollapseBts},
+    test::example_items_requests,
+    unsigned::Entry,
     verifier::ItemsRequests,
     DeviceRequest, DeviceResponse, DeviceResponseVersion, SessionTranscript,
 };
@@ -50,7 +51,15 @@ async fn disclosure() {
         )
         .unwrap();
 
-    dbg!(DebugCollapseBts::from(disclosed_attrs));
+    assert_eq!(
+        *disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
+            .first()
+            .unwrap(),
+        Entry {
+            name: "family_name".to_string(),
+            value: "Doe".into()
+        }
+    );
 }
 
 /// The wallet side: verify the Authentication Request, compute the disclosure, and encrypt it into a JWE.
