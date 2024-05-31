@@ -1115,7 +1115,6 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
- "serde",
 ]
 
 [[package]]
@@ -5635,7 +5634,6 @@ dependencies = [
  "chrono",
  "ciborium",
  "config",
- "dashmap",
  "futures",
  "http 0.2.9",
  "hyper 0.14.27",
@@ -5644,7 +5642,6 @@ dependencies = [
  "nl_wallet_mdoc",
  "nutype",
  "openid4vc",
- "openssl",
  "p256",
  "parking_lot",
  "rand 0.8.5",
@@ -5658,7 +5655,6 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
- "strfmt",
  "strum",
  "thiserror",
  "tokio",
