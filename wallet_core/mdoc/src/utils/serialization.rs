@@ -478,7 +478,7 @@ pub mod cbor_hex {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use ciborium::value::Value::{self, *};
+    use ciborium::value::Value::{Array, Bytes, Integer, Map, Null, Tag, Text};
     use hex_literal::hex;
     use p256::SecretKey;
     use rand_core::OsRng;
