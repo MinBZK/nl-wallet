@@ -53,8 +53,13 @@ pub struct Constraints {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LimitDisclosure {
+    /// The wallet must disclose only those attributes requested by the RP, and no more.
     #[default]
     Required,
+
+    /// The wallet may disclose more attributes to the RP than the ones it requested, for example if the
+    /// attestation containing them does not support selective disclosure of attributes.
+    Preferred,
 }
 
 #[skip_serializing_none]
