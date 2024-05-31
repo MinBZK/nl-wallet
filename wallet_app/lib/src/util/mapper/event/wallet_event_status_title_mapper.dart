@@ -19,7 +19,7 @@ class WalletEventStatusTitleMapper extends ContextMapper<WalletEvent, String> {
   }
 
   String mapDisclosureEvent(BuildContext context, DisclosureEvent event) {
-    return switch (event.disclosureType) {
+    return switch (event.type) {
       DisclosureType.regular => mapRegularDisclosure(context, event.status),
       DisclosureType.login => mapLoginDisclosure(context, event.status),
     };

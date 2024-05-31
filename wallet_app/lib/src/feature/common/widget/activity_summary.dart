@@ -118,7 +118,7 @@ class ActivitySummary extends StatelessWidget {
     final loggedInWithOrganizationNames = relevantEvents
         .whereType<DisclosureEvent>()
         .where((element) => element.status == EventStatus.success)
-        .where((element) => element.disclosureType == DisclosureType.login)
+        .where((element) => element.type == DisclosureType.login)
         .map((e) => e.relyingParty.displayName.l10nValue(context))
         .toSet();
 
@@ -156,7 +156,7 @@ class ActivitySummary extends StatelessWidget {
     final sharedWithOrganizationNames = relevantEvents
         .whereType<DisclosureEvent>()
         .where((element) => element.status == EventStatus.success)
-        .where((element) => element.disclosureType == DisclosureType.regular)
+        .where((element) => element.type == DisclosureType.regular)
         .map((e) => e.relyingParty.displayName.l10nValue(context))
         .toSet();
 

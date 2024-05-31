@@ -87,7 +87,7 @@ abstract class WalletMockData {
         purpose: 'disclosure'.untranslated,
         cards: [card],
         policy: policy,
-        disclosureType: DisclosureType.regular,
+        type: DisclosureType.regular,
       ) as DisclosureEvent;
 
   static SignEvent get signEvent => WalletEvent.sign(

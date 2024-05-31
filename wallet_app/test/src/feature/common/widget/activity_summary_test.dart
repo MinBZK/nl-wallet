@@ -20,7 +20,7 @@ void main() {
         purpose: 'disclosure'.untranslated,
         cards: [WalletMockData.card],
         policy: WalletMockData.policy,
-        disclosureType: DisclosureType.regular,
+        type: DisclosureType.regular,
       ) as DisclosureEvent;
 
   setUp(() async {

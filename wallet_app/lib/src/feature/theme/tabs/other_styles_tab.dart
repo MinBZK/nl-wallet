@@ -128,7 +128,7 @@ final _kSampleInteractionAttribute = WalletEvent.disclosure(
     privacyPolicyUrl: 'https://www.example.org',
   ),
   purpose: 'Kaart uitgifte'.untranslated,
-  disclosureType: DisclosureType.regular,
+  type: DisclosureType.regular,
 );
 
 class OtherStylesTab extends StatelessWidget {
@@ -384,7 +384,7 @@ class OtherStylesTab extends StatelessWidget {
                 issuer: _kSampleOrganization,
               ),
             ],
-            disclosureType: DisclosureType.regular,
+            type: DisclosureType.regular,
           ),
           onPressed: () {},
         ),
@@ -411,7 +411,7 @@ class OtherStylesTab extends StatelessWidget {
                 issuer: _kSampleOrganization,
               ),
             ],
-            disclosureType: DisclosureType.regular,
+            type: DisclosureType.regular,
           ),
         ),
         const ThemeSectionSubHeader(title: 'HistorySectionHeader'),
