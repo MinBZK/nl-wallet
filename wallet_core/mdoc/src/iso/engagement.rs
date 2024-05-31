@@ -90,7 +90,7 @@ impl SessionTranscript {
             device_engagement_bytes: Some(device_engagement.clone().into()),
             handover: match session_type {
                 SessionType::SameDevice => Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
-                SessionType::CrossDevice => Handover::QRHandover,
+                SessionType::CrossDevice => Handover::QrHandover,
             },
             ereader_key_bytes: Some(reader_security.0.e_sender_key_bytes.clone()),
         }
@@ -111,7 +111,7 @@ impl SessionTranscript {
         SessionTranscriptKeyed {
             device_engagement_bytes: None,
             ereader_key_bytes: None,
-            handover: Handover::OID4VPHandover(handover.into()),
+            handover: Handover::Oid4vpHandover(handover.into()),
         }
         .into()
     }
@@ -131,10 +131,10 @@ pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum Handover {
-    QRHandover,
-    NFCHandover(CborSeq<NFCHandover>),
+    QrHandover,
+    NfcHandover(CborSeq<NFCHandover>),
     SchemeHandoverBytes(TaggedBytes<ReaderEngagement>),
-    OID4VPHandover(CborSeq<OID4VPHandover>),
+    Oid4vpHandover(CborSeq<OID4VPHandover>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

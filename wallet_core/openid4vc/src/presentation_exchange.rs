@@ -5,6 +5,7 @@
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -53,8 +54,13 @@ pub struct Constraints {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LimitDisclosure {
+    /// The wallet must disclose only those attributes requested by the RP, and no more.
     #[default]
     Required,
+
+    /// The wallet may disclose more attributes to the RP than the ones it requested, for example if the
+    /// attestation containing them does not support selective disclosure of attributes.
+    Preferred,
 }
 
 #[skip_serializing_none]
@@ -62,6 +68,29 @@ pub enum LimitDisclosure {
 pub struct Field {
     pub path: Vec<String>,
     pub intent_to_retain: bool,
+}
+
+impl Field {
+    fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
+        if self.path.len() != 1 {
+            return Err(PdConversionError::TooManyPaths);
+        }
+        let path = &self.path[0];
+
+        /// Per ISO 18013.7, the path must be a JSONPath expression of the form: "$['namespace']['attribute_name']"
+        /// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
+        static FIELD_PATH_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$").unwrap());
+
+        let captures = FIELD_PATH_REGEX
+            .captures(path)
+            .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
+
+        if captures.len() != 3 {
+            return Err(PdConversionError::MissingNamespaceOrAttribute);
+        }
+
+        Ok((captures[1].to_string(), captures[2].to_string()))
+    }
 }
 
 impl From<&ItemsRequests> for PresentationDefinition {
@@ -115,7 +144,7 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
             .map(|input_descriptor| {
                 let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
                 for field in &input_descriptor.constraints.fields {
-                    let (namespace, attr) = parse_paths(&field.path)?;
+                    let (namespace, attr) = field.parse_paths()?;
                     name_spaces
                         .entry(namespace)
                         .or_default()
@@ -132,24 +161,6 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
 
         Ok(items_requests.into())
     }
-}
-
-fn parse_paths(paths: &[String]) -> Result<(String, String), PdConversionError> {
-    if paths.len() != 1 {
-        return Err(PdConversionError::TooManyPaths);
-    }
-    let path = &paths[0];
-
-    let captures = Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$")
-        .unwrap()
-        .captures(path)
-        .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
-
-    if captures.len() != 3 {
-        return Err(PdConversionError::MissingNamespaceOrAttribute);
-    }
-
-    Ok((captures[1].to_string(), captures[2].to_string()))
 }
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-submission.

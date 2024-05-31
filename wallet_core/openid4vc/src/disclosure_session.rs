@@ -36,8 +36,8 @@ pub enum VpClientError {
     Request(#[from] VpMessageClientError),
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] nl_wallet_mdoc::Error),
-    #[error("error verifying Authentication Request: {0}")]
-    AuthenticationRequest(#[from] AuthRequestError),
+    #[error("error verifying Authorization Request: {0}")]
+    AuthorizationRequest(#[from] AuthRequestError),
     #[error("incorrect client_id: expected {expected}, found {found}")]
     IncorrectClientId { expected: String, found: String },
     #[error("no reader registration in RP certificate")]
@@ -501,7 +501,8 @@ mod tests {
         examples::{Examples, IsoCertTimeGenerator},
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
-        test::{example_items_requests, DebugCollapseBts},
+        test::example_items_requests,
+        unsigned::Entry,
         utils::reader_auth::ReaderRegistration,
     };
     use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt};
@@ -574,7 +575,7 @@ mod tests {
             assert_eq!(url, self.response_uri);
 
             let (auth_response, mdoc_nonce) =
-                VpAuthorizationResponse::decrypt(jwe, &self.encryption_keypair, self.nonce.clone()).unwrap();
+                VpAuthorizationResponse::decrypt(jwe, &self.encryption_keypair, &self.nonce).unwrap();
             let disclosed_attrs = auth_response
                 .verify(
                     &self.auth_request,
@@ -584,7 +585,15 @@ mod tests {
                 )
                 .unwrap();
 
-            dbg!(DebugCollapseBts::from(disclosed_attrs));
+            assert_eq!(
+                *disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
+                    .first()
+                    .unwrap(),
+                Entry {
+                    name: "family_name".to_string(),
+                    value: "Doe".into()
+                }
+            );
 
             Ok(None)
         }

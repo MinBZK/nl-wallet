@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
-    test::{example_items_requests, DebugCollapseBts},
+    test::example_items_requests,
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
     verifier::{ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCase},
@@ -32,7 +32,7 @@ async fn disclosure() {
     let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
     let auth_keypair = ca.generate_reader_mock(None).unwrap();
 
-    // RP assembles the Authentication Request and signs it into a JWS.
+    // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
@@ -46,11 +46,11 @@ async fn disclosure() {
     .unwrap();
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
-    // Wallet receives the signed Authentication Request and performs the disclosure.
+    // Wallet receives the signed Authorization Request and performs the disclosure.
     let jwe = disclosure_jwe(auth_request_jws, &[ca.certificate().try_into().unwrap()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
-    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_keypair, nonce).unwrap();
+    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_keypair, &nonce).unwrap();
     let disclosed_attrs = auth_response
         .verify(
             &auth_request,
@@ -60,10 +60,18 @@ async fn disclosure() {
         )
         .unwrap();
 
-    dbg!(DebugCollapseBts::from(disclosed_attrs));
+    assert_eq!(
+        *disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
+            .first()
+            .unwrap(),
+        Entry {
+            name: "family_name".to_string(),
+            value: "Doe".into()
+        }
+    );
 }
 
-/// The wallet side: verify the Authentication Request, compute the disclosure, and encrypt it into a JWE.
+/// The wallet side: verify the Authorization Request, compute the disclosure, and encrypt it into a JWE.
 async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors: &[TrustAnchor<'_>]) -> String {
     let mdocs = MockMdocDataSource::default();
     let mdoc_nonce = "mdoc_nonce".to_string();

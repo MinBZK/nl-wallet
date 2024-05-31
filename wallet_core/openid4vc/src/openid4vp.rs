@@ -540,11 +540,8 @@ impl VpAuthorizationResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes, AuthResponseError> {
-        let (response, mdoc_nonce) = Self::decrypt(
-            jwe,
-            private_key,
-            auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
-        )?;
+        let (response, mdoc_nonce) =
+            Self::decrypt(jwe, private_key, auth_request.oauth_request.nonce.as_ref().unwrap())?;
 
         response.verify(auth_request, mdoc_nonce, time, trust_anchors)
     }
@@ -552,7 +549,7 @@ impl VpAuthorizationResponse {
     pub fn decrypt(
         jwe: String,
         private_key: &EcKeyPair,
-        nonce: String,
+        nonce: &str,
     ) -> Result<(VpAuthorizationResponse, String), AuthResponseError> {
         let decrypter = EcdhEsJweAlgorithm::EcdhEs
             .decrypter_from_jwk(&private_key.to_jwk_key_pair())
@@ -750,7 +747,7 @@ mod tests {
         let device_response = DeviceResponse::example();
         let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce.clone()).unwrap();
 
-        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_privkey, nonce).unwrap();
+        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_privkey, &nonce).unwrap();
 
         assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
     }
@@ -761,7 +758,6 @@ mod tests {
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
-        dbg!(encryption_privkey.to_jwk_public_key());
 
         let auth_request = VpAuthorizationRequest::new(
             &example_items_requests(),
@@ -828,8 +824,6 @@ mod tests {
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         auth_request.validate().unwrap();
-
-        dbg!(auth_request);
     }
 
     #[rstest]

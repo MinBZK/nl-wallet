@@ -211,6 +211,7 @@ pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair)
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use futures::StreamExt;
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use serde::{Deserialize, Serialize};
@@ -219,14 +220,17 @@ mod tests {
     use nl_wallet_mdoc::{
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
-        utils::keys::{KeyFactory, MdocEcdsaKey},
+        utils::{
+            keys::{KeyFactory, MdocEcdsaKey},
+            x509::CertificateError,
+        },
     };
     use wallet_common::{
         generator::TimeGenerator,
         jwt::{validations, EcdsaDecodingKey},
     };
 
-    use crate::jwt::sign_with_certificate;
+    use crate::jwt::{sign_with_certificate, JwtX5cError};
 
     use super::{jwk_from_p256, jwk_to_p256, verify_against_trust_anchors};
 
@@ -243,6 +247,26 @@ mod tests {
 
         assert_eq!(deserialized, payload);
         assert_eq!(leaf_cert, *keypair.certificate());
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_wrong_cert() {
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock(None).unwrap();
+
+        let payload = json!({"hello": "world"});
+        let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
+
+        let other_ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+
+        let err = verify_against_trust_anchors(&jwt, &[other_ca.certificate().try_into().unwrap()], &TimeGenerator)
+            .unwrap_err();
+        assert_matches!(
+            err,
+            JwtX5cError::CertificateValidation(CertificateError::Verification(_))
+        );
+
+        dbg!(err);
     }
 
     #[test]

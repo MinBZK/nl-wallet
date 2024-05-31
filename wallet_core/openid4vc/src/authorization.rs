@@ -64,6 +64,10 @@ pub enum ResponseType {
     #[default]
     Code,
     VpToken,
+
+    IdToken,
+    #[serde(rename = "vp_token id_token")]
+    VpTokenIdToken,
 }
 
 /// Format-specific data for the [`AuthorizationDetails`].
