@@ -154,7 +154,7 @@ pub struct Done {
     session_result: SessionResult,
 }
 
-/// The outcome of a session: the disclosed attributes if they have been sucessfully received and verified.
+/// The outcome of a session: the disclosed attributes if they have been successfully received and verified.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum SessionResult {
