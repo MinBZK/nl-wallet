@@ -4,13 +4,13 @@ pub mod postgres;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
-use nl_wallet_mdoc::{
-    server_state::{
-        Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError,
-        SessionStoreTimeouts, SessionToken,
-    },
-    verifier::DisclosureData,
+use nl_wallet_mdoc::server_state::{
+    Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
+    SessionToken,
 };
+
+#[cfg(feature = "disclosure")]
+use nl_wallet_mdoc::verifier::DisclosureData;
 
 #[cfg(feature = "issuance")]
 use openid4vc::issuer::IssuanceData;
@@ -22,6 +22,7 @@ pub trait SessionDataType {
     const TYPE: &'static str;
 }
 
+#[cfg(feature = "disclosure")]
 impl SessionDataType for DisclosureData {
     const TYPE: &'static str = "mdoc_disclosure";
 }
@@ -32,6 +33,7 @@ impl SessionDataType for openid4vc::issuer::IssuanceData {
 }
 
 pub struct SessionStores {
+    #[cfg(feature = "disclosure")]
     pub disclosure: SessionStoreVariant<DisclosureData>,
 
     #[cfg(feature = "issuance")]
@@ -45,14 +47,18 @@ impl SessionStores {
             "postgres" => {
                 let store = PostgresSessionStore::try_new(url, timeouts).await?;
                 Ok(SessionStores {
-                    #[cfg(feature = "issuance")]
+                    #[cfg(all(feature = "issuance", feature = "disclosure"))]
                     issuance: SessionStoreVariant::Postgres(store.clone()),
+                    #[cfg(all(feature = "issuance", not(feature = "disclosure")))]
+                    issuance: SessionStoreVariant::Postgres(store),
+                    #[cfg(feature = "disclosure")]
                     disclosure: SessionStoreVariant::Postgres(store),
                 })
             }
             "memory" => Ok(SessionStores {
                 #[cfg(feature = "issuance")]
                 issuance: SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
+                #[cfg(feature = "disclosure")]
                 disclosure: SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
             }),
             e => unimplemented!("{}", e),

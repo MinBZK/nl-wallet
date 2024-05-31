@@ -69,6 +69,7 @@ mock = ["dep:rand", "issuance"]
 anyhow.workspace = true
 axum = { workspace = true, features = ["headers", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
+cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }

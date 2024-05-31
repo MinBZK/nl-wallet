@@ -5631,6 +5631,7 @@ dependencies = [
  "assert_matches",
  "axum",
  "base64 0.21.4",
+ "cfg-if",
  "chrono",
  "ciborium",
  "config",

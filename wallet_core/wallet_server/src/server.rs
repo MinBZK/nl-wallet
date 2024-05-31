@@ -1,10 +1,11 @@
 use std::net::SocketAddr;
 
-use anyhow::Result;
 use axum::{routing::get, Router};
-use nl_wallet_mdoc::{server_state::SessionStore, verifier::DisclosureData};
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 use tracing::debug;
+
+#[cfg(feature = "disclosure")]
+use nl_wallet_mdoc::{server_state::SessionStore, verifier::DisclosureData};
 
 use crate::{
     log_requests::log_request_response,
@@ -32,34 +33,49 @@ pub fn create_wallet_socket(settings: &Settings) -> SocketAddr {
     SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port)
 }
 
+pub fn secure_router(settings: &Settings, requester_router: Router) -> Router {
+    match &settings.requester_server {
+        RequesterAuth::Authentication(Authentication::ApiKey(api_key)) => {
+            requester_router.layer(ValidateRequestHeaderLayer::bearer(api_key))
+        }
+        RequesterAuth::ProtectedInternalEndpoint {
+            authentication: Authentication::ApiKey(api_key),
+            ..
+        } => requester_router.layer(ValidateRequestHeaderLayer::bearer(api_key)),
+        RequesterAuth::InternalEndpoint(_) => requester_router,
+    }
+}
+
+pub fn get_requester_socket(settings: &Settings) -> Option<SocketAddr> {
+    match &settings.requester_server {
+        RequesterAuth::Authentication(Authentication::ApiKey(_)) => None,
+        RequesterAuth::ProtectedInternalEndpoint {
+            authentication: Authentication::ApiKey(_),
+            server,
+        } => Some(SocketAddr::new(server.ip, server.port)),
+        RequesterAuth::InternalEndpoint(server) => Some(SocketAddr::new(server.ip, server.port)),
+    }
+}
+
 #[cfg(feature = "disclosure")]
-pub fn setup_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<(Option<SocketAddr>, Router, Router)>
+pub fn setup_disclosure<S>(
+    settings: Settings,
+    disclosure_sessions: S,
+) -> anyhow::Result<(Option<SocketAddr>, Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let (wallet_disclosure_router, mut requester_router) =
         crate::verifier::create_routers(settings.clone(), disclosure_sessions)?;
 
-    let requester_socket = match settings.requester_server {
-        RequesterAuth::Authentication(Authentication::ApiKey(api_key)) => {
-            requester_router = requester_router.layer(ValidateRequestHeaderLayer::bearer(&api_key));
-            None
-        }
-        RequesterAuth::ProtectedInternalEndpoint {
-            authentication: Authentication::ApiKey(api_key),
-            server,
-        } => {
-            requester_router = requester_router.layer(ValidateRequestHeaderLayer::bearer(&api_key));
-            Some(SocketAddr::new(server.ip, server.port))
-        }
-        RequesterAuth::InternalEndpoint(server) => Some(SocketAddr::new(server.ip, server.port)),
-    };
+    let requester_socket = get_requester_socket(&settings);
+    requester_router = secure_router(&settings, requester_router);
 
     Ok((requester_socket, wallet_disclosure_router, requester_router))
 }
 
 #[cfg(feature = "disclosure")]
-pub async fn serve_disclosure<S>(settings: Settings, disclosure_sessions: S) -> Result<()>
+pub async fn serve_disclosure<S>(settings: Settings, disclosure_sessions: S) -> anyhow::Result<()>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -86,7 +102,7 @@ pub async fn serve_full<A, DS, IS>(
     settings: Settings,
     disclosure_sessions: DS,
     issuance_sessions: IS,
-) -> Result<()>
+) -> anyhow::Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,

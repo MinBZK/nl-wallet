@@ -3,15 +3,22 @@ use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf
 use config::{Config, ConfigError, Environment, File};
 use nutype::nutype;
 use serde::Deserialize;
-use serde_with::{base64::Base64, hex::Hex, serde_as};
+use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
 use nl_wallet_mdoc::server_state::SessionStoreTimeouts;
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
     sentry::Sentry,
-    trust_anchor::DerTrustAnchor,
 };
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "disclosure")] {
+    use serde_with::hex::Hex;
+
+    use wallet_common::trust_anchor::DerTrustAnchor;
+    }
+}
 
 #[cfg(feature = "issuance")]
 use {indexmap::IndexMap, nl_wallet_mdoc::utils::x509::Certificate, wallet_common::reqwest::deserialize_certificates};
@@ -72,6 +79,7 @@ pub struct Storage {
     pub failed_deletion_minutes: NonZeroU64,
 }
 
+#[cfg(feature = "disclosure")]
 #[serde_as]
 #[derive(Deserialize, Clone)]
 pub struct Verifier {
