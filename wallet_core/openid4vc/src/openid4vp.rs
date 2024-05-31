@@ -539,8 +539,8 @@ impl VpAuthorizationResponse {
 
     pub fn decrypt(
         jwe: String,
-        private_key: EcKeyPair,
-        nonce: String,
+        private_key: &EcKeyPair,
+        nonce: &str,
     ) -> Result<(VpAuthorizationResponse, String), AuthResponseError> {
         let decrypter = EcdhEsJweAlgorithm::EcdhEs
             .decrypter_from_jwk(&private_key.to_jwk_key_pair())
@@ -723,7 +723,7 @@ mod tests {
         let device_response = DeviceResponse::example();
         let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce.clone()).unwrap();
 
-        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, encryption_privkey, nonce).unwrap();
+        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_privkey, &nonce).unwrap();
 
         assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
     }
