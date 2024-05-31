@@ -264,7 +264,7 @@ impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let val = Value::deserialize(deserializer)?;
         match val {
-            Value::Null => Ok(Handover::QRHandover),
+            Value::Null => Ok(Handover::QrHandover),
             Value::Tag(24, b) => Ok(Handover::SchemeHandoverBytes(TaggedBytes(
                 cbor_deserialize(
                     b.as_bytes()
@@ -274,8 +274,8 @@ impl<'de> Deserialize<'de> for Handover {
                 .map_err(de::Error::custom)?,
             ))),
             Value::Array(ref bts_vec) => match bts_vec.len() {
-                1 | 2 => Ok(Handover::NFCHandover(val.deserialized().map_err(de::Error::custom)?)),
-                3 => Ok(Handover::OID4VPHandover(val.deserialized().map_err(de::Error::custom)?)),
+                1 | 2 => Ok(Handover::NfcHandover(val.deserialized().map_err(de::Error::custom)?)),
+                3 => Ok(Handover::Oid4vpHandover(val.deserialized().map_err(de::Error::custom)?)),
                 _ => Err(de::Error::custom("CBOR array had unexpected length")),
             },
             _ => Err(de::Error::custom("CBOR value of unexpected type")),
@@ -522,7 +522,7 @@ mod tests {
     fn test_handover_serialization_qr() {
         // The QR handover is just null.
         let qr_handover: Handover = Null.deserialized().unwrap();
-        assert_matches!(qr_handover, Handover::QRHandover);
+        assert_matches!(qr_handover, Handover::QrHandover);
         assert_eq!(Value::serialized(&qr_handover).unwrap(), Null);
     }
 
@@ -531,7 +531,7 @@ mod tests {
         // The example `DeviceAuthentication` contains an NFC handover, retrieving the example deserializes it.
         assert_matches!(
             &DeviceAuthenticationBytes::example().0 .0.session_transcript.0.handover,
-            Handover::NFCHandover(CborSeq(h)) if h.handover_request_message.is_some()
+            Handover::NfcHandover(CborSeq(h)) if h.handover_request_message.is_some()
         );
 
         // Also construct NFC handovers directly and check that they can be (de)serialized.
@@ -541,7 +541,7 @@ mod tests {
         ];
         for nfc_handover_cbor in nfc_handovers {
             let nfc_handover: Handover = nfc_handover_cbor.deserialized().unwrap();
-            assert_matches!(nfc_handover, Handover::NFCHandover(..));
+            assert_matches!(nfc_handover, Handover::NfcHandover(..));
             assert_eq!(Value::serialized(&nfc_handover).unwrap(), nfc_handover_cbor);
         }
     }
@@ -558,7 +558,7 @@ mod tests {
         let oid4vp_handover: Handover = oid4vp_handover_cbor.deserialized().unwrap();
         assert_matches!(
             &oid4vp_handover,
-            Handover::OID4VPHandover(CborSeq(OID4VPHandover { nonce, ..})) if nonce == "nonce"
+            Handover::Oid4vpHandover(CborSeq(OID4VPHandover { nonce, ..})) if nonce == "nonce"
         );
 
         assert_eq!(Value::serialized(&oid4vp_handover).unwrap(), oid4vp_handover_cbor);
