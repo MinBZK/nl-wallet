@@ -7,7 +7,6 @@ use nl_wallet_mdoc::{
     holder::{DeviceRequestMatch, Mdoc, MdocDataSource, ProposedDocument, StoredMdoc, TrustAnchor},
     server_keys::KeyPair,
     software_key_factory::SoftwareKeyFactory,
-    test::example_items_requests,
     unsigned::Entry,
     verifier::ItemsRequests,
     DeviceRequest, DeviceResponse, DeviceResponseVersion, SessionTranscript,
@@ -28,7 +27,7 @@ async fn disclosure() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let auth_request = VpAuthorizationRequest::new(
-        &example_items_requests(),
+        &Examples::items_requests(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),

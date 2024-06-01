@@ -186,7 +186,7 @@ mod tests {
     use assert_matches::assert_matches;
     use serde_json::json;
 
-    use nl_wallet_mdoc::{test::example_items_requests, verifier::ItemsRequests};
+    use nl_wallet_mdoc::{examples::Examples, verifier::ItemsRequests};
 
     use crate::presentation_exchange::{FormatAlg, LimitDisclosure, RequestedFormat};
 
@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     fn convert_pd_itemsrequests() {
-        let items_requests: ItemsRequests = example_items_requests();
+        let items_requests: ItemsRequests = Examples::items_requests();
         let pd: PresentationDefinition = (&items_requests).into();
         let converted: ItemsRequests = (&pd).try_into().unwrap();
 
