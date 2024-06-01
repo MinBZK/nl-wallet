@@ -122,7 +122,7 @@ pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 /// Bytes/transcript of the first RP message with which the wallet and RP first established contact.
 /// Differs per communication channel.
 /// Through the [`SessionTranscript`], this is part of the [`DeviceAuthentication`] so it is signed
-/// with each mdoc private key. This message is never sent but instead indenpendently computed by
+/// with each mdoc private key. This message is never sent but instead independently computed by
 /// the wallet and RP. If both sides do not agree on this message then mdoc verification fails.
 ///
 /// Serde's `untagged` enum representation ignores the enum variant name, and serializes instead
