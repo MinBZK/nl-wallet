@@ -75,7 +75,7 @@ pub enum SessionTranscriptError {
 }
 
 impl SessionTranscript {
-    pub fn new(
+    pub fn new_iso(
         session_type: SessionType,
         reader_engagement: &ReaderEngagement,
         device_engagement: &DeviceEngagement,

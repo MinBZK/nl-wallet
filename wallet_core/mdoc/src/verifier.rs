@@ -765,7 +765,8 @@ impl Session<Created> {
         let reader_engagement = ReaderEngagement::try_new(&self.state().ephemeral_privkey.0, verifier_url)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
-        let session_transcript = SessionTranscript::new(session_type, &reader_engagement, device_engagement).unwrap();
+        let session_transcript =
+            SessionTranscript::new_iso(session_type, &reader_engagement, device_engagement).unwrap();
 
         let usecase_id = self.state().usecase_id.as_str();
         let use_case = use_cases
@@ -1587,7 +1588,7 @@ mod tests {
         let rp_key = SessionKey::new(
             &device_eph_key,
             &(reader_engagement.0.security.as_ref().unwrap()).try_into().unwrap(),
-            &SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap(),
+            &SessionTranscript::new_iso(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap(),
             SessionKeyUser::Reader,
         )
         .unwrap();

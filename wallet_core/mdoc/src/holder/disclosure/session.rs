@@ -540,7 +540,7 @@ mod tests {
         assert_eq!(response_identifiers, request_identifiers);
 
         // Use the `DeviceEngagement` sent to reconstruct the `SessionTranscript`.
-        let session_transcript = SessionTranscript::new(session_type, &reader_engagement, &device_engagement).unwrap();
+        let session_transcript = SessionTranscript::new_iso(session_type, &reader_engagement, &device_engagement).unwrap();
 
         // Use the `SessionTranscript` to reconstruct the `DeviceAuthentication`
         // for every `Document` received in order to verify the signatures received
