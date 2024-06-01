@@ -270,8 +270,6 @@ mod tests {
             err,
             JwtX5cError::CertificateValidation(CertificateError::Verification(_))
         );
-
-        dbg!(err);
     }
 
     #[test]
