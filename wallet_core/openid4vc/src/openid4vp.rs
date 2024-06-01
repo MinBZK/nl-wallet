@@ -241,7 +241,7 @@ impl VpAuthorizationRequest {
         Ok(VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             oauth_request: AuthorizationRequest {
-                response_type: ResponseType::VpToken,
+                response_type: ResponseType::VpToken.into(),
                 client_id: rp_certificate
                     .san_dns_name()
                     .map_err(AuthRequestError::CertificateParsing)?
@@ -332,7 +332,7 @@ impl VpAuthorizationRequest {
         }
 
         // Check that various enums have the expected values
-        if self.oauth_request.response_type != ResponseType::VpToken {
+        if self.oauth_request.response_type != ResponseType::VpToken.into() {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 expected: "vp_token",
@@ -715,7 +715,11 @@ mod tests {
     use serde::{Deserialize, Serialize};
     use serde_json::json;
 
-    use nl_wallet_mdoc::{examples::Example, server_keys::KeyPair, test::example_items_requests, DeviceResponse};
+    use nl_wallet_mdoc::{
+        examples::{Example, Examples},
+        server_keys::KeyPair,
+        DeviceResponse,
+    };
 
     use crate::{
         jwt,
@@ -731,7 +735,7 @@ mod tests {
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
         let auth_request = VpAuthorizationRequest::new(
-            &example_items_requests(),
+            &Examples::items_requests(),
             rp_keypair.certificate(),
             nonce.clone(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
@@ -760,7 +764,7 @@ mod tests {
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = VpAuthorizationRequest::new(
-            &example_items_requests(),
+            &Examples::items_requests(),
             rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),

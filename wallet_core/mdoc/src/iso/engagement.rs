@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
-
 use url::Url;
+
 use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
 
 use crate::{
@@ -75,7 +75,7 @@ pub enum SessionTranscriptError {
 }
 
 impl SessionTranscript {
-    pub fn new(
+    pub fn new_iso(
         session_type: SessionType,
         reader_engagement: &ReaderEngagement,
         device_engagement: &DeviceEngagement,
@@ -122,7 +122,7 @@ pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 /// Bytes/transcript of the first RP message with which the wallet and RP first established contact.
 /// Differs per communication channel.
 /// Through the [`SessionTranscript`], this is part of the [`DeviceAuthentication`] so it is signed
-/// with each mdoc private key. This message is never sent but instead indenpendently computed by
+/// with each mdoc private key. This message is never sent but instead independently computed by
 /// the wallet and RP. If both sides do not agree on this message then mdoc verification fails.
 ///
 /// Serde's `untagged` enum representation ignores the enum variant name, and serializes instead

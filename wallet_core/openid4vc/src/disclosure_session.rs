@@ -501,7 +501,6 @@ mod tests {
         examples::{Examples, IsoCertTimeGenerator},
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
-        test::example_items_requests,
         unsigned::Entry,
         utils::reader_auth::ReaderRegistration,
     };
@@ -528,7 +527,7 @@ mod tests {
             let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
             let auth_request = VpAuthorizationRequest::new(
-                &example_items_requests(),
+                &Examples::items_requests(),
                 auth_keypair.certificate(),
                 nonce.clone(),
                 encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -613,7 +612,7 @@ mod tests {
         let trust_anchors = &[ca.certificate().try_into().unwrap()];
         let rp_keypair = ca
             .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
-                &example_items_requests(),
+                &Examples::items_requests(),
             )))
             .unwrap();
 

@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
 pub mod authorization;
 pub mod credential;
@@ -30,7 +32,7 @@ pub mod mock;
 
 pub const NL_WALLET_CLIENT_ID: &str = "https://example.com";
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {
     #[default]

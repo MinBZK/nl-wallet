@@ -518,6 +518,12 @@ mod tests {
         );
     }
 
+    // For each of the `Handover` variants, we manually construct the CBOR structure as defined by the specs
+    // (ISO 18013-5, 23220-4, and OpenID4VP), and check that (1) this correctly deserializes to the expected
+    // variant and (2) serializing it back yields identical CBOR. This tests not only that the manual Deserialize
+    // implementation agrees with the derived Serialize implementation but also that both of these align with
+    // the specs.
+
     #[test]
     fn test_handover_serialization_qr() {
         // The QR handover is just null.

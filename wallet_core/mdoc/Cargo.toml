@@ -26,7 +26,7 @@ software_key_factory = ["software_keys", "dep:parking_lot"]
 # Include MdocsMap, which can be used for tests that store Mdocs
 mdocs_map = []
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex", "examples"]
+test = ["dep:assert_matches", "dep:parking_lot", "dep:rstest", "dep:regex"]
 # Include mock implementations and constructors for testing
 mock = []
 # Include MockTimeGenerator, which can be used to mock the curren time for testing purposes

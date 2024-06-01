@@ -91,7 +91,7 @@ pub fn create_basic_session_transcript(session_type: SessionType) -> SessionTran
     let (device_engagement, _device_private_key) =
         DeviceEngagement::new_device_engagement("https://example.com".parse().unwrap()).unwrap();
 
-    SessionTranscript::new(session_type, &reader_engagement, &device_engagement).unwrap()
+    SessionTranscript::new_iso(session_type, &reader_engagement, &device_engagement).unwrap()
 }
 
 /// Create a `DocRequest` including reader authentication,
@@ -369,7 +369,7 @@ where
     async fn device_request_session_data(&self, device_engagement: DeviceEngagement) -> SessionData {
         // Create the session transcript and encryption key.
         let session_transcript =
-            SessionTranscript::new(self.session_type, &self.reader_engagement, &device_engagement).unwrap();
+            SessionTranscript::new_iso(self.session_type, &self.reader_engagement, &device_engagement).unwrap();
 
         let device_public_key = device_engagement.0.security.as_ref().unwrap().try_into().unwrap();
 

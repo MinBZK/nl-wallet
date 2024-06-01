@@ -765,7 +765,8 @@ impl Session<Created> {
         let reader_engagement = ReaderEngagement::try_new(&self.state().ephemeral_privkey.0, verifier_url)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
-        let session_transcript = SessionTranscript::new(session_type, &reader_engagement, device_engagement).unwrap();
+        let session_transcript =
+            SessionTranscript::new_iso(session_type, &reader_engagement, device_engagement).unwrap();
 
         let usecase_id = self.state().usecase_id.as_str();
         let use_case = use_cases
@@ -1587,7 +1588,7 @@ mod tests {
         let rp_key = SessionKey::new(
             &device_eph_key,
             &(reader_engagement.0.security.as_ref().unwrap()).try_into().unwrap(),
-            &SessionTranscript::new(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap(),
+            &SessionTranscript::new_iso(SessionType::SameDevice, &reader_engagement, &device_engagement).unwrap(),
             SessionKeyUser::Reader,
         )
         .unwrap();
@@ -1778,25 +1779,6 @@ mod tests {
         );
     }
 
-    fn example_items_requests() -> ItemsRequests {
-        vec![ItemsRequest {
-            doc_type: EXAMPLE_DOC_TYPE.to_string(),
-            name_spaces: IndexMap::from_iter([(
-                EXAMPLE_NAMESPACE.to_string(),
-                IndexMap::from_iter([
-                    ("family_name".to_string(), false),
-                    ("issue_date".to_string(), false),
-                    ("expiry_date".to_string(), false),
-                    ("document_number".to_string(), false),
-                    ("portrait".to_string(), false),
-                    ("driving_privileges".to_string(), false),
-                ]),
-            )]),
-            request_info: None,
-        }]
-        .into()
-    }
-
     /// Helper to compute all attribute identifiers contained in a bunch of [`ItemsRequest`]s.
     fn attribute_identifiers(items_requests: &ItemsRequests) -> Vec<AttributeIdentifier> {
         items_requests
@@ -1808,7 +1790,7 @@ mod tests {
 
     // return an unmodified device response, which should verify
     fn do_nothing() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        (DeviceResponse::example(), example_items_requests(), Ok(()))
+        (DeviceResponse::example(), Examples::items_requests(), Ok(()))
     }
 
     // Matching attributes is insensitive to swapped attributes, so verification succeeds
@@ -1821,7 +1803,7 @@ mod tests {
             attributes.swap(0, 1);
         });
 
-        (device_response, example_items_requests(), Ok(()))
+        (device_response, Examples::items_requests(), Ok(()))
     }
 
     // remove all disclosed documents
@@ -1829,7 +1811,7 @@ mod tests {
         let mut device_response = DeviceResponse::example();
         device_response.documents = None;
 
-        let items_requests = example_items_requests();
+        let items_requests = Examples::items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -1839,7 +1821,7 @@ mod tests {
         let mut device_response = DeviceResponse::example();
         device_response.documents.as_mut().unwrap().pop();
 
-        let items_requests = example_items_requests();
+        let items_requests = Examples::items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -1855,7 +1837,7 @@ mod tests {
             .unwrap()
             .doc_type = "some_not_requested_doc_type".to_string();
 
-        let items_requests = example_items_requests();
+        let items_requests = Examples::items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -1871,7 +1853,7 @@ mod tests {
             name_spaces.insert("some_not_requested_name_space".to_string(), attributes);
         });
 
-        let items_requests = example_items_requests();
+        let items_requests = Examples::items_requests();
         let missing = attribute_identifiers(&items_requests);
         (device_response, items_requests, Err(missing))
     }
@@ -1886,7 +1868,7 @@ mod tests {
             attributes.pop();
         });
 
-        let items_requests = example_items_requests();
+        let items_requests = Examples::items_requests();
         let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];
         (device_response, items_requests, Err(missing))
     }
@@ -1898,7 +1880,7 @@ mod tests {
         cloned_doc.doc_type = "a".to_string();
         device_response.documents.as_mut().unwrap().push(cloned_doc);
 
-        let mut items_requests = example_items_requests();
+        let mut items_requests = Examples::items_requests();
         let mut cloned_items_request = items_requests.0[0].clone();
         cloned_items_request.doc_type = "a".to_string();
         items_requests.0.push(cloned_items_request);
