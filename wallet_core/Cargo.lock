@@ -2730,6 +2730,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serde_with",
+ "strum",
  "thiserror",
  "tokio",
  "trait-variant",

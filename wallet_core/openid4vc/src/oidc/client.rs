@@ -14,7 +14,9 @@ use url::Url;
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils};
 
 use crate::{
-    authorization::{AuthorizationErrorCode, AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge},
+    authorization::{
+        AuthorizationErrorCode, AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType,
+    },
     pkce::{PkcePair, S256PkcePair},
     token::{
         AccessToken, AuthBearerErrorCode, AuthorizationCode, TokenErrorCode, TokenRequest, TokenRequestGrantType,
@@ -148,7 +150,7 @@ impl<P: PkcePair> HttpOidcClient<P> {
     // we can make this method public.
     fn url_encoded_auth_request(&self) -> Result<String, OidcError> {
         let params = AuthorizationRequest {
-            response_type: crate::authorization::ResponseType::Code,
+            response_type: ResponseType::Code.into(),
             client_id: self.client_id.clone(),
             redirect_uri: Some(self.redirect_uri.clone()),
             state: Some(self.state.clone()),

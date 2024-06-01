@@ -260,7 +260,7 @@ impl VpAuthorizationRequest {
         Ok(VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             oauth_request: AuthorizationRequest {
-                response_type: ResponseType::VpToken,
+                response_type: ResponseType::VpToken.into(),
                 client_id: parse_dns_san(rp_certificate)?,
                 nonce: Some(nonce),
                 response_mode: Some(ResponseMode::DirectPostJwt),
@@ -348,7 +348,7 @@ impl VpAuthorizationRequest {
         }
 
         // Check that various enums have the expected values
-        if self.oauth_request.response_type != ResponseType::VpToken {
+        if self.oauth_request.response_type != ResponseType::VpToken.into() {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 expected: "vp_token",
