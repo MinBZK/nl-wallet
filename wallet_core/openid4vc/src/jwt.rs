@@ -195,11 +195,16 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned>(
 /// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
 /// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
 pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair) -> Result<Jwt<T>, JwtError> {
+    // The `x5c` header supports certificate chains, but ISO 18013-5 doesn't: it requires that issuer
+    // and RP certificates are signed directly by the trust anchor. So we don't support certificate chains
+    // here (yet).
+    let certs = vec![BASE64_STANDARD.encode(keypair.certificate().as_bytes())];
+
     let jwt = Jwt::sign(
         payload,
         &Header {
             alg: jsonwebtoken::Algorithm::ES256,
-            x5c: Some(vec![BASE64_STANDARD.encode(keypair.certificate().as_bytes())]),
+            x5c: Some(certs),
             ..Default::default()
         },
         keypair.private_key(),
