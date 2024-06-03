@@ -241,7 +241,8 @@ pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(se
         .unwrap();
     tokio::spawn(async move {
         if let Err(error) =
-            wallet_server::server::serve_full(attr_service, settings, sessions.disclosure, sessions.issuance).await
+            wallet_server::server::wallet_server::serve(attr_service, settings, sessions.disclosure, sessions.issuance)
+                .await
         {
             println!("Could not start wallet_server: {:?}", error);
 
