@@ -63,6 +63,16 @@ pub enum LimitDisclosure {
     Preferred,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum PdConversionError {
+    #[error("too many paths")]
+    TooManyPaths,
+    #[error("unsupported JsonPath expression")]
+    UnsupportedJsonPathExpression,
+    #[error("missing namespace or attribute name in JsonPath expression")]
+    MissingNamespaceOrAttribute,
+}
+
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Field {
@@ -122,16 +132,6 @@ impl From<&ItemsRequests> for PresentationDefinition {
                 .collect(),
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum PdConversionError {
-    #[error("too many paths")]
-    TooManyPaths,
-    #[error("unsupported JsonPath expression")]
-    UnsupportedJsonPathExpression,
-    #[error("missing namespace or attribute name in JsonPath expression")]
-    MissingNamespaceOrAttribute,
 }
 
 impl TryFrom<&PresentationDefinition> for ItemsRequests {
