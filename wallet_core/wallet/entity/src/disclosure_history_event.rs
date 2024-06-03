@@ -14,6 +14,15 @@ pub enum EventStatus {
     Cancelled,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Text")]
+pub enum EventType {
+    #[sea_orm(string_value = "Login")]
+    Login,
+    #[sea_orm(string_value = "Regular")]
+    Regular,
+}
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "disclosure_history_event")]
 pub struct Model {
@@ -23,6 +32,7 @@ pub struct Model {
     pub relying_party_certificate: Vec<u8>,
     pub status: EventStatus,
     pub attributes: Option<Json>,
+    pub r#type: EventType,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

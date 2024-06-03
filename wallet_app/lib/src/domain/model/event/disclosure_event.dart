@@ -5,7 +5,7 @@ class DisclosureEvent extends WalletEvent {
   final LocalizedText purpose;
   final List<WalletCard> cards;
   final Policy policy;
-  final DisclosureType disclosureType;
+  final DisclosureType type;
 
   const DisclosureEvent({
     required super.dateTime,
@@ -14,12 +14,12 @@ class DisclosureEvent extends WalletEvent {
     required this.purpose,
     required this.cards,
     required this.policy,
-    required this.disclosureType,
+    required this.type,
   });
 
   @override
   List<DataAttribute> get attributes => cards.expand((e) => e.attributes).toList(growable: false);
 
   @override
-  List<Object?> get props => [dateTime, status, relyingParty, purpose, cards, policy, disclosureType];
+  List<Object?> get props => [dateTime, status, relyingParty, purpose, cards, policy, type];
 }

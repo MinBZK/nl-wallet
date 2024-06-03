@@ -15,7 +15,7 @@ pub use crate::{
     disclosure::DisclosureUriSource,
     document::{
         Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, DisclosureDocument,
-        Document, DocumentAttributes, DocumentPersistence, DocumentType, GenderAttributeValue,
+        DisclosureType, Document, DocumentAttributes, DocumentPersistence, DocumentType, GenderAttributeValue,
         MissingDisclosureAttributes,
     },
     pin::validation::validate_pin,

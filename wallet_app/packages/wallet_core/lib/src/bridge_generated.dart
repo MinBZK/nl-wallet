@@ -211,8 +211,8 @@ enum DisclosureStatus {
 }
 
 enum DisclosureType {
-  Regular,
   Login,
+  Regular,
 }
 
 class FlutterConfiguration {
@@ -353,7 +353,7 @@ class WalletEvent with _$WalletEvent {
     List<DisclosureCard>? requestedCards,
     required RequestPolicy requestPolicy,
     required DisclosureStatus status,
-    required DisclosureType disclosureType,
+    required DisclosureType type,
   }) = WalletEvent_Disclosure;
   const factory WalletEvent.issuance({
     required String dateTime,
@@ -1177,7 +1177,7 @@ class WalletCoreImpl implements WalletCore {
           requestedCards: _wire2api_opt_list_disclosure_card(raw[4]),
           requestPolicy: _wire2api_box_autoadd_request_policy(raw[5]),
           status: _wire2api_disclosure_status(raw[6]),
-          disclosureType: _wire2api_disclosure_type(raw[7]),
+          type: _wire2api_disclosure_type(raw[7]),
         );
       case 1:
         return WalletEvent_Issuance(
