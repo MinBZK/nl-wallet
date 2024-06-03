@@ -1,8 +1,7 @@
-use std::str::FromStr;
-
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, StringWithSeparator};
+use strum::EnumString;
 use url::Url;
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-authorization-request
@@ -13,8 +12,8 @@ use url::Url;
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthorizationRequest {
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, ResponseType>>")]
-    pub response_type: Option<IndexSet<ResponseType>>,
+    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, ResponseType>")]
+    pub response_type: IndexSet<ResponseType>,
 
     pub client_id: String,
     pub redirect_uri: Option<Url>,
@@ -62,7 +61,7 @@ pub enum PkceCodeChallenge {
     },
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, EnumString, strum::Display)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ResponseType {
@@ -77,17 +76,9 @@ pub enum ResponseType {
     IdToken,
 }
 
-impl FromStr for ResponseType {
-    type Err = serde_json::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_value(serde_json::Value::String(s.to_string()))
-    }
-}
-
-impl From<ResponseType> for Option<IndexSet<ResponseType>> {
+impl From<ResponseType> for IndexSet<ResponseType> {
     fn from(value: ResponseType) -> Self {
-        Some(IndexSet::from([value]))
+        IndexSet::from([value])
     }
 }
 
