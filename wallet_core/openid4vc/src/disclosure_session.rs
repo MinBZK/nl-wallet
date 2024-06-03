@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
 use reqwest::Response;
@@ -10,13 +11,17 @@ use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_stri
 use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
-    holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
+    holder::{
+        DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, ReaderEngagementSource,
+        TrustAnchor,
+    },
     identifiers::AttributeIdentifier,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         reader_auth::{ReaderRegistration, ValidationError},
         x509::{Certificate, CertificateError, CertificateType},
     },
+    verifier::SessionType,
 };
 
 use crate::{
@@ -25,6 +30,7 @@ use crate::{
         AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
+    verifier::VerifierUrlParameters,
     ErrorResponse,
 };
 
@@ -50,6 +56,14 @@ pub enum VpClientError {
     MultipleCandidates(Vec<String>),
     #[error("error encrypting Authorization Response: {0}")]
     AuthResponseEncryption(#[from] AuthResponseError),
+    #[error("error deserializing request_uri object: {0}")]
+    RequestUri(#[source] serde_urlencoded::de::Error),
+    #[error("missing session_type query parameter in request URI")]
+    MissingSessionType,
+    #[error("malformed session_type query parameter in request URI: {0}")]
+    MalformedSessionType(#[source] serde_urlencoded::de::Error),
+    #[error("mismatch between session type and reader engagement source: {0} not allowed from {1}")]
+    ReaderEnagementSourceMismatch(SessionType, ReaderEngagementSource),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -94,6 +108,7 @@ pub trait VpMessageClient {
     }
 }
 
+#[derive(From)]
 pub struct HttpVpMessageClient {
     http_client: reqwest::Client,
 }
@@ -198,6 +213,7 @@ struct CommonDisclosureData<H> {
     certificate: Certificate,
     reader_registration: ReaderRegistration,
     auth_request: IsoVpAuthorizationRequest,
+    session_type: SessionType,
 }
 
 enum VerifierSessionDataCheckResult<I> {
@@ -211,7 +227,8 @@ where
 {
     pub async fn start<'a, S>(
         client: H,
-        request_uri_object: VpRequestUriObject,
+        request_uri: &str,
+        uri_source: ReaderEngagementSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self, VpClientError>
@@ -219,6 +236,26 @@ where
         S: MdocDataSource<MdocIdentifier = I>,
     {
         info!("start disclosure session");
+
+        let request_uri_object: VpRequestUriObject =
+            serde_urlencoded::from_str(request_uri).map_err(VpClientError::RequestUri)?;
+
+        // Parse the `SessionType` from the verifier URL.
+        let VerifierUrlParameters { session_type, .. } = serde_urlencoded::from_str(
+            request_uri_object
+                .request_uri
+                .as_ref()
+                .query()
+                .ok_or(VpClientError::MissingSessionType)?,
+        )
+        .map_err(VpClientError::MalformedSessionType)?;
+
+        // Check the `SessionType` that was contained in the verifier URL against the source of the reader engagement.
+        // A same-device session is expected to come from a Universal Link,
+        // while a cross-device session should come from a scanned QR code.
+        if uri_source.session_type() != session_type {
+            return Err(VpClientError::ReaderEnagementSourceMismatch(session_type, uri_source));
+        }
 
         let jws = client
             .get_authorization_request(request_uri_object.request_uri.clone())
@@ -249,6 +286,7 @@ where
             certificate,
             reader_registration,
             auth_request,
+            session_type,
         };
 
         // Create the appropriate `DisclosureSession` invariant, which contains
@@ -381,6 +419,10 @@ where
         data.client.terminate(data.auth_request.response_uri.clone()).await?;
         Ok(())
     }
+
+    pub fn session_type(&self) -> SessionType {
+        self.data().session_type
+    }
 }
 
 impl<H> DisclosureMissingAttributes<H> {
@@ -482,6 +524,7 @@ impl From<VpMessageClientError> for DisclosureError {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
     use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
 
     use crate::{
@@ -489,14 +532,17 @@ mod tests {
         jwt,
         mock::MockMdocDataSource,
         openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+        verifier::VerifierUrlParameters,
         ErrorResponse,
     };
     use nl_wallet_mdoc::{
         examples::{Examples, IsoCertTimeGenerator},
+        holder::ReaderEngagementSource,
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         unsigned::Entry,
         utils::reader_auth::ReaderRegistration,
+        verifier::SessionType,
     };
     use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt};
 
@@ -515,8 +561,17 @@ mod tests {
 
     impl MockVpMessageClient {
         fn new(auth_keypair: KeyPair) -> Self {
+            let query = serde_urlencoded::to_string(VerifierUrlParameters {
+                session_type: SessionType::SameDevice,
+                ephemeral_id: vec![42],
+                time: Utc::now(),
+            })
+            .unwrap();
+            let request_uri = ("https://example.com/request_uri?".to_string() + &query)
+                .parse()
+                .unwrap();
+
             let nonce = "nonce".to_string();
-            let request_uri = "https://example.com/request_uri".parse().unwrap();
             let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
             let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
@@ -539,11 +594,12 @@ mod tests {
             }
         }
 
-        fn start_session(&self) -> VpRequestUriObject {
-            VpRequestUriObject {
+        fn start_session(&self) -> String {
+            serde_urlencoded::to_string(VpRequestUriObject {
                 request_uri: self.request_uri.clone(),
                 client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
-            }
+            })
+            .unwrap()
         }
     }
 
@@ -616,12 +672,18 @@ mod tests {
 
         // Start a session at the "RP"
         let message_client = MockVpMessageClient::new(rp_keypair);
-        let request_uri_object = message_client.start_session();
+        let request_uri = message_client.start_session();
 
         // Perform the first part of the session, resulting in the proposed disclosure.
-        let session = DisclosureSession::start(message_client, request_uri_object, &mdocs, trust_anchors)
-            .await
-            .unwrap();
+        let session = DisclosureSession::start(
+            message_client,
+            &request_uri,
+            ReaderEngagementSource::Link,
+            &mdocs,
+            trust_anchors,
+        )
+        .await
+        .unwrap();
 
         let DisclosureSession::Proposal(proposal) = session else {
             panic!("should have requested attributes")

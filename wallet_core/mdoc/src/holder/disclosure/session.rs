@@ -108,7 +108,7 @@ impl ReaderEngagementSource {
     }
 
     /// Returns the expected session type for a source of the received [`ReaderEngagement`].
-    fn session_type(&self) -> SessionType {
+    pub fn session_type(&self) -> SessionType {
         match self {
             Self::Link => SessionType::SameDevice,
             Self::QrCode => SessionType::CrossDevice,

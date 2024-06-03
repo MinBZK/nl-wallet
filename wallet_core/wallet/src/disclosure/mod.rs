@@ -1,5 +1,6 @@
 mod uri;
 
+use openid4vc::disclosure_session::{HttpVpMessageClient, VpClientError};
 use url::Url;
 use uuid::Uuid;
 
@@ -16,9 +17,9 @@ use nl_wallet_mdoc::{
     },
     verifier::SessionType,
 };
-use wallet_common::reqwest::default_reqwest_client_builder;
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
 
-pub use self::uri::{DisclosureUriData, DisclosureUriError};
+pub use self::uri::{DisclosureUriError, IsoDisclosureUriData, VpDisclosureUriData};
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
@@ -34,13 +35,17 @@ pub enum MdocDisclosureSessionState<M, P> {
 pub trait MdocDisclosureSession<D> {
     type MissingAttributes: MdocDisclosureMissingAttributes;
     type Proposal: MdocDisclosureProposal;
+    type DisclosureUriData;
+    type Error: std::error::Error + Into<crate::wallet::DisclosureError>;
+
+    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError>;
 
     async fn start<'a>(
-        disclosure_uri: DisclosureUriData,
+        disclosure_uri: Self::DisclosureUriData,
         reader_engagement_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> nl_wallet_mdoc::Result<Self>
+    ) -> nl_wallet_mdoc::Result<Self, Self::Error>
     where
         Self: Sized;
 
@@ -49,7 +54,7 @@ pub trait MdocDisclosureSession<D> {
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
     fn session_type(&self) -> SessionType;
 
-    async fn terminate(self) -> nl_wallet_mdoc::Result<()>;
+    async fn terminate(self) -> Result<(), Self::Error>;
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -62,10 +67,102 @@ pub trait MdocDisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey;
+}
+
+type VpDisclosureSession = openid4vc::disclosure_session::DisclosureSession<HttpVpMessageClient, Uuid>;
+type VpDisclosureMissingAttributes = openid4vc::disclosure_session::DisclosureMissingAttributes<HttpVpMessageClient>;
+type VpDisclosureProposal = openid4vc::disclosure_session::DisclosureProposal<HttpVpMessageClient, Uuid>;
+
+impl<D> MdocDisclosureSession<D> for VpDisclosureSession
+where
+    D: MdocDataSource<MdocIdentifier = Uuid>,
+{
+    type MissingAttributes = VpDisclosureMissingAttributes;
+    type Proposal = VpDisclosureProposal;
+    type DisclosureUriData = VpDisclosureUriData;
+    type Error = VpClientError;
+
+    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+        VpDisclosureUriData::parse_from_uri(uri, base_uri)
+    }
+
+    async fn start<'a>(
+        disclosure_uri: VpDisclosureUriData,
+        uri_source: DisclosureUriSource,
+        mdoc_data_source: &D,
+        trust_anchors: &[TrustAnchor<'a>],
+    ) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        let client = default_reqwest_client_builder()
+            .build()
+            .expect("Could not build reqwest HTTP client")
+            .into();
+        Self::start(
+            client,
+            &disclosure_uri.query,
+            uri_source,
+            mdoc_data_source,
+            trust_anchors,
+        )
+        .await
+    }
+
+    fn rp_certificate(&self) -> &Certificate {
+        self.verifier_certificate()
+    }
+
+    fn reader_registration(&self) -> &ReaderRegistration {
+        self.reader_registration()
+    }
+
+    fn session_state(&self) -> MdocDisclosureSessionState<&VpDisclosureMissingAttributes, &VpDisclosureProposal> {
+        match self {
+            Self::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
+            Self::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
+        }
+    }
+
+    fn session_type(&self) -> SessionType {
+        self.session_type()
+    }
+
+    async fn terminate(self) -> Result<(), Self::Error> {
+        self.terminate().await
+    }
+}
+
+impl MdocDisclosureMissingAttributes for VpDisclosureMissingAttributes {
+    fn missing_attributes(&self) -> &[AttributeIdentifier] {
+        self.missing_attributes()
+    }
+}
+
+impl MdocDisclosureProposal for VpDisclosureProposal {
+    fn return_url(&self) -> Option<&Url> {
+        None
+    }
+
+    fn proposed_source_identifiers(&self) -> Vec<Uuid> {
+        self.proposed_source_identifiers().into_iter().copied().collect()
+    }
+
+    fn proposed_attributes(&self) -> ProposedAttributes {
+        self.proposed_attributes()
+    }
+
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
+    where
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
+    {
+        Ok(self.disclose(key_factory).await.unwrap())
+    }
 }
 
 impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient, Uuid>
@@ -74,9 +171,15 @@ where
 {
     type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
     type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
+    type DisclosureUriData = IsoDisclosureUriData;
+    type Error = nl_wallet_mdoc::Error;
+
+    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+        IsoDisclosureUriData::parse_from_uri(uri, base_uri)
+    }
 
     async fn start<'a>(
-        disclosure_uri: DisclosureUriData,
+        disclosure_uri: Self::DisclosureUriData,
         reader_engagement_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
@@ -143,12 +246,13 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
     {
-        self.disclose(key_factory).await
+        self.disclose(key_factory).await?;
+        Ok(None)
     }
 }
 
@@ -217,7 +321,7 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<()>
+        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
         where
             KF: KeyFactory<Key = K>,
             K: MdocEcdsaKey,
@@ -229,13 +333,13 @@ mod mock {
             self.disclosure_count
                 .store(self.disclosure_count.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
 
-            Ok(())
+            Ok(None)
         }
     }
 
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
-        pub disclosure_uri: DisclosureUriData,
+        pub disclosure_uri: IsoDisclosureUriData,
         pub reader_engagement_source: DisclosureUriSource,
         pub certificate: Certificate,
         pub reader_registration: ReaderRegistration,
@@ -265,7 +369,7 @@ mod mock {
     impl Default for MockMdocDisclosureSession {
         fn default() -> Self {
             Self {
-                disclosure_uri: DisclosureUriData {
+                disclosure_uri: IsoDisclosureUriData {
                     reader_engagement_bytes: Default::default(),
                 },
                 reader_engagement_source: DisclosureUriSource::Link,
@@ -281,9 +385,15 @@ mod mock {
     impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
         type MissingAttributes = MockMdocDisclosureMissingAttributes;
         type Proposal = MockMdocDisclosureProposal;
+        type DisclosureUriData = IsoDisclosureUriData;
+        type Error = nl_wallet_mdoc::Error;
+
+        fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+            IsoDisclosureUriData::parse_from_uri(uri, base_uri)
+        }
 
         async fn start<'a>(
-            disclosure_uri: DisclosureUriData,
+            disclosure_uri: Self::DisclosureUriData,
             reader_engagement_source: DisclosureUriSource,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],

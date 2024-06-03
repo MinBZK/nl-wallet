@@ -199,11 +199,11 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            DisclosureError::DisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+            DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
                 _,
                 _,
             ))) => FlutterApiErrorType::DisclosureSourceMismatch,
-            DisclosureError::DisclosureSession(error) => {
+            DisclosureError::IsoDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
@@ -213,7 +213,7 @@ impl FlutterApiErrorFields for DisclosureError {
 
     fn data(&self) -> Option<serde_json::Value> {
         match self {
-            DisclosureError::DisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+            DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
                 session_type,
                 _,
             ))) => {

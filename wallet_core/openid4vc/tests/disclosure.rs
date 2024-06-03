@@ -7,7 +7,7 @@ use rstest::rstest;
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
-    holder::{DisclosureRequestMatch, ProposedDocument, TrustAnchor},
+    holder::{DisclosureRequestMatch, ProposedDocument, ReaderEngagementSource, TrustAnchor},
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
@@ -20,7 +20,7 @@ use openid4vc::{
     disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
     jwt,
     mock::MockMdocDataSource,
-    openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+    openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse},
     verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
     ErrorResponse,
 };
@@ -113,10 +113,10 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 }
 
 #[rstest]
-#[case(SessionType::SameDevice)]
-#[case(SessionType::CrossDevice)]
+#[case(SessionType::SameDevice, ReaderEngagementSource::Link)]
+#[case(SessionType::CrossDevice, ReaderEngagementSource::QrCode)]
 #[tokio::test]
-async fn test_client_and_server(#[case] session_type: SessionType) {
+async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_source: ReaderEngagementSource) {
     let items_requests = Examples::items_requests();
 
     // Initialize key material
@@ -155,13 +155,13 @@ async fn test_client_and_server(#[case] session_type: SessionType) {
         .unwrap();
 
     // frontend receives the UL to feed to the wallet when fetching the session status
-    let request_uri_object = request_uri_from_status_endpoint(verifier.as_ref(), &session_token, session_type).await;
+    let request_uri = request_uri_from_status_endpoint(verifier.as_ref(), &session_token, session_type).await;
 
     // Start session in the wallet
     let mdocs = MockMdocDataSource::default();
     let key_factory = SoftwareKeyFactory::default();
     let message_client = MockVpMessageClient::new(Arc::clone(&verifier));
-    let session = DisclosureSession::start(message_client, request_uri_object, &mdocs, trust_anchors)
+    let session = DisclosureSession::start(message_client, &request_uri, uri_source, &mdocs, trust_anchors)
         .await
         .unwrap();
 
@@ -201,7 +201,7 @@ async fn request_uri_from_status_endpoint(
     verifier: &MockVerifier,
     session_token: &SessionToken,
     session_type: SessionType,
-) -> VpRequestUriObject {
+) -> String {
     let StatusResponse::Created { ul } = verifier
         .status_response(
             session_token,
@@ -215,7 +215,7 @@ async fn request_uri_from_status_endpoint(
         panic!("unexpected state")
     };
 
-    serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap()
+    ul.as_ref().query().unwrap().to_string()
 }
 
 type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;

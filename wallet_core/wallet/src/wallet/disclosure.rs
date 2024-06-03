@@ -11,6 +11,7 @@ use nl_wallet_mdoc::{
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
     verifier::SessionType,
 };
+use openid4vc::disclosure_session::VpClientError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -18,8 +19,8 @@ use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     disclosure::{
-        DisclosureUriData, DisclosureUriError, DisclosureUriSource, MdocDisclosureMissingAttributes,
-        MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
+        DisclosureUriError, DisclosureUriSource, MdocDisclosureMissingAttributes, MdocDisclosureProposal,
+        MdocDisclosureSession, MdocDisclosureSessionState,
     },
     document::{DisclosureDocument, DisclosureType, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
@@ -48,7 +49,9 @@ pub enum DisclosureError {
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUri(#[source] DisclosureUriError),
     #[error("error in mdoc disclosure session: {0}")]
-    DisclosureSession(#[source] nl_wallet_mdoc::Error),
+    IsoDisclosureSession(#[from] nl_wallet_mdoc::Error),
+    #[error("error in OpenID4VP disclosure session: {0}")]
+    Oid4vpDisclosureSession(#[from] VpClientError),
     #[error("could not fetch if attributes were shared before: {0}")]
     HistoryRetrieval(#[source] StorageError),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
@@ -99,7 +102,7 @@ where
 
         let config = &self.config_repository.config().disclosure;
 
-        let disclosure_uri = DisclosureUriData::parse_from_uri(
+        let disclosure_uri = MDS::parse_url(
             uri,
             WalletConfiguration::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref(),
         )
@@ -108,7 +111,7 @@ where
         // Start the disclosure session based on the `ReaderEngagement`.
         let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors())
             .await
-            .map_err(DisclosureError::DisclosureSession)?;
+            .map_err(Into::into)?;
 
         let shared_data_with_relying_party_before = self
             .storage
@@ -206,7 +209,7 @@ where
             disclosure_type,
         );
 
-        session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
+        session.terminate().await.map_err(Into::into)?;
 
         self.store_history_event(event)
             .await
@@ -345,53 +348,57 @@ where
 
         // Actually perform disclosure, casting any `InstructionError` that
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
-        if let Err(error) = session_proposal.disclose(&&remote_key_factory).await {
-            if let Err(e) = self
-                .log_disclosure_error(
-                    session_proposal.proposed_attributes(),
-                    error.data_shared,
-                    session.rp_certificate().clone(),
-                )
-                .await
-            {
-                error!("Could not store error in history: {e}");
-            }
+        let result = session_proposal.disclose(&&remote_key_factory).await;
+        let return_url = match result {
+            Ok(return_url) => return_url,
+            Err(error) => {
+                if let Err(e) = self
+                    .log_disclosure_error(
+                        session_proposal.proposed_attributes(),
+                        error.data_shared,
+                        session.rp_certificate().clone(),
+                    )
+                    .await
+                {
+                    error!("Could not store error in history: {e}");
+                }
 
-            let error = match error.error {
-                nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
-                    // This `unwrap()` is safe because of the `is()` check above.
-                    match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                        RemoteEcdsaKeyError::Instruction(error) => DisclosureError::Instruction(error),
-                        error => DisclosureError::DisclosureSession(nl_wallet_mdoc::Error::KeysError(
-                            KeysError::KeyGeneration(error.into()),
-                        )),
+                let error = match error.error {
+                    nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
+                        // This `unwrap()` is safe because of the `is()` check above.
+                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                            RemoteEcdsaKeyError::Instruction(error) => DisclosureError::Instruction(error),
+                            error => DisclosureError::IsoDisclosureSession(nl_wallet_mdoc::Error::KeysError(
+                                KeysError::KeyGeneration(error.into()),
+                            )),
+                        }
                     }
+                    _ => DisclosureError::IsoDisclosureSession(error.error),
+                };
+
+                if matches!(
+                    error,
+                    DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
+                ) {
+                    // On a PIN timeout we should proactively terminate the disclosure session,
+                    // and lock the wallet, as the user is probably not the owner of the wallet.
+                    // The UI should catch this specific error and close the disclosure screens.
+
+                    let session = self.disclosure_session.take().unwrap();
+                    if let Err(terminate_error) = self.terminate_disclosure_session(session).await {
+                        // Log the error, but do not return it from this method.
+                        error!(
+                            "Error while terminating disclosure session on PIN timeout: {}",
+                            terminate_error
+                        );
+                    }
+
+                    self.lock.lock();
                 }
-                _ => DisclosureError::DisclosureSession(error.error),
-            };
 
-            if matches!(
-                error,
-                DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
-            ) {
-                // On a PIN timeout we should proactively terminate the disclosure session,
-                // and lock the wallet, as the user is probably not the owner of the wallet.
-                // The UI should catch this specific error and close the disclosure screens.
-
-                let session = self.disclosure_session.take().unwrap();
-                if let Err(terminate_error) = self.terminate_disclosure_session(session).await {
-                    // Log the error, but do not return it from this method.
-                    error!(
-                        "Error while terminating disclosure session on PIN timeout: {}",
-                        terminate_error
-                    );
-                }
-
-                self.lock.lock();
+                return Err(error);
             }
-
-            return Err(error);
-        }
+        };
 
         // Get some data from the session that we need for both an event and to return,
         // then remove the disclosure session, as disclosure is now successful. Any
@@ -400,7 +407,10 @@ where
         let proposed_attributes = session_proposal.proposed_attributes();
         let disclosure_type = DisclosureType::from_proposed_attributes(&proposed_attributes);
         let rp_certificate = session.rp_certificate().clone();
-        let return_url = session_proposal.return_url().cloned();
+        let return_url = return_url
+            .map(|u| u.as_ref().clone())
+            .or(session_proposal.return_url().cloned());
+
         self.disclosure_session.take();
 
         // Save data for disclosure in event log.
@@ -482,7 +492,10 @@ mod tests {
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,
-        disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
+        disclosure::{
+            IsoDisclosureUriData, MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal,
+            MockMdocDisclosureSession,
+        },
         Attribute, AttributeValue, EventStatus, HistoryEvent,
     };
 
@@ -534,7 +547,7 @@ mod tests {
 
         // Test that the `Wallet` now contains a `DisclosureSession`
         // with the items parsed from the disclosure URI.
-        assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUriData {
+        assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == IsoDisclosureUriData {
             reader_engagement_bytes: b"foobar".to_vec(),
         } && session.reader_engagement_source == DisclosureUriSource::QrCode );
 
@@ -636,7 +649,7 @@ mod tests {
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::DisclosureSession(_));
+        assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
         assert!(wallet.disclosure_session.is_none());
     }
 
@@ -1163,7 +1176,7 @@ mod tests {
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::DisclosureSession(_));
+        assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
@@ -1219,7 +1232,7 @@ mod tests {
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::DisclosureSession(_));
+        assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
         match wallet.disclosure_session.as_ref().unwrap().session_state {
@@ -1390,7 +1403,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::DisclosureSession(nl_wallet_mdoc::Error::Holder(HolderError::ReaderAuthMissing))
+            DisclosureError::IsoDisclosureSession(nl_wallet_mdoc::Error::Holder(HolderError::ReaderAuthMissing))
         );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());

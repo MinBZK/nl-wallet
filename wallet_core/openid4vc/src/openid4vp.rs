@@ -58,7 +58,7 @@ pub enum AuthRequestError {
 /// A Request URI object, as defined in RFC 9101.
 /// Contains URL from which the wallet is to retrieve the Authorization Request.
 /// To be URL-encoded in the wallet's UL, which can then be put on a website directly, or in a QR code.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct VpRequestUriObject {
     /// URL at which the full Authorization Request is to be retrieved.
     pub request_uri: BaseUrl,
