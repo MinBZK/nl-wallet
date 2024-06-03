@@ -100,9 +100,10 @@ enum VerifierSessionDataCheckResult<I> {
 
 impl ReaderEngagementSource {
     pub fn new(is_qr_code: bool) -> Self {
-        match is_qr_code {
-            true => Self::QrCode,
-            false => Self::Link,
+        if is_qr_code {
+            Self::QrCode
+        } else {
+            Self::Link
         }
     }
 
