@@ -10,16 +10,15 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
 ip = '0.0.0.0'
 port = ${PID_ISSUER_WS_PORT}
 
-# Even though this is not used, we will configure a random api key
+# Even though this is currently not used, we will configure a random api key
 [requester_server.authentication]
 api_key = '${PID_ISSUER_API_KEY}'
 
-[verifier]
-trust_anchors = [] # Empty list
-ephemeral_id_secret = "deadbeefdeadbeefdeadbeefdeadbeef"
-
-# Empty map
-[verifier.usecases]
+[issuer.digid]
+client_id = "${WALLET_CLIENT_ID}"
+issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
+bsn_privkey = '${BSN_PRIVKEY}'
+trust_anchors = [${DIGID_CA_CRT}]
 
 [issuer.private_keys."com.example.pid"]
 private_key = "${PID_ISSUER_KEY}"
@@ -27,9 +26,3 @@ certificate = "${PID_ISSUER_CRT}"
 [issuer.private_keys."com.example.address"]
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
-
-[issuer.digid]
-client_id = "${WALLET_CLIENT_ID}"
-issuer_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
-bsn_privkey = '${BSN_PRIVKEY}'
-trust_anchors = [${DIGID_CA_CRT}]
