@@ -245,7 +245,9 @@ test-rust:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider_migrations --bin wallet_provider_migrations
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package configuration_server --bin configuration_server
-    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin pid_issuer --features issuance
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server --features issuance,disclosure
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server_verifier --features disclosure
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package gba_hc_converter --bin gba_hc_converter
