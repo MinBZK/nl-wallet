@@ -6,7 +6,7 @@ use uuid::Uuid;
 use nl_wallet_mdoc::{
     holder::{
         CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult, DisclosureSession,
-        MdocDataSource, ProposedAttributes, TrustAnchor,
+        MdocDataSource, ProposedAttributes, ReaderEngagementSource, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -23,6 +23,8 @@ pub use self::uri::{DisclosureUriData, DisclosureUriError};
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
 
+pub type DisclosureUriSource = ReaderEngagementSource;
+
 #[derive(Debug)]
 pub enum MdocDisclosureSessionState<M, P> {
     MissingAttributes(M),
@@ -35,6 +37,7 @@ pub trait MdocDisclosureSession<D> {
 
     async fn start<'a>(
         disclosure_uri: DisclosureUriData,
+        reader_engagement_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> nl_wallet_mdoc::Result<Self>
@@ -74,6 +77,7 @@ where
 
     async fn start<'a>(
         disclosure_uri: DisclosureUriData,
+        reader_engagement_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> nl_wallet_mdoc::Result<Self> {
@@ -84,6 +88,7 @@ where
         Self::start(
             CborHttpClient(http_client),
             &disclosure_uri.reader_engagement_bytes,
+            reader_engagement_source,
             mdoc_data_source,
             trust_anchors,
         )
@@ -231,6 +236,7 @@ mod mock {
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
         pub disclosure_uri: DisclosureUriData,
+        pub reader_engagement_source: DisclosureUriSource,
         pub certificate: Certificate,
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
@@ -262,6 +268,7 @@ mod mock {
                 disclosure_uri: DisclosureUriData {
                     reader_engagement_bytes: Default::default(),
                 },
+                reader_engagement_source: DisclosureUriSource::Link,
                 certificate: READER_KEY.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_state: Default::default(),
@@ -277,6 +284,7 @@ mod mock {
 
         async fn start<'a>(
             disclosure_uri: DisclosureUriData,
+            reader_engagement_source: DisclosureUriSource,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
         ) -> nl_wallet_mdoc::Result<Self> {
@@ -291,6 +299,7 @@ mod mock {
 
             let session = MockMdocDisclosureSession {
                 disclosure_uri,
+                reader_engagement_source,
                 reader_registration,
                 session_state,
                 ..Default::default()

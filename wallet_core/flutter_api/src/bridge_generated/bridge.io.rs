@@ -107,8 +107,8 @@ pub extern "C" fn wire_has_active_pid_issuance_session(port_: i64) {
 }
 
 #[no_mangle]
-pub extern "C" fn wire_start_disclosure(port_: i64, uri: *mut wire_uint_8_list) {
-    wire_start_disclosure_impl(port_, uri)
+pub extern "C" fn wire_start_disclosure(port_: i64, uri: *mut wire_uint_8_list, is_qr_code: bool) {
+    wire_start_disclosure_impl(port_, uri, is_qr_code)
 }
 
 #[no_mangle]

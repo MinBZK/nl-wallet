@@ -12,6 +12,7 @@ mod wallet;
 pub mod errors;
 
 pub use crate::{
+    disclosure::DisclosureUriSource,
     document::{
         Attribute, AttributeLabel, AttributeLabelLanguage, AttributeLabels, AttributeValue, DisclosureDocument,
         DisclosureType, Document, DocumentAttributes, DocumentPersistence, DocumentType, GenderAttributeValue,
@@ -31,10 +32,6 @@ pub mod mdoc {
         },
         verifier::SessionType,
     };
-}
-
-pub mod openid4vc {
-    pub use openid4vc::{issuance_session::IssuanceSessionError, oidc::OidcError};
 }
 
 pub mod wallet_common {

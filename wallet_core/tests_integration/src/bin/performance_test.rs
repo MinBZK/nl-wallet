@@ -20,7 +20,7 @@ use wallet::{
         ConfigServerConfiguration, ConfigurationRepository, HttpAccountProviderClient, HttpConfigurationRepository,
         HttpDigidSession, UpdateableConfigurationRepository,
     },
-    Wallet,
+    DisclosureUriSource, Wallet,
 };
 use wallet_common::keys::software::SoftwareEcdsaKey;
 use wallet_server::verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams};
@@ -152,7 +152,7 @@ async fn main() {
     };
 
     let proposal = wallet
-        .start_disclosure(&engagement_url)
+        .start_disclosure(&engagement_url, DisclosureUriSource::Link)
         .await
         .expect("Could not start disclosure");
     assert_eq!(proposal.documents.len(), 1);

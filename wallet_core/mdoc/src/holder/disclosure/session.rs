@@ -86,9 +86,34 @@ struct CommonDisclosureData<H> {
     session_type: SessionType,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "snake_case")] // Symmetrical to `SessionType`.
+pub enum ReaderEngagementSource {
+    Link,
+    QrCode,
+}
+
 enum VerifierSessionDataCheckResult<I> {
     MissingAttributes(Vec<AttributeIdentifier>),
     ProposedDocuments(Vec<ProposedDocument<I>>),
+}
+
+impl ReaderEngagementSource {
+    pub fn new(is_qr_code: bool) -> Self {
+        if is_qr_code {
+            Self::QrCode
+        } else {
+            Self::Link
+        }
+    }
+
+    /// Returns the expected session type for a source of the received [`ReaderEngagement`].
+    fn session_type(&self) -> SessionType {
+        match self {
+            Self::Link => SessionType::SameDevice,
+            Self::QrCode => SessionType::CrossDevice,
+        }
+    }
 }
 
 impl<H, I> DisclosureSession<H, I>
@@ -98,6 +123,7 @@ where
     pub async fn start<'a, S>(
         client: H,
         reader_engagement_bytes: &[u8],
+        reader_engagement_source: ReaderEngagementSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self>
@@ -116,6 +142,13 @@ where
         let VerifierUrlParameters { session_type } =
             serde_urlencoded::from_str(verifier_url.query().ok_or(HolderError::MissingSessionType)?)
                 .map_err(HolderError::MalformedSessionType)?;
+
+        // Check the `SessionType` that was contained in the verifier URL against the source of the reader engagement.
+        // A same-device session is expected to come from a Universal Link,
+        // while a cross-device session should come from a scanned QR code.
+        if reader_engagement_source.session_type() != session_type {
+            return Err(HolderError::ReaderEnagementSourceMismatch(session_type, reader_engagement_source).into());
+        }
 
         // Create a new `DeviceEngagement` message and private key. Use a
         // static referrer URL, as this is not a feature we actually use.
@@ -398,6 +431,7 @@ mod tests {
     use indexmap::IndexSet;
     use p256::{ecdsa::VerifyingKey, SecretKey};
     use rand_core::OsRng;
+    use rstest::rstest;
     use tokio::sync::mpsc;
 
     use crate::{
@@ -449,6 +483,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, mut payload_receiver) = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -571,6 +606,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::CrossDevice,
+            ReaderEngagementSource::QrCode,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -624,6 +660,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -675,6 +712,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -727,6 +765,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -751,6 +790,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -777,6 +817,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -804,6 +845,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -823,6 +865,39 @@ mod tests {
         assert!(payloads.is_empty());
     }
 
+    #[rstest]
+    #[case(SessionType::SameDevice, ReaderEngagementSource::QrCode)]
+    #[case(SessionType::CrossDevice, ReaderEngagementSource::Link)]
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_reader_engagement_source_mismatch(
+        #[case] session_type: SessionType,
+        #[case] reader_engagement_source: ReaderEngagementSource,
+    ) {
+        // Starting a `DisclosureSession` with a `ReaderEngagement` that contains a
+        // `SessionType` that is incompatible with its source should result in an error.
+        let mut payloads = Vec::new();
+        let error = disclosure_session_start(
+            session_type,
+            reader_engagement_source,
+            ReaderCertificateKind::WithReaderRegistration,
+            &mut payloads,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+                typ,
+                source
+            )) if typ == session_type && source == reader_engagement_source
+        );
+        assert!(payloads.is_empty());
+    }
+
     #[tokio::test]
     async fn test_disclosure_session_start_error_verifier_ephemeral_key_missing() {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that does not
@@ -830,6 +905,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -854,6 +930,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::QrCode,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -894,6 +971,7 @@ mod tests {
         let error = DisclosureSession::start(
             client,
             &serialization::cbor_serialize(&reader_engagement).unwrap(),
+            ReaderEngagementSource::Link,
             &mdoc_data_source,
             &[],
         )
@@ -977,6 +1055,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1000,6 +1079,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1026,6 +1106,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1052,6 +1133,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1079,6 +1161,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1105,6 +1188,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1138,6 +1222,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1167,6 +1252,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1196,6 +1282,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
+            ReaderEngagementSource::Link,
             ReaderCertificateKind::NoReaderRegistration,
             &mut payloads,
             identity,

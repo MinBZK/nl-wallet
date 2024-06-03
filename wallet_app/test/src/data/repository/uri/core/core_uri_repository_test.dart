@@ -1,9 +1,9 @@
-import 'package:wallet_core/core.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/data/repository/uri/core/core_uri_repository.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
+import 'package:wallet_core/core.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
@@ -22,7 +22,7 @@ void main() {
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Disclosure);
       final result = await uriRepository.processUri(Uri.parse(testUri));
       expect(result, isA<DisclosureNavigationRequest>());
-      expect(result.argument, const DisclosureScreenArgument(uri: testUri),
+      expect(result.argument, const DisclosureScreenArgument(uri: testUri, isQrCode: false),
           reason: 'The original uri should be passed to the correct screen as an argument');
     });
 

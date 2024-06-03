@@ -4,7 +4,7 @@ use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use flutter_rust_bridge::StreamSink;
-use wallet::{self, errors::WalletInitError, Wallet};
+use wallet::{self, errors::WalletInitError, DisclosureUriSource, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -257,12 +257,16 @@ pub async fn has_active_pid_issuance_session() -> Result<bool> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
+#[allow(unused_variables)]
+pub async fn start_disclosure(uri: String, is_qr_code: bool) -> Result<StartDisclosureResult> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
-    let result = wallet.start_disclosure(&url).await.try_into()?;
+    let result = wallet
+        .start_disclosure(&url, DisclosureUriSource::new(is_qr_code))
+        .await
+        .try_into()?;
 
     Ok(result)
 }

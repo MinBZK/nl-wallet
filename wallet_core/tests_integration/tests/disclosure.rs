@@ -15,7 +15,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::token::TokenRequest;
 use tests_integration::common::*;
-use wallet::{errors::DisclosureError, mock::MockDigidSession};
+use wallet::{errors::DisclosureError, mock::MockDigidSession, DisclosureUriSource};
 use wallet_common::utils;
 use wallet_server::verifier::{
     DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse, StatusParams,
@@ -165,8 +165,14 @@ async fn test_disclosure_usecases_ok(
         _ => panic!("should match StatusResponse::Created"),
     };
 
+    // Determine the correct source for the session type.
+    let source = match session_type {
+        SessionType::SameDevice => DisclosureUriSource::Link,
+        SessionType::CrossDevice => DisclosureUriSource::QrCode,
+    };
+
     let proposal = wallet
-        .start_disclosure(&engagement_url)
+        .start_disclosure(&engagement_url, source)
         .await
         .expect("should start disclosure");
     assert_eq!(proposal.documents.len(), expected_documents.len());
@@ -296,7 +302,7 @@ async fn test_disclosure_without_pid() {
     url.set_query(Some("session_type=same_device"));
 
     let error = wallet
-        .start_disclosure(&url)
+        .start_disclosure(&url, DisclosureUriSource::Link)
         .await
         .expect_err("Should return error that attributes are not available");
 
