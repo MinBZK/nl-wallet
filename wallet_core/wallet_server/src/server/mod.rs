@@ -1,12 +1,9 @@
-cfg_if::cfg_if! {
-    if #[cfg(all(feature = "disclosure", feature = "issuance"))] {
-    pub mod wallet_server;
-    } else if #[cfg(feature = "issuance")] {
-    pub mod pid_issuer;
-    } else if #[cfg(feature = "disclosure")] {
-    pub mod wallet_server_verifier;
-    }
-}
+#[cfg(feature = "issuance")]
+pub mod pid_issuer;
+#[cfg(all(feature = "disclosure", feature = "issuance"))]
+pub mod wallet_server;
+#[cfg(feature = "disclosure")]
+pub mod wallet_server_verifier;
 
 use std::net::SocketAddr;
 

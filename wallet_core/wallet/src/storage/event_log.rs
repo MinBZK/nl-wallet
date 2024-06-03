@@ -11,6 +11,10 @@ use nl_wallet_mdoc::{
     DataElementIdentifier, DataElementValue, DocType, NameSpace,
 };
 
+use crate::document::DisclosureType;
+
+// TODO: Think about refactoring/renaming EventStatus.
+// For rationale, see comment for DisclosureType in mdoc.rs.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EventStatus {
     Success,
@@ -38,6 +42,24 @@ impl From<&disclosure_history_event::Model> for EventStatus {
     }
 }
 
+impl From<DisclosureType> for disclosure_history_event::EventType {
+    fn from(source: DisclosureType) -> Self {
+        match source {
+            DisclosureType::Login => Self::Login,
+            DisclosureType::Regular => Self::Regular,
+        }
+    }
+}
+
+impl From<&disclosure_history_event::Model> for DisclosureType {
+    fn from(source: &disclosure_history_event::Model) -> Self {
+        match source.r#type {
+            disclosure_history_event::EventType::Login => Self::Login,
+            disclosure_history_event::EventType::Regular => Self::Regular,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum WalletEvent {
     Issuance {
@@ -51,6 +73,7 @@ pub enum WalletEvent {
         timestamp: DateTime<Utc>,
         reader_certificate: Certificate,
         status: EventStatus,
+        r#type: DisclosureType,
     },
 }
 
@@ -67,6 +90,7 @@ impl WalletEvent {
         documents: Option<EventDocuments>,
         reader_certificate: Certificate,
         status: EventStatus,
+        r#type: DisclosureType,
     ) -> Self {
         Self::Disclosure {
             id: Uuid::new_v4(),
@@ -74,6 +98,7 @@ impl WalletEvent {
             timestamp: Utc::now(),
             reader_certificate,
             status,
+            r#type,
         }
     }
 
@@ -106,6 +131,7 @@ impl TryFrom<disclosure_history_event::Model> for WalletEvent {
         let result = Self::Disclosure {
             id: event.id,
             status: EventStatus::from(&event),
+            r#type: DisclosureType::from(&event),
             documents: event.attributes.map(serde_json::from_value).transpose()?,
             timestamp: event.timestamp,
             reader_certificate: event.relying_party_certificate.into(),
@@ -147,12 +173,14 @@ impl TryFrom<WalletEvent> for WalletEventModel {
                 documents,
                 timestamp,
                 reader_certificate,
+                r#type,
             } => Self::Disclosure(disclosure_history_event::Model {
                 attributes: documents.map(serde_json::to_value).transpose()?,
                 id,
                 timestamp,
                 relying_party_certificate: reader_certificate.into(),
                 status: status.into(),
+                r#type: r#type.into(),
             }),
         };
         Ok(result)
@@ -296,6 +324,7 @@ mod test {
                 timestamp,
                 reader_certificate,
                 status: EventStatus::Success,
+                r#type: DisclosureType::Regular,
             }
         }
 
@@ -316,6 +345,7 @@ mod test {
                 timestamp,
                 reader_certificate,
                 status: EventStatus::Error,
+                r#type: DisclosureType::Regular,
             }
         }
 
@@ -326,6 +356,7 @@ mod test {
                 timestamp,
                 reader_certificate,
                 status: EventStatus::Cancelled,
+                r#type: DisclosureType::Regular,
             }
         }
 
@@ -336,6 +367,7 @@ mod test {
                 timestamp,
                 reader_certificate,
                 status: EventStatus::Error,
+                r#type: DisclosureType::Regular,
             }
         }
     }

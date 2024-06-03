@@ -57,6 +57,73 @@ void main() {
       // Verify the 'try again' cta is shown
       final tryAgainCtaFinder = find.text(l10n.generalRetry);
       expect(tryAgainCtaFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
+    });
+
+    testWidgets('PinScreen shows the server error for PinValidateNetworkError(hasInternet=true) state', (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: PinScreen(
+            onUnlock: (returnUrl) {},
+          ).withState<PinBloc, PinState>(
+            MockPinBloc(),
+            const PinValidateNetworkError(
+              error: CoreNetworkError('server'),
+              hasInternet: true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'server error' title is shown
+      final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline);
+      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
+    });
+
+    testWidgets('PinScreen shows the generic error for PinValidateGenericError state', (tester) async {
+      await tester.pumpWidget(
+        WalletAppTestWidget(
+          child: PinScreen(
+            onUnlock: (returnUrl) {},
+          ).withState<PinBloc, PinState>(
+            MockPinBloc(),
+            const PinValidateGenericError(
+              error: CoreGenericError('generic'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'something went wrong' title is shown
+      final headlineFinder = find.text(l10n.errorScreenGenericHeadline);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
     });
   });
 }

@@ -64,7 +64,6 @@ issuance = [
 ]
 # Enable disclosure
 disclosure = [
-    "dep:p256",
     "dep:ring",
 ]
 # Enable mock PID issuance
@@ -81,6 +80,7 @@ http.workspace = true
 hyper = { version = "0.14.27", features = ["full"] } # TODO do we realy need full here? we onoly use hyper::body::to_bytes(body)
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
+p256 = { workspace = true, features = ["ecdsa"] }
 sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
@@ -96,7 +96,6 @@ assert_matches = { workspace = true, optional = true }
 ciborium = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
-p256 = { workspace = true, optional = true, features = ["ecdsa"] }
 parking_lot = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }

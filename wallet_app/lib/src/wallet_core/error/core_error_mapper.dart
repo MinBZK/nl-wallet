@@ -22,6 +22,8 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
           flutterApiError.description,
           redirectError: _mapRedirectError(flutterApiError.data),
         );
+      case FlutterApiErrorType.hardwareKeyUnsupported:
+        return CoreHardwareKeyUnsupportedError(flutterApiError.description);
     }
   }
 

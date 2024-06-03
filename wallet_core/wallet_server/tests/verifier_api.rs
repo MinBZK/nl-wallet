@@ -28,7 +28,7 @@ use wallet_server::{
 
 fn start_disclosure_request() -> StartDisclosureRequest {
     StartDisclosureRequest {
-        usecase: String::from("xyz_bank"),
+        usecase: String::from("xyz_bank_no_return_url"),
         return_url_template: None,
         items_requests: vec![ItemsRequest {
             doc_type: "com.example.pid".to_owned(),
@@ -80,7 +80,7 @@ where
     let public_url = settings.public_url.clone();
 
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve_disclosure(settings, disclosure_sessions).await {
+        if let Err(error) = wallet_server::server::wallet_server_verifier::serve(settings, disclosure_sessions).await {
             println!("Could not start wallet_server: {error:?}");
 
             process::exit(1);

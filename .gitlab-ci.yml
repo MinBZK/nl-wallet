@@ -179,6 +179,17 @@ test-flutter-ui:
     - flutter --version
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
 
+# Checks .arb files for unused keys, indicating an update to Lokalise might be in order
+verify-flutter-localizations:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7e741ecb10b07adec21f7328bbb8e8407ab80f299050fbff32ba764314390f97"
+  script:
+    - set -euxo pipefail
+    - flutter --version
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get && dart run translations_cleaner list-unused-terms --abort-on-unused)
+  allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
+
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
@@ -323,7 +334,8 @@ build-frontend-lib:
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
   script:
-    - (cd wallet_web; npm ci && npm run test -- --run && npm run build)
+    - set -euxo pipefail
+    - (cd wallet_web; npm ci && npm run type-check && npm run test -- --run && npm run build)
     - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/vanillajs/
     - (cd wallet_core/mock_relying_party/web-vue; npm ci && npm run type-check && npx vite build --base="/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/vue")
   artifacts:
@@ -1109,6 +1121,7 @@ deploy-wallet-provider-ont:
   extends: [.env-ont-k8s, .deploy-wallet-provider]
   rules: !reference [.default-or-merge-request, rules]
   needs:
+    - !reference [.deploy-wallet-provider, needs]
     - job: run-wp-migrations-ont
       artifacts: false
   variables:
@@ -1119,6 +1132,7 @@ deploy-wallet-provider-demo:
   extends: [.env-demo-k8s, .deploy-wallet-provider]
   rules: !reference [.demo-release-tag, rules]
   needs:
+    - !reference [.deploy-wallet-provider, needs]
     - job: run-wp-migrations-demo
       artifacts: false
   variables:
@@ -1172,6 +1186,7 @@ deploy-mock-relying-party-ont:
   extends: [.env-ont-k8s, .deploy-mock-relying-party]
   rules: !reference [.default-or-merge-request, rules]
   needs:
+    - !reference [.deploy-mock-relying-party, needs]
     - job: run-ws-migrations-ont
       artifacts: false
   variables:
@@ -1184,6 +1199,7 @@ deploy-mock-relying-party-ont:
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
   needs:
+    - !reference [.deploy-mock-relying-party, needs]
     - job: run-ws-migrations-demo
       artifacts: false
   rules: !reference [.demo-release-tag, rules]

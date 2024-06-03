@@ -1,211 +1,305 @@
+/* General */
+
 *:not(style, svg, path) {
-    all: unset;
+  all: unset;
 }
 
-:root, :host {
-    --blue-color: #01689B;
-    --bluer-color: #00425e;
+:root,
+:host {
+  --blue-color: #01689b;
+  --bluer-color: #00425e;
 }
 
 a {
-    color: var(--blue-color) !important;
+  color: var(--blue-color) !important;
 }
 
 .xs {
-    width: 0.8rem;
+  width: 0.8rem;
 }
 
 .hidden {
-    display: none;
-    opacity: 0;
+  display: none;
+  opacity: 0;
 }
 
 .visible {
-    opacity: 1;
-    display: block;
-    animation: fadeIn 300ms;
+  opacity: 1;
+  display: block;
+  animation: fadeIn 300ms;
 }
+
+/* Buttons */
 
 button {
-    background-color: var(--blue-color);
-    border: none;
-    border-radius: 16px;
-    color: white;
-    cursor: pointer;
-    padding: 10px 12px 10px 12px;
-}
-
-button:hover {
-    background-color: var(--bluer-color);
-}
-
-/* Button */
-button.default-button {
-    background-color: var(--blue-color);
-    border: none;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
-    padding: 10px 12px 10px 12px;
+  background-color: var(--blue-color);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
 }
 
 button.default-button:hover {
-    background-color: var(--bluer-color);
+  background-color: var(--bluer-color);
 }
 
-
-@-webkit-keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+button.default-button {
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 1rem;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+button.primary {
+  background-color: var(--blue-color);
+  color: white;
 }
 
-.bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1040;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(1px);
+button.primary:hover {
+  background-color: var(--bluer-color);
 }
 
+button.secondary {
+  background-color: white;
+  color: var(--blue-color);
+  border: 1px solid var(--blue-color);
+}
+
+button.secondary:hover {
+  background-color: #f2f2f2;
+}
+
+button svg {
+  margin-right: 0.5rem;
+}
+
+button.full-width {
+  width: 100%;
+}
+
+/* Links */
 
 .link {
-    background-color: white;
-    color: var(--blue-color);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  background-color: white;
+  color: var(--blue-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.link svg,
+.link span {
+  margin-right: 0.5rem;
 }
 
 .link:hover {
-    color: white;
+  text-decoration: underline;
+}
+
+button.link:hover {
+  background-color: #f2f2f2;
+  text-decoration: none;
+}
+
+/* Modal */
+
+@-webkit-keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1040;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(1px);
+}
+
+.modal-anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
 }
 
 .modal {
-    position: fixed;
-    display: block;
+  position: sticky;
+  display: flex;
+  flex-direction: column;
+  top: 10%;
+  margin: auto;
+  width: 90vw;
+  max-width: 450px;
 
-    transform: translate(-50%, -30%);
-    top: 30%;
-    left: 50%;
+  z-index: 1050;
 
-    width: 500px;
-    max-width: 100vw;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow:
+    black 0 0 0 0,
+    black 0 0 0 0,
+    rgba(0, 0, 0, 0.4) 0 25px 50px -12px;
 
-    height: 690px;
-    max-height: 100vh;
-    z-index: 1050;
-
-    background-color: white;
-    border-radius: 0.5rem;
-    box-shadow: black 0 0 0 0, black 0 0 0 0, rgba(0, 0, 0, 0.4) 0 25px 50px -12px;
-
-    font-family: Arial, Helvetica, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.modal-guts {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    display: flex;
-    flex-direction: column;
+.modal article {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: center;
+  padding: 1rem;
 }
 
-.modal-guts article {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    padding: 0 1rem;
+.modal header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ececec;
+  padding: 0 1rem;
 }
 
-.modal h1 {
-    display: flex;
-    justify-content: center;
-    border-bottom: 1px solid #ececec;
-    font-size: 1rem;
-    margin-top: 10px;
-    padding: 25px 0;
+.modal footer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-top: 1px solid #ececec;
+  margin-top: 20px;
+  padding: 20px 1rem;
+  font-size: 1rem;
+  gap: 0.8rem;
+}
+
+.modal header h1 {
+  font-size: 1rem;
+  padding: 25px 0;
 }
 
 .modal h2 {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-    font-size: 1.2rem;
-    font-weight: bolder;
+  display: flex;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bolder;
+  text-align: center;
+}
+
+.modal section p {
+  line-height: 1.4rem;
 }
 
 section.qr {
-    display: flex;
-    justify-content: center;
-    padding: 32px 0;
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
 }
 
 section.help {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0;
 }
 
-section.help div {
-    display: block;
-    padding-top: 18px;
-}
-
-section.footer {
-    display: flex;
-    justify-content: center;
-    border-top: 1px solid #ececec;
-    margin-top: 20px;
-    padding: 25px 0;
-    font-size: 1rem;
+section.website-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0 0 0;
 }
 
 section.device-choice {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.8rem;
-    margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin: 2rem 0;
 }
 
 section.device-choice button {
-    display: flex;
-    justify-content: center;
-    width: 20rem;
-    padding: 16px 10px;
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
 }
 
+section.in-progress,
+section.success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-@media (max-width: 700px) {
-    .modal {
-        height: 90vh;
-        width: 90vw;
-    }
+section.status-update {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
 
-    section.device-choice button {
-        width: 90%;
-    }
+section.status-update h2 {
+  margin-bottom: 0.8rem;
+}
+
+section.success.same-device svg {
+  color: var(--blue-color);
+}
+
+section.in-progress svg {
+  color: var(--blue-color);
+}
+
+section.error svg {
+  color: red;
+}
+
+section.in-progress h2,
+section.success h2,
+section.status-update h2 {
+  margin-top: 0.8rem;
+}
+
+section.success svg {
+  color: green;
+}
+
+@media (max-height: 700px) {
+  .modal {
+    top: 30px;
+  }
+
+  .modal header h1 {
+    padding: 20px 0;
+  }
+
+  .modal footer {
+    padding: 12px 1rem;
+  }
+
+  section.qr {
+    padding: 16px 0;
+  }
 }

@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 
-pub use mdoc::{AttributeValueType, DocumentMdocError};
+pub use mdoc::{AttributeValueType, DisclosureType, DocumentMdocError};
 
 #[cfg(test)]
 pub use mdoc::tests::{

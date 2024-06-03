@@ -245,12 +245,10 @@ then
 
     cd "${MOCK_RELYING_PARTY_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
         export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
@@ -279,12 +277,10 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
         export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
@@ -322,12 +318,10 @@ then
 
     cd "${WALLET_SERVER_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export WS_VERIFIER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
         export WS_VERIFIER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
@@ -364,12 +358,10 @@ then
 
     cd "${WP_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
         export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
@@ -401,12 +393,10 @@ then
 
     cd "${CS_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export CONFIG_SERVER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
         export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
@@ -454,12 +444,10 @@ then
 
     cd "${GBA_HC_CONVERTER_DIR}"
 
-    if [ "${SENTRY_DSN}" != "" ]
+    if [ -n "${SENTRY_DSN+x}" ]
     then
+	echo "Sentry DSN: '${SENTRY_DSN}'"
         export GBA_HC_CONVERTER_SENTRY__DSN="${SENTRY_DSN}"
-    fi
-    if [ "${SENTRY_ENVIRONMENT}" != "" ]
-    then
         export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
@@ -494,6 +482,6 @@ then
             --dart-define ENV_CONFIGURATION=true \
             --dart-define UL_HOSTNAME="${UL_HOSTNAME:-}" \
             --dart-define SENTRY_DSN="${SENTRY_DSN:-}" \
-            --dart-define SENTRY_ENVIRONMENT="local"
+            --dart-define SENTRY_ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 fi

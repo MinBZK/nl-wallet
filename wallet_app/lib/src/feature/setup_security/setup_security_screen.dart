@@ -71,7 +71,7 @@ class SetupSecurityScreen extends StatelessWidget {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
         if (state is SetupSecurityGenericError) {
-          ErrorScreen.showGeneric(context, secured: false);
+          ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
         }
         if (state is SetupSecurityNetworkError) {
           ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
@@ -83,6 +83,9 @@ class SetupSecurityScreen extends StatelessWidget {
           _showConfirmationErrorDialog(context, state.retryAllowed).then((_) {
             context.bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
           });
+        }
+        if (state is SetupSecurityDeviceIncompatibleError) {
+          ErrorScreen.showDeviceIncompatible(context);
         }
         _runAnnouncements(context, state);
       },
@@ -97,6 +100,7 @@ class SetupSecurityScreen extends StatelessWidget {
           SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
           SetupSecurityGenericError() => _buildSetupFailed(context),
           SetupSecurityNetworkError() => _buildSetupFailed(context),
+          SetupSecurityDeviceIncompatibleError() => _buildSetupFailed(context),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -192,7 +196,7 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildSetupFailed(BuildContext context) {
     return ErrorPage.generic(
       context,
-      primaryActionText: context.l10n.generalRetry,
+      style: ErrorCtaStyle.retry,
       onPrimaryActionPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
     );
   }
@@ -277,6 +281,7 @@ class SetupSecurityScreen extends StatelessWidget {
       SetupSecurityCompleted() => context.l10n.setupSecurityCompletedPageTitle,
       SetupSecurityGenericError() => '',
       SetupSecurityNetworkError() => '',
+      SetupSecurityDeviceIncompatibleError() => '',
     };
     if (title.isEmpty) return const SizedBox.shrink();
     return FadeInAtOffset(

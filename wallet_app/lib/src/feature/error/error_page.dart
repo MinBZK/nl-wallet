@@ -4,15 +4,12 @@ import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/page/page_illustration.dart';
 import '../common/sheet/error_details_sheet.dart';
-import '../common/sheet/help_sheet.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
-import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import 'error_button_builder.dart';
-import 'error_cta_style.dart';
 
 export 'error_cta_style.dart';
 
@@ -34,62 +31,54 @@ class ErrorPage extends StatelessWidget {
 
   factory ErrorPage.generic(
     BuildContext context, {
-    String? headline,
-    String? description,
-    String? primaryActionText,
-    IconData? primaryActionIcon,
-    VoidCallback? onPrimaryActionPressed,
-    String? secondaryActionText,
-    VoidCallback? onSecondaryActionPressed,
+    required VoidCallback onPrimaryActionPressed,
+    required ErrorCtaStyle style,
   }) {
-    bool hasSecondaryAction = onSecondaryActionPressed != null;
     return ErrorPage(
-      headline: headline ?? context.l10n.errorScreenGenericHeadline,
-      description: description ?? context.l10n.errorScreenGenericDescription,
+      headline: context.l10n.errorScreenGenericHeadline,
+      description: style == ErrorCtaStyle.close
+          ? context.l10n.errorScreenGenericDescriptionCloseVariant
+          : context.l10n.errorScreenGenericDescription,
       illustration: WalletAssets.svg_error_general,
-      primaryButton: PrimaryButton(
-        text: Text(primaryActionText ?? context.l10n.errorScreenGenericCloseCta),
-        onPressed: onPrimaryActionPressed ?? () => Navigator.maybePop(context),
-        icon: Icon(primaryActionIcon),
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
+        onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: hasSecondaryAction
-          ? TertiaryButton(
-              text: Text(context.l10n.errorScreenGeneralHelpCta),
-              onPressed: onSecondaryActionPressed,
-            )
-          : null,
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.generalShowDetailsCta),
+        icon: const Icon(Icons.help_outline_rounded),
+        onPressed: () => ErrorDetailsSheet.show(context),
+      ),
     );
   }
 
   factory ErrorPage.network(
     BuildContext context, {
-    String? primaryActionText,
-    IconData? primaryActionIcon,
-    VoidCallback? onPrimaryActionPressed,
-    bool showHelpSheetAsSecondaryCta = true,
+    required VoidCallback onPrimaryActionPressed,
+    required ErrorCtaStyle style,
   }) {
     return ErrorPage(
       headline: context.l10n.errorScreenServerHeadline,
       description: context.l10n.errorScreenServerDescription,
       illustration: WalletAssets.svg_error_server_outage,
-      primaryButton: PrimaryButton(
-        text: Text(primaryActionText ?? context.l10n.errorScreenServerCloseCta),
-        onPressed: onPrimaryActionPressed ?? () => Navigator.maybePop(context),
-        icon: Icon(primaryActionIcon),
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
+        onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: showHelpSheetAsSecondaryCta
-          ? TertiaryButton(
-              text: Text(context.l10n.errorScreenServerHelpCta),
-              onPressed: () => HelpSheet.show(context),
-            )
-          : null,
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.generalShowDetailsCta),
+        icon: const Icon(Icons.help_outline_rounded),
+        onPressed: () => ErrorDetailsSheet.show(context),
+      ),
     );
   }
 
   factory ErrorPage.noInternet(
     BuildContext context, {
     required VoidCallback onPrimaryActionPressed,
-    ErrorCtaStyle style = ErrorCtaStyle.close,
+    required ErrorCtaStyle style,
   }) {
     return ErrorPage(
       headline: context.l10n.errorScreenNoInternetHeadline,
@@ -102,11 +91,7 @@ class ErrorPage extends StatelessWidget {
         style,
         onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: TertiaryButton(
-        text: Text(context.l10n.generalShowDetailsCta),
-        icon: const Icon(Icons.info_outline_rounded),
-        onPressed: () => ErrorDetailsSheet.show(context),
-      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );
   }
 
@@ -114,56 +99,58 @@ class ErrorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scrollbar(
-        child: CustomScrollView(
-          slivers: [
-            const SliverSizedBox(height: 24),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TitleText(headline),
+        child: Column(
+          children: [
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  const SliverSizedBox(height: 24),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TitleText(headline),
+                    ),
+                  ),
+                  const SliverSizedBox(height: 8),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: BodyText(description),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: PageIllustration(
+                        asset: illustration ?? WalletAssets.svg_error_general,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SliverSizedBox(height: 8),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: BodyText(description),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: PageIllustration(
-                  asset: illustration ?? WalletAssets.svg_error_general,
-                ),
-              ),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              fillOverscroll: true,
-              child: _buildBottomSection(),
-            )
+            _buildBottomSection(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomSection() {
-    Widget content;
-    if (secondaryButton == null) {
-      content = primaryButton;
-    } else {
-      content = ConfirmButtons(
-        forceVertical: true,
-        flipVertical: true,
-        secondaryButton: secondaryButton!,
-        primaryButton: primaryButton,
-      );
-    }
+  Widget _buildBottomSection(BuildContext context) {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: content,
+      child: Column(
+        children: [
+          const Divider(height: 1),
+          ConfirmButtons(
+            forceVertical: !context.isLandscape,
+            flipVertical: true,
+            hideSecondaryButton: secondaryButton == null,
+            secondaryButton: secondaryButton ?? const TertiaryButton(text: Text('' /* invisible placeholder */)),
+            primaryButton: primaryButton,
+          ),
+        ],
+      ),
     );
   }
 }

@@ -34,7 +34,7 @@ export GBA_HC_CONV_PORT=3008
 
 export RDO_MAX_PORT=8006
 
-export PID_ISSUER_API_KEY=$(echo $RANDOM | sha1sum | head -c 40)
+export PID_ISSUER_API_KEY=$(echo $RANDOM | shasum -a1 | head -c 40)
 
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.
@@ -56,4 +56,4 @@ export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 # export WALLET_CLIENT_ID=$(uuidgen)
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
-export RP_RETURN_URL="${RP_RETURN_URL:-http://${SERVICES_HOST}:${MOCK_RP_PORT}/}" # default: http://${SERVICES_HOST}:${MOCK_RP_PORT}/
+export SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-local}

@@ -2662,7 +2662,7 @@ mixin _$WalletEvent {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)
+            DisclosureType type)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) =>
@@ -2676,7 +2676,7 @@ mixin _$WalletEvent {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)?
+            DisclosureType type)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) =>
@@ -2690,7 +2690,7 @@ mixin _$WalletEvent {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)?
+            DisclosureType type)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
@@ -2765,7 +2765,7 @@ abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEve
       List<DisclosureCard>? requestedCards,
       RequestPolicy requestPolicy,
       DisclosureStatus status,
-      DisclosureType disclosureType});
+      DisclosureType type});
 }
 
 /// @nodoc
@@ -2785,7 +2785,7 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
     Object? requestedCards = freezed,
     Object? requestPolicy = null,
     Object? status = null,
-    Object? disclosureType = null,
+    Object? type = null,
   }) {
     return _then(_$WalletEvent_DisclosureImpl(
       dateTime: null == dateTime
@@ -2812,9 +2812,9 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as DisclosureStatus,
-      disclosureType: null == disclosureType
-          ? _value.disclosureType
-          : disclosureType // ignore: cast_nullable_to_non_nullable
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
               as DisclosureType,
     ));
   }
@@ -2830,7 +2830,7 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
       final List<DisclosureCard>? requestedCards,
       required this.requestPolicy,
       required this.status,
-      required this.disclosureType})
+      required this.type})
       : _purpose = purpose,
         _requestedCards = requestedCards;
 
@@ -2861,11 +2861,11 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
   @override
   final DisclosureStatus status;
   @override
-  final DisclosureType disclosureType;
+  final DisclosureType type;
 
   @override
   String toString() {
-    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status, disclosureType: $disclosureType)';
+    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status, type: $type)';
   }
 
   @override
@@ -2879,12 +2879,12 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
             const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
             (identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy) &&
             (identical(other.status, status) || other.status == status) &&
-            (identical(other.disclosureType, disclosureType) || other.disclosureType == disclosureType));
+            (identical(other.type, type) || other.type == type));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
-      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, disclosureType);
+      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, type);
 
   @JsonKey(ignore: true)
   @override
@@ -2902,11 +2902,11 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)
+            DisclosureType type)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) {
-    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, disclosureType);
+    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, type);
   }
 
   @override
@@ -2919,11 +2919,11 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)?
+            DisclosureType type)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) {
-    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, disclosureType);
+    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, type);
   }
 
   @override
@@ -2936,13 +2936,13 @@ class _$WalletEvent_DisclosureImpl implements WalletEvent_Disclosure {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)?
+            DisclosureType type)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),
   }) {
     if (disclosure != null) {
-      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, disclosureType);
+      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, type);
     }
     return orElse();
   }
@@ -2987,7 +2987,7 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
       final List<DisclosureCard>? requestedCards,
       required final RequestPolicy requestPolicy,
       required final DisclosureStatus status,
-      required final DisclosureType disclosureType}) = _$WalletEvent_DisclosureImpl;
+      required final DisclosureType type}) = _$WalletEvent_DisclosureImpl;
 
   @override
   String get dateTime;
@@ -2996,7 +2996,7 @@ abstract class WalletEvent_Disclosure implements WalletEvent {
   List<DisclosureCard>? get requestedCards;
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
-  DisclosureType get disclosureType;
+  DisclosureType get type;
   @override
   @JsonKey(ignore: true)
   _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
@@ -3082,7 +3082,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)
+            DisclosureType type)
         disclosure,
     required TResult Function(String dateTime, Card card) issuance,
   }) {
@@ -3099,7 +3099,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)?
+            DisclosureType type)?
         disclosure,
     TResult? Function(String dateTime, Card card)? issuance,
   }) {
@@ -3116,7 +3116,7 @@ class _$WalletEvent_IssuanceImpl implements WalletEvent_Issuance {
             List<DisclosureCard>? requestedCards,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
-            DisclosureType disclosureType)?
+            DisclosureType type)?
         disclosure,
     TResult Function(String dateTime, Card card)? issuance,
     required TResult orElse(),

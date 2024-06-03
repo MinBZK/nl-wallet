@@ -51,9 +51,15 @@ pub struct DisclosureCard {
     pub attributes: Vec<CardAttribute>,
 }
 
+pub enum DisclosureStatus {
+    Success,
+    Cancelled,
+    Error,
+}
+
 pub enum DisclosureType {
-    Regular,
     Login,
+    Regular,
 }
 
 pub enum DisclosureSessionType {
