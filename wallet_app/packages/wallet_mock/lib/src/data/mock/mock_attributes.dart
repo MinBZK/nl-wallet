@@ -4,7 +4,7 @@ final _kMockBirthDate = CardValue.date(value: '1997-03-11');
 final _kMockBirthPlace = CardValue.string(value: 'Delft');
 final _kMockFirstNames = CardValue.string(value: 'Willeke Liselotte');
 final _kMockLastName = CardValue.string(value: 'De Bruijn');
-final _kMockGender = CardValue.string(value: 'Vrouw');
+final _kMockGender = CardValue.gender(value: GenderCardValue.Female);
 
 final kMockPidDataAttributes = [
   CardAttribute(
