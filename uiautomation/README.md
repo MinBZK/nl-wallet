@@ -76,7 +76,15 @@ The following parameters can be used to customize the test run:
 4. `test.config.platform.version`; The version of the platform to be used for testing, for example `14.0`.
 5. `test.config.remote`; The value of this parameter should be set to `false` to run the tests locally, else `true` for BrowserStack test runs.
 
-Local test run example:
+#### Local test run examples:
+
+Smoke test run example:
+
+````bash
+./gradlew smokeTest
+````
+
+Full test suite run example:
 
 ````bash
 ./gradlew test --tests suite.FullTestSuite
