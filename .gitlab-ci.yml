@@ -1196,6 +1196,7 @@ check-gitlab-ci-changed:
   rules:
     - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
+      allow_failure: true # Only meant as a warning as it's not a critical failure
   script:
     - git fetch origin
     # fails if .gitlab-ci.yml is different on CI_DEFAULT_BRANCH

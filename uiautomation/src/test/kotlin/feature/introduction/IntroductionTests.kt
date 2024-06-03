@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Tags
 import org.junitpioneer.jupiter.RetryingTest
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
@@ -54,6 +56,7 @@ class IntroductionTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The App offers a button to skip the intro, leading to the privacy summary. [${JIRA_ID}]")
+    @Tags(Tag("smoke"))
     fun verifySkipIntroButton() {
         val privacyScreen = IntroductionPrivacyScreen()
 
