@@ -1083,6 +1083,7 @@ deploy-wallet-provider-ont:
   extends: [.env-ont-k8s, .deploy-wallet-provider]
   rules: !reference [.default-or-merge-request, rules]
   needs:
+    - !reference [.deploy-wallet-provider, needs]
     - job: run-wp-migrations-ont
       artifacts: false
   variables:
@@ -1093,6 +1094,7 @@ deploy-wallet-provider-demo:
   extends: [.env-demo-k8s, .deploy-wallet-provider]
   rules: !reference [.demo-release-tag, rules]
   needs:
+    - !reference [.deploy-wallet-provider, needs]
     - job: run-wp-migrations-demo
       artifacts: false
   variables:
@@ -1146,6 +1148,7 @@ deploy-mock-relying-party-ont:
   extends: [.env-ont-k8s, .deploy-mock-relying-party]
   rules: !reference [.default-or-merge-request, rules]
   needs:
+    - !reference [.deploy-mock-relying-party, needs]
     - job: run-ws-migrations-ont
       artifacts: false
   variables:
@@ -1158,6 +1161,7 @@ deploy-mock-relying-party-ont:
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
   needs:
+    - !reference [.deploy-mock-relying-party, needs]
     - job: run-ws-migrations-demo
       artifacts: false
   rules: !reference [.demo-release-tag, rules]
