@@ -18,14 +18,13 @@ use nl_wallet_mdoc::{
         reader_auth::{ReaderRegistration, ValidationError},
         x509::{Certificate, CertificateError, CertificateType},
     },
-    verifier::ItemsRequests,
 };
 
 use crate::{
     authorization::AuthorizationErrorCode,
     openid4vp::{
-        AuthRequestError, AuthResponseError, VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse,
-        VpRequestUriObject, VpResponse,
+        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
+        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
     ErrorResponse,
 };
@@ -199,7 +198,7 @@ struct CommonDisclosureData<H> {
     client: H,
     certificate: Certificate,
     reader_registration: ReaderRegistration,
-    auth_request: VpAuthorizationRequest,
+    auth_request: IsoVpAuthorizationRequest,
 }
 
 enum VerifierSessionDataCheckResult<I> {
@@ -228,13 +227,11 @@ where
 
         let (auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors)?;
 
-        // In the remainder of the session, all .unwrap() and .direct() calls on the auth_request are safe
-        // because presence of the various fields have been checked by verify() above.
         let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
-            auth_request.response_uri.as_ref().unwrap(),
-            auth_request.oauth_request.client_id.clone(),
-            auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
+            &auth_request.response_uri,
+            auth_request.client_id.clone(),
+            auth_request.nonce.clone(),
             mdoc_nonce.clone(),
         );
 
@@ -245,7 +242,7 @@ where
             &request_uri_object,
             mdoc_data_source,
         )
-        .or_else(|error| Self::report_error_back(error, &client, auth_request.response_uri.as_ref().unwrap().clone()))
+        .or_else(|error| Self::report_error_back(error, &client, auth_request.response_uri.clone()))
         .await?;
 
         let data = CommonDisclosureData {
@@ -300,7 +297,7 @@ where
     /// Internal helper function for processing and checking the Authorization Request,
     /// including checking whether or not we have the requested attributes.
     async fn process_request<'a, S>(
-        auth_request: &VpAuthorizationRequest,
+        auth_request: &IsoVpAuthorizationRequest,
         certificate: &Certificate,
         session_transcript: &SessionTranscript,
         request_uri_object: &VpRequestUriObject,
@@ -311,10 +308,10 @@ where
     {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
-        if auth_request.oauth_request.client_id != request_uri_object.client_id {
+        if auth_request.client_id != request_uri_object.client_id {
             return Err(VpClientError::IncorrectClientId {
                 expected: request_uri_object.client_id.clone(),
-                found: auth_request.oauth_request.client_id.clone(),
+                found: auth_request.client_id.clone(),
             });
         }
 
@@ -325,8 +322,7 @@ where
         };
 
         // Verify that the requested attributes are included in the reader authentication.
-        let items_requests: ItemsRequests = auth_request.presentation_definition.direct().try_into().unwrap();
-        let device_request = DeviceRequest::from_items_requests(items_requests.0);
+        let device_request = DeviceRequest::from_items_requests(auth_request.items_requests.0.clone());
         device_request.verify_requested_attributes(&reader_registration)?;
 
         // Fetch documents from the database, calculate which ones satisfy the request and
@@ -381,9 +377,7 @@ where
 
     pub async fn terminate(self) -> Result<(), VpClientError> {
         let data = self.data();
-        data.client
-            .terminate(data.auth_request.response_uri.as_ref().unwrap().clone())
-            .await?;
+        data.client.terminate(data.auth_request.response_uri.clone()).await?;
         Ok(())
     }
 }
@@ -443,7 +437,7 @@ where
         let redirect_uri = self
             .data
             .client
-            .send_authorization_response(self.data.auth_request.response_uri.as_ref().unwrap().clone(), jwe)
+            .send_authorization_response(self.data.auth_request.response_uri.clone(), jwe)
             .await
             .map_err(|err| {
                 warn!("sending Authorization Response failed: {err:?}");
@@ -577,7 +571,7 @@ mod tests {
                 VpAuthorizationResponse::decrypt(jwe, &self.encryption_keypair, &self.nonce).unwrap();
             let disclosed_attrs = auth_response
                 .verify(
-                    &self.auth_request,
+                    &self.auth_request.clone().try_into().unwrap(),
                     mdoc_nonce,
                     &IsoCertTimeGenerator,
                     Examples::iaca_trust_anchors(),

@@ -13,7 +13,7 @@ use nl_wallet_mdoc::{
     software_key_factory::SoftwareKeyFactory,
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCase},
+    verifier::{ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCase},
     DeviceRequest, DeviceResponse, DeviceResponseVersion, SessionTranscript,
 };
 use openid4vc::{
@@ -52,7 +52,7 @@ async fn disclosure() {
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_keypair, &nonce).unwrap();
     let disclosed_attrs = auth_response
         .verify(
-            &auth_request,
+            &auth_request.try_into().unwrap(),
             mdoc_nonce,
             &IsoCertTimeGenerator,
             Examples::iaca_trust_anchors(),
@@ -77,14 +77,13 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 
     // Verify the Authorization Request JWE and read the requested attributes.
     let (auth_request, _) = VpAuthorizationRequest::verify(&auth_request, trust_anchors).unwrap();
-    let items_requests: ItemsRequests = auth_request.presentation_definition.direct().try_into().unwrap();
-    let device_request = DeviceRequest::from_items_requests(items_requests.0.clone());
+    let device_request = DeviceRequest::from_items_requests(auth_request.items_requests.0.clone());
 
     // Check if we have the requested attributes.
     let session_transcript = SessionTranscript::new_oid4vp(
-        auth_request.response_uri.as_ref().unwrap(),
-        auth_request.oauth_request.client_id.clone(),
-        auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
+        &auth_request.response_uri,
+        auth_request.client_id.clone(),
+        auth_request.nonce.clone(),
         mdoc_nonce.clone(),
     );
     let DeviceRequestMatch::Candidates(candidates) = device_request

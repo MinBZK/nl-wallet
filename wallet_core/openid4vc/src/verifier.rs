@@ -41,8 +41,8 @@ use crate::{
     authorization::AuthorizationErrorCode,
     jwt,
     openid4vp::{
-        AuthRequestError, AuthResponseError, VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse,
-        VpRequestUriObject, VpResponse,
+        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
+        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
     ErrorResponse,
 };
@@ -137,7 +137,7 @@ pub struct Created {
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
-    auth_request: VpAuthorizationRequest,
+    auth_request: IsoVpAuthorizationRequest,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
 }
@@ -745,7 +745,7 @@ impl Session<Created> {
     ) -> Result<
         (
             Jwt<VpAuthorizationRequest>,
-            VpAuthorizationRequest,
+            IsoVpAuthorizationRequest,
             Option<RedirectUri>,
             EcKeyPair,
         ),
@@ -789,7 +789,8 @@ impl Session<Created> {
 
         let jws = jwt::sign_with_certificate(&auth_request, &usecase.key_pair).await?;
 
-        Ok((jws, auth_request, redirect_uri, encryption_keypair))
+        let iso_auth_request = auth_request.validate().unwrap(); // Our own requests are always valid
+        Ok((jws, iso_auth_request, redirect_uri, encryption_keypair))
     }
 }
 
