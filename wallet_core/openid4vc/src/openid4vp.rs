@@ -645,10 +645,7 @@ mod tests {
         DeviceResponse,
     };
 
-    use crate::{
-        jwt,
-        openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse},
-    };
+    use super::{jwt, VpAuthorizationRequest, VpAuthorizationResponse};
 
     #[test]
     fn test_encrypt_decrypt_authorization_response() {
