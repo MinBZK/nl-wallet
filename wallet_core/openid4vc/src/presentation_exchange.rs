@@ -117,7 +117,7 @@ impl From<&ItemsRequests> for PresentationDefinition {
                             .iter()
                             .flat_map(|(namespace, attrs)| {
                                 attrs.iter().map(|(attr, intent_to_retain)| Field {
-                                    path: vec![format!("$['{}']['{}']", namespace.clone(), attr.clone())],
+                                    path: vec![format!("$['{}']['{}']", namespace.as_str(), attr.as_str())],
                                     intent_to_retain: *intent_to_retain,
                                 })
                             })
