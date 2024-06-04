@@ -262,6 +262,11 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () => ErrorScreen.showDeviceIncompatible(context),
           child: const Text('Device Incompatible Screen'),
         ),
+        const ThemeSectionSubHeader(title: 'Session Expired Screen'),
+        TextButton(
+          onPressed: () => ErrorScreen.showSessionExpired(context),
+          child: const Text('Session Expired Screen'),
+        ),
       ],
     );
   }

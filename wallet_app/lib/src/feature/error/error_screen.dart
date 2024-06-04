@@ -211,4 +211,23 @@ class ErrorScreen extends StatelessWidget {
       actions: [],
     );
   }
+
+  static void showSessionExpired(
+    BuildContext context, {
+    ErrorCtaStyle style = ErrorCtaStyle.retry,
+    bool secured = true,
+  }) {
+    show(
+      context,
+      secured: secured,
+      headline: context.l10n.errorScreenSessionExpiredHeadline,
+      description: style == ErrorCtaStyle.close
+          ? context.l10n.errorScreenSessionExpiredDescriptionCloseVariant
+          : context.l10n.errorScreenSessionExpiredDescription,
+      illustration: WalletAssets.svg_error_session_expired,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
+    );
+  }
 }
