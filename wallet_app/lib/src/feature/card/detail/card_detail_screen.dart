@@ -185,7 +185,7 @@ class CardDetailScreen extends StatelessWidget {
         title: Text(context.l10n.cardDetailScreenIssuerCta),
         subtitle: Text(card.issuer.displayName.l10nValue(context)),
         onTap: () => OrganizationDetailScreen.showPreloaded(context, card.issuer, false,
-            onReportIssuePressed: () => PlaceholderScreen.show(context)),
+            onReportIssuePressed: () => PlaceholderScreen.showGeneric(context)),
       ),
       if (card.config.updatable)
         InfoRow(
@@ -287,6 +287,6 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   void _onCardDeletePressed(BuildContext context) {
-    PlaceholderScreen.show(context);
+    PlaceholderScreen.showGeneric(context);
   }
 }

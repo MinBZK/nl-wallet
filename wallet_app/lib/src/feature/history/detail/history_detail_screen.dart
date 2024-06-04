@@ -204,7 +204,7 @@ class HistoryDetailScreen extends StatelessWidget {
             title: Text(context.l10n.historyDetailScreenIssueTitle),
             subtitle: Text(context.l10n.historyDetailScreenIssueSubtitle),
             leading: Icon(Icons.gpp_maybe_outlined, color: iconColor),
-            onTap: () => PlaceholderScreen.show(context),
+            onTap: () => PlaceholderScreen.showGeneric(context),
           ),
         ),
       );
@@ -217,7 +217,7 @@ class HistoryDetailScreen extends StatelessWidget {
             title: Text(context.l10n.historyDetailScreenHelpdeskTitle),
             subtitle: Text(context.l10n.historyDetailScreenHelpdeskSubtitle),
             leading: Icon(Icons.comment_outlined, color: iconColor),
-            onTap: () => PlaceholderScreen.show(context),
+            onTap: () => PlaceholderScreen.showGeneric(context),
           ),
         ),
       );

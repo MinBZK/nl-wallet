@@ -39,11 +39,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
                   title: context.l10n.introductionConditionsScreenHeadline,
                   progress: const FlowProgress(currentStep: 2, totalSteps: kSetupSteps),
                   leading: const BackIconButton(),
-                  actions: [
-                    HelpIconButton(
-                      onPressed: () => PlaceholderScreen.show(context, secured: false),
-                    )
-                  ],
+                  actions: const [HelpIconButton()],
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -81,7 +77,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
     FitsWidthWidget conditionsButton = TertiaryButton(
       text: Text(context.l10n.introductionConditionsScreenConditionsCta),
       icon: const Icon(Icons.arrow_forward_rounded),
-      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
       key: const Key('introductionConditionsScreenConditionsCta'),
     );
     return Column(

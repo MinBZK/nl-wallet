@@ -106,7 +106,7 @@ class ConfirmAgreementPage extends StatelessWidget {
 
   Widget _buildDataIncorrectButton(BuildContext context) {
     return ListButton(
-      onPressed: () => PlaceholderScreen.show(context),
+      onPressed: () => PlaceholderScreen.showGeneric(context),
       text: Text(context.l10n.confirmAgreementPageDataIncorrectCta),
     );
   }

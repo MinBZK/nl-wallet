@@ -98,7 +98,7 @@ class MenuScreen extends StatelessWidget {
       MenuRow(
         label: context.l10n.menuScreenHelpCta,
         icon: Icons.help_outline,
-        onTap: () => PlaceholderScreen.show(context),
+        onTap: () => PlaceholderScreen.showGeneric(context),
       ),
       MenuRow(
         label: context.l10n.menuScreenScanQrCta,
@@ -118,7 +118,7 @@ class MenuScreen extends StatelessWidget {
       MenuRow(
         label: context.l10n.menuScreenFeedbackCta,
         icon: Icons.comment_outlined,
-        onTap: () => PlaceholderScreen.show(context),
+        onTap: () => PlaceholderScreen.showGeneric(context),
       ),
       MenuRow(
         label: context.l10n.menuScreenAboutCta,

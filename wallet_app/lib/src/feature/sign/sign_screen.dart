@@ -176,7 +176,7 @@ class SignScreen extends StatelessWidget {
   Widget _buildStopped(BuildContext context, SignStopped state) {
     return SignStoppedPage(
       onClosePressed: () => Navigator.pop(context),
-      onGiveFeedbackPressed: () => PlaceholderScreen.show(context),
+      onGiveFeedbackPressed: () => PlaceholderScreen.showGeneric(context),
     );
   }
 

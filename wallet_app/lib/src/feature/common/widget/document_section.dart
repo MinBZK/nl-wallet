@@ -45,7 +45,7 @@ class DocumentSection extends StatelessWidget {
           const SizedBox(height: 8),
           LinkButton(
             text: Text(context.l10n.checkAgreementPageShowDocumentCta),
-            onPressed: () => PlaceholderScreen.show(context, type: PlaceholderType.contract),
+            onPressed: () => PlaceholderScreen.showContract(context),
           ),
         ],
       ),

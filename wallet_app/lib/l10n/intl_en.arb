@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-05-30T15:12:09+02:00",
+    "@@last_modified": "2024-06-03T16:28:51+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -313,6 +313,9 @@
     "errorScreenServerDescription": "Unable to reach the system. There could be several reasons for this.\nCheck if you are connected to the internet or use another network. Try again after doing so.",
     "errorScreenServerDescriptionCloseVariant": "Unable to reach the system. There could be several reasons for this.\nCheck the internet connection or use a different network. Close the app and try again later.",
     "errorScreenServerHeadline": "Sorry, no response",
+    "errorScreenSessionExpiredDescription": "This action has stopped because too much time has passed. This is intended to keep your data secure. Please try again.",
+    "errorScreenSessionExpiredDescriptionCloseVariant": "This action has stopped because too much time has passed. This is intended to keep your data secure. Close the app and try again later.",
+    "errorScreenSessionExpiredHeadline": "Sorry, you're out of time",
     "flashlightDisabledWCAGAnnouncement": "Flashlight turned off",
     "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Delete Wallet",
@@ -725,8 +728,13 @@
             }
         }
     },
+    "placeholderScreenContractDescription": "The contract will be displayed here.",
     "placeholderScreenContractInformTitle": "The contract will be displayed here.",
+    "placeholderScreenGenericDescription": "Unfortunately, this page is still under construction.\nDo you have questions or need help? During the trial, the NL Wallet team is ready to assist you. Speak to someone, and they will help you further.",
     "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
+    "placeholderScreenHeadline": "This page doesn't exist yet",
+    "placeholderScreenHelpDescription": "During the trial, the NL Wallet team is ready to assist you. Speak to someone, and they will help you further.",
+    "placeholderScreenHelpHeadline": "Do you have any questions or need help?",
     "placeholderScreenTitle": "Page does not exist",
     "policyScreenDataCanBeDeleted": "You can have data deleted",
     "policyScreenDataCanBeDeletedDescription": "The organization offers a way to have your data deleted.",
