@@ -1,7 +1,6 @@
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, StringWithSeparator};
-use strum::EnumString;
 use url::Url;
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-authorization-request
@@ -61,7 +60,9 @@ pub enum PkceCodeChallenge {
     },
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, EnumString, strum::Display)]
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, strum::EnumString, strum::Display,
+)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum ResponseType {
