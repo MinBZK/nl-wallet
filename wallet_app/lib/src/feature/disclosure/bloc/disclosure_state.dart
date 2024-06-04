@@ -37,6 +37,19 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
   List<Object?> get props => [error, ...super.props];
 }
 
+class DisclosureSessionExpired extends DisclosureState implements ErrorState {
+  @override
+  final Object error;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const DisclosureSessionExpired({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
+}
+
 class DisclosureNetworkError extends DisclosureState implements NetworkErrorState {
   @override
   bool get showStopConfirmation => false;

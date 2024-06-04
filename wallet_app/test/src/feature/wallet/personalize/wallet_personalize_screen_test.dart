@@ -563,6 +563,34 @@ void main() {
       expect(showDetailsCtaFinder, findsOneWidget);
     });
 
+    testWidgets('WalletPersonalizeScreen shows session expired for WalletPersonalizeSessionExpired state',
+        (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeSessionExpired(
+            error: CoreGenericError('expired'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'session expired' title is shown
+      final headlineFinder = find.text(l10n.errorScreenSessionExpiredHeadline);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'try again' cta is shown
+      final tryAgainCtaFinder = find.text(l10n.generalRetry);
+      expect(tryAgainCtaFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
+    });
+
     testWidgets('Verify male icon is shown with male attributes', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         RepositoryProvider<PidAttributeMapper>(

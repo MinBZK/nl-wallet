@@ -187,7 +187,9 @@ verify-flutter-localizations:
   script:
     - set -euxo pipefail
     - flutter --version
-    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get && dart run translations_cleaner list-unused-terms --abort-on-unused)
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get)
+    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms) # List any unused keys
+    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms --abort-on-unused) # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
 lint-rust:
