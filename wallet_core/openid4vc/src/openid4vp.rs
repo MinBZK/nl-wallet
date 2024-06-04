@@ -226,7 +226,7 @@ pub struct JwePublicKey(Jwk);
 impl JwePublicKey {
     fn supported(jwk: &Jwk) -> bool {
         // Avoid jwk.key_type() which panics if `kty` is not set.
-        jwk.parameter("kty") == Some(&json!("EC")) && jwk.curve() == Some("P-256")
+        jwk.parameter("kty").and_then(serde_json::Value::as_str) == Some("EC") && jwk.curve() == Some("P-256")
     }
 }
 
