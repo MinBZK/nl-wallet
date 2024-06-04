@@ -650,14 +650,13 @@ mod tests {
 
     use super::{jwt, VpAuthorizationRequest, VpAuthorizationResponse};
 
-    #[test]
-    fn test_encrypt_decrypt_authorization_response() {
+    fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest, String) {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
+        let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
         let nonce = "nonce".to_string();
 
-        let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
         let auth_request = VpAuthorizationRequest::new(
             &Examples::items_requests(),
             rp_keypair.certificate(),
@@ -666,6 +665,13 @@ mod tests {
             "https://example.com/response_uri".parse().unwrap(),
         )
         .unwrap();
+
+        (ca, rp_keypair, encryption_privkey, auth_request, nonce)
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_authorization_response() {
+        let (_, _, encryption_privkey, auth_request, nonce) = setup();
 
         // NB: the example DeviceResponse verifies as an ISO 18013-5 DeviceResponse while here we use it in
         // an OpenID4VP setting, i.e. with different SessionTranscript contents, so it can't be verified.
@@ -692,19 +698,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_authorization_request_jwt() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-        let rp_keypair = ca.generate_reader_mock(None).unwrap();
+        let (ca, rp_keypair, _, auth_request, _) = setup();
 
-        let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
-
-        let auth_request = VpAuthorizationRequest::new(
-            &Examples::items_requests(),
-            rp_keypair.certificate(),
-            "nonce".to_string(),
-            encryption_privkey.to_jwk_public_key().try_into().unwrap(),
-            "https://example.com/response_uri".parse().unwrap(),
-        )
-        .unwrap();
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
         VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
