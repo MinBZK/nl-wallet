@@ -186,7 +186,7 @@ pub enum VpAlgValues {
     EcdhEs,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, strum::Display)]
 pub enum VpEncValues {
     A128GCM,
     A192GCM,
@@ -535,11 +535,11 @@ impl VpAuthorizationResponse {
 
         // Use the AES key size that the server wants.
         let client_metadata = auth_request.client_metadata.as_ref().unwrap().direct();
-        header.set_content_encryption(match client_metadata.authorization_encryption_enc_values_supported {
-            VpEncValues::A128GCM => "A128GCM",
-            VpEncValues::A192GCM => "A192GCM",
-            VpEncValues::A256GCM => "A256GCM",
-        });
+        header.set_content_encryption(
+            client_metadata
+                .authorization_encryption_enc_values_supported
+                .to_string(),
+        );
 
         // VpAuthorizationRequest always serializes to a JSON object useable as a JWT payload.
         let payload = serde_json::to_value(self)?.as_object().unwrap().clone();
