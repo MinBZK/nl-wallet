@@ -65,8 +65,6 @@ pub enum PdConversionError {
     TooManyPaths,
     #[error("unsupported JsonPath expression")]
     UnsupportedJsonPathExpression,
-    #[error("missing namespace or attribute name in JsonPath expression")]
-    MissingNamespaceOrAttribute,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,10 +88,7 @@ impl Field {
             .captures(path)
             .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
 
-        if captures.len() != 3 {
-            return Err(PdConversionError::MissingNamespaceOrAttribute);
-        }
-
+        // `captures` will always have three elements due to how the regex is constructed.
         Ok((captures[1].to_string(), captures[2].to_string()))
     }
 }
