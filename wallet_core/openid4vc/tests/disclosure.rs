@@ -102,7 +102,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     };
 
     // Put the disclosure in an Authorization Response and encrypt it.
-    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce).unwrap()
+    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap()
 }
 
 /// A type that implements `MdocDataSource` and simply returns

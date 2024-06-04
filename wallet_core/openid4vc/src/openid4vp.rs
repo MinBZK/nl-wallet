@@ -517,12 +517,12 @@ impl VpAuthorizationResponse {
     pub fn new_encrypted(
         device_response: DeviceResponse,
         auth_request: &VpAuthorizationRequest,
-        mdoc_nonce: String,
+        mdoc_nonce: &str,
     ) -> Result<String, AuthResponseError> {
         Self::new(device_response, auth_request).encrypt(auth_request, mdoc_nonce)
     }
 
-    fn encrypt(&self, auth_request: &VpAuthorizationRequest, mdoc_nonce: String) -> Result<String, AuthResponseError> {
+    fn encrypt(&self, auth_request: &VpAuthorizationRequest, mdoc_nonce: &str) -> Result<String, AuthResponseError> {
         // All .unwrap() and .direct() calls on `auth_request` are safe because they are checked earlier
         // by auth_request.validate().
 
@@ -746,7 +746,7 @@ mod tests {
         // an Authorization Response JWE.
         let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
-        let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce.clone()).unwrap();
+        let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap();
 
         let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_privkey, &nonce).unwrap();
 
