@@ -10,7 +10,7 @@ use josekit::{
     JoseError,
 };
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
+use serde_with::{formats::PreferOne, serde_as, skip_serializing_none, OneOrMany};
 use x509_parser::{error::X509Error, extensions::GeneralName};
 
 use nl_wallet_mdoc::{
@@ -455,10 +455,11 @@ pub enum AuthResponseError {
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
 // of OpenID4VP that we (plan to) support do we need the `code` field from that struct, which is its primary citizen.
 /// An OpenID4VP Authorization Response, with the wallet's disclosed attestations/attributes in the `vp_token`.
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationResponse {
     /// One or more Verifiable Presentations.
-    #[serde(with = "value_or_array")]
+    #[serde_as(as = "OneOrMany<_, PreferOne>")]
     pub vp_token: Vec<VerifiablePresentation>,
 
     pub presentation_submission: PresentationSubmission,
@@ -633,44 +634,9 @@ impl VpAuthorizationResponse {
     }
 }
 
-/// Serialize a Vec<T> with one item directly to the JSON serialization of T, and a Vec<T> with more items just to a
-/// JSON array of serialized T's.
-mod value_or_array {
-    use serde::{
-        de::{self, DeserializeOwned},
-        ser, Deserialize, Deserializer, Serialize, Serializer,
-    };
-
-    pub fn serialize<S: Serializer, T: Serialize>(input: &[T], serializer: S) -> Result<S::Ok, S::Error> {
-        match input.len() {
-            0 => Err(ser::Error::custom("can't serialize empty JsonVec")),
-            1 => input.first().unwrap().serialize(serializer),
-            _ => input.serialize(serializer),
-        }
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<Vec<T>, D::Error> {
-        let value = serde_json::Value::deserialize(deserializer)?;
-        let vec = match value {
-            josekit::Value::Array(_) => serde_json::from_value(value).map_err(de::Error::custom)?,
-            josekit::Value::String(_) | josekit::Value::Object(_) => {
-                vec![serde_json::from_value(value).map_err(de::Error::custom)?]
-            }
-            _ => return Err(de::Error::custom("unexpected JSON type")),
-        };
-
-        Ok(vec)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use josekit::{
-        jwk::alg::ec::{EcCurve, EcKeyPair},
-        Value,
-    };
-    use rstest::rstest;
-    use serde::{Deserialize, Serialize};
+    use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
     use serde_json::json;
 
     use nl_wallet_mdoc::{
@@ -681,7 +647,7 @@ mod tests {
 
     use crate::{
         jwt,
-        openid4vp::{value_or_array, VpAuthorizationRequest, VpAuthorizationResponse},
+        openid4vp::{VpAuthorizationRequest, VpAuthorizationResponse},
     };
 
     #[test]
@@ -786,30 +752,5 @@ mod tests {
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
         auth_request.validate().unwrap();
-    }
-
-    #[rstest]
-    #[case(vec!["one".to_string()], Some(json!("one")))]
-    #[case(vec!["one".to_string(), "two".to_string()], Some(json!(["one", "two"])))]
-    #[case(vec![], None)]
-    fn value_or_array_serialization(#[case] values: Vec<String>, #[case] serialization: Option<Value>) {
-        #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-        struct Test {
-            #[serde(with = "value_or_array")]
-            test: Vec<String>,
-        }
-
-        let result = serde_json::to_value(Test { test: values.clone() });
-        match serialization {
-            None => assert!(result.is_err()),
-            Some(serialization) => {
-                let serialization = json!({"test": serialization});
-                assert_eq!(result.unwrap(), serialization);
-                assert_eq!(
-                    serde_json::from_value::<Test>(serialization).unwrap(),
-                    Test { test: values }
-                );
-            }
-        };
     }
 }
