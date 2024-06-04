@@ -82,7 +82,8 @@ impl Field {
 
         /// Per ISO 18013.7, the path must be a JSONPath expression of the form: "$['namespace']['attribute_name']"
         /// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
-        static FIELD_PATH_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$").unwrap());
+        static FIELD_PATH_REGEX: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r#"^\$\[['"](.*?)['"]\]\[['"](.*?)['"]\]$"#).unwrap());
 
         let captures = FIELD_PATH_REGEX
             .captures(path)
