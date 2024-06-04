@@ -304,7 +304,7 @@ impl VpAuthorizationRequest {
         let dns_san = parse_dns_san(&rp_cert)?;
         if dns_san != auth_request.oauth_request.client_id {
             return Err(AuthRequestError::UnauthorizedClientId {
-                client_id: auth_request.oauth_request.client_id.clone(),
+                client_id: auth_request.oauth_request.client_id,
                 dns_san,
             });
         }
