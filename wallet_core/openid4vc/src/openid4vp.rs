@@ -600,9 +600,9 @@ impl VpAuthorizationResponse {
         // Verify the cryptographic integrity of the disclosed attributes.
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri.as_ref().unwrap().clone(),
-            auth_request.oauth_request.client_id.clone(),
+            &auth_request.oauth_request.client_id,
             auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
-            mdoc_nonce,
+            &mdoc_nonce,
         );
         let device_response = self.device_response()?;
         let disclosed_attrs = device_response

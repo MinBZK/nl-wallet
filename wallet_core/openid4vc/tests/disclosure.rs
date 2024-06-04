@@ -74,9 +74,9 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     // Check if we have the requested attributes.
     let session_transcript = SessionTranscript::new_oid4vp(
         auth_request.response_uri.as_ref().unwrap(),
-        auth_request.oauth_request.client_id.clone(),
+        &auth_request.oauth_request.client_id,
         auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
-        mdoc_nonce.clone(),
+        &mdoc_nonce,
     );
     let DeviceRequestMatch::Candidates(candidates) = device_request
         .match_stored_documents(&mdocs, &session_transcript)
