@@ -642,8 +642,11 @@ mod tests {
     use nl_wallet_mdoc::{
         examples::{Example, Examples},
         server_keys::KeyPair,
+        utils::serialization::CborBase64,
         DeviceResponse,
     };
+
+    use crate::openid4vp::VerifiablePresentation;
 
     use super::{jwt, VpAuthorizationRequest, VpAuthorizationResponse};
 
@@ -670,11 +673,21 @@ mod tests {
         // an Authorization Response JWE.
         let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
-        let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap();
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
+        let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
 
-        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey, &nonce).unwrap();
-
+        let (decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey, &nonce).unwrap();
         assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
+
+        let VerifiablePresentation::MsoMdoc(CborBase64(encrypted_device_response)) =
+            auth_response.vp_token.first().unwrap();
+        let VerifiablePresentation::MsoMdoc(CborBase64(decrypted_device_response)) =
+            decrypted.vp_token.first().unwrap();
+        let encrypted_document = encrypted_device_response.documents.as_ref().unwrap().first().unwrap();
+        let decrypted_document = decrypted_device_response.documents.as_ref().unwrap().first().unwrap();
+
+        assert_eq!(decrypted_document.doc_type, encrypted_document.doc_type);
+        assert_eq!(decrypted_document.issuer_signed, encrypted_document.issuer_signed);
     }
 
     #[tokio::test]
