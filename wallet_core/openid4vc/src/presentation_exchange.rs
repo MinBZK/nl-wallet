@@ -9,7 +9,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use nl_wallet_mdoc::{verifier::ItemsRequests, ItemsRequest};
+use nl_wallet_mdoc::{verifier::ItemsRequests, Document, ItemsRequest};
 use wallet_common::utils::random_string;
 
 use crate::{openid4vp::VpFormat, Format};
@@ -164,6 +164,56 @@ pub struct InputDescriptorMappingObject {
     pub id: String,
     pub format: Format,
     pub path: String,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PsError {
+    #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
+    UnexpectedDescriptorCount { expected: usize, found: usize },
+    #[error("received unexpected Presentation Submission ID: expected '{expected}', found '{found}'")]
+    UnexpectedSubmissionId { expected: String, found: String },
+    #[error("received unexpected path in Presentation Submission Input Descriptor: expected '$', found '{0}'")]
+    UnexpectedInputDescriptorPath(String),
+    #[error("received unexpected Presentation Submission Input Descriptor ID: expected '{expected}', found '{found}'")]
+    UnexpectedInputDescriptorId { expected: String, found: String },
+}
+
+impl PresentationSubmission {
+    pub fn verify(
+        documents: &[Document],
+        presentation_submission: &PresentationSubmission,
+        presentation_definition: &PresentationDefinition,
+    ) -> Result<(), PsError> {
+        if presentation_submission.definition_id != presentation_definition.id {
+            return Err(PsError::UnexpectedSubmissionId {
+                expected: presentation_definition.id.clone(),
+                found: presentation_submission.definition_id.clone(),
+            });
+        }
+
+        if presentation_submission.descriptor_map.len() != documents.len() {
+            return Err(PsError::UnexpectedDescriptorCount {
+                expected: documents.len(),
+                found: presentation_submission.descriptor_map.len(),
+            });
+        }
+
+        for (doc, input_descriptor) in documents.iter().zip(&presentation_submission.descriptor_map) {
+            if input_descriptor.path != "$" {
+                return Err(PsError::UnexpectedInputDescriptorPath(
+                    input_descriptor.path.to_string(),
+                ));
+            }
+            if input_descriptor.id != doc.doc_type {
+                return Err(PsError::UnexpectedInputDescriptorId {
+                    expected: doc.doc_type.clone(),
+                    found: input_descriptor.id.clone(),
+                });
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -32,7 +32,9 @@ use wallet_common::{
 use crate::{
     authorization::{AuthorizationRequest, ResponseMode, ResponseType},
     jwt::{self, JwkConversionError, JwtX5cError},
-    presentation_exchange::{FormatAlg, InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission},
+    presentation_exchange::{
+        FormatAlg, InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission, PsError,
+    },
     Format,
 };
 
@@ -444,16 +446,10 @@ pub enum AuthResponseError {
     Verification(#[source] nl_wallet_mdoc::Error),
     #[error("missing requested attributes: {0}")]
     MissingAttributes(#[source] nl_wallet_mdoc::Error),
-    #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
-    UnexpectedDescriptorCount { expected: usize, found: usize },
-    #[error("received unexpected Presentation Submission ID: expected '{expected}', found '{found}'")]
-    UnexpectedSubmissionId { expected: String, found: String },
-    #[error("received unexpected path in Presentation Submission Input Descriptor: expected '$', found '{0}'")]
-    UnexpectedInputDescriptorPath(String),
-    #[error("received unexpected Presentation Submission Input Descriptor ID: expected '{expected}', found '{found}'")]
-    UnexpectedInputDescriptorId { expected: String, found: String },
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
+    #[error("error in Presentation Submission: {0}")]
+    PresentationSubmission(#[from] PsError),
 }
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
@@ -615,8 +611,15 @@ impl VpAuthorizationResponse {
             .match_against_response(device_response)
             .map_err(AuthResponseError::MissingAttributes)?;
 
+        // Safe: if we have found all requested items in the documents, then the documents are not absent.
+        let documents = device_response.documents.as_ref().unwrap();
+
         // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO 18013-7.
-        self.verify_presentation_submission(auth_request.presentation_definition.direct())?;
+        PresentationSubmission::verify(
+            documents,
+            &self.presentation_submission,
+            auth_request.presentation_definition.direct(),
+        )?;
 
         // If `state` is provided it must equal the `state` from the Authorization Request.
         if self.state != auth_request.oauth_request.state {
@@ -627,48 +630,6 @@ impl VpAuthorizationResponse {
         }
 
         Ok(disclosed_attrs)
-    }
-
-    fn verify_presentation_submission(
-        &self,
-        presentation_definition: &PresentationDefinition,
-    ) -> Result<(), AuthResponseError> {
-        if self.presentation_submission.definition_id != presentation_definition.id {
-            return Err(AuthResponseError::UnexpectedSubmissionId {
-                expected: presentation_definition.id.clone(),
-                found: self.presentation_submission.definition_id.clone(),
-            });
-        }
-
-        let documents = &self.device_response()?.documents;
-
-        if self.presentation_submission.descriptor_map.len() != documents.as_ref().map_or(0, |docs| docs.len()) {
-            return Err(AuthResponseError::UnexpectedDescriptorCount {
-                expected: documents.as_ref().map_or(0, |docs| docs.len()),
-                found: self.presentation_submission.descriptor_map.len(),
-            });
-        }
-
-        for (doc, input_descriptor) in documents
-            .as_ref()
-            .unwrap() // The calling function (`Self::verify`) already established that this is not None.
-            .iter()
-            .zip(&self.presentation_submission.descriptor_map)
-        {
-            if input_descriptor.path != "$" {
-                return Err(AuthResponseError::UnexpectedInputDescriptorPath(
-                    input_descriptor.path.to_string(),
-                ));
-            }
-            if input_descriptor.id != doc.doc_type {
-                return Err(AuthResponseError::UnexpectedInputDescriptorId {
-                    expected: doc.doc_type.clone(),
-                    found: input_descriptor.id.clone(),
-                });
-            }
-        }
-
-        Ok(())
     }
 }
 
