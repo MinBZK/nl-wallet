@@ -542,7 +542,9 @@ impl VpAuthorizationResponse {
         );
 
         // VpAuthorizationRequest always serializes to a JSON object useable as a JWT payload.
-        let payload = serde_json::to_value(self)?.as_object().unwrap().clone();
+        let serde_json::Value::Object(payload) = serde_json::to_value(self)? else {
+            panic!("VpAuthorizationResponse did not serialize to object")
+        };
         let payload = JwtPayload::from_map(payload).unwrap();
 
         // The key the RP wants us to encrypt our response to.
