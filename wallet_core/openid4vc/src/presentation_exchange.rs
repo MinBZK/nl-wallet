@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use nl_wallet_mdoc::{verifier::ItemsRequests, ItemsRequest};
 use wallet_common::utils::random_string;
 
-use crate::Format;
+use crate::{openid4vp::VpFormat, Format};
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,14 +25,8 @@ pub struct PresentationDefinition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputDescriptor {
     pub id: String,
-    pub format: RequestedFormat,
+    pub format: VpFormat,
     pub constraints: Constraints,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RequestedFormat {
-    MsoMdoc { alg: IndexSet<FormatAlg> },
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -103,7 +97,7 @@ impl From<&ItemsRequests> for PresentationDefinition {
                 .iter()
                 .map(|items_request| InputDescriptor {
                     id: items_request.doc_type.clone(),
-                    format: RequestedFormat::MsoMdoc {
+                    format: VpFormat::MsoMdoc {
                         alg: IndexSet::from([FormatAlg::ES256]),
                     },
                     constraints: Constraints {
@@ -179,7 +173,7 @@ mod tests {
 
     use nl_wallet_mdoc::{examples::Examples, verifier::ItemsRequests};
 
-    use super::{FormatAlg, LimitDisclosure, PresentationDefinition, RequestedFormat};
+    use super::{FormatAlg, LimitDisclosure, PresentationDefinition, VpFormat};
 
     #[test]
     fn convert_pd_itemsrequests() {
@@ -225,7 +219,7 @@ mod tests {
         assert_eq!(input_descriptor.id, "org.iso.18013.5.1.mDL");
         assert_matches!(
             &input_descriptor.format,
-            RequestedFormat::MsoMdoc { alg } if alg.len() == 1 && matches!(alg[0], FormatAlg::ES256)
+            VpFormat::MsoMdoc { alg } if alg.len() == 1 && matches!(alg[0], FormatAlg::ES256)
         );
         assert_matches!(input_descriptor.constraints.limit_disclosure, LimitDisclosure::Required);
 
