@@ -332,39 +332,39 @@ impl VpAuthorizationRequest {
     }
 
     /// Validate that the request contents are compliant with the profile from ISO 18013-7 Appendix B.
-    fn validate(&self) -> Result<(), AuthRequestError> {
+    fn validate(&self) -> Result<(), AuthRequestValidationError> {
         // Check absence of fields that must not be present in an OpenID4VP Authorization Request
         if self.oauth_request.authorization_details.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("authorization_details").into());
+            return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
         }
         if self.oauth_request.code_challenge.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("code_challenge").into());
+            return Err(AuthRequestValidationError::UnexpectedField("code_challenge"));
         }
         if self.oauth_request.redirect_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri").into());
+            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri"));
         }
         if self.oauth_request.scope.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("scope").into());
+            return Err(AuthRequestValidationError::UnexpectedField("scope"));
         }
         if self.oauth_request.request_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("request_uri").into());
+            return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
         }
 
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
         if self.oauth_request.nonce.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
         }
         if self.oauth_request.response_mode.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
         }
         if self.client_metadata.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
         }
         if self.client_id_scheme.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme"));
         }
         if self.response_uri.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
         }
 
         // Check that various enums have the expected values
@@ -373,42 +373,43 @@ impl VpAuthorizationRequest {
                 field: "response_type",
                 expected: "vp_token",
                 found: serde_json::to_string(&self.oauth_request.response_type).unwrap(),
-            }
-            .into());
+            });
         }
         if *self.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
                 found: serde_json::to_string(&self.oauth_request.response_mode).unwrap(),
-            }
-            .into());
+            });
         }
         if *self.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "client_id_scheme",
                 expected: "x509_san_dns",
                 found: serde_json::to_string(&self.client_id_scheme).unwrap(),
-            }
-            .into());
+            });
         }
 
         // Of fields that have an "_uri" variant, check that they are not used
         if matches!(self.presentation_definition, VpPresentationDefinition::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("presentation_definition").into());
+            return Err(AuthRequestValidationError::UriVariantNotSupported(
+                "presentation_definition",
+            ));
         }
         if matches!(*self.client_metadata.as_ref().unwrap(), VpClientMetadata::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata").into());
+            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
         }
         let client_metadata = self.client_metadata.as_ref().unwrap().direct();
         if matches!(client_metadata.jwks, VpJwks::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("presentation_definition").into());
+            return Err(AuthRequestValidationError::UriVariantNotSupported(
+                "presentation_definition",
+            ));
         }
 
         // check that we received exactly one EC/P256 curve
         let jwks = client_metadata.jwks.direct();
         if jwks.len() != 1 {
-            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()).into());
+            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
         }
         JwePublicKey::validate(jwks.first().unwrap())?;
 
