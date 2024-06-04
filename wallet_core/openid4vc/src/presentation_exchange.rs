@@ -179,9 +179,7 @@ mod tests {
 
     use nl_wallet_mdoc::{examples::Examples, verifier::ItemsRequests};
 
-    use crate::presentation_exchange::{FormatAlg, LimitDisclosure, RequestedFormat};
-
-    use super::PresentationDefinition;
+    use super::{FormatAlg, LimitDisclosure, PresentationDefinition, RequestedFormat};
 
     #[test]
     fn convert_pd_itemsrequests() {
