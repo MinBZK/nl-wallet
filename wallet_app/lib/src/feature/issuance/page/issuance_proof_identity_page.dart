@@ -112,7 +112,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   Widget _buildDataIncorrectButton(BuildContext context) {
     return ListButton(
       text: Text(context.l10n.issuanceProofIdentityPageIncorrectCta),
-      onPressed: () => PlaceholderScreen.show(context),
+      onPressed: () => PlaceholderScreen.showGeneric(context),
     );
   }
 }

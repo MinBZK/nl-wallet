@@ -81,7 +81,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: LinkButton(
             text: Text(context.l10n.issuanceSelectCardsPageDataIncorrectCta),
-            onPressed: () => PlaceholderScreen.show(context),
+            onPressed: () => PlaceholderScreen.showGeneric(context),
           ),
         ),
         const Divider(

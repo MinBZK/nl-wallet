@@ -74,7 +74,7 @@ class LoginDetailScreen extends StatelessWidget {
             title: context.l10n.loginDetailScreenTitle(organization.displayName.l10nValue(context)),
             actions: [
               IconButton(
-                onPressed: () => PlaceholderScreen.show(context),
+                onPressed: () => PlaceholderScreen.showGeneric(context),
                 icon: const Icon(Icons.help_outline_rounded),
               ),
             ],
