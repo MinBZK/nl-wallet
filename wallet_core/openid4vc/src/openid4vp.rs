@@ -559,7 +559,7 @@ impl VpAuthorizationResponse {
     }
 
     pub fn decrypt(
-        jwe: String,
+        jwe: &str,
         private_key: &EcKeyPair,
         nonce: &str,
     ) -> Result<(VpAuthorizationResponse, String), AuthResponseError> {
@@ -748,7 +748,7 @@ mod tests {
         let device_response = DeviceResponse::example();
         let jwe = VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap();
 
-        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_privkey, &nonce).unwrap();
+        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey, &nonce).unwrap();
 
         assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
     }

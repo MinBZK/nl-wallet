@@ -40,7 +40,7 @@ async fn disclosure() {
     let jwe = disclosure_jwe(auth_request_jws, &[ca.certificate().try_into().unwrap()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
-    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_keypair, &nonce).unwrap();
+    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
     let disclosed_attrs = auth_response
         .verify(
             &auth_request,
