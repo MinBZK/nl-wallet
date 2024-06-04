@@ -32,8 +32,9 @@ fn wallet() -> &'static RwLock<Wallet> {
 
 #[flutter_api_error]
 pub fn init() -> Result<()> {
-    // Enable backtraces to be caught on panics and errors.
+    // Enable backtraces to be caught on panics (but not errors) for Sentry.
     std::env::set_var("RUST_BACKTRACE", "1");
+    std::env::set_var("RUST_LIB_BACKTRACE", "0");
 
     // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
