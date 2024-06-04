@@ -440,7 +440,7 @@ pub enum AuthResponseError {
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
 // of OpenID4VP that we (plan to) support do we need the `code` field from that struct, which is its primary citizen.
-/// An OpenID4VP Authorization Response, with the wallet's disclosed attesations/attributes in the `vp_token`.
+/// An OpenID4VP Authorization Response, with the wallet's disclosed attestations/attributes in the `vp_token`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationResponse {
     /// One or more Verifiable Presentations.
