@@ -4,7 +4,7 @@
 //! Other fields are left out of the various structs and enums for now, and some fields that are optional per
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -32,13 +32,13 @@ pub struct InputDescriptor {
     pub constraints: Constraints,
 }
 
-#[derive(Debug, Clone, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RequestedFormat {
-    MsoMdoc { alg: Vec<FormatAlg> },
+    MsoMdoc { alg: IndexSet<FormatAlg> },
 }
 
-#[derive(Debug, Clone, Default, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FormatAlg {
     #[default]
     ES256,
@@ -113,7 +113,7 @@ impl From<&ItemsRequests> for PresentationDefinition {
                 .map(|items_request| InputDescriptor {
                     id: items_request.doc_type.clone(),
                     format: RequestedFormat::MsoMdoc {
-                        alg: vec![FormatAlg::ES256],
+                        alg: IndexSet::from([FormatAlg::ES256]),
                     },
                     constraints: Constraints {
                         limit_disclosure: LimitDisclosure::Required,

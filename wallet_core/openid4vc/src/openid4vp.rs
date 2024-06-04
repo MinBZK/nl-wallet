@@ -2,6 +2,7 @@ use std::string::FromUtf8Error;
 
 use base64::DecodeError;
 use chrono::{DateTime, Utc};
+use indexmap::IndexSet;
 use josekit::{
     jwe::{alg::ecdh_es::EcdhEsJweAlgorithm, JweHeader},
     jwk::{alg::ec::EcKeyPair, Jwk},
@@ -196,7 +197,7 @@ pub enum VpEncValues {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VpFormat {
-    MsoMdoc { alg: Vec<FormatAlg> },
+    MsoMdoc { alg: IndexSet<FormatAlg> },
 }
 
 fn parse_dns_san(cert: &Certificate) -> Result<String, AuthRequestError> {
@@ -277,7 +278,7 @@ impl VpAuthorizationRequest {
                     keys: vec![encryption_pubkey.into_inner()],
                 },
                 vp_formats: VpFormat::MsoMdoc {
-                    alg: vec![FormatAlg::ES256],
+                    alg: IndexSet::from([FormatAlg::ES256]),
                 },
                 authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
                 authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
