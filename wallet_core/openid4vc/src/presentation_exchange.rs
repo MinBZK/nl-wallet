@@ -35,7 +35,7 @@ pub enum RequestedFormat {
     MsoMdoc { alg: IndexSet<FormatAlg> },
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FormatAlg {
     #[default]
     ES256,
@@ -47,7 +47,7 @@ pub struct Constraints {
     pub limit_disclosure: LimitDisclosure,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LimitDisclosure {
     /// The wallet must disclose only those attributes requested by the RP, and no more.
