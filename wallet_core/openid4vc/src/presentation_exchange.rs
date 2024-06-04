@@ -8,7 +8,6 @@ use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 
 use nl_wallet_mdoc::{verifier::ItemsRequests, ItemsRequest};
 use wallet_common::utils::random_string;
@@ -16,7 +15,6 @@ use wallet_common::utils::random_string;
 use crate::Format;
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PresentationDefinition {
     pub id: String,
@@ -24,7 +22,6 @@ pub struct PresentationDefinition {
 }
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor-object.
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputDescriptor {
     pub id: String,
@@ -44,7 +41,6 @@ pub enum FormatAlg {
     ES256,
 }
 
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constraints {
     pub fields: Vec<Field>,
@@ -73,7 +69,6 @@ pub enum PdConversionError {
     MissingNamespaceOrAttribute,
 }
 
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Field {
     pub path: Vec<String>,
