@@ -10,7 +10,6 @@ use josekit::{
     JoseError,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use serde_with::skip_serializing_none;
 use x509_parser::{error::X509Error, extensions::GeneralName};
 
@@ -219,14 +218,30 @@ fn parse_dns_san(cert: &Certificate) -> Result<String, AuthRequestError> {
 use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
-    validate(predicate = |u| JwePublicKey::supported(u)),
+    validate(predicate = |u| JwePublicKey::validate(u).is_ok()),
 )]
 pub struct JwePublicKey(Jwk);
 
 impl JwePublicKey {
-    fn supported(jwk: &Jwk) -> bool {
+    fn validate(jwk: &Jwk) -> Result<(), AuthRequestValidationError> {
         // Avoid jwk.key_type() which panics if `kty` is not set.
-        jwk.parameter("kty").and_then(serde_json::Value::as_str) == Some("EC") && jwk.curve() == Some("P-256")
+        if jwk.parameter("kty").and_then(serde_json::Value::as_str) != Some("EC") {
+            return Err(AuthRequestValidationError::UnsupportedJwk {
+                field: "kty",
+                expected: "EC",
+                found: jwk.parameter("kty").cloned(),
+            });
+        }
+
+        if jwk.curve() != Some("P-256") {
+            return Err(AuthRequestValidationError::UnsupportedJwk {
+                field: "crv",
+                expected: "P-256",
+                found: jwk.curve().map(serde_json::Value::from),
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -246,8 +261,12 @@ pub enum AuthRequestValidationError {
     UriVariantNotSupported(&'static str),
     #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
     UnexpectedJwkAmount(usize),
-    #[error("JWK of unsupported type or curve (kty or crv field)")]
-    UnsupportedJwk,
+    #[error("unsupported JWK: expected {expected}, found {found:?} in {field}")]
+    UnsupportedJwk {
+        field: &'static str,
+        expected: &'static str,
+        found: Option<serde_json::Value>,
+    },
 }
 
 impl VpAuthorizationRequest {
@@ -391,9 +410,7 @@ impl VpAuthorizationRequest {
         if jwks.len() != 1 {
             return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()).into());
         }
-        if !JwePublicKey::supported(jwks.first().unwrap()) {
-            return Err(AuthRequestValidationError::UnsupportedJwk.into());
-        }
+        JwePublicKey::validate(jwks.first().unwrap())?;
 
         Ok(())
     }
