@@ -230,9 +230,9 @@ where
         let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
-            auth_request.client_id.clone(),
+            &auth_request.client_id,
             auth_request.nonce.clone(),
-            mdoc_nonce.clone(),
+            &mdoc_nonce,
         );
 
         let (check_result, reader_registration) = Self::process_request(
@@ -428,9 +428,8 @@ where
 
         info!("serialize and encrypt Authorization Response");
 
-        let jwe =
-            VpAuthorizationResponse::new_encrypted(device_response, &self.data.auth_request, self.mdoc_nonce.clone())
-                .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err)))?;
+        let jwe = VpAuthorizationResponse::new_encrypted(device_response, &self.data.auth_request, &self.mdoc_nonce)
+            .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err)))?;
 
         info!("send Authorization Response to verifier");
 
@@ -568,11 +567,11 @@ mod tests {
             assert_eq!(url, self.response_uri);
 
             let (auth_response, mdoc_nonce) =
-                VpAuthorizationResponse::decrypt(jwe, &self.encryption_keypair, &self.nonce).unwrap();
+                VpAuthorizationResponse::decrypt(&jwe, &self.encryption_keypair, &self.nonce).unwrap();
             let disclosed_attrs = auth_response
                 .verify(
                     &self.auth_request.clone().try_into().unwrap(),
-                    mdoc_nonce,
+                    &mdoc_nonce,
                     &IsoCertTimeGenerator,
                     Examples::iaca_trust_anchors(),
                 )

@@ -838,7 +838,7 @@ impl Session<WaitingForResponse> {
             self.state.token
         );
         let (result, next) = match VpAuthorizationResponse::decrypt_and_verify(
-            jwe,
+            &jwe,
             &self.state().encryption_key.0,
             &self.state().auth_request,
             time,

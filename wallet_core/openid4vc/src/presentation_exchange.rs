@@ -4,19 +4,17 @@
 //! Other fields are left out of the various structs and enums for now, and some fields that are optional per
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_with::skip_serializing_none;
 
-use nl_wallet_mdoc::{verifier::ItemsRequests, ItemsRequest};
+use nl_wallet_mdoc::{verifier::ItemsRequests, Document, ItemsRequest};
 use wallet_common::utils::random_string;
 
-use crate::Format;
+use crate::{openid4vp::VpFormat, Format};
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PresentationDefinition {
     pub id: String,
@@ -24,34 +22,26 @@ pub struct PresentationDefinition {
 }
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor-object.
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputDescriptor {
     pub id: String,
-    pub format: RequestedFormat,
+    pub format: VpFormat,
     pub constraints: Constraints,
 }
 
-#[derive(Debug, Clone, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum RequestedFormat {
-    MsoMdoc { alg: Vec<FormatAlg> },
-}
-
-#[derive(Debug, Clone, Default, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FormatAlg {
     #[default]
     ES256,
 }
 
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constraints {
     pub fields: Vec<Field>,
     pub limit_disclosure: LimitDisclosure,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LimitDisclosure {
     /// The wallet must disclose only those attributes requested by the RP, and no more.
@@ -63,12 +53,28 @@ pub enum LimitDisclosure {
     Preferred,
 }
 
-#[skip_serializing_none]
+#[derive(Debug, thiserror::Error)]
+pub enum PdConversionError {
+    #[error("too many paths")]
+    TooManyPaths,
+    #[error("unsupported JsonPath expression")]
+    UnsupportedJsonPathExpression,
+    #[error("signature algorithms not supported")]
+    UnsupportedAlgs,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Field {
     pub path: Vec<String>,
     pub intent_to_retain: bool,
 }
+
+/// Per ISO 18013.7, the field paths in a Presentation Definition must all be a JSONPath expression of the form
+/// "$['namespace']['attribute_name']".
+///
+/// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
+static FIELD_PATH_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
 
 impl Field {
     fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
@@ -77,18 +83,11 @@ impl Field {
         }
         let path = &self.path[0];
 
-        /// Per ISO 18013.7, the path must be a JSONPath expression of the form: "$['namespace']['attribute_name']"
-        /// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
-        static FIELD_PATH_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\$\['(.*)'\]\['(.*)'\]$").unwrap());
-
         let captures = FIELD_PATH_REGEX
             .captures(path)
             .ok_or(PdConversionError::UnsupportedJsonPathExpression)?;
 
-        if captures.len() != 3 {
-            return Err(PdConversionError::MissingNamespaceOrAttribute);
-        }
-
+        // `captures` will always have three elements due to how the regex is constructed.
         Ok((captures[1].to_string(), captures[2].to_string()))
     }
 }
@@ -102,8 +101,8 @@ impl From<&ItemsRequests> for PresentationDefinition {
                 .iter()
                 .map(|items_request| InputDescriptor {
                     id: items_request.doc_type.clone(),
-                    format: RequestedFormat::MsoMdoc {
-                        alg: vec![FormatAlg::ES256],
+                    format: VpFormat::MsoMdoc {
+                        alg: IndexSet::from([FormatAlg::ES256]),
                     },
                     constraints: Constraints {
                         limit_disclosure: LimitDisclosure::Required,
@@ -112,7 +111,7 @@ impl From<&ItemsRequests> for PresentationDefinition {
                             .iter()
                             .flat_map(|(namespace, attrs)| {
                                 attrs.iter().map(|(attr, intent_to_retain)| Field {
-                                    path: vec![format!("$['{}']['{}']", namespace.clone(), attr.clone())],
+                                    path: vec![format!("$['{}']['{}']", namespace.as_str(), attr.as_str())],
                                     intent_to_retain: *intent_to_retain,
                                 })
                             })
@@ -124,16 +123,6 @@ impl From<&ItemsRequests> for PresentationDefinition {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum PdConversionError {
-    #[error("too many paths")]
-    TooManyPaths,
-    #[error("unsupported JsonPath expression")]
-    UnsupportedJsonPathExpression,
-    #[error("missing namespace or attribute name in JsonPath expression")]
-    MissingNamespaceOrAttribute,
-}
-
 impl TryFrom<&PresentationDefinition> for ItemsRequests {
     type Error = PdConversionError;
 
@@ -142,6 +131,11 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
             .input_descriptors
             .iter()
             .map(|input_descriptor| {
+                let VpFormat::MsoMdoc { alg } = &input_descriptor.format;
+                if !alg.contains(&FormatAlg::ES256) {
+                    return Err(PdConversionError::UnsupportedAlgs);
+                }
+
                 let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
                 for field in &input_descriptor.constraints.fields {
                     let (namespace, attr) = field.parse_paths()?;
@@ -181,16 +175,78 @@ pub struct InputDescriptorMappingObject {
     pub path: String,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum PsError {
+    #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
+    UnexpectedDescriptorCount { expected: usize, found: usize },
+    #[error("received unexpected Presentation Submission ID: expected '{expected}', found '{found}'")]
+    UnexpectedSubmissionId { expected: String, found: String },
+    #[error("received unexpected path in Presentation Submission Input Descriptor: expected '$', found '{0}'")]
+    UnexpectedInputDescriptorPath(String),
+    #[error("received unexpected Presentation Submission Input Descriptor ID: expected '{expected}', found '{found}'")]
+    UnexpectedInputDescriptorId { expected: String, found: String },
+}
+
+impl PresentationSubmission {
+    pub fn verify(
+        &self,
+        documents: &[Document],
+        presentation_definition: &PresentationDefinition,
+    ) -> Result<(), PsError> {
+        if self.definition_id != presentation_definition.id {
+            return Err(PsError::UnexpectedSubmissionId {
+                expected: presentation_definition.id.clone(),
+                found: self.definition_id.clone(),
+            });
+        }
+
+        if self.descriptor_map.len() != documents.len() {
+            return Err(PsError::UnexpectedDescriptorCount {
+                expected: documents.len(),
+                found: self.descriptor_map.len(),
+            });
+        }
+
+        for (doc, input_descriptor) in documents.iter().zip(&self.descriptor_map) {
+            if input_descriptor.path != "$" {
+                return Err(PsError::UnexpectedInputDescriptorPath(
+                    input_descriptor.path.to_string(),
+                ));
+            }
+            if input_descriptor.id != doc.doc_type {
+                return Err(PsError::UnexpectedInputDescriptorId {
+                    expected: doc.doc_type.clone(),
+                    found: input_descriptor.id.clone(),
+                });
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use rstest::rstest;
     use serde_json::json;
 
     use nl_wallet_mdoc::{examples::Examples, verifier::ItemsRequests};
 
-    use crate::presentation_exchange::{FormatAlg, LimitDisclosure, RequestedFormat};
+    use super::{FormatAlg, LimitDisclosure, PresentationDefinition, VpFormat, FIELD_PATH_REGEX};
 
-    use super::PresentationDefinition;
+    #[rstest]
+    #[case("$['namespace']['attribute_name']", true)]
+    #[case("$['namespace']", false)]
+    #[case("$['namespace']['attribute_name']['extra']", false)]
+    #[case("$['namespace\'']['attribute_name']", false)] // We don't support escaped quotes ...
+    #[case("$['namespace']['\"attribute_name']", false)] // ... in namespace or attribute names.
+    #[case(r#"$["namespace"]["attribute_name"]"#, true)] // We also support double quotes ...
+    #[case(r#"$['namespace']["attribute_name"]"#, true)] // ... and even mixes between the two
+    #[case(r#"$['namespace']['attribute_name"]"#, true)] // (although not required by ISO 18013-7).
+    fn field_path_regex(#[case] path: &str, #[case] should_match: bool) {
+        assert_eq!(FIELD_PATH_REGEX.is_match(path), should_match);
+    }
 
     #[test]
     fn convert_pd_itemsrequests() {
@@ -236,7 +292,7 @@ mod tests {
         assert_eq!(input_descriptor.id, "org.iso.18013.5.1.mDL");
         assert_matches!(
             &input_descriptor.format,
-            RequestedFormat::MsoMdoc { alg } if alg.len() == 1 && matches!(alg[0], FormatAlg::ES256)
+            VpFormat::MsoMdoc { alg } if alg.len() == 1 && matches!(alg[0], FormatAlg::ES256)
         );
         assert_matches!(input_descriptor.constraints.limit_disclosure, LimitDisclosure::Required);
 

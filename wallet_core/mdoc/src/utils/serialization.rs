@@ -535,8 +535,9 @@ mod tests {
     #[test]
     fn test_handover_serialization_nfc() {
         // The example `DeviceAuthentication` contains an NFC handover, retrieving the example deserializes it.
+        let TaggedBytes(CborSeq(device_auth)) = DeviceAuthenticationBytes::example();
         assert_matches!(
-            &DeviceAuthenticationBytes::example().0 .0.session_transcript.0.handover,
+            &device_auth.session_transcript.0.handover,
             Handover::NfcHandover(CborSeq(h)) if h.handover_request_message.is_some()
         );
 

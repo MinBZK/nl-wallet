@@ -49,11 +49,11 @@ async fn disclosure() {
     let jwe = disclosure_jwe(auth_request_jws, &[ca.certificate().try_into().unwrap()]).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
-    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_keypair, &nonce).unwrap();
+    let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
     let disclosed_attrs = auth_response
         .verify(
             &auth_request.try_into().unwrap(),
-            mdoc_nonce,
+            &mdoc_nonce,
             &IsoCertTimeGenerator,
             Examples::iaca_trust_anchors(),
         )
@@ -82,9 +82,9 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     // Check if we have the requested attributes.
     let session_transcript = SessionTranscript::new_oid4vp(
         &auth_request.response_uri,
-        auth_request.client_id.clone(),
+        &auth_request.client_id,
         auth_request.nonce.clone(),
-        mdoc_nonce.clone(),
+        &mdoc_nonce,
     );
     let DeviceRequestMatch::Candidates(candidates) = device_request
         .match_stored_documents(&mdocs, &session_transcript)
@@ -110,7 +110,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     };
 
     // Put the disclosure in an Authorization Response and encrypt it.
-    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, mdoc_nonce).unwrap()
+    VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap()
 }
 
 #[rstest]
@@ -127,7 +127,7 @@ async fn test_client_and_server(#[case] session_type: SessionType) {
         .unwrap();
     let trust_anchors = &[ca.certificate().try_into().unwrap()];
 
-    // Initialize the vrifier
+    // Initialize the verifier
     let verifier = Arc::new(MockVerifier::new(
         HashMap::from([(
             "usecase_id".to_string(),

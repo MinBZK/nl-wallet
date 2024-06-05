@@ -2,6 +2,7 @@ use std::string::FromUtf8Error;
 
 use base64::DecodeError;
 use chrono::{DateTime, Utc};
+use indexmap::IndexSet;
 use josekit::{
     jwe::{alg::ecdh_es::EcdhEsJweAlgorithm, JweHeader},
     jwk::{alg::ec::EcKeyPair, Jwk},
@@ -9,8 +10,7 @@ use josekit::{
     JoseError,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use serde_with::skip_serializing_none;
+use serde_with::{formats::PreferOne, serde_as, skip_serializing_none, OneOrMany};
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
@@ -33,6 +33,7 @@ use crate::{
     jwt::{self, JwkConversionError, JwtX5cError},
     presentation_exchange::{
         FormatAlg, InputDescriptorMappingObject, PdConversionError, PresentationDefinition, PresentationSubmission,
+        PsError,
     },
     Format,
 };
@@ -53,8 +54,6 @@ pub enum AuthRequestError {
     AuthRequestJwtVerification(#[from] JwtX5cError),
     #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
     UnauthorizedClientId { client_id: String, dns_san: String },
-    #[error("unsupported Presentation Definition: {0}")]
-    UnsupportedPresentationDefinition(#[from] PdConversionError),
 }
 
 /// A Request URI object, as defined in RFC 9101.
@@ -185,7 +184,7 @@ pub enum VpAlgValues {
     EcdhEs,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, strum::Display)]
 pub enum VpEncValues {
     A128GCM,
     A192GCM,
@@ -195,20 +194,36 @@ pub enum VpEncValues {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VpFormat {
-    MsoMdoc { alg: Vec<FormatAlg> },
+    MsoMdoc { alg: IndexSet<FormatAlg> },
 }
 
 use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
-    validate(predicate = |u| JwePublicKey::supported(u)),
+    validate(predicate = |u| JwePublicKey::validate(u).is_ok()),
 )]
 pub struct JwePublicKey(Jwk);
 
 impl JwePublicKey {
-    fn supported(jwk: &Jwk) -> bool {
+    fn validate(jwk: &Jwk) -> Result<(), AuthRequestValidationError> {
         // Avoid jwk.key_type() which panics if `kty` is not set.
-        jwk.parameter("kty") == Some(&json!("EC")) && jwk.curve() == Some("P-256")
+        if jwk.parameter("kty").and_then(serde_json::Value::as_str) != Some("EC") {
+            return Err(AuthRequestValidationError::UnsupportedJwk {
+                field: "kty",
+                expected: "EC",
+                found: jwk.parameter("kty").cloned(),
+            });
+        }
+
+        if jwk.curve() != Some("P-256") {
+            return Err(AuthRequestValidationError::UnsupportedJwk {
+                field: "crv",
+                expected: "P-256",
+                found: jwk.curve().map(serde_json::Value::from),
+            });
+        }
+
+        Ok(())
     }
 }
 
@@ -243,10 +258,16 @@ pub enum AuthRequestValidationError {
     UriVariantNotSupported(&'static str),
     #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
     UnexpectedJwkAmount(usize),
-    #[error("JWK of unsupported type or curve (kty or crv field)")]
-    UnsupportedJwk,
+    #[error("unsupported JWK: expected {expected}, found {found:?} in {field}")]
+    UnsupportedJwk {
+        field: &'static str,
+        expected: &'static str,
+        found: Option<serde_json::Value>,
+    },
     #[error("no attributes were requested")]
     NoAttributesRequested,
+    #[error("unsupported Presentation Definition: {0}")]
+    UnsupportedPresentationDefinition(#[from] PdConversionError),
 }
 
 impl VpAuthorizationRequest {
@@ -280,7 +301,7 @@ impl VpAuthorizationRequest {
                     keys: vec![encryption_pubkey.into_inner()],
                 },
                 vp_formats: VpFormat::MsoMdoc {
-                    alg: vec![FormatAlg::ES256],
+                    alg: IndexSet::from([FormatAlg::ES256]),
                 },
                 authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
                 authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
@@ -304,7 +325,7 @@ impl VpAuthorizationRequest {
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestError::MissingSAN)?;
         if dns_san != auth_request.oauth_request.client_id {
             return Err(AuthRequestError::UnauthorizedClientId {
-                client_id: auth_request.oauth_request.client_id.clone(),
+                client_id: auth_request.oauth_request.client_id,
                 dns_san,
             });
         }
@@ -315,39 +336,38 @@ impl VpAuthorizationRequest {
     }
 
     /// Validate that the request contents are compliant with the profile from ISO 18013-7 Appendix B.
-    pub fn validate(&self) -> Result<IsoVpAuthorizationRequest, AuthRequestError> {
+    pub fn validate(&self) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
         // Check absence of fields that must not be present in an OpenID4VP Authorization Request
         if self.oauth_request.authorization_details.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("authorization_details").into());
+            return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
         }
         if self.oauth_request.code_challenge.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("code_challenge").into());
+            return Err(AuthRequestValidationError::UnexpectedField("code_challenge"));
         }
         if self.oauth_request.redirect_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri").into());
+            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri"));
         }
         if self.oauth_request.scope.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("scope").into());
+            return Err(AuthRequestValidationError::UnexpectedField("scope"));
         }
         if self.oauth_request.request_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("request_uri").into());
+            return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
         }
-
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
         if self.oauth_request.nonce.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
         }
         if self.oauth_request.response_mode.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
         }
         if self.client_metadata.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
         }
         if self.client_id_scheme.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme"));
         }
         if self.response_uri.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri").into());
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
         }
 
         // Check that various enums have the expected values
@@ -356,46 +376,45 @@ impl VpAuthorizationRequest {
                 field: "response_type",
                 expected: "vp_token",
                 found: serde_json::to_string(&self.oauth_request.response_type).unwrap(),
-            }
-            .into());
+            });
         }
         if *self.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
                 found: serde_json::to_string(&self.oauth_request.response_mode).unwrap(),
-            }
-            .into());
+            });
         }
         if *self.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "client_id_scheme",
                 expected: "x509_san_dns",
                 found: serde_json::to_string(&self.client_id_scheme).unwrap(),
-            }
-            .into());
+            });
         }
 
         // Of fields that have an "_uri" variant, check that they are not used
         if matches!(self.presentation_definition, VpPresentationDefinition::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("presentation_definition").into());
+            return Err(AuthRequestValidationError::UriVariantNotSupported(
+                "presentation_definition",
+            ));
         }
         if matches!(*self.client_metadata.as_ref().unwrap(), VpClientMetadata::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata").into());
+            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
         }
         let client_metadata = self.client_metadata.as_ref().unwrap().direct();
         if matches!(client_metadata.jwks, VpJwks::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("presentation_definition").into());
+            return Err(AuthRequestValidationError::UriVariantNotSupported(
+                "presentation_definition",
+            ));
         }
 
         // check that we received exactly one EC/P256 curve
         let jwks = client_metadata.jwks.direct();
         if jwks.len() != 1 {
-            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()).into());
+            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
         }
-        if !JwePublicKey::supported(jwks.first().unwrap()) {
-            return Err(AuthRequestValidationError::UnsupportedJwk.into());
-        }
+        JwePublicKey::validate(jwks.first().unwrap())?;
 
         if self
             .presentation_definition
@@ -406,7 +425,7 @@ impl VpAuthorizationRequest {
             .sum::<usize>()
             == 0
         {
-            return Err(AuthRequestValidationError::NoAttributesRequested.into());
+            return Err(AuthRequestValidationError::NoAttributesRequested);
         }
 
         // The code above establishes that all these .unwrap() and .direct() calls are safe.
@@ -427,7 +446,7 @@ impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
     type Error = AuthRequestError;
 
     fn try_from(value: VpAuthorizationRequest) -> Result<Self, Self::Error> {
-        value.validate()
+        Ok(value.validate()?)
     }
 }
 
@@ -458,25 +477,20 @@ pub enum AuthResponseError {
     Verification(#[source] nl_wallet_mdoc::Error),
     #[error("missing requested attributes: {0}")]
     MissingAttributes(#[source] nl_wallet_mdoc::Error),
-    #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
-    UnexpectedDescriptorCount { expected: usize, found: usize },
-    #[error("received unexpected Presentation Submission ID: expected '{expected}', found '{found}'")]
-    UnexpectedSubmissionId { expected: String, found: String },
-    #[error("received unexpected path in Presentation Submission Input Descriptor: expected '$', found '{0}'")]
-    UnexpectedInputDescriptorPath(String),
-    #[error("received unexpected Presentation Submission Input Descriptor ID: expected '{expected}', found '{found}'")]
-    UnexpectedInputDescriptorId { expected: String, found: String },
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
+    #[error("error in Presentation Submission: {0}")]
+    PresentationSubmission(#[from] PsError),
 }
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
 // of OpenID4VP that we (plan to) support do we need the `code` field from that struct, which is its primary citizen.
-/// An OpenID4VP Authorization Response, with the wallet's disclosed attesations/attributes in the `vp_token`.
+/// An OpenID4VP Authorization Response, with the wallet's disclosed attestations/attributes in the `vp_token`.
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpAuthorizationResponse {
     /// One or more Verifiable Presentations.
-    #[serde(with = "value_or_array")]
+    #[serde_as(as = "OneOrMany<_, PreferOne>")]
     pub vp_token: Vec<VerifiablePresentation>,
 
     pub presentation_submission: PresentationSubmission,
@@ -531,16 +545,12 @@ impl VpAuthorizationResponse {
     pub fn new_encrypted(
         device_response: DeviceResponse,
         auth_request: &IsoVpAuthorizationRequest,
-        mdoc_nonce: String,
+        mdoc_nonce: &str,
     ) -> Result<String, AuthResponseError> {
         Self::new(device_response, auth_request).encrypt(auth_request, mdoc_nonce)
     }
 
-    fn encrypt(
-        &self,
-        auth_request: &IsoVpAuthorizationRequest,
-        mdoc_nonce: String,
-    ) -> Result<String, AuthResponseError> {
+    fn encrypt(&self, auth_request: &IsoVpAuthorizationRequest, mdoc_nonce: &str) -> Result<String, AuthResponseError> {
         let mut header = JweHeader::new();
         header.set_token_type("JWT");
 
@@ -550,14 +560,16 @@ impl VpAuthorizationResponse {
 
         // Use the AES key size that the server wants.
         let client_metadata = &auth_request.client_metadata;
-        header.set_content_encryption(match client_metadata.authorization_encryption_enc_values_supported {
-            VpEncValues::A128GCM => "A128GCM",
-            VpEncValues::A192GCM => "A192GCM",
-            VpEncValues::A256GCM => "A256GCM",
-        });
+        header.set_content_encryption(
+            client_metadata
+                .authorization_encryption_enc_values_supported
+                .to_string(),
+        );
 
         // VpAuthorizationRequest always serializes to a JSON object useable as a JWT payload.
-        let payload = serde_json::to_value(self)?.as_object().unwrap().clone();
+        let serde_json::Value::Object(payload) = serde_json::to_value(self)? else {
+            panic!("VpAuthorizationResponse did not serialize to object")
+        };
         let payload = JwtPayload::from_map(payload).unwrap();
 
         // The key the RP wants us to encrypt our response to.
@@ -571,7 +583,7 @@ impl VpAuthorizationResponse {
     }
 
     pub fn decrypt_and_verify(
-        jwe: String,
+        jwe: &str,
         private_key: &EcKeyPair,
         auth_request: &IsoVpAuthorizationRequest,
         time: &impl Generator<DateTime<Utc>>,
@@ -579,11 +591,11 @@ impl VpAuthorizationResponse {
     ) -> Result<DisclosedAttributes, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
-        response.verify(auth_request, mdoc_nonce, time, trust_anchors)
+        response.verify(auth_request, &mdoc_nonce, time, trust_anchors)
     }
 
     pub fn decrypt(
-        jwe: String,
+        jwe: &str,
         private_key: &EcKeyPair,
         nonce: &str,
     ) -> Result<(VpAuthorizationResponse, String), AuthResponseError> {
@@ -614,14 +626,14 @@ impl VpAuthorizationResponse {
     pub fn verify(
         &self,
         auth_request: &IsoVpAuthorizationRequest,
-        mdoc_nonce: String,
+        mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes, AuthResponseError> {
         // Verify the cryptographic integrity of the disclosed attributes.
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
-            auth_request.client_id.clone(),
+            &auth_request.client_id,
             auth_request.nonce.clone(),
             mdoc_nonce,
         );
@@ -636,8 +648,12 @@ impl VpAuthorizationResponse {
             .match_against_response(device_response)
             .map_err(AuthResponseError::MissingAttributes)?;
 
+        // Safe: if we have found all requested items in the documents, then the documents are not absent.
+        let documents = device_response.documents.as_ref().unwrap();
+
         // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO 18013-7.
-        self.verify_presentation_submission(&auth_request.presentation_definition)?;
+        self.presentation_submission
+            .verify(documents, &auth_request.presentation_definition)?;
 
         // If `state` is provided it must equal the `state` from the Authorization Request.
         if self.state != auth_request.state {
@@ -648,48 +664,6 @@ impl VpAuthorizationResponse {
         }
 
         Ok(disclosed_attrs)
-    }
-
-    fn verify_presentation_submission(
-        &self,
-        presentation_definition: &PresentationDefinition,
-    ) -> Result<(), AuthResponseError> {
-        if self.presentation_submission.definition_id != presentation_definition.id {
-            return Err(AuthResponseError::UnexpectedSubmissionId {
-                expected: presentation_definition.id.clone(),
-                found: self.presentation_submission.definition_id.clone(),
-            });
-        }
-
-        let documents = &self.device_response()?.documents;
-
-        if self.presentation_submission.descriptor_map.len() != documents.as_ref().map_or(0, |docs| docs.len()) {
-            return Err(AuthResponseError::UnexpectedDescriptorCount {
-                expected: documents.as_ref().map_or(0, |docs| docs.len()),
-                found: self.presentation_submission.descriptor_map.len(),
-            });
-        }
-
-        for (doc, input_descriptor) in documents
-            .as_ref()
-            .unwrap() // The calling function (`Self::verify`) already established that this is not None.
-            .iter()
-            .zip(&self.presentation_submission.descriptor_map)
-        {
-            if input_descriptor.path != "$" {
-                return Err(AuthResponseError::UnexpectedInputDescriptorPath(
-                    input_descriptor.path.to_string(),
-                ));
-            }
-            if input_descriptor.id != doc.doc_type {
-                return Err(AuthResponseError::UnexpectedInputDescriptorId {
-                    expected: doc.doc_type.clone(),
-                    found: input_descriptor.id.clone(),
-                });
-            }
-        }
-
-        Ok(())
     }
 }
 
@@ -708,94 +682,26 @@ pub enum VpAuthorizationErrorCode {
     InvalidRequestUriMethod,
 }
 
-/// Serialize a Vec<T> with one item directly to the JSON serialization of T, and a Vec<T> with more items just to a
-/// JSON array of serialized T's.
-mod value_or_array {
-    use serde::{
-        de::{self, DeserializeOwned},
-        ser, Deserialize, Deserializer, Serialize, Serializer,
-    };
-
-    pub fn serialize<S: Serializer, T: Serialize>(input: &[T], serializer: S) -> Result<S::Ok, S::Error> {
-        match input.len() {
-            0 => Err(ser::Error::custom("can't serialize empty vec")),
-            1 => input.first().unwrap().serialize(serializer),
-            _ => input.serialize(serializer),
-        }
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<Vec<T>, D::Error> {
-        let value = serde_json::Value::deserialize(deserializer)?;
-        let vec = match value {
-            serde_json::Value::Array(_) => serde_json::from_value(value).map_err(de::Error::custom)?,
-            serde_json::Value::String(_) | serde_json::Value::Object(_) => {
-                vec![serde_json::from_value(value).map_err(de::Error::custom)?]
-            }
-            _ => return Err(de::Error::custom("unexpected JSON type")),
-        };
-
-        Ok(vec)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use josekit::{
-        jwk::alg::ec::{EcCurve, EcKeyPair},
-        Value,
-    };
-    use rstest::rstest;
-    use serde::{Deserialize, Serialize};
+    use std::borrow::Cow;
+
+    use indexmap::IndexMap;
+    use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
     use serde_json::json;
 
     use nl_wallet_mdoc::{
-        examples::{Example, Examples},
+        examples::{Example, Examples, IsoCertTimeGenerator, EXAMPLE_DOC_TYPE, EXAMPLE_KEY_IDENTIFIER},
         server_keys::KeyPair,
-        DeviceResponse,
+        software_key_factory::SoftwareKeyFactory,
+        utils::serialization::{cbor_serialize, CborBase64, CborSeq, TaggedBytes},
+        DeviceAuthenticationKeyed, DeviceResponse, DeviceResponseVersion, DeviceSigned, Document, SessionTranscript,
     };
+    use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::{
-        jwt,
-        openid4vp::{value_or_array, VpAuthorizationRequest, VpAuthorizationResponse},
-    };
+    use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
 
-    #[test]
-    fn test_encrypt_decrypt_authorization_response() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-        let rp_keypair = ca.generate_reader_mock(None).unwrap();
-
-        let nonce = "nonce".to_string();
-
-        let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
-        let auth_request = VpAuthorizationRequest::new(
-            &Examples::items_requests(),
-            rp_keypair.certificate(),
-            nonce.clone(),
-            encryption_privkey.to_jwk_public_key().try_into().unwrap(),
-            "https://example.com/response_uri".parse().unwrap(),
-        )
-        .unwrap();
-
-        // NB: the example DeviceResponse verifies as an ISO 18013-5 DeviceResponse while here we use it in
-        // an OpenID4VP setting, i.e. with different SessionTranscript contents, so it can't be verified.
-        // This is not an issue here because this code only deals with en/decrypting the DeviceResponse into
-        // an Authorization Response JWE.
-        let mdoc_nonce = "mdoc_nonce".to_string();
-        let device_response = DeviceResponse::example();
-        let jwe = VpAuthorizationResponse::new_encrypted(
-            device_response,
-            &auth_request.try_into().unwrap(),
-            mdoc_nonce.clone(),
-        )
-        .unwrap();
-
-        let (_decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(jwe, &encryption_privkey, &nonce).unwrap();
-
-        assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
-    }
-
-    #[tokio::test]
-    async fn test_authorization_request_jwt() {
+    fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
@@ -809,6 +715,43 @@ mod tests {
             "https://example.com/response_uri".parse().unwrap(),
         )
         .unwrap();
+
+        (ca, rp_keypair, encryption_privkey, auth_request)
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_authorization_response() {
+        let (_, _, encryption_privkey, auth_request) = setup();
+
+        // NB: the example DeviceResponse verifies as an ISO 18013-5 DeviceResponse while here we use it in
+        // an OpenID4VP setting, i.e. with different SessionTranscript contents, so it can't be verified.
+        // This is not an issue here because this code only deals with en/decrypting the DeviceResponse into
+        // an Authorization Response JWE.
+        let mdoc_nonce = "mdoc_nonce".to_string();
+        let device_response = DeviceResponse::example();
+        let auth_request = auth_request.validate().unwrap();
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
+        let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
+
+        let (decrypted, jwe_mdoc_nonce) =
+            VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey, &auth_request.nonce).unwrap();
+        assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
+
+        let VerifiablePresentation::MsoMdoc(CborBase64(encrypted_device_response)) =
+            auth_response.vp_token.first().unwrap();
+        let VerifiablePresentation::MsoMdoc(CborBase64(decrypted_device_response)) =
+            decrypted.vp_token.first().unwrap();
+        let encrypted_document = encrypted_device_response.documents.as_ref().unwrap().first().unwrap();
+        let decrypted_document = decrypted_device_response.documents.as_ref().unwrap().first().unwrap();
+
+        assert_eq!(decrypted_document.doc_type, encrypted_document.doc_type);
+        assert_eq!(decrypted_document.issuer_signed, encrypted_document.issuer_signed);
+    }
+
+    #[tokio::test]
+    async fn test_authorization_request_jwt() {
+        let (ca, rp_keypair, _, auth_request) = setup();
+
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
         VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
@@ -868,28 +811,103 @@ mod tests {
         auth_request.validate().unwrap();
     }
 
-    #[rstest]
-    #[case(vec!["one".to_string()], Some(json!("one")))]
-    #[case(vec!["one".to_string(), "two".to_string()], Some(json!(["one", "two"])))]
-    #[case(vec![], None)]
-    fn value_or_array_serialization(#[case] values: Vec<String>, #[case] serialization: Option<Value>) {
-        #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-        struct Test {
-            #[serde(with = "value_or_array")]
-            test: Vec<String>,
-        }
-
-        let result = serde_json::to_value(Test { test: values.clone() });
-        match serialization {
-            None => assert!(result.is_err()),
-            Some(serialization) => {
-                let serialization = json!({"test": serialization});
-                assert_eq!(result.unwrap(), serialization);
-                assert_eq!(
-                    serde_json::from_value::<Test>(serialization).unwrap(),
-                    Test { test: values }
-                );
+    #[test]
+    fn deserialize_authorization_response_example() {
+        let example_json = json!(
+            {
+                "presentation_submission": {
+                    "definition_id": "mDL-sample-req",
+                    "id": "mDL-sample-res",
+                    "descriptor_map": [
+                        {
+                            "id": "org.iso.18013.5.1.mDL",
+                            "format": "mso_mdoc",
+                            "path": "$"
+                        }
+                    ]
+                },
+                "vp_token": "o2d2ZXJzaW9uYzEuMGlkb2N1bWVudHOBo2dkb2NUeXBldW9yZy5pc28uMTgwMTMuNS4xLm1ETGxpc3N1ZXJTaWduZWSiam5hbWVTcGFjZXOhcW9yZy5pc28uMTgwMTMuNS4xi9gYWF-kaGRpZ2VzdElEGhU-n8JmcmFuZG9tUBhhBdaBj6yzbcAptxJFt5NxZWxlbWVudElkZW50aWZpZXJqYmlydGhfZGF0ZWxlbGVtZW50VmFsdWXZA-xqMTk5MC0wMS0wMdgYWF-kaGRpZ2VzdElEGgGfQ2JmcmFuZG9tUD_vjxEDDiHVNPYQrc-z3qJxZWxlbWVudElkZW50aWZpZXJvZG9jdW1lbnRfbnVtYmVybGVsZW1lbnRWYWx1ZWhBQkNEMTIzNNgYWPOkaGRpZ2VzdElEGhYhPvdmcmFuZG9tUPeQCdM61nPIh-T2KdDLzJ9xZWxlbWVudElkZW50aWZpZXJyZHJpdmluZ19wcml2aWxlZ2VzbGVsZW1lbnRWYWx1ZYKjamlzc3VlX2RhdGXZA-xqMjAyMC0wMS0wMWtleHBpcnlfZGF0ZdkD7GoyMDI1LTAxLTAxdXZlaGljbGVfY2F0ZWdvcnlfY29kZWFCo2ppc3N1ZV9kYXRl2QPsajIwMjAtMDEtMDFrZXhwaXJ5X2RhdGXZA-xqMjAyNS0wMS0wMXV2ZWhpY2xlX2NhdGVnb3J5X2NvZGViQkXYGFhgpGhkaWdlc3RJRBo23jMjZnJhbmRvbVBRkUqBtZ0-cdgL-Ah55BRHcWVsZW1lbnRJZGVudGlmaWVya2V4cGlyeV9kYXRlbGVsZW1lbnRWYWx1ZdkD7GoyMDI1LTAxLTAx2BhYWKRoZGlnZXN0SUQaZYFFSmZyYW5kb21QdKpwyVh1BG0egitavv8UWXFlbGVtZW50SWRlbnRpZmllcmtmYW1pbHlfbmFtZWxlbGVtZW50VmFsdWVlU21pdGjYGFhXpGhkaWdlc3RJRBoX9SvMZnJhbmRvbVBD8vu88PnK3lzRO9sRvnNDcWVsZW1lbnRJZGVudGlmaWVyamdpdmVuX25hbWVsZWxlbWVudFZhbHVlZUFsaWNl2BhYX6RoZGlnZXN0SUQaMaFJlmZyYW5kb21Q9AoSQ1BmYmKEqfADoeKDunFlbGVtZW50SWRlbnRpZmllcmppc3N1ZV9kYXRlbGVsZW1lbnRWYWx1ZdkD7GoyMDIwLTAxLTAx2BhYX6RoZGlnZXN0SUQaA8azMWZyYW5kb21Qb5Fu5qMeqndj9esMYWzh5XFlbGVtZW50SWRlbnRpZmllcnFpc3N1aW5nX2F1dGhvcml0eWxlbGVtZW50VmFsdWVmTlksVVNB2BhYWaRoZGlnZXN0SUQaUUgWkmZyYW5kb21Qgh02uXoPCuF2NCY9MlUucHFlbGVtZW50SWRlbnRpZmllcm9pc3N1aW5nX2NvdW50cnlsZWxlbWVudFZhbHVlYlVT2BhZCD-kaGRpZ2VzdElEGmTXNGdmcmFuZG9tUE2OWXxsntQn-CrtHF_AfwVxZWxlbWVudElkZW50aWZpZXJocG9ydHJhaXRsZWxlbWVudFZhbHVlWQft_9j_4AAQSkZJRgABAQAAAAAAAAD_4gIoSUNDX1BST0ZJTEUAAQEAAAIYAAAAAAQwAABtbnRyUkdCIFhZWiAAAAAAAAAAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAAHRyWFlaAAABZAAAABRnWFlaAAABeAAAABRiWFlaAAABjAAAABRyVFJDAAABoAAAAChnVFJDAAABoAAAAChiVFJDAAABoAAAACh3dHB0AAAByAAAABRjcHJ0AAAB3AAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAFgAAAAcAHMAUgBHAEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFhZWiAAAAAAAABvogAAOPUAAAOQWFlaIAAAAAAAAGKZAAC3hQAAGNpYWVogAAAAAAAAJKAAAA-EAAC2z3BhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABYWVogAAAAAAAA9tYAAQAAAADTLW1sdWMAAAAAAAAAAQAAAAxlblVTAAAAIAAAABwARwBvAG8AZwBsAGUAIABJAG4AYwAuACAAMgAwADEANv_bAEMAEAsMDgwKEA4NDhIREBMYKBoYFhYYMSMlHSg6Mz08OTM4N0BIXE5ARFdFNzhQbVFXX2JnaGc-TXF5cGR4XGVnY__bAEMBERISGBUYLxoaL2NCOEJjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY__AABEIALAAeQMBIgACEQEDEQH_xAAaAAADAQEBAQAAAAAAAAAAAAAAAwQFBgcB_8QALhAAAgIBAwIEBQMFAAAAAAAAAAMEEyMFFDNDUyRjc4MBBhU0oxZEkyU1UVWz_8QAFgEBAQEAAAAAAAAAAAAAAAAAAAME_8QAFhEBAQEAAAAAAAAAAAAAAAAAAAMT_9oADAMBAAIRAxEAPwDlwACSRoAAAAW1CrQGgS7pR93q_wDAFIEu6C0CoAAAAAAAAAFDRQ0AFNGksoBVtrRTQAqqAUFQAN9VoWh6oW-UA1TRvSJbQbykheptoCopUEigAAAAAAFSmq4gktqUSxVWtAbFgNlNOji_LihsBVRsqDVkxm_LiukQfpyUdkNCuTklfK-LK0y5WjNitqaegks9VqqgZODlaW2Ll6QrpG9PVa2pXS5TLnq2srymhJBxFRK1RUriCQAACQAAAglcpfpaiCVympACsnRxVGoogil6g1GjQAkC2ogqbP8AKUX1Daiog2ClKqUo5zVIFVp2Rl6pFtUBwbcQKGz_ALpoqLyhlNAACQAAAllcpfFbUQSuUaFZOoiz1VF6p6u6ckpqhtVqrVBXR2SpQ23KcbAa1rVKOtqtihVVaNtOXlNlKxWios9tuWUB1pK3KSqa1vV9oqy9UDz7VMUpqhUXiKte_ukr1RSsSgy1AAASAChoCmqL1RbVClelaakVVTagrJLFgeUbKqlRaqhtQqVxBqZass9SlNqOoqaqL9-33VHL6Mrx9p2XKqoCDaqbF81uUg-lqt6vpGzAVVFUoaBlxYFTcXEXtt5VKyjahTW1NVUB59PU36o23ujRs_K22olDLUAKAJFDRQ0Bqi-LKqaQDVBWTe3TcWK0lntaNi8QqVFtDUboLVW1HRnJRYErdYjqNq1qlZcoBbU1o1spSuVtXqjasQVEgq23iyg1XLbytKiCfPVAytbiKjktZbbqjf4iAbKlKbKa3utFBgKAAAUNFAA0aKADeit8KNVKtMuA3ul9SmhqbOl1Wl_dOXixVW27pqjZVU391b7oVag3lJVKq4mjbSQGnJfNsrxSldo6OVKqU1rekcHKlbqU2U3qlUqlCgAqygPdAUAAABU0GtFNbUErFiAqi8RswMpgwOIvU2okq62LAVUNVpaldUggT1VZTUVKV3QqbUDQ3XaBSiQy9exaW1rTiG8uI7L5jlKa3a9rK05dtTeWpRVKqACrYYrVNVUKapqiqRQAASXyorVKxKIKi_3be6StVb9r0gqlVyqKmqa1ouL8Pj8Pjj-GVnGbsWKptrWt4lAZcA2dgQKgNixVN7p2UVXhVElWDF0trTZi6MpRepVQ20KhSlKINU1RUBXmip-s7XErlOXlSmz222gakC1Wlyp_VbiMvWVKVFV0ml8ptUCLF7SvymNryqpSovaUEilKtxWim7qBibaoa1VSjU1SA1XErF_yKpMZSlNVlKtr5opTVKblVxF-6i_6v8oCmxdhFU3lt5SVsVsXpNOolRbZSoHutMaU1u6a3KBjZVZTeVPV9LUpTfFN5RWsRlJ0uL3eUlbF2qospXE0DZVlgbXqqOogfaqOD0ue3f5fyneK4sRJqkGmXPlYsRqN4jnJ8rqtJDLlBAV_V2yv2o1VvVVla3ENbK8BUr-JpVI1VUrVMrcSsrfVMGU23VGt801GxZWl6Nl6pgxVNa3EVSXymq3SsuI3lSlSlYuXzTkpSmqlVHRq0tu1U0DLn2qnhaGsKlVKa1Rlkh__2dgYWGGkaGRpZ2VzdElEGnHvWL5mcmFuZG9tUPHruXHjv35Iu-rzOkKBD2xxZWxlbWVudElkZW50aWZpZXJ2dW5fZGlzdGluZ3Vpc2hpbmdfc2lnbmxlbGVtZW50VmFsdWVjVVNBamlzc3VlckF1dGiEQ6EBJqEYIVkCvjCCArowggJhoAMCAQICFA7VlOKXxKg_rJ6UiVqmXVQjpptXMAoGCCqGSM49BAMCMGAxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJOWTEZMBcGA1UECgwQSVNPbURMIFRlc3QgUm9vdDEpMCcGA1UEAwwgSVNPMTgwMTMtNSBUZXN0IENlcnRpZmljYXRlIFJvb3QwHhcNMjMxMTE0MTAwMTA1WhcNMjQxMTEzMTAwMTA1WjBrMQswCQYDVQQGEwJVUzELMAkGA1UECAwCTlkxIjAgBgNVBAoMGUlTT21ETCBUZXN0IElzc3VlciBTaWduZXIxKzApBgNVBAMMIklTTzE4MDEzLTUgVGVzdCBDZXJ0aWZpY2F0ZSBTaWduZXIwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQgaK6KmQ1mWKt-Vo6ixfHxsmX9YlGAuUPkOvQ_uHrxgsZLC6FheRwtU3v-5GGkHD70FJNmz7DJUiR6G8TWMYZGo4HtMIHqMB0GA1UdDgQWBBQEpN0hSF6BFZJCDvZwASaa6ewoXzAfBgNVHSMEGDAWgBQ1RoOxz04dQvKPF76VhBf-jMv3EDAxBglghkgBhvhCAQ0EJBYiSVNPMTgwMTMtNSBUZXN0IFNpZ25lciBDZXJ0aWZpY2F0ZTAOBgNVHQ8BAf8EBAMCB4AwFQYDVR0lAQH_BAswCQYHKIGMXQUBAjAdBgNVHRIEFjAUgRJleGFtcGxlQGlzb21kbC5jb20wLwYDVR0fBCgwJjAkoCKgIIYeaHR0cHM6Ly9leGFtcGxlLmNvbS9JU09tREwuY3JsMAoGCCqGSM49BAMCA0cAMEQCIGV5CQ0EFGjFzVBSqWfaPVUMziescVQ4W-lxw5bq7nCBAiBf1D9SPeA05Sdf0iWHanW3N0FBtS7Iz5XdSKWT2IqMKFkFzNgYWQXHpmd2ZXJzaW9uYzEuMG9kaWdlc3RBbGdvcml0aG1nU0hBLTI1Nmx2YWx1ZURpZ2VzdHOhcW9yZy5pc28uMTgwMTMuNS4xuB4aAZ9DYlggxtL2LRFm_GWjYft8lw02WZS4CLbChc-NakfbNNyTuAcaA8azMVggpZCl5WRduZFAMb0vykZCxA-AdeM1R8eoiC1d9d3pkLUaEU3f71ggHp0cG-ZNraR6vcOgLZSORP9rDEipOlXzHh18YamiANoaFT6fwlggEphIDgQUoblEdUCq34aMJ50OQ8QmCVFJuQgiB1_YwhoaFiE-91ggeEtCLmPzCOD0suxhDwW43s7yNc1x6Jd4DZ6tO4ObD6IaFxmGZVgguLSRAKQ1dwJGOS_soukGSZUkCqvW7zN4R4eoTO-phFAaF_UrzFggJ4LaSDWgaeLF8hkPWLaDZGrjYCOuLYCcZk5tWXug4aMaGthQz1ggg3jAWBkkHRE9l4AoDdqdFYgJ56crlzeAf47JtJ662VMaKXLy5lggQBw9uLpXYKFP4ZdoO7zzb_vtymKttmA_qeaaEW_jbWUaLBiyUVggR3AnIGXnmMTMHPjuR19-e4lLs6vi3digyHN0iyzc3PkaMQCGYVggKvs-nJVYFRwH_TbFGPy1X_t69MR1l94toRIIK98UBvAaMaFJllggCoQYDBIY_rk6s0MhMbC8ibfzGegfY-Pfwauy9GHW_38aMqbHz1ggtrjS6GQsMtSQaKf7Voa6kxPLDqK24EZ-9WhB8JaO4f4aNUVesFggOzxV3ZrJ8FQMCuThmR6L7B4SMN5bxLy05i6v9wgpejYaNt4zI1ggzzpJiJuTxtgMDAxycYe7TYmsovh5Aw_EDfDX8rRqYV4aOTYKk1ggEnnTJHhcMseTjVtPRGnCRRCE0WvwelO1dECZvlLXeIQaSkPcgFggyKs6jeFkCIjai1k5xYqZyqjK45ImuVOzPVC8jPXPXksaT9EOg1ggO9johmBdbxTYTcMQDSB1K9jwdd350VIjMuCHDZ8DDUEaUUgWklggGz_ddBP3N_0mxg7fco-oJ2HorIFAptTj78ZseE5gfmAaUUqijlgglmqfTA5d9Wi85wDcpdTO1NrlH02nOx4zP7FZ8TE7KroaXagLOFggt3m7aHSfgJ3rEl1nn-Pp8YitK572a64L2GAa-UZCiGkaXyMT31gghLUPLnlPsZaDTk7Yd_JsjeEuWwIeAyu5FNeYRDkajlUaYLUtAlggb0He6jVXV1OGqzZidHIWpba3yCffluLpOiKAiVzVeXEaZNc0Z1gggSJJmw3Dt0YsH38Flq1hxybrP4tWRR6nSUUPZOah6BUaZYFFSlgg9-83mx19kFY-tbUDXndIdXL1oXs_2nYgchpnvWuENjIaaMXpU1gg5iCCWrzVNvXZa8I_jfmTpwZFxdmEfv7D3rcYhza65Dcaa4ST6Vggrz6sluAmWjOaVRmKC6lLFyqEglIyTwZlGA3Q6tbF_WcacYeIV1ggk1fOHKjmMaPlh7SaVtWk-6jC38DqPcWz3UcH6xuiZ1Mace9YvlggJCOAb023GTSEcNt48NYF2ZOM2p9RIqO8W91zORSzMFQaecXSi1ggFZp2VG3VaCEgchdZPgbK8JSuYsMCmy9Dy4WXyZD1Z1RtZGV2aWNlS2V5SW5mb6FpZGV2aWNlS2V5pAECIAEhWCCS9P-a8TB2KJzTBif0C32CrhjX3XKMVykLFFTHdFXpnSJYIADctY3zP9kjfSptLs9kyUhDUDRf4xOSIs0FkbyjHnsFZ2RvY1R5cGV1b3JnLmlzby4xODAxMy41LjEubURMbHZhbGlkaXR5SW5mb6Nmc2lnbmVkwHQyMDIzLTExLTE2VDA5OjI1OjIyWml2YWxpZEZyb23AdDIwMjMtMTEtMTZUMDk6MjU6MjJaanZhbGlkVW50aWzAdDIwMjMtMTItMTZUMDk6MjU6MjJaWEC8OJJedu29mak8hVi1X__VJhpQ6QhgOhTqHZMtdrqyWdalv457ykvXnq3U5Zl5NC1GDyIDdr23_L67HUOKFqCHbGRldmljZVNpZ25lZKJqbmFtZVNwYWNlc9gYQaBqZGV2aWNlQXV0aKFvZGV2aWNlU2lnbmF0dXJlhEOhASag9lhAX4O7CImR03EijrZDHYgdzQefwdix5l-hJ7ow05OvOyQj0f_kW9GYbvWbDYbHN_kreXHaXpDh5Swm1nc5X39N6mZzdGF0dXMA"
             }
+        );
+
+        let auth_response: VpAuthorizationResponse = serde_json::from_value(example_json).unwrap();
+
+        let VerifiablePresentation::MsoMdoc(CborBase64(decrypted_device_response)) =
+            auth_response.vp_token.first().unwrap();
+        let decrypted_document = decrypted_device_response.documents.as_ref().unwrap().first().unwrap();
+        assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
+    }
+
+    /// Given a `session_transcript`, manually construct a mock `DeviceResponse` using the examples from ISO 18013-5.
+    async fn mock_device_response(session_transcript: &SessionTranscript) -> DeviceResponse {
+        let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
+            .issuer_signed
+            .clone();
+
+        // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
+        let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
+            device_authentication: Default::default(),
+            session_transcript: Cow::Borrowed(session_transcript),
+            doc_type: Cow::Borrowed(EXAMPLE_DOC_TYPE),
+            device_name_spaces_bytes: IndexMap::new().into(),
+        }));
+        let challenge = cbor_serialize(&device_authentication).unwrap();
+        let key = SoftwareEcdsaKey::new(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key());
+        let keys_and_challenges = vec![(key, challenge.as_ref())];
+
+        // Sign the challenge using the mdoc key
+        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &SoftwareKeyFactory::default())
+            .await
+            .unwrap()
+            .first()
+            .unwrap()
+            .clone();
+
+        let device_response = DeviceResponse {
+            version: DeviceResponseVersion::V1_0,
+            documents: Some(vec![Document {
+                doc_type: EXAMPLE_DOC_TYPE.to_string(),
+                issuer_signed,
+                device_signed,
+                errors: None,
+            }]),
+            document_errors: None,
+            status: 0,
         };
+        device_response
+            .verify(
+                None,
+                session_transcript,
+                &IsoCertTimeGenerator,
+                Examples::iaca_trust_anchors(),
+            )
+            .unwrap();
+
+        device_response
+    }
+
+    #[tokio::test]
+    async fn test_verify_authorization_response() {
+        let (_, _, _, auth_request) = setup();
+        let mdoc_nonce = "mdoc_nonce";
+
+        let auth_request = auth_request.validate().unwrap();
+        let session_transcript = SessionTranscript::new_oid4vp(
+            &auth_request.response_uri,
+            &auth_request.client_id,
+            auth_request.nonce.clone(),
+            mdoc_nonce,
+        );
+        let device_response = mock_device_response(&session_transcript).await;
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
+
+        auth_response
+            .verify(
+                &auth_request,
+                mdoc_nonce,
+                &IsoCertTimeGenerator,
+                Examples::iaca_trust_anchors(),
+            )
+            .unwrap();
     }
 }

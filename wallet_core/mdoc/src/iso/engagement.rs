@@ -99,11 +99,11 @@ impl SessionTranscript {
         Ok(transcript)
     }
 
-    pub fn new_oid4vp(response_uri: &BaseUrl, client_id: String, nonce: String, mdoc_nonce: String) -> Self {
+    pub fn new_oid4vp(response_uri: &BaseUrl, client_id: &str, nonce: String, mdoc_nonce: &str) -> Self {
         let handover = OID4VPHandover {
-            client_id_hash: ByteBuf::from(sha256(&cbor_serialize(&[&client_id, &mdoc_nonce]).unwrap())),
+            client_id_hash: ByteBuf::from(sha256(&cbor_serialize(&[client_id, mdoc_nonce]).unwrap())),
             response_uri_hash: ByteBuf::from(sha256(
-                &cbor_serialize(&[&response_uri.to_string(), &mdoc_nonce]).unwrap(),
+                &cbor_serialize(&[&response_uri.to_string(), mdoc_nonce]).unwrap(),
             )),
             nonce,
         };
