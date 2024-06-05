@@ -796,9 +796,12 @@ mod tests {
 
     /// Given a `session_transcript`, manually construct a mock `DeviceResponse` using the examples from ISO 18013-5.
     async fn mock_device_response(session_transcript: &SessionTranscript) -> DeviceResponse {
-        let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
-            .issuer_signed
-            .clone();
+        let issuer_signed = DeviceResponse::example()
+            .documents
+            .unwrap()
+            .pop()
+            .unwrap()
+            .issuer_signed;
 
         // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
         let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
