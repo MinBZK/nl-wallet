@@ -11,7 +11,9 @@ use url::Url;
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthorizationRequest {
-    pub response_type: ResponseType,
+    #[serde_as(as = "StringWithSeparator::<SpaceSeparator, ResponseType>")]
+    pub response_type: IndexSet<ResponseType>,
+
     pub client_id: String,
     pub redirect_uri: Option<Url>,
     pub state: Option<String>,
@@ -23,12 +25,27 @@ pub struct AuthorizationRequest {
     pub request_uri: Option<String>,
 
     #[serde(flatten)]
-    pub code_challenge: PkceCodeChallenge,
+    pub code_challenge: Option<PkceCodeChallenge>,
 
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
     pub scope: Option<IndexSet<String>>,
 
     pub nonce: Option<String>,
+    pub response_mode: Option<ResponseMode>,
+}
+
+/// Defined in https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResponseMode {
+    Query,
+    #[default]
+    Fragment,
+
+    // The following two are defined in OpenID4VP
+    DirectPost,
+    #[serde(rename = "direct_post.jwt")]
+    DirectPostJwt,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -43,11 +60,27 @@ pub enum PkceCodeChallenge {
     },
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, strum::EnumString, strum::Display,
+)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum ResponseType {
+    /// OAuth
     #[default]
     Code,
+
+    /// OpenID4VP
+    VpToken,
+
+    /// SIOPv2 (not supported (yet))
+    IdToken,
+}
+
+impl From<ResponseType> for IndexSet<ResponseType> {
+    fn from(value: ResponseType) -> Self {
+        IndexSet::from([value])
+    }
 }
 
 /// Format-specific data for the [`AuthorizationDetails`].

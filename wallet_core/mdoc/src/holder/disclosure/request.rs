@@ -44,7 +44,7 @@ use super::{proposed_document::ProposedDocument, MdocDataSource};
 ///   only contains the missing attributes for one of the `Mdoc`s for a
 ///   particular `DocType`. Which one it chooses is undefined.
 #[derive(Debug)]
-pub(super) enum DeviceRequestMatch<I> {
+pub enum DeviceRequestMatch<I> {
     Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
     MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
 }
@@ -114,7 +114,7 @@ impl DeviceRequest {
         Ok((certificate, reader_registration).into())
     }
 
-    pub(super) async fn match_stored_documents<S, I>(
+    pub async fn match_stored_documents<S, I>(
         &self,
         mdoc_data_source: &S,
         session_transcript: &SessionTranscript,

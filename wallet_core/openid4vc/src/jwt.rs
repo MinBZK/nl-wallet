@@ -4,20 +4,31 @@
 //!   such as an ECDSA public key.
 //! - Bulk signing of JWTs.
 
-use base64::prelude::*;
+use base64::{prelude::*, DecodeError};
+use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
     Algorithm, Header,
 };
-use nl_wallet_mdoc::utils::keys::{KeyFactory, MdocEcdsaKey};
 use p256::{
     ecdsa::{signature, VerifyingKey},
     EncodedPoint,
 };
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
+
+use nl_wallet_mdoc::{
+    holder::TrustAnchor,
+    server_keys::KeyPair,
+    utils::{
+        keys::{KeyFactory, MdocEcdsaKey},
+        x509::{Certificate, CertificateError, CertificateUsage},
+    },
+};
 use wallet_common::{
-    jwt::{Jwt, JwtError},
+    account::serialization::DerVerifyingKey,
+    generator::Generator,
+    jwt::{self, Jwt, JwtError},
     keys::EcdsaKey,
 };
 
@@ -133,19 +144,133 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
     Ok(jwts)
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum JwtX5cError {
+    #[error("error validating JWT: {0}")]
+    Jwt(#[from] JwtError),
+    #[error("missing X.509 certificate(s) in JWT header to validate JWT against")]
+    MissingCertificates,
+    #[error("error base64-decoding certificate: {0}")]
+    CertificateBase64(#[source] DecodeError),
+    #[error("error verifying certificate: {0}")]
+    CertificateValidation(#[source] CertificateError),
+    #[error("error parsing public key from certificate: {0}")]
+    CertificatePublicKey(#[source] CertificateError),
+}
+
+/// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT header.
+pub fn verify_against_trust_anchors<T: DeserializeOwned>(
+    jwt: &Jwt<T>,
+    trust_anchors: &[TrustAnchor],
+    time: &impl Generator<DateTime<Utc>>,
+) -> Result<(T, Certificate), JwtX5cError> {
+    let header = jsonwebtoken::decode_header(&jwt.0).map_err(JwtError::Validation)?;
+    let mut certs = header
+        .x5c
+        .ok_or(JwtX5cError::MissingCertificates)?
+        .into_iter()
+        .map(|cert_base64| {
+            let cert: Certificate = BASE64_STANDARD
+                .decode(cert_base64)
+                .map_err(JwtX5cError::CertificateBase64)?
+                .into();
+            Ok(cert)
+        })
+        .collect::<Result<Vec<_>, JwtX5cError>>()?;
+
+    // Verify the certificate chain against the trust anchors.
+    let leaf_cert = certs.pop().ok_or(JwtX5cError::MissingCertificates)?;
+    let intermediate_certs = certs.iter().map(|cert| cert.as_bytes()).collect_vec();
+    leaf_cert
+        .verify(CertificateUsage::ReaderAuth, &intermediate_certs, time, trust_anchors)
+        .map_err(JwtX5cError::CertificateValidation)?;
+
+    // The leaf certificate is trusted, we can now use its public key to verify the JWS.
+    let pubkey = leaf_cert.public_key().map_err(JwtX5cError::CertificatePublicKey)?;
+    let payload = jwt.parse_and_verify(&DerVerifyingKey(pubkey).into(), &jwt::validations())?;
+
+    Ok((payload, leaf_cert))
+}
+
+/// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
+/// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
+pub async fn sign_with_certificate<T: Serialize>(payload: &T, keypair: &KeyPair) -> Result<Jwt<T>, JwtError> {
+    // The `x5c` header supports certificate chains, but ISO 18013-5 doesn't: it requires that issuer
+    // and RP certificates are signed directly by the trust anchor. So we don't support certificate chains
+    // here (yet).
+    let certs = vec![BASE64_STANDARD.encode(keypair.certificate().as_bytes())];
+
+    let jwt = Jwt::sign(
+        payload,
+        &Header {
+            alg: jsonwebtoken::Algorithm::ES256,
+            x5c: Some(certs),
+            ..Default::default()
+        },
+        keypair.private_key(),
+    )
+    .await?;
+
+    Ok(jwt)
+}
+
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use futures::StreamExt;
     use p256::{ecdsa::SigningKey, elliptic_curve::rand_core::OsRng};
     use serde::{Deserialize, Serialize};
+    use serde_json::json;
 
     use nl_wallet_mdoc::{
+        server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
-        utils::keys::{KeyFactory, MdocEcdsaKey},
+        utils::{
+            keys::{KeyFactory, MdocEcdsaKey},
+            x509::CertificateError,
+        },
     };
-    use wallet_common::jwt::{validations, EcdsaDecodingKey};
+    use wallet_common::{
+        generator::TimeGenerator,
+        jwt::{validations, EcdsaDecodingKey},
+    };
 
-    use super::{jwk_from_p256, jwk_to_p256};
+    use crate::jwt::{sign_with_certificate, JwtX5cError};
+
+    use super::{jwk_from_p256, jwk_to_p256, verify_against_trust_anchors};
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_cert() {
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock(None).unwrap();
+
+        let payload = json!({"hello": "world"});
+        let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
+
+        let (deserialized, leaf_cert) =
+            verify_against_trust_anchors(&jwt, &[ca.certificate().try_into().unwrap()], &TimeGenerator).unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(leaf_cert, *keypair.certificate());
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_wrong_cert() {
+        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock(None).unwrap();
+
+        let payload = json!({"hello": "world"});
+        let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
+
+        let other_ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
+
+        let err = verify_against_trust_anchors(&jwt, &[other_ca.certificate().try_into().unwrap()], &TimeGenerator)
+            .unwrap_err();
+        assert_matches!(
+            err,
+            JwtX5cError::CertificateValidation(CertificateError::Verification(_))
+        );
+    }
 
     #[test]
     fn jwk_p256_key_conversion() {

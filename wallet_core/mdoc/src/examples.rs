@@ -5,6 +5,7 @@ use anyhow::{bail, Context, Result};
 use chrono::{DateTime, TimeZone, Utc};
 use ciborium::Value;
 use hex_literal::hex;
+use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use p256::{
     ecdsa::{SigningKey, VerifyingKey},
@@ -17,7 +18,8 @@ use wallet_common::generator::Generator;
 
 use crate::{
     utils::serialization::{cbor_deserialize, cbor_serialize},
-    DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ReaderAuthenticationBytes,
+    verifier::ItemsRequests,
+    DeviceAuthenticationBytes, DeviceRequest, DeviceResponse, ItemsRequest, ReaderAuthenticationBytes,
 };
 
 pub const EXAMPLE_DOC_TYPE: &str = "org.iso.18013.5.1.mDL";
@@ -120,6 +122,25 @@ impl Examples {
             "6ed542ad4783f0b18c833fadf2171273a35d969c581691ef704359cc7cf1e8c0",
         )
         .expect("ECDSA key parsing failed")
+    }
+
+    pub fn items_requests() -> ItemsRequests {
+        vec![ItemsRequest {
+            doc_type: EXAMPLE_DOC_TYPE.to_string(),
+            name_spaces: IndexMap::from_iter([(
+                EXAMPLE_NAMESPACE.to_string(),
+                IndexMap::from_iter([
+                    ("family_name".to_string(), false),
+                    ("issue_date".to_string(), false),
+                    ("expiry_date".to_string(), false),
+                    ("document_number".to_string(), false),
+                    ("portrait".to_string(), false),
+                    ("driving_privileges".to_string(), false),
+                ]),
+            )]),
+            request_info: None,
+        }]
+        .into()
     }
 }
 
