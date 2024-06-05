@@ -3,13 +3,11 @@ use std::{error::Error, fmt::Display};
 use anyhow::Chain;
 use serde::Serialize;
 
-use wallet::{
-    errors::{
-        reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
-        PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
-        WalletUnlockError,
-    },
+use wallet::errors::{
+    mdoc::{self, HolderError},
     openid4vc::{IssuanceSessionError, OidcError},
+    reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
+    PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -38,6 +36,12 @@ enum FlutterApiErrorType {
 
     /// Failed to finish the DigiD session and get an authorization code.
     RedirectUri,
+
+    /// Device does not support hardware backed keys.
+    HardwareKeyUnsupported,
+
+    /// The disclosure URI source (universal link or QR code) does not match the received session type.
+    DisclosureSourceMismatch,
 
     /// Indicating something unexpected went wrong.
     Generic,
@@ -116,6 +120,7 @@ impl FlutterApiErrorFields for WalletRegistrationError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             WalletRegistrationError::AlreadyRegistered => FlutterApiErrorType::WalletState,
+            WalletRegistrationError::HardwarePublicKey(_) => FlutterApiErrorType::HardwareKeyUnsupported,
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
@@ -194,11 +199,30 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
+            DisclosureError::DisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+                _,
+                _,
+            ))) => FlutterApiErrorType::DisclosureSourceMismatch,
             DisclosureError::DisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> Option<serde_json::Value> {
+        match self {
+            DisclosureError::DisclosureSession(mdoc::Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+                session_type,
+                _,
+            ))) => {
+                [("session_type", serde_json::to_value(session_type).unwrap())] // This conversion should never fail.
+                    .into_iter()
+                    .collect::<serde_json::Value>()
+                    .into()
+            }
+            _ => None,
         }
     }
 }

@@ -68,7 +68,7 @@ void wire_accept_pid_issuance(int64_t port_, struct wire_uint_8_list *pin);
 
 void wire_has_active_pid_issuance_session(int64_t port_);
 
-void wire_start_disclosure(int64_t port_, struct wire_uint_8_list *uri);
+void wire_start_disclosure(int64_t port_, struct wire_uint_8_list *uri, bool is_qr_code);
 
 void wire_cancel_disclosure(int64_t port_);
 

@@ -32,7 +32,7 @@ sealed class WalletEvent extends Equatable {
     required LocalizedText purpose,
     required List<WalletCard> cards,
     required Policy policy,
-    required DisclosureType disclosureType,
+    required DisclosureType type,
   }) = DisclosureEvent;
 
   const factory WalletEvent.issuance({

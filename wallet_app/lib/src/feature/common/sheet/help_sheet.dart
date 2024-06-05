@@ -50,7 +50,7 @@ class HelpSheet extends StatelessWidget {
           ListButton(
             dividerSide: DividerSide.top,
             text: Text(context.l10n.helpSheetHelpdeskCta),
-            onPressed: () => PlaceholderScreen.show(context, secured: false),
+            onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
           ),
           const BottomCloseButton(),
         ],

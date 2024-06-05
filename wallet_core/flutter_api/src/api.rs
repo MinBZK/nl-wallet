@@ -4,7 +4,7 @@ use url::Url;
 
 use flutter_api_macros::{async_runtime, flutter_api_error};
 use flutter_rust_bridge::StreamSink;
-use wallet::{self, errors::WalletInitError, Wallet};
+use wallet::{self, errors::WalletInitError, DisclosureUriSource, Wallet};
 
 use crate::{
     async_runtime::init_async_runtime,
@@ -32,8 +32,9 @@ fn wallet() -> &'static RwLock<Wallet> {
 
 #[flutter_api_error]
 pub fn init() -> Result<()> {
-    // Enable backtraces to be caught on panics and errors.
+    // Enable backtraces to be caught on panics (but not errors) for Sentry.
     std::env::set_var("RUST_BACKTRACE", "1");
+    std::env::set_var("RUST_LIB_BACKTRACE", "0");
 
     // Initialize platform specific logging and set the log level.
     // As creating the wallet below could fail and init() could be called again,
@@ -257,12 +258,16 @@ pub async fn has_active_pid_issuance_session() -> Result<bool> {
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn start_disclosure(uri: String) -> Result<StartDisclosureResult> {
+#[allow(unused_variables)]
+pub async fn start_disclosure(uri: String, is_qr_code: bool) -> Result<StartDisclosureResult> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
-    let result = wallet.start_disclosure(&url).await.try_into()?;
+    let result = wallet
+        .start_disclosure(&url, DisclosureUriSource::new(is_qr_code))
+        .await
+        .try_into()?;
 
     Ok(result)
 }

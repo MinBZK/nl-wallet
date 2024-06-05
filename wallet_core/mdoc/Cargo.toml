@@ -32,7 +32,7 @@ mock = []
 # Include MockTimeGenerator, which can be used to mock the curren time for testing purposes
 mock_time = ["dep:parking_lot"]
 # All features needed to run the integration test
-integration = ["generate", "examples", "software_key_factory", "test", "mock"]
+integration = ["generate", "software_key_factory", "test", "mock"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }

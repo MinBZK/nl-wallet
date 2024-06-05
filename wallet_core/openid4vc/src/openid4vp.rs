@@ -32,8 +32,7 @@ use crate::{
     authorization::{AuthorizationErrorCode, AuthorizationRequest, ResponseMode, ResponseType},
     jwt::{self, JwkConversionError, JwtX5cError},
     presentation_exchange::{
-        FormatAlg, InputDescriptorMappingObject, PdConversionError, PresentationDefinition, PresentationSubmission,
-        PsError,
+        InputDescriptorMappingObject, PdConversionError, PresentationDefinition, PresentationSubmission, PsError,
     },
     Format,
 };
@@ -195,6 +194,12 @@ pub enum VpEncValues {
 #[serde(rename_all = "snake_case")]
 pub enum VpFormat {
     MsoMdoc { alg: IndexSet<FormatAlg> },
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum FormatAlg {
+    #[default]
+    ES256,
 }
 
 use nutype::nutype;
@@ -840,9 +845,12 @@ mod tests {
 
     /// Given a `session_transcript`, manually construct a mock `DeviceResponse` using the examples from ISO 18013-5.
     async fn mock_device_response(session_transcript: &SessionTranscript) -> DeviceResponse {
-        let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
-            .issuer_signed
-            .clone();
+        let issuer_signed = DeviceResponse::example()
+            .documents
+            .unwrap()
+            .pop()
+            .unwrap()
+            .issuer_signed;
 
         // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
         let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {

@@ -66,7 +66,7 @@ class ReportIssueScreen extends StatelessWidget {
         children: [
           InkWell(
             // Use selected option once "issue report" is implemented: Navigator.pop(context, options[index]),
-            onTap: () => PlaceholderScreen.show(context),
+            onTap: () => PlaceholderScreen.showGeneric(context),
             child: IconRow(
               icon: Icon(
                 Icons.sms_failed_outlined,

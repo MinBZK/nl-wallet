@@ -21,7 +21,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   WalletCoreMock(this._pinManager, this._wallet, this._eventLog);
 
   @override
-  Future<StartDisclosureResult> startDisclosure({required String uri, hint}) async {
+  Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode, hint}) async {
     // Look up the associated request
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final disclosureId = jsonPayload['id'] as String;

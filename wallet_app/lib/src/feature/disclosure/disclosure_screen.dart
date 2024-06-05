@@ -19,6 +19,7 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../error/error_page.dart';
 import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../organization/detail/organization_detail_screen.dart';
@@ -115,6 +116,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureSuccess() => _buildSuccessPage(context, state),
           DisclosureNetworkError() => _buildNetworkErrorPage(context, state),
           DisclosureGenericError() => _buildGenericErrorPage(context, state),
+          DisclosureSessionExpired() => _buildSessionExpiredPage(context, state),
         };
 
         final skipAnim = !state.didGoBack && state is DisclosureCheckOrganization;
@@ -363,11 +365,20 @@ class DisclosureScreen extends StatelessWidget {
               visibleOffset: 70,
               child: Text(context.l10n.disclosureGenericErrorPageTitle),
             ),
+          DisclosureSessionExpired() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.errorScreenSessionExpiredHeadline),
+            ),
         };
 
         return result ?? const SizedBox.shrink();
       },
     );
+  }
+
+  Widget _buildSessionExpiredPage(BuildContext context, DisclosureSessionExpired state) {
+    return ErrorPage.sessionExpired(context, style: ErrorCtaStyle.close);
   }
 }
 

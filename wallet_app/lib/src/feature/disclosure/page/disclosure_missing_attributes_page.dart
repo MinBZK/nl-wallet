@@ -81,7 +81,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
 
   Widget _buildHowToProceedButton(BuildContext context) {
     return ListButton(
-      onPressed: () => PlaceholderScreen.show(context),
+      onPressed: () => PlaceholderScreen.showGeneric(context),
       text: Text(context.l10n.disclosureMissingAttributesPageHowToProceedCta),
     );
   }

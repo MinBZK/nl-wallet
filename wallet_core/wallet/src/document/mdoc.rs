@@ -1,9 +1,10 @@
 use chrono::NaiveDate;
 use ciborium::value::Integer;
 use indexmap::IndexMap;
+use itertools::Itertools;
 
 use nl_wallet_mdoc::{
-    holder::ProposedDocumentAttributes,
+    holder::{ProposedAttributes, ProposedDocumentAttributes},
     identifiers::AttributeIdentifier,
     unsigned::{Entry, UnsignedMdoc},
     utils::{
@@ -16,7 +17,7 @@ use nl_wallet_mdoc::{
 use super::{
     mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
     Attribute, AttributeValue, DisclosureDocument, Document, DocumentAttributes, DocumentPersistence,
-    GenderAttributeValue, MissingDisclosureAttributes,
+    GenderAttributeValue, MissingDisclosureAttributes, PID_DOCTYPE,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -57,6 +58,45 @@ pub enum AttributeValueType {
     Bool,
     Date,
     Gender,
+}
+
+// TODO: Think about refactoring/renaming DisclosureType. We currently have
+// DisclosureType here, *and* in disclosure_history_event.rs, EventType, *and*
+// in flutter_api's disclosure.rs again as DisclosureType. Things to think about
+// when refactoring: why this many and not just one.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DisclosureType {
+    Login,
+    Regular,
+}
+
+impl DisclosureType {
+    /// Something is a login flow if the `proposed_attributes` map has exactly one element with a
+    /// `doc_type` of `PID_DOCTYPE`, with a `doc_attributes` map where `namespace` is `PID_DOCTYPE`
+    /// also, with an entry vec of exactly one entry, where the `DataElementIdentifier` string is "bsn".
+    pub fn from_proposed_attributes(proposed_attributes: &ProposedAttributes) -> Self {
+        if let Ok((doc_type, doc_attributes)) = proposed_attributes.iter().exactly_one() {
+            if doc_type == PID_DOCTYPE {
+                if let Ok((namespace, entries)) = doc_attributes.attributes.iter().exactly_one() {
+                    if namespace == PID_DOCTYPE {
+                        if let Ok(entry) = entries.iter().exactly_one() {
+                            if entry.name == "bsn" {
+                                return Self::Login;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Self::Regular
+    }
+
+    pub fn is_login_flow(&self) -> bool {
+        match self {
+            Self::Login => true,
+            Self::Regular => false,
+        }
+    }
 }
 
 /// Get the correct `AttributeMapping` or return an error if it cannot be found for the `doc_type`.

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/attribute/data_attribute.dart';
 import '../../../domain/model/attribute/ui_attribute.dart';
+import '../../../domain/model/attribute/value/gender.dart';
 import '../../extension/build_context_extension.dart';
 import '../../formatter/attribute_value_formatter.dart';
 import '../context_mapper.dart';
@@ -52,7 +53,7 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
       ),
       UiAttribute.untranslated(
         value: StringValue(getGender(context, input)),
-        icon: Icons.sentiment_satisfied,
+        icon: getGenderIcon(input),
         label: l10n.walletPersonalizeCheckDataOfferingPageGenderLabel,
       ),
       UiAttribute.untranslated(
@@ -71,6 +72,16 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
         icon: Icons.cottage_outlined,
       ),
     ].nonNulls.toList();
+  }
+
+  IconData getGenderIcon(List<T> input) {
+    final gender = getGenderValue(input).value;
+    return switch (gender) {
+      Gender.unknown => Icons.question_mark_outlined,
+      Gender.male => Icons.male_outlined,
+      Gender.female => Icons.female_outlined,
+      Gender.notApplicable => Icons.sentiment_satisfied,
+    };
   }
 
   String getBirthDetails(BuildContext context, List<T> attributes) {
@@ -101,6 +112,9 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
   String getBirthCity(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCityKey)!;
 
   String getBirthCountry(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCountryKey)!;
+
+  GenderValue getGenderValue(List<T> attributes) =>
+      attributes.whereType<DataAttribute>().firstWhere((attribute) => attribute.key == genderKey).value as GenderValue;
 
   String getGender(BuildContext context, List<T> attributes) => findByKey(context, attributes, genderKey)!;
 

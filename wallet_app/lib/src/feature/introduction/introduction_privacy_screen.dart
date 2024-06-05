@@ -39,11 +39,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                   title: context.l10n.introductionPrivacyScreenHeadline,
                   leading: const BackIconButton(),
                   progress: const FlowProgress(currentStep: 1, totalSteps: kSetupSteps),
-                  actions: [
-                    HelpIconButton(
-                      onPressed: () => PlaceholderScreen.show(context, secured: false),
-                    )
-                  ],
+                  actions: const [HelpIconButton()],
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -80,7 +76,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
     );
     FitsWidthWidget privacyButton = TertiaryButton(
       key: const Key('introductionPrivacyScreenPrivacyCta'),
-      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
       text: Text(context.l10n.introductionPrivacyScreenPrivacyCta),
       icon: const Icon(Icons.arrow_forward_rounded),
     );

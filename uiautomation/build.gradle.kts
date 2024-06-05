@@ -26,22 +26,36 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:2.0.12")
 }
 
-tasks.test {
-    // Test config args and default/fallback/ values
-    val testConfigMap = mapOf<String, Any>(
-        "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
-        "test.config.device.name" to "emulator-5554",
-        "test.config.platform.name" to "Android",
-        "test.config.platform.version" to 14.0,
-        "test.config.remote" to false,
-    )
+// Test config args and default/fallback values
+val testConfigMap = mapOf<String, Any>(
+    "test.config.app.identifier" to "nl.ictu.edi.wallet.latest",
+    "test.config.device.name" to "emulator-5554",
+    "test.config.platform.name" to "Android",
+    "test.config.platform.version" to 14.0,
+    "test.config.remote" to false,
+)
 
-    // Set system properties for test config
+// Set system properties for test config
+fun configureTestTask(task: Test) {
     testConfigMap.forEach { (key, value) ->
-        systemProperty(key, System.getProperty(key) ?: value)
+        task.systemProperty(key, System.getProperty(key, value.toString()))
     }
+}
 
+tasks.test {
+    configureTestTask(this)
     useJUnitPlatform()
+}
+
+tasks.register<Test>("smokeTest") {
+    configureTestTask(this)
+    useJUnitPlatform {
+        includeTags("smoke")
+
+        // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
+        // duplicated test executions and ensure only the actual tagged tests are run.
+        exclude("suite/**")
+    }
 }
 
 kotlin {

@@ -9,8 +9,9 @@ abstract class DisclosureEvent extends Equatable {
 
 class DisclosureSessionStarted extends DisclosureEvent {
   final String uri;
+  final bool isQrCode;
 
-  const DisclosureSessionStarted(this.uri);
+  const DisclosureSessionStarted(this.uri, {this.isQrCode = false});
 
   @override
   List<Object?> get props => [uri];

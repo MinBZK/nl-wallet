@@ -179,6 +179,19 @@ test-flutter-ui:
     - flutter --version
     - (cd $FLUTTER_APP_PROJECT_DIR; flutter test --tags=golden)
 
+# Checks .arb files for unused keys, indicating an update to Lokalise might be in order
+verify-flutter-localizations:
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-flutter@sha256:7e741ecb10b07adec21f7328bbb8e8407ab80f299050fbff32ba764314390f97"
+  script:
+    - set -euxo pipefail
+    - flutter --version
+    - (cd $FLUTTER_APP_PROJECT_DIR; flutter pub get)
+    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms) # List any unused keys
+    - (cd $FLUTTER_APP_PROJECT_DIR; dart run translations_cleaner list-unused-terms --abort-on-unused) # Fail if unused keys are found
+  allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
+
 lint-rust:
   rules: !reference [.default-or-release-or-merge-request, rules]
   image:
@@ -1072,6 +1085,7 @@ deploy-wallet-provider-ont:
   extends: [.env-ont-k8s, .deploy-wallet-provider]
   rules: !reference [.default-or-merge-request, rules]
   needs:
+    - !reference [.deploy-wallet-provider, needs]
     - job: run-wp-migrations-ont
       artifacts: false
   variables:
@@ -1082,6 +1096,7 @@ deploy-wallet-provider-demo:
   extends: [.env-demo-k8s, .deploy-wallet-provider]
   rules: !reference [.demo-release-tag, rules]
   needs:
+    - !reference [.deploy-wallet-provider, needs]
     - job: run-wp-migrations-demo
       artifacts: false
   variables:
@@ -1135,6 +1150,7 @@ deploy-mock-relying-party-ont:
   extends: [.env-ont-k8s, .deploy-mock-relying-party]
   rules: !reference [.default-or-merge-request, rules]
   needs:
+    - !reference [.deploy-mock-relying-party, needs]
     - job: run-ws-migrations-ont
       artifacts: false
   variables:
@@ -1147,6 +1163,7 @@ deploy-mock-relying-party-ont:
 deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
   needs:
+    - !reference [.deploy-mock-relying-party, needs]
     - job: run-ws-migrations-demo
       artifacts: false
   rules: !reference [.demo-release-tag, rules]
@@ -1181,12 +1198,13 @@ check-gitlab-ci-changed:
   rules:
     - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: always
+      allow_failure: true # Only meant as a warning as it's not a critical failure
   script:
     - git fetch origin
     # fails if .gitlab-ci.yml is different on CI_DEFAULT_BRANCH
     - git diff --exit-code origin/$CI_DEFAULT_BRANCH -- .gitlab-ci.yml
 
-.run-automation-tests:
+.run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .env-ont-k8s
   image:
@@ -1206,6 +1224,9 @@ check-gitlab-ci-changed:
     - git fetch origin
     - git checkout $CI_DEFAULT_BRANCH
     - cd uiautomation
+
+.run-automation-tests:
+  extends: [.run-automation-tests-common-setup]
   script:
     - gradle wrapper --gradle-version=7.5
     - ./gradlew --info --stacktrace test
@@ -1256,6 +1277,27 @@ run-automation-tests-14:
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
+
+run-automation-smoke-test-ont:
+  extends: [.run-automation-tests-common-setup]
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: upload-browserstack-android-app-latest
+      artifacts: false
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
+    - job: deploy-wallet-provider-ont
+      artifacts: false
+  script:
+    - gradle wrapper --gradle-version=7.5
+    - ./gradlew --info --stacktrace smokeTest
+      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
+      -Dtest.config.device.name="Google Pixel 8"
+      -Dtest.config.platform.name="Android"
+      -Dtest.config.platform.version="14.0"
+      -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8
+  allow_failure: true # Only meant as a warning indicator.
 
 build-sbom:
   rules: !reference [.default-branch, rules]

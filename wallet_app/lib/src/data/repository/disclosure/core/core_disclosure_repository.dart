@@ -34,8 +34,8 @@ class CoreDisclosureRepository implements DisclosureRepository {
   );
 
   @override
-  Future<StartDisclosureResult> startDisclosure(String disclosureUri) async {
-    final result = await _walletCore.startDisclosure(disclosureUri);
+  Future<StartDisclosureResult> startDisclosure(String disclosureUri, bool isQrCode) async {
+    final result = await _walletCore.startDisclosure(disclosureUri, isQrCode);
     return result.map(
       request: (value) {
         final cards = _disclosureCardMapper.mapList(value.requestedCards);

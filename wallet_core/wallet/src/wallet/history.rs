@@ -12,7 +12,7 @@ use nl_wallet_mdoc::{
 
 pub use crate::storage::EventStatus;
 use crate::{
-    document::DocumentMdocError,
+    document::{DisclosureType, DocumentMdocError},
     errors::StorageError,
     storage::{EventDocuments, Storage, WalletEvent},
     DisclosureDocument, Document, DocumentPersistence,
@@ -166,6 +166,7 @@ pub enum HistoryEvent {
     },
     Disclosure {
         status: EventStatus,
+        r#type: DisclosureType,
         timestamp: DateTime<Utc>,
         reader_registration: Box<ReaderRegistration>,
         attributes: Option<Vec<DisclosureDocument>>,
@@ -206,8 +207,10 @@ impl TryFrom<WalletEvent> for HistoryEvent {
                 timestamp,
                 documents,
                 status,
+                r#type,
             } => Self::Disclosure {
                 status,
+                r#type,
                 timestamp,
                 attributes: documents
                     .map(|EventDocuments(mdocs)| {
