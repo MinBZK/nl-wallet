@@ -259,7 +259,9 @@ where
 // We can't derive `Deserialize` with the `untagged` Serde enum deserializer, because unfortunately it is not able to
 // deserialize the SchemeHandoverBytes variant.
 // For the other direction (serializing), however, the `untagged` enum serializer is used and works fine.
+// Note that this implementation is only ever used to deserialize the examples from the spec in `examples.rs`.
 // For each variant a unit test is included to check that serializing and deserializing agree with each other.
+#[cfg(any(test, feature = "examples"))]
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let val = Value::deserialize(deserializer)?;
