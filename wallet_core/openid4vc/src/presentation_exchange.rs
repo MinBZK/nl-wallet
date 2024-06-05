@@ -59,6 +59,8 @@ pub enum PdConversionError {
     TooManyPaths,
     #[error("unsupported JsonPath expression")]
     UnsupportedJsonPathExpression,
+    #[error("signature algorithms not supported")]
+    UnsupportedAlgs,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,6 +129,11 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
             .input_descriptors
             .iter()
             .map(|input_descriptor| {
+                let VpFormat::MsoMdoc { alg } = &input_descriptor.format;
+                if !alg.contains(&FormatAlg::ES256) {
+                    return Err(PdConversionError::UnsupportedAlgs);
+                }
+
                 let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
                 for field in &input_descriptor.constraints.fields {
                     let (namespace, attr) = field.parse_paths()?;
