@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 use nl_wallet_mdoc::{verifier::ItemsRequests, Document, ItemsRequest};
 use wallet_common::utils::random_string;
 
-use crate::{openid4vp::VpFormat, Format};
+use crate::{
+    openid4vp::{FormatAlg, VpFormat},
+    Format,
+};
 
 /// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,12 +30,6 @@ pub struct InputDescriptor {
     pub id: String,
     pub format: VpFormat,
     pub constraints: Constraints,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum FormatAlg {
-    #[default]
-    ES256,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

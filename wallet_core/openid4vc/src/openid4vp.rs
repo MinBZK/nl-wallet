@@ -32,9 +32,7 @@ use wallet_common::{
 use crate::{
     authorization::{AuthorizationRequest, ResponseMode, ResponseType},
     jwt::{self, JwkConversionError, JwtX5cError},
-    presentation_exchange::{
-        FormatAlg, InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission, PsError,
-    },
+    presentation_exchange::{InputDescriptorMappingObject, PresentationDefinition, PresentationSubmission, PsError},
     Format,
 };
 
@@ -199,6 +197,12 @@ pub enum VpEncValues {
 #[serde(rename_all = "snake_case")]
 pub enum VpFormat {
     MsoMdoc { alg: IndexSet<FormatAlg> },
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum FormatAlg {
+    #[default]
+    ES256,
 }
 
 fn parse_dns_san(cert: &Certificate) -> Result<String, AuthRequestError> {
