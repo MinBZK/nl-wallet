@@ -616,11 +616,8 @@ impl VpAuthorizationResponse {
         let documents = device_response.documents.as_ref().unwrap();
 
         // Check that the Presentation Submission is what it should be per the Presentation Exchange spec and ISO 18013-7.
-        PresentationSubmission::verify(
-            documents,
-            &self.presentation_submission,
-            auth_request.presentation_definition.direct(),
-        )?;
+        self.presentation_submission
+            .verify(documents, auth_request.presentation_definition.direct())?;
 
         // If `state` is provided it must equal the `state` from the Authorization Request.
         if self.state != auth_request.oauth_request.state {

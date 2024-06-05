@@ -180,25 +180,25 @@ pub enum PsError {
 
 impl PresentationSubmission {
     pub fn verify(
+        &self,
         documents: &[Document],
-        presentation_submission: &PresentationSubmission,
         presentation_definition: &PresentationDefinition,
     ) -> Result<(), PsError> {
-        if presentation_submission.definition_id != presentation_definition.id {
+        if self.definition_id != presentation_definition.id {
             return Err(PsError::UnexpectedSubmissionId {
                 expected: presentation_definition.id.clone(),
-                found: presentation_submission.definition_id.clone(),
+                found: self.definition_id.clone(),
             });
         }
 
-        if presentation_submission.descriptor_map.len() != documents.len() {
+        if self.descriptor_map.len() != documents.len() {
             return Err(PsError::UnexpectedDescriptorCount {
                 expected: documents.len(),
-                found: presentation_submission.descriptor_map.len(),
+                found: self.descriptor_map.len(),
             });
         }
 
-        for (doc, input_descriptor) in documents.iter().zip(&presentation_submission.descriptor_map) {
+        for (doc, input_descriptor) in documents.iter().zip(&self.descriptor_map) {
             if input_descriptor.path != "$" {
                 return Err(PsError::UnexpectedInputDescriptorPath(
                     input_descriptor.path.to_string(),
