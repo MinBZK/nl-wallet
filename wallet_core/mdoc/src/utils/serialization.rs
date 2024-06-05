@@ -456,25 +456,6 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for CborBase64<T> {
     }
 }
 
-pub mod cbor_hex {
-    use serde::{
-        de::{self, DeserializeOwned},
-        ser, Deserializer, Serialize, Serializer,
-    };
-    use serde_with::{formats::Uppercase, hex::Hex, DeserializeAs, SerializeAs};
-
-    use super::{cbor_deserialize, cbor_serialize};
-
-    pub fn serialize<S: Serializer, T: Serialize>(input: T, serializer: S) -> Result<S::Ok, S::Error> {
-        Hex::<Uppercase>::serialize_as(&cbor_serialize(&input).map_err(ser::Error::custom)?, serializer)
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<T, D::Error> {
-        let x: Vec<u8> = Hex::<Uppercase>::deserialize_as(deserializer)?;
-        cbor_deserialize(x.as_slice()).map_err(de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;

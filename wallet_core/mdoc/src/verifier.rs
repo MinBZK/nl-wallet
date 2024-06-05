@@ -39,7 +39,7 @@ use crate::{
     utils::{
         cose::{self, ClonePayload, MdocCose},
         crypto::{cbor_digest, dh_hmac_key, SessionKey, SessionKeyUser},
-        serialization::{cbor_deserialize, cbor_hex, cbor_serialize, CborSeq, TaggedBytes},
+        serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
         x509::CertificateUsage,
     },
     Error, Result, SessionData,
@@ -144,8 +144,7 @@ pub struct WaitingForResponse {
     return_url_nonce: Option<String>,
     their_key: SessionKey,
     ephemeral_privkey: DerSecretKey,
-    #[serde(with = "cbor_hex")]
-    session_transcript: SessionTranscript,
+    session_transcript_data: SessionTranscriptData,
 }
 
 /// State for a session that has ended (for any reason).
@@ -239,6 +238,40 @@ impl From<SessionState<Done>> for SessionState<DisclosureData> {
             token: value.token,
             last_active: value.last_active,
         }
+    }
+}
+
+/// This contains the elements that can be used to (re-)construct a [`SessionTranscript`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionTranscriptData {
+    session_type: SessionType,
+    reader_engagement: CborBase64<ReaderEngagement>,
+    device_engagement: CborBase64<DeviceEngagement>,
+}
+
+impl SessionTranscriptData {
+    fn new(
+        session_type: SessionType,
+        reader_engagement: ReaderEngagement,
+        device_engagement: DeviceEngagement,
+    ) -> Self {
+        SessionTranscriptData {
+            session_type,
+            reader_engagement: reader_engagement.into(),
+            device_engagement: device_engagement.into(),
+        }
+    }
+}
+
+impl TryFrom<&SessionTranscriptData> for SessionTranscript {
+    type Error = SessionTranscriptError;
+
+    fn try_from(value: &SessionTranscriptData) -> std::result::Result<Self, Self::Error> {
+        SessionTranscript::new_iso(
+            value.session_type,
+            &value.reader_engagement.0,
+            &value.device_engagement.0,
+        )
     }
 }
 
@@ -465,7 +498,7 @@ where
                     Self::format_verifier_url(&verifier_base_url, session_token, session_type, time, ephemeral_id)
                         .map_err(VerificationError::UrlEncoding)?;
                 let (response, session) = session
-                    .process_device_engagement(&cbor_deserialize(msg)?, verifier_url, session_type, &self.use_cases)
+                    .process_device_engagement(cbor_deserialize(msg)?, verifier_url, session_type, &self.use_cases)
                     .await;
                 match session {
                     Ok(next) => Ok((response, next.state.into())),
@@ -710,7 +743,7 @@ impl Session<Created> {
     /// returning a response to answer the device with and the next session state.
     async fn process_device_engagement(
         self,
-        device_engagement: &DeviceEngagement,
+        device_engagement: DeviceEngagement,
         verifier_url: Url,
         session_type: SessionType,
         use_cases: &UseCases,
@@ -720,17 +753,17 @@ impl Session<Created> {
     ) {
         info!("Session({}): process device engagement", self.state.token);
         let (response, next) = match self
-            .process_device_engagement_inner(device_engagement, verifier_url, session_type, use_cases)
+            .process_device_engagement_inner(&device_engagement, verifier_url.clone(), session_type, use_cases)
             .await
         {
-            Ok((response, items_requests, return_url_nonce, their_key, ephemeral_privkey, session_transcript)) => (
+            Ok((response, items_requests, return_url_nonce, their_key, ephemeral_privkey, reader_engagement)) => (
                 response,
                 Ok(self.transition_wait_for_response(
                     items_requests,
                     return_url_nonce,
                     their_key,
                     ephemeral_privkey,
-                    session_transcript,
+                    SessionTranscriptData::new(session_type, reader_engagement, device_engagement),
                 )),
             ),
             Err(e) => {
@@ -758,10 +791,11 @@ impl Session<Created> {
         Option<String>,
         SessionKey,
         SecretKey,
-        SessionTranscript,
+        ReaderEngagement,
     )> {
         Self::verify_origin_infos(&device_engagement.0.origin_infos)?;
 
+        // Re-create the `ReaderEngagement` based on the verifier URL that was used.
         let reader_engagement = ReaderEngagement::try_new(&self.state().ephemeral_privkey.0, verifier_url)?;
 
         // Compute the session transcript whose CBOR serialization acts as the challenge throughout the protocol
@@ -831,7 +865,7 @@ impl Session<Created> {
             return_url_nonce,
             their_key,
             self.state().ephemeral_privkey.clone().0,
-            session_transcript,
+            reader_engagement,
         ))
     }
 
@@ -874,14 +908,14 @@ impl Session<Created> {
         return_url_nonce: Option<String>,
         their_key: SessionKey,
         ephemeral_privkey: SecretKey,
-        session_transcript: SessionTranscript,
+        session_transcript_data: SessionTranscriptData,
     ) -> Session<WaitingForResponse> {
         self.transition(WaitingForResponse {
             items_requests,
             return_url_nonce,
             their_key,
             ephemeral_privkey: ephemeral_privkey.into(),
-            session_transcript,
+            session_transcript_data,
         })
     }
 
@@ -964,9 +998,13 @@ impl Session<WaitingForResponse> {
 
         debug!("Session({}): verify device response", self.state.token);
 
+        // This unwrap is safe, as we can assume the `ReaderEngagement`
+        // we created earlier includes a `Security` instance.
+        let session_transcript = (&self.state().session_transcript_data).try_into().unwrap();
+
         let disclosed_attributes = device_response.verify(
             Some(&self.state().ephemeral_privkey.0),
-            &self.state().session_transcript,
+            &session_transcript,
             &TimeGenerator,
             trust_anchors,
         )?;
