@@ -69,17 +69,19 @@ pub struct Field {
     pub intent_to_retain: bool,
 }
 
+/// Per ISO 18013.7, the field paths in a Presentation Definition must all be a JSONPath expression of the form
+/// "$['namespace']['attribute_name']".
+///
+/// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
+static FIELD_PATH_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
+
 impl Field {
     fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
         if self.path.len() != 1 {
             return Err(PdConversionError::TooManyPaths);
         }
         let path = &self.path[0];
-
-        /// Per ISO 18013.7, the path must be a JSONPath expression of the form: "$['namespace']['attribute_name']"
-        /// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
-        static FIELD_PATH_REGEX: Lazy<Regex> =
-            Lazy::new(|| Regex::new(r#"^\$\[['"](.*?)['"]\]\[['"](.*?)['"]\]$"#).unwrap());
 
         let captures = FIELD_PATH_REGEX
             .captures(path)
@@ -226,11 +228,25 @@ impl PresentationSubmission {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use rstest::rstest;
     use serde_json::json;
 
     use nl_wallet_mdoc::{examples::Examples, verifier::ItemsRequests};
 
-    use super::{FormatAlg, LimitDisclosure, PresentationDefinition, VpFormat};
+    use super::{FormatAlg, LimitDisclosure, PresentationDefinition, VpFormat, FIELD_PATH_REGEX};
+
+    #[rstest]
+    #[case("$['namespace']['attribute_name']", true)]
+    #[case("$['namespace']", false)]
+    #[case("$['namespace']['attribute_name']['extra']", false)]
+    #[case("$['namespace\'']['attribute_name']", false)] // We don't support escaped quotes ...
+    #[case("$['namespace']['\"attribute_name']", false)] // ... in namespace or attribute names.
+    #[case(r#"$["namespace"]["attribute_name"]"#, true)] // We also support double quotes ...
+    #[case(r#"$['namespace']["attribute_name"]"#, true)] // ... and even mixes between the two
+    #[case(r#"$['namespace']['attribute_name"]"#, true)] // (although not required by ISO 18013-7).
+    fn field_path_regex(#[case] path: &str, #[case] should_match: bool) {
+        assert_eq!(FIELD_PATH_REGEX.is_match(path), should_match);
+    }
 
     #[test]
     fn convert_pd_itemsrequests() {
