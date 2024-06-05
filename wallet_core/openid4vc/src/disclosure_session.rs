@@ -11,7 +11,7 @@ use nl_wallet_mdoc::{
     device_retrieval::DeviceRequest,
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
-    holder::{DeviceRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
+    holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
     identifiers::AttributeIdentifier,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
@@ -327,13 +327,16 @@ where
 
         // Fetch documents from the database, calculate which ones satisfy the request and
         // formulate proposals for those documents. If there is a mismatch, return an error.
-        let candidates_by_doc_type = match device_request
-            .match_stored_documents(mdoc_data_source, session_transcript)
-            .await
-            .map_err(VpClientError::MatchRequestedAttributes)?
+        let candidates_by_doc_type = match DisclosureRequestMatch::new(
+            auth_request.items_requests.as_ref().iter(),
+            mdoc_data_source,
+            session_transcript,
+        )
+        .await
+        .map_err(VpClientError::MatchRequestedAttributes)?
         {
-            DeviceRequestMatch::Candidates(candidates) => candidates,
-            DeviceRequestMatch::MissingAttributes(missing_attributes) => {
+            DisclosureRequestMatch::Candidates(candidates) => candidates,
+            DisclosureRequestMatch::MissingAttributes(missing_attributes) => {
                 // Attributes are missing, return these.
                 let result = VerifierSessionDataCheckResult::MissingAttributes(missing_attributes);
                 return Ok((result, reader_registration));

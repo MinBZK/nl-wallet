@@ -4,6 +4,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use base64::prelude::*;
 use chrono::{DateTime, SecondsFormat, Utc};
+use derive_more::AsRef;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use nutype::nutype;
@@ -111,7 +112,7 @@ pub enum VerificationError {
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, AsRef)]
 pub struct ItemsRequests(pub Vec<ItemsRequest>);
 impl From<Vec<ItemsRequest>> for ItemsRequests {
     fn from(value: Vec<ItemsRequest>) -> Self {

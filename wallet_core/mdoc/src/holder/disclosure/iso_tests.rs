@@ -17,7 +17,7 @@ use crate::{
     SessionTranscript,
 };
 
-use super::{request::DeviceRequestMatch, test::*};
+use super::{request::DisclosureRequestMatch, test::*};
 
 /// This function uses the `MockMdocDataSource` to provide the mdoc from the example
 /// `DeviceResponse` in the standard. This is used to match against a `DeviceRequest`
@@ -27,12 +27,17 @@ async fn create_example_device_response(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
 ) -> Result<DeviceResponse> {
-    let request_match = device_request
-        .match_stored_documents(&MockMdocDataSource::default(), session_transcript)
-        .await
-        .unwrap();
+    let request_match = DisclosureRequestMatch::new(
+        device_request.items_requests(),
+        &MockMdocDataSource::default(),
+        session_transcript,
+    )
+    .await
+    .unwrap();
     let proposed_document = match request_match {
-        DeviceRequestMatch::Candidates(mut candidates) => candidates.remove(EXAMPLE_DOC_TYPE).unwrap().pop().unwrap(),
+        DisclosureRequestMatch::Candidates(mut candidates) => {
+            candidates.remove(EXAMPLE_DOC_TYPE).unwrap().pop().unwrap()
+        }
         _ => panic!("should have found a valid candidate in DeviceRequest"),
     };
 

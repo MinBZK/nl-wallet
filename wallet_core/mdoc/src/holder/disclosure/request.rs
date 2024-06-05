@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-
 use indexmap::{IndexMap, IndexSet};
 use wallet_common::generator::Generator;
 use webpki::TrustAnchor;
@@ -17,37 +16,10 @@ use crate::{
         serialization::{self, CborSeq, TaggedBytes},
         x509::{Certificate, CertificateType, CertificateUsage},
     },
+    ItemsRequest,
 };
 
 use super::{proposed_document::ProposedDocument, MdocDataSource};
-
-/// This type represents the result of matching a `DeviceRequest` against
-/// all locally stored document. This result is one of two options:
-/// * `DeviceRequestMatch::Candidates` means that all of the attributes
-///   in the request can be satisfied. For each `DocType` in the request,
-///   a list of matching documents is provided in an `IndexMap`.
-/// * `DeviceRequestMatch::MissingAttributes` when at least one of the
-///   attributes requested is not present in any of the stored documents.
-///
-/// Please note the following:
-/// * A `DeviceRequest` may contain multiple `ItemsRequest` entries with
-///   the same `DocType`. The matching result coalesces all attributes
-///   that are requested for a particular `DocType`, which will result in
-///   a `DeviceResponse` with only one `Document` per `DocType`. This
-///   assumes that the verifier can match this response against its original
-///   request.
-/// * The order of the `IndexMap` provided with `DeviceRequestMatch::Candidates`
-///   tries to match the order of the request as best as possible. However,
-///   considering the previous point the order is not an exact match when the
-///   request contains the same `DocType` multiple times.
-/// * It is a known limitation that `DeviceRequestMatch::MissingAttributes`
-///   only contains the missing attributes for one of the `Mdoc`s for a
-///   particular `DocType`. Which one it chooses is undefined.
-#[derive(Debug)]
-pub enum DeviceRequestMatch<I> {
-    Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
-    MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
-}
 
 impl DeviceRequest {
     /// Returns `true` if this request has any attributes at all.
@@ -114,21 +86,64 @@ impl DeviceRequest {
         Ok((certificate, reader_registration).into())
     }
 
-    pub async fn match_stored_documents<S, I>(
-        &self,
+    pub fn items_requests(&self) -> impl Iterator<Item = &ItemsRequest> + Clone {
+        self.doc_requests.iter().map(|doc_request| &doc_request.items_request.0)
+    }
+}
+
+impl<'a, T: IntoIterator<Item = &'a ItemsRequest> + Clone> AttributeIdentifierHolder for T {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.clone()
+            .into_iter()
+            .flat_map(|items_request| items_request.attribute_identifiers())
+            .collect()
+    }
+}
+
+/// This type represents the result of matching an iterator of `ItemsRequest`
+/// instances against all locally stored document. This result is one of two options:
+/// * `DisclosureRequestMatch::Candidates` means that all of the attributes
+///   in the request can be satisfied. For each `DocType` in the request,
+///   a list of matching documents is provided in an `IndexMap`.
+/// * `DisclosureRequestMatch::MissingAttributes` when at least one of the
+///   attributes requested is not present in any of the stored documents.
+///
+/// Please note the following:
+/// * The input iterator of `ItemsRequest`s could contain multiple `ItemsRequest`
+///   entries with the same `DocType`. The matching result coalesces all attributes
+///   that are requested for a particular `DocType`, which will result in
+///   a `DeviceResponse` with only one `Document` per `DocType`. This
+///   assumes that the verifier can match this response against its original
+///   request.
+/// * The order of the `IndexMap` provided with `DisclosureRequestMatch::Candidates`
+///   tries to match the order of the request as best as possible. However,
+///   considering the previous point the order is not an exact match when the
+///   request contains the same `DocType` multiple times.
+/// * It is a known limitation that `DisclosureRequestMatch::MissingAttributes`
+///   only contains the missing attributes for one of the `Mdoc`s for a
+///   particular `DocType`. Which one it chooses is undefined.
+#[derive(Debug)]
+pub enum DisclosureRequestMatch<I> {
+    Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
+    MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
+}
+
+impl<I> DisclosureRequestMatch<I> {
+    pub async fn new<'a, S>(
+        items_requests: impl IntoIterator<Item = &'a ItemsRequest> + Clone,
         mdoc_data_source: &S,
         session_transcript: &SessionTranscript,
-    ) -> Result<DeviceRequestMatch<I>>
+    ) -> Result<DisclosureRequestMatch<I>>
     where
         S: MdocDataSource<MdocIdentifier = I>,
     {
         // Make a `HashSet` of doc types from the `DeviceRequest` to account
         // for potential duplicate doc types in the request, then fetch them
         // from our data source.
-        let doc_types = self
-            .doc_requests
-            .iter()
-            .map(|doc_request| doc_request.items_request.0.doc_type.as_str())
+        let doc_types = items_requests
+            .clone()
+            .into_iter()
+            .map(|items_request| items_request.doc_type.as_str())
             .collect();
 
         let stored_mdocs = mdoc_data_source
@@ -140,7 +155,7 @@ impl DeviceRequest {
         // are needed to satisfy the request. Note that a `doc_type` may occur more
         // than once in a `DeviceRequest`, so we combine all attributes and then split
         // them out by `doc_type`.
-        let mut requested_attributes_by_doc_type = self.attribute_identifiers().into_iter().fold(
+        let mut requested_attributes_by_doc_type = items_requests.attribute_identifiers().into_iter().fold(
             IndexMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
             |mut requested_attributes, attribute_identifier| {
                 // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
@@ -231,7 +246,7 @@ impl DeviceRequest {
         // If we cannot find a suitable candidate for any of the doc types
         // or one of the doc types is missing entirely, collect all of the
         // attributes that are missing and return this as the
-        // `DeviceRequestMatch::MissingAttributes` invariant.
+        // `DisclosureRequestMatch::MissingAttributes` invariant.
         if candidates_by_doc_type.values().any(|candidates| candidates.is_empty())
             || !requested_attributes_by_doc_type.is_empty()
         {
@@ -243,11 +258,11 @@ impl DeviceRequest {
                 .chain(requested_attributes_by_doc_type.into_values().flatten())
                 .collect();
 
-            return Ok(DeviceRequestMatch::MissingAttributes(missing_attributes));
+            return Ok(DisclosureRequestMatch::MissingAttributes(missing_attributes));
         }
 
         // Each `doc_type` has at least one candidates, return these now.
-        Ok(DeviceRequestMatch::Candidates(candidates_by_doc_type))
+        Ok(DisclosureRequestMatch::Candidates(candidates_by_doc_type))
     }
 }
 
@@ -381,7 +396,7 @@ mod tests {
     async fn test_match_stored_documents(
         #[case] stored_documents: TestDocuments,
         #[case] requested_documents: TestDocuments,
-        #[case] expected_match: ExpectedDeviceRequestMatch,
+        #[case] expected_match: ExpectedDisclosureRequestMatch,
     ) {
         let ca = KeyPair::generate_issuer_mock_ca().unwrap();
         let key_factory = SoftwareKeyFactory::default();
@@ -396,12 +411,12 @@ mod tests {
         let device_request = DeviceRequest::from(requested_documents);
 
         let session_transcript = create_basic_session_transcript(SessionType::SameDevice);
-        let match_result = device_request
-            .match_stored_documents(&mdoc_data_source, &session_transcript)
-            .await
-            .expect("Could not match device request with stored documents");
+        let match_result =
+            DisclosureRequestMatch::new(device_request.items_requests(), &mdoc_data_source, &session_transcript)
+                .await
+                .expect("Could not match device request with stored documents");
 
-        let match_result: ExpectedDeviceRequestMatch = match_result.into();
+        let match_result: ExpectedDisclosureRequestMatch = match_result.into();
         assert_eq!(match_result, expected_match);
     }
 
@@ -459,22 +474,22 @@ mod tests {
     }
 
     #[derive(Debug, PartialEq)]
-    enum ExpectedDeviceRequestMatch {
+    enum ExpectedDisclosureRequestMatch {
         Candidates(TestDocuments),
         MissingAttributes(IndexSet<AttributeIdentifier>),
     }
 
-    fn candidates(candidates: TestDocuments) -> ExpectedDeviceRequestMatch {
-        ExpectedDeviceRequestMatch::Candidates(candidates)
+    fn candidates(candidates: TestDocuments) -> ExpectedDisclosureRequestMatch {
+        ExpectedDisclosureRequestMatch::Candidates(candidates)
     }
-    fn missing_attributes(missing_attributes: TestDocuments) -> ExpectedDeviceRequestMatch {
-        ExpectedDeviceRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
+    fn missing_attributes(missing_attributes: TestDocuments) -> ExpectedDisclosureRequestMatch {
+        ExpectedDisclosureRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
     }
 
-    impl<T> From<DeviceRequestMatch<T>> for ExpectedDeviceRequestMatch {
-        fn from(value: DeviceRequestMatch<T>) -> Self {
+    impl<T> From<DisclosureRequestMatch<T>> for ExpectedDisclosureRequestMatch {
+        fn from(value: DisclosureRequestMatch<T>) -> Self {
             match value {
-                DeviceRequestMatch::Candidates(candidates) => {
+                DisclosureRequestMatch::Candidates(candidates) => {
                     let candidates: Vec<TestDocument> = candidates
                         .into_iter()
                         .flat_map(|(_, namespaces)| namespaces)
@@ -482,7 +497,7 @@ mod tests {
                         .collect();
                     Self::Candidates(candidates.into())
                 }
-                DeviceRequestMatch::MissingAttributes(missing) => {
+                DisclosureRequestMatch::MissingAttributes(missing) => {
                     Self::MissingAttributes(missing.into_iter().collect())
                 }
             }
