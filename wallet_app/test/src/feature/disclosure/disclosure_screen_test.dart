@@ -291,6 +291,38 @@ void main() {
       // Verify the 'close' icon is shown
       final closeIconFinder = find.byIcon(Icons.close_outlined);
       expect(closeIconFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
+    });
+
+    testWidgets('DisclosureScreen shows the server error for DisclosureNetworkError(hasInternet=true)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureNetworkError(error: CoreNetworkError('server'), hasInternet: true),
+        ),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+
+      await tester.pumpAndSettle();
+
+      // Verify the 'no internet' title is shown
+      final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline);
+      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'close' cta is shown
+      final closeCtaFinder = find.text(l10n.generalClose);
+      expect(closeCtaFinder, findsOneWidget);
+
+      // Verify the 'close' icon is shown
+      final closeIconFinder = find.byIcon(Icons.close_outlined);
+      expect(closeIconFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
     });
 
     testWidgets('DisclosureScreen shows the generic error for CoreGenericError', (tester) async {
@@ -316,6 +348,39 @@ void main() {
       // Verify the 'close' icon is shown
       final closeIconFinder = find.byIcon(Icons.close_outlined);
       expect(closeIconFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
+    });
+
+    testWidgets('DisclosureScreen shows session expired for CoreGenericError', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureSessionExpired(error: CoreGenericError('expired')),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      // Verify the 'session expired' title is shown
+      final headlineFinder = find.text(l10n.errorScreenSessionExpiredHeadline);
+      expect(headlineFinder, findsAtLeastNWidgets(1));
+
+      // Verify the 'close' cta is shown
+      final closeCtaFinder = find.text(l10n.generalClose);
+      expect(closeCtaFinder, findsOneWidget);
+
+      // Verify the 'close' icon is shown
+      final closeIconFinder = find.byIcon(Icons.close_outlined);
+      expect(closeIconFinder, findsOneWidget);
+
+      // Verify the 'show details' cta is shown
+      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
+      expect(showDetailsCtaFinder, findsOneWidget);
     });
   });
 }

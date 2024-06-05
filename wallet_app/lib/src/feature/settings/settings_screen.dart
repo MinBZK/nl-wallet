@@ -44,13 +44,13 @@ class SettingsScreen extends StatelessWidget {
         MenuRow(
           label: context.l10n.settingsScreenChangePinCta,
           icon: Icons.key,
-          onTap: () => PlaceholderScreen.show(context),
+          onTap: () => PlaceholderScreen.showGeneric(context),
         ),
         const Divider(height: 1),
         MenuRow(
           label: context.l10n.settingsScreenSetupBiometricsCta,
           icon: Icons.fingerprint,
-          onTap: () => PlaceholderScreen.show(context),
+          onTap: () => PlaceholderScreen.showGeneric(context),
         ),
         const Divider(height: 1),
         MenuRow(

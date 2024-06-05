@@ -39,9 +39,12 @@ import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisi
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i27;
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i35;
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i37;
+import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i45;
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i32;
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i47;
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i38;
 import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i28;
+import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart' as _i46;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i30;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i31;
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i34;
@@ -1225,16 +1228,26 @@ class MockPidRepository extends _i1.Mock implements _i15.PidRepository {
 /// See the documentation for Mockito's code generation for more information.
 class MockDisclosureRepository extends _i1.Mock implements _i17.DisclosureRepository {
   @override
-  _i9.Future<_i18.StartDisclosureResult> startDisclosure(String? disclosureUri) => (super.noSuchMethod(
+  _i9.Future<_i18.StartDisclosureResult> startDisclosure(
+    String? disclosureUri,
+    bool? isQrCode,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
-          [disclosureUri],
+          [
+            disclosureUri,
+            isQrCode,
+          ],
         ),
         returnValue: _i9.Future<_i18.StartDisclosureResult>.value(_i11.dummyValue<_i18.StartDisclosureResult>(
           this,
           Invocation.method(
             #startDisclosure,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
         returnValueForMissingStub:
@@ -1242,7 +1255,10 @@ class MockDisclosureRepository extends _i1.Mock implements _i17.DisclosureReposi
           this,
           Invocation.method(
             #startDisclosure,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
       ) as _i9.Future<_i18.StartDisclosureResult>);
@@ -1690,23 +1706,36 @@ class MockTypedWalletCore extends _i1.Mock implements _i25.TypedWalletCore {
       ) as _i9.Future<bool>);
 
   @override
-  _i9.Future<_i7.StartDisclosureResult> startDisclosure(String? uri) => (super.noSuchMethod(
+  _i9.Future<_i7.StartDisclosureResult> startDisclosure(
+    String? uri,
+    bool? isQrCode,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
-          [uri],
+          [
+            uri,
+            isQrCode,
+          ],
         ),
         returnValue: _i9.Future<_i7.StartDisclosureResult>.value(_FakeStartDisclosureResult_10(
           this,
           Invocation.method(
             #startDisclosure,
-            [uri],
+            [
+              uri,
+              isQrCode,
+            ],
           ),
         )),
         returnValueForMissingStub: _i9.Future<_i7.StartDisclosureResult>.value(_FakeStartDisclosureResult_10(
           this,
           Invocation.method(
             #startDisclosure,
-            [uri],
+            [
+              uri,
+              isQrCode,
+            ],
           ),
         )),
       ) as _i9.Future<_i7.StartDisclosureResult>);
@@ -2136,16 +2165,26 @@ class MockAcceptIssuanceUseCase extends _i1.Mock implements _i40.AcceptIssuanceU
 /// See the documentation for Mockito's code generation for more information.
 class MockStartDisclosureUseCase extends _i1.Mock implements _i41.StartDisclosureUseCase {
   @override
-  _i9.Future<_i18.StartDisclosureResult> invoke(String? disclosureUri) => (super.noSuchMethod(
+  _i9.Future<_i18.StartDisclosureResult> invoke(
+    String? disclosureUri,
+    bool? isQrCode,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(
           #invoke,
-          [disclosureUri],
+          [
+            disclosureUri,
+            isQrCode,
+          ],
         ),
         returnValue: _i9.Future<_i18.StartDisclosureResult>.value(_i11.dummyValue<_i18.StartDisclosureResult>(
           this,
           Invocation.method(
             #invoke,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
         returnValueForMissingStub:
@@ -2153,7 +2192,10 @@ class MockStartDisclosureUseCase extends _i1.Mock implements _i41.StartDisclosur
           this,
           Invocation.method(
             #invoke,
-            [disclosureUri],
+            [
+              disclosureUri,
+              isQrCode,
+            ],
           ),
         )),
       ) as _i9.Future<_i18.StartDisclosureResult>);
@@ -2202,6 +2244,63 @@ class MockObserveRecentHistoryUseCase extends _i1.Mock implements _i44.ObserveRe
         returnValue: _i9.Stream<List<_i22.WalletEvent>>.empty(),
         returnValueForMissingStub: _i9.Stream<List<_i22.WalletEvent>>.empty(),
       ) as _i9.Stream<List<_i22.WalletEvent>>);
+}
+
+/// A class which mocks [CheckIsValidPinUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCheckIsValidPinUseCase extends _i1.Mock implements _i45.CheckIsValidPinUseCase {
+  @override
+  _i9.Future<void> invoke(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [pin],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+}
+
+/// A class which mocks [CreateWalletUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCreateWalletUseCase extends _i1.Mock implements _i46.CreateWalletUseCase {
+  @override
+  _i9.Future<void> invoke(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [pin],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+}
+
+/// A class which mocks [UnlockWalletWithPinUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockUnlockWalletWithPinUseCase extends _i1.Mock implements _i47.UnlockWalletWithPinUseCase {
+  @override
+  _i9.Future<_i33.CheckPinResult> invoke(String? pin) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [pin],
+        ),
+        returnValue: _i9.Future<_i33.CheckPinResult>.value(_i11.dummyValue<_i33.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i33.CheckPinResult>.value(_i11.dummyValue<_i33.CheckPinResult>(
+          this,
+          Invocation.method(
+            #invoke,
+            [pin],
+          ),
+        )),
+      ) as _i9.Future<_i33.CheckPinResult>);
 }
 
 /// A class which mocks [WalletCore].
@@ -2902,6 +3001,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
   @override
   _i9.Future<_i7.StartDisclosureResult> startDisclosure({
     required String? uri,
+    required bool? isQrCode,
     dynamic hint,
   }) =>
       (super.noSuchMethod(
@@ -2910,6 +3010,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
           [],
           {
             #uri: uri,
+            #isQrCode: isQrCode,
             #hint: hint,
           },
         ),
@@ -2920,6 +3021,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
             [],
             {
               #uri: uri,
+              #isQrCode: isQrCode,
               #hint: hint,
             },
           ),
@@ -2931,6 +3033,7 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
             [],
             {
               #uri: uri,
+              #isQrCode: isQrCode,
               #hint: hint,
             },
           ),

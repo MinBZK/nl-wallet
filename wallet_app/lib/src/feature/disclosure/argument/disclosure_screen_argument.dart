@@ -1,22 +1,22 @@
 class DisclosureScreenArgument {
-  static const _kSessionIdKey = 'sessionId';
   static const _kUriKey = 'uri';
+  static const _kIsQrCodeKey = 'isQrCode';
 
-  final String? mockSessionId;
-  final String? uri;
+  final String uri;
+  final bool isQrCode;
 
-  const DisclosureScreenArgument({this.mockSessionId, this.uri}) : assert(mockSessionId != null || uri != null);
+  const DisclosureScreenArgument({required this.uri, required this.isQrCode});
 
   Map<String, dynamic> toMap() {
     return {
-      _kSessionIdKey: mockSessionId,
+      _kIsQrCodeKey: isQrCode,
       _kUriKey: uri,
     };
   }
 
   static DisclosureScreenArgument fromMap(Map<String, dynamic> map) {
     return DisclosureScreenArgument(
-      mockSessionId: map[_kSessionIdKey],
+      isQrCode: map[_kIsQrCodeKey],
       uri: map[_kUriKey],
     );
   }
@@ -26,13 +26,18 @@ class DisclosureScreenArgument {
       identical(this, other) ||
       other is DisclosureScreenArgument &&
           runtimeType == other.runtimeType &&
-          mockSessionId == other.mockSessionId &&
+          isQrCode == other.isQrCode &&
           uri == other.uri;
 
   @override
   int get hashCode => Object.hash(
         runtimeType,
-        mockSessionId,
+        isQrCode,
         uri,
       );
+
+  @override
+  String toString() {
+    return 'DisclosureScreenArgument{uri: $uri, isQrCode: $isQrCode}';
+  }
 }

@@ -25,6 +25,8 @@ enum FlutterApiErrorType {
   networking,
   @JsonValue('WalletState')
   walletState,
+  @JsonValue('HardwareKeyUnsupported')
+  hardwareKeyUnsupported,
   @JsonValue('RedirectUri')
   redirectUri,
 }

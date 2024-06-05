@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
-use itertools::Itertools;
 use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
@@ -19,13 +18,12 @@ use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     disclosure::{
-        DisclosureUriData, DisclosureUriError, MdocDisclosureMissingAttributes, MdocDisclosureProposal,
-        MdocDisclosureSession, MdocDisclosureSessionState,
+        DisclosureUriData, DisclosureUriError, DisclosureUriSource, MdocDisclosureMissingAttributes,
+        MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
     },
-    document::{DisclosureDocument, DocumentMdocError, MissingDisclosureAttributes},
+    document::{DisclosureDocument, DisclosureType, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
-    storage::{Storage, StorageError, StoredMdocCopy, WalletEvent},
-    EventStatus,
+    storage::{EventStatus, Storage, StorageError, StoredMdocCopy, WalletEvent},
 };
 
 use super::{history::EventStorageError, Wallet};
@@ -77,7 +75,11 @@ where
     S: Storage,
 {
     #[instrument(skip_all)]
-    pub async fn start_disclosure(&mut self, uri: &Url) -> Result<DisclosureProposal, DisclosureError> {
+    pub async fn start_disclosure(
+        &mut self,
+        uri: &Url,
+        source: DisclosureUriSource,
+    ) -> Result<DisclosureProposal, DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
 
         info!("Checking if registered");
@@ -104,7 +106,7 @@ where
         .map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
-        let session = MDS::start(disclosure_uri, self, &config.rp_trust_anchors())
+        let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors())
             .await
             .map_err(DisclosureError::DisclosureSession)?;
 
@@ -157,15 +159,17 @@ where
 
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
 
+        // Prepare a `IndexMap<DocType, ProposedDocumentAttributes>`.
+        let proposed_attributes = proposal_session.proposed_attributes();
+
+        let is_login_flow = DisclosureType::from_proposed_attributes(&proposed_attributes).is_login_flow();
+
         // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
-        let documents: Vec<DisclosureDocument> = proposal_session
-            .proposed_attributes()
+        let documents: Vec<DisclosureDocument> = proposed_attributes
             .into_iter()
             .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
             .collect::<Result<_, _>>()
             .map_err(DisclosureError::MdocAttributes)?;
-
-        let is_login_flow = Self::is_login_flow(&documents);
 
         // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.
         let proposal = DisclosureProposal {
@@ -181,25 +185,26 @@ where
 
         Ok(proposal)
     }
-
-    // Check if this is a login flow by verifying that ONLY a bsn is shared
-    fn is_login_flow(documents: &[DisclosureDocument]) -> bool {
-        // Currently, a login flow is defined as:
-        // - there is exactly one document being shared
-        // - exactly one attribute is being shared
-        // - that attribute is the BSN
-        documents
-            .iter()
-            .exactly_one()
-            .ok()
-            .and_then(|doc| doc.attributes.iter().exactly_one().ok())
-            .map(|attribute| *attribute.0 == "bsn")
-            .unwrap_or(false)
-    }
-
+    /// When we have missing attributes, we don't have a proposal -> empty proposed_attributes.
+    /// When we do have a proposal, give us the proposed attributes then. In both cases, empty
+    /// or "real", use from_proposed_attributes to determine the disclosure_type.
     async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<(), DisclosureError> {
-        // Prepare history events from session before terminating session
-        let event = WalletEvent::new_disclosure(None, session.rp_certificate().clone(), EventStatus::Cancelled);
+        let proposed_attributes = match session.session_state() {
+            MdocDisclosureSessionState::MissingAttributes(_) => None,
+            MdocDisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
+        };
+
+        let disclosure_type = proposed_attributes
+            .as_ref()
+            .map(DisclosureType::from_proposed_attributes)
+            .unwrap_or(DisclosureType::Regular);
+
+        let event = WalletEvent::new_disclosure(
+            None,
+            session.rp_certificate().clone(),
+            EventStatus::Cancelled,
+            disclosure_type,
+        );
 
         session.terminate().await.map_err(DisclosureError::DisclosureSession)?;
 
@@ -251,13 +256,16 @@ where
 
     async fn log_disclosure_error(
         &mut self,
-        session_proposal: Option<ProposedAttributes>,
+        proposed_attributes: ProposedAttributes,
+        data_shared: bool,
         remote_party_certificate: Certificate,
     ) -> Result<(), DisclosureError> {
+        let disclosure_type = DisclosureType::from_proposed_attributes(&proposed_attributes);
         let event = WalletEvent::new_disclosure(
-            session_proposal.map(Into::into),
+            data_shared.then(|| proposed_attributes.into()),
             remote_party_certificate,
             EventStatus::Error,
+            disclosure_type,
         );
         self.store_history_event(event)
             .await
@@ -309,7 +317,8 @@ where
         {
             if let Err(e) = self
                 .log_disclosure_error(
-                    None, // No data was shared yet
+                    session_proposal.proposed_attributes(),
+                    false, // No data was shared yet
                     session.rp_certificate().clone(),
                 )
                 .await
@@ -339,7 +348,8 @@ where
         if let Err(error) = session_proposal.disclose(&&remote_key_factory).await {
             if let Err(e) = self
                 .log_disclosure_error(
-                    error.data_shared.then(|| session_proposal.proposed_attributes()),
+                    session_proposal.proposed_attributes(),
+                    error.data_shared,
                     session.rp_certificate().clone(),
                 )
                 .await
@@ -388,13 +398,18 @@ where
         // errors that occur after this point will result in the `Wallet` not having
         // an active disclosure session anymore.
         let proposed_attributes = session_proposal.proposed_attributes();
+        let disclosure_type = DisclosureType::from_proposed_attributes(&proposed_attributes);
         let rp_certificate = session.rp_certificate().clone();
         let return_url = session_proposal.return_url().cloned();
-
         self.disclosure_session.take();
 
         // Save data for disclosure in event log.
-        let event = WalletEvent::new_disclosure(Some(proposed_attributes.into()), rp_certificate, EventStatus::Success);
+        let event = WalletEvent::new_disclosure(
+            Some(proposed_attributes.into()),
+            rp_certificate,
+            EventStatus::Success,
+            disclosure_type,
+        );
         self.store_history_event(event)
             .await
             .map_err(DisclosureError::EventStorage)?;
@@ -513,7 +528,7 @@ mod tests {
 
         // Starting disclosure should not fail.
         let proposal = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
             .await
             .expect("Could not start disclosure");
 
@@ -521,7 +536,7 @@ mod tests {
         // with the items parsed from the disclosure URI.
         assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == DisclosureUriData {
             reader_engagement_bytes: b"foobar".to_vec(),
-        });
+        } && session.reader_engagement_source == DisclosureUriSource::QrCode );
 
         // Test that the returned `DisclosureProposal` contains the
         // `ReaderRegistration` we set up earlier, as well as the
@@ -553,7 +568,7 @@ mod tests {
 
         // Starting disclosure on a locked wallet should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -568,7 +583,7 @@ mod tests {
 
         // Starting disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -585,7 +600,7 @@ mod tests {
 
         // Starting disclosure on a wallet with an active disclosure should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -599,7 +614,7 @@ mod tests {
 
         // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
         let error = wallet
-            .start_disclosure(&Url::parse("http://example.com").unwrap())
+            .start_disclosure(&Url::parse("http://example.com").unwrap(), DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -617,7 +632,7 @@ mod tests {
 
         // Starting disclosure with a malformed disclosure URI should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -645,7 +660,7 @@ mod tests {
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -682,7 +697,7 @@ mod tests {
         // Starting disclosure where an attribute that is both unavailable
         // and unknown is requested should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -729,7 +744,7 @@ mod tests {
 
         // Starting disclosure where unknown attributes are requested should result in an error.
         let error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
@@ -781,7 +796,7 @@ mod tests {
 
         // Start a disclosure session, to ensure a proper session exists that can be cancelled.
         let _ = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect("Could not start disclosure");
 
@@ -843,7 +858,7 @@ mod tests {
         // Starting disclosure where an unavailable attribute is requested should result in an error.
         // As an exception, this error should leave the `Wallet` with an active disclosure session.
         let _error = wallet
-            .start_disclosure(&DISCLOSURE_URI)
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
         assert!(wallet.disclosure_session.is_some());

@@ -46,7 +46,7 @@ class ErrorPage extends StatelessWidget {
         onPressed: onPrimaryActionPressed,
       ),
       secondaryButton: TertiaryButton(
-        text: Text(context.l10n.errorScreenGeneralHelpCta),
+        text: Text(context.l10n.generalShowDetailsCta),
         icon: const Icon(Icons.help_outline_rounded),
         onPressed: () => ErrorDetailsSheet.show(context),
       ),
@@ -68,7 +68,7 @@ class ErrorPage extends StatelessWidget {
         onPressed: onPrimaryActionPressed,
       ),
       secondaryButton: TertiaryButton(
-        text: Text(context.l10n.errorScreenGeneralHelpCta),
+        text: Text(context.l10n.generalShowDetailsCta),
         icon: const Icon(Icons.help_outline_rounded),
         onPressed: () => ErrorDetailsSheet.show(context),
       ),
@@ -91,11 +91,27 @@ class ErrorPage extends StatelessWidget {
         style,
         onPressed: onPrimaryActionPressed,
       ),
-      secondaryButton: TertiaryButton(
-        text: Text(context.l10n.generalShowDetailsCta),
-        icon: const Icon(Icons.info_outline_rounded),
-        onPressed: () => ErrorDetailsSheet.show(context),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
+  factory ErrorPage.sessionExpired(
+    BuildContext context, {
+    VoidCallback? onPrimaryActionPressed,
+    required ErrorCtaStyle style,
+  }) {
+    return ErrorPage(
+      headline: context.l10n.errorScreenSessionExpiredHeadline,
+      description: style == ErrorCtaStyle.close
+          ? context.l10n.errorScreenSessionExpiredDescriptionCloseVariant
+          : context.l10n.errorScreenSessionExpiredDescription,
+      illustration: WalletAssets.svg_error_session_expired,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
+        onPressed: onPrimaryActionPressed,
       ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );
   }
 
@@ -103,56 +119,58 @@ class ErrorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scrollbar(
-        child: CustomScrollView(
-          slivers: [
-            const SliverSizedBox(height: 24),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TitleText(headline),
+        child: Column(
+          children: [
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  const SliverSizedBox(height: 24),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TitleText(headline),
+                    ),
+                  ),
+                  const SliverSizedBox(height: 8),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: BodyText(description),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: PageIllustration(
+                        asset: illustration ?? WalletAssets.svg_error_general,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SliverSizedBox(height: 8),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: BodyText(description),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: PageIllustration(
-                  asset: illustration ?? WalletAssets.svg_error_general,
-                ),
-              ),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              fillOverscroll: true,
-              child: _buildBottomSection(),
-            )
+            _buildBottomSection(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomSection() {
-    Widget content;
-    if (secondaryButton == null) {
-      content = primaryButton;
-    } else {
-      content = ConfirmButtons(
-        forceVertical: true,
-        flipVertical: true,
-        secondaryButton: secondaryButton!,
-        primaryButton: primaryButton,
-      );
-    }
+  Widget _buildBottomSection(BuildContext context) {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: content,
+      child: Column(
+        children: [
+          const Divider(height: 1),
+          ConfirmButtons(
+            forceVertical: !context.isLandscape,
+            flipVertical: true,
+            hideSecondaryButton: secondaryButton == null,
+            secondaryButton: secondaryButton ?? const TertiaryButton(text: Text('' /* invisible placeholder */)),
+            primaryButton: primaryButton,
+          ),
+        ],
+      ),
     );
   }
 }

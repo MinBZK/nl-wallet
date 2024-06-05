@@ -63,7 +63,7 @@ class ChangeLanguageTests : TestBase() {
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @Tags(Tag("dutch"))
+        @Tags(Tag("dutch"), Tag("smoke"))
         @DisplayName("$USE_CASE.3.2 When the User selects English, the app immediately uses English. [$JIRA_ID]")
         fun verifyEnglishLanguageSelect() {
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")

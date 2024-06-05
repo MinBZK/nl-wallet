@@ -36,7 +36,7 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
         cards: cards,
         policy: _policyMapper.map(disclosure.requestPolicy),
         status: _resolveInteractionStatus(disclosure.status),
-        disclosureType: _disclosureTypeMapper.map(disclosure.disclosureType),
+        type: _disclosureTypeMapper.map(disclosure.type),
       );
     }, issuance: (issuance) {
       final card = _cardMapper.map(issuance.card);

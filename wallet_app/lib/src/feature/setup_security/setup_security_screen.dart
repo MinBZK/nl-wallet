@@ -84,6 +84,9 @@ class SetupSecurityScreen extends StatelessWidget {
             context.bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
           });
         }
+        if (state is SetupSecurityDeviceIncompatibleError) {
+          ErrorScreen.showDeviceIncompatible(context);
+        }
         _runAnnouncements(context, state);
       },
       builder: (context, state) {
@@ -97,6 +100,7 @@ class SetupSecurityScreen extends StatelessWidget {
           SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
           SetupSecurityGenericError() => _buildSetupFailed(context),
           SetupSecurityNetworkError() => _buildSetupFailed(context),
+          SetupSecurityDeviceIncompatibleError() => _buildSetupFailed(context),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -277,6 +281,7 @@ class SetupSecurityScreen extends StatelessWidget {
       SetupSecurityCompleted() => context.l10n.setupSecurityCompletedPageTitle,
       SetupSecurityGenericError() => '',
       SetupSecurityNetworkError() => '',
+      SetupSecurityDeviceIncompatibleError() => '',
     };
     if (title.isEmpty) return const SizedBox.shrink();
     return FadeInAtOffset(

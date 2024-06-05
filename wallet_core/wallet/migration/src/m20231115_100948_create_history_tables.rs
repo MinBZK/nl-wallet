@@ -38,6 +38,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(DisclosureHistoryEvent::Status).text().not_null())
                     .col(ColumnDef::new(DisclosureHistoryEvent::Attributes).json().null())
+                    .col(ColumnDef::new(DisclosureHistoryEvent::Type).text().not_null())
                     .to_owned(),
             )
             .await?;
@@ -141,6 +142,7 @@ enum DisclosureHistoryEvent {
     RelyingPartyCertificate,
     Status,
     Attributes,
+    Type,
 }
 
 #[derive(DeriveIden)]

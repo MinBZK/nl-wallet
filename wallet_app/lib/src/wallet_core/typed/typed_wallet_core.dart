@@ -110,7 +110,8 @@ class TypedWalletCore {
 
   Future<bool> hasActivePidIssuanceSession() => call((core) => core.hasActivePidIssuanceSession());
 
-  Future<StartDisclosureResult> startDisclosure(String uri) => call((core) => core.startDisclosure(uri: uri));
+  Future<StartDisclosureResult> startDisclosure(String uri, bool isQrCode) =>
+      call((core) => core.startDisclosure(uri: uri, isQrCode: isQrCode));
 
   Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());
 

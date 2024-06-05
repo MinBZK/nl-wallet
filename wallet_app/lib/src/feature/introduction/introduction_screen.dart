@@ -12,7 +12,6 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
-import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
@@ -92,7 +91,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
           appBar: WalletAppBar(
             leading: _buildBackButton(),
             automaticallyImplyLeading: false,
-            actions: [_buildInfoButton(), _buildSkipSetupButton()],
+            actions: [const HelpIconButton(), _buildSkipSetupButton()],
             title: FadeInAtOffset(
               scrollController: _currentScrollController,
               appearOffset: 38,
@@ -232,12 +231,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       description: context.l10n.introductionPage3Description,
       lottieAsset: WalletAssets.lottie_intro_3,
       controller: _scrollControllers[2],
-    );
-  }
-
-  Widget _buildInfoButton() {
-    return HelpIconButton(
-      onPressed: () => PlaceholderScreen.show(context, secured: false),
     );
   }
 

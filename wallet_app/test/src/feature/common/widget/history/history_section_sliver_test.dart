@@ -19,7 +19,7 @@ void main() {
       purpose: 'disclosure'.untranslated,
       cards: [WalletMockData.card],
       policy: WalletMockData.policy,
-      disclosureType: DisclosureType.regular,
+      type: DisclosureType.regular,
     ),
     WalletEvent.disclosure(
       dateTime: DateTime(2023, 1, 2),
@@ -28,7 +28,7 @@ void main() {
       purpose: 'disclosure'.untranslated,
       cards: [WalletMockData.card],
       policy: WalletMockData.policy,
-      disclosureType: DisclosureType.regular,
+      type: DisclosureType.regular,
     ),
     WalletEvent.disclosure(
       dateTime: DateTime(2023, 1, 3),
@@ -37,7 +37,7 @@ void main() {
       purpose: 'disclosure'.untranslated,
       cards: [WalletMockData.card],
       policy: WalletMockData.policy,
-      disclosureType: DisclosureType.regular,
+      type: DisclosureType.regular,
     ),
   ];
 

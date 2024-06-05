@@ -31,6 +31,7 @@ class DashboardTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The card overview page displays all cards currently available in the app. [${JIRA_ID}]")
+    @Tags(Tag("smoke"))
     fun verifyIssuedCardsVisible() {
         assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible")
     }
