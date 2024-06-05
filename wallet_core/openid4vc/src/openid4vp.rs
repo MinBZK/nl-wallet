@@ -636,42 +636,44 @@ impl VpAuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
+    use indexmap::IndexMap;
     use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
     use serde_json::json;
 
     use nl_wallet_mdoc::{
-        examples::{Example, Examples},
+        examples::{Example, Examples, IsoCertTimeGenerator, EXAMPLE_DOC_TYPE, EXAMPLE_KEY_IDENTIFIER},
         server_keys::KeyPair,
-        utils::serialization::CborBase64,
-        DeviceResponse,
+        software_key_factory::SoftwareKeyFactory,
+        utils::serialization::{cbor_serialize, CborBase64, CborSeq, TaggedBytes},
+        DeviceAuthenticationKeyed, DeviceResponse, DeviceResponseVersion, DeviceSigned, Document, SessionTranscript,
     };
+    use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::openid4vp::VerifiablePresentation;
+    use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
 
-    use super::{jwt, VpAuthorizationRequest, VpAuthorizationResponse};
-
-    fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest, String) {
+    fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
         let rp_keypair = ca.generate_reader_mock(None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
-        let nonce = "nonce".to_string();
 
         let auth_request = VpAuthorizationRequest::new(
             &Examples::items_requests(),
             rp_keypair.certificate(),
-            nonce.clone(),
+            "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             "https://example.com/response_uri".parse().unwrap(),
         )
         .unwrap();
 
-        (ca, rp_keypair, encryption_privkey, auth_request, nonce)
+        (ca, rp_keypair, encryption_privkey, auth_request)
     }
 
     #[test]
     fn test_encrypt_decrypt_authorization_response() {
-        let (_, _, encryption_privkey, auth_request, nonce) = setup();
+        let (_, _, encryption_privkey, auth_request) = setup();
 
         // NB: the example DeviceResponse verifies as an ISO 18013-5 DeviceResponse while here we use it in
         // an OpenID4VP setting, i.e. with different SessionTranscript contents, so it can't be verified.
@@ -682,7 +684,12 @@ mod tests {
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
         let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
 
-        let (decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey, &nonce).unwrap();
+        let (decrypted, jwe_mdoc_nonce) = VpAuthorizationResponse::decrypt(
+            &jwe,
+            &encryption_privkey,
+            auth_request.oauth_request.nonce.as_ref().unwrap(),
+        )
+        .unwrap();
         assert_eq!(mdoc_nonce, jwe_mdoc_nonce);
 
         let VerifiablePresentation::MsoMdoc(CborBase64(encrypted_device_response)) =
@@ -698,7 +705,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_authorization_request_jwt() {
-        let (ca, rp_keypair, _, auth_request, _) = setup();
+        let (ca, rp_keypair, _, auth_request) = setup();
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
@@ -784,5 +791,77 @@ mod tests {
             auth_response.vp_token.first().unwrap();
         let decrypted_document = decrypted_device_response.documents.as_ref().unwrap().first().unwrap();
         assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
+    }
+
+    /// Given a `session_transcript`, manually construct a mock `DeviceResponse` using the examples from ISO 18013-5.
+    async fn mock_device_response(session_transcript: &SessionTranscript) -> DeviceResponse {
+        let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
+            .issuer_signed
+            .clone();
+
+        // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
+        let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
+            device_authentication: Default::default(),
+            session_transcript: Cow::Borrowed(session_transcript),
+            doc_type: Cow::Borrowed(EXAMPLE_DOC_TYPE),
+            device_name_spaces_bytes: IndexMap::new().into(),
+        }));
+        let challenge = cbor_serialize(&device_authentication).unwrap();
+        let key = SoftwareEcdsaKey::new(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key());
+        let keys_and_challenges = vec![(key, challenge.as_ref())];
+
+        // Sign the challenge using the mdoc key
+        let device_signed = DeviceSigned::new_signatures(keys_and_challenges, &SoftwareKeyFactory::default())
+            .await
+            .unwrap()
+            .first()
+            .unwrap()
+            .clone();
+
+        let device_response = DeviceResponse {
+            version: DeviceResponseVersion::V1_0,
+            documents: Some(vec![Document {
+                doc_type: EXAMPLE_DOC_TYPE.to_string(),
+                issuer_signed,
+                device_signed,
+                errors: None,
+            }]),
+            document_errors: None,
+            status: 0,
+        };
+        device_response
+            .verify(
+                None,
+                session_transcript,
+                &IsoCertTimeGenerator,
+                Examples::iaca_trust_anchors(),
+            )
+            .unwrap();
+
+        device_response
+    }
+
+    #[tokio::test]
+    async fn test_verify_authorization_response() {
+        let (_, _, _, auth_request) = setup();
+        let mdoc_nonce = "mdoc_nonce";
+
+        let session_transcript = SessionTranscript::new_oid4vp(
+            auth_request.response_uri.as_ref().unwrap(),
+            &auth_request.oauth_request.client_id,
+            auth_request.oauth_request.nonce.as_ref().unwrap().clone(),
+            mdoc_nonce,
+        );
+        let device_response = mock_device_response(&session_transcript).await;
+        let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
+
+        auth_response
+            .verify(
+                &auth_request,
+                mdoc_nonce.to_string(),
+                &IsoCertTimeGenerator,
+                Examples::iaca_trust_anchors(),
+            )
+            .unwrap();
     }
 }
