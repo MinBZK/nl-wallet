@@ -34,7 +34,7 @@ use nl_wallet_mdoc::{
     },
     verifier::{
         DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase,
-        VerificationError, Verifier, VerifierUrlParameters,
+        VerificationError, Verifier,
     },
     Error, ReaderEngagement,
 };
@@ -65,17 +65,9 @@ impl HttpClient for MockDisclosureHttpClient {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
         let msg = serialization::cbor_serialize(val).unwrap();
 
-        // A bit silly, but we have to extract the verifier base URL and parameters from the verifier URL,
-        // only to put them back together in `process_message`.
-        let params: VerifierUrlParameters = serde_urlencoded::from_str(url.query().unwrap()).unwrap();
-        let mut verifier_url = url.clone();
-        verifier_url.set_query(None); // remove the parameters
-        verifier_url.path_segments_mut().unwrap().pop(); // remove session_token
-        let verifier_base_url = verifier_url.try_into().unwrap();
-
         let session_data = self
             .verifier
-            .process_message(&msg, &session_token.into(), Some((verifier_base_url, params)))
+            .process_message(&msg, &session_token.into(), url.clone())
             .await
             .unwrap();
 

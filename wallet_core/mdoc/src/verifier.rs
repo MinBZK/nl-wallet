@@ -153,7 +153,7 @@ pub struct Done {
     session_result: SessionResult,
 }
 
-/// The outcome of a session: the disclosed attributes if they have been sucessfully received and verified.
+/// The outcome of a session: the disclosed attributes if they have been successfully received and verified.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 pub enum SessionResult {
@@ -301,7 +301,7 @@ const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VerifierUrlParameters {
+struct VerifierUrlParameters {
     pub session_type: SessionType,
     #[serde_as(as = "Hex")]
     pub ephemeral_id: Vec<u8>,
@@ -446,12 +446,12 @@ where
     ///
     /// - `msg` is the received protocol message.
     /// - `token` is the session token as parsed from the URL.
-    /// - `verifier_url` is a tuple of the base URL of the disclosure endpoint of the wallet server and the query parameters passed to the verifier URL.
+    /// - `full_url` is the full URL that was called in order to send this message.
     pub async fn process_message(
         &self,
         msg: &[u8],
         session_token: &SessionToken,
-        verifier_url: Option<(BaseUrl, VerifierUrlParameters)>,
+        full_url: Url,
     ) -> Result<SessionData> {
         let state = self
             .sessions
@@ -462,28 +462,11 @@ where
 
         info!("Session({session_token}): process message");
 
-        let (response, next) = match (state.data, verifier_url) {
-            (
-                DisclosureData::Created(session_data),
-                Some((
-                    verifier_base_url,
-                    VerifierUrlParameters {
-                        time,
-                        ephemeral_id,
-                        session_type,
-                    },
-                )),
-            ) => {
-                if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > time {
-                    return Err(VerificationError::ExpiredEphemeralId(ephemeral_id).into());
-                }
-
-                hmac::verify(
-                    &self.ephemeral_id_secret,
-                    &Self::format_ephemeral_id_payload(session_token, &time),
-                    &ephemeral_id,
-                )
-                .map_err(|_| VerificationError::InvalidEphemeralId(ephemeral_id.clone()))?;
+        let (response, next) = match state.data {
+            DisclosureData::Created(session_data) => {
+                // Verify the ephemeral ID outside of processing the device engagement, so that it does
+                // not result in a terminated session and the client may retry using a more recent ID.
+                let session_type = Self::verify_ephemeral_id(&self.ephemeral_id_secret, session_token, &full_url)?;
 
                 let session = Session::<Created> {
                     state: SessionState {
@@ -493,19 +476,15 @@ where
                     },
                 };
 
-                // to be able to compute the SessionTranscript, the verifier URL needs to be reconstructed here
-                let verifier_url =
-                    Self::format_verifier_url(&verifier_base_url, session_token, session_type, time, ephemeral_id)
-                        .map_err(VerificationError::UrlEncoding)?;
                 let (response, session) = session
-                    .process_device_engagement(cbor_deserialize(msg)?, verifier_url, session_type, &self.use_cases)
+                    .process_device_engagement(cbor_deserialize(msg)?, full_url, session_type, &self.use_cases)
                     .await;
                 match session {
                     Ok(next) => Ok((response, next.state.into())),
                     Err(next) => Ok((response, next.state.into())),
                 }
             }
-            (DisclosureData::WaitingForResponse(session_data), _) => {
+            DisclosureData::WaitingForResponse(session_data) => {
                 let session = Session::<WaitingForResponse> {
                     state: SessionState {
                         data: session_data,
@@ -523,8 +502,7 @@ where
                 );
                 Ok((response, session.state.into()))
             }
-            (DisclosureData::Created(_), None) => Err(VerificationError::MissingVerifierUrlParameters),
-            (DisclosureData::Done(_), _) => Err(VerificationError::SessionIsDone),
+            DisclosureData::Done(_) => Err(VerificationError::SessionIsDone),
         }?;
 
         self.sessions
@@ -645,6 +623,38 @@ impl<S> Verifier<S> {
         .as_ref()
         .to_vec();
         ephemeral_id
+    }
+
+    fn verify_ephemeral_id(
+        ephemeral_id_secret: &hmac::Key,
+        session_token: &SessionToken,
+        verifier_url: &Url,
+    ) -> Result<SessionType> {
+        // Decode the query parameters from the verifier URL.
+        let query = verifier_url
+            .query()
+            .ok_or(VerificationError::MissingVerifierUrlParameters)?;
+
+        let VerifierUrlParameters {
+            session_type,
+            ephemeral_id,
+            time,
+        } = serde_urlencoded::from_str(query).map_err(|_| VerificationError::MissingVerifierUrlParameters)?;
+
+        // Check if the timestamp is recent enough.
+        if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > time {
+            return Err(VerificationError::ExpiredEphemeralId(ephemeral_id).into());
+        }
+
+        // Verify the ephemeral ID against the HMAC of the session token and time provided.
+        hmac::verify(
+            ephemeral_id_secret,
+            &Self::format_ephemeral_id_payload(session_token, &time),
+            &ephemeral_id,
+        )
+        .map_err(|_| VerificationError::InvalidEphemeralId(ephemeral_id.clone()))?;
+
+        Ok(session_type)
     }
 
     // formats the payload to hash to the ephemeral ID in a consistent way
@@ -1322,12 +1332,12 @@ mod tests {
     use base64::prelude::*;
     use chrono::{DateTime, Duration, Utc};
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use p256::SecretKey;
     use ring::{hmac, rand};
     use rstest::rstest;
 
     use wallet_common::{
-        config::wallet_config::BaseUrl,
         generator::{Generator, TimeGenerator},
         trust_anchor::DerTrustAnchor,
     };
@@ -1541,8 +1551,7 @@ mod tests {
         DeviceEngagement,
         SecretKey,
         SessionToken,
-        BaseUrl,
-        VerifierUrlParameters,
+        Url,
     ) {
         let verifier = create_verifier();
 
@@ -1556,7 +1565,7 @@ mod tests {
             .await
             .unwrap();
 
-        let verifier_url = format!("https://example.com/disclosure/{session_token}")
+        let verifier_base_url = format!("https://example.com/disclosure/{session_token}")
             .parse()
             .unwrap();
         let response = verifier
@@ -1564,7 +1573,7 @@ mod tests {
                 &session_token,
                 SessionType::SameDevice,
                 &"https://app.example.com/app".parse().unwrap(),
-                &verifier_url,
+                &verifier_base_url,
                 time,
             )
             .await
@@ -1583,12 +1592,11 @@ mod tests {
         )
         .expect("should always deserialize");
 
-        let verifier_url_params: VerifierUrlParameters =
-            serde_urlencoded::from_str(reader_engagement.verifier_url().unwrap().query().unwrap()).unwrap();
-
         // Construct first device protocol message
         let (device_engagement, device_eph_key) =
             DeviceEngagement::new_device_engagement("https://example.com/".parse().unwrap()).unwrap();
+
+        let verifier_url = reader_engagement.verifier_url().unwrap().clone();
 
         (
             verifier,
@@ -1597,27 +1605,19 @@ mod tests {
             device_eph_key,
             session_token,
             verifier_url,
-            verifier_url_params,
         )
     }
 
     #[tokio::test]
     async fn disclosure() {
-        let (
-            verifier,
-            reader_engagement,
-            device_engagement,
-            device_eph_key,
-            session_token,
-            verifier_url,
-            verifier_url_params,
-        ) = init_and_start_disclosure(&TimeGenerator).await;
+        let (verifier, reader_engagement, device_engagement, device_eph_key, session_token, verifier_url) =
+            init_and_start_disclosure(&TimeGenerator).await;
 
         let msg = cbor_serialize(&device_engagement).unwrap();
 
         // send first device protocol message
         let encrypted_device_request = verifier
-            .process_message(&msg, &session_token.clone(), Some((verifier_url, verifier_url_params)))
+            .process_message(&msg, &session_token.clone(), verifier_url.clone())
             .await
             .unwrap();
 
@@ -1639,7 +1639,7 @@ mod tests {
         })
         .unwrap();
         let ended_session_response = verifier
-            .process_message(&end_session_message, &session_token, None) // VerifierUrlParameters are only verified for DisclosureData::Created
+            .process_message(&end_session_message, &session_token, verifier_url) // VerifierUrlParameters are only verified for DisclosureData::Created
             .await
             .unwrap();
 
@@ -1656,29 +1656,30 @@ mod tests {
 
     #[tokio::test]
     async fn disclosure_expired_id() {
-        let (verifier, _, device_engagement, _, session_token, verifier_url, verifier_url_params) =
+        let (verifier, _, device_engagement, _, session_token, verifier_url) =
             init_and_start_disclosure(&ExpiredEphemeralIdGenerator).await;
 
         let msg = cbor_serialize(&device_engagement).unwrap();
 
-        let session_response = verifier
-            .process_message(
-                &msg,
-                &session_token.clone(),
-                Some((verifier_url, verifier_url_params.clone())),
-            )
+        let error = verifier
+            .process_message(&msg, &session_token.clone(), verifier_url.clone())
             .await
             .expect_err("should result in VerificationError::ExpiredEphemeralId");
 
+        let ephemeral_id = verifier_url
+            .query_pairs()
+            .find_map(|(key, value)| (key == "ephemeral_id").then(|| hex::decode(value.as_bytes()).unwrap()))
+            .unwrap();
+
         assert!(matches!(
-            session_response,
-            Error::Verification(VerificationError::ExpiredEphemeralId(ephemeral_id)) if ephemeral_id == verifier_url_params.ephemeral_id
+            error,
+            Error::Verification(VerificationError::ExpiredEphemeralId(id)) if id == ephemeral_id
         ));
     }
 
     #[tokio::test]
     async fn disclosure_invalid_id() {
-        let (verifier, _, device_engagement, _, session_token, verifier_url, mut verifier_url_params) =
+        let (verifier, _, device_engagement, _, session_token, mut verifier_url) =
             init_and_start_disclosure(&TimeGenerator).await;
 
         let msg = cbor_serialize(&device_engagement).unwrap();
@@ -1686,20 +1687,24 @@ mod tests {
         let invalid_ephemeral_id = b"\xde\xad\xbe\xef".to_vec();
 
         // set an invalid ephemeral id
-        verifier_url_params.ephemeral_id.clone_from(&invalid_ephemeral_id);
+        let query = verifier_url
+            .query_pairs()
+            .filter_map(|(key, value)| (key != "ephemeral_id").then(|| (key.into_owned(), value.into_owned())))
+            .collect_vec();
+        verifier_url
+            .query_pairs_mut()
+            .clear()
+            .extend_pairs(query)
+            .append_pair("ephemeral_id", &hex::encode(&invalid_ephemeral_id));
 
-        let session_response = verifier
-            .process_message(&msg, &session_token.clone(), Some((verifier_url, verifier_url_params)))
+        let error = verifier
+            .process_message(&msg, &session_token.clone(), verifier_url)
             .await
             .expect_err("should result in VerificationError::InvalidEphemeralId(...)");
 
-        assert_eq!(
-            session_response.to_string(),
-            "verification error: the ephemeral ID deadbeef is invalid"
-        );
         assert!(matches!(
-            session_response,
-            Error::Verification(VerificationError::InvalidEphemeralId(ephemeral_id)) if ephemeral_id == invalid_ephemeral_id
+            error,
+            Error::Verification(VerificationError::InvalidEphemeralId(id)) if id == invalid_ephemeral_id
         ));
     }
 
