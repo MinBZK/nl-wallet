@@ -23,8 +23,7 @@ pub struct ProposedDocumentAttributes {
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
 }
 
-/// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`]
-/// for disclosure. Note that this is for internal use of [`DisclosureSession`] only.
+/// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`] for disclosure.
 #[derive(Debug, Clone)]
 pub struct ProposedDocument<I> {
     pub source_identifier: I,
@@ -44,7 +43,7 @@ impl<I> ProposedDocument<I> {
     ///
     /// This means that the sum of the length of these `Vec`s is equal to the
     /// length of the input `Vec<Mdoc>`.
-    pub fn candidates_and_missing_attributes_from_stored_mdocs(
+    pub(super) fn candidates_and_missing_attributes_from_stored_mdocs(
         stored_mdocs: Vec<StoredMdoc<I>>,
         requested_attributes: &IndexSet<AttributeIdentifier>,
         device_signed_challenge: Vec<u8>,
@@ -167,7 +166,7 @@ impl<I> ProposedDocument<I> {
     }
 
     /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.
-    pub async fn sign_multiple<KF, K>(
+    pub(super) async fn sign_multiple<KF, K>(
         key_factory: &KF,
         proposed_documents: Vec<ProposedDocument<I>>,
     ) -> Result<Vec<Document>>

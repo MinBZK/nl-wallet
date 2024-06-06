@@ -7,14 +7,14 @@ use rstest::rstest;
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
-    holder::{DisclosureRequestMatch, ProposedDocument, TrustAnchor},
+    holder::{DisclosureRequestMatch, TrustAnchor},
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
     verifier::{ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCase},
-    DeviceResponse, DeviceResponseVersion, SessionTranscript,
+    DeviceResponse, SessionTranscript,
 };
 use openid4vc::{
     disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
@@ -98,15 +98,9 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 
     // Compute the disclosure.
     let key_factory = SoftwareKeyFactory::default();
-    let documents = ProposedDocument::sign_multiple(&key_factory, to_disclose)
+    let device_response = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
         .await
         .unwrap();
-    let device_response = DeviceResponse {
-        version: DeviceResponseVersion::V1_0,
-        documents: Some(documents),
-        document_errors: None,
-        status: 0,
-    };
 
     // Put the disclosure in an Authorization Response and encrypt it.
     VpAuthorizationResponse::new_encrypted(device_response, &auth_request, &mdoc_nonce).unwrap()
