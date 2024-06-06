@@ -1,9 +1,9 @@
 #[cfg(feature = "issuance")]
 pub mod pid_issuer;
+#[cfg(feature = "disclosure")]
+pub mod verification_server;
 #[cfg(all(feature = "disclosure", feature = "issuance"))]
 pub mod wallet_server;
-#[cfg(feature = "disclosure")]
-pub mod wallet_server_verifier;
 
 use std::net::SocketAddr;
 

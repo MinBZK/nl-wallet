@@ -9,7 +9,7 @@ exclude = ["resources"]
 workspace = true
 
 [[bin]]
-name = "wallet_server_verifier"
+name = "verification_server"
 required-features = ["disclosure"]
 
 [[bin]]

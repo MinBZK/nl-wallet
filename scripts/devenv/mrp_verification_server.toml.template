@@ -4,7 +4,7 @@ public_url = 'http://${SERVICES_HOST}:${MOCK_RP_WS_PORT}/'
 internal_url = 'http://${SERVICES_HOST}:${MOCK_RP_RS_PORT}/'
 
 [storage]
-url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server'
+url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server'
 
 [wallet_server]
 ip = '0.0.0.0'
@@ -18,7 +18,7 @@ port = ${MOCK_RP_RS_PORT}
 trust_anchors = [
     "${PID_CA_CRT}",
 ]
-ephemeral_id_secret = "${MRP_WALLET_SERVER_EPHEMERAL_ID_SECRET}"
+ephemeral_id_secret = "${MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
 
 [verifier.usecases.mijn_amsterdam]
 certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"

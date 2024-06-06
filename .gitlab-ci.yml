@@ -247,7 +247,7 @@ test-rust:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package configuration_server --bin configuration_server
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin pid_issuer --features issuance
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server --features issuance,disclosure
-    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server_verifier --features disclosure
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin verification_server --features disclosure
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package gba_hc_converter --bin gba_hc_converter
@@ -531,11 +531,11 @@ build-wallet-server-image:
     DOCKER_FILE_TO_BUILD=wallet_core/wallet_server/Dockerfile.wallet_server
     DOCKER_IMAGE_NAME=nl-wallet-server
 
-build-wallet-server-verifier-image:
+build-verification-server-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/wallet_server/Dockerfile.wallet_server_verifier
-    DOCKER_IMAGE_NAME=nl-wallet-server-verifier
+    DOCKER_FILE_TO_BUILD=wallet_core/wallet_server/Dockerfile.verification_server
+    DOCKER_IMAGE_NAME=nl-verification-server
 
 build-pid-issuer-image:
   extends: .build-docker-image
@@ -981,7 +981,7 @@ dependency-check-images:
       artifacts: false
     - job: build-wallet-server-image
       artifacts: false
-    - job: build-wallet-server-verifier-image
+    - job: build-verification-server-image
       artifacts: false
     - job: build-pid-issuer-image
       artifacts: false
@@ -1001,7 +1001,7 @@ dependency-check-images:
       "nl-wallet-provider"
       "nl-wallet-server-migration"
       "nl-wallet-server"
-      "nl-wallet-server-verifier"
+      "nl-verification-server"
       "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
       )

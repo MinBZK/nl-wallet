@@ -80,7 +80,7 @@ where
     let public_url = settings.public_url.clone();
 
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::wallet_server_verifier::serve(settings, disclosure_sessions).await {
+        if let Err(error) = wallet_server::server::verification_server::serve(settings, disclosure_sessions).await {
             println!("Could not start wallet_server: {error:?}");
 
             process::exit(1);

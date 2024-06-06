@@ -6,7 +6,7 @@
 #   This script requires this repo to exist in the same directory that contains the NL Wallet repo. Otherwise, customize
 #   the DIGID_CONNECTOR_PATH environment variable in `scripts/.env`
 # - mock_relying_party
-# - wallet_server
+# - verification_server
 # - pid_issuer
 # - wallet_provider
 # - wallet
@@ -48,7 +48,7 @@ Where:
     wp, wallet_provider:        Start the wallet_provider.
                                 This requires a PostgreSQL database to be running, which can be provided by the
                                 'docker' service.
-    ws, wallet_server:          Start the wallet_server.
+    vs, verification_server:    Start the verification_server.
     pi, pid_issuer:             Start the pid_issuer.
     mrp, mock_relying_party:    Start the mock_relying_party.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
@@ -79,7 +79,7 @@ expect_command flutter "Missing binary 'flutter', please install Flutter"
 
 MOCK_RELYING_PARTY=1
 WALLET_PROVIDER=1
-WALLET_SERVER=1
+VERIFICATION_SERVER=1
 PID_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
@@ -109,8 +109,8 @@ do
             WALLET_PROVIDER=0
             shift # past argument
             ;;
-        ws|wallet_server)
-            WALLET_SERVER=0
+        vs|verification_server)
+            VERIFICATION_SERVER=0
             shift # past argument
             ;;
         pi|pid_issuer)
@@ -149,7 +149,7 @@ do
         --default)
             DIGID_CONNECTOR=0
             MOCK_RELYING_PARTY=0
-            WALLET_SERVER=0
+            VERIFICATION_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
             CONFIG_SERVER=0
@@ -161,7 +161,7 @@ do
             DIGID_CONNECTOR=0
             POSTGRES=0
             MOCK_RELYING_PARTY=0
-            WALLET_SERVER=0
+            VERIFICATION_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
@@ -308,43 +308,43 @@ then
 fi
 
 ########################################################################
-# Manage wallet_server
+# Manage verification_server
 
-if [ "${WALLET_SERVER}" == "0" ]
+if [ "${VERIFICATION_SERVER}" == "0" ]
 then
-    # As part of the MRP a wallet_server is started
+    # As part of the MRP a verification_server is started
     echo
-    echo -e "${SECTION}Manage wallet_server${NC}"
+    echo -e "${SECTION}Manage verification_server${NC}"
 
     cd "${WALLET_SERVER_DIR}"
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
 	echo "Sentry DSN: '${SENTRY_DSN}'"
-        export WS_VERIFIER_SENTRY__DSN="${SENTRY_DSN}"
-        export WS_VERIFIER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
+        export VERIFICATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
+        export VERIFICATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
 
     if [ "${STOP}" == "0" ]
     then
-        echo -e "${INFO}Kill any running ${ORANGE}wallet_server${NC}"
-        killall wallet_server_verifier || true
+        echo -e "${INFO}Kill any running ${ORANGE}verification_server${NC}"
+        killall verification_server || true
     fi
     if [ "${START}" == "0" ]
     then
         pushd "${WALLET_CORE_DIR}"
-        echo -e "${INFO}Running wallet_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/wallet_server" cargo run --bin wallet_server_migration -- fresh
+        echo -e "${INFO}Running verification_server database migrations${NC}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin wallet_server_migration -- fresh
         popd
 
-        echo -e "${INFO}Start ${ORANGE}wallet_server${NC}"
-        cargo build --features "allow_http_return_url,disclosure" --bin wallet_server_verifier \
-              > "${TARGET_DIR}/mrp_wallet_server.log" \
+        echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
+        cargo build --features "allow_http_return_url,disclosure" --bin verification_server \
+              > "${TARGET_DIR}/mrp_verification_server.log" \
               2>&1
-        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/wallet_server_verifier" \
-                       >> "${TARGET_DIR}/mrp_wallet_server.log" \
+        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/verification_server" \
+                       >> "${TARGET_DIR}/mrp_verification_server.log" \
                        2>&1 &
-        echo -e "wallet_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_wallet_server.log${NC}"
+        echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_verification_server.log${NC}"
     fi
 fi
 

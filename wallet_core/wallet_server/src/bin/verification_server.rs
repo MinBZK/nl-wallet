@@ -7,7 +7,7 @@ fn main() -> Result<()> {
     // Initialize tracing.
     tracing_subscriber::fmt::init();
 
-    let settings = Settings::new_custom("ws_verifier.toml", "ws_verifier")?;
+    let settings = Settings::new_custom("verification_server.toml", "verification_server")?;
 
     // Retain [`ClientInitGuard`]
     let _guard = settings
@@ -26,7 +26,7 @@ async fn async_main(settings: Settings) -> Result<()> {
     let sessions = SessionStores::init(storage_settings.url.clone(), storage_settings.into()).await?;
 
     // This will block until the server shuts down.
-    server::wallet_server_verifier::serve(settings, sessions.disclosure).await?;
+    server::verification_server::serve(settings, sessions.disclosure).await?;
 
     Ok(())
 }
