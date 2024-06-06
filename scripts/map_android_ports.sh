@@ -14,7 +14,6 @@ then
         adb reverse tcp:${MOCK_RP_PORT} tcp:${MOCK_RP_PORT}
         adb reverse tcp:${CONFIG_SERVER_PORT} tcp:${CONFIG_SERVER_PORT}
         adb reverse tcp:${PID_ISSUER_WS_PORT} tcp:${PID_ISSUER_WS_PORT}
-        adb reverse tcp:${PID_ISSUER_RS_PORT} tcp:${PID_ISSUER_RS_PORT}
         adb reverse tcp:${RDO_MAX_PORT} tcp:${RDO_MAX_PORT}
     else
         echo -e "Please start the Android emulator, and run ${BLUE}$0 $@${NC} again"

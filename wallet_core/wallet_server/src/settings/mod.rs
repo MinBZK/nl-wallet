@@ -37,8 +37,12 @@ pub struct Settings {
     // used by the wallet
     pub public_url: BaseUrl,
     // used by the application
+    #[cfg(feature = "disclosure")]
     pub internal_url: BaseUrl,
+
+    #[cfg(feature = "disclosure")]
     pub universal_link_base_url: BaseUrl,
+
     pub log_requests: bool,
 
     pub storage: Storage,
@@ -48,6 +52,7 @@ pub struct Settings {
 
     #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
+
     pub sentry: Option<Sentry>,
 }
 
@@ -130,7 +135,6 @@ impl Settings {
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
-            .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("log_requests", false)?
             .set_default("storage.url", "memory://")?
             .set_default(
@@ -146,6 +150,9 @@ impl Settings {
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?;
 
+        #[cfg(feature = "disclosure")]
+        let config_builder = config_builder.set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?;
+
         #[cfg(feature = "issuance")]
         let config_builder = config_builder
             .set_default(
@@ -160,17 +167,20 @@ impl Settings {
         let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
         let config_source = config_path.join(config_file);
 
+        let environment_parser = Environment::with_prefix(env_prefix)
+            .separator("__")
+            .prefix_separator("_")
+            .list_separator(",");
+
+        #[cfg(feature = "disclosure")]
+        let environment_parser = environment_parser.with_list_parse_key("verifier.trust_anchors");
+
+        let environment_parser = environment_parser.try_parsing(true);
+
         config_builder
             .add_source(File::from(config_source).required(false))
             .add_source(File::from(PathBuf::from(config_file)).required(false))
-            .add_source(
-                Environment::with_prefix(env_prefix)
-                    .separator("__")
-                    .prefix_separator("_")
-                    .list_separator(",")
-                    .with_list_parse_key("verifier.trust_anchors")
-                    .try_parsing(true),
-            )
+            .add_source(environment_parser)
             .build()?
             .try_deserialize()
     }
