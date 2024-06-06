@@ -82,6 +82,13 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       await handleError(
         ex,
         onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(hasInternet: hasInternet, error: error)),
+        onDisclosureSourceMismatchError: (error) {
+          if (error.isCrossDevice) {
+            emit(DisclosureExternalScannerError(error: error));
+          } else {
+            emit(DisclosureGenericError(error: error));
+          }
+        },
         onUnhandledError: (error) => emit(DisclosureGenericError(error: error)),
       );
     }

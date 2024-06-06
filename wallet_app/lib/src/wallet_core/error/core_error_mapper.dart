@@ -24,6 +24,12 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
         );
       case FlutterApiErrorType.hardwareKeyUnsupported:
         return CoreHardwareKeyUnsupportedError(flutterApiError.description);
+      case FlutterApiErrorType.disclosureSourceMismatch:
+        final isCrossDevice = flutterApiError.data?['session_type'] == 'cross_device';
+        return CoreDisclosureSourceMismatchError(
+          flutterApiError.description,
+          isCrossDevice: isCrossDevice,
+        );
     }
   }
 

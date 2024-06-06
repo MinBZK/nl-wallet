@@ -203,6 +203,7 @@ class CardDetailScreen extends StatelessWidget {
     ];
     return ListView.separated(
       shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (c, i) => rows[i],
       separatorBuilder: (c, i) => const Divider(height: 1),
       itemCount: rows.length,
