@@ -729,13 +729,10 @@
         }
     },
     "placeholderScreenContractDescription": "The contract will be displayed here.",
-    "placeholderScreenContractInformTitle": "The contract will be displayed here.",
     "placeholderScreenGenericDescription": "Unfortunately, this page is still under construction.\nDo you have questions or need help? During the trial, the NL Wallet team is ready to assist you. Speak to someone, and they will help you further.",
-    "placeholderScreenGenericInformTitle": "Sorry, this page is still under construction.",
     "placeholderScreenHeadline": "This page doesn't exist yet",
     "placeholderScreenHelpDescription": "During the trial, the NL Wallet team is ready to assist you. Speak to someone, and they will help you further.",
     "placeholderScreenHelpHeadline": "Do you have any questions or need help?",
-    "placeholderScreenTitle": "Page does not exist",
     "policyScreenDataCanBeDeleted": "You can have data deleted",
     "policyScreenDataCanBeDeletedDescription": "The organization offers a way to have your data deleted.",
     "policyScreenDataCanNotBeDeleted": "You cannot have data deleted",
