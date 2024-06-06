@@ -297,12 +297,8 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        cargo build --features "allow_http_return_url,issuance" --bin pid_issuer \
-              > "${TARGET_DIR}/pid_issuer.log" \
-              2>&1
-        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/pid_issuer" \
-                       >> "${TARGET_DIR}/pid_issuer.log" \
-                       2>&1 &
+        RUST_LOG=debug cargo run --features "allow_http_return_url,issuance" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
+
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
 fi
@@ -338,12 +334,8 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
-        cargo build --features "allow_http_return_url,disclosure" --bin verification_server \
-              > "${TARGET_DIR}/mrp_verification_server.log" \
-              2>&1
-        RUST_LOG=debug "${WALLET_CORE_DIR}/target/debug/verification_server" \
-                       >> "${TARGET_DIR}/mrp_verification_server.log" \
-                       2>&1 &
+        RUST_LOG=debug cargo run --features "allow_http_return_url,disclosure" --bin verification_server > "${TARGET_DIR}/mrp_verification_server.log" 2>&1 &
+
         echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_verification_server.log${NC}"
     fi
 fi
