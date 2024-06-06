@@ -16,7 +16,7 @@ use webpki::TrustAnchor;
 
 use nl_wallet_mdoc::{
     holder::{
-        DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, ReaderEngagementSource,
+        DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, DisclosureUriSource,
         StoredMdoc,
     },
     iso::mdocs::DocType,
@@ -328,8 +328,8 @@ async fn test_disclosure(
 
     // Determine the correct source for the session type.
     let reader_engagement_source = match session_type {
-        SessionType::SameDevice => ReaderEngagementSource::Link,
-        SessionType::CrossDevice => ReaderEngagementSource::QrCode,
+        SessionType::SameDevice => DisclosureUriSource::Link,
+        SessionType::CrossDevice => DisclosureUriSource::QrCode,
     };
 
     // Encode the `ReaderEngagement` and start the disclosure session on the holder side.

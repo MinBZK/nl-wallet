@@ -29,7 +29,7 @@ pub enum HolderError {
     #[error("malformed session_type query parameter in verifier URL: {0}")]
     MalformedSessionType(serde_urlencoded::de::Error),
     #[error("mismatch between session type and reader engagement source: {0} not allowed from {1}")]
-    ReaderEnagementSourceMismatch(SessionType, ReaderEngagementSource),
+    ReaderEnagementSourceMismatch(SessionType, DisclosureUriSource),
     #[error("readerAuth not present for all documents")]
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]

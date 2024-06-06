@@ -12,8 +12,7 @@ use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
     holder::{
-        DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, ReaderEngagementSource,
-        TrustAnchor,
+        DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -63,7 +62,7 @@ pub enum VpClientError {
     #[error("malformed session_type query parameter in request URI: {0}")]
     MalformedSessionType(#[source] serde_urlencoded::de::Error),
     #[error("mismatch between session type and reader engagement source: {0} not allowed from {1}")]
-    ReaderEnagementSourceMismatch(SessionType, ReaderEngagementSource),
+    ReaderEnagementSourceMismatch(SessionType, DisclosureUriSource),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -228,7 +227,7 @@ where
     pub async fn start<'a, S>(
         client: H,
         request_uri: &str,
-        uri_source: ReaderEngagementSource,
+        uri_source: DisclosureUriSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self, VpClientError>
@@ -537,7 +536,7 @@ mod tests {
     };
     use nl_wallet_mdoc::{
         examples::{Examples, IsoCertTimeGenerator},
-        holder::ReaderEngagementSource,
+        holder::DisclosureUriSource,
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         unsigned::Entry,
@@ -678,7 +677,7 @@ mod tests {
         let session = DisclosureSession::start(
             message_client,
             &request_uri,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             &mdocs,
             trust_anchors,
         )

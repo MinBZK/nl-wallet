@@ -88,7 +88,7 @@ struct CommonDisclosureData<H> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
 #[strum(serialize_all = "snake_case")] // Symmetrical to `SessionType`.
-pub enum ReaderEngagementSource {
+pub enum DisclosureUriSource {
     Link,
     QrCode,
 }
@@ -98,7 +98,7 @@ enum VerifierSessionDataCheckResult<I> {
     ProposedDocuments(Vec<ProposedDocument<I>>),
 }
 
-impl ReaderEngagementSource {
+impl DisclosureUriSource {
     pub fn new(is_qr_code: bool) -> Self {
         if is_qr_code {
             Self::QrCode
@@ -123,7 +123,7 @@ where
     pub async fn start<'a, S>(
         client: H,
         reader_engagement_bytes: &[u8],
-        reader_engagement_source: ReaderEngagementSource,
+        reader_engagement_source: DisclosureUriSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self>
@@ -482,7 +482,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, mut payload_receiver) = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -606,7 +606,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::CrossDevice,
-            ReaderEngagementSource::QrCode,
+            DisclosureUriSource::QrCode,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -660,7 +660,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -712,7 +712,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(1);
         let (disclosure_session, verifier_session, _) = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -765,7 +765,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -790,7 +790,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -817,7 +817,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -845,7 +845,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -866,12 +866,12 @@ mod tests {
     }
 
     #[rstest]
-    #[case(SessionType::SameDevice, ReaderEngagementSource::QrCode)]
-    #[case(SessionType::CrossDevice, ReaderEngagementSource::Link)]
+    #[case(SessionType::SameDevice, DisclosureUriSource::QrCode)]
+    #[case(SessionType::CrossDevice, DisclosureUriSource::Link)]
     #[tokio::test]
     async fn test_disclosure_session_start_error_reader_engagement_source_mismatch(
         #[case] session_type: SessionType,
-        #[case] reader_engagement_source: ReaderEngagementSource,
+        #[case] reader_engagement_source: DisclosureUriSource,
     ) {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that contains a
         // `SessionType` that is incompatible with its source should result in an error.
@@ -905,7 +905,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -930,7 +930,7 @@ mod tests {
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::QrCode,
+            DisclosureUriSource::QrCode,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -971,7 +971,7 @@ mod tests {
         let error = DisclosureSession::start(
             client,
             &serialization::cbor_serialize(&reader_engagement).unwrap(),
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             &mdoc_data_source,
             &[],
         )
@@ -1055,7 +1055,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1079,7 +1079,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1106,7 +1106,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1133,7 +1133,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1161,7 +1161,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1188,7 +1188,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             |mut verifier_session| {
@@ -1222,7 +1222,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1252,7 +1252,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -1282,7 +1282,7 @@ mod tests {
         let mut payloads = Vec::with_capacity(2);
         let error = disclosure_session_start(
             SessionType::SameDevice,
-            ReaderEngagementSource::Link,
+            DisclosureUriSource::Link,
             ReaderCertificateKind::NoReaderRegistration,
             &mut payloads,
             identity,

@@ -35,7 +35,7 @@ use crate::{
 
 use super::{
     proposed_document::ProposedDocument,
-    session::{DisclosureSession, ReaderEngagementSource, VerifierUrlParameters},
+    session::{DisclosureSession, DisclosureUriSource, VerifierUrlParameters},
     MdocDataSource, StoredMdoc,
 };
 
@@ -454,7 +454,7 @@ pub enum ReaderCertificateKind {
 /// defaults just before they are actually used.
 pub async fn disclosure_session_start<FS, FM, FD>(
     session_type: SessionType,
-    reader_engagement_source: ReaderEngagementSource,
+    reader_engagement_source: DisclosureUriSource,
     certificate_kind: ReaderCertificateKind,
     payloads: &mut Vec<Vec<u8>>,
     transform_verfier_session: FS,

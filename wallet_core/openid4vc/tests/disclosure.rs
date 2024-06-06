@@ -7,7 +7,7 @@ use rstest::rstest;
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
-    holder::{DisclosureRequestMatch, ProposedDocument, ReaderEngagementSource, TrustAnchor},
+    holder::{DisclosureRequestMatch, ProposedDocument, DisclosureUriSource, TrustAnchor},
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
@@ -113,10 +113,10 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
 }
 
 #[rstest]
-#[case(SessionType::SameDevice, ReaderEngagementSource::Link)]
-#[case(SessionType::CrossDevice, ReaderEngagementSource::QrCode)]
+#[case(SessionType::SameDevice, DisclosureUriSource::Link)]
+#[case(SessionType::CrossDevice, DisclosureUriSource::QrCode)]
 #[tokio::test]
-async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_source: ReaderEngagementSource) {
+async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_source: DisclosureUriSource) {
     let items_requests = Examples::items_requests();
 
     // Initialize key material

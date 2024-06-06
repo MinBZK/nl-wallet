@@ -7,7 +7,7 @@ use uuid::Uuid;
 use nl_wallet_mdoc::{
     holder::{
         CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult, DisclosureSession,
-        MdocDataSource, ProposedAttributes, ReaderEngagementSource, TrustAnchor,
+        MdocDataSource, ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -19,12 +19,12 @@ use nl_wallet_mdoc::{
 };
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
 
+pub use nl_wallet_mdoc::holder::DisclosureUriSource;
+
 pub use self::uri::{DisclosureUriError, IsoDisclosureUriData, VpDisclosureUriData};
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
-
-pub type DisclosureUriSource = ReaderEngagementSource;
 
 #[derive(Debug)]
 pub enum MdocDisclosureSessionState<M, P> {
