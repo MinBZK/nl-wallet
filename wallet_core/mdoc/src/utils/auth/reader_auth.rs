@@ -6,7 +6,7 @@ use url::Url;
 use crate::{
     identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
     utils::x509::{CertificateType, MdocCertificateExtension},
-    DeviceRequest,
+    ItemsRequest,
 };
 
 use super::{LocalizedStrings, Organization};
@@ -28,6 +28,22 @@ pub struct ReaderRegistration {
     /// Origin base url, for visual user inspection
     pub request_origin_base_url: Url,
     pub attributes: IndexMap<String, AuthorizedMdoc>,
+}
+
+impl ReaderRegistration {
+    /// Verify whether all requested attributes exist in the registration.
+    pub fn verify_requested_attributes<'a>(
+        &self,
+        requested_attributes: impl IntoIterator<Item = &'a ItemsRequest> + Clone,
+    ) -> Result<(), ValidationError> {
+        let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self).into_iter().collect();
+
+        if !difference.is_empty() {
+            return Err(ValidationError::UnregisteredAttributes(difference));
+        }
+
+        Ok(())
+    }
 }
 
 impl AttributeIdentifierHolder for ReaderRegistration {
@@ -88,19 +104,6 @@ pub struct AuthorizedAttribute {}
 pub enum ValidationError {
     #[error("requested unregistered attributes: {0:?}")]
     UnregisteredAttributes(Vec<AttributeIdentifier>),
-}
-
-impl DeviceRequest {
-    /// Verify whether all requested attributes exist in the `registration`.
-    pub fn verify_requested_attributes(&self, reader_registration: &ReaderRegistration) -> Result<(), ValidationError> {
-        let difference: Vec<AttributeIdentifier> = self.difference(reader_registration).into_iter().collect();
-
-        if !difference.is_empty() {
-            return Err(ValidationError::UnregisteredAttributes(difference));
-        }
-
-        Ok(())
-    }
 }
 
 impl MdocCertificateExtension for ReaderRegistration {
@@ -212,7 +215,7 @@ mod tests {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
 
-    use crate::ItemsRequest;
+    use crate::{DeviceRequest, ItemsRequest};
 
     use super::*;
 
@@ -248,7 +251,9 @@ mod tests {
                 ],
             ),
         ]);
-        device_request.verify_requested_attributes(&registration).unwrap();
+        registration
+            .verify_requested_attributes(device_request.items_requests())
+            .unwrap();
     }
 
     #[test]
@@ -283,7 +288,7 @@ mod tests {
                 ],
             ),
         ]);
-        let result = device_request.verify_requested_attributes(&registration);
+        let result = registration.verify_requested_attributes(device_request.items_requests());
         assert_matches!(
             result,
             Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
@@ -318,7 +323,9 @@ mod tests {
                 ],
             ),
         ]);
-        request.verify_requested_attributes(&registration).unwrap();
+        registration
+            .verify_requested_attributes(request.items_requests())
+            .unwrap();
     }
 
     #[test]
@@ -332,7 +339,7 @@ mod tests {
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )]);
 
-        let result = request.verify_requested_attributes(&registration);
+        let result = registration.verify_requested_attributes(request.items_requests());
         assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
             "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
         ]);
@@ -349,7 +356,7 @@ mod tests {
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )]);
 
-        let result = request.verify_requested_attributes(&registration);
+        let result = registration.verify_requested_attributes(request.items_requests());
         assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
             "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
             "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
@@ -367,7 +374,7 @@ mod tests {
             vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
         )]);
 
-        let result = request.verify_requested_attributes(&registration);
+        let result = registration.verify_requested_attributes(request.items_requests());
         assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
             "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
             "missing_doctype/some_namespace/another_attribute".parse().unwrap(),

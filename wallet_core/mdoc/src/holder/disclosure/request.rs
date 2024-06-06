@@ -80,7 +80,8 @@ impl DeviceRequest {
         };
 
         // Verify that the requested attributes are included in the reader authentication.
-        self.verify_requested_attributes(&reader_registration)
+        reader_registration
+            .verify_requested_attributes(self.items_requests())
             .map_err(HolderError::from)?;
 
         Ok((certificate, reader_registration).into())

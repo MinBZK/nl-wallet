@@ -8,7 +8,6 @@ use tracing::{info, warn};
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
 
 use nl_wallet_mdoc::{
-    device_retrieval::DeviceRequest,
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
     holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
@@ -322,8 +321,7 @@ where
         };
 
         // Verify that the requested attributes are included in the reader authentication.
-        let device_request = DeviceRequest::from_items_requests(auth_request.items_requests.0.clone());
-        device_request.verify_requested_attributes(&reader_registration)?;
+        reader_registration.verify_requested_attributes(auth_request.items_requests.as_ref().iter())?;
 
         // Fetch documents from the database, calculate which ones satisfy the request and
         // formulate proposals for those documents. If there is a mismatch, return an error.
