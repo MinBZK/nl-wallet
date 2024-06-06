@@ -157,6 +157,7 @@ class OrganizationApprovePage extends StatelessWidget {
     final fraudTextPart2 = context.l10n.organizationApprovePageFraudInfoPart2(originUrl);
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           fraudTextPart1,
