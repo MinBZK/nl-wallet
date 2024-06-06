@@ -12,6 +12,7 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/secondary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
 import 'argument/pin_timeout_screen_argument.dart';
 import 'widget/pin_timeout_description.dart';
@@ -42,8 +43,7 @@ class PinTimeoutScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: Scrollbar(
-                thumbVisibility: true,
+              child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(

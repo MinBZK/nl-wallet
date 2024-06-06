@@ -4,6 +4,7 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/list_button.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 /// Builds upon the [ConfirmActionSheet], but supplies defaults for
 /// when the user is requesting to stop the disclosure flow.
@@ -69,7 +70,7 @@ class DisclosureStopSheet extends StatelessWidget {
       isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return Scrollbar(
+        return WalletScrollbar(
           child: SingleChildScrollView(
             child: DisclosureStopSheet(
               organizationName: organizationName?.l10nValue(context),

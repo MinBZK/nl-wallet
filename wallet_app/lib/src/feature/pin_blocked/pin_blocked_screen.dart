@@ -10,6 +10,7 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
+import '../common/widget/wallet_scrollbar.dart';
 
 class PinBlockedScreen extends StatelessWidget {
   const PinBlockedScreen({
@@ -23,8 +24,7 @@ class PinBlockedScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: Scrollbar(
-                thumbVisibility: true,
+              child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(

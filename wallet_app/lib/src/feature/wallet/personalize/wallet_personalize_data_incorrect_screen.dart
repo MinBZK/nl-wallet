@@ -8,6 +8,7 @@ import '../../common/widget/numbered_list.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/text/body_text.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
   final VoidCallback onDataRejected;
@@ -21,8 +22,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: Scrollbar(
-              thumbVisibility: true,
+            child: WalletScrollbar(
               child: SafeArea(
                 child: CustomScrollView(
                   slivers: [

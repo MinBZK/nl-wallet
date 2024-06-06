@@ -8,6 +8,7 @@ import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class DisclosureMissingAttributesPage extends StatelessWidget {
   final VoidCallback onDecline;
@@ -24,7 +25,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scrollbar(
+      child: WalletScrollbar(
         child: CustomScrollView(
           restorationId: 'missing_data_attributes_scrollview',
           slivers: <Widget>[

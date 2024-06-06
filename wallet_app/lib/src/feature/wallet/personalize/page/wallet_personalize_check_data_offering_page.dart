@@ -10,6 +10,7 @@ import '../../../common/widget/button/secondary_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../common/widget/text/body_text.dart';
+import '../../../common/widget/wallet_scrollbar.dart';
 import '../wallet_personalize_data_incorrect_screen.dart';
 
 class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
@@ -29,7 +30,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scrollbar(
+      child: WalletScrollbar(
         child: CustomScrollView(
           slivers: <Widget>[
             SliverWalletAppBar(

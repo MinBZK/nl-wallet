@@ -8,6 +8,7 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/paragraphed_list.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 
 class ForgotPinScreen extends StatelessWidget {
   const ForgotPinScreen({super.key});
@@ -28,7 +29,7 @@ class ForgotPinScreen extends StatelessWidget {
   }
 
   Widget _buildScrollableSection(BuildContext context) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
           SliverWalletAppBar(title: context.l10n.forgotPinScreenTitle),

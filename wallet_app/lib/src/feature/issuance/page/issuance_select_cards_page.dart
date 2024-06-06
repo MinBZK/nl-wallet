@@ -9,6 +9,7 @@ import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/select_card_row.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class IssuanceSelectCardsPage extends StatelessWidget {
   final List<WalletCard> cards;
@@ -30,7 +31,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
           const SliverSizedBox(height: 24),

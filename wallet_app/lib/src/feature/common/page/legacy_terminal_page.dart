@@ -6,6 +6,7 @@ import '../widget/button/link_button.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/button/tertiary_button.dart';
 import '../widget/status_icon.dart';
+import '../widget/wallet_scrollbar.dart';
 
 /// Base widget for the terminal (ending) page of the issuance/disclosure flow.
 class LegacyTerminalPage extends StatelessWidget {
@@ -52,7 +53,7 @@ class LegacyTerminalPage extends StatelessWidget {
 
   Widget _buildScrollableSection(BuildContext context) {
     return Expanded(
-      child: Scrollbar(
+      child: WalletScrollbar(
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 24),
           children: [

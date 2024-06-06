@@ -15,6 +15,7 @@ import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 import 'argument/organization_detail_screen_argument.dart';
 import 'bloc/organization_detail_bloc.dart';
 
@@ -61,7 +62,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           OrganizationDetailFailure() => _buildOrganizationDetailFailure(context, state),
           OrganizationDetailSuccess() => _buildOrganizationDetailLoaded(context, state),
         };
-        return Scrollbar(
+        return WalletScrollbar(
           child: CustomScrollView(
             slivers: [
               SliverWalletAppBar(

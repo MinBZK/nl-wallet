@@ -13,6 +13,7 @@ import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/text_with_link.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user approves the request
@@ -58,7 +59,7 @@ class OrganizationApprovePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scrollbar(
+      child: WalletScrollbar(
         child: CustomScrollView(
           restorationId: 'approve_organization_scrollview',
           slivers: <Widget>[

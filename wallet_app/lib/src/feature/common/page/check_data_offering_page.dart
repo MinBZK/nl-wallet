@@ -8,6 +8,7 @@ import '../widget/attribute/data_attribute_row.dart';
 import '../widget/button/link_button.dart';
 import '../widget/card/wallet_card_item.dart';
 import '../widget/sliver_sized_box.dart';
+import '../widget/wallet_scrollbar.dart';
 
 /// Generic Page that displays the attributes so the user can check them.
 /// Consumer needs to provide the [bottomSection] to handle any user actions.
@@ -33,7 +34,7 @@ class CheckDataOfferingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         restorationId: 'check_data_offering_scrollview',
         slivers: <Widget>[
