@@ -47,6 +47,7 @@ import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i28;
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart' as _i46;
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i30;
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i31;
+import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart' as _i48;
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i34;
 import 'package:wallet/src/util/mapper/mapper.dart' as _i14;
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart' as _i25;
@@ -2301,6 +2302,21 @@ class MockUnlockWalletWithPinUseCase extends _i1.Mock implements _i47.UnlockWall
           ),
         )),
       ) as _i9.Future<_i33.CheckPinResult>);
+}
+
+/// A class which mocks [ResetWalletUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockResetWalletUseCase extends _i1.Mock implements _i48.ResetWalletUseCase {
+  @override
+  _i9.Future<void> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
 }
 
 /// A class which mocks [WalletCore].

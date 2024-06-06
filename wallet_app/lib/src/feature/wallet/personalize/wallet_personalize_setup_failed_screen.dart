@@ -5,6 +5,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
   const WalletPersonalizeSetupFailedScreen({super.key});
@@ -14,8 +15,7 @@ class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         minimum: const EdgeInsets.only(bottom: 24),
-        child: Scrollbar(
-          thumbVisibility: true,
+        child: WalletScrollbar(
           child: CustomScrollView(
             slivers: [
               SliverWalletAppBar(title: context.l10n.walletPersonalizeSetupFailedScreenHeadline),

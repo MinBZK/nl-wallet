@@ -29,4 +29,6 @@ enum FlutterApiErrorType {
   hardwareKeyUnsupported,
   @JsonValue('RedirectUri')
   redirectUri,
+  @JsonValue('DisclosureSourceMismatch')
+  disclosureSourceMismatch,
 }

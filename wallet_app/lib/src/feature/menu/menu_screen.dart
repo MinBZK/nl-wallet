@@ -12,6 +12,7 @@ import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/utility/do_on_init.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';
 
@@ -35,7 +36,7 @@ class MenuScreen extends StatelessWidget {
               },
             ),
             Expanded(
-              child: Scrollbar(
+              child: WalletScrollbar(
                 key: const Key('menuScreen'),
                 child: CustomScrollView(
                   slivers: [

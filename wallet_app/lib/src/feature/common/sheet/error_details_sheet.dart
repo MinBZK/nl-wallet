@@ -5,6 +5,7 @@ import '../widget/button/bottom_close_button.dart';
 import '../widget/config_version_text.dart';
 import '../widget/os_version_text.dart';
 import '../widget/version_text.dart';
+import '../widget/wallet_scrollbar.dart';
 
 class ErrorDetailsSheet extends StatelessWidget {
   const ErrorDetailsSheet({
@@ -64,8 +65,7 @@ class ErrorDetailsSheet extends StatelessWidget {
       isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return const Scrollbar(
-          trackVisibility: true,
+        return const WalletScrollbar(
           child: SingleChildScrollView(
             child: ErrorDetailsSheet(),
           ),

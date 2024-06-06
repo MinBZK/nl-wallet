@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'tabs/button_styles_tab.dart';
 import 'tabs/color_styles_tab.dart';
 import 'tabs/other_styles_tab.dart';
@@ -43,7 +44,7 @@ class _ThemeScreenState extends State<ThemeScreen> with SingleTickerProviderStat
               ],
             ),
             Expanded(
-              child: Scrollbar(
+              child: WalletScrollbar(
                 child: _buildContent(context),
               ),
             ),

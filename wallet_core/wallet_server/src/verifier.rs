@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     body::Bytes,
-    extract::{Path, Query, State},
+    extract::{OriginalUri, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -18,7 +18,7 @@ use nl_wallet_mdoc::{
     server_state::{SessionStore, SessionToken},
     verifier::{
         DisclosedAttributes, DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse,
-        VerificationError, Verifier, VerifierUrlParameters,
+        VerificationError, Verifier,
     },
     SessionData,
 };
@@ -109,14 +109,17 @@ where
 
 async fn session<S>(
     State(state): State<Arc<ApplicationState<S>>>,
+    OriginalUri(uri): OriginalUri,
     Path(session_token): Path<SessionToken>,
-    params: Option<Query<VerifierUrlParameters>>,
     msg: Bytes,
 ) -> Result<Cbor<SessionData>, Error>
 where
     S: SessionStore<DisclosureData>,
 {
-    let verifier_url = params.map(|params| (state.public_url.join_base_url("disclosure"), params.0));
+    // Since axum does not include the scheme and authority in the original URI, we need
+    // to rebuild the full URI by combining it with the configured public base URL.
+    let verifier_url = state.public_url.join(&uri.to_string());
+
     info!("process received message");
 
     let response = state

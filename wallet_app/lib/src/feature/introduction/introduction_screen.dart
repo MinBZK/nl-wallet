@@ -22,6 +22,7 @@ import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'widget/introduction_progress_stepper.dart';
 
 // Nr of introduction pages to be shown
@@ -161,7 +162,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       key: key,
       top: false,
       bottom: false,
-      child: Scrollbar(
+      child: WalletScrollbar(
         controller: controller,
         child: CustomScrollView(
           controller: controller,

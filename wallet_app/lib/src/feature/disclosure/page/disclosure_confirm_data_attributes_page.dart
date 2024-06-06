@@ -18,6 +18,7 @@ import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 import '../../info/info_screen.dart';
 import '../../policy/policy_screen.dart';
 
@@ -47,8 +48,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scrollbar(
-        thumbVisibility: true,
+      child: WalletScrollbar(
         child: CustomScrollView(
           restorationId: 'confirm_data_attributes_scrollview',
           slivers: <Widget>[

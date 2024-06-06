@@ -24,4 +24,5 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.walletState: 'WalletState',
   FlutterApiErrorType.hardwareKeyUnsupported: 'HardwareKeyUnsupported',
   FlutterApiErrorType.redirectUri: 'RedirectUri',
+  FlutterApiErrorType.disclosureSourceMismatch: 'DisclosureSourceMismatch',
 };

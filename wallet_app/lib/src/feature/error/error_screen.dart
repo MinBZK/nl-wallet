@@ -11,6 +11,7 @@ import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'error_button_builder.dart';
 
 export 'error_cta_style.dart';
@@ -37,7 +38,7 @@ class ErrorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Scrollbar(
+        child: WalletScrollbar(
           child: Column(
             children: [
               Expanded(

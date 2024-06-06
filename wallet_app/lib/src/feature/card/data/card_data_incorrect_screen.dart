@@ -5,6 +5,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/paragraphed_list.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class CardDataIncorrectScreen extends StatelessWidget {
   const CardDataIncorrectScreen({super.key});
@@ -17,8 +18,7 @@ class CardDataIncorrectScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: Scrollbar(
-                thumbVisibility: true,
+              child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(title: context.l10n.cardDataIncorrectScreenSubhead),

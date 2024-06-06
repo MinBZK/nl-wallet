@@ -7,6 +7,7 @@ import '../widget/button/list_button.dart';
 import '../widget/config_version_text.dart';
 import '../widget/os_version_text.dart';
 import '../widget/version_text.dart';
+import '../widget/wallet_scrollbar.dart';
 
 class HelpSheet extends StatelessWidget {
   final String? errorCode, supportCode;
@@ -100,8 +101,7 @@ class HelpSheet extends StatelessWidget {
       isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return Scrollbar(
-          trackVisibility: true,
+        return WalletScrollbar(
           child: SingleChildScrollView(
             child: HelpSheet(
               errorCode: errorCode,

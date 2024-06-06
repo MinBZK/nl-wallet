@@ -12,6 +12,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/history/history_section_sliver.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 import '../../history/detail/argument/history_detail_screen_argument.dart';
 import 'bloc/card_history_bloc.dart';
 
@@ -52,7 +53,7 @@ class CardHistoryScreen extends StatelessWidget {
           CardHistoryLoadSuccess() => _buildSuccessSliver(context, state),
           CardHistoryLoadFailure() => _buildErrorSliver(context),
         };
-        return Scrollbar(
+        return WalletScrollbar(
           child: CustomScrollView(
             slivers: [
               SliverWalletAppBar(title: context.l10n.cardHistoryScreenTitle),

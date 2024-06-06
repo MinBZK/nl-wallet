@@ -8,7 +8,7 @@ import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
-import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -43,6 +43,7 @@ class SignScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         leading: _buildBackButton(context),
+        automaticallyImplyLeading: false,
         title: Text(context.l10n.signScreenTitle),
         actions: [CloseIconButton(onPressed: () => _stopSigning(context))],
         progress: progress,
@@ -67,14 +68,11 @@ class SignScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBackButton(BuildContext context) {
-    return BlocBuilder<SignBloc, SignState>(
-      builder: (context, state) {
-        return AnimatedVisibilityBackButton(
-          visible: state.canGoBack,
-          onPressed: () => context.read<SignBloc>().add(const SignBackPressed()),
-        );
-      },
+  Widget? _buildBackButton(BuildContext context) {
+    final canGoBack = context.watch<SignBloc>().state.canGoBack;
+    if (!canGoBack) return null;
+    return BackIconButton(
+      onPressed: () => context.read<SignBloc>().add(const SignBackPressed()),
     );
   }
 

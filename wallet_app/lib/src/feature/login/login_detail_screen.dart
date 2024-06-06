@@ -19,6 +19,7 @@ import '../common/widget/organization/organization_logo.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import '../info/info_screen.dart';
 import '../organization/detail/organization_detail_screen.dart';
 import '../policy/policy_screen.dart';
@@ -67,7 +68,7 @@ class LoginDetailScreen extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
           SliverWalletAppBar(
