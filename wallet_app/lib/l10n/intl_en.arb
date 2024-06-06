@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-06-03T16:28:51+02:00",
+    "@@last_modified": "2024-06-04T16:23:56+02:00",
     "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -261,6 +261,8 @@
             }
         }
     },
+    "disclosureStopSheetDescriptionForLoginVariant": "If you stop, you will not be able to log in.",
+    "disclosureStopSheetDescriptionVariant": "If you stop, no data will be shared.",
     "disclosureStopSheetNegativeCta": "No",
     "disclosureStopSheetPositiveCta": "Yes, stop",
     "disclosureStopSheetReportIssueCta": "Would you like to report a problem?",
@@ -324,7 +326,7 @@
     "generalBottomBackCta": "Back",
     "generalCancelCta": "Cancel",
     "generalClose": "Close",
-    "generalConfigVersionText": "App config.:",
+    "generalConfigVersionText": "App config:",
     "generalDays": "{days, plural, one {{days} day} other {{days} days}}",
     "@generalDays": {
         "placeholders": {
@@ -801,6 +803,9 @@
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",
     "resetWalletDialogTitle": "Do you want to delete all data?",
+    "scanWithWalletDialogBody": "It looks like you have scanned a QR code with a different app. To be sure, scan the QR code with the NL Wallet.",
+    "scanWithWalletDialogScanCta": "Scan QR-code",
+    "scanWithWalletDialogTitle": "Scan the QR code with NL Wallet",
     "settingsScreenChangeLanguageCta": "Change language",
     "settingsScreenChangePinCta": "Change PIN code",
     "settingsScreenClearDataCta": "Remove data",

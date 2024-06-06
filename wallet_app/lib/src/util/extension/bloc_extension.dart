@@ -21,39 +21,33 @@ extension BlocExtensions on Bloc {
     Function(CoreNetworkError, bool /* hasInternet */)? onNetworkError,
     Function(CoreRedirectUriError)? onRedirectUriError,
     Function(CoreHardwareKeyUnsupportedError)? onHardwareKeyUnsupportedError,
+    Function(CoreDisclosureSourceMismatchError)? onDisclosureSourceMismatchError,
     Function(CoreError)? onCoreError,
     required Function(Object) onUnhandledError,
   }) async {
     if (ex is CoreError) {
       switch (ex) {
         case CoreGenericError():
-          if (onGenericError != null) {
-            await onGenericError.call(ex);
-            return;
-          }
+          await onGenericError?.call(ex);
+          if (onGenericError != null) return;
         case CoreNetworkError():
-          if (onNetworkError != null) {
-            await onNetworkError.call(ex, await checkHasInternetUseCase.invoke());
-            return;
-          }
+          await onNetworkError?.call(ex, await checkHasInternetUseCase.invoke());
+          if (onNetworkError != null) return;
         case CoreRedirectUriError():
-          if (onRedirectUriError != null) {
-            await onRedirectUriError.call(ex);
-            return;
-          }
+          await onRedirectUriError?.call(ex);
+          if (onRedirectUriError != null) return;
         case CoreHardwareKeyUnsupportedError():
-          if (onHardwareKeyUnsupportedError != null) {
-            await onHardwareKeyUnsupportedError.call(ex);
-            return;
-          }
+          await onHardwareKeyUnsupportedError?.call(ex);
+          if (onHardwareKeyUnsupportedError != null) return;
+        case CoreDisclosureSourceMismatchError():
+          await onDisclosureSourceMismatchError?.call(ex);
+          if (onDisclosureSourceMismatchError != null) return;
         case CoreStateError():
           // This is a programming error and thus should not be handled gracefully.
           throw ex;
       }
-      if (onCoreError != null) {
-        await onCoreError.call(ex);
-        return;
-      }
+      await onCoreError?.call(ex);
+      if (onCoreError != null) return;
     }
     await onUnhandledError.call(ex);
   }

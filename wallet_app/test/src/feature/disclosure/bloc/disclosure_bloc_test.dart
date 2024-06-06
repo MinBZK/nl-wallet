@@ -549,4 +549,22 @@ void main() {
     act: (bloc) => bloc.add(const DisclosureSessionStarted('http://false', isQrCode: false)),
     verify: (_) => verify(startDisclosureUseCase.invoke('http://false', false)).called(1),
   );
+
+  blocTest(
+    'When a CoreDisclosureSourceMismatchError(isCrossDevice=true) is thrown, emit the DisclosureExternalScannerError',
+    setUp: () => when(startDisclosureUseCase.invoke(any, any))
+        .thenThrow(const CoreDisclosureSourceMismatchError('description', isCrossDevice: true)),
+    build: () => create(),
+    act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [isA<DisclosureExternalScannerError>()],
+  );
+
+  blocTest(
+    'When a CoreDisclosureSourceMismatchError(isCrossDevice=false) is thrown, emit the DisclosureGenericError',
+    setUp: () => when(startDisclosureUseCase.invoke(any, any))
+        .thenThrow(const CoreDisclosureSourceMismatchError('description', isCrossDevice: false)),
+    build: () => create(),
+    act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [isA<DisclosureGenericError>()],
+  );
 }
