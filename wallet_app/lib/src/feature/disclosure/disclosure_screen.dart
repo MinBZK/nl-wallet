@@ -12,7 +12,7 @@ import '../../util/extension/localized_text_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/page/generic_loading_page.dart';
-import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
@@ -59,6 +59,7 @@ class DisclosureScreen extends StatelessWidget {
         restorationId: 'disclosure_scaffold',
         appBar: WalletAppBar(
           leading: _buildBackButton(context),
+          automaticallyImplyLeading: false,
           actions: [
             const HelpIconButton(),
             CloseIconButton(
@@ -87,14 +88,11 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBackButton(BuildContext context) {
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      builder: (context, state) {
-        return AnimatedVisibilityBackButton(
-          visible: state.canGoBack,
-          onPressed: () => context.bloc.add(const DisclosureBackPressed()),
-        );
-      },
+  Widget? _buildBackButton(BuildContext context) {
+    final canGoBack = context.watch<DisclosureBloc>().state.canGoBack;
+    if (!canGoBack) return null;
+    return BackIconButton(
+      onPressed: () => context.bloc.add(const DisclosureBackPressed()),
     );
   }
 
