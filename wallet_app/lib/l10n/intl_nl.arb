@@ -725,13 +725,10 @@
         }
     },
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
-    "placeholderScreenContractInformTitle": "Hier komt het contract te staan.",
     "placeholderScreenGenericDescription": "Helaas, aan deze pagina wordt nog gewerkt.\nHeb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
-    "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
     "placeholderScreenHeadline": "Deze pagina bestaat nog niet",
     "placeholderScreenHelpDescription": "Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
     "placeholderScreenHelpHeadline": "Heb je vragen of hulp nodig?",
-    "placeholderScreenTitle": "Pagina bestaat niet",
     "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
     "policyScreenDataCanBeDeletedDescription": "De organisatie biedt een manier om je gegevens te laten verwijderen.",
     "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
