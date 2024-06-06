@@ -13,6 +13,7 @@ import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/document_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class CheckAgreementPage extends StatelessWidget {
   final VoidCallback onDecline;
@@ -32,7 +33,7 @@ class CheckAgreementPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: <Widget>[
           const SliverSizedBox(height: 8),

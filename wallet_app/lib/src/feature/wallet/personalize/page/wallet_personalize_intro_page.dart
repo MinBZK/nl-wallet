@@ -9,6 +9,7 @@ import '../../../common/widget/button/primary_button.dart';
 import '../../../common/widget/button/tertiary_button.dart';
 import '../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../common/widget/text/body_text.dart';
+import '../../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeIntroPage extends StatelessWidget {
   final VoidCallback onLoginWithDigidPressed;
@@ -28,7 +29,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: Scrollbar(
+            child: WalletScrollbar(
               child: CustomScrollView(
                 slivers: [
                   SliverWalletAppBar(

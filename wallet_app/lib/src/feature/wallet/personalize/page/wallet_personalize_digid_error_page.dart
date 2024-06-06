@@ -6,6 +6,7 @@ import '../../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../../common/widget/button/primary_button.dart';
 import '../../../common/widget/button/tertiary_button.dart';
 import '../../../common/widget/sliver_sized_box.dart';
+import '../../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   final VoidCallback onRetryPressed;
@@ -26,7 +27,7 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: Scrollbar(
+            child: WalletScrollbar(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: CustomScrollView(

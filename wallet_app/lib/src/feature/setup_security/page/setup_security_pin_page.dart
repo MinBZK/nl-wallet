@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 import '../../pin/widget/pin_field.dart';
 import '../../pin/widget/pin_keyboard.dart';
 
@@ -44,9 +45,7 @@ class SetupSecurityPinPage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Expanded(
-          child: Scrollbar(
-            thumbVisibility: true,
-            trackVisibility: true,
+          child: WalletScrollbar(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               child: Align(
@@ -77,9 +76,7 @@ class SetupSecurityPinPage extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Scrollbar(
-            trackVisibility: true,
-            thumbVisibility: true,
+          child: WalletScrollbar(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 38),
               child: Align(

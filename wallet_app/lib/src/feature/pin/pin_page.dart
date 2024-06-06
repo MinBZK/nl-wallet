@@ -10,6 +10,7 @@ import '../../wallet_constants.dart';
 import '../common/widget/button/button_content.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/pin_header.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import '../error/error_screen.dart';
 import '../forgot_pin/forgot_pin_screen.dart';
 import '../pin_blocked/pin_blocked_screen.dart';
@@ -210,9 +211,7 @@ class PinPage extends StatelessWidget {
   }
 
   Widget _buildHeader(PinHeaderBuilder builder) {
-    return Scrollbar(
-      thumbVisibility: true,
-      trackVisibility: true,
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
           SliverFillRemaining(

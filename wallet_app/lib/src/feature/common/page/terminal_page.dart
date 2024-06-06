@@ -7,6 +7,7 @@ import '../widget/button/primary_button.dart';
 import '../widget/button/tertiary_button.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
+import '../widget/wallet_scrollbar.dart';
 
 class TerminalPage extends StatelessWidget {
   final String title;
@@ -48,7 +49,7 @@ class TerminalPage extends StatelessWidget {
 
   Widget _buildScrollableSection(BuildContext context) {
     return Expanded(
-      child: Scrollbar(
+      child: WalletScrollbar(
         child: ListView(
           padding: const EdgeInsets.only(top: 2, bottom: 24),
           children: [

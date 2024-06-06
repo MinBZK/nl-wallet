@@ -15,6 +15,7 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 
 class IntroductionConditionsScreen extends StatelessWidget {
   const IntroductionConditionsScreen({super.key});
@@ -31,8 +32,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: Scrollbar(
-            thumbVisibility: true,
+          child: WalletScrollbar(
             child: CustomScrollView(
               slivers: [
                 SliverWalletAppBar(
