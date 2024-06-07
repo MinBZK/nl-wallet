@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     extract::{FromRequest, Path, Query, State},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{get, on, post, MethodFilter},
     Form, Json, RequestExt, Router,
 };
 use http::{header, HeaderMap, HeaderValue, Method, Request, StatusCode};
@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType},
 };
 use openid4vc::{
-    openid4vp::VpResponse,
+    openid4vp::{VpResponse, WalletRequest},
     verifier::{
         DisclosureData, GetRequestErrorCode, PostAuthResponseErrorCode, StatusResponse, VerificationErrorCode,
         Verifier, VerifierUrlParameters, WalletAuthResponse,
@@ -55,8 +55,12 @@ where
         universal_link_base_url: settings.universal_link_base_url,
     });
 
+    // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     let wallet_router = Router::new()
-        .route("/:session_token/request_uri", get(get_request::<S>))
+        .route(
+            "/:session_token/request_uri",
+            on(MethodFilter::GET | MethodFilter::POST, retrieve_request::<S>),
+        )
         .route("/:session_token/response_uri", post(post_response::<S>))
         .route(
             "/:session_token/status",
@@ -75,10 +79,11 @@ where
     Ok((wallet_router, requester_router))
 }
 
-async fn get_request<S>(
+async fn retrieve_request<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(url_params): Query<VerifierUrlParameters>,
+    wallet_request: Option<Form<WalletRequest>>,
 ) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
@@ -91,6 +96,7 @@ where
             &session_token,
             &state.public_url.join_base_url("disclosure"),
             url_params,
+            wallet_request.and_then(|r| r.0.wallet_nonce),
         )
         .await
         .map_err(|e| {
@@ -223,6 +229,7 @@ where
 
 /// An `axum` content type like [`Json`] for HTTP requests that deserializes from JSON or URL encoding,
 /// based on the content type HTTP header.
+/// Based on https://github.com/tokio-rs/axum/blob/main/examples/parse-body-based-on-content-type/src/main.rs.
 struct JsonOrForm<T>(T);
 
 #[axum::async_trait]

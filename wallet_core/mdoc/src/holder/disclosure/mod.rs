@@ -5,7 +5,7 @@ use super::Mdoc;
 pub use proposed_document::{ProposedDocument, ProposedDocumentAttributes};
 pub use request::DisclosureRequestMatch;
 pub use session::{
-    DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, ProposedAttributes, DisclosureUriSource,
+    DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, DisclosureUriSource, ProposedAttributes,
 };
 
 mod device_signed;

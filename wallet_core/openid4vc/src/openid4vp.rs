@@ -53,8 +53,19 @@ pub struct VpRequestUriObject {
     /// URL at which the full Authorization Request is to be retrieved.
     pub request_uri: BaseUrl,
 
+    /// Whether or not the `request_uri` supports `POST`, instead of only `GET` as defined by RFC 9101.
+    pub request_uri_method: Option<RequestUriMethod>,
+
     /// MUST equal the client_id from the full Authorization Request.
     pub client_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RequestUriMethod {
+    #[default]
+    GET,
+    POST,
 }
 
 /// An OpenID4VP Authorization Request, allowing an RP to request a set of attestations/attributes from a wallet.
@@ -80,6 +91,8 @@ pub struct VpAuthorizationRequest {
     /// REQUIRED if the ResponseMode `direct_post` or `direct_post.jwt` is used.
     /// In that case, the Authorization Response is to be posted to this URL by the wallet.
     pub response_uri: Option<BaseUrl>,
+
+    pub wallet_nonce: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -192,6 +205,11 @@ pub enum FormatAlg {
     ES256,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WalletRequest {
+    pub wallet_nonce: Option<String>,
+}
+
 use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
@@ -271,6 +289,8 @@ pub enum AuthRequestValidationError {
     CertificateParsing(#[from] CertificateError),
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtX5cError),
+    #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
+    WalletNonceMismatch,
 }
 
 impl VpAuthorizationRequest {
@@ -280,6 +300,7 @@ impl VpAuthorizationRequest {
         nonce: String,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Self, AuthRequestError> {
         Ok(VpAuthorizationRequest {
             aud: VpAuthorizationRequestAudience::SelfIssued,
@@ -311,6 +332,7 @@ impl VpAuthorizationRequest {
             })),
             client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(response_uri),
+            wallet_nonce,
         })
     }
 
@@ -322,6 +344,7 @@ impl VpAuthorizationRequest {
     pub fn verify(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
+        wallet_nonce: Option<String>,
     ) -> Result<(IsoVpAuthorizationRequest, Certificate), AuthRequestValidationError> {
         let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(jws, trust_anchors, &TimeGenerator)?;
 
@@ -331,6 +354,10 @@ impl VpAuthorizationRequest {
                 client_id: auth_request.oauth_request.client_id,
                 dns_san,
             });
+        }
+
+        if wallet_nonce != auth_request.wallet_nonce {
+            return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 
         let validated_auth_request = auth_request.validate()?;
@@ -716,6 +743,7 @@ mod tests {
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             "https://example.com/response_uri".parse().unwrap(),
+            None,
         )
         .unwrap();
 
@@ -757,7 +785,7 @@ mod tests {
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
-        VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
+        VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()], None).unwrap();
     }
 
     #[test]

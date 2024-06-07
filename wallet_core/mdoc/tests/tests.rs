@@ -16,7 +16,7 @@ use webpki::TrustAnchor;
 
 use nl_wallet_mdoc::{
     holder::{
-        DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, DisclosureUriSource,
+        DisclosureSession, DisclosureUriSource, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource,
         StoredMdoc,
     },
     iso::mdocs::DocType,

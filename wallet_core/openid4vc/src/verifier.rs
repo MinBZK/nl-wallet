@@ -43,7 +43,7 @@ use crate::{
     authorization::AuthorizationErrorCode,
     jwt,
     openid4vp::{
-        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
+        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationErrorCode,
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
     ErrorResponse,
@@ -493,6 +493,7 @@ where
         session_token: &SessionToken,
         verifier_base_url: &BaseUrl,
         url_params: VerifierUrlParameters,
+        wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, GetAuthRequestError> {
         let session: Session<Created> = self
             .sessions
@@ -510,7 +511,12 @@ where
         self.verify_ephemeral_id(session_token, &url_params)?;
 
         let (result, next) = match session
-            .process_get_request(verifier_base_url, url_params.session_type, &self.use_cases)
+            .process_get_request(
+                verifier_base_url,
+                url_params.session_type,
+                wallet_nonce,
+                &self.use_cases,
+            )
             .await
         {
             Ok((jws, next)) => (Ok(jws), next.into()),
@@ -671,6 +677,7 @@ impl<S> Verifier<S> {
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUriObject {
             request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
             client_id,
+            request_uri_method: Some(RequestUriMethod::POST),
         })?));
 
         Ok(ul.try_into().unwrap()) // safe because we constructed request_uri from a BaseUrl
@@ -747,12 +754,13 @@ impl Session<Created> {
         self,
         verifier_base_url: &BaseUrl,
         session_type: SessionType,
+        wallet_nonce: Option<String>,
         use_cases: &UseCases,
     ) -> Result<(Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>), (GetAuthRequestError, Session<Done>)> {
         info!("Session({}): process get request", self.state.token);
 
         let (response, next) = match self
-            .process_get_request_inner(verifier_base_url, session_type, use_cases)
+            .process_get_request_inner(verifier_base_url, session_type, wallet_nonce, use_cases)
             .await
         {
             Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
@@ -782,6 +790,7 @@ impl Session<Created> {
         &self,
         verifier_base_url: &BaseUrl,
         session_type: SessionType,
+        wallet_nonce: Option<String>,
         use_cases: &UseCases,
     ) -> Result<
         (
@@ -826,6 +835,7 @@ impl Session<Created> {
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
             response_uri,
+            wallet_nonce,
         )?;
 
         let jws = jwt::sign_with_certificate(&auth_request, &usecase.key_pair).await?;

@@ -1,7 +1,7 @@
 use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
-use reqwest::Response;
+use reqwest::{header::ACCEPT, Method, Response};
 use tracing::{info, warn};
 
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
@@ -24,8 +24,9 @@ use nl_wallet_mdoc::{
 use crate::{
     authorization::AuthorizationErrorCode,
     openid4vp::{
-        AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
-        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
+        AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod,
+        VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
+        WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
     ErrorResponse,
@@ -78,6 +79,7 @@ pub trait VpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError>;
 
     async fn send_authorization_response(
@@ -114,9 +116,23 @@ impl VpMessageClient for HttpVpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
-        self.http_client
-            .get(url.into_inner())
+        let method = match wallet_nonce {
+            Some(_) => Method::POST,
+            None => Method::GET,
+        };
+
+        let mut request = self
+            .http_client
+            .request(method, url.into_inner())
+            .header(ACCEPT, "application/oauth-authz-req+jwt");
+
+        if wallet_nonce.is_some() {
+            request = request.form(&WalletRequest { wallet_nonce });
+        }
+
+        request
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
@@ -254,11 +270,18 @@ where
             return Err(VpClientError::ReaderEnagementSourceMismatch(session_type, uri_source));
         }
 
+        // If the server supports it, require it to include a nonce in the Authorization Request JWT
+        let method = request_uri_object.request_uri_method.unwrap_or_default();
+        let request_nonce = match method {
+            RequestUriMethod::GET => None,
+            RequestUriMethod::POST => Some(random_string(32)),
+        };
+
         let jws = client
-            .get_authorization_request(request_uri_object.request_uri.clone())
+            .get_authorization_request(request_uri_object.request_uri.clone(), request_nonce.clone())
             .await?;
 
-        let (auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors)?;
+        let (auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors, request_nonce)?;
 
         let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
@@ -578,6 +601,7 @@ mod tests {
                 nonce.clone(),
                 encryption_keypair.to_jwk_public_key().try_into().unwrap(),
                 response_uri.clone(),
+                None,
             )
             .unwrap();
 
@@ -595,6 +619,7 @@ mod tests {
             serde_urlencoded::to_string(VpRequestUriObject {
                 request_uri: self.request_uri.clone(),
                 client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
+                request_uri_method: Default::default(),
             })
             .unwrap()
         }
@@ -604,6 +629,7 @@ mod tests {
         async fn get_authorization_request(
             &self,
             url: BaseUrl,
+            _request_nonce: Option<String>,
         ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
             assert_eq!(url, self.request_uri);
 

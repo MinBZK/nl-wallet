@@ -43,6 +43,7 @@ async fn disclosure() {
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
         response_uri,
+        None,
     )
     .unwrap();
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
@@ -78,7 +79,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
-    let (auth_request, _) = VpAuthorizationRequest::verify(&auth_request, trust_anchors).unwrap();
+    let (auth_request, _) = VpAuthorizationRequest::verify(&auth_request, trust_anchors, None).unwrap();
 
     // Check if we have the requested attributes.
     let session_transcript = SessionTranscript::new_oid4vp(
@@ -237,6 +238,7 @@ impl VpMessageClient for MockVpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
@@ -245,7 +247,12 @@ impl VpMessageClient for MockVpMessageClient {
 
         let jws = self
             .verifier
-            .process_get_request(&session_token, &"https://example.com".parse().unwrap(), url_params)
+            .process_get_request(
+                &session_token,
+                &"https://example.com".parse().unwrap(),
+                url_params,
+                wallet_nonce,
+            )
             .await
             .unwrap();
 
