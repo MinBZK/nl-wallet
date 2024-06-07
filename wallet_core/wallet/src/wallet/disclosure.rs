@@ -51,7 +51,7 @@ pub enum DisclosureError {
     #[error("error in mdoc disclosure session: {0}")]
     IsoDisclosureSession(#[from] nl_wallet_mdoc::Error),
     #[error("error in OpenID4VP disclosure session: {0}")]
-    Oid4vpDisclosureSession(#[from] VpClientError),
+    VpDisclosureSession(#[from] VpClientError),
     #[error("could not fetch if attributes were shared before: {0}")]
     HistoryRetrieval(#[source] StorageError),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]

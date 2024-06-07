@@ -2,7 +2,8 @@ use std::net::SocketAddr;
 
 use anyhow::Result;
 use axum::{routing::get, Router};
-use nl_wallet_mdoc::{server_state::SessionStore, verifier::DisclosureData};
+use nl_wallet_mdoc::server_state::SessionStore;
+use openid4vc::verifier::DisclosureData;
 use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
 use tracing::debug;
 

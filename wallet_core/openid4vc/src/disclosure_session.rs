@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
@@ -29,7 +27,7 @@ use crate::{
         AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
-    verifier::VerifierUrlParameters,
+    verifier::{VerifierUrlParameters, VpToken},
     ErrorResponse,
 };
 
@@ -128,7 +126,7 @@ impl VpMessageClient for HttpVpMessageClient {
                     let error = response.json::<ErrorResponse<String>>().await?;
                     Err(VpMessageClientError::ErrorResponse(error))
                 } else {
-                    Ok(response.json().await?)
+                    Ok(response.text().await?.into())
                 }
             })
             .await
@@ -141,7 +139,7 @@ impl VpMessageClient for HttpVpMessageClient {
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.http_client
             .post(url.into_inner())
-            .form(&HashMap::from([("response", jwe)]))
+            .form(&VpToken { vp_token: jwe })
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {

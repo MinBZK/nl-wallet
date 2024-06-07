@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use axum::{
-    body::Bytes,
-    extract::{OriginalUri, Path, Query, State},
-    http::StatusCode,
+    extract::{FromRequest, Path, Query, State},
     response::{IntoResponse, Response},
     routing::{get, post},
-    Json, Router,
+    Form, Json, RequestExt, Router,
 };
-use http::Method;
+use http::{header, HeaderMap, HeaderValue, Method, Request, StatusCode};
+
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
@@ -16,47 +15,35 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::{SessionStore, SessionToken},
-    verifier::{
-        DisclosedAttributes, DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse,
-        VerificationError, Verifier,
-    },
-    SessionData,
+    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType},
+};
+use openid4vc::{
+    openid4vp::VpResponse,
+    verifier::{DisclosureData, StatusResponse, Verifier, VerifierUrlParameters, WalletAuthResponse},
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator};
 
-use crate::{cbor::Cbor, settings::Settings};
+use crate::settings::Settings;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("starting mdoc session failed: {0}")]
-    StartSession(#[source] nl_wallet_mdoc::Error),
-    #[error("process mdoc message error: {0}")]
-    ProcessMdoc(#[source] nl_wallet_mdoc::Error),
+    StartSession(#[source] openid4vc::verifier::VerificationError),
+    #[error("get request error: {0}")]
+    GetRequest(#[from] openid4vc::verifier::GetAuthRequestError),
+    #[error("post response error: {0}")]
+    PostResponse(#[from] openid4vc::verifier::PostAuthResponseError),
     #[error("retrieving status error: {0}")]
-    SessionStatus(#[source] nl_wallet_mdoc::Error),
+    SessionStatus(#[source] openid4vc::verifier::VerificationError),
     #[error("retrieving disclosed attributes error: {0}")]
-    DisclosedAttributes(#[source] nl_wallet_mdoc::Error),
+    DisclosedAttributes(#[source] openid4vc::verifier::VerificationError),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        match self {
-            Error::StartSession(nl_wallet_mdoc::Error::Verification(_)) => StatusCode::BAD_REQUEST,
-            Error::StartSession(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ProcessMdoc(nl_wallet_mdoc::Error::Verification(verification_error))
-            | Error::SessionStatus(nl_wallet_mdoc::Error::Verification(verification_error))
-            | Error::DisclosedAttributes(nl_wallet_mdoc::Error::Verification(verification_error)) => {
-                match verification_error {
-                    VerificationError::UnknownSessionId(_) => StatusCode::NOT_FOUND,
-                    VerificationError::SessionStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                    _ => StatusCode::BAD_REQUEST,
-                }
-            }
-            Error::ProcessMdoc(_) => StatusCode::BAD_REQUEST,
-            Error::SessionStatus(_) => StatusCode::BAD_REQUEST,
-            Error::DisclosedAttributes(_) => StatusCode::BAD_REQUEST,
-        }
-        .into_response()
+        // TODO
+        dbg!(&self);
+        StatusCode::BAD_REQUEST.into_response()
     }
 }
 
@@ -89,7 +76,8 @@ where
     });
 
     let wallet_router = Router::new()
-        .route("/:session_token", post(session::<S>))
+        .route("/:session_token/request_uri", get(get_request::<S>))
+        .route("/:session_token/response_uri", post(post_response::<S>))
         .route(
             "/:session_token/status",
             get(status::<S>)
@@ -107,33 +95,60 @@ where
     Ok((wallet_router, requester_router))
 }
 
-async fn session<S>(
+async fn get_request<S>(
     State(state): State<Arc<ApplicationState<S>>>,
-    OriginalUri(uri): OriginalUri,
     Path(session_token): Path<SessionToken>,
-    msg: Bytes,
-) -> Result<Cbor<SessionData>, Error>
+    Query(url_params): Query<VerifierUrlParameters>,
+) -> Result<(HeaderMap, String), Error>
 where
     S: SessionStore<DisclosureData>,
 {
-    // Since axum does not include the scheme and authority in the original URI, we need
-    // to rebuild the full URI by combining it with the configured public base URL.
-    let verifier_url = state.public_url.join(&uri.to_string());
-
     info!("process received message");
 
     let response = state
         .verifier
-        .process_message(&msg, &session_token, verifier_url)
+        .process_get_request(
+            &session_token,
+            &state.public_url.join_base_url("disclosure"),
+            url_params,
+        )
         .await
         .map_err(|e| {
-            warn!("processing message failed, returning ProcessMdoc error");
-            Error::ProcessMdoc(e)
+            warn!("processing message failed, returning GetRequest error");
+            Error::GetRequest(e)
         })?;
 
     info!("message processed successfully, returning response");
 
-    Ok(Cbor(response))
+    let headers = HeaderMap::from_iter([(
+        header::CONTENT_TYPE,
+        HeaderValue::from_str("application/oauth-authz-req+jwt").unwrap(),
+    )]);
+    Ok((headers, response.0))
+}
+
+async fn post_response<S>(
+    State(state): State<Arc<ApplicationState<S>>>,
+    Path(session_token): Path<SessionToken>,
+    JsonOrForm(wallet_response): JsonOrForm<WalletAuthResponse>,
+) -> Result<Json<VpResponse>, Error>
+where
+    S: SessionStore<DisclosureData>,
+{
+    info!("process received message");
+
+    let response = state
+        .verifier
+        .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
+        .await
+        .map_err(|e| {
+            warn!("processing message failed, returning PostResponse error");
+            Error::PostResponse(e)
+        })?;
+
+    info!("message processed successfully, returning response");
+
+    Ok(Json(response))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -224,4 +239,38 @@ where
         .await
         .map_err(Error::DisclosedAttributes)?;
     Ok(Json(disclosed_attributes))
+}
+
+/// An `axum` content type like [`Json`] for HTTP requests that deserializes from JSON or URL encoding,
+/// based on the content type HTTP header.
+struct JsonOrForm<T>(T);
+
+#[axum::async_trait]
+impl<S, T> FromRequest<S, axum::body::Body> for JsonOrForm<T>
+where
+    S: Send + Sync,
+    T: 'static,
+    Json<T>: FromRequest<(), axum::body::Body>,
+    Form<T>: FromRequest<(), axum::body::Body>,
+{
+    type Rejection = Response;
+
+    async fn from_request(req: Request<axum::body::Body>, _state: &S) -> Result<Self, Self::Rejection> {
+        let content_type_header = req.headers().get(header::CONTENT_TYPE);
+        let content_type = content_type_header.and_then(|value| value.to_str().ok());
+
+        if let Some(content_type) = content_type {
+            if content_type.starts_with("application/json") {
+                let Json(payload) = req.extract().await.map_err(IntoResponse::into_response)?;
+                return Ok(Self(payload));
+            }
+
+            if content_type.starts_with("application/x-www-form-urlencoded") {
+                let Form(payload) = req.extract().await.map_err(IntoResponse::into_response)?;
+                return Ok(Self(payload));
+            }
+        }
+
+        Err(StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response())
+    }
 }

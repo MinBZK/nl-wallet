@@ -2,11 +2,13 @@
 
 use std::sync::Arc;
 
-use base64::prelude::*;
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use josekit::{
-    jwk::alg::ec::{EcCurve, EcKeyPair},
+    jwk::{
+        alg::ec::{EcCurve, EcKeyPair},
+        Jwk,
+    },
     JoseError,
 };
 use ring::hmac;
@@ -181,26 +183,27 @@ impl RedirectUri {
 #[derive(Debug, Clone)]
 struct EncryptionPrivateKey(EcKeyPair);
 
+// Ordinarily we might use DER encoding here instead of PEM, but `EcKeyPair::to_der_private_key()` does not encode
+// to PKCS8 which is expected by `EcKeyPair::from_der()`. A workaround would be to explicitly pass the EC curve
+// (P256 currently in our case) as a parameter to `EcKeyPair::from_der()`, but that would hinder a potential future
+// implementation of other curves or signature schemes. So we use the JWK functions instead, which don't have
+// this issue.
 impl Serialize for EncryptionPrivateKey {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        BASE64_URL_SAFE_NO_PAD
-            .encode(self.0.to_der_private_key())
-            .serialize(serializer)
+        self.0.to_jwk_private_key().serialize(serializer)
     }
 }
-
 impl<'de> Deserialize<'de> for EncryptionPrivateKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Ok(EncryptionPrivateKey(
-            EcKeyPair::from_der(
-                BASE64_URL_SAFE_NO_PAD
-                    .decode(String::deserialize(deserializer)?)
-                    .map_err(serde::de::Error::custom)?,
-                None,
-            )
-            .map_err(serde::de::Error::custom)?,
+            EcKeyPair::from_jwk(&Jwk::deserialize(deserializer)?).map_err(serde::de::Error::custom)?,
         ))
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct VpToken {
+    pub vp_token: String,
 }
 
 /// Sent by the wallet to the `response_uri`: either an Authorization Response JWE or an error, which either indicates
@@ -208,7 +211,7 @@ impl<'de> Deserialize<'de> for EncryptionPrivateKey {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WalletAuthResponse {
-    Response(String),
+    Response(VpToken),
     Error(ErrorResponse<VpAuthorizationErrorCode>),
 }
 
@@ -521,9 +524,10 @@ where
     pub async fn status_response(
         &self,
         session_token: &SessionToken,
+        session_type: SessionType,
         ul_base: &BaseUrl,
         verifier_base_url: &BaseUrl,
-        session_type: SessionType,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusResponse, VerificationError> {
         let response = match self
             .sessions
@@ -534,7 +538,7 @@ where
             .data
         {
             DisclosureData::Created(Created { client_id, .. }) => {
-                let time = Utc::now();
+                let time = time.generate();
                 let ul = Self::format_ul(
                     ul_base,
                     verifier_base_url,
@@ -617,8 +621,8 @@ impl<S> Verifier<S> {
         client_id: String,
     ) -> Result<BaseUrl, VerificationError> {
         let mut request_uri = verifier_base_url
-            .join_base_url("request_uri")
             .join_base_url(session_token.as_ref())
+            .join_base_url("request_uri")
             .into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
             time,
@@ -776,8 +780,8 @@ impl Session<Created> {
         // Construct the Authorization Request.
         let nonce = random_string(32);
         let response_uri = verifier_base_url
-            .join_base_url("response_uri")
-            .join_base_url(self.state.token.as_ref());
+            .join_base_url(self.state.token.as_ref())
+            .join_base_url("response_uri");
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256)?;
         let auth_request = VpAuthorizationRequest::new(
             &self.state.data.items_requests,
@@ -812,7 +816,7 @@ impl Session<WaitingForResponse> {
         debug!("Session({}): process response", self.state.token);
 
         let jwe = match wallet_response {
-            WalletAuthResponse::Response(jwe) => jwe,
+            WalletAuthResponse::Response(VpToken { vp_token }) => vp_token,
             WalletAuthResponse::Error(err) => {
                 // Check if the error code indicates that the user refused to disclose.
                 let user_refused = matches!(

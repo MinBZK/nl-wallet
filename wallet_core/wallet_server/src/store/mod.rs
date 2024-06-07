@@ -1,15 +1,13 @@
 #[cfg(feature = "postgres")]
 pub mod postgres;
 
+use openid4vc::verifier::DisclosureData;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
-use nl_wallet_mdoc::{
-    server_state::{
-        Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError,
-        SessionStoreTimeouts, SessionToken,
-    },
-    verifier::DisclosureData,
+use nl_wallet_mdoc::server_state::{
+    Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
+    SessionToken,
 };
 
 #[cfg(feature = "issuance")]

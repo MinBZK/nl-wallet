@@ -7,7 +7,7 @@ use rstest::rstest;
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
-    holder::{DisclosureRequestMatch, ProposedDocument, DisclosureUriSource, TrustAnchor},
+    holder::{DisclosureRequestMatch, DisclosureUriSource, ProposedDocument, TrustAnchor},
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
@@ -21,10 +21,12 @@ use openid4vc::{
     jwt,
     mock::MockMdocDataSource,
     openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse},
-    verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
+    verifier::{DisclosureData, StatusResponse, Verifier, VpToken, WalletAuthResponse},
     ErrorResponse,
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::OwnedTrustAnchor};
+use wallet_common::{
+    config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,
+};
 
 #[tokio::test]
 async fn disclosure() {
@@ -205,9 +207,10 @@ async fn request_uri_from_status_endpoint(
     let StatusResponse::Created { ul } = verifier
         .status_response(
             session_token,
+            session_type,
             &"https://example.com/ul".parse().unwrap(),
             &"https://example.com/verifier_base_url".parse().unwrap(),
-            session_type,
+            &TimeGenerator,
         )
         .await
         .unwrap()
@@ -235,7 +238,8 @@ impl VpMessageClient for MockVpMessageClient {
         &self,
         url: BaseUrl,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
-        let session_token = SessionToken::new(url.as_ref().path_segments().unwrap().last().unwrap());
+        let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
+        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
 
         let url_params = serde_urlencoded::from_str(url.as_ref().query().unwrap()).unwrap();
 
@@ -253,11 +257,16 @@ impl VpMessageClient for MockVpMessageClient {
         url: BaseUrl,
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        let session_token = SessionToken::new(url.as_ref().path_segments().unwrap().last().unwrap());
+        let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
+        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
 
         let response = self
             .verifier
-            .process_authorization_response(&session_token, WalletAuthResponse::Response(jwe), &IsoCertTimeGenerator)
+            .process_authorization_response(
+                &session_token,
+                WalletAuthResponse::Response(VpToken { vp_token: jwe }),
+                &IsoCertTimeGenerator,
+            )
             .await
             .unwrap();
 
