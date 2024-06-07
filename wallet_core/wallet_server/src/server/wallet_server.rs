@@ -36,7 +36,5 @@ where
         )),
         decorate_router("/disclosure/sessions", requester_router, log_requests),
     )
-    .await?;
-
-    Ok(())
+    .await
 }

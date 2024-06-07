@@ -30,7 +30,5 @@ where
         decorate_router("/issuance/", wallet_issuance_router, log_requests),
         decorate_router("/requester/", requester_router, log_requests), // currently unused
     )
-    .await?;
-
-    Ok(())
+    .await
 }
