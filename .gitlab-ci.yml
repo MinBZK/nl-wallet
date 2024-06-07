@@ -213,7 +213,7 @@ test-rust:
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
-    WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/wallet_server"
+    WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:8260dcdfd90b550c80d8a2e5527c0efb2280b371ab34c28f713f770a749c49dc"
       alias: postgres
@@ -221,7 +221,7 @@ test-rust:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
         POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_server"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server"
   before_script:
     - set -euxo pipefail
     - ./scripts/setup-devenv.sh
