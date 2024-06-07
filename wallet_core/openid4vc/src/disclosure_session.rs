@@ -24,7 +24,7 @@ use nl_wallet_mdoc::{
 use crate::{
     authorization::AuthorizationErrorCode,
     openid4vp::{
-        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
+        AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
     verifier::{VerifierUrlParameters, VpToken},
@@ -38,7 +38,7 @@ pub enum VpClientError {
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] nl_wallet_mdoc::Error),
     #[error("error verifying Authorization Request: {0}")]
-    AuthorizationRequest(#[from] AuthRequestError),
+    AuthRequestValidation(#[from] AuthRequestValidationError),
     #[error("incorrect client_id: expected {expected}, found {found}")]
     IncorrectClientId { expected: String, found: String },
     #[error("no reader registration in RP certificate")]

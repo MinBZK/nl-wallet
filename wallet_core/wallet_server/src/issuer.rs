@@ -4,7 +4,6 @@ use axum::{
     extract::State,
     headers::{authorization::Credentials, Authorization, Header},
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
-    response::{IntoResponse, Response},
     routing::{delete, get, post},
     Form, Json, Router, TypedHeader,
 };
@@ -23,9 +22,11 @@ use openid4vc::{
     token::{AccessToken, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
     ErrorStatusCode,
 };
-use tracing::warn;
 
-use crate::settings::{self, Settings};
+use crate::{
+    errors::ErrorResponse,
+    settings::{self, Settings},
+};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
@@ -196,17 +197,6 @@ where
         .await
         .map_err(|err| ErrorResponse(err.into()))?;
     Ok(StatusCode::NO_CONTENT)
-}
-
-/// Newtype of [`openid4vc::ErrorResponse`] so that we can implement [`IntoResponse`] on it.
-#[derive(Serialize, Debug)]
-struct ErrorResponse<T>(openid4vc::ErrorResponse<T>);
-
-impl<T: ErrorStatusCode + Serialize + std::fmt::Debug> IntoResponse for ErrorResponse<T> {
-    fn into_response(self) -> Response {
-        warn!("{:?}", &self);
-        (self.0.error.status_code(), Json(self)).into_response()
-    }
 }
 
 static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");

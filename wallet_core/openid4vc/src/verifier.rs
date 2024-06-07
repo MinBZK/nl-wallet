@@ -54,6 +54,8 @@ use crate::{
 pub enum SessionError {
     #[error("session not in expected state")]
     UnexpectedState,
+    #[error("session expired")]
+    Expired,
     #[error("unknown session: {0}")]
     UnknownSession(SessionToken),
     #[error("error with sessionstore: {0}")]
@@ -67,8 +69,6 @@ pub enum VerificationError {
     Session(#[from] SessionError),
 
     // RP errors
-    #[error("session is done")]
-    SessionIsDone,
     #[error("unknown use case: {0}")]
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
@@ -80,7 +80,7 @@ pub enum VerificationError {
     #[error("redirect URI nonce '{0}' does not match expected")]
     RedirectUriMismatch(String),
     #[error("missing redirect URI")]
-    RedirectUriMissing,
+    RedirectUriNonceMissing,
     #[error("missing DNS SAN from RP certificate")]
     MissingSAN,
     #[error("RP certificate error: {0}")]
@@ -89,6 +89,14 @@ pub enum VerificationError {
     // status endpoint error
     #[error("URL encoding error: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VerificationErrorCode {
+    InvalidRequest,
+    ExpiredSession,
+    ServerError,
 }
 
 /// Errors returned by the endpoint that returns the Authorization Request.
@@ -108,6 +116,16 @@ pub enum GetAuthRequestError {
     Jwt(#[from] JwtError),
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GetRequestErrorCode {
+    InvalidRequest,
+    ExpiredEphemeralId,
+    ExpiredSession,
+
+    ServerError,
+}
+
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
 #[derive(thiserror::Error, Debug)]
 pub enum PostAuthResponseError {
@@ -117,6 +135,15 @@ pub enum PostAuthResponseError {
     AuthResponse(#[from] AuthResponseError),
     #[error("user aborted with error: {0:?}")]
     UserError(ErrorResponse<VpAuthorizationErrorCode>),
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PostAuthResponseErrorCode {
+    InvalidRequest,
+    ExpiredSession,
+
+    ServerError,
 }
 
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
@@ -274,9 +301,14 @@ impl TryFrom<SessionState<DisclosureData>> for Session<Created> {
     type Error = SessionError;
 
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
-        let DisclosureData::Created(session_data) = value.data else {
-            return Err(SessionError::UnexpectedState);
-        };
+        let session_data = match value.data {
+            DisclosureData::Created(session_data) => Ok(session_data),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Expired,
+            }) => Err(SessionError::Expired),
+            _ => Err(SessionError::UnexpectedState),
+        }?;
+
         Ok(Session::<Created> {
             state: SessionState {
                 data: session_data,
@@ -301,9 +333,14 @@ impl TryFrom<SessionState<DisclosureData>> for Session<WaitingForResponse> {
     type Error = SessionError;
 
     fn try_from(value: SessionState<DisclosureData>) -> Result<Self, Self::Error> {
-        let DisclosureData::WaitingForResponse(session_data) = value.data else {
-            return Err(SessionError::UnexpectedState);
-        };
+        let session_data = match value.data {
+            DisclosureData::WaitingForResponse(session_data) => Ok(session_data),
+            DisclosureData::Done(Done {
+                session_result: SessionResult::Expired,
+            }) => Err(SessionError::Expired),
+            _ => Err(SessionError::UnexpectedState),
+        }?;
+
         Ok(Session::<WaitingForResponse> {
             state: SessionState {
                 data: session_data,
@@ -591,7 +628,7 @@ where
                     },
             }) => match (redirect_uri_nonce, expected_nonce) {
                 (_, None) => Ok(disclosed_attributes),
-                (None, Some(_)) => Err(VerificationError::RedirectUriMissing),
+                (None, Some(_)) => Err(VerificationError::RedirectUriNonceMissing),
                 (Some(received), Some(expected)) if received == expected => Ok(disclosed_attributes),
                 (Some(received), Some(_)) => Err(VerificationError::RedirectUriMismatch(received)),
             },

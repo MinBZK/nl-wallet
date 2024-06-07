@@ -1,6 +1,7 @@
 pub mod cbor;
 #[cfg(feature = "postgres")]
 pub mod entity;
+pub mod errors;
 pub mod log_requests;
 pub mod server;
 pub mod settings;

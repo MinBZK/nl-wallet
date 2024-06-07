@@ -24,13 +24,13 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     config::wallet_config::BaseUrl,
     generator::{Generator, TimeGenerator},
-    jwt::{Jwt, JwtError},
+    jwt::Jwt,
     utils::random_string,
 };
 
 use crate::{
     authorization::{AuthorizationErrorCode, AuthorizationRequest, ResponseMode, ResponseType},
-    jwt::{self, JwkConversionError, JwtX5cError},
+    jwt::{self, JwtX5cError},
     presentation_exchange::{
         InputDescriptorMappingObject, PdConversionError, PresentationDefinition, PresentationSubmission, PsError,
     },
@@ -39,20 +39,10 @@ use crate::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
-    #[error("error validating Authorization Request: {0}")]
-    Validation(#[from] AuthRequestValidationError),
     #[error("error parsing X.509 certificate: {0}")]
     CertificateParsing(#[from] CertificateError),
-    #[error("failed to verify Authorization Request JWT: {0}")]
-    JwtVerification(#[from] JwtError),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
-    #[error("failed to convert encryption key to JWK format")]
-    JwkConversion(#[from] JwkConversionError),
-    #[error("error verifying Authorization Request JWT: {0}")]
-    AuthRequestJwtVerification(#[from] JwtX5cError),
-    #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
-    UnauthorizedClientId { client_id: String, dns_san: String },
 }
 
 /// A Request URI object, as defined in RFC 9101.
@@ -273,6 +263,14 @@ pub enum AuthRequestValidationError {
     NoAttributesRequested,
     #[error("unsupported Presentation Definition: {0}")]
     UnsupportedPresentationDefinition(#[from] PdConversionError),
+    #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
+    UnauthorizedClientId { client_id: String, dns_san: String },
+    #[error("Subject Alternative Name missing from X.509 certificate")]
+    MissingSAN,
+    #[error("error parsing X.509 certificate: {0}")]
+    CertificateParsing(#[from] CertificateError),
+    #[error("failed to verify Authorization Request JWT: {0}")]
+    JwtVerification(#[from] JwtX5cError),
 }
 
 impl VpAuthorizationRequest {
@@ -324,12 +322,12 @@ impl VpAuthorizationRequest {
     pub fn verify(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(IsoVpAuthorizationRequest, Certificate), AuthRequestError> {
+    ) -> Result<(IsoVpAuthorizationRequest, Certificate), AuthRequestValidationError> {
         let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(jws, trust_anchors, &TimeGenerator)?;
 
-        let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestError::MissingSAN)?;
+        let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
         if dns_san != auth_request.oauth_request.client_id {
-            return Err(AuthRequestError::UnauthorizedClientId {
+            return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: auth_request.oauth_request.client_id,
                 dns_san,
             });
@@ -448,10 +446,10 @@ impl VpAuthorizationRequest {
 }
 
 impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
-    type Error = AuthRequestError;
+    type Error = AuthRequestValidationError;
 
     fn try_from(value: VpAuthorizationRequest) -> Result<Self, Self::Error> {
-        Ok(value.validate()?)
+        value.validate()
     }
 }
 

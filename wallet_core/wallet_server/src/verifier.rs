@@ -7,10 +7,9 @@ use axum::{
     Form, Json, RequestExt, Router,
 };
 use http::{header, HeaderMap, HeaderValue, Method, Request, StatusCode};
-
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use url::Url;
 
 use nl_wallet_mdoc::{
@@ -19,33 +18,14 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     openid4vp::VpResponse,
-    verifier::{DisclosureData, StatusResponse, Verifier, VerifierUrlParameters, WalletAuthResponse},
+    verifier::{
+        DisclosureData, GetRequestErrorCode, PostAuthResponseErrorCode, StatusResponse, VerificationErrorCode,
+        Verifier, VerifierUrlParameters, WalletAuthResponse,
+    },
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator};
 
-use crate::settings::Settings;
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("starting mdoc session failed: {0}")]
-    StartSession(#[source] openid4vc::verifier::VerificationError),
-    #[error("get request error: {0}")]
-    GetRequest(#[from] openid4vc::verifier::GetAuthRequestError),
-    #[error("post response error: {0}")]
-    PostResponse(#[from] openid4vc::verifier::PostAuthResponseError),
-    #[error("retrieving status error: {0}")]
-    SessionStatus(#[source] openid4vc::verifier::VerificationError),
-    #[error("retrieving disclosed attributes error: {0}")]
-    DisclosedAttributes(#[source] openid4vc::verifier::VerificationError),
-}
-
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        // TODO
-        dbg!(&self);
-        StatusCode::BAD_REQUEST.into_response()
-    }
-}
+use crate::{errors::ErrorResponse, settings::Settings};
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,
@@ -99,7 +79,7 @@ async fn get_request<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(url_params): Query<VerifierUrlParameters>,
-) -> Result<(HeaderMap, String), Error>
+) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -114,8 +94,8 @@ where
         )
         .await
         .map_err(|e| {
-            warn!("processing message failed, returning GetRequest error");
-            Error::GetRequest(e)
+            warn!("processing message failed, returning error");
+            ErrorResponse(e.into())
         })?;
 
     info!("message processed successfully, returning response");
@@ -131,7 +111,7 @@ async fn post_response<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     JsonOrForm(wallet_response): JsonOrForm<WalletAuthResponse>,
-) -> Result<Json<VpResponse>, Error>
+) -> Result<Json<VpResponse>, ErrorResponse<PostAuthResponseErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -142,8 +122,8 @@ where
         .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
         .await
         .map_err(|e| {
-            warn!("processing message failed, returning PostResponse error");
-            Error::PostResponse(e)
+            warn!("processing message failed, returning error");
+            ErrorResponse(e.into())
         })?;
 
     info!("message processed successfully, returning response");
@@ -160,7 +140,7 @@ async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<StatusParams>,
-) -> Result<Json<StatusResponse>, Error>
+) -> Result<Json<StatusResponse>, ErrorResponse<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -174,7 +154,7 @@ where
             &TimeGenerator,
         )
         .await
-        .map_err(Error::SessionStatus)?;
+        .map_err(|e| ErrorResponse(e.into()))?;
 
     Ok(Json(response))
 }
@@ -195,7 +175,7 @@ pub struct StartDisclosureResponse {
 async fn start<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Json(start_request): Json<StartDisclosureRequest>,
-) -> Result<Json<StartDisclosureResponse>, Error>
+) -> Result<Json<StartDisclosureResponse>, ErrorResponse<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -207,7 +187,7 @@ where
             start_request.return_url_template,
         )
         .await
-        .map_err(Error::StartSession)?;
+        .map_err(|e| ErrorResponse(e.into()))?;
 
     let status_url = state.public_url.join(&format!("disclosure/{session_token}/status"));
     let disclosed_attributes_url = state
@@ -229,7 +209,7 @@ async fn disclosed_attributes<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
-) -> Result<Json<DisclosedAttributes>, Error>
+) -> Result<Json<DisclosedAttributes>, ErrorResponse<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -237,7 +217,7 @@ where
         .verifier
         .disclosed_attributes(&session_token, params.nonce)
         .await
-        .map_err(Error::DisclosedAttributes)?;
+        .map_err(|e| ErrorResponse(e.into()))?;
     Ok(Json(disclosed_attributes))
 }
 

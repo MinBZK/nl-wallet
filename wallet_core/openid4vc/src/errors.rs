@@ -7,6 +7,10 @@ use crate::{
     credential::CredentialErrorCode,
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
     token::TokenErrorCode,
+    verifier::{
+        GetAuthRequestError, GetRequestErrorCode, PostAuthResponseError, PostAuthResponseErrorCode, SessionError,
+        VerificationError, VerificationErrorCode,
+    },
 };
 
 #[skip_serializing_none]
@@ -69,6 +73,94 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
             },
             error_description: Some(description),
             error_uri: None,
+        }
+    }
+}
+
+impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
+    fn from(err: GetAuthRequestError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                GetAuthRequestError::ExpiredEphemeralId(_) => GetRequestErrorCode::ExpiredEphemeralId,
+                GetAuthRequestError::Session(SessionError::Expired) => GetRequestErrorCode::ExpiredSession,
+                GetAuthRequestError::EncryptionKey(_)
+                | GetAuthRequestError::AuthRequest(_)
+                | GetAuthRequestError::Jwt(_)
+                | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
+                GetAuthRequestError::InvalidEphemeralId(_) | GetAuthRequestError::Session(_) => {
+                    GetRequestErrorCode::InvalidRequest
+                }
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl ErrorStatusCode for GetRequestErrorCode {
+    fn status_code(&self) -> reqwest::StatusCode {
+        match self {
+            GetRequestErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => StatusCode::BAD_REQUEST,
+        }
+    }
+}
+
+impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
+    fn from(err: PostAuthResponseError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                PostAuthResponseError::Session(SessionError::Expired) => PostAuthResponseErrorCode::ExpiredSession,
+                PostAuthResponseError::Session(SessionError::SessionStore(_)) => PostAuthResponseErrorCode::ServerError,
+                PostAuthResponseError::AuthResponse(_) | PostAuthResponseError::Session(_) => {
+                    PostAuthResponseErrorCode::InvalidRequest
+                }
+                PostAuthResponseError::UserError(_) => panic!("UserError should never be sent as response to user"),
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl ErrorStatusCode for PostAuthResponseErrorCode {
+    fn status_code(&self) -> reqwest::StatusCode {
+        StatusCode::BAD_REQUEST
+    }
+}
+
+impl From<VerificationError> for ErrorResponse<VerificationErrorCode> {
+    fn from(err: VerificationError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                VerificationError::Session(SessionError::Expired) => VerificationErrorCode::ExpiredSession,
+                VerificationError::Session(SessionError::SessionStore(_)) | VerificationError::UrlEncoding(_) => {
+                    VerificationErrorCode::ServerError
+                }
+                VerificationError::Session(_) => VerificationErrorCode::InvalidRequest,
+                VerificationError::UnknownUseCase(_)
+                | VerificationError::ReturnUrlConfigurationMismatch
+                | VerificationError::NoItemsRequests
+                | VerificationError::SessionNotDone
+                | VerificationError::RedirectUriMismatch(_)
+                | VerificationError::RedirectUriNonceMissing
+                | VerificationError::MissingSAN
+                | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl ErrorStatusCode for VerificationErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            VerificationErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => StatusCode::BAD_REQUEST,
         }
     }
 }
