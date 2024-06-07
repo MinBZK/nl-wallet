@@ -508,14 +508,14 @@ sonar-android:
 build-wp-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/wallet_provider/Dockerfile
-    DOCKER_IMAGE_NAME=nl-wallet-provider
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-provider
 
 build-wp-migrations-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/wallet_provider/migrations/Dockerfile
-    DOCKER_IMAGE_NAME=nl-wallet-provider-migrations
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/migrations/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-provider-migrations
 
 build-mock-relying-party-image:
   extends: .build-docker-image
@@ -524,38 +524,38 @@ build-mock-relying-party-image:
     - job: build-frontend-lib
       artifacts: true
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/mock_relying_party/Dockerfile
-    DOCKER_IMAGE_NAME=nl-wallet-mock-relying-party
+    DOCKER_FILE_TO_BUILD: wallet_core/mock_relying_party/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-mock-relying-party
 
 build-wallet-server-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/wallet_server/Dockerfile.wallet_server
-    DOCKER_IMAGE_NAME=nl-wallet-server
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.wallet_server
+    DOCKER_IMAGE_NAME: nl-wallet-server
 
 build-verification-server-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/wallet_server/Dockerfile.verification_server
-    DOCKER_IMAGE_NAME=nl-verification-server
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.verification_server
+    DOCKER_IMAGE_NAME: nl-verification-server
 
 build-pid-issuer-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/wallet_server/Dockerfile.pid_issuer
-    DOCKER_IMAGE_NAME=nl-pid-issuer
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.pid_issuer
+    DOCKER_IMAGE_NAME: nl-pid-issuer
 
 build-ws-migrations-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/wallet_server/migration/Dockerfile
-    DOCKER_IMAGE_NAME=nl-wallet-server-migrations
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/migration/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-server-migrations
 
 build-gba-hc-converter-image:
   extends: .build-docker-image
   variables:
-    DOCKER_FILE_TO_BUILD=wallet_core/gba_hc_converter/Dockerfile
-    DOCKER_IMAGE_NAME=nl-wallet-gba-hc-converter
+    DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-gba-hc-converter
 
 ### Android building
 .build-android-app:
