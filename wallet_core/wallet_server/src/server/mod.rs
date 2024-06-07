@@ -1,7 +1,11 @@
 #[cfg(feature = "issuance")]
 pub mod pid_issuer;
-#[cfg(feature = "disclosure")]
-pub mod verification_server;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "disclosure")] {
+    pub mod verification_server;
+    pub mod disclosure;
+    }
+}
 #[cfg(all(feature = "disclosure", feature = "issuance"))]
 pub mod wallet_server;
 
@@ -17,9 +21,6 @@ use crate::{
     settings::{Authentication, RequesterAuth, Settings},
 };
 
-#[cfg(feature = "disclosure")]
-pub mod disclosure;
-
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
@@ -34,10 +35,12 @@ pub fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Rout
     router.layer(TraceLayer::new_for_http())
 }
 
+/// Create Wallet socket from [settings].
 fn create_wallet_socket(settings: &Settings) -> SocketAddr {
     SocketAddr::new(settings.wallet_server.ip, settings.wallet_server.port)
 }
 
+/// Secure [requester_router] with an API key when required by [settings].
 fn secure_router(settings: &Settings, requester_router: Router) -> Router {
     match &settings.requester_server {
         RequesterAuth::Authentication(Authentication::ApiKey(api_key)) => {
@@ -51,6 +54,7 @@ fn secure_router(settings: &Settings, requester_router: Router) -> Router {
     }
 }
 
+/// Create Requester socket when required by [settings].
 fn create_requester_socket(settings: &Settings) -> Option<SocketAddr> {
     match &settings.requester_server {
         RequesterAuth::Authentication(Authentication::ApiKey(_)) => None,

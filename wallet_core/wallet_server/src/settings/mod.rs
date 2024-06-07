@@ -7,15 +7,13 @@ use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
 use nl_wallet_mdoc::{server_state::SessionStoreTimeouts, utils::x509::Certificate};
-use wallet_common::{
-    config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
-    sentry::Sentry,
-};
+use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
     mod disclosure;
     pub use disclosure::*;
+    use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
     }
 }
 
