@@ -8,6 +8,10 @@ use wallet_common::config::wallet_config::BaseUrl;
 use {indexmap::IndexMap, wallet_common::reqwest::deserialize_certificates};
 
 use super::*;
+use crate::pid::{
+    attributes::{BrpPidAttributeService, Error as BrpError},
+    brp::client::HttpBrpClient,
+};
 
 #[derive(Clone, Deserialize)]
 pub struct Issuer {
@@ -39,5 +43,19 @@ impl Issuer {
             .iter()
             .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone().into()))
             .collect()
+    }
+}
+
+impl TryFrom<&Settings> for BrpPidAttributeService {
+    type Error = BrpError;
+
+    fn try_from(settings: &Settings) -> Result<Self, Self::Error> {
+        BrpPidAttributeService::new(
+            HttpBrpClient::new(settings.issuer.brp_server.clone()),
+            settings.issuer.digid.issuer_url.clone(),
+            settings.issuer.digid.bsn_privkey.clone(),
+            settings.issuer.digid.trust_anchors.clone(),
+            settings.issuer.certificates(),
+        )
     }
 }

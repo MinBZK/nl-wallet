@@ -5,7 +5,7 @@ pub mod verification_server;
 #[cfg(all(feature = "disclosure", feature = "issuance"))]
 pub mod wallet_server;
 
-use std::net::SocketAddr;
+use std::{future::Future, net::SocketAddr};
 
 use anyhow::Result;
 use axum::{routing::get, Router};
@@ -95,4 +95,26 @@ async fn listen(
     }
 
     Ok(())
+}
+
+pub fn wallet_server_main<Fut: Future<Output = Result<()>>>(
+    config_file: &str,
+    env_prefix: &str,
+    app: impl FnOnce(Settings) -> Fut,
+) -> Result<()> {
+    // Initialize tracing.
+    tracing_subscriber::fmt::init();
+
+    let settings = Settings::new_custom(config_file, env_prefix)?;
+
+    // Retain [`ClientInitGuard`]
+    let _guard = settings
+        .sentry
+        .as_ref()
+        .map(|sentry| sentry.init(sentry::release_name!()));
+
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(async { app(settings).await })
 }
