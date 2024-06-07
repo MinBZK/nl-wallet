@@ -67,30 +67,30 @@ struct ApplicationState<S> {
     universal_link_base_url: BaseUrl,
 }
 
-fn create_application_state<S>(settings: Settings, sessions: S) -> anyhow::Result<ApplicationState<S>>
+fn create_application_state<S>(settings: &Settings, sessions: S) -> anyhow::Result<ApplicationState<S>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let application_state = ApplicationState {
         verifier: Verifier::new(
-            settings.verifier.usecases.try_into()?,
+            (&settings.verifier.usecases).try_into()?,
             sessions,
             settings
                 .verifier
                 .trust_anchors
-                .into_iter()
-                .map(|ta| ta.owned_trust_anchor)
+                .iter()
+                .map(|ta| ta.owned_trust_anchor.to_owned())
                 .collect::<Vec<_>>(),
             (&settings.verifier.ephemeral_id_secret).into(),
         ),
-        internal_url: settings.internal_url,
-        public_url: settings.public_url,
-        universal_link_base_url: settings.universal_link_base_url,
+        internal_url: settings.internal_url.clone(),
+        public_url: settings.public_url.clone(),
+        universal_link_base_url: settings.universal_link_base_url.clone(),
     };
     Ok(application_state)
 }
 
-pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
+pub fn create_routers<S>(settings: &Settings, sessions: S) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {

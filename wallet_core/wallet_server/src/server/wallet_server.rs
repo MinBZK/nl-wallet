@@ -21,7 +21,7 @@ where
 
     let wallet_socket = create_wallet_socket(&settings);
     let requester_socket = create_requester_socket(&settings);
-    let (wallet_disclosure_router, requester_router) = setup_disclosure(settings.clone(), disclosure_sessions)?;
+    let (wallet_disclosure_router, requester_router) = setup_disclosure(&settings, disclosure_sessions)?;
 
     let wallet_issuance_router =
         crate::issuer::create_issuance_router(settings, issuance_sessions, attr_service).await?;
