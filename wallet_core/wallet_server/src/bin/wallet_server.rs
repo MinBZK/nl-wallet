@@ -1,4 +1,5 @@
 use anyhow::Result;
+
 use wallet_server::{
     pid::attributes::BrpPidAttributeService,
     server::{self, wallet_server_main},
