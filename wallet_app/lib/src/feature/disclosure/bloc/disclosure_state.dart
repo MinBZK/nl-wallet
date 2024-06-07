@@ -19,10 +19,30 @@ sealed class DisclosureState extends Equatable {
 }
 
 class DisclosureInitial extends DisclosureState {
+  @override
+  bool get showStopConfirmation => false;
+
   const DisclosureInitial();
 }
 
-class DisclosureLoadInProgress extends DisclosureState {}
+class DisclosureLoadInProgress extends DisclosureState {
+  @override
+  bool get showStopConfirmation => true;
+}
+
+/// This [ErrorState] is emitted when the user scanned a Disclosure QR with an external app (e.g. the built-in camera)
+class DisclosureExternalScannerError extends DisclosureState implements ErrorState {
+  @override
+  final Object error;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const DisclosureExternalScannerError({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
+}
 
 class DisclosureGenericError extends DisclosureState implements ErrorState {
   @override
@@ -32,6 +52,19 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
   bool get showStopConfirmation => false;
 
   const DisclosureGenericError({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
+}
+
+class DisclosureSessionExpired extends DisclosureState implements ErrorState {
+  @override
+  final Object error;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const DisclosureSessionExpired({required this.error});
 
   @override
   List<Object?> get props => [error, ...super.props];

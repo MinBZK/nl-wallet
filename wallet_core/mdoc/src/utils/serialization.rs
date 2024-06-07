@@ -256,45 +256,29 @@ where
     }
 }
 
-impl Serialize for Handover {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        match self {
-            Handover::QRHandover => Value::Null.serialize(serializer),
-            Handover::NFCHandover(handover) => match &handover.handover_request_message {
-                None => vec![handover.handover_select_message.clone()],
-                Some(_) => {
-                    vec![
-                        handover.handover_select_message.clone(),
-                        handover.handover_request_message.clone().unwrap(),
-                    ]
-                }
-            }
-            .serialize(serializer),
-            Handover::SchemeHandoverBytes(reader_engagement) => reader_engagement.serialize(serializer),
-        }
-    }
-}
-
+// We can't derive `Deserialize` with the `untagged` Serde enum deserializer, because unfortunately it is not able to
+// deserialize the SchemeHandoverBytes variant.
+// For the other direction (serializing), however, the `untagged` enum serializer is used and works fine.
+// For each variant a unit test is included to check that serializing and deserializing agree with each other.
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let val = Value::deserialize(deserializer).unwrap();
+        let val = Value::deserialize(deserializer)?;
         match val {
-            Value::Null => Ok(Handover::QRHandover),
+            Value::Null => Ok(Handover::QrHandover),
             Value::Tag(24, b) => Ok(Handover::SchemeHandoverBytes(TaggedBytes(
-                cbor_deserialize(b.as_bytes().unwrap().as_slice()).unwrap(),
+                cbor_deserialize(
+                    b.as_bytes()
+                        .ok_or(de::Error::custom("tagged value of unexpected type, expected bytes"))?
+                        .as_slice(),
+                )
+                .map_err(de::Error::custom)?,
             ))),
-            Value::Array(bts_vec) => match bts_vec.len() {
-                1 => Ok(Handover::NFCHandover(NFCHandover {
-                    handover_select_message: bts_vec[0].deserialized().unwrap(),
-                    handover_request_message: None,
-                })),
-                2 => Ok(Handover::NFCHandover(NFCHandover {
-                    handover_select_message: bts_vec[0].deserialized().unwrap(),
-                    handover_request_message: Some(bts_vec[1].deserialized().unwrap()),
-                })),
-                _ => panic!("unexpected index"),
+            Value::Array(ref bts_vec) => match bts_vec.len() {
+                1 | 2 => Ok(Handover::NfcHandover(val.deserialized().map_err(de::Error::custom)?)),
+                3 => Ok(Handover::Oid4vpHandover(val.deserialized().map_err(de::Error::custom)?)),
+                _ => Err(de::Error::custom("CBOR array had unexpected length")),
             },
-            _ => panic!("unexpected value"),
+            _ => Err(de::Error::custom("CBOR value of unexpected type")),
         }
     }
 }
@@ -493,8 +477,13 @@ pub mod cbor_hex {
 
 #[cfg(test)]
 mod tests {
-    use ciborium::value::Value;
+    use assert_matches::assert_matches;
+    use ciborium::value::Value::{Array, Bytes, Integer, Map, Null, Tag, Text};
     use hex_literal::hex;
+    use p256::SecretKey;
+    use rand_core::OsRng;
+
+    use crate::examples::Example;
 
     use super::*;
 
@@ -510,8 +499,6 @@ mod tests {
 
     #[test]
     fn origin_info() {
-        use Value::*;
-
         let val = OriginInfo {
             cat: OriginInfoDirection::Delivered,
             typ: OriginInfoType::Website("https://example.com".parse().unwrap()),
@@ -529,5 +516,87 @@ mod tests {
                 )
             ])
         );
+    }
+
+    // For each of the `Handover` variants, we manually construct the CBOR structure as defined by the specs
+    // (ISO 18013-5, 23220-4, and OpenID4VP), and check that (1) this correctly deserializes to the expected
+    // variant and (2) serializing it back yields identical CBOR. This tests not only that the manual Deserialize
+    // implementation agrees with the derived Serialize implementation but also that both of these align with
+    // the specs.
+
+    #[test]
+    fn test_handover_serialization_qr() {
+        // The QR handover is just null.
+        let qr_handover: Handover = Null.deserialized().unwrap();
+        assert_matches!(qr_handover, Handover::QrHandover);
+        assert_eq!(Value::serialized(&qr_handover).unwrap(), Null);
+    }
+
+    #[test]
+    fn test_handover_serialization_nfc() {
+        // The example `DeviceAuthentication` contains an NFC handover, retrieving the example deserializes it.
+        let TaggedBytes(CborSeq(device_auth)) = DeviceAuthenticationBytes::example();
+        assert_matches!(
+            &device_auth.session_transcript.0.handover,
+            Handover::NfcHandover(CborSeq(h)) if h.handover_request_message.is_some()
+        );
+
+        // Also construct NFC handovers directly and check that they can be (de)serialized.
+        let nfc_handovers = [
+            Array(vec![Bytes(b"bytes1".to_vec()), Bytes(b"bytes2".to_vec())]),
+            Array(vec![Bytes(b"bytes1".to_vec()), Null]),
+        ];
+        for nfc_handover_cbor in nfc_handovers {
+            let nfc_handover: Handover = nfc_handover_cbor.deserialized().unwrap();
+            assert_matches!(nfc_handover, Handover::NfcHandover(..));
+            assert_eq!(Value::serialized(&nfc_handover).unwrap(), nfc_handover_cbor);
+        }
+    }
+
+    #[test]
+    fn test_handover_serialization_openid4vp() {
+        // The OpenID4VP handover is structured as an array of bytes/bytes/text.
+        let oid4vp_handover_cbor = Array(vec![
+            Bytes(b"bytes1".to_vec()),
+            Bytes(b"bytes2".to_vec()),
+            Text("nonce".to_string()),
+        ]);
+
+        let oid4vp_handover: Handover = oid4vp_handover_cbor.deserialized().unwrap();
+        assert_matches!(
+            &oid4vp_handover,
+            Handover::Oid4vpHandover(CborSeq(OID4VPHandover { nonce, ..})) if nonce == "nonce"
+        );
+
+        assert_eq!(Value::serialized(&oid4vp_handover).unwrap(), oid4vp_handover_cbor);
+    }
+
+    #[test]
+    fn test_handover_serialization_scheme() {
+        // Construct the CBOR contents of `Handover::SchemeHandoverBytes`.
+        let reader_engagement_bts = cbor_serialize(
+            &ReaderEngagement::try_new(&SecretKey::random(&mut OsRng), "https://example.com".parse().unwrap()).unwrap(),
+        )
+        .unwrap();
+        let scheme_handover_cbor = Tag(24, Box::new(Bytes(reader_engagement_bts)));
+
+        // Check that it deserializes to the expected Handover variant.
+        let scheme_handover: Handover = scheme_handover_cbor.deserialized().unwrap();
+        let Handover::SchemeHandoverBytes(TaggedBytes(CborIntMap(Engagement { connection_methods, .. }))) =
+            &scheme_handover
+        else {
+            panic!("deserialized to wrong Handover variant")
+        };
+
+        // Check some of the contents.
+        let connection_method = &connection_methods.as_ref().unwrap().first().unwrap().0;
+        assert_matches!(connection_method.typ, ConnectionMethodType::RestApi);
+        assert_eq!(
+            connection_method.connection_options.0.uri,
+            "https://example.com".parse().unwrap()
+        );
+
+        // Check that it serializes back again to the CBOR manually constructed above.
+        assert_eq!(Value::serialized(&scheme_handover).unwrap(), scheme_handover_cbor);
     }
 }

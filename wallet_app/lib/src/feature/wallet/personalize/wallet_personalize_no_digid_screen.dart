@@ -8,6 +8,7 @@ import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/text/body_text.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 const _kRequestDigidUrl = 'https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen';
 
@@ -21,7 +22,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: Scrollbar(
+            child: WalletScrollbar(
               child: CustomScrollView(
                 slivers: [
                   SliverWalletAppBar(

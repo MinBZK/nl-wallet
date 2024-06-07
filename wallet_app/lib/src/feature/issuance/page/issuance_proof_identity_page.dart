@@ -12,6 +12,7 @@ import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class IssuanceProofIdentityPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
@@ -33,7 +34,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         restorationId: 'proof_identity_scrollview',
         slivers: <Widget>[
@@ -112,7 +113,7 @@ class IssuanceProofIdentityPage extends StatelessWidget {
   Widget _buildDataIncorrectButton(BuildContext context) {
     return ListButton(
       text: Text(context.l10n.issuanceProofIdentityPageIncorrectCta),
-      onPressed: () => PlaceholderScreen.show(context),
+      onPressed: () => PlaceholderScreen.showGeneric(context),
     );
   }
 }

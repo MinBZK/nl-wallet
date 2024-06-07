@@ -215,7 +215,6 @@ MOCK_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_
 export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 
 render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
-render_template "${DEVENV}/mock_relying_party.toml.template" "${BASE_DIR}/wallet_core/tests_integration/mock_relying_party.toml"
 
 # Generate relying party ephemeral ID secret
 generate_ws_random_key ephemeral_id_secret

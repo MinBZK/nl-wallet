@@ -3,86 +3,107 @@ import 'package:flutter/material.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
+import '../page/page_illustration.dart';
 import '../widget/button/bottom_back_button.dart';
-import '../widget/sliver_sized_box.dart';
 import '../widget/sliver_wallet_app_bar.dart';
-
-enum PlaceholderType { generic, contract }
+import '../widget/text/body_text.dart';
+import '../widget/wallet_scrollbar.dart';
 
 class PlaceholderScreen extends StatelessWidget {
-  final PlaceholderType type;
+  final String? illustration;
+  final String headline;
+  final String description;
 
-  const PlaceholderScreen({required this.type, super.key});
+  const PlaceholderScreen({
+    required this.headline,
+    required this.description,
+    this.illustration,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: const Key('placeholderScreen'),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(child: _buildBody(context)),
-            const BottomBackButton(),
-          ],
+        child: WalletScrollbar(
+          child: Column(
+            children: [
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: headline,
+                      automaticallyImplyLeading: true,
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: BodyText(description),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: PageIllustration(
+                          asset: illustration ?? WalletAssets.svg_placeholder,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const BottomBackButton(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    return Scrollbar(
-      child: CustomScrollView(
-        slivers: [
-          SliverWalletAppBar(title: context.l10n.placeholderScreenTitle),
-          const SliverSizedBox(height: 24),
-          SliverToBoxAdapter(
-            child: Image.asset(
-              _imageAssetName(),
-              height: 200,
-              alignment: Alignment.center,
-            ),
-          ),
-          const SliverSizedBox(height: 24),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                _informTitle(context),
-                style: context.textTheme.displaySmall,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-          const SliverSizedBox(height: 24),
-        ],
-      ),
+  static void show(
+    BuildContext context, {
+    bool secured = true,
+    required String headline,
+    required String description,
+    String? illustration,
+  }) {
+    final errorScreen = PlaceholderScreen(
+      headline: headline,
+      description: description,
+      illustration: illustration,
+    );
+    final route =
+        secured ? SecuredPageRoute(builder: (c) => errorScreen) : MaterialPageRoute(builder: (c) => errorScreen);
+    Navigator.push(context, route);
+  }
+
+  static void showGeneric(BuildContext context, {bool secured = true}) {
+    show(
+      context,
+      secured: secured,
+      headline: context.l10n.placeholderScreenHeadline,
+      description: context.l10n.placeholderScreenGenericDescription,
+      illustration: WalletAssets.svg_placeholder,
     );
   }
 
-  String _imageAssetName() {
-    switch (type) {
-      case PlaceholderType.generic:
-        return WalletAssets.illustration_placeholder_generic;
-      case PlaceholderType.contract:
-        return WalletAssets.illustration_placeholder_contract;
-    }
-  }
-
-  String _informTitle(BuildContext context) {
-    switch (type) {
-      case PlaceholderType.generic:
-        return context.l10n.placeholderScreenGenericInformTitle;
-      case PlaceholderType.contract:
-        return context.l10n.placeholderScreenContractInformTitle;
-    }
-  }
-
-  static void show(BuildContext context, {bool secured = true, PlaceholderType type = PlaceholderType.generic}) {
-    Navigator.push(
+  static void showHelp(BuildContext context, {bool secured = true}) {
+    show(
       context,
-      secured
-          ? SecuredPageRoute(builder: (c) => PlaceholderScreen(type: type))
-          : MaterialPageRoute(builder: (c) => PlaceholderScreen(type: type)),
+      secured: secured,
+      headline: context.l10n.placeholderScreenHelpHeadline,
+      description: context.l10n.placeholderScreenHelpDescription,
+      illustration: WalletAssets.svg_placeholder,
+    );
+  }
+
+  static void showContract(BuildContext context, {bool secured = true}) {
+    show(
+      context,
+      secured: secured,
+      headline: context.l10n.placeholderScreenHeadline,
+      description: context.l10n.placeholderScreenContractDescription,
+      illustration: WalletAssets.svg_signed,
     );
   }
 }

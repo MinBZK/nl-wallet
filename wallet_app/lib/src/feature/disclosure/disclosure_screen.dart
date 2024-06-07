@@ -1,5 +1,4 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -9,16 +8,17 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/localized_text_extension.dart';
-import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
+import '../common/dialog/scan_with_wallet_dialog.dart';
 import '../common/page/generic_loading_page.dart';
-import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../error/error_page.dart';
 import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../organization/detail/organization_detail_screen.dart';
@@ -58,6 +58,7 @@ class DisclosureScreen extends StatelessWidget {
         restorationId: 'disclosure_scaffold',
         appBar: WalletAppBar(
           leading: _buildBackButton(context),
+          automaticallyImplyLeading: false,
           actions: [
             const HelpIconButton(),
             CloseIconButton(
@@ -86,21 +87,25 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBackButton(BuildContext context) {
-    return BlocBuilder<DisclosureBloc, DisclosureState>(
-      builder: (context, state) {
-        return AnimatedVisibilityBackButton(
-          visible: state.canGoBack,
-          onPressed: () => context.bloc.add(const DisclosureBackPressed()),
-        );
-      },
+  Widget? _buildBackButton(BuildContext context) {
+    final canGoBack = context.watch<DisclosureBloc>().state.canGoBack;
+    if (!canGoBack) return null;
+    return BackIconButton(
+      onPressed: () => context.bloc.add(const DisclosureBackPressed()),
     );
   }
 
   Widget _buildPage() {
     return BlocConsumer<DisclosureBloc, DisclosureState>(
       /// Reset the [ScrollOffset] used by [FadeInAtOffset] when the state (and thus the visible page) changes.
-      listener: (context, state) => context.read<ScrollOffset>().offset = 0,
+      listener: (context, state) {
+        context.read<ScrollOffset>().offset = 0;
+        if (state is DisclosureExternalScannerError) {
+          Navigator.maybePop(context).then((popped) {
+            ScanWithWalletDialog.show(context);
+          });
+        }
+      },
       builder: (context, state) {
         Widget result = switch (state) {
           DisclosureInitial() => _buildInitialLoading(context),
@@ -114,7 +119,9 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureLeftFeedback() => _buildLeftFeedbackPage(context, state),
           DisclosureSuccess() => _buildSuccessPage(context, state),
           DisclosureNetworkError() => _buildNetworkErrorPage(context, state),
-          DisclosureGenericError() => _buildGenericErrorPage(context, state),
+          DisclosureGenericError() => _buildGenericErrorPage(context),
+          DisclosureSessionExpired() => _buildSessionExpiredPage(context, state),
+          DisclosureExternalScannerError() => _buildGenericErrorPage(context),
         };
 
         final skipAnim = !state.didGoBack && state is DisclosureCheckOrganization;
@@ -248,7 +255,7 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGenericErrorPage(BuildContext context, DisclosureGenericError state) {
+  Widget _buildGenericErrorPage(BuildContext context) {
     return DisclosureGenericErrorPage(
       onStopPressed: () => Navigator.pop(context),
     );
@@ -258,7 +265,7 @@ class DisclosureScreen extends StatelessWidget {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
-      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName ?? '-'.untranslated;
+      final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName;
       final stopPressed = await DisclosureStopSheet.show(
         context,
         organizationName: organizationName,
@@ -286,23 +293,36 @@ class DisclosureScreen extends StatelessWidget {
 
   List<ReportingOption> _resolveReportingOptionsForState(BuildContext context) {
     final state = context.read<DisclosureBloc>().state;
-    if (state is DisclosureCheckOrganization || state is DisclosureCheckOrganizationForLogin) {
-      return [
-        ReportingOption.unknownOrganization,
-        ReportingOption.requestNotInitiated,
-        ReportingOption.suspiciousOrganization,
-        ReportingOption.impersonatingOrganization,
-      ];
-    } else if (state is DisclosureConfirmDataAttributes || state is DisclosureConfirmPin) {
-      return [
-        ReportingOption.untrusted,
-        ReportingOption.overAskingOrganization,
-        ReportingOption.suspiciousOrganization,
-        ReportingOption.unreasonableTerms,
-      ];
+    switch (state) {
+      case DisclosureCheckOrganization():
+      case DisclosureCheckOrganizationForLogin():
+        return [
+          ReportingOption.unknownOrganization,
+          ReportingOption.requestNotInitiated,
+          ReportingOption.suspiciousOrganization,
+          ReportingOption.impersonatingOrganization,
+        ];
+      case DisclosureConfirmPin():
+      case DisclosureConfirmDataAttributes():
+        return [
+          ReportingOption.untrusted,
+          ReportingOption.overAskingOrganization,
+          ReportingOption.suspiciousOrganization,
+          ReportingOption.unreasonableTerms,
+        ];
+      case DisclosureInitial():
+      case DisclosureLoadInProgress():
+      case DisclosureExternalScannerError():
+      case DisclosureGenericError():
+      case DisclosureSessionExpired():
+      case DisclosureNetworkError():
+      case DisclosureSuccess():
+      case DisclosureStopped():
+      case DisclosureMissingAttributes():
+      case DisclosureLeftFeedback():
+        Fimber.d('No ReportingOptions provided for $state');
+        return <ReportingOption>[];
     }
-    if (kDebugMode) throw AssertionError('Reporting options should be provided');
-    return <ReportingOption>[];
   }
 
   Widget _buildTitle(BuildContext context) {
@@ -358,16 +378,31 @@ class DisclosureScreen extends StatelessWidget {
                   ? context.l10n.errorScreenServerHeadline
                   : context.l10n.errorScreenNoInternetHeadline),
             ),
+          DisclosureExternalScannerError() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.disclosureGenericErrorPageTitle),
+            ),
           DisclosureGenericError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
               child: Text(context.l10n.disclosureGenericErrorPageTitle),
             ),
+          DisclosureSessionExpired() => FadeInAtOffset(
+              appearOffset: 48,
+              visibleOffset: 70,
+              child: Text(context.l10n.errorScreenSessionExpiredHeadline),
+            ),
+          // TODO: Handle this case.
         };
 
         return result ?? const SizedBox.shrink();
       },
     );
+  }
+
+  Widget _buildSessionExpiredPage(BuildContext context, DisclosureSessionExpired state) {
+    return ErrorPage.sessionExpired(context, style: ErrorCtaStyle.close);
   }
 }
 

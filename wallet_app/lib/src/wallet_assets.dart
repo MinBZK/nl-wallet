@@ -43,6 +43,7 @@ class WalletAssets {
   static const svg_signed = 'assets/non-free/svg/NL_WALLET_signed.svg';
   static const svg_stopped = 'assets/non-free/svg/NL_WALLET_stopped.svg';
   static const svg_terms = 'assets/non-free/svg/NL_WALLET_terms.svg';
+  static const svg_placeholder = 'assets/non-free/svg/NL_WALLET_placeholder.svg';
 
   // IMAGES
   static const image_bg_diploma = 'assets/non-free/images/bg_diploma.png';

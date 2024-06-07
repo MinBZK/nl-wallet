@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/tertiary_button.dart';
+import '../widget/wallet_scrollbar.dart';
 
 class ExplanationSheet extends StatelessWidget {
   final String title;
@@ -74,8 +75,7 @@ class ExplanationSheet extends StatelessWidget {
       isDismissible: !context.isScreenReaderEnabled, // Avoid announcing the scrim
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return Scrollbar(
-          trackVisibility: true,
+        return WalletScrollbar(
           child: SingleChildScrollView(
             child: ExplanationSheet(
               title: title,

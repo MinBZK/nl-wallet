@@ -23,7 +23,7 @@ class CoreStateError extends CoreError {
   const CoreStateError(super.description, this.data);
 
   @override
-  List<Object?> get props => [description, data];
+  List<Object?> get props => [data, ...super.props];
 }
 
 class CoreRedirectUriError extends CoreError {
@@ -32,11 +32,20 @@ class CoreRedirectUriError extends CoreError {
   const CoreRedirectUriError(super.description, {required this.redirectError});
 
   @override
-  List<Object?> get props => [description, redirectError];
+  List<Object?> get props => [redirectError, ...super.props];
 }
 
 enum RedirectError { accessDenied, serverError, unknown }
 
 class CoreHardwareKeyUnsupportedError extends CoreError {
   const CoreHardwareKeyUnsupportedError(super.description);
+}
+
+class CoreDisclosureSourceMismatchError extends CoreError {
+  final bool isCrossDevice;
+
+  const CoreDisclosureSourceMismatchError(super.description, {required this.isCrossDevice});
+
+  @override
+  List<Object?> get props => [isCrossDevice, ...super.props];
 }

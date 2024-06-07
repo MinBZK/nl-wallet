@@ -15,6 +15,7 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
   const IntroductionPrivacyScreen({super.key});
@@ -31,19 +32,14 @@ class IntroductionPrivacyScreen extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: Scrollbar(
-            thumbVisibility: true,
+          child: WalletScrollbar(
             child: CustomScrollView(
               slivers: [
                 SliverWalletAppBar(
                   title: context.l10n.introductionPrivacyScreenHeadline,
                   leading: const BackIconButton(),
                   progress: const FlowProgress(currentStep: 1, totalSteps: kSetupSteps),
-                  actions: [
-                    HelpIconButton(
-                      onPressed: () => PlaceholderScreen.show(context, secured: false),
-                    )
-                  ],
+                  actions: const [HelpIconButton()],
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -80,7 +76,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
     );
     FitsWidthWidget privacyButton = TertiaryButton(
       key: const Key('introductionPrivacyScreenPrivacyCta'),
-      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
       text: Text(context.l10n.introductionPrivacyScreenPrivacyCta),
       icon: const Icon(Icons.arrow_forward_rounded),
     );

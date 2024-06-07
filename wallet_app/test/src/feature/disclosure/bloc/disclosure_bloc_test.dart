@@ -31,7 +31,7 @@ void main() {
 
   blocTest(
     'when startDisclosure fails, emit generic error',
-    setUp: () => when(startDisclosureUseCase.invoke(any)).thenThrow(Exception('')),
+    setUp: () => when(startDisclosureUseCase.invoke(any, any)).thenThrow(Exception('')),
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [isA<DisclosureGenericError>()],
@@ -39,7 +39,7 @@ void main() {
 
   blocTest(
     'when startDisclosure fails with network issue, emit DisclosureNetworkError(hasInternet: true)',
-    setUp: () => when(startDisclosureUseCase.invoke(any)).thenThrow(const CoreNetworkError('')),
+    setUp: () => when(startDisclosureUseCase.invoke(any, any)).thenThrow(const CoreNetworkError('')),
     build: () => create(),
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     verify: (bloc) {
@@ -52,7 +52,7 @@ void main() {
   blocTest(
     'when startDisclosure fails with network issue and there is no internet, emit DisclosureNetworkError(hasInternet: false)',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenThrow(const CoreNetworkError(''));
+      when(startDisclosureUseCase.invoke(any, any)).thenThrow(const CoreNetworkError(''));
       when(BlocExtensions.checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async {
         await Future.delayed(const Duration(milliseconds: 100));
         return false;
@@ -71,7 +71,7 @@ void main() {
   blocTest(
     'when startDisclosure returns StartDisclosureReadyToDisclose for regular disclosure, the bloc emits DisclosureCheckOrganization',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -92,7 +92,7 @@ void main() {
   blocTest(
     'when startDisclosure returns StartDisclosureReadyToDisclose for login type disclosure, the bloc emits DisclosureCheckOrganizationForLogin',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -113,7 +113,7 @@ void main() {
   blocTest(
     'when startDisclosure returns StartDisclosureMissingAttributes, the bloc emits DisclosureCheckOrganization',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'http://origin.org',
@@ -132,7 +132,7 @@ void main() {
   blocTest(
     'when the user stops disclosure while checking the organization for ready to disclose, the bloc emits DisclosureStopped and cancels disclosure',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -159,7 +159,7 @@ void main() {
   blocTest(
     'when the user stops disclosure while checking the organization for missing attributes, the bloc emits DisclosureStopped and cancels disclosure',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'http://origin.org',
@@ -184,7 +184,7 @@ void main() {
   blocTest(
     'when the user continues regular disclosure after checking the organization based on StartDisclosureReadyToDisclose, the bloc emits DisclosureConfirmDataAttributes',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -210,7 +210,7 @@ void main() {
   blocTest(
     'when the user continues login type disclosure after checking the organization based on StartDisclosureReadyToDisclose, the bloc emits DisclosureConfirmPin',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -236,7 +236,7 @@ void main() {
   blocTest(
     'when the user continues disclosure after checking the organization based on StartDisclosureMissingAttributes, the bloc emits DisclosureMissingAttributes',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'http://origin.org',
@@ -260,7 +260,7 @@ void main() {
   blocTest(
     'when users stops the flow reviewing the DisclosureMissingAttributes state, the bloc emits DisclosureLoadInProgress and DisclosureStopped states and cancels disclosure',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'http://origin.org',
@@ -291,7 +291,7 @@ void main() {
   blocTest(
     'when the user opts so share the requested attributes, the bloc emits DisclosureConfirmPin',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -319,7 +319,7 @@ void main() {
   blocTest(
     'when the user confirms the pin, the bloc emits DisclosureSuccess',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -348,7 +348,7 @@ void main() {
   blocTest(
     'when the user leaves feedback when stopping, the bloc emits DisclosureLeftFeedback and disclosure is cancelled',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -379,7 +379,7 @@ void main() {
   blocTest(
     'when user presses back from the DisclosureConfirmDataAttributes state, the bloc emits DisclosureCheckOrganization ',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -414,7 +414,7 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 100));
         return false;
       });
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -444,7 +444,7 @@ void main() {
   blocTest(
     'when user presses back from the DisclosureConfirmPin state, the bloc emits DisclosureConfirmDataAttributes ',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -477,7 +477,7 @@ void main() {
   blocTest(
     'when user presses back from the DisclosureConfirmPin state for login type disclosure, the bloc emits DisclosureCheckOrganizationForLogin',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureReadyToDisclose(
           WalletMockData.organization,
           'http://origin.org',
@@ -508,7 +508,7 @@ void main() {
   blocTest(
     'when user presses back from the DisclosureMissingAttributes state, the bloc emits DisclosureCheckOrganization ',
     setUp: () {
-      when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+      when(startDisclosureUseCase.invoke(any, any)).thenAnswer((_) async {
         return StartDisclosureMissingAttributes(
           WalletMockData.organization,
           'http://origin.org',
@@ -532,5 +532,39 @@ void main() {
       isA<DisclosureMissingAttributes>(),
       isA<DisclosureCheckOrganization>(),
     ],
+  );
+
+  blocTest(
+    'startDisclosure is called with isQrCode set to true',
+    setUp: () => when(startDisclosureUseCase.invoke(any, any)).thenThrow(Exception('')),
+    build: () => create(),
+    act: (bloc) => bloc.add(const DisclosureSessionStarted('http://true', isQrCode: true)),
+    verify: (_) => verify(startDisclosureUseCase.invoke('http://true', true)).called(1),
+  );
+
+  blocTest(
+    'startDisclosure is called with isQrCode set to false',
+    setUp: () => when(startDisclosureUseCase.invoke(any, any)).thenThrow(Exception('')),
+    build: () => create(),
+    act: (bloc) => bloc.add(const DisclosureSessionStarted('http://false', isQrCode: false)),
+    verify: (_) => verify(startDisclosureUseCase.invoke('http://false', false)).called(1),
+  );
+
+  blocTest(
+    'When a CoreDisclosureSourceMismatchError(isCrossDevice=true) is thrown, emit the DisclosureExternalScannerError',
+    setUp: () => when(startDisclosureUseCase.invoke(any, any))
+        .thenThrow(const CoreDisclosureSourceMismatchError('description', isCrossDevice: true)),
+    build: () => create(),
+    act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [isA<DisclosureExternalScannerError>()],
+  );
+
+  blocTest(
+    'When a CoreDisclosureSourceMismatchError(isCrossDevice=false) is thrown, emit the DisclosureGenericError',
+    setUp: () => when(startDisclosureUseCase.invoke(any, any))
+        .thenThrow(const CoreDisclosureSourceMismatchError('description', isCrossDevice: false)),
+    build: () => create(),
+    act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
+    expect: () => [isA<DisclosureGenericError>()],
   );
 }

@@ -396,7 +396,6 @@ checksum = "3b829e4e32b91e643de6eafe82b1d90675f5874230191a4ffbc1b336dec4d6bf"
 dependencies = [
  "async-trait",
  "axum-core",
- "axum-macros",
  "bitflags 1.3.2",
  "bytes",
  "futures-util",
@@ -460,18 +459,6 @@ dependencies = [
  "tower",
  "tower-layer",
  "tower-service",
-]
-
-[[package]]
-name = "axum-macros"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdca6a10ecad987bda04e95606ef85a5417dcaac1a78455242d72e031e2b6b62"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.38",
 ]
 
 [[package]]
@@ -2808,7 +2795,10 @@ dependencies = [
  "mime",
  "mockall",
  "nl_wallet_mdoc",
+ "nutype",
+ "once_cell",
  "p256",
+ "regex",
  "reqwest 0.11.22",
  "rstest",
  "serde",
@@ -2816,12 +2806,14 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serde_with",
+ "strum",
  "thiserror",
  "tokio",
  "trait-variant",
  "url",
  "wallet_common",
  "wiremock",
+ "x509-parser",
 ]
 
 [[package]]

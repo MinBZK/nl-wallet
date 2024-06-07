@@ -13,6 +13,7 @@ import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/sheet/error_details_sheet.dart';
 import '../../common/sheet/explanation_sheet.dart';
@@ -144,6 +145,7 @@ class OtherStylesTab extends StatelessWidget {
         _buildErrorScreensSection(context),
         _buildAttributeSection(context),
         _buildCardSection(context),
+        _buildPlaceholderSection(context),
         _buildHistorySection(context),
         _buildPolicySection(context),
         _buildMiscellaneousSection(context),
@@ -259,6 +261,30 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () => ErrorScreen.showDeviceIncompatible(context),
           child: const Text('Device Incompatible Screen'),
+        ),
+        const ThemeSectionSubHeader(title: 'Session Expired Screen'),
+        TextButton(
+          onPressed: () => ErrorScreen.showSessionExpired(context),
+          child: const Text('Session Expired Screen'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholderSection(BuildContext context) {
+    return Column(
+      children: [
+        const ThemeSectionHeader(title: 'Placeholders'),
+        const SizedBox(height: 12),
+        const ThemeSectionSubHeader(title: 'Generic Placeholder'),
+        TextButton(
+          onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
+          child: const Text('Generic'),
+        ),
+        const ThemeSectionSubHeader(title: 'Contract Placeholder'),
+        TextButton(
+          onPressed: () => PlaceholderScreen.showContract(context, secured: false),
+          child: const Text('Contract'),
         ),
       ],
     );

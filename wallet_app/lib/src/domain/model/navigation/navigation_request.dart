@@ -64,10 +64,10 @@ class PidIssuanceNavigationRequest extends NavigationRequest {
 }
 
 class DisclosureNavigationRequest extends NavigationRequest {
-  DisclosureNavigationRequest(String uri)
+  DisclosureNavigationRequest(String uri, {bool isQrCode = false})
       : super(
           WalletRoutes.disclosureRoute,
-          argument: DisclosureScreenArgument(uri: uri),
+          argument: DisclosureScreenArgument(uri: uri, isQrCode: isQrCode),
           navigatePrerequisites: [
             NavigationPrerequisite.walletUnlocked,
             NavigationPrerequisite.walletInitialized,

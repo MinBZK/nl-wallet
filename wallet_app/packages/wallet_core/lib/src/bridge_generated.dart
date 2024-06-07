@@ -98,7 +98,7 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kHasActivePidIssuanceSessionConstMeta;
 
-  Future<StartDisclosureResult> startDisclosure({required String uri, dynamic hint});
+  Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode, dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta;
 
@@ -730,21 +730,22 @@ class WalletCoreImpl implements WalletCore {
         argNames: [],
       );
 
-  Future<StartDisclosureResult> startDisclosure({required String uri, dynamic hint}) {
+  Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode, dynamic hint}) {
     var arg0 = _platform.api2wire_String(uri);
+    var arg1 = isQrCode;
     return _platform.executeNormal(FlutterRustBridgeTask(
-      callFfi: (port_) => _platform.inner.wire_start_disclosure(port_, arg0),
+      callFfi: (port_) => _platform.inner.wire_start_disclosure(port_, arg0, arg1),
       parseSuccessData: _wire2api_start_disclosure_result,
       parseErrorData: _wire2api_FrbAnyhowException,
       constMeta: kStartDisclosureConstMeta,
-      argValues: [uri],
+      argValues: [uri, isQrCode],
       hint: hint,
     ));
   }
 
   FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta => const FlutterRustBridgeTaskConstMeta(
         debugName: "start_disclosure",
-        argNames: ["uri"],
+        argNames: ["uri", "isQrCode"],
       );
 
   Future<void> cancelDisclosure({dynamic hint}) {
@@ -1223,6 +1224,11 @@ class WalletCoreImpl implements WalletCore {
 // Section: api2wire
 
 @protected
+bool api2wire_bool(bool raw) {
+  return raw;
+}
+
+@protected
 int api2wire_u8(int raw) {
   return raw;
 }
@@ -1600,17 +1606,20 @@ class WalletCoreWire implements FlutterRustBridgeWireBase {
   void wire_start_disclosure(
     int port_,
     ffi.Pointer<wire_uint_8_list> uri,
+    bool is_qr_code,
   ) {
     return _wire_start_disclosure(
       port_,
       uri,
+      is_qr_code,
     );
   }
 
   late final _wire_start_disclosurePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>)>>('wire_start_disclosure');
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_uint_8_list>, ffi.Bool)>>(
+          'wire_start_disclosure');
   late final _wire_start_disclosure =
-      _wire_start_disclosurePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>)>();
+      _wire_start_disclosurePtr.asFunction<void Function(int, ffi.Pointer<wire_uint_8_list>, bool)>();
 
   void wire_cancel_disclosure(
     int port_,

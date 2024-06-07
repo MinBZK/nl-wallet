@@ -148,3 +148,13 @@ class WalletPersonalizeGenericError extends WalletPersonalizeState implements Er
   @override
   List<Object?> get props => [error, ...super.props];
 }
+
+class WalletPersonalizeSessionExpired extends WalletPersonalizeState implements ErrorState {
+  @override
+  final Object error;
+
+  const WalletPersonalizeSessionExpired({required this.error});
+
+  @override
+  List<Object?> get props => [error, ...super.props];
+}

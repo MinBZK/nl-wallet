@@ -51,7 +51,7 @@ impl ReaderEngagement {
         let verifier_public_key = self.verifier_public_key()?;
 
         // Create the session transcript so far based on both engagement payloads.
-        let session_transcript = SessionTranscript::new(session_type, self, device_engagement)
+        let session_transcript = SessionTranscript::new_iso(session_type, self, device_engagement)
             .map_err(|_| HolderError::VerifierEphemeralKeyMissing)?;
 
         // Derive the session key for both directions from the private and public keys and the session transcript.

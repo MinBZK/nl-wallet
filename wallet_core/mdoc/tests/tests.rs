@@ -15,7 +15,10 @@ use url::Url;
 use webpki::TrustAnchor;
 
 use nl_wallet_mdoc::{
-    holder::{DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, StoredMdoc},
+    holder::{
+        DisclosureSession, HttpClient, HttpClientResult, Mdoc, MdocCopies, MdocDataSource, ReaderEngagementSource,
+        StoredMdoc,
+    },
     iso::mdocs::DocType,
     server_keys::KeyPair,
     server_state::MemorySessionStore,
@@ -31,7 +34,7 @@ use nl_wallet_mdoc::{
     },
     verifier::{
         DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, StatusResponse, UseCase,
-        VerificationError, Verifier, VerifierUrlParameters,
+        VerificationError, Verifier,
     },
     Error, ReaderEngagement,
 };
@@ -62,17 +65,9 @@ impl HttpClient for MockDisclosureHttpClient {
         let session_token = url.path_segments().unwrap().last().unwrap().to_string();
         let msg = serialization::cbor_serialize(val).unwrap();
 
-        // A bit silly, but we have to extract the verifier base URL and parameters from the verifier URL,
-        // only to put them back together in `process_message`.
-        let params: VerifierUrlParameters = serde_urlencoded::from_str(url.query().unwrap()).unwrap();
-        let mut verifier_url = url.clone();
-        verifier_url.set_query(None); // remove the parameters
-        verifier_url.path_segments_mut().unwrap().pop(); // remove session_token
-        let verifier_base_url = verifier_url.try_into().unwrap();
-
         let session_data = self
             .verifier
-            .process_message(&msg, &session_token.into(), Some((verifier_base_url, params)))
+            .process_message(&msg, &session_token.into(), url.clone())
             .await
             .unwrap();
 
@@ -331,11 +326,18 @@ async fn test_disclosure(
     )
     .expect("should always deserialize");
 
+    // Determine the correct source for the session type.
+    let reader_engagement_source = match session_type {
+        SessionType::SameDevice => ReaderEngagementSource::Link,
+        SessionType::CrossDevice => ReaderEngagementSource::QrCode,
+    };
+
     // Encode the `ReaderEngagement` and start the disclosure session on the holder side.
     let reader_engagement_bytes = serialization::cbor_serialize(&reader_engagement).unwrap();
     let disclosure_session = DisclosureSession::start(
         verifier_client,
         &reader_engagement_bytes,
+        reader_engagement_source,
         &mdoc_data_source,
         &[(&verifier_ca).try_into().unwrap()],
     )

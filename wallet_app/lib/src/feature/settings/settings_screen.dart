@@ -6,6 +6,7 @@ import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import '../menu/widget/menu_row.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -19,7 +20,7 @@ class SettingsScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: Scrollbar(
+              child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(
@@ -44,13 +45,13 @@ class SettingsScreen extends StatelessWidget {
         MenuRow(
           label: context.l10n.settingsScreenChangePinCta,
           icon: Icons.key,
-          onTap: () => PlaceholderScreen.show(context),
+          onTap: () => PlaceholderScreen.showGeneric(context),
         ),
         const Divider(height: 1),
         MenuRow(
           label: context.l10n.settingsScreenSetupBiometricsCta,
           icon: Icons.fingerprint,
-          onTap: () => PlaceholderScreen.show(context),
+          onTap: () => PlaceholderScreen.showGeneric(context),
         ),
         const Divider(height: 1),
         MenuRow(

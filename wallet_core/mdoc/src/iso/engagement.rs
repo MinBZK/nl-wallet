@@ -11,14 +11,15 @@ use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use serde_with::skip_serializing_none;
-
 use url::Url;
+
+use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
 
 use crate::{
     iso::disclosure::*,
     utils::{
         cose::CoseKey,
-        serialization::{CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
+        serialization::{cbor_serialize, CborIntMap, CborSeq, DeviceAuthenticationString, RequiredValue, TaggedBytes},
     },
     verifier::SessionType,
 };
@@ -57,10 +58,10 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionTranscriptKeyed {
-    pub device_engagement_bytes: DeviceEngagementBytes,
-    pub ereader_key_bytes: ESenderKeyBytes,
+    pub device_engagement_bytes: Option<DeviceEngagementBytes>,
+    pub ereader_key_bytes: Option<ESenderKeyBytes>,
     pub handover: Handover,
 }
 
@@ -74,7 +75,7 @@ pub enum SessionTranscriptError {
 }
 
 impl SessionTranscript {
-    pub fn new(
+    pub fn new_iso(
         session_type: SessionType,
         reader_engagement: &ReaderEngagement,
         device_engagement: &DeviceEngagement,
@@ -86,29 +87,66 @@ impl SessionTranscript {
             .ok_or(SessionTranscriptError::MissingReaderEngagementSecurity)?;
 
         let transcript = SessionTranscriptKeyed {
-            device_engagement_bytes: device_engagement.clone().into(),
+            device_engagement_bytes: Some(device_engagement.clone().into()),
             handover: match session_type {
                 SessionType::SameDevice => Handover::SchemeHandoverBytes(TaggedBytes(reader_engagement.clone())),
-                SessionType::CrossDevice => Handover::QRHandover,
+                SessionType::CrossDevice => Handover::QrHandover,
             },
-            ereader_key_bytes: reader_security.0.e_sender_key_bytes.clone(),
+            ereader_key_bytes: Some(reader_security.0.e_sender_key_bytes.clone()),
         }
         .into();
 
         Ok(transcript)
     }
+
+    pub fn new_oid4vp(response_uri: &BaseUrl, client_id: &str, nonce: String, mdoc_nonce: &str) -> Self {
+        let handover = OID4VPHandover {
+            client_id_hash: ByteBuf::from(sha256(&cbor_serialize(&[client_id, mdoc_nonce]).unwrap())),
+            response_uri_hash: ByteBuf::from(sha256(
+                &cbor_serialize(&[&response_uri.to_string(), mdoc_nonce]).unwrap(),
+            )),
+            nonce,
+        };
+
+        SessionTranscriptKeyed {
+            device_engagement_bytes: None,
+            ereader_key_bytes: None,
+            handover: Handover::Oid4vpHandover(handover.into()),
+        }
+        .into()
+    }
 }
 
 pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 
-#[derive(Debug, Clone)]
+/// Bytes/transcript of the first RP message with which the wallet and RP first established contact.
+/// Differs per communication channel.
+/// Through the [`SessionTranscript`], this is part of the [`DeviceAuthentication`] so it is signed
+/// with each mdoc private key. This message is never sent but instead independently computed by
+/// the wallet and RP. If both sides do not agree on this message then mdoc verification fails.
+///
+/// Serde's `untagged` enum representation ignores the enum variant name, and serializes instead
+/// the contained data of the enum variant. It is unfortunately not able to deserialize the `SchemeHandoverBytes`
+/// variant, so there is a custom deserializer in `serialization.rs`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
 pub enum Handover {
-    QRHandover,
-    NFCHandover(NFCHandover),
+    QrHandover,
+    NfcHandover(CborSeq<NFCHandover>),
     SchemeHandoverBytes(TaggedBytes<ReaderEngagement>),
+    Oid4vpHandover(CborSeq<OID4VPHandover>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OID4VPHandover {
+    /// Must be `SHA256(CBOR_encode([client_id, mdoc_nonce]))`
+    pub client_id_hash: ByteBuf,
+    /// Must be `SHA256(CBOR_encode([response_uri, mdoc_nonce]))`
+    pub response_uri_hash: ByteBuf,
+    pub nonce: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NFCHandover {
     pub handover_select_message: ByteBuf,
     pub handover_request_message: Option<ByteBuf>,

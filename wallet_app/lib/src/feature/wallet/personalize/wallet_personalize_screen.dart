@@ -95,6 +95,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
           WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
           WalletPersonalizeGenericError() => _buildGenericError(context),
+          WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -342,6 +343,17 @@ class WalletPersonalizeScreen extends StatelessWidget {
     return Scaffold(
       appBar: const WalletAppBar(progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps)),
       body: ErrorPage.generic(
+        context,
+        style: ErrorCtaStyle.retry,
+        onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      ),
+    );
+  }
+
+  Widget _buildSessionExpired(BuildContext context) {
+    return Scaffold(
+      appBar: const WalletAppBar(progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps)),
+      body: ErrorPage.sessionExpired(
         context,
         style: ErrorCtaStyle.retry,
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),

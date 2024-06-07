@@ -54,7 +54,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       // deeplink is pressed while the disclosure flow is currently open. This opens a second
       // disclosure bloc before the original one is closed, thus we need to cancel it here.
       await _cancelDisclosureUseCase.invoke();
-      final startDisclosureResult = _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri);
+      final startDisclosureResult =
+          _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri, event.isQrCode);
       if (startDisclosureResult is StartDisclosureReadyToDisclose && isLoginFlow) {
         emit(
           DisclosureCheckOrganizationForLogin(
@@ -81,6 +82,13 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       await handleError(
         ex,
         onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(hasInternet: hasInternet, error: error)),
+        onDisclosureSourceMismatchError: (error) {
+          if (error.isCrossDevice) {
+            emit(DisclosureExternalScannerError(error: error));
+          } else {
+            emit(DisclosureGenericError(error: error));
+          }
+        },
         onUnhandledError: (error) => emit(DisclosureGenericError(error: error)),
       );
     }

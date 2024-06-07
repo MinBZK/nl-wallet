@@ -25,6 +25,7 @@ import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'argument/dashboard_screen_argument.dart';
 import 'bloc/dashboard_bloc.dart';
 
@@ -133,7 +134,7 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, DashboardLoadSuccess state) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(

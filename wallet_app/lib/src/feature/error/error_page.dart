@@ -9,6 +9,7 @@ import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'error_button_builder.dart';
 
 export 'error_cta_style.dart';
@@ -95,10 +96,30 @@ class ErrorPage extends StatelessWidget {
     );
   }
 
+  factory ErrorPage.sessionExpired(
+    BuildContext context, {
+    VoidCallback? onPrimaryActionPressed,
+    required ErrorCtaStyle style,
+  }) {
+    return ErrorPage(
+      headline: context.l10n.errorScreenSessionExpiredHeadline,
+      description: style == ErrorCtaStyle.close
+          ? context.l10n.errorScreenSessionExpiredDescriptionCloseVariant
+          : context.l10n.errorScreenSessionExpiredDescription,
+      illustration: WalletAssets.svg_error_session_expired,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
+        onPressed: onPrimaryActionPressed,
+      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scrollbar(
+      child: WalletScrollbar(
         child: Column(
           children: [
             Expanded(

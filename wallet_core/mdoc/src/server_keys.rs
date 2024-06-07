@@ -99,7 +99,9 @@ mod generate {
             DecodePrivateKey, EncodePrivateKey, ObjectIdentifier,
         },
     };
-    use rcgen::{BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa};
+    use rcgen::{
+        BasicConstraints, Certificate as RcgenCertificate, CertificateParams, CustomExtension, DnType, IsCa, SanType,
+    };
     use time::OffsetDateTime;
 
     use crate::{
@@ -136,6 +138,9 @@ mod generate {
             let mut cert_params = CertificateParams::from(configuration);
             cert_params.is_ca = IsCa::NoCa;
             cert_params.distinguished_name.push(DnType::CommonName, common_name);
+            cert_params
+                .subject_alt_names
+                .push(SanType::DnsName(common_name.to_string()));
             cert_params.custom_extensions.extend(certificate_type.to_custom_exts()?);
             let cert_unsigned =
                 RcgenCertificate::from_params(cert_params).map_err(CertificateError::GeneratingFailed)?;

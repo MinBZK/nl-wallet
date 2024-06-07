@@ -25,6 +25,7 @@ import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../data/argument/card_data_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
@@ -61,7 +62,7 @@ class CardDetailScreen extends StatelessWidget {
           children: [
             Expanded(
               child: BlocBuilder<CardDetailBloc, CardDetailState>(builder: (context, state) {
-                return Scrollbar(
+                return WalletScrollbar(
                   child: CustomScrollView(
                     slivers: [
                       SliverWalletAppBar(title: _getTitle(context, state)),
@@ -185,7 +186,7 @@ class CardDetailScreen extends StatelessWidget {
         title: Text(context.l10n.cardDetailScreenIssuerCta),
         subtitle: Text(card.issuer.displayName.l10nValue(context)),
         onTap: () => OrganizationDetailScreen.showPreloaded(context, card.issuer, false,
-            onReportIssuePressed: () => PlaceholderScreen.show(context)),
+            onReportIssuePressed: () => PlaceholderScreen.showGeneric(context)),
       ),
       if (card.config.updatable)
         InfoRow(
@@ -203,6 +204,7 @@ class CardDetailScreen extends StatelessWidget {
     ];
     return ListView.separated(
       shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (c, i) => rows[i],
       separatorBuilder: (c, i) => const Divider(height: 1),
       itemCount: rows.length,
@@ -287,6 +289,6 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   void _onCardDeletePressed(BuildContext context) {
-    PlaceholderScreen.show(context);
+    PlaceholderScreen.showGeneric(context);
   }
 }

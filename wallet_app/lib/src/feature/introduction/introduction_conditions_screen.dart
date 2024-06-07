@@ -15,6 +15,7 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 
 class IntroductionConditionsScreen extends StatelessWidget {
   const IntroductionConditionsScreen({super.key});
@@ -31,19 +32,14 @@ class IntroductionConditionsScreen extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: Scrollbar(
-            thumbVisibility: true,
+          child: WalletScrollbar(
             child: CustomScrollView(
               slivers: [
                 SliverWalletAppBar(
                   title: context.l10n.introductionConditionsScreenHeadline,
                   progress: const FlowProgress(currentStep: 2, totalSteps: kSetupSteps),
                   leading: const BackIconButton(),
-                  actions: [
-                    HelpIconButton(
-                      onPressed: () => PlaceholderScreen.show(context, secured: false),
-                    )
-                  ],
+                  actions: const [HelpIconButton()],
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -81,7 +77,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
     FitsWidthWidget conditionsButton = TertiaryButton(
       text: Text(context.l10n.introductionConditionsScreenConditionsCta),
       icon: const Icon(Icons.arrow_forward_rounded),
-      onPressed: () => PlaceholderScreen.show(context, secured: false),
+      onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
       key: const Key('introductionConditionsScreenConditionsCta'),
     );
     return Column(

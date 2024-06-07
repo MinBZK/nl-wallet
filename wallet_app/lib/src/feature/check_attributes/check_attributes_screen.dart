@@ -15,6 +15,7 @@ import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/check_attributes_bloc.dart';
 
 class CheckAttributesScreen extends StatelessWidget {
@@ -49,7 +50,7 @@ class CheckAttributesScreen extends StatelessWidget {
     /// we can just fetch them directly (without the complexity of a separate BlocBuilder).
     final card = context.read<CheckAttributesBloc>().state.card;
     final attributes = context.read<CheckAttributesBloc>().state.attributes;
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(

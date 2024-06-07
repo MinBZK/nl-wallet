@@ -9,7 +9,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/sheet/confirm_action_sheet.dart';
-import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -51,6 +51,7 @@ class IssuanceScreen extends StatelessWidget {
       appBar: WalletAppBar(
         title: _buildTitle(context),
         leading: _buildBackButton(context),
+        automaticallyImplyLeading: false,
         actions: [CloseIconButton(onPressed: () => _stopIssuance(context))],
         progress: progress,
       ),
@@ -119,14 +120,11 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildLoading() => const CenteredLoadingIndicator();
 
-  Widget _buildBackButton(BuildContext context) {
-    return BlocBuilder<IssuanceBloc, IssuanceState>(
-      builder: (context, state) {
-        return AnimatedVisibilityBackButton(
-          visible: state.canGoBack,
-          onPressed: () => context.bloc.add(const IssuanceBackPressed()),
-        );
-      },
+  Widget? _buildBackButton(BuildContext context) {
+    final canGoBack = context.watch<IssuanceBloc>().state.canGoBack;
+    if (!canGoBack) return null;
+    return BackIconButton(
+      onPressed: () => context.bloc.add(const IssuanceBackPressed()),
     );
   }
 
@@ -199,7 +197,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildStoppedPage(BuildContext context, IssuanceStopped state) {
     return IssuanceStoppedPage(
       onClosePressed: () => Navigator.pop(context),
-      onGiveFeedbackPressed: () => PlaceholderScreen.show(context),
+      onGiveFeedbackPressed: () => PlaceholderScreen.showGeneric(context),
     );
   }
 
@@ -210,7 +208,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildIdentityValidationFailedPage(BuildContext context, IssuanceIdentityValidationFailure state) {
     return IssuanceIdentityValidationFailedPage(
       onClosePressed: () => Navigator.pop(context),
-      onSomethingNotRightPressed: () => PlaceholderScreen.show(context),
+      onSomethingNotRightPressed: () => PlaceholderScreen.showGeneric(context),
     );
   }
 

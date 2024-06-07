@@ -2,8 +2,11 @@ use std::{collections::HashSet, error::Error};
 
 use super::Mdoc;
 
-pub use proposed_document::ProposedDocumentAttributes;
-pub use session::{DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, ProposedAttributes};
+pub use proposed_document::{ProposedDocument, ProposedDocumentAttributes};
+pub use request::DeviceRequestMatch;
+pub use session::{
+    DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, ProposedAttributes, ReaderEngagementSource,
+};
 
 mod device_signed;
 mod engagement;

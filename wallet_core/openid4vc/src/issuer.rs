@@ -760,9 +760,7 @@ pub(crate) async fn verify_pop_and_sign_attestation(
     issuer_data: &IssuerData<impl KeyRing>,
 ) -> Result<CredentialResponse, CredentialRequestError> {
     if !matches!(cred_req.format, Format::MsoMdoc) {
-        return Err(CredentialRequestError::UnsupportedCredentialFormat(
-            cred_req.format.clone(),
-        ));
+        return Err(CredentialRequestError::UnsupportedCredentialFormat(cred_req.format));
     }
 
     if *cred_req
