@@ -11,7 +11,7 @@
             border-radius: 0;
         }
     </style>
-    <script type="module" src="/nl-wallet-web.iife.js"></script>
+    <script type="module" src="../nl-wallet-web.iife.js"></script>
 </head>
 
 <body>
@@ -19,7 +19,7 @@
     <header>
         <div class="logo">
             <span class="logoset">
-                <img src="/nonfree/adam_logo.svg" class="screen-logo" alt="Gemeente Amsterdam">
+                <img src="../nonfree/adam_logo.svg" class="screen-logo" alt="Gemeente Amsterdam">
             </span>
             <div class="logotexts">
                 <div class="logotext red">Gemeente</div>
@@ -39,7 +39,7 @@
     <article>
         <h1>Inloggen in Mijn Amsterdam</h1>
         <div class="img-container">
-            <img src="/amsterdam-hero.jpg">
+            <img src="amsterdam-hero.jpg">
         </div>
         <p class="text-xl">
             Met NL Wallet kunt u inloggen in de beveiligde Mijn Amsterdam omgeving.
@@ -58,7 +58,7 @@
             const session_token = e.detail[0]
             const session_type = e.detail[1]
             if (session_type === "cross_device") {
-                window.open("/mijn_amsterdam/return?session_token=" + session_token)
+                window.open("./return?session_token=" + session_token)
             }
         }
     }, false)

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
-    <title>Mock Relying Party testpage</title>
+    <title>Relying Party demopage</title>
     <style>
         main {
             display: grid;
@@ -30,7 +30,7 @@
             white-space: pre;
         }
     </style>
-    <script type="module" src="/nl-wallet-web.iife.js"></script>
+    <script type="module" src="nl-wallet-web.iife.js"></script>
 </head>
 
 <body>
@@ -65,7 +65,7 @@
                 const session_token = e.detail[0]
                 const session_type = e.detail[1]
                 if (session_type === "cross_device") {
-                    window.open("/" + wallet_button.attributes["usecase"].value + "/return?session_token=" + session_token)
+                    window.open("./" + wallet_button.attributes["usecase"].value + "/return?session_token=" + session_token)
                 }
             }
         }, false)
