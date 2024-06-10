@@ -1,7 +1,7 @@
 /// Mock implementations of the two traits abstracting other components
 use std::{collections::HashMap, num::NonZeroU8, ops::Add};
 
-use chrono::{Days, Utc};
+use chrono::{Days, NaiveDate, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
 use serde::Deserialize;
@@ -41,7 +41,7 @@ pub struct PersonAttributes {
     bsn: String,
     family_name: String,
     given_name: String,
-    birth_date: chrono::NaiveDate,
+    birth_date: NaiveDate,
     age_over_18: bool,
     // age_over_NN: Option<bool>,
     // age_in_years: Option<u32>,
@@ -174,7 +174,7 @@ impl Default for MockAttributesLookup {
                     given_name: "Willeke Liselotte".to_owned(),
                     family_name: "De Bruijn".to_owned(),
                     gender: Some(Gender::Female),
-                    birth_date: chrono::NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
+                    birth_date: NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
                     age_over_18: true,
                     birth_country: Some("NL".to_owned()),
                     birth_city: Some("Delft".to_owned()),
