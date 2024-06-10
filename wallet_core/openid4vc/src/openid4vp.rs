@@ -435,9 +435,7 @@ impl IsoVpAuthorizationRequest {
             .direct()
             .input_descriptors
             .iter()
-            .map(|i| i.constraints.fields.len())
-            .sum::<usize>()
-            == 0
+            .all(|i| i.constraints.fields.is_empty())
         {
             return Err(AuthRequestValidationError::NoAttributesRequested);
         }
