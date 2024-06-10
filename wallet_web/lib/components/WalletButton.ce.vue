@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { createAbsoluteUrl } from "@/util/base_url"
 import { isMobileKey } from "@/util/projection_keys"
 import { isDesktop } from "@/util/useragent"
-import { provide, ref } from "vue"
+import { computed, provide, ref } from "vue"
 import WalletModal from "./WalletModal.vue"
 
 export interface Props {
@@ -12,7 +13,7 @@ export interface Props {
   style?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   text: (): string => "Inloggen met NL Wallet",
   baseUrl: (): string => "",
 })
@@ -23,6 +24,9 @@ const emit = defineEmits<{
 
 const isVisible = ref(false)
 const isMobile = !isDesktop(window.navigator.userAgent)
+const absoluteBaseUrl = computed(() =>
+  createAbsoluteUrl(props.baseUrl, window.location.href, window.location.pathname),
+)
 
 function show() {
   isVisible.value = true
@@ -54,7 +58,7 @@ provide(isMobileKey, isMobile)
   </button>
   <wallet-modal
     v-if="isVisible"
-    :base-url="baseUrl"
+    :base-url="absoluteBaseUrl"
     :usecase
     @close="hide"
     @success="success"
