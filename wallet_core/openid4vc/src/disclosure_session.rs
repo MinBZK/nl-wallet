@@ -174,7 +174,6 @@ impl HttpVpMessageClient {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum DisclosureSession<H, I> {
     MissingAttributes(DisclosureMissingAttributes<H>),
