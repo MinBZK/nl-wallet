@@ -247,7 +247,7 @@ then
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
-	echo "Sentry DSN: '${SENTRY_DSN}'"
+        echo "Sentry DSN: '${SENTRY_DSN}'"
         export MOCK_RELYING_PARTY_SENTRY__DSN="${SENTRY_DSN}"
         export MOCK_RELYING_PARTY_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
@@ -279,7 +279,7 @@ then
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
-	echo "Sentry DSN: '${SENTRY_DSN}'"
+        echo "Sentry DSN: '${SENTRY_DSN}'"
         export PID_ISSUER_SENTRY__DSN="${SENTRY_DSN}"
         export PID_ISSUER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
@@ -323,7 +323,7 @@ then
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
-	echo "Sentry DSN: '${SENTRY_DSN}'"
+        echo "Sentry DSN: '${SENTRY_DSN}'"
         export WALLET_SERVER_SENTRY__DSN="${SENTRY_DSN}"
         export WALLET_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
@@ -364,7 +364,7 @@ then
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
-	echo "Sentry DSN: '${SENTRY_DSN}'"
+        echo "Sentry DSN: '${SENTRY_DSN}'"
         export WALLET_PROVIDER_SENTRY__DSN="${SENTRY_DSN}"
         export WALLET_PROVIDER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
@@ -399,7 +399,7 @@ then
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
-	echo "Sentry DSN: '${SENTRY_DSN}'"
+        echo "Sentry DSN: '${SENTRY_DSN}'"
         export CONFIG_SERVER_SENTRY__DSN="${SENTRY_DSN}"
         export CONFIG_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi
@@ -450,7 +450,7 @@ then
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
-	echo "Sentry DSN: '${SENTRY_DSN}'"
+        echo "Sentry DSN: '${SENTRY_DSN}'"
         export GBA_HC_CONVERTER_SENTRY__DSN="${SENTRY_DSN}"
         export GBA_HC_CONVERTER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi

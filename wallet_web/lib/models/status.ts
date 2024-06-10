@@ -7,3 +7,8 @@ export type StatusResponse =
   | { status: "FAILED" }
   | { status: "CANCELLED" }
   | { status: "EXPIRED" }
+
+export enum SessionType {
+  SameDevice = "same_device",
+  CrossDevice = "cross_device",
+}
