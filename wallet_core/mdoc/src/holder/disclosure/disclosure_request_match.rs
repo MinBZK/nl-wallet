@@ -174,3 +174,136 @@ impl<I> DisclosureRequestMatch<I> {
         Ok(DisclosureRequestMatch::Candidates(candidates_by_doc_type))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU8;
+
+    use rstest::rstest;
+
+    use crate::{
+        holder::DisclosureRequestMatch,
+        server_keys::KeyPair,
+        software_key_factory::SoftwareKeyFactory,
+        test::{
+            data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name},
+            TestDocument, TestDocuments,
+        },
+        unsigned::Entry,
+        verifier::SessionType,
+        Attributes, IssuerNameSpaces, IssuerSignedItem,
+    };
+
+    use super::{super::test::*, *};
+
+    #[rstest]
+    #[case(empty(), empty(), candidates(empty()))]
+    #[case(pid_full_name(), pid_full_name(), candidates(pid_full_name()))]
+    #[case(pid_given_name(), pid_given_name() + pid_given_name(), candidates(pid_given_name()))]
+    #[case(pid_given_name() + pid_given_name(), pid_given_name(), candidates(pid_given_name() + pid_given_name()))]
+    #[case(pid_full_name() + pid_given_name() + addr_street(), addr_street(), candidates(addr_street()))]
+    #[case(pid_full_name() + pid_given_name() + addr_street(), pid_given_name(), candidates(pid_given_name() + pid_given_name()))]
+    #[case(pid_full_name() + pid_given_name() + addr_street(), empty(), candidates(empty()))]
+    #[case(empty(), pid_given_name(), missing_attributes(pid_given_name()))]
+    #[case(
+        empty(),
+        pid_given_name() + addr_street(),
+        missing_attributes(pid_given_name() + addr_street())
+    )]
+    #[case(pid_given_name(), pid_full_name(), missing_attributes(pid_family_name()))]
+    #[case(pid_full_name(), addr_street(), missing_attributes(addr_street()))]
+    #[tokio::test]
+    async fn test_match_stored_documents(
+        #[case] stored_documents: TestDocuments,
+        #[case] requested_documents: TestDocuments,
+        #[case] expected_match: ExpectedDisclosureRequestMatch,
+    ) {
+        use crate::DeviceRequest;
+
+        let ca = KeyPair::generate_issuer_mock_ca().unwrap();
+        let key_factory = SoftwareKeyFactory::default();
+
+        let mut mdoc_data_source = MockMdocDataSource::new();
+        for document in stored_documents.into_iter() {
+            mdoc_data_source
+                .mdocs
+                .push(document.sign(&ca, &key_factory, NonZeroU8::new(1).unwrap()).await);
+        }
+
+        let device_request = DeviceRequest::from(requested_documents);
+
+        let session_transcript = create_basic_session_transcript(SessionType::SameDevice);
+        let match_result =
+            DisclosureRequestMatch::new(device_request.items_requests(), &mdoc_data_source, &session_transcript)
+                .await
+                .expect("Could not match device request with stored documents");
+
+        let match_result: ExpectedDisclosureRequestMatch = match_result.into();
+        assert_eq!(match_result, expected_match);
+    }
+
+    #[derive(Debug, PartialEq)]
+    enum ExpectedDisclosureRequestMatch {
+        Candidates(TestDocuments),
+        MissingAttributes(IndexSet<AttributeIdentifier>),
+    }
+
+    fn candidates(candidates: TestDocuments) -> ExpectedDisclosureRequestMatch {
+        ExpectedDisclosureRequestMatch::Candidates(candidates)
+    }
+    fn missing_attributes(missing_attributes: TestDocuments) -> ExpectedDisclosureRequestMatch {
+        ExpectedDisclosureRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
+    }
+
+    impl<T> From<DisclosureRequestMatch<T>> for ExpectedDisclosureRequestMatch {
+        fn from(value: DisclosureRequestMatch<T>) -> Self {
+            match value {
+                DisclosureRequestMatch::Candidates(candidates) => {
+                    let candidates: Vec<TestDocument> = candidates
+                        .into_iter()
+                        .flat_map(|(_, namespaces)| namespaces)
+                        .map(convert_proposed_document)
+                        .collect();
+                    Self::Candidates(candidates.into())
+                }
+                DisclosureRequestMatch::MissingAttributes(missing) => {
+                    Self::MissingAttributes(missing.into_iter().collect())
+                }
+            }
+        }
+    }
+
+    fn convert_proposed_document<I>(
+        ProposedDocument {
+            doc_type,
+            issuer_signed,
+            ..
+        }: ProposedDocument<I>,
+    ) -> TestDocument {
+        let name_spaces = issuer_signed.name_spaces.expect("Expected namespaces");
+
+        TestDocument {
+            doc_type,
+            namespaces: convert_namespaces(name_spaces),
+        }
+    }
+
+    fn convert_namespaces(namespaces: IssuerNameSpaces) -> IndexMap<String, Vec<Entry>> {
+        namespaces
+            .into_inner()
+            .into_iter()
+            .map(|(namespace, attributes)| (namespace, convert_attributes(attributes)))
+            .collect()
+    }
+
+    fn convert_attributes(attributes: Attributes) -> Vec<Entry> {
+        attributes.into_inner().into_iter().map(convert_attribute).collect()
+    }
+
+    fn convert_attribute(attribute: TaggedBytes<IssuerSignedItem>) -> Entry {
+        Entry {
+            name: attribute.0.element_identifier,
+            value: attribute.0.element_value,
+        }
+    }
+}
