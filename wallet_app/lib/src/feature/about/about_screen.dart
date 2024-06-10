@@ -11,6 +11,7 @@ import '../common/widget/mock_indicator_text.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/version_text.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import '../menu/widget/menu_row.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -24,7 +25,7 @@ class AboutScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: Scrollbar(
+              child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(title: context.l10n.aboutScreenTitle),

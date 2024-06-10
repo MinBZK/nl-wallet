@@ -1,6 +1,6 @@
 /* General */
 
-*:not(style, svg, path) {
+*:not(style, svg, path, circle) {
   all: unset;
 }
 
@@ -11,7 +11,7 @@
 }
 
 a {
-  color: var(--blue-color) !important;
+  color: var(--blue-color);
 }
 
 .xs {
@@ -29,9 +29,68 @@ a {
   animation: fadeIn 300ms;
 }
 
+/* Loading indicator */
+
+svg.loading-indicator {
+  animation: 2s linear infinite svg-animation;
+  max-width: 100px;
+}
+
+@keyframes svg-animation {
+  0% {
+    transform: rotateZ(0deg);
+  }
+  100% {
+    transform: rotateZ(360deg)
+  }
+}
+
+svg.loading-indicator circle {
+  animation: 1.4s ease-in-out infinite both circle-animation;
+  display: block;
+  fill: transparent;
+  stroke: var(--blue-color);
+  stroke-linecap: round;
+  stroke-dasharray: 283;
+  stroke-dashoffset: 280;
+  stroke-width: 10px;
+  transform-origin: 50% 50%;
+}
+
+svg.loading-indicator.small {
+  width: 16px;
+}
+
+svg.loading-indicator.medium {
+  width: 32px;
+}
+
+svg.loading-indicator.large {
+  width: 64px;
+}
+
+@keyframes circle-animation {
+  0%,
+  25% {
+    stroke-dashoffset: 280;
+    transform: rotate(0);
+  }
+
+  50%,
+  75% {
+    stroke-dashoffset: 75;
+    transform: rotate(45deg);
+  }
+
+  100% {
+    stroke-dashoffset: 280;
+    transform: rotate(360deg);
+  }
+}
+
 /* Buttons */
 
-button {
+button, a.button {
   background-color: var(--blue-color);
   border: none;
   border-radius: 12px;
@@ -54,31 +113,43 @@ button.default-button {
   padding: 1rem;
 }
 
-button.primary {
+button.primary, a.button.primary {
   background-color: var(--blue-color);
   color: white;
 }
 
-button.primary:hover {
+button.primary:hover, a.button.primary:hover {
   background-color: var(--bluer-color);
 }
 
-button.secondary {
+button.secondary, a.button.secondary {
   background-color: white;
   color: var(--blue-color);
   border: 1px solid var(--blue-color);
 }
 
-button.secondary:hover {
+button.secondary:hover, a.button.secondary:hover {
   background-color: #f2f2f2;
 }
 
-button svg {
+button svg, a.button svg {
   margin-right: 0.5rem;
 }
 
-button.full-width {
+button.full-width, a.button.full-width {
   width: 100%;
+}
+
+button:disabled, button[disabled], a.button.disabled {
+  cursor: not-allowed;
+  color: lightgrey;
+  border-color: lightgrey;
+  pointer-events: none;
+  text-decoration: none;
+}
+
+button:disabled, button[disabled] circle, a.button.disabled circle {
+  stroke: lightgrey;
 }
 
 /* Links */
@@ -125,25 +196,17 @@ button.link:hover {
   }
 }
 
-.bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 1040;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(1px);
-}
-
 .modal-anchor {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   display: block;
   overflow: auto;
   width: 100%;
   height: 100%;
+  z-index: 1045;
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(1px);
 }
 
 .modal {
@@ -248,6 +311,7 @@ section.device-choice button {
 }
 
 section.in-progress,
+section.loading,
 section.success {
   display: flex;
   flex-direction: column;
@@ -260,7 +324,8 @@ section.status-update {
   align-items: flex-start;
 }
 
-section.status-update h2 {
+section.status-update h2,
+section.loading h2 {
   margin-bottom: 0.8rem;
 }
 
@@ -277,16 +342,21 @@ section.error svg {
 }
 
 section.in-progress h2,
+section.loading h2,
 section.success h2,
 section.status-update h2 {
   margin-top: 0.8rem;
+}
+
+section.loading p {
+  margin-bottom: 2rem;
 }
 
 section.success svg {
   color: green;
 }
 
-@media (max-height: 700px) {
+@media (max-height: 1000px) {
   .modal {
     top: 30px;
   }

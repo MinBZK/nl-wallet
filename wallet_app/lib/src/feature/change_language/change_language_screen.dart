@@ -9,6 +9,7 @@ import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/change_language_bloc.dart';
 
 class ChangeLanguageScreen extends StatelessWidget {
@@ -22,7 +23,7 @@ class ChangeLanguageScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: Scrollbar(
+              child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(

@@ -20,6 +20,7 @@ import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../../policy/policy_screen.dart';
 import 'argument/history_detail_screen_argument.dart';
@@ -48,12 +49,14 @@ class HistoryDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  SliverWalletAppBar(title: context.l10n.historyDetailScreenTitle),
-                  const SliverSizedBox(height: 8),
-                  _buildBodySliver(context),
-                ],
+              child: WalletScrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(title: context.l10n.historyDetailScreenTitle),
+                    const SliverSizedBox(height: 8),
+                    _buildBodySliver(context),
+                  ],
+                ),
               ),
             ),
             _buildBottomBackButton(context),

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ModalFooter from "@/components/ModalFooter.vue"
-import { SessionType } from "@/models/engagement"
 import { FooterState } from "@/models/footer-state"
+import { SessionType } from "@/models/status"
 import { mdiCellphoneCheck, mdiCheckCircle } from "@mdi/js"
 
 defineProps<{

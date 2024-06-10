@@ -6,6 +6,7 @@ import WalletModal from "./WalletModal.vue"
 
 export interface Props {
   usecase: string
+  id?: string
   text?: string
   baseUrl?: string
   style?: string
@@ -13,8 +14,12 @@ export interface Props {
 
 withDefaults(defineProps<Props>(), {
   text: (): string => "Inloggen met NL Wallet",
-  baseUrl: (): string => "http://localhost:3004",
+  baseUrl: (): string => "",
 })
+
+const emit = defineEmits<{
+  success: [session_token: string, session_type: string]
+}>()
 
 const isVisible = ref(false)
 const isMobile = !isDesktop(window.navigator.userAgent)
@@ -27,8 +32,9 @@ function hide() {
   isVisible.value = false
 }
 
-function open_universal_link(url: string) {
-  window.open(url, "_blank")
+function success(session_token: string, session_type: string) {
+  isVisible.value = false
+  emit("success", session_token, session_type)
 }
 
 provide(isMobileKey, isMobile)
@@ -39,6 +45,7 @@ provide(isMobileKey, isMobile)
     part="button"
     type="button"
     class="default-button primary"
+    :id="id"
     :style="style"
     @click="show"
     data-testid="wallet_button"
@@ -50,7 +57,7 @@ provide(isMobileKey, isMobile)
     :base-url="baseUrl"
     :usecase
     @close="hide"
-    @open_link="open_universal_link"
+    @success="success"
   ></wallet-modal>
 </template>
 

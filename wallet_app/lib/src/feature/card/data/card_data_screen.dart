@@ -12,6 +12,7 @@ import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 import 'argument/card_data_screen_argument.dart';
 import 'bloc/card_data_bloc.dart';
 import 'card_data_incorrect_screen.dart';
@@ -62,7 +63,7 @@ class CardDataScreen extends StatelessWidget {
                 CardDataLoadSuccess() => _buildDataAttributes(context, state.card.attributes),
                 CardDataLoadFailure() => _buildError(context),
               };
-              return Scrollbar(
+              return WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
                     SliverWalletAppBar(

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-03T16:28:51+02:00",
+    "@@last_modified": "2024-06-04T16:23:56+02:00",
     "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -257,6 +257,8 @@
             }
         }
     },
+    "disclosureStopSheetDescriptionForLoginVariant": "Als je stopt, kun je niet inloggen.",
+    "disclosureStopSheetDescriptionVariant": "Als je stopt worden er geen gegevens gedeeld.",
     "disclosureStopSheetNegativeCta": "Nee",
     "disclosureStopSheetPositiveCta": "Ja, stoppen",
     "disclosureStopSheetReportIssueCta": "Wil je een probleem melden?",
@@ -320,7 +322,7 @@
     "generalBottomBackCta": "Terug",
     "generalCancelCta": "Annuleren",
     "generalClose": "Sluiten",
-    "generalConfigVersionText": "App config.:",
+    "generalConfigVersionText": "App config:",
     "generalDays": "{days, plural, one {{days} dag} other {{days} dagen}}",
     "@generalDays": {
         "placeholders": {
@@ -725,13 +727,10 @@
         }
     },
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
-    "placeholderScreenContractInformTitle": "Hier komt het contract te staan.",
     "placeholderScreenGenericDescription": "Helaas, aan deze pagina wordt nog gewerkt.\nHeb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
-    "placeholderScreenGenericInformTitle": "Helaas, aan deze pagina wordt nog gewerkt.",
     "placeholderScreenHeadline": "Deze pagina bestaat nog niet",
     "placeholderScreenHelpDescription": "Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
     "placeholderScreenHelpHeadline": "Heb je vragen of hulp nodig?",
-    "placeholderScreenTitle": "Pagina bestaat niet",
     "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
     "policyScreenDataCanBeDeletedDescription": "De organisatie biedt een manier om je gegevens te laten verwijderen.",
     "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
@@ -800,6 +799,9 @@
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
     "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
+    "scanWithWalletDialogBody": "Het lijkt erop dat je een QR-code hebt gescand met een andere app. Scan voor de zekerheid de QR-code met de NL Wallet.",
+    "scanWithWalletDialogScanCta": "Scan QR-code",
+    "scanWithWalletDialogTitle": "Scan QR-code met NL Wallet",
     "settingsScreenChangeLanguageCta": "Taal veranderen",
     "settingsScreenChangePinCta": "Pincode veranderen",
     "settingsScreenClearDataCta": "Gegevens verwijderen",

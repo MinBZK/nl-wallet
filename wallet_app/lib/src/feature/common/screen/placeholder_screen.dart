@@ -7,6 +7,7 @@ import '../page/page_illustration.dart';
 import '../widget/button/bottom_back_button.dart';
 import '../widget/sliver_wallet_app_bar.dart';
 import '../widget/text/body_text.dart';
+import '../widget/wallet_scrollbar.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String? illustration;
@@ -24,7 +25,7 @@ class PlaceholderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Scrollbar(
+        child: WalletScrollbar(
           child: Column(
             children: [
               Expanded(

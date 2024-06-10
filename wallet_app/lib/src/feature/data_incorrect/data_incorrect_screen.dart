@@ -5,6 +5,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'widget/data_incorrect_option_row.dart';
 
 class DataIncorrectScreen extends StatelessWidget {
@@ -14,7 +15,7 @@ class DataIncorrectScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Scrollbar(
+        child: WalletScrollbar(
           child: CustomScrollView(
             restorationId: 'data_incorrect',
             slivers: <Widget>[

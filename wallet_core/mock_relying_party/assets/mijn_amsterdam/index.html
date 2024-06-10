@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+    <title>Mijn Amsterdam - Inloggen</title>
+    <link href="main.css" rel="stylesheet"/>
+    <style>
+        nl-wallet-button::part(button) {
+            background-color: rgb(236, 0, 0);
+            border-radius: 0;
+        }
+    </style>
+    <script type="module" src="../nl-wallet-web.iife.js"></script>
+</head>
+
+<body>
+<main>
+    <header>
+        <div class="logo">
+            <span class="logoset">
+                <img src="../nonfree/adam_logo.svg" class="screen-logo" alt="Gemeente Amsterdam">
+            </span>
+            <div class="logotexts">
+                <div class="logotext red">Gemeente</div>
+                <div class="logotext red">Amsterdam</div>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#">Onderwerpen</a></li>
+            <li><a href="#">Nieuws</a></li>
+            <li><a href="#">Contact</a></li>
+        </ul>
+    </nav>
+
+    <article>
+        <h1>Inloggen in Mijn Amsterdam</h1>
+        <div class="img-container">
+            <img src="amsterdam-hero.jpg">
+        </div>
+        <p class="text-xl">
+            Met NL Wallet kunt u inloggen in de beveiligde Mijn Amsterdam omgeving.
+        </p>
+        <div>
+            <nl-wallet-button id="mijn_amsterdam_button" text="Inloggen met NL Wallet"
+                              usecase="mijn_amsterdam"></nl-wallet-button>
+        </div>
+    </article>
+</main>
+
+<script>
+    const wallet_button = document.getElementById("mijn_amsterdam_button")
+    wallet_button.addEventListener("success", (e) => {
+        if (e.detail && e.detail.length > 1) {
+            const session_token = e.detail[0]
+            const session_type = e.detail[1]
+            if (session_type === "cross_device") {
+                window.open("./return?session_token=" + session_token)
+            }
+        }
+    }, false)
+</script>
+
+</body>
+</html>

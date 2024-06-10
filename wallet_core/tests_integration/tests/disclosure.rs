@@ -125,6 +125,7 @@ async fn test_disclosure_usecases_ok(
     });
 
     let ws_settings = wallet_server_settings();
+    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.public_url);
 
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
@@ -139,7 +140,7 @@ async fn test_disclosure_usecases_ok(
     let client = reqwest::Client::new();
 
     let response = client
-        .post(ws_settings.internal_url.join("disclosure/sessions"))
+        .post(ws_internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -147,13 +148,15 @@ async fn test_disclosure_usecases_ok(
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let StartDisclosureResponse {
-        mut status_url,
-        mut disclosed_attributes_url,
-    } = response.json::<StartDisclosureResponse>().await.unwrap();
-
+    let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
+    let mut status_url = ws_settings
+        .public_url
+        .join(&format!("disclosure/{session_token}/status"));
     let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
     status_url.set_query(status_query.as_str().into());
+
+    let mut disclosed_attributes_url =
+        ws_internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
     // disclosed attributes endpoint should return a response with code Bad Request when the status is not DONE
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
@@ -235,6 +238,7 @@ async fn test_disclosure_without_pid() {
     });
 
     let ws_settings = wallet_server_settings();
+    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.public_url);
 
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
@@ -265,7 +269,7 @@ async fn test_disclosure_without_pid() {
         return_url_template: None,
     };
     let response = client
-        .post(ws_settings.internal_url.join("disclosure/sessions"))
+        .post(ws_internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -274,16 +278,19 @@ async fn test_disclosure_without_pid() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // does it exist for the RP side of things?
-    let StartDisclosureResponse {
-        mut status_url,
-        disclosed_attributes_url,
-    } = response.json::<StartDisclosureResponse>().await.unwrap();
+    let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
+    let mut status_url = ws_settings
+        .public_url
+        .join(&format!("disclosure/{session_token}/status"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
     .unwrap();
     status_url.set_query(status_query.as_str().into());
+
+    let disclosed_attributes_url =
+        ws_internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
     assert_matches!(
         get_verifier_status(&client, status_url.clone()).await,

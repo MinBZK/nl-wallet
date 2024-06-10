@@ -5,6 +5,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
+import '../../common/widget/wallet_scrollbar.dart';
 
 class IssuanceSuccessPage extends StatelessWidget {
   final VoidCallback onClose;
@@ -20,7 +21,7 @@ class IssuanceSuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         restorationId: 'issuance_success_page',
         slivers: <Widget>[

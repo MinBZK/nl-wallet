@@ -7,6 +7,7 @@ import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/icon_row.dart';
 import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 
 class ReportIssueScreen extends StatelessWidget {
   final List<ReportingOption> options;
@@ -32,8 +33,8 @@ class ReportIssueScreen extends StatelessWidget {
     );
   }
 
-  Scrollbar _buildContent(BuildContext context) {
-    return Scrollbar(
+  Widget _buildContent(BuildContext context) {
+    return WalletScrollbar(
       child: CustomScrollView(
         restorationId: 'data_incorrect',
         slivers: <Widget>[

@@ -9,6 +9,7 @@ import '../common/widget/button/list_button.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/wallet_scrollbar.dart';
 import 'policy_entries_builder.dart';
 import 'policy_screen_arguments.dart';
 import 'widget/policy_entry_row.dart';
@@ -63,7 +64,7 @@ class PolicyScreen extends StatelessWidget {
       addSignatureEntry: showSignatureRow,
     );
     final entries = policyBuilder.build(policy);
-    return Scrollbar(
+    return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
           SliverWalletAppBar(
