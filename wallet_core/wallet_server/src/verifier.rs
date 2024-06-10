@@ -84,8 +84,8 @@ where
             sessions,
             verifier
                 .trust_anchors
-                .iter()
-                .map(|ta| ta.owned_trust_anchor.clone())
+                .into_iter()
+                .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),
             (&verifier.ephemeral_id_secret).into(),
         ),
@@ -100,7 +100,6 @@ pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) 
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let _ = verifier;
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
     let wallet_router = Router::new()

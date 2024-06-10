@@ -20,7 +20,7 @@ async fn async_main(settings: Settings) -> Result<()> {
 
     // This will block until the server shuts down.
     server::wallet_server::serve(
-        BrpPidAttributeService::try_from(&settings)?,
+        BrpPidAttributeService::try_from(&settings.issuer)?,
         settings,
         disclosure_sessions,
         issuance_sessions,

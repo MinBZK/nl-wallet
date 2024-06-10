@@ -46,16 +46,16 @@ impl Issuer {
     }
 }
 
-impl TryFrom<&Settings> for BrpPidAttributeService {
+impl TryFrom<&Issuer> for BrpPidAttributeService {
     type Error = BrpError;
 
-    fn try_from(settings: &Settings) -> Result<Self, Self::Error> {
+    fn try_from(issuer: &Issuer) -> Result<Self, Self::Error> {
         BrpPidAttributeService::new(
-            HttpBrpClient::new(settings.issuer.brp_server.clone()),
-            settings.issuer.digid.issuer_url.clone(),
-            settings.issuer.digid.bsn_privkey.clone(),
-            settings.issuer.digid.trust_anchors.clone(),
-            settings.issuer.certificates(),
+            HttpBrpClient::new(issuer.brp_server.clone()),
+            issuer.digid.issuer_url.clone(),
+            issuer.digid.bsn_privkey.clone(),
+            issuer.digid.trust_anchors.clone(),
+            issuer.certificates(),
         )
     }
 }
