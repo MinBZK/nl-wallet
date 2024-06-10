@@ -137,7 +137,7 @@ impl VpMessageClient for HttpVpMessageClient {
                     let error = response.json::<ErrorResponse<String>>().await?;
                     Err(VpMessageClientError::ErrorResponse(error))
                 } else {
-                    deserialize_vp_response(response).await
+                    Self::deserialize_vp_response(response).await
                 }
             })
             .await
@@ -156,20 +156,22 @@ impl VpMessageClient for HttpVpMessageClient {
             .await?
             .error_for_status()?;
 
-        let response = deserialize_vp_response(response).await?;
+        let response = Self::deserialize_vp_response(response).await?;
         Ok(response)
     }
 }
 
-/// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
-/// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
-async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
-    let response_bytes = response.bytes().await?;
-    if response_bytes.is_empty() {
-        return Ok(None);
+impl HttpVpMessageClient {
+    /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
+    /// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
+    async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
+        let response_bytes = response.bytes().await?;
+        if response_bytes.is_empty() {
+            return Ok(None);
+        }
+        let response: VpResponse = serde_json::from_slice(&response_bytes)?;
+        Ok(response.redirect_uri)
     }
-    let response: VpResponse = serde_json::from_slice(&response_bytes)?;
-    Ok(response.redirect_uri)
 }
 
 #[allow(clippy::large_enum_variant)]
