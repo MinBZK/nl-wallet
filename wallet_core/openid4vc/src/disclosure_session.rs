@@ -290,7 +290,12 @@ where
             error_uri: None,
         };
 
-        let _ = client.send_error(url, error_response).await; // ignore errors in sending this error
+        // If sending the error results in an error, log it but do nothing else.
+        let _ = client
+            .send_error(url, error_response)
+            .await
+            .inspect_err(|err| warn!("failed to send error to server: {err}"));
+
         Err(error)
     }
 
