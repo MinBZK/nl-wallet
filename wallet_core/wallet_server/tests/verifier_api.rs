@@ -67,8 +67,8 @@ fn wallet_server_settings() -> Settings {
         port: requester_port,
     });
 
-    settings.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
-    settings.internal_url = format!("http://localhost:{requester_port}/").parse().unwrap();
+    settings.urls.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
+    settings.urls.internal_url = format!("http://localhost:{requester_port}/").parse().unwrap();
 
     settings
 }
@@ -77,7 +77,7 @@ async fn start_wallet_server<S>(settings: Settings, disclosure_sessions: S)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let public_url = settings.public_url.clone();
+    let public_url = settings.urls.public_url.clone();
 
     tokio::spawn(async move {
         if let Err(error) = wallet_server::server::verification_server::serve(settings, disclosure_sessions).await {
@@ -132,9 +132,9 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
             ..
         }
         | RequesterAuth::InternalEndpoint(Server { port, .. }) => {
-            settings.internal_url = format!("http://localhost:{port}/").parse().unwrap()
+            settings.urls.internal_url = format!("http://localhost:{port}/").parse().unwrap()
         }
-        RequesterAuth::Authentication(_) => settings.internal_url = settings.public_url.clone(),
+        RequesterAuth::Authentication(_) => settings.urls.internal_url = settings.urls.public_url.clone(),
     };
 
     settings.requester_server = auth.clone();
@@ -147,7 +147,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .post(settings.public_url.join("disclosure/sessions"))
+        .post(settings.urls.public_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -160,7 +160,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using no token returns a 401 on the (internal) start URL if an API key is used and a 200 otherwise
     let response = client
-        .post(settings.internal_url.join("disclosure/sessions"))
+        .post(settings.urls.internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -173,7 +173,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .post(settings.public_url.join("disclosure/sessions"))
+        .post(settings.urls.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -187,7 +187,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 200 on the (internal) start URL (even if none is required)
     let response = client
-        .post(settings.internal_url.join("disclosure/sessions"))
+        .post(settings.urls.internal_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -207,7 +207,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using no token returns a 401 on the (public) attributes URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .get(settings.public_url.join(&disclosed_attributes_path))
+        .get(settings.urls.public_url.join(&disclosed_attributes_path))
         .json(&start_request)
         .send()
         .await
@@ -220,7 +220,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using no token returns a 401 on the (internal) attributes URL if an API key is used and a 400 otherwise (because the session is not yet finished)
     let response = client
-        .get(settings.internal_url.join(&disclosed_attributes_path))
+        .get(settings.urls.internal_url.join(&disclosed_attributes_path))
         .json(&start_request)
         .send()
         .await
@@ -233,7 +233,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 400 on the (public) attributes URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .get(settings.public_url.join(&disclosed_attributes_path))
+        .get(settings.urls.public_url.join(&disclosed_attributes_path))
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -247,7 +247,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 400 on the (internal) attributes URL (because the session is not yet finished)
     let response = client
-        .get(settings.internal_url.join(&disclosed_attributes_path))
+        .get(settings.urls.internal_url.join(&disclosed_attributes_path))
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -267,6 +267,7 @@ async fn test_disclosure_not_found() {
     let response = client
         .get(
             settings
+                .urls
                 .public_url
                 .join("disclosure/sessions/nonexistent_session/status"),
         )
@@ -278,7 +279,7 @@ async fn test_disclosure_not_found() {
 
     // check if a non-existent token returns a 404 on the wallet URL
     let response = client
-        .post(settings.public_url.join("disclosure/sessions/nonexistent_session"))
+        .post(settings.urls.public_url.join("disclosure/sessions/nonexistent_session"))
         .send()
         .await
         .unwrap();
@@ -289,6 +290,7 @@ async fn test_disclosure_not_found() {
     let response = client
         .get(
             settings
+                .urls
                 .internal_url
                 .join("disclosure/sessions/nonexistent_session/disclosed_attributes"),
         )
@@ -315,7 +317,7 @@ async fn test_disclosure_expired<S>(
 
     // Create a new disclosure session, which should return 200.
     let response = client
-        .post(settings.internal_url.join("disclosure/sessions"))
+        .post(settings.urls.internal_url.join("disclosure/sessions"))
         .json(&start_disclosure_request())
         .send()
         .await

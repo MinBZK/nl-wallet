@@ -1,11 +1,8 @@
-cfg_if::cfg_if! {
-    if #[cfg(any(feature = "disclosure", feature = "issuance"))] {
-    pub mod log_requests;
-    pub mod server;
-    pub mod settings;
-    pub mod store;
-    }
-}
+pub mod log_requests;
+pub mod server;
+pub mod settings;
+pub mod store;
+
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
     pub mod verifier;

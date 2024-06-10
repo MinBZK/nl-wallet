@@ -36,16 +36,17 @@ pub struct VerifierUseCase {
     pub key_pair: KeyPair,
 }
 
-impl TryFrom<&VerifierUseCases> for UseCases {
+impl TryFrom<VerifierUseCases> for UseCases {
     type Error = p256::pkcs8::Error;
 
-    fn try_from(value: &VerifierUseCases) -> Result<Self, Self::Error> {
+    fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
         let use_cases = value
-            .iter()
+            .into_inner()
+            .into_iter()
             .map(|(id, use_case)| {
-                let use_case = UseCase::try_from(use_case)?;
+                let use_case = UseCase::try_from(&use_case)?;
 
-                Ok((id.to_owned(), use_case))
+                Ok((id, use_case))
             })
             .collect::<Result<HashMap<_, _>, Self::Error>>()?
             .into();

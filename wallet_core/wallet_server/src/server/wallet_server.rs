@@ -3,8 +3,8 @@ use anyhow::Result;
 use nl_wallet_mdoc::{server_state::SessionStore, verifier::DisclosureData};
 use openid4vc::issuer::AttributeService;
 
-use super::{disclosure::setup_disclosure, *};
-use crate::settings::Settings;
+use super::*;
+use crate::{issuer::create_issuance_router, settings::Settings, verifier};
 
 pub async fn serve<A, DS, IS>(
     attr_service: A,
@@ -19,22 +19,20 @@ where
 {
     let log_requests = settings.log_requests;
 
-    let wallet_socket = create_wallet_socket(&settings);
-    let requester_socket = create_requester_socket(&settings);
-    let (wallet_disclosure_router, requester_router) = setup_disclosure(&settings, disclosure_sessions)?;
-
     let wallet_issuance_router =
-        crate::issuer::create_issuance_router(settings, issuance_sessions, attr_service).await?;
+        create_issuance_router(&settings.urls, settings.issuer, issuance_sessions, attr_service).await?;
+    let (wallet_disclosure_router, requester_router) =
+        verifier::create_routers(settings.urls, settings.verifier, disclosure_sessions)?;
 
     listen(
-        wallet_socket,
-        requester_socket,
+        settings.wallet_server,
+        settings.requester_server.into(),
         decorate_router("/issuance/", wallet_issuance_router, log_requests).merge(decorate_router(
             "/disclosure/",
             wallet_disclosure_router,
             log_requests,
         )),
-        decorate_router("/disclosure/sessions", requester_router, log_requests),
+        decorate_router("/disclosure/sessions", requester_router, log_requests).into(),
     )
     .await
 }

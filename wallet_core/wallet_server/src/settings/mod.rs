@@ -25,13 +25,7 @@ cfg_if::cfg_if! {
 }
 
 #[derive(Clone, Deserialize)]
-pub struct Settings {
-    // used by the wallet, MUST be reachable from the public internet.
-    pub wallet_server: Server,
-    // used by the application, SHOULD be reachable only by the application.
-    // if not configured the wallet_server will be used, but an api_key is required in that case
-    // if it conflicts with wallet_server, the application will crash on startup
-    pub requester_server: RequesterAuth,
+pub struct Urls {
     // used by the wallet
     pub public_url: BaseUrl,
     // used by the application
@@ -40,6 +34,20 @@ pub struct Settings {
 
     #[cfg(feature = "disclosure")]
     pub universal_link_base_url: BaseUrl,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Settings {
+    // used by the wallet, MUST be reachable from the public internet.
+    pub wallet_server: Server,
+    // used by the application, SHOULD be reachable only by the application.
+    // if not configured the wallet_server will be used, but an api_key is required in that case
+    // if it conflicts with wallet_server, the application will crash on startup
+    #[cfg(feature = "disclosure")]
+    pub requester_server: RequesterAuth,
+
+    #[serde(flatten)]
+    pub urls: Urls,
 
     pub log_requests: bool,
 
