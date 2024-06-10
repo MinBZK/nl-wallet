@@ -789,7 +789,7 @@ impl Session<Created> {
 
         let jws = jwt::sign_with_certificate(&auth_request, &usecase.key_pair).await?;
 
-        let iso_auth_request = auth_request.validate().unwrap(); // Our own requests are always valid
+        let iso_auth_request = IsoVpAuthorizationRequest::new(auth_request).unwrap(); // Our own requests are always valid
         Ok((jws, iso_auth_request, redirect_uri, encryption_keypair))
     }
 }

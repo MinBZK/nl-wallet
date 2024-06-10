@@ -232,21 +232,6 @@ impl JwePublicKey {
     }
 }
 
-/// An OpenID4VP Authorization Request that has been validated to conform to the ISO 18013-7 profile:
-/// a subset of [`VpAuthorizationRequest`] that always contains fields we require, and no fields we don't.
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IsoVpAuthorizationRequest {
-    pub client_id: String,
-    pub nonce: String,
-    pub encryption_pubkey: Jwk,
-    pub response_uri: BaseUrl,
-    pub items_requests: ItemsRequests,
-    pub presentation_definition: PresentationDefinition,
-    pub client_metadata: ClientMetadata,
-    pub state: Option<String>,
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestValidationError {
     #[error("unexpected field: {0}")]
@@ -335,79 +320,103 @@ impl VpAuthorizationRequest {
             });
         }
 
-        let validated_auth_request = auth_request.validate()?;
+        let validated_auth_request = IsoVpAuthorizationRequest::new(auth_request)?;
 
         Ok((validated_auth_request, rp_cert))
     }
+}
 
-    /// Validate that the request contents are compliant with the profile from ISO 18013-7 Appendix B.
-    pub fn validate(&self) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
+/// An OpenID4VP Authorization Request that has been validated to conform to the ISO 18013-7 profile:
+/// a subset of [`VpAuthorizationRequest`] that always contains fields we require, and no fields we don't.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IsoVpAuthorizationRequest {
+    pub client_id: String,
+    pub nonce: String,
+    pub encryption_pubkey: Jwk,
+    pub response_uri: BaseUrl,
+    pub items_requests: ItemsRequests,
+    pub presentation_definition: PresentationDefinition,
+    pub client_metadata: ClientMetadata,
+    pub state: Option<String>,
+}
+
+impl IsoVpAuthorizationRequest {
+    /// Construct a new instance from a [`VpAuthorizationRequest`], validating that the specified request contents
+    /// are compliant with the profile from ISO 18013-7 Appendix B.
+    pub fn new(vp_auth_request: VpAuthorizationRequest) -> Result<Self, AuthRequestValidationError> {
         // Check absence of fields that must not be present in an OpenID4VP Authorization Request
-        if self.oauth_request.authorization_details.is_some() {
+        if vp_auth_request.oauth_request.authorization_details.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
         }
-        if self.oauth_request.code_challenge.is_some() {
+        if vp_auth_request.oauth_request.code_challenge.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("code_challenge"));
         }
-        if self.oauth_request.redirect_uri.is_some() {
+        if vp_auth_request.oauth_request.redirect_uri.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("redirect_uri"));
         }
-        if self.oauth_request.scope.is_some() {
+        if vp_auth_request.oauth_request.scope.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("scope"));
         }
-        if self.oauth_request.request_uri.is_some() {
+        if vp_auth_request.oauth_request.request_uri.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
         }
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
-        if self.oauth_request.nonce.is_none() {
+        if vp_auth_request.oauth_request.nonce.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
         }
-        if self.oauth_request.response_mode.is_none() {
+        if vp_auth_request.oauth_request.response_mode.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
         }
-        if self.client_metadata.is_none() {
+        if vp_auth_request.client_metadata.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
         }
-        if self.client_id_scheme.is_none() {
+        if vp_auth_request.client_id_scheme.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme"));
         }
-        if self.response_uri.is_none() {
+        if vp_auth_request.response_uri.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
         }
 
         // Check that various enums have the expected values
-        if self.oauth_request.response_type != ResponseType::VpToken.into() {
+        if vp_auth_request.oauth_request.response_type != ResponseType::VpToken.into() {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 expected: "vp_token",
-                found: serde_json::to_string(&self.oauth_request.response_type).unwrap(),
+                found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap(),
             });
         }
-        if *self.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
+        if *vp_auth_request.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
-                found: serde_json::to_string(&self.oauth_request.response_mode).unwrap(),
+                found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
             });
         }
-        if *self.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
+        if *vp_auth_request.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "client_id_scheme",
                 expected: "x509_san_dns",
-                found: serde_json::to_string(&self.client_id_scheme).unwrap(),
+                found: serde_json::to_string(&vp_auth_request.client_id_scheme).unwrap(),
             });
         }
 
         // Of fields that have an "_uri" variant, check that they are not used
-        if matches!(self.presentation_definition, VpPresentationDefinition::Indirect(..)) {
+        if matches!(
+            vp_auth_request.presentation_definition,
+            VpPresentationDefinition::Indirect(..)
+        ) {
             return Err(AuthRequestValidationError::UriVariantNotSupported(
                 "presentation_definition",
             ));
         }
-        if matches!(*self.client_metadata.as_ref().unwrap(), VpClientMetadata::Indirect(..)) {
+        if matches!(
+            *vp_auth_request.client_metadata.as_ref().unwrap(),
+            VpClientMetadata::Indirect(..)
+        ) {
             return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
         }
-        let client_metadata = self.client_metadata.as_ref().unwrap().direct();
+        let client_metadata = vp_auth_request.client_metadata.as_ref().unwrap().direct();
         if matches!(client_metadata.jwks, VpJwks::Indirect(..)) {
             return Err(AuthRequestValidationError::UriVariantNotSupported(
                 "presentation_definition",
@@ -421,7 +430,7 @@ impl VpAuthorizationRequest {
         }
         JwePublicKey::validate(jwks.first().unwrap())?;
 
-        if self
+        if vp_auth_request
             .presentation_definition
             .direct()
             .input_descriptors
@@ -435,23 +444,23 @@ impl VpAuthorizationRequest {
 
         // The code above establishes that all these .unwrap() and .direct() calls are safe.
         Ok(IsoVpAuthorizationRequest {
-            client_id: self.oauth_request.client_id.clone(),
-            nonce: self.oauth_request.nonce.as_ref().unwrap().clone(),
+            client_id: vp_auth_request.oauth_request.client_id,
+            nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey: jwks.first().unwrap().clone(),
-            items_requests: self.presentation_definition.direct().try_into()?,
-            response_uri: self.response_uri.as_ref().unwrap().clone(),
-            presentation_definition: self.presentation_definition.direct().clone(),
+            items_requests: vp_auth_request.presentation_definition.direct().try_into()?,
+            response_uri: vp_auth_request.response_uri.unwrap(),
+            presentation_definition: vp_auth_request.presentation_definition.direct().clone(),
             client_metadata: client_metadata.clone(),
-            state: self.oauth_request.state.clone(),
+            state: vp_auth_request.oauth_request.state,
         })
     }
 }
 
 impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
-    type Error = AuthRequestError;
+    type Error = AuthRequestValidationError;
 
     fn try_from(value: VpAuthorizationRequest) -> Result<Self, Self::Error> {
-        Ok(value.validate()?)
+        Self::new(value)
     }
 }
 
@@ -704,6 +713,8 @@ mod tests {
     };
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
+    use crate::openid4vp::IsoVpAuthorizationRequest;
+
     use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
 
     fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
@@ -734,7 +745,7 @@ mod tests {
         // an Authorization Response JWE.
         let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
-        let auth_request = auth_request.validate().unwrap();
+        let auth_request = IsoVpAuthorizationRequest::new(auth_request).unwrap();
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
         let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
 
@@ -813,7 +824,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        auth_request.validate().unwrap();
+        IsoVpAuthorizationRequest::new(auth_request).unwrap();
     }
 
     #[test]
@@ -899,7 +910,7 @@ mod tests {
         let (_, _, _, auth_request) = setup();
         let mdoc_nonce = "mdoc_nonce";
 
-        let auth_request = auth_request.validate().unwrap();
+        let auth_request = IsoVpAuthorizationRequest::new(auth_request).unwrap();
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
             &auth_request.client_id,
