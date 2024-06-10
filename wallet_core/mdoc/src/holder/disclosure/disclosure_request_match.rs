@@ -1,0 +1,176 @@
+use indexmap::{IndexMap, IndexSet};
+
+use crate::{
+    engagement::{DeviceAuthenticationKeyed, SessionTranscript},
+    errors::Result,
+    holder::HolderError,
+    identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
+    mdocs::DocType,
+    utils::serialization::{self, CborSeq, TaggedBytes},
+    ItemsRequest,
+};
+
+use super::{proposed_document::ProposedDocument, MdocDataSource};
+
+/// This type represents the result of matching an iterator of `ItemsRequest`
+/// instances against all locally stored document. This result is one of two options:
+/// * `DisclosureRequestMatch::Candidates` means that all of the attributes
+///   in the request can be satisfied. For each `DocType` in the request,
+///   a list of matching documents is provided in an `IndexMap`.
+/// * `DisclosureRequestMatch::MissingAttributes` when at least one of the
+///   attributes requested is not present in any of the stored documents.
+///
+/// Please note the following:
+/// * The input iterator of `ItemsRequest`s could contain multiple `ItemsRequest`
+///   entries with the same `DocType`. The matching result coalesces all attributes
+///   that are requested for a particular `DocType`, which will result in
+///   a `DeviceResponse` with only one `Document` per `DocType`. This
+///   assumes that the verifier can match this response against its original
+///   request.
+/// * The order of the `IndexMap` provided with `DisclosureRequestMatch::Candidates`
+///   tries to match the order of the request as best as possible. However,
+///   considering the previous point the order is not an exact match when the
+///   request contains the same `DocType` multiple times.
+/// * It is a known limitation that `DisclosureRequestMatch::MissingAttributes`
+///   only contains the missing attributes for one of the `Mdoc`s for a
+///   particular `DocType`. Which one it chooses is undefined.
+#[derive(Debug)]
+pub enum DisclosureRequestMatch<I> {
+    Candidates(IndexMap<DocType, Vec<ProposedDocument<I>>>),
+    MissingAttributes(Vec<AttributeIdentifier>), // TODO: Report on missing attributes per `Mdoc` candidate. (PVW-1392)
+}
+
+impl<I> DisclosureRequestMatch<I> {
+    pub async fn new<'a>(
+        items_requests: impl IntoIterator<Item = &'a ItemsRequest> + Clone,
+        mdoc_data_source: &impl MdocDataSource<MdocIdentifier = I>,
+        session_transcript: &SessionTranscript,
+    ) -> Result<DisclosureRequestMatch<I>> {
+        // Make a `HashSet` of doc types from the `DeviceRequest` to account
+        // for potential duplicate doc types in the request, then fetch them
+        // from our data source.
+        let doc_types = items_requests
+            .clone()
+            .into_iter()
+            .map(|items_request| items_request.doc_type.as_str())
+            .collect();
+
+        let stored_mdocs = mdoc_data_source
+            .mdoc_by_doc_types(&doc_types)
+            .await
+            .map_err(|error| HolderError::MdocDataSource(error.into()))?;
+
+        // For each `doc_type`, calculate the set of `AttributeIdentifier`s that
+        // are needed to satisfy the request. Note that a `doc_type` may occur more
+        // than once in a `DeviceRequest`, so we combine all attributes and then split
+        // them out by `doc_type`.
+        let mut requested_attributes_by_doc_type = items_requests.attribute_identifiers().into_iter().fold(
+            IndexMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
+            |mut requested_attributes, attribute_identifier| {
+                // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
+                let doc_type = *doc_types.get(attribute_identifier.doc_type.as_str()).unwrap();
+                requested_attributes
+                    .entry(doc_type)
+                    .or_default()
+                    .insert(attribute_identifier);
+
+                requested_attributes
+            },
+        );
+
+        // Each `Vec<Mdoc>` that is returned from storage should contain `Mdoc`s
+        // that have the same `doc_type`. Below, we iterate over all of these
+        // `Vec`s and perform the following steps:
+        //
+        // * Filter out any empty `Vec<Mdoc>`.
+        // * Get the `doc_type` from the first `Mdoc` entry.
+        // * Remove the value for this `doc_type` from `requested_attributes_by_doc_type`.
+        // * Do some sanity checks, as the request should actually contain this `doc_type`
+        //   and any subsequent `Mdoc`s should have the same `doc_type`. This is part of
+        //   the contract of `MdocDataSource` that is not enforceable.
+        // * Calculate the challenge needed to create the `DeviceSigned` for this
+        //   `doc_type` later on during actual disclosure.
+        // * Convert all `Mdoc`s that satisfy the requirement to `ProposedDocument`,
+        //   while collecting any missing attributes separately.
+        // * Collect the candidates in a `IndexMap` per `doc_type`.
+        //
+        // Note that we consume the requested attributes from
+        // `requested_attributes_by_doc_type` for the following reasons:
+        //
+        // * A `doc_type` should not occur more than once in the top-level
+        //  `Vec` returned by `MdocDataSource`.
+        // * After gathering all the candidates, any requested attributes that
+        //   still remain in `requested_attributes_by_doc_type` are not satisfied,
+        //   which means that all of them count as missing attributes.
+        let mut all_missing_attributes = Vec::<Vec<AttributeIdentifier>>::new();
+
+        let stored_mdocs = stored_mdocs
+            .into_iter()
+            .filter(|doc_type_mdocs| !doc_type_mdocs.is_empty())
+            .collect::<Vec<_>>();
+
+        let candidates_by_doc_type = stored_mdocs
+            .into_iter()
+            .map(|doc_type_stored_mdocs| {
+                // First, remove the `IndexSet` of attributes that are required for this
+                // `doc_type` from the global `HashSet`. If this cannot be found, then
+                // `MdocDataSource` did not obey the contract as noted in the comment above.
+                let first_doc_type = doc_type_stored_mdocs.first().unwrap().mdoc.doc_type.as_str();
+                let (doc_type, requested_attributes) = requested_attributes_by_doc_type
+                    .remove_entry(first_doc_type)
+                    .expect("Received mdoc candidate with unexpected doc_type from storage");
+
+                // Do another sanity check, all of the remaining `Mdoc`s
+                // in the `Vec` should have the same `doc_type`.
+                for stored_mdoc in &doc_type_stored_mdocs {
+                    if stored_mdoc.mdoc.doc_type != doc_type {
+                        panic!("Received mdoc candidate with inconsistent doc_type from storage");
+                    }
+                }
+
+                // Calculate the `DeviceAuthentication` for this `doc_type` and turn it into bytes,
+                // so that it can be used as a challenge when constructing `DeviceSigned` later on.
+                let device_authentication = DeviceAuthenticationKeyed::new(doc_type, session_transcript);
+                let device_signed_challenge =
+                    serialization::cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
+
+                // Get all the candidates and missing attributes from the provided `Mdoc`s.
+                let (candidates, missing_attributes) =
+                    ProposedDocument::candidates_and_missing_attributes_from_stored_mdocs(
+                        doc_type_stored_mdocs,
+                        &requested_attributes,
+                        device_signed_challenge,
+                    )?;
+
+                // If we have multiple `Mdoc`s with missing attributes, just record the first one.
+                // TODO: Report on missing attributes for multiple `Mdoc` candidates. (PVW-1392)
+                if let Some(missing_attributes) = missing_attributes.into_iter().next() {
+                    all_missing_attributes.push(missing_attributes);
+                }
+
+                Ok((doc_type.to_string(), candidates))
+            })
+            .collect::<Result<IndexMap<_, _>>>()?;
+
+        // If we cannot find a suitable candidate for any of the doc types
+        // or one of the doc types is missing entirely, collect all of the
+        // attributes that are missing and return this as the
+        // `DisclosureRequestMatch::MissingAttributes` invariant.
+        if candidates_by_doc_type.values().any(|candidates| candidates.is_empty())
+            || !requested_attributes_by_doc_type.is_empty()
+        {
+            // Combine the missing attributes from the processed `Mdoc`s with
+            // the requested attributes for any `doc_type` we did not see at all.
+            let missing_attributes = all_missing_attributes
+                .into_iter()
+                .flatten()
+                .chain(requested_attributes_by_doc_type.into_values().flatten())
+                .collect();
+
+            return Ok(DisclosureRequestMatch::MissingAttributes(missing_attributes));
+        }
+
+        // Each `doc_type` has at least one candidates, return these now.
+        Ok(DisclosureRequestMatch::Candidates(candidates_by_doc_type))
+    }
+}
