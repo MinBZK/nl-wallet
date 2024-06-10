@@ -67,7 +67,7 @@ pub struct CredentialRequestProofJwtPayload {
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CredentialErrorCode {
     InvalidCredentialRequest,

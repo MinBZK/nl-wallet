@@ -675,14 +675,16 @@ pub struct VpResponse {
     pub redirect_uri: Option<BaseUrl>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
-    AuthorizationError(AuthorizationErrorCode),
     VpFormatsNotSupported,
     InvalidPresentationDefinitionUri,
     InvalidPresentationDefinitionReference,
     InvalidRequestUriMethod,
+
+    #[serde(untagged)]
+    AuthorizationError(AuthorizationErrorCode),
 }
 
 #[cfg(test)]
@@ -702,9 +704,22 @@ mod tests {
     };
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::openid4vp::IsoVpAuthorizationRequest;
+    use crate::{authorization::AuthorizationErrorCode, openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationErrorCode}};
 
     use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
+
+    #[test]
+    fn test_vp_authorization_error_code_serialization() {
+        assert_eq!(
+            serde_json::from_str::<VpAuthorizationErrorCode>(r#""invalid_request""#).unwrap(),
+            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
+        );
+
+        assert_eq!(
+            serde_json::from_str::<VpAuthorizationErrorCode>(r#""vp_formats_not_supported""#).unwrap(),
+            VpAuthorizationErrorCode::VpFormatsNotSupported,
+        );
+    }
 
     fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
