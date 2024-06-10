@@ -562,9 +562,9 @@ impl VpAuthorizationResponse {
         header.set_agreement_partyvinfo(auth_request.nonce.clone());
 
         // Use the AES key size that the server wants.
-        let client_metadata = &auth_request.client_metadata;
         header.set_content_encryption(
-            client_metadata
+            &auth_request
+                .client_metadata
                 .authorization_encryption_enc_values_supported
                 .to_string(),
         );
