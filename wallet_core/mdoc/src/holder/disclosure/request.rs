@@ -130,14 +130,11 @@ pub enum DisclosureRequestMatch<I> {
 }
 
 impl<I> DisclosureRequestMatch<I> {
-    pub async fn new<'a, S>(
+    pub async fn new<'a>(
         items_requests: impl IntoIterator<Item = &'a ItemsRequest> + Clone,
-        mdoc_data_source: &S,
+        mdoc_data_source: &impl MdocDataSource<MdocIdentifier = I>,
         session_transcript: &SessionTranscript,
-    ) -> Result<DisclosureRequestMatch<I>>
-    where
-        S: MdocDataSource<MdocIdentifier = I>,
-    {
+    ) -> Result<DisclosureRequestMatch<I>> {
         // Make a `HashSet` of doc types from the `DeviceRequest` to account
         // for potential duplicate doc types in the request, then fetch them
         // from our data source.
