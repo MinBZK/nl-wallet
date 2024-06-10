@@ -25,7 +25,10 @@ use openid4vc::{
 };
 use tracing::warn;
 
-use crate::settings::{self, Urls};
+use crate::{
+    pid::attributes::BrpPidAttributeService,
+    settings::{self, Urls},
+};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
@@ -64,16 +67,12 @@ impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
     }
 }
 
-pub async fn create_issuance_router<A, S>(
-    urls: &Urls,
-    issuer: settings::Issuer,
-    sessions: S,
-    attr_service: A,
-) -> anyhow::Result<Router>
+pub async fn create_issuance_router<S>(urls: &Urls, issuer: settings::Issuer, sessions: S) -> anyhow::Result<Router>
 where
-    A: AttributeService + Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
 {
+    let attr_service = BrpPidAttributeService::try_from(&issuer)?;
+
     let application_state = Arc::new(ApplicationState {
         issuer: Issuer::new(
             sessions,

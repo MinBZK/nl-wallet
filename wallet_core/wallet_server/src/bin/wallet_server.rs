@@ -1,7 +1,6 @@
 use anyhow::Result;
 
 use wallet_server::{
-    pid::attributes::BrpPidAttributeService,
     server::{self, wallet_server_main},
     settings::Settings,
     store::SessionStoreVariant,
@@ -19,11 +18,5 @@ async fn async_main(settings: Settings) -> Result<()> {
     let issuance_sessions = disclosure_sessions.clone_into();
 
     // This will block until the server shuts down.
-    server::wallet_server::serve(
-        BrpPidAttributeService::try_from(&settings.issuer)?,
-        settings,
-        disclosure_sessions,
-        issuance_sessions,
-    )
-    .await
+    server::wallet_server::serve(settings, disclosure_sessions, issuance_sessions).await
 }
