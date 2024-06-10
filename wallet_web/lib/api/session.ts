@@ -3,10 +3,10 @@ import axios from "axios"
 import { REQUEST_TIMEOUT } from "./base"
 
 export const createSession = async (
-  baseURL: string,
+  baseUrl: string,
   session_options: SessionOptions,
 ): Promise<SessionResponse> => {
-  const response = await axios.post(`${baseURL}/sessions`, session_options, {
+  const response = await axios.post(new URL("sessions", baseUrl).toString(), session_options, {
     timeout: REQUEST_TIMEOUT,
   })
   return await response.data

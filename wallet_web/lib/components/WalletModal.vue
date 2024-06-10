@@ -83,7 +83,8 @@ async function startSession() {
       isMobile ? SessionType.SameDevice : SessionType.CrossDevice,
       response.session_token,
     )
-  } catch {
+  } catch (e) {
+    console.error(e)
     modalState.value = { kind: "error", error_type: "failed" }
   }
 }
@@ -136,7 +137,8 @@ async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType, sessi
         }
         break
     }
-  } catch {
+  } catch (e) {
+    console.error(e)
     modalState.value = {
       kind: "error",
       error_type: "failed",
