@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import { FooterState } from "@/models/footer-state"
-import { isMobileKey } from "@/util/projection_keys"
 import { mdiArrowTopRightThin, mdiCancel, mdiRefresh, mdiWindowClose } from "@mdi/js"
-import { inject } from "vue"
 
 defineProps<{
   state: FooterState
 }>()
-
-const isMobile = inject(isMobileKey)
 
 const emit = defineEmits(["close", "stop", "retry"])
 
@@ -27,7 +23,7 @@ function retry() {
 
 <template>
   <section v-if="state == FooterState.Close" class="website-link" data-testid="website_link">
-    <p v-if="isMobile" data-testid="mobile_text">Nog geen NL Wallet app? Of hulp nodig?</p>
+    <p data-testid="no_wallet_app_text">Nog geen NL Wallet app? Of hulp nodig?</p>
     <p>
       <a href="/" class="link">
         <svg fill="currentColor" width="16" height="16" viewBox="0 0 24 24">
@@ -49,7 +45,7 @@ function retry() {
     </section>
 
     <button
-      v-if="state == FooterState.Stop"
+      v-if="state == FooterState.Stop || state == FooterState.Cancel"
       type="button"
       class="secondary full-width"
       data-testid="cancel_button"

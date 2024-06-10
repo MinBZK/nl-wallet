@@ -1,11 +1,8 @@
 use futures::TryFutureExt;
+use nl_wallet_mdoc::server_state::SessionToken;
 use reqwest::Client;
-use url::Url;
 
-use nl_wallet_mdoc::{
-    server_state::SessionToken,
-    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate},
-};
+use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate};
 use wallet_common::config::wallet_config::BaseUrl;
 use wallet_server::verifier::{DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse};
 
@@ -27,7 +24,7 @@ impl WalletServerClient {
         usecase: String,
         items_requests: ItemsRequests,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<(Url, Url), anyhow::Error> {
+    ) -> Result<SessionToken, anyhow::Error> {
         let response = self
             .client
             .post(self.base_url.join("/disclosure/sessions"))
@@ -41,7 +38,7 @@ impl WalletServerClient {
             .error_for_status()?
             .json::<StartDisclosureResponse>()
             .await?;
-        Ok((response.status_url, response.disclosed_attributes_url))
+        Ok(response.session_token)
     }
 
     pub async fn disclosed_attributes(

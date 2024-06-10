@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
+// workaround for: https://github.com/djc/askama/issues/810#issuecomment-1494522435
 // from: https://github.com/djc/askama/blob/main/askama_axum/src/lib.rs
 pub fn into_response<T: Template>(t: &T) -> Response {
     match t.render() {

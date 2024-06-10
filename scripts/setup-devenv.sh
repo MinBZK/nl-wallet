@@ -22,6 +22,7 @@
 # - docker: with compose v2 extension, to run the digid-connector
 # - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
 # - p11tool: utility that is part of the gnutls package. The Homebrew package is 'gnutls'. On Debian/Ubuntu, it is 'gnutls-bin'.
+# - nodejs: JavaScript runtime environment for building frontend library
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
@@ -64,6 +65,9 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
 fi
 expect_command softhsm2-util "Missing binary 'softhsm2-util', please install softhsm2"
 expect_command p11tool "Missing binary 'p11tool', please install 'gnutls' using Homebrew on macOS or 'gnutls-bin' on Debian/Ubuntu."
+if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
+    expect_command node "Missing binary 'node', please install (e.g. using node version manager: nvm)"
+fi
 check_openssl
 
 if is_macos
@@ -373,6 +377,19 @@ then
 
     "${SCRIPTS_DIR}"/map_android_ports.sh
 fi
+
+########################################################################
+# Build wallet_web frontend library
+
+if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
+    echo
+    echo -e "${SECTION}Build wallet_web frontend${NC}"
+
+    cd "${WALLET_WEB_DIR}"
+    npm install && npm run build
+    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/
+fi
+
 
 ########################################################################
 # Done

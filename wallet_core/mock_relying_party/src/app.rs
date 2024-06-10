@@ -7,29 +7,23 @@ use axum::{
     http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, post},
-    Form, Json, Router,
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use tower_http::{
     cors::{Any, CorsLayer},
     services::ServeDir,
     trace::TraceLayer,
 };
 use tracing::warn;
-use url::Url;
 
-use nl_wallet_mdoc::{
-    server_state::SessionToken,
-    verifier::{DisclosedAttributes, ItemsRequests, SessionType},
-};
+use nl_wallet_mdoc::{server_state::SessionToken, verifier::DisclosedAttributes};
 use wallet_common::config::wallet_config::BaseUrl;
-use wallet_server::verifier::{DisclosedAttributesParams, StatusParams};
 
 use crate::{
     askama_axum,
     client::WalletServerClient,
-    settings::{Origin, Settings},
+    settings::{Origin, ReturnUrlMode, Settings, Usecase},
 };
 
 #[derive(Debug)]
@@ -50,10 +44,13 @@ impl IntoResponse for Error {
 
 type Result<T> = StdResult<T, Error>;
 
+const RETURN_URL_SEGMENT: &str = "return";
+
 struct ApplicationState {
     client: WalletServerClient,
+    public_wallet_server_url: BaseUrl,
     public_url: BaseUrl,
-    usecases: HashMap<String, ItemsRequests>,
+    usecases: HashMap<String, Usecase>,
 }
 
 fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
@@ -79,7 +76,8 @@ fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
 
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
-        client: WalletServerClient::new(settings.wallet_server_url.clone()),
+        client: WalletServerClient::new(settings.internal_wallet_server_url.clone()),
+        public_wallet_server_url: settings.public_wallet_server_url,
         public_url: settings.public_url,
         usecases: settings.usecases,
     });
@@ -87,13 +85,8 @@ pub fn create_router(settings: Settings) -> Router {
     let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
 
     let mut app = Router::new()
-        .route("/", get(index))
-        .route("/", post(engage))
-        .route("/engagement", post(create_engagement))
-        .route(
-            "/disclosure/sessions/:session_token/disclosed_attributes",
-            get(disclosed_attributes),
-        )
+        .route("/sessions", post(create_session))
+        .route(&format!("/:usecase/{}", RETURN_URL_SEGMENT), get(disclosed_attributes))
         .fallback_service(
             ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
         )
@@ -108,27 +101,27 @@ pub fn create_router(settings: Settings) -> Router {
 }
 
 #[derive(Deserialize, Serialize)]
-struct SelectForm {
-    session_type: MrpSessionType,
+struct SessionOptions {
     usecase: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, strum::Display, strum::EnumIter)]
-#[serde(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
-enum MrpSessionType {
-    SameDevice,
-    SameDeviceNoReturn,
-    CrossDevice,
-    CrossDeviceWithReturn,
+#[derive(Serialize)]
+struct SessionResponse {
+    status_url: String,
+    session_token: SessionToken,
 }
 
 #[derive(Template, Serialize)]
-#[template(path = "disclosure.html")]
-struct DisclosureTemplate {
-    urls: Option<EngagementUrls>,
-    selected: Option<SelectForm>,
-    usecases: Vec<String>,
+#[template(path = "disclosed_attributes.askama", escape = "html")]
+struct DisclosureTemplate<'a> {
+    usecase: &'a str,
+    attributes: DisclosedAttributes,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DisclosedAttributesParams {
+    pub nonce: Option<String>,
+    pub session_token: SessionToken,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -137,91 +130,68 @@ struct EngagementUrls {
     disclosed_attributes_url: String,
 }
 
-impl From<MrpSessionType> for SessionType {
-    fn from(value: MrpSessionType) -> Self {
-        match value {
-            MrpSessionType::SameDevice | MrpSessionType::SameDeviceNoReturn => Self::SameDevice,
-            MrpSessionType::CrossDevice | MrpSessionType::CrossDeviceWithReturn => Self::CrossDevice,
-        }
-    }
-}
-
-async fn index(State(state): State<Arc<ApplicationState>>) -> Result<Response> {
-    Ok(askama_axum::into_response(&DisclosureTemplate {
-        urls: None,
-        selected: None,
-        usecases: state.usecases.keys().cloned().collect(),
-    }))
-}
-
-async fn engage(State(state): State<Arc<ApplicationState>>, Form(selected): Form<SelectForm>) -> Result<Response> {
-    let result = start_engagement(state, selected).await?;
-    Ok(askama_axum::into_response(&result))
-}
-
-async fn create_engagement(
+async fn create_session(
     State(state): State<Arc<ApplicationState>>,
-    Json(selected): Json<SelectForm>,
-) -> Result<Json<DisclosureTemplate>> {
-    let result = start_engagement(state, selected).await?;
-    Ok(result.into())
-}
+    Json(options): Json<SessionOptions>,
+) -> Result<Json<SessionResponse>> {
+    let usecase = state
+        .usecases
+        .get(&options.usecase)
+        .ok_or(anyhow::Error::msg("usecase not found"))?;
 
-async fn start_engagement(state: Arc<ApplicationState>, selected: SelectForm) -> Result<DisclosureTemplate> {
-    // return URL is just http://public.url/#{session_token}
-    let return_url_template = match selected.session_type {
-        MrpSessionType::CrossDeviceWithReturn | MrpSessionType::SameDevice => Some(
-            format!("{}#{{session_token}}", state.public_url)
-                .parse()
-                .expect("should always be a valid ReturnUrlTemplate"),
-        ),
-        _ => None,
-    };
-
-    let (mut status_url, disclosed_attributes_url) = state
+    let session_token = state
         .client
         .start(
-            selected.usecase.clone(),
-            state
-                .usecases
-                .get(&selected.usecase)
-                .ok_or(anyhow::Error::msg("usecase not found"))?
-                .clone(),
-            return_url_template,
+            options.usecase.clone(),
+            usecase.items_requests.clone(),
+            if usecase.return_url == ReturnUrlMode::None {
+                None
+            } else {
+                Some(
+                    format!(
+                        "{}/{}?session_token={{session_token}}",
+                        state.public_url.join(&options.usecase),
+                        RETURN_URL_SEGMENT
+                    )
+                    .parse()
+                    .expect("should always be a valid ReturnUrlTemplate"),
+                )
+            },
         )
         .await?;
 
-    // For now just make the `session_type` part of the status URL that we send to the frontend.
-    // In a later iteration the frontend should be able to choose this freely.
-    let query = serde_urlencoded::to_string(StatusParams {
-        session_type: selected.session_type.into(),
-    })
-    .expect("all variants of SessionType should convert into query parameters");
-    status_url.set_query(query.as_str().into());
-
-    let mrp_disclosed_attributes_url: Url = state.public_url.join(&disclosed_attributes_url.path()[1..]); // `.path()` always starts with a `/`
-
-    let result = DisclosureTemplate {
-        urls: Some(EngagementUrls {
-            status_url: status_url.to_string(),
-            disclosed_attributes_url: mrp_disclosed_attributes_url.to_string(),
-        }),
-        selected: Some(SelectForm {
-            usecase: selected.usecase,
-            session_type: selected.session_type,
-        }),
-        usecases: state.usecases.keys().cloned().collect(),
+    let result = SessionResponse {
+        status_url: state
+            .public_wallet_server_url
+            .join(&format!("disclosure/{session_token}/status"))
+            .to_string(),
+        session_token,
     };
-
-    Ok(result)
+    Ok(result.into())
 }
 
-// for now this just passes the disclosed attributes on as they are received
 async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
-    Path(session_token): Path<SessionToken>,
+    Path(usecase): Path<String>,
     Query(params): Query<DisclosedAttributesParams>,
-) -> Result<Json<DisclosedAttributes>> {
-    let attributes = state.client.disclosed_attributes(session_token, params.nonce).await?;
-    Ok(Json(attributes))
+) -> Result<Response> {
+    let attributes = state
+        .client
+        .disclosed_attributes(params.session_token, params.nonce)
+        .await?;
+
+    let result = DisclosureTemplate {
+        usecase: &usecase,
+        attributes,
+    };
+
+    Ok(askama_axum::into_response(&result))
+}
+
+mod filters {
+    pub fn bsn<T: std::fmt::Display>(s: T) -> ::askama::Result<String> {
+        let mut s = s.to_string();
+        s.replace_range(1..(s.len() - 1), &"x".repeat(s.len()));
+        Ok(s)
+    }
 }

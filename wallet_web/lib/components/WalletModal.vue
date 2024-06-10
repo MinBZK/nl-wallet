@@ -1,15 +1,18 @@
 <script setup lang="ts">
+import { createSession } from "@/api/session"
 import { getStatus } from "@/api/status"
+import DeviceChoice from "@/components/DeviceChoice.vue"
 import ErrorSection from "@/components/ErrorSection.vue"
 import InProgressSection from "@/components/InProgressSection.vue"
+import LoadingSection from "@/components/LoadingSection.vue"
 import ModalHeader from "@/components/ModalHeader.vue"
 import QrCode from "@/components/QrCode.vue"
-import StartEngagement from "@/components/StartEngagement.vue"
 import SuccessSection from "@/components/SuccessSection.vue"
 import { useWindowsSize } from "@/composables/use-windows-size"
-import { type EngagementUrls, SessionType } from "@/models/engagement"
 import { type ModalState, type StatusUrl } from "@/models/modal-state"
-import { onUnmounted, ref, watch } from "vue"
+import { SessionType } from "@/models/status"
+import { isMobileKey } from "@/util/projection_keys"
+import { inject, onMounted, onUnmounted, ref, watch } from "vue"
 
 const POLL_INTERVAL_IN_MS = 2000
 
@@ -23,31 +26,26 @@ const props = withDefaults(defineProps<Props>(), {
   pollIntervalInMs: () => POLL_INTERVAL_IN_MS,
 })
 
-const emit = defineEmits(["close", "open_link"])
+const emit = defineEmits<{
+  close: []
+  success: [session_token: string, session_type: SessionType]
+}>()
 
-const pollHandle = ref()
-const modalState = ref<ModalState>({ kind: "starting" })
-const linkOpened = ref(false)
+const isMobile = inject(isMobileKey)
 
-const { height } = useWindowsSize()
+const pollHandle = ref<NodeJS.Timeout>()
+const modalState = ref<ModalState>({ kind: "loading" })
+
+const { width, height } = useWindowsSize()
 
 watch(modalState, (state) => {
   switch (state.kind) {
-    case "starting": {
-      cancelPolling()
-      break
-    }
-    case "created": {
-      if (state.session_type === SessionType.SameDevice && !linkOpened.value) {
-        linkOpened.value = true
-        emit("open_link", state.engagement_url)
-      }
-      startPolling(state.status_url, state.session_type)
-      break
-    }
+    case "created":
     case "in_progress": {
+      pollStatus(state.status_url, state.session_type, state.session_token)
       break
     }
+    case "loading":
     case "success":
     case "error": {
       cancelPolling()
@@ -56,24 +54,43 @@ watch(modalState, (state) => {
   }
 })
 
-function startPolling(statusUrl: StatusUrl, sessionType: SessionType) {
-  if (!pollHandle.value) {
-    pollHandle.value = setInterval(
-      async () => await checkStatus(statusUrl, sessionType),
-      props.pollIntervalInMs,
-    )
+function pollStatus(statusUrl: StatusUrl, sessionType: SessionType, session_token: string) {
+  if (pollHandle.value) {
+    cancelPolling()
   }
+
+  pollHandle.value = setTimeout(
+    async () => await checkStatus(statusUrl, sessionType, session_token),
+    props.pollIntervalInMs,
+  )
 }
 
 function cancelPolling() {
   if (pollHandle.value) {
-    clearInterval(pollHandle.value)
+    clearTimeout(pollHandle.value)
   }
 }
 
-async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType) {
+async function startSession() {
   try {
-    let statusResponse = await getStatus(statusUrl)
+    modalState.value = { kind: "loading" }
+
+    let response = await createSession(props.baseUrl, {
+      usecase: props.usecase,
+    })
+    await checkStatus(
+      response.status_url,
+      isMobile ? SessionType.SameDevice : SessionType.CrossDevice,
+      response.session_token,
+    )
+  } catch {
+    modalState.value = { kind: "error", error_type: "failed" }
+  }
+}
+
+async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType, session_token: string) {
+  try {
+    let statusResponse = await getStatus(statusUrl, sessionType)
 
     switch (statusResponse.status) {
       case "CREATED":
@@ -82,13 +99,23 @@ async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType) {
           engagement_url: statusResponse.engagement_url,
           status_url: statusUrl,
           session_type: sessionType,
+          session_token,
         }
         break
       case "WAITING_FOR_RESPONSE":
-        modalState.value = { kind: "in_progress" }
+        modalState.value = {
+          kind: "in_progress",
+          status_url: statusUrl,
+          session_type: sessionType,
+          session_token,
+        }
         break
       case "DONE":
-        modalState.value = { kind: "success", session_type: sessionType }
+        modalState.value = {
+          kind: "success",
+          session_type: sessionType,
+          session_token,
+        }
         break
       case "EXPIRED":
         modalState.value = {
@@ -117,19 +144,33 @@ async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType) {
   }
 }
 
-async function engagementStarted(type: SessionType, urls: EngagementUrls) {
-  await checkStatus(urls.status_url, type)
+async function handleChoice(choice: SessionType) {
+  if (modalState.value.kind === "created") {
+    cancelPolling()
+    await checkStatus(modalState.value.status_url, choice, modalState.value.session_token)
+  } else {
+    modalState.value = {
+      kind: "error",
+      error_type: "failed",
+    }
+  }
+}
+
+function success(session_token: string, session_type: SessionType) {
+  emit("success", session_token, session_type)
 }
 
 function close() {
   emit("close")
 }
 
-function retry() {
-  modalState.value = { kind: "starting" }
-  linkOpened.value = false
+async function retry() {
+  await startSession()
 }
 
+onMounted(async () => {
+  await startSession()
+})
 onUnmounted(cancelPolling)
 </script>
 
@@ -138,36 +179,27 @@ onUnmounted(cancelPolling)
     <aside class="modal reset visible" data-testid="wallet_modal">
       <modal-header></modal-header>
 
-      <start-engagement
-        v-if="modalState.kind === 'starting'"
-        :baseUrl
-        :usecase
+      <loading-section v-if="modalState.kind === 'loading'" @stop="close"></loading-section>
+      <device-choice
+        v-if="modalState.kind === 'created' && modalState.session_type === SessionType.SameDevice"
+        :engagement-url="modalState.engagement_url"
+        @choice="handleChoice"
         @close="close"
-        @created="engagementStarted"
-        @failed="
-          modalState = {
-            kind: 'error',
-            error_type: 'failed',
-          }
-        "
-      ></start-engagement>
+      ></device-choice>
       <qr-code
         v-if="modalState.kind === 'created' && modalState.session_type === SessionType.CrossDevice"
         :text="modalState.engagement_url"
-        :small="height <= 900"
+        :small="width <= 420 || height <= 800"
         @close="close"
       ></qr-code>
       <in-progress-section
-        v-if="
-          modalState.kind === 'in_progress' ||
-          (modalState.kind === 'created' && modalState.session_type === SessionType.SameDevice)
-        "
+        v-if="modalState.kind === 'in_progress'"
         @stop="close"
       ></in-progress-section>
       <success-section
         v-if="modalState.kind === 'success'"
         :sessionType="modalState.session_type"
-        @close="close"
+        @close="success(modalState.session_token, modalState.session_type)"
       ></success-section>
       <error-section
         v-if="modalState.kind === 'error'"
@@ -177,5 +209,4 @@ onUnmounted(cancelPolling)
       ></error-section>
     </aside>
   </div>
-  <div class="bg"></div>
 </template>
