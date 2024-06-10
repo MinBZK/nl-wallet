@@ -112,7 +112,7 @@ struct SessionResponse {
 }
 
 #[derive(Template, Serialize)]
-#[template(path = "disclosed_attributes.askama", escape = "html")]
+#[template(path = "disclosed_attributes.askama", escape = "html", ext = "html")]
 struct DisclosureTemplate<'a> {
     usecase: &'a str,
     attributes: DisclosedAttributes,
