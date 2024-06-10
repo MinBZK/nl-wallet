@@ -445,9 +445,8 @@ where
             .client
             .send_authorization_response(self.data.auth_request.response_uri.clone(), jwe)
             .await
-            .map_err(|err| {
-                warn!("sending Authorization Response failed: {err:?}");
-                DisclosureError::from(err)
+            .inspect_err(|err| {
+                warn!("sending Authorization Response failed: {err}");
             })?;
 
         info!("sending Authorization Response succeeded");
