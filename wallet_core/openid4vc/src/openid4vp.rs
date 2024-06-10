@@ -108,10 +108,10 @@ pub enum VpPresentationDefinition {
 }
 
 impl VpPresentationDefinition {
-    pub fn direct(&self) -> &PresentationDefinition {
+    pub fn direct(&self) -> Option<&PresentationDefinition> {
         match self {
-            VpPresentationDefinition::Direct(pd) => pd,
-            VpPresentationDefinition::Indirect(_) => panic!("uri variant not supported"),
+            VpPresentationDefinition::Direct(pd) => Some(pd),
+            VpPresentationDefinition::Indirect(_) => None,
         }
     }
 }
@@ -125,10 +125,10 @@ pub enum VpClientMetadata {
 }
 
 impl VpClientMetadata {
-    pub fn direct(&self) -> &ClientMetadata {
+    pub fn direct(&self) -> Option<&ClientMetadata> {
         match self {
-            VpClientMetadata::Direct(c) => c,
-            VpClientMetadata::Indirect(_) => panic!("uri variant not supported"),
+            VpClientMetadata::Direct(c) => Some(c),
+            VpClientMetadata::Indirect(_) => None,
         }
     }
 }
@@ -169,10 +169,10 @@ pub enum VpJwks {
 }
 
 impl VpJwks {
-    pub fn direct(&self) -> &Vec<Jwk> {
+    pub fn direct(&self) -> Option<&Vec<Jwk>> {
         match self {
-            VpJwks::Direct { keys } => keys,
-            VpJwks::Indirect(_) => panic!("uri variant not supported"),
+            VpJwks::Direct { keys } => Some(keys),
+            VpJwks::Indirect(_) => None,
         }
     }
 }
@@ -361,6 +361,7 @@ impl IsoVpAuthorizationRequest {
         if vp_auth_request.oauth_request.request_uri.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
         }
+
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
         if vp_auth_request.oauth_request.nonce.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
@@ -368,15 +369,15 @@ impl IsoVpAuthorizationRequest {
         if vp_auth_request.oauth_request.response_mode.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
         }
-        if vp_auth_request.client_metadata.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
-        }
         if vp_auth_request.client_id_scheme.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme"));
         }
         if vp_auth_request.response_uri.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
         }
+        let Some(client_metadata) = vp_auth_request.client_metadata else {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
+        };
 
         // Check that various enums have the expected values
         if vp_auth_request.oauth_request.response_type != ResponseType::VpToken.into() {
@@ -402,37 +403,27 @@ impl IsoVpAuthorizationRequest {
         }
 
         // Of fields that have an "_uri" variant, check that they are not used
-        if matches!(
-            vp_auth_request.presentation_definition,
-            VpPresentationDefinition::Indirect(..)
-        ) {
+        let Some(presentation_definition) = vp_auth_request.presentation_definition.direct() else {
             return Err(AuthRequestValidationError::UriVariantNotSupported(
                 "presentation_definition",
             ));
-        }
-        if matches!(
-            *vp_auth_request.client_metadata.as_ref().unwrap(),
-            VpClientMetadata::Indirect(..)
-        ) {
+        };
+        let Some(client_metadata) = client_metadata.direct() else {
             return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
-        }
-        let client_metadata = vp_auth_request.client_metadata.as_ref().unwrap().direct();
-        if matches!(client_metadata.jwks, VpJwks::Indirect(..)) {
+        };
+        let Some(jwks) = client_metadata.jwks.direct() else {
             return Err(AuthRequestValidationError::UriVariantNotSupported(
                 "presentation_definition",
             ));
-        }
+        };
 
         // check that we received exactly one EC/P256 curve
-        let jwks = client_metadata.jwks.direct();
         if jwks.len() != 1 {
             return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
         }
         JwePublicKey::validate(jwks.first().unwrap())?;
 
-        if vp_auth_request
-            .presentation_definition
-            .direct()
+        if presentation_definition
             .input_descriptors
             .iter()
             .all(|i| i.constraints.fields.is_empty())
@@ -445,9 +436,9 @@ impl IsoVpAuthorizationRequest {
             client_id: vp_auth_request.oauth_request.client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey: jwks.first().unwrap().clone(),
-            items_requests: vp_auth_request.presentation_definition.direct().try_into()?,
+            items_requests: presentation_definition.try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
-            presentation_definition: vp_auth_request.presentation_definition.direct().clone(),
+            presentation_definition: presentation_definition.clone(),
             client_metadata: client_metadata.clone(),
             state: vp_auth_request.oauth_request.state,
         })
