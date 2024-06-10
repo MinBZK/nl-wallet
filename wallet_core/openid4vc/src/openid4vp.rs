@@ -108,7 +108,7 @@ pub enum VpPresentationDefinition {
 }
 
 impl VpPresentationDefinition {
-    pub fn direct(&self) -> Option<&PresentationDefinition> {
+    pub fn direct(self) -> Option<PresentationDefinition> {
         match self {
             VpPresentationDefinition::Direct(pd) => Some(pd),
             VpPresentationDefinition::Indirect(_) => None,
@@ -125,7 +125,7 @@ pub enum VpClientMetadata {
 }
 
 impl VpClientMetadata {
-    pub fn direct(&self) -> Option<&ClientMetadata> {
+    pub fn direct(self) -> Option<ClientMetadata> {
         match self {
             VpClientMetadata::Direct(c) => Some(c),
             VpClientMetadata::Indirect(_) => None,
@@ -421,7 +421,8 @@ impl IsoVpAuthorizationRequest {
         if jwks.len() != 1 {
             return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
         }
-        JwePublicKey::validate(jwks.first().unwrap())?;
+        let jwk = jwks.first().unwrap().clone();
+        JwePublicKey::validate(&jwk)?;
 
         if presentation_definition
             .input_descriptors
@@ -431,15 +432,14 @@ impl IsoVpAuthorizationRequest {
             return Err(AuthRequestValidationError::NoAttributesRequested);
         }
 
-        // The code above establishes that all these .unwrap() and .direct() calls are safe.
         Ok(IsoVpAuthorizationRequest {
             client_id: vp_auth_request.oauth_request.client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
-            encryption_pubkey: jwks.first().unwrap().clone(),
-            items_requests: presentation_definition.try_into()?,
+            encryption_pubkey: jwk,
+            items_requests: (&presentation_definition).try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
-            presentation_definition: presentation_definition.clone(),
-            client_metadata: client_metadata.clone(),
+            presentation_definition,
+            client_metadata,
             state: vp_auth_request.oauth_request.state,
         })
     }
