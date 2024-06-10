@@ -229,8 +229,18 @@ pub fn wallet_server_settings() -> WsSettings {
     });
 
     settings.public_url = format!("http://localhost:{}/", ws_port).parse().unwrap();
-    settings.internal_url = format!("http://localhost:{}/", requester_port).parse().unwrap();
     settings
+}
+
+pub fn wallet_server_internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
+    match auth {
+        RequesterAuth::ProtectedInternalEndpoint {
+            server: Server { port, .. },
+            ..
+        }
+        | RequesterAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
+        RequesterAuth::Authentication(_) => public_url.clone(),
+    }
 }
 
 pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(settings: WsSettings, attr_service: A) {

@@ -1,23 +1,32 @@
 <script setup lang="ts">
+import { createAbsoluteUrl } from "@/util/base_url"
 import { isMobileKey } from "@/util/projection_keys"
 import { isDesktop } from "@/util/useragent"
-import { provide, ref } from "vue"
+import { computed, provide, ref } from "vue"
 import WalletModal from "./WalletModal.vue"
 
 export interface Props {
   usecase: string
+  id?: string
   text?: string
   baseUrl?: string
   style?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   text: (): string => "Inloggen met NL Wallet",
-  baseUrl: (): string => "http://localhost:3004",
+  baseUrl: (): string => "",
 })
+
+const emit = defineEmits<{
+  success: [session_token: string, session_type: string]
+}>()
 
 const isVisible = ref(false)
 const isMobile = !isDesktop(window.navigator.userAgent)
+const absoluteBaseUrl = computed(() =>
+  createAbsoluteUrl(props.baseUrl, window.location.href, window.location.pathname),
+)
 
 function show() {
   isVisible.value = true
@@ -27,8 +36,9 @@ function hide() {
   isVisible.value = false
 }
 
-function open_universal_link(url: string) {
-  window.open(url, "_blank")
+function success(session_token: string, session_type: string) {
+  isVisible.value = false
+  emit("success", session_token, session_type)
 }
 
 provide(isMobileKey, isMobile)
@@ -39,6 +49,7 @@ provide(isMobileKey, isMobile)
     part="button"
     type="button"
     class="default-button primary"
+    :id="id"
     :style="style"
     @click="show"
     data-testid="wallet_button"
@@ -47,10 +58,10 @@ provide(isMobileKey, isMobile)
   </button>
   <wallet-modal
     v-if="isVisible"
-    :base-url="baseUrl"
+    :base-url="absoluteBaseUrl"
     :usecase
     @close="hide"
-    @open_link="open_universal_link"
+    @success="success"
   ></wallet-modal>
 </template>
 

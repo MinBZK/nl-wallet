@@ -16,7 +16,7 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
 
     expect(wrapper.find("[data-testid=website_link]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=mobile_text]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 
@@ -28,11 +28,11 @@ describe("ModalFooter", () => {
       },
     })
     expect(wrapper.find("[data-testid=website_link]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=mobile_text]").exists()).toBe(true)
+    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 
-  it("should render footer for cancel state", async () => {
+  it("should render footer for stop state", async () => {
     const wrapper = mount(ModalFooter, {
       props: { state: FooterState.Stop },
     })
@@ -41,8 +41,21 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
 
     expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=mobile_text]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(true)
+  })
+
+  it("should render footer for cancel state", async () => {
+    const wrapper = mount(ModalFooter, {
+      props: { state: FooterState.Cancel },
+    })
+    expect(wrapper.find("[data-testid=close_button]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=cancel_button]").exists()).toBe(true)
+    expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
+
+    expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
   })
 
   it("should render footer for retry state", async () => {
@@ -54,7 +67,7 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(true)
 
     expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=mobile_text]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 
@@ -67,7 +80,7 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
 
     expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=mobile_text]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 })

@@ -259,7 +259,9 @@ where
 // We can't derive `Deserialize` with the `untagged` Serde enum deserializer, because unfortunately it is not able to
 // deserialize the SchemeHandoverBytes variant.
 // For the other direction (serializing), however, the `untagged` enum serializer is used and works fine.
+// Note that this implementation is only ever used to deserialize the examples from the spec in `examples.rs`.
 // For each variant a unit test is included to check that serializing and deserializing agree with each other.
+#[cfg(any(test, feature = "examples"))]
 impl<'de> Deserialize<'de> for Handover {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let val = Value::deserialize(deserializer)?;
@@ -453,25 +455,6 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for CborBase64<T> {
             .map_err(serde::de::Error::custom)?;
         let val: T = cbor_deserialize(bts.as_slice()).map_err(serde::de::Error::custom)?;
         Ok(CborBase64(val))
-    }
-}
-
-pub mod cbor_hex {
-    use serde::{
-        de::{self, DeserializeOwned},
-        ser, Deserializer, Serialize, Serializer,
-    };
-    use serde_with::{formats::Uppercase, hex::Hex, DeserializeAs, SerializeAs};
-
-    use super::{cbor_deserialize, cbor_serialize};
-
-    pub fn serialize<S: Serializer, T: Serialize>(input: T, serializer: S) -> Result<S::Ok, S::Error> {
-        Hex::<Uppercase>::serialize_as(&cbor_serialize(&input).map_err(ser::Error::custom)?, serializer)
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>, T: DeserializeOwned>(deserializer: D) -> Result<T, D::Error> {
-        let x: Vec<u8> = Hex::<Uppercase>::deserialize_as(deserializer)?;
-        cbor_deserialize(x.as_slice()).map_err(de::Error::custom)
     }
 }
 

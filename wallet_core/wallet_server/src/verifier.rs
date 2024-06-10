@@ -12,7 +12,6 @@ use http::Method;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info, warn};
-use url::Url;
 
 use nl_wallet_mdoc::{
     server_state::{SessionStore, SessionToken},
@@ -65,7 +64,6 @@ impl IntoResponse for Error {
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,
-    internal_url: BaseUrl,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
 }
@@ -89,7 +87,6 @@ where
                 .collect::<Vec<_>>(),
             (&verifier.ephemeral_id_secret).into(),
         ),
-        internal_url: urls.internal_url,
         public_url: urls.public_url,
         universal_link_base_url: urls.universal_link_base_url,
     };
@@ -187,8 +184,7 @@ pub struct StartDisclosureRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartDisclosureResponse {
-    pub status_url: Url,
-    pub disclosed_attributes_url: Url,
+    pub session_token: SessionToken,
 }
 
 async fn start<S>(
@@ -208,15 +204,7 @@ where
         .await
         .map_err(Error::StartSession)?;
 
-    let status_url = state.public_url.join(&format!("disclosure/{session_token}/status"));
-    let disclosed_attributes_url = state
-        .internal_url
-        .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
-
-    Ok(Json(StartDisclosureResponse {
-        status_url,
-        disclosed_attributes_url,
-    }))
+    Ok(Json(StartDisclosureResponse { session_token }))
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -68,7 +68,6 @@ fn wallet_server_settings() -> Settings {
     });
 
     settings.urls.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
-    settings.urls.internal_url = format!("http://localhost:{requester_port}/").parse().unwrap();
 
     settings
 }
@@ -109,6 +108,17 @@ async fn wait_for_server(base_url: BaseUrl) {
     .unwrap();
 }
 
+fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
+    match auth {
+        RequesterAuth::ProtectedInternalEndpoint {
+            server: Server { port, .. },
+            ..
+        }
+        | RequesterAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
+        RequesterAuth::Authentication(_) => public_url.clone(),
+    }
+}
+
 #[rstest]
 #[case(RequesterAuth::Authentication(Authentication::ApiKey(String::from("secret_key"))))]
 #[case(RequesterAuth::ProtectedInternalEndpoint {
@@ -125,18 +135,7 @@ async fn wait_for_server(base_url: BaseUrl) {
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let mut settings = wallet_server_settings();
-    // fix the internal_url
-    match auth {
-        RequesterAuth::ProtectedInternalEndpoint {
-            server: Server { port, .. },
-            ..
-        }
-        | RequesterAuth::InternalEndpoint(Server { port, .. }) => {
-            settings.urls.internal_url = format!("http://localhost:{port}/").parse().unwrap()
-        }
-        RequesterAuth::Authentication(_) => settings.urls.internal_url = settings.urls.public_url.clone(),
-    };
-
+    let internal_url = internal_url(&auth, &settings.urls.public_url);
     settings.requester_server = auth.clone();
 
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
@@ -160,7 +159,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using no token returns a 401 on the (internal) start URL if an API key is used and a 200 otherwise
     let response = client
-        .post(settings.urls.internal_url.join("disclosure/sessions"))
+        .post(internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -187,7 +186,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 200 on the (internal) start URL (even if none is required)
     let response = client
-        .post(settings.urls.internal_url.join("disclosure/sessions"))
+        .post(internal_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -196,18 +195,17 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let disclosed_attributes_path = String::from(
-        response
-            .json::<StartDisclosureResponse>()
-            .await
-            .unwrap()
-            .disclosed_attributes_url
-            .path(),
-    );
+    let session_token = response.json::<StartDisclosureResponse>().await.unwrap().session_token;
+    let public_disclosed_attributes_url = settings
+        .urls
+        .public_url
+        .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+    let internal_disclosed_attributes_url =
+        internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
     // check if using no token returns a 401 on the (public) attributes URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .get(settings.urls.public_url.join(&disclosed_attributes_path))
+        .get(public_disclosed_attributes_url.clone())
         .json(&start_request)
         .send()
         .await
@@ -220,7 +218,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using no token returns a 401 on the (internal) attributes URL if an API key is used and a 400 otherwise (because the session is not yet finished)
     let response = client
-        .get(settings.urls.internal_url.join(&disclosed_attributes_path))
+        .get(internal_disclosed_attributes_url.clone())
         .json(&start_request)
         .send()
         .await
@@ -233,7 +231,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 400 on the (public) attributes URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .get(settings.urls.public_url.join(&disclosed_attributes_path))
+        .get(public_disclosed_attributes_url)
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -247,7 +245,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 400 on the (internal) attributes URL (because the session is not yet finished)
     let response = client
-        .get(settings.urls.internal_url.join(&disclosed_attributes_path))
+        .get(internal_disclosed_attributes_url)
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -260,6 +258,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let settings = wallet_server_settings();
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
@@ -288,12 +287,7 @@ async fn test_disclosure_not_found() {
 
     // check if a non-existent token returns a 404 on the disclosed_attributes URL
     let response = client
-        .get(
-            settings
-                .urls
-                .internal_url
-                .join("disclosure/sessions/nonexistent_session/disclosed_attributes"),
-        )
+        .get(internal_url.join("disclosure/sessions/nonexistent_session/disclosed_attributes"))
         .send()
         .await
         .unwrap();
@@ -310,14 +304,14 @@ async fn test_disclosure_expired<S>(
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
-
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
     // Create a new disclosure session, which should return 200.
     let response = client
-        .post(settings.urls.internal_url.join("disclosure/sessions"))
+        .post(internal_url.join("disclosure/sessions"))
         .json(&start_disclosure_request())
         .send()
         .await
@@ -326,12 +320,18 @@ async fn test_disclosure_expired<S>(
     assert_eq!(response.status(), StatusCode::OK);
 
     let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
-    let mut status_url = disclosure_response.status_url;
+    let session_token = disclosure_response.session_token;
+    let mut status_url = settings
+        .urls
+        .public_url
+        .join(&format!("disclosure/{session_token}/status"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
     .unwrap();
     status_url.set_query(status_query.as_str().into());
+    let disclosed_attributes_url =
+        internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
     // Fetch the status, this should return OK and be in the Created state.
     let response = client.get(status_url.clone()).send().await.unwrap();
@@ -343,11 +343,7 @@ async fn test_disclosure_expired<S>(
     assert_matches!(status, StatusResponse::Created { .. });
 
     // Fetching the disclosed attributes should return 400, since the session is not finished.
-    let response = client
-        .get(disclosure_response.disclosed_attributes_url.clone())
-        .send()
-        .await
-        .unwrap();
+    let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
@@ -372,11 +368,7 @@ async fn test_disclosure_expired<S>(
     assert_matches!(status, StatusResponse::Expired);
 
     // Fetching the disclosed attributes should still return 400, since the session did not succeed.
-    let response = client
-        .get(disclosure_response.disclosed_attributes_url.clone())
-        .send()
-        .await
-        .unwrap();
+    let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
@@ -397,11 +389,7 @@ async fn test_disclosure_expired<S>(
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
-    let response = client
-        .get(disclosure_response.disclosed_attributes_url)
-        .send()
-        .await
-        .unwrap();
+    let response = client.get(disclosed_attributes_url).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }

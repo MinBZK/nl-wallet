@@ -212,6 +212,7 @@ test-rust:
   cache: !reference [.rust-cache, cache]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
+    SKIP_WALLET_WEB: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
@@ -340,13 +341,13 @@ build-frontend-lib:
   script:
     - set -euxo pipefail
     - (cd wallet_web; npm ci && npm run type-check && npm run test -- --run && npm run build)
-    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/vanillajs/
+    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/
     - (cd wallet_core/mock_relying_party/web-vue; npm ci && npm run type-check && npx vite build --base="/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/vue")
   artifacts:
     paths:
       - wallet_web/dist
       - wallet_core/mock_relying_party/web-vue/dist
-      - wallet_core/mock_relying_party/assets/vanillajs/nl-wallet-web.iife.js
+      - wallet_core/mock_relying_party/assets/nl-wallet-web.iife.js
 
 dependency-check:
   extends: [.env-ont-k8s]

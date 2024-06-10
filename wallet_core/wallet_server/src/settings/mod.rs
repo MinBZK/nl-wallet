@@ -28,9 +28,6 @@ cfg_if::cfg_if! {
 pub struct Urls {
     // used by the wallet
     pub public_url: BaseUrl,
-    // used by the application
-    #[cfg(feature = "disclosure")]
-    pub internal_url: BaseUrl,
 
     #[cfg(feature = "disclosure")]
     pub universal_link_base_url: BaseUrl,

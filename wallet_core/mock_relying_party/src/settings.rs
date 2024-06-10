@@ -12,11 +12,12 @@ use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     pub webserver: Server,
-    pub wallet_server_url: BaseUrl,
+    pub internal_wallet_server_url: BaseUrl,
+    pub public_wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
     #[serde(default)]
     pub allow_origins: Vec<Origin>,
-    pub usecases: HashMap<String, ItemsRequests>,
+    pub usecases: HashMap<String, Usecase>,
     pub sentry: Option<Sentry>,
 }
 
@@ -24,6 +25,21 @@ pub struct Settings {
 pub struct Server {
     pub ip: IpAddr,
     pub port: u16,
+}
+
+#[derive(Deserialize, Default, Clone, Copy, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ReturnUrlMode {
+    #[default]
+    Url,
+    None,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Usecase {
+    #[serde(default)]
+    pub return_url: ReturnUrlMode,
+    pub items_requests: ItemsRequests,
 }
 
 #[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(TryFrom, Deserialize, Clone))]
