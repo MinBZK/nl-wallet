@@ -704,7 +704,10 @@ mod tests {
     };
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::{authorization::AuthorizationErrorCode, openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationErrorCode}};
+    use crate::{
+        authorization::AuthorizationErrorCode,
+        openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationErrorCode},
+    };
 
     use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
 

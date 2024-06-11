@@ -9,6 +9,7 @@ use josekit::{
     jwk::alg::ec::{EcCurve, EcKeyPair},
     JoseError,
 };
+use nutype::nutype;
 use ring::hmac;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as};
@@ -178,20 +179,20 @@ impl RedirectUri {
 }
 
 /// Wrapper for [`EcKeyPair`] that can be serialized.
-#[derive(Debug, Clone)]
+#[nutype(derive(Debug, Clone, AsRef, From))]
 struct EncryptionPrivateKey(EcKeyPair);
 
 impl Serialize for EncryptionPrivateKey {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         BASE64_URL_SAFE_NO_PAD
-            .encode(self.0.to_der_private_key())
+            .encode(self.as_ref().to_der_private_key())
             .serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for EncryptionPrivateKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(EncryptionPrivateKey(
+        Ok(EncryptionPrivateKey::from(
             EcKeyPair::from_der(
                 BASE64_URL_SAFE_NO_PAD
                     .decode(String::deserialize(deserializer)?)
@@ -717,7 +718,7 @@ impl Session<Created> {
             Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
                 let next = WaitingForResponse {
                     auth_request,
-                    encryption_key: EncryptionPrivateKey(enc_keypair),
+                    encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     redirect_uri,
                 };
                 let next = self.transition(next);
@@ -839,7 +840,7 @@ impl Session<WaitingForResponse> {
         );
         let (result, next) = match VpAuthorizationResponse::decrypt_and_verify(
             &jwe,
-            &self.state().encryption_key.0,
+            self.state().encryption_key.as_ref(),
             &self.state().auth_request,
             time,
             trust_anchors,
