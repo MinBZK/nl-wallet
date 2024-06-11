@@ -105,7 +105,6 @@ class HistoryDetailScreen extends StatelessWidget {
     final bool showDataAttributesSection = _showDataAttributesSection(event);
     final bool showContractSection = _showContractSection(event);
     final List<Widget> slivers = [];
-    final Color iconColor = context.colorScheme.onSurfaceVariant;
 
     // Organization
     slivers.addAll([
@@ -191,7 +190,7 @@ class HistoryDetailScreen extends StatelessWidget {
                     event.relyingPartyOrIssuer.displayName.l10nValue(context),
                   ),
                 ),
-                leading: Icon(Icons.policy_outlined, color: iconColor),
+                icon: Icons.policy_outlined,
                 onTap: () => PolicyScreen.show(context, policy),
               ),
             ),
@@ -206,7 +205,7 @@ class HistoryDetailScreen extends StatelessWidget {
           child: InfoRow(
             title: Text(context.l10n.historyDetailScreenIssueTitle),
             subtitle: Text(context.l10n.historyDetailScreenIssueSubtitle),
-            leading: Icon(Icons.gpp_maybe_outlined, color: iconColor),
+            icon: Icons.gpp_maybe_outlined,
             onTap: () => PlaceholderScreen.showGeneric(context),
           ),
         ),
@@ -219,7 +218,7 @@ class HistoryDetailScreen extends StatelessWidget {
           child: InfoRow(
             title: Text(context.l10n.historyDetailScreenHelpdeskTitle),
             subtitle: Text(context.l10n.historyDetailScreenHelpdeskSubtitle),
-            leading: Icon(Icons.comment_outlined, color: iconColor),
+            icon: Icons.comment_outlined,
             onTap: () => PlaceholderScreen.showGeneric(context),
           ),
         ),
@@ -312,7 +311,11 @@ class HistoryDetailScreen extends StatelessWidget {
       case IssuanceEvent():
         title = event.card.front.title.l10nValue(context);
         subtitle = WalletEventStatusDescriptionMapper().map(context, event);
-        icon = Icon(Icons.credit_card_outlined, color: iconColor);
+        icon = Icon(
+          Icons.credit_card_outlined,
+          color: iconColor,
+          size: 24,
+        );
       case SignEvent():
         title = context.l10n.historyDetailScreenSigningAttributesTitle;
     }
