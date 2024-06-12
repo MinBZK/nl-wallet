@@ -1,6 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use base64::prelude::*;
 use chrono::{DateTime, Utc};
@@ -20,13 +20,14 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
+    server_keys::KeyPair,
     server_state::{
         Expirable, HasProgress, Progress, SessionState, SessionStore, SessionStoreError, SessionToken,
         CLEANUP_INTERVAL_SECONDS,
     },
     utils::x509::CertificateError,
     verifier::{
-        DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCases,
+        DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl,
         EPHEMERAL_ID_VALIDITY_SECONDS,
     },
 };
@@ -334,6 +335,30 @@ pub enum StatusResponse {
     Expired,
 }
 
+#[nutype(derive(Debug, From, AsRef))]
+pub struct UseCases(HashMap<String, UseCase>);
+
+#[derive(Debug)]
+pub struct UseCase {
+    pub key_pair: KeyPair,
+    pub client_id: String,
+    pub session_type_return_url: SessionTypeReturnUrl,
+}
+
+impl UseCase {
+    pub fn new(key_pair: KeyPair, session_type_return_url: SessionTypeReturnUrl) -> Result<Self, VerificationError> {
+        let client_id = key_pair
+            .certificate()
+            .san_dns_name()?
+            .ok_or(VerificationError::MissingSAN)?;
+        Ok(Self {
+            key_pair,
+            client_id,
+            session_type_return_url,
+        })
+    }
+}
+
 pub struct Verifier<S> {
     use_cases: UseCases,
     sessions: Arc<S>,
@@ -413,14 +438,12 @@ where
             return Err(VerificationError::ReturnUrlConfigurationMismatch);
         }
 
-        let client_id = use_case
-            .key_pair
-            .certificate()
-            .san_dns_name()?
-            .ok_or(VerificationError::MissingSAN)?;
-
-        let (session_token, session_state) =
-            Session::<Created>::new(items_requests, usecase_id, client_id, return_url_template)?;
+        let (session_token, session_state) = Session::<Created>::new(
+            items_requests,
+            usecase_id,
+            use_case.client_id.clone(),
+            return_url_template,
+        )?;
 
         self.sessions
             .write(session_state.into(), true)

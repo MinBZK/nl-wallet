@@ -13,7 +13,7 @@ use nl_wallet_mdoc::{
     software_key_factory::SoftwareKeyFactory,
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ReturnUrlTemplate, SessionType, SessionTypeReturnUrl, UseCase},
+    verifier::{ReturnUrlTemplate, SessionType, SessionTypeReturnUrl},
     DeviceResponse, SessionTranscript,
 };
 use openid4vc::{
@@ -21,7 +21,7 @@ use openid4vc::{
     jwt,
     mock::MockMdocDataSource,
     openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
-    verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
+    verifier::{DisclosureData, StatusResponse, UseCase, Verifier, WalletAuthResponse},
     ErrorResponse,
 };
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::OwnedTrustAnchor};
@@ -253,10 +253,7 @@ async fn test_client_and_server(#[case] session_type: SessionType) {
     let verifier = Arc::new(MockVerifier::new(
         HashMap::from([(
             "usecase_id".to_string(),
-            UseCase {
-                key_pair: disclosure_key,
-                session_type_return_url: SessionTypeReturnUrl::SameDevice,
-            },
+            UseCase::new(disclosure_key, SessionTypeReturnUrl::SameDevice).unwrap(),
         )])
         .into(),
         MemorySessionStore::default(),
