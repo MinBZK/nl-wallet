@@ -5,13 +5,15 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../page/page_illustration.dart';
 import '../widget/button/bottom_back_button.dart';
+import '../widget/paragraphed_list.dart';
 import '../widget/sliver_wallet_app_bar.dart';
-import '../widget/text/body_text.dart';
 import '../widget/wallet_scrollbar.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String? illustration;
   final String headline;
+
+  /// Supports paragraphs through [ParagraphedList], i.e. the description is split using '\n\n'.
   final String description;
 
   const PlaceholderScreen({
@@ -38,7 +40,7 @@ class PlaceholderScreen extends StatelessWidget {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: BodyText(description),
+                        child: ParagraphedList.splitContent(description),
                       ),
                     ),
                     SliverToBoxAdapter(

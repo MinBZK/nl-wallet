@@ -57,7 +57,7 @@ class AboutScreen extends StatelessWidget {
         const Divider(height: 1),
         MenuRow(
           label: context.l10n.aboutScreenTermsCta,
-          onTap: () => PlaceholderScreen.showContract(context, secured: false),
+          onTap: () => PlaceholderScreen.showGeneric(context, secured: false),
         ),
         const Divider(height: 1),
         const Padding(
