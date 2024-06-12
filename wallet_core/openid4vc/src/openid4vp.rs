@@ -328,6 +328,10 @@ impl VpAuthorizationRequest {
 
 /// An OpenID4VP Authorization Request that has been validated to conform to the ISO 18013-7 profile:
 /// a subset of [`VpAuthorizationRequest`] that always contains fields we require, and no fields we don't.
+///
+/// Note that this data type is internal to both the wallet and verifier, and not part of the OpenID4VP protocol,
+/// so it is never sent over the wire. It implements (De)serialize so that the verifier can persist it to
+/// the session store.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IsoVpAuthorizationRequest {
