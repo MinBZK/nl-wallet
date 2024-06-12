@@ -128,7 +128,7 @@ class MenuScreen extends StatelessWidget {
       ),
     ];
     if (showDesignSystemRow) {
-      var designSystemItem = MenuRow(
+      final designSystemItem = MenuRow(
         label: context.l10n.menuScreenDesignCta,
         icon: Icons.design_services,
         onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),

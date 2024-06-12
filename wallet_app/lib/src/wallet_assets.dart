@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 class WalletAssets {
   static Future<void> preloadPidSvgs() async {
     final svgs = [svg_rijks_card_holo, svg_rijks_card_bg_light, svg_rijks_card_bg_dark, svg_qr_button];
-    final loaders = svgs.map((svg) => SvgAssetLoader(svg));
+    final loaders = svgs.map(SvgAssetLoader.new);
     await Future.wait(
       loaders.map(
         (loader) => svg.cache.putIfAbsent(

@@ -72,14 +72,14 @@ class WalletCardItem extends StatelessWidget {
     this.scaleText = true,
   });
 
-  WalletCardItem.fromCardFront(
-      {required BuildContext context,
-      required CardFront front,
-      this.onPressed,
-      this.ctaAnimation,
-      this.scaleText = true,
-      super.key})
-      : title = front.title.l10nValue(context),
+  WalletCardItem.fromCardFront({
+    required BuildContext context,
+    required CardFront front,
+    this.onPressed,
+    this.ctaAnimation,
+    this.scaleText = true,
+    super.key,
+  })  : title = front.title.l10nValue(context),
         background = front.backgroundImage,
         logo = front.logoImage,
         holograph = front.holoImage,
@@ -198,16 +198,17 @@ class WalletCardItem extends StatelessWidget {
   Widget _buildShowDetailsCta(BuildContext context) {
     if (!_showDetailsCta) return const SizedBox.shrink();
     return Positioned(
-        bottom: _kCardContentPadding,
-        left: _kCardContentPadding,
-        right: _kCardContentPadding,
-        child: switch (ctaAnimation) {
-          null => onPressed == null ? const SizedBox.shrink() : const ShowDetailsCta(),
-          CtaAnimation.fadeIn => const AnimatedFadeIn(child: ShowDetailsCta()),
-          CtaAnimation.fadeOut => const AnimatedFadeOut(child: ShowDetailsCta()),
-          CtaAnimation.visible => const ShowDetailsCta(),
-          CtaAnimation.invisible => const SizedBox.shrink(),
-        });
+      bottom: _kCardContentPadding,
+      left: _kCardContentPadding,
+      right: _kCardContentPadding,
+      child: switch (ctaAnimation) {
+        null => onPressed == null ? const SizedBox.shrink() : const ShowDetailsCta(),
+        CtaAnimation.fadeIn => const AnimatedFadeIn(child: ShowDetailsCta()),
+        CtaAnimation.fadeOut => const AnimatedFadeOut(child: ShowDetailsCta()),
+        CtaAnimation.visible => const ShowDetailsCta(),
+        CtaAnimation.invisible => const SizedBox.shrink(),
+      },
+    );
   }
 
   /// Resolve the [ThemeData] for the selected [brightness], making sure the text contrasts the provided [background]
@@ -228,16 +229,16 @@ class WalletCardItem extends StatelessWidget {
     final scaleTween = TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 1.0, end: 1.05).chain(CurveTween(curve: Curves.easeIn)),
-          weight: 30.0,
+          tween: Tween<double>(begin: 1, end: 1.05).chain(CurveTween(curve: Curves.easeIn)),
+          weight: 30,
         ),
         TweenSequenceItem<double>(
           tween: Tween<double>(begin: 1.05, end: 1.05),
-          weight: 60.0,
+          weight: 60,
         ),
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 1.05, end: 1.0).chain(CurveTween(curve: Curves.easeInCubic)),
-          weight: 10.0,
+          tween: Tween<double>(begin: 1.05, end: 1).chain(CurveTween(curve: Curves.easeInCubic)),
+          weight: 10,
         ),
       ],
     );
@@ -245,21 +246,21 @@ class WalletCardItem extends StatelessWidget {
     final perspectiveTween = TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0.0, end: 0.2).chain(CurveTween(curve: Curves.easeInCubic)),
-          weight: 20.0,
+          tween: Tween<double>(begin: 0, end: 0.2).chain(CurveTween(curve: Curves.easeInCubic)),
+          weight: 20,
         ),
         TweenSequenceItem<double>(
           tween: Tween<double>(begin: 0.2, end: 0.2),
-          weight: 65.0,
+          weight: 65,
         ),
         TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0.2, end: 0.0).chain(CurveTween(curve: Curves.decelerate)),
-          weight: 15.0,
+          tween: Tween<double>(begin: 0.2, end: 0).chain(CurveTween(curve: Curves.decelerate)),
+          weight: 15,
         ),
       ],
     );
 
-    VoidCallback? onPressed = switch (ctaAnimation) {
+    final VoidCallback? onPressed = switch (ctaAnimation) {
       CtaAnimation.fadeIn => () {},
       CtaAnimation.fadeOut => () {},
       CtaAnimation.visible => () {},
@@ -268,14 +269,16 @@ class WalletCardItem extends StatelessWidget {
 
     return AnimatedBuilder(
       animation: animation,
-      child: Builder(builder: (context) {
-        return WalletCardItem.fromCardFront(
-          context: context,
-          front: front,
-          ctaAnimation: ctaAnimation,
-          onPressed: onPressed,
-        );
-      }),
+      child: Builder(
+        builder: (context) {
+          return WalletCardItem.fromCardFront(
+            context: context,
+            front: front,
+            ctaAnimation: ctaAnimation,
+            onPressed: onPressed,
+          );
+        },
+      ),
       builder: (context, child) {
         return Transform(
           alignment: FractionalOffset.center,

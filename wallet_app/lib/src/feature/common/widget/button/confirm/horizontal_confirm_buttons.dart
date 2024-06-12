@@ -62,15 +62,16 @@ class _HorizontalConfirmButtonsState extends State<HorizontalConfirmButtons> wit
       animation: controller,
       builder: (context, child) {
         const defaultButtonSizeAsFraction = 0.5;
-        final primarySizeTween = Tween(begin: defaultButtonSizeAsFraction, end: 1.0);
-        final secondaryButtonXAlignmentTween = Tween(begin: -1.0, end: HorizontalConfirmButtons.kHiddenXAlignment);
-        final centralPaddingTween = Tween(begin: ConfirmButtons.kButtonSpacing / 2.0, end: 0.0);
+        final primarySizeTween = Tween<double>(begin: defaultButtonSizeAsFraction, end: 1);
+        final secondaryButtonXAlignmentTween =
+            Tween<double>(begin: -1, end: HorizontalConfirmButtons.kHiddenXAlignment);
+        final centralPaddingTween = Tween<double>(begin: ConfirmButtons.kButtonSpacing / 2.0, end: 0);
         return Stack(
           clipBehavior: Clip.none,
           children: [
             Align(
               key: HorizontalConfirmButtons.secondaryButtonAlignmentKey,
-              alignment: Alignment(secondaryButtonXAlignmentTween.evaluate(animation), 1.0),
+              alignment: Alignment(secondaryButtonXAlignmentTween.evaluate(animation), 1),
               child: FractionallySizedBox(
                 widthFactor: defaultButtonSizeAsFraction,
                 child: Padding(

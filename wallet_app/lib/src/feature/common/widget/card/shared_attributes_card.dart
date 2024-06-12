@@ -34,7 +34,7 @@ class SharedAttributesCard extends StatelessWidget {
       child: InkWell(
         borderRadius: _kBorderRadius,
         onTap: onTap,
-        child: Container(
+        child: DecoratedBox(
           decoration: _createBorderDecoration(context),
           child: Column(
             children: [

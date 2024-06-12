@@ -40,7 +40,7 @@ class CardAttributeRow extends StatelessWidget {
               ),
             ],
           ),
-        )
+        ),
       ],
     );
   }

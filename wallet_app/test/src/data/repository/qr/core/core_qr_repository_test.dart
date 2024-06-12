@@ -27,8 +27,11 @@ void main() {
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Disclosure);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
       expect(result, isA<DisclosureNavigationRequest>());
-      expect(result.argument, const DisclosureScreenArgument(uri: testUri, isQrCode: true),
-          reason: 'The original uri should be passed to the correct screen as an argument');
+      expect(
+        result.argument,
+        const DisclosureScreenArgument(uri: testUri, isQrCode: true),
+        reason: 'The original uri should be passed to the correct screen as an argument',
+      );
     });
 
     test('Pid Issuance QR code should result in a PidIssuanceNavigationRequest', () async {
@@ -36,8 +39,11 @@ void main() {
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.PidIssuance);
       final result = await qrRepository.processBarcode(const Barcode(rawValue: testUri));
       expect(result, isA<PidIssuanceNavigationRequest>());
-      expect(result.argument, testUri,
-          reason: 'The original uri should be passed to the correct screen as an argument');
+      expect(
+        result.argument,
+        testUri,
+        reason: 'The original uri should be passed to the correct screen as an argument',
+      );
     });
 
     test('Legacy Barcode is still supported on mock builds', () async {
@@ -55,8 +61,11 @@ void main() {
       final result = await qrRepository.processBarcode(legacyQrAsBarcode);
       expect(result, isA<DisclosureNavigationRequest>());
 
-      expect((result.argument as DisclosureScreenArgument).uri, stringContainsInOrder(['OPEN_BANK_ACCOUNT', 'verify']),
-          reason: 'The EdiQrCode components should be part of the uri');
+      expect(
+        (result.argument! as DisclosureScreenArgument).uri,
+        stringContainsInOrder(['OPEN_BANK_ACCOUNT', 'verify']),
+        reason: 'The EdiQrCode components should be part of the uri',
+      );
     });
   });
 }

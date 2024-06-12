@@ -17,7 +17,7 @@ class StackedWalletCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> children = List<Widget>.generate(cards.length, (index) {
+    final List<Widget> children = List<Widget>.generate(cards.length, (index) {
       return Padding(
         padding: EdgeInsets.fromLTRB(0, index * _kCardOverlap, 0, 0),
         child: Hero(

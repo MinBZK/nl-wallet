@@ -28,7 +28,7 @@ class WalletEventLog {
       .toList();
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
-    bool isLogin = disclosure.mapOrNull(request: (request) => request.requestedCards.onlyDisclosesBsn) == true;
+    final bool isLogin = disclosure.mapOrNull(request: (request) => request.requestedCards.onlyDisclosesBsn) ?? false;
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: disclosure.relyingParty,
@@ -57,8 +57,12 @@ class WalletEventLog {
 
   /// Log the moment where attributes are disclosed as part of the sign/issuance process
   void logDisclosureStep(
-      Organization organization, RequestPolicy policy, List<DisclosureCard> requestedCards, DisclosureStatus status,
-      {List<LocalizedString>? purpose}) {
+    Organization organization,
+    RequestPolicy policy,
+    List<DisclosureCard> requestedCards,
+    DisclosureStatus status, {
+    List<LocalizedString>? purpose,
+  }) {
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: organization,

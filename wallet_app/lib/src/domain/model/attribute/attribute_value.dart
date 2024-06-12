@@ -26,6 +26,7 @@ class BooleanValue extends AttributeValue {
   @override
   final bool value;
 
+  //ignore: avoid_positional_boolean_parameters
   const BooleanValue(this.value);
 }
 

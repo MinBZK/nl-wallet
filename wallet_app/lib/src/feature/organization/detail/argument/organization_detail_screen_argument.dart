@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../domain/model/organization.dart';
 
+@immutable
 class OrganizationDetailScreenArgument {
   static const _kOrganizationKey = 'organization';
   static const _kSharedDataBeforeKey = 'shared_data_before';
@@ -19,12 +22,9 @@ class OrganizationDetailScreenArgument {
     };
   }
 
-  static OrganizationDetailScreenArgument fromMap(Map<String, dynamic> map) {
-    return OrganizationDetailScreenArgument(
-      organization: map[_kOrganizationKey],
-      sharedDataWithOrganizationBefore: map[_kSharedDataBeforeKey],
-    );
-  }
+  OrganizationDetailScreenArgument.fromMap(Map<String, dynamic> map)
+      : organization = map[_kOrganizationKey],
+        sharedDataWithOrganizationBefore = map[_kSharedDataBeforeKey];
 
   @override
   bool operator ==(Object other) =>

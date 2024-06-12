@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class DisclosureScreenArgument {
   static const _kUriKey = 'uri';
   static const _kIsQrCodeKey = 'isQrCode';
@@ -14,12 +17,9 @@ class DisclosureScreenArgument {
     };
   }
 
-  static DisclosureScreenArgument fromMap(Map<String, dynamic> map) {
-    return DisclosureScreenArgument(
-      isQrCode: map[_kIsQrCodeKey],
-      uri: map[_kUriKey],
-    );
-  }
+  DisclosureScreenArgument.fromMap(Map<String, dynamic> map)
+      : isQrCode = map[_kIsQrCodeKey],
+        uri = map[_kUriKey];
 
   @override
   bool operator ==(Object other) =>

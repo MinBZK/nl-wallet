@@ -80,7 +80,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         if (state is WalletPersonalizeConnectDigid) _loginWithDigid(context, state.authUrl);
       },
       builder: (context, state) {
-        Widget result = switch (state) {
+        final Widget result = switch (state) {
           WalletPersonalizeInitial() => _buildWalletIntroPage(context, state),
           WalletPersonalizeLoadingIssuanceUrl() =>
             _buildAuthenticatingWithDigid(context, progress: state.stepperProgress),
@@ -178,7 +178,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         );
       },
     );
-    return result == true;
+    return result ?? false;
   }
 
   Widget _buildWalletIntroPage(BuildContext context, WalletPersonalizeInitial state) {
@@ -190,15 +190,16 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  void _loginWithDigid(BuildContext context, String authUrl) async {
+  Future<void> _loginWithDigid(BuildContext context, String authUrl) async {
+    final bloc = context.bloc;
     if (authUrl == kMockPidIssuanceRedirectUri && !Environment.isTest) {
       await _performMockDigidLogin(context);
     } else {
       try {
-        launchUrlString(authUrl, mode: LaunchMode.externalApplication);
+        await launchUrlString(authUrl, mode: LaunchMode.externalApplication);
       } catch (ex) {
         Fimber.e('Failed to open auth url: $authUrl', ex: ex);
-        context.bloc.add(const WalletPersonalizeLoginWithDigidFailed());
+        bloc.add(const WalletPersonalizeLoginWithDigidFailed());
       }
     }
   }
@@ -216,7 +217,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     final Mapper<CardAttributeWithDocType, DataAttribute> attributeMapper = context.read();
 
     // Perform the mock DigiD flow
-    final loginSucceeded = (await MockDigidScreen.mockLogin(context)) == true;
+    final loginSucceeded = (await MockDigidScreen.mockLogin(context)) ?? false;
     await Future.delayed(kDefaultMockDelay);
     if (loginSucceeded) {
       final cards = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
@@ -284,7 +285,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
   }
 
-  void _showExitSheet(BuildContext context) async {
+  Future<void> _showExitSheet(BuildContext context) async {
     assert(Platform.isAndroid, 'This should only be reachable through the back button on Android');
     final confirmed = await ConfirmActionSheet.show(
       context,
@@ -296,7 +297,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     );
     if (confirmed && context.mounted) {
       if (Platform.isAndroid) {
-        SystemNavigator.pop();
+        await SystemNavigator.pop();
       } else {
         // If we somehow reach this state on non-android platforms, kill the app the hard way
         exit(0);

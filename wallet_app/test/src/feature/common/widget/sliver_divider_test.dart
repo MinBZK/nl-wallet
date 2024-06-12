@@ -44,7 +44,7 @@ void main() {
                 height: 10,
                 indent: 24,
                 endIndent: 24,
-              )
+              ),
             ],
           ),
           surfaceSize: kGoldenSize,

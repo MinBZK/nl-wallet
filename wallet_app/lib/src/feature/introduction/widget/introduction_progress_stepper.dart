@@ -21,7 +21,7 @@ class IntroductionProgressStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> steps = List.generate(
+    final List<Widget> steps = List.generate(
       totalSteps,
       (index) {
         if (currentStep.floor() == index) {

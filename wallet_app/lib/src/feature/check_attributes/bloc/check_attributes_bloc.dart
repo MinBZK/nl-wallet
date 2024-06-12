@@ -17,7 +17,7 @@ class CheckAttributesBloc extends Bloc<CheckAttributesEvent, CheckAttributesStat
     on<CheckAttributesLoadTriggered>(_onCheckAttributesLoadTriggered);
   }
 
-  void _onCheckAttributesLoadTriggered(event, emit) async {
+  Future<void> _onCheckAttributesLoadTriggered(event, emit) async {
     try {
       emit(CheckAttributesSuccess(card: card, attributes: attributes));
     } catch (ex) {

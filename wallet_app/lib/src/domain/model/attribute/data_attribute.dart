@@ -1,3 +1,5 @@
+// ignore_for_file: tighten_type_of_initializing_formals
+
 import 'package:json_annotation/json_annotation.dart';
 
 import 'attribute.dart';
@@ -20,14 +22,14 @@ class DataAttribute extends Attribute {
     required super.label,
     required super.value,
     required this.sourceCardDocType,
-  }) : assert(value != null);
+  }) : assert(value != null, 'Value of DataAttribute should never null');
 
   DataAttribute.untranslated({
     required super.key,
     required String label,
     required super.value,
     required this.sourceCardDocType,
-  })  : assert(value != null),
+  })  : assert(value != null, 'Value of DataAttribute should never null'),
         super(label: {'': label});
 
   factory DataAttribute.fromJson(Map<String, dynamic> json) => _$DataAttributeFromJson(json);

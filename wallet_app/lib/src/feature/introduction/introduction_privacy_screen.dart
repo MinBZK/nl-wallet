@@ -68,13 +68,13 @@ class IntroductionPrivacyScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    FitsWidthWidget nextButton = PrimaryButton(
+    final FitsWidthWidget nextButton = PrimaryButton(
       key: const Key('introductionPrivacyScreenNextCta'),
       onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.introductionConditionsRoute),
       text: Text(context.l10n.introductionPrivacyScreenNextCta),
       icon: const Icon(Icons.arrow_forward_rounded),
     );
-    FitsWidthWidget privacyButton = TertiaryButton(
+    final FitsWidthWidget privacyButton = TertiaryButton(
       key: const Key('introductionPrivacyScreenPrivacyCta'),
       onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
       text: Text(context.l10n.introductionPrivacyScreenPrivacyCta),

@@ -1230,25 +1230,21 @@ class MockPidRepository extends _i1.Mock implements _i15.PidRepository {
 class MockDisclosureRepository extends _i1.Mock implements _i17.DisclosureRepository {
   @override
   _i9.Future<_i18.StartDisclosureResult> startDisclosure(
-    String? disclosureUri,
-    bool? isQrCode,
-  ) =>
+    String? disclosureUri, {
+    required bool? isQrCode,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
-          [
-            disclosureUri,
-            isQrCode,
-          ],
+          [disclosureUri],
+          {#isQrCode: isQrCode},
         ),
         returnValue: _i9.Future<_i18.StartDisclosureResult>.value(_i11.dummyValue<_i18.StartDisclosureResult>(
           this,
           Invocation.method(
             #startDisclosure,
-            [
-              disclosureUri,
-              isQrCode,
-            ],
+            [disclosureUri],
+            {#isQrCode: isQrCode},
           ),
         )),
         returnValueForMissingStub:
@@ -1256,10 +1252,8 @@ class MockDisclosureRepository extends _i1.Mock implements _i17.DisclosureReposi
           this,
           Invocation.method(
             #startDisclosure,
-            [
-              disclosureUri,
-              isQrCode,
-            ],
+            [disclosureUri],
+            {#isQrCode: isQrCode},
           ),
         )),
       ) as _i9.Future<_i18.StartDisclosureResult>);
@@ -1708,35 +1702,29 @@ class MockTypedWalletCore extends _i1.Mock implements _i25.TypedWalletCore {
 
   @override
   _i9.Future<_i7.StartDisclosureResult> startDisclosure(
-    String? uri,
-    bool? isQrCode,
-  ) =>
+    String? uri, {
+    bool? isQrCode = false,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #startDisclosure,
-          [
-            uri,
-            isQrCode,
-          ],
+          [uri],
+          {#isQrCode: isQrCode},
         ),
         returnValue: _i9.Future<_i7.StartDisclosureResult>.value(_FakeStartDisclosureResult_10(
           this,
           Invocation.method(
             #startDisclosure,
-            [
-              uri,
-              isQrCode,
-            ],
+            [uri],
+            {#isQrCode: isQrCode},
           ),
         )),
         returnValueForMissingStub: _i9.Future<_i7.StartDisclosureResult>.value(_FakeStartDisclosureResult_10(
           this,
           Invocation.method(
             #startDisclosure,
-            [
-              uri,
-              isQrCode,
-            ],
+            [uri],
+            {#isQrCode: isQrCode},
           ),
         )),
       ) as _i9.Future<_i7.StartDisclosureResult>);
@@ -2167,25 +2155,21 @@ class MockAcceptIssuanceUseCase extends _i1.Mock implements _i40.AcceptIssuanceU
 class MockStartDisclosureUseCase extends _i1.Mock implements _i41.StartDisclosureUseCase {
   @override
   _i9.Future<_i18.StartDisclosureResult> invoke(
-    String? disclosureUri,
-    bool? isQrCode,
-  ) =>
+    String? disclosureUri, {
+    bool? isQrCode = false,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #invoke,
-          [
-            disclosureUri,
-            isQrCode,
-          ],
+          [disclosureUri],
+          {#isQrCode: isQrCode},
         ),
         returnValue: _i9.Future<_i18.StartDisclosureResult>.value(_i11.dummyValue<_i18.StartDisclosureResult>(
           this,
           Invocation.method(
             #invoke,
-            [
-              disclosureUri,
-              isQrCode,
-            ],
+            [disclosureUri],
+            {#isQrCode: isQrCode},
           ),
         )),
         returnValueForMissingStub:
@@ -2193,10 +2177,8 @@ class MockStartDisclosureUseCase extends _i1.Mock implements _i41.StartDisclosur
           this,
           Invocation.method(
             #invoke,
-            [
-              disclosureUri,
-              isQrCode,
-            ],
+            [disclosureUri],
+            {#isQrCode: isQrCode},
           ),
         )),
       ) as _i9.Future<_i18.StartDisclosureResult>);

@@ -33,7 +33,7 @@ class HistoryDetailScreen extends StatelessWidget {
   static HistoryDetailScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return HistoryDetailScreenArgument.fromMap(args as Map<String, dynamic>);
+      return HistoryDetailScreenArgument.fromMap(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [HistoryDetailScreenArgument] when opening the HistoryDetailScreen');
@@ -251,12 +251,18 @@ class HistoryDetailScreen extends StatelessWidget {
           size: _kOrganizationLogoSize,
         ),
       ),
-      title: Text(context.l10n.historyDetailScreenOrganizationNameAndStatus(
-        organization.displayName.l10nValue(context),
-        status,
-      )),
+      title: Text(
+        context.l10n.historyDetailScreenOrganizationNameAndStatus(
+          organization.displayName.l10nValue(context),
+          status,
+        ),
+      ),
       subtitle: Text(organization.category?.l10nValue(context) ?? ''),
-      onTap: () => OrganizationDetailScreen.showPreloaded(context, organization, false),
+      onTap: () => OrganizationDetailScreen.showPreloaded(
+        context,
+        organization,
+        sharedDataWithOrganizationBefore: false,
+      ),
     );
   }
 
@@ -290,10 +296,10 @@ class HistoryDetailScreen extends StatelessWidget {
 
   Policy? _getPolicyToDisplay(WalletEvent event) {
     return switch (event) {
-      DisclosureEvent(status: var status) when status == EventStatus.success => event.policy,
+      DisclosureEvent(status: final status) when status == EventStatus.success => event.policy,
       DisclosureEvent() => null,
       IssuanceEvent() => null,
-      SignEvent(status: var status) when status == EventStatus.success => event.policy,
+      SignEvent(status: final status) when status == EventStatus.success => event.policy,
       SignEvent() => null,
     };
   }
@@ -378,7 +384,7 @@ class HistoryDetailScreen extends StatelessWidget {
             const Spacer(),
             ElevatedButton(
               onPressed: () {
-                var settings = ModalRoute.of(context)?.settings;
+                final settings = ModalRoute.of(context)?.settings;
                 if (settings != null) {
                   final args = getArgument(settings);
                   context.read<HistoryDetailBloc>().add(

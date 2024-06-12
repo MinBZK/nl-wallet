@@ -19,15 +19,15 @@ class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCa
     return _walletCardRepository
         .observeWalletCards()
         .map((cards) => cards.firstWhere((card) => card.id == cardId))
-        .asyncMap((card) async => await _getWalletCardDetail(card));
+        .asyncMap((card) async => _getWalletCardDetail(card));
   }
 
   Future<WalletCardDetail> _getWalletCardDetail(WalletCard card) async {
-    DisclosureEvent? disclosureEvent = await _walletEventRepository.readMostRecentDisclosureEvent(
+    final DisclosureEvent? disclosureEvent = await _walletEventRepository.readMostRecentDisclosureEvent(
       card.docType,
       EventStatus.success,
     );
-    IssuanceEvent? issuanceEvent = await _walletEventRepository.readMostRecentIssuanceEvent(
+    final IssuanceEvent? issuanceEvent = await _walletEventRepository.readMostRecentIssuanceEvent(
       card.docType,
       EventStatus.success,
     );

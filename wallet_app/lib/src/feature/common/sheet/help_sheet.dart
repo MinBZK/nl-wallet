@@ -86,7 +86,7 @@ class HelpSheet extends StatelessWidget {
                 context.l10n.helpSheetSupportCode(supportCode!),
                 style: context.textTheme.bodyMedium
                     ?.copyWith(fontWeight: FontWeight.bold, color: context.colorScheme.error),
-              )
+              ),
       ],
     );
   }

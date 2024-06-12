@@ -27,7 +27,7 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
     super.initState();
     _timer = Timer.periodic(
       const Duration(seconds: 1),
-      (Timer t) => setState(() => _checkExpiry()),
+      (Timer t) => setState(_checkExpiry),
     );
   }
 

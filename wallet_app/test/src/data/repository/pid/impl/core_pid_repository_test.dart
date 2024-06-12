@@ -40,7 +40,7 @@ void main() {
     });
 
     test('continue pid issuance should be propagated to the core', () async {
-      var mockContinueUri = 'mock_continue_issuance_url';
+      const mockContinueUri = 'mock_continue_issuance_url';
       final testCard = Card(
         issuer: CoreMockData.card.issuer,
         persistence: CoreMockData.card.persistence,

@@ -10,7 +10,7 @@ class PolicyBodyTextMapper extends ContextMapper<Policy, String> {
   @override
   String map(BuildContext context, Policy input) {
     final storageDuration = input.storageDuration;
-    bool dataIsStored = storageDuration != null;
+    final bool dataIsStored = storageDuration != null;
     if (input.dataIsShared && !dataIsStored) {
       // Data IS shared but NOT stored
       return context.l10n.disclosureConfirmDataAttributesPageSharedNotStoredSubtitle;

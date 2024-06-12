@@ -22,8 +22,11 @@ void main() {
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.Disclosure);
       final result = await uriRepository.processUri(Uri.parse(testUri));
       expect(result, isA<DisclosureNavigationRequest>());
-      expect(result.argument, const DisclosureScreenArgument(uri: testUri, isQrCode: false),
-          reason: 'The original uri should be passed to the correct screen as an argument');
+      expect(
+        result.argument,
+        const DisclosureScreenArgument(uri: testUri, isQrCode: false),
+        reason: 'The original uri should be passed to the correct screen as an argument',
+      );
     });
 
     test('Pid Issuance uri should result in a PidIssuanceNavigationRequest', () async {
@@ -31,8 +34,11 @@ void main() {
       when(mockWalletCore.identifyUri(testUri)).thenAnswer((realInvocation) async => IdentifyUriResult.PidIssuance);
       final result = await uriRepository.processUri(Uri.parse(testUri));
       expect(result, isA<PidIssuanceNavigationRequest>());
-      expect(result.argument, testUri,
-          reason: 'The original uri should be passed to the correct screen as an argument');
+      expect(
+        result.argument,
+        testUri,
+        reason: 'The original uri should be passed to the correct screen as an argument',
+      );
     });
   });
 }

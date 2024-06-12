@@ -13,7 +13,6 @@ class PerformPreNavigationActionsUseCaseImpl implements PerformPreNavigationActi
       switch (action) {
         case PreNavigationAction.setupMockedWallet:
           await _setupMockedWalletUseCase.invoke();
-          break;
         case PreNavigationAction.disableUpcomingPageTransition:
           SecuredPageRoute.overrideDurationOfNextTransition(Duration.zero);
       }

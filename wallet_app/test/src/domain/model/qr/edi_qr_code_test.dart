@@ -6,17 +6,17 @@ void main() {
 
   group('fromJson', () {
     test('json with issue type should return issuance type', () {
-      Map<String, dynamic> input = {'id': '', 'type': 'issue'};
+      final Map<String, dynamic> input = {'id': '', 'type': 'issue'};
       expect(EdiQrCode.fromJson(input).type, EdiQrType.issuance);
     });
 
     test('json with verify type should return disclosure type', () {
-      Map<String, dynamic> input = {'id': '', 'type': 'verify'};
+      final Map<String, dynamic> input = {'id': '', 'type': 'verify'};
       expect(EdiQrCode.fromJson(input).type, EdiQrType.disclosure);
     });
 
     test('json with sign type should return sign type', () {
-      Map<String, dynamic> input = {'id': '', 'type': 'sign'};
+      final Map<String, dynamic> input = {'id': '', 'type': 'sign'};
       expect(EdiQrCode.fromJson(input).type, EdiQrType.sign);
     });
   });

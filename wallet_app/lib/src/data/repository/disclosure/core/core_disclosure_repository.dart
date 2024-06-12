@@ -34,8 +34,8 @@ class CoreDisclosureRepository implements DisclosureRepository {
   );
 
   @override
-  Future<StartDisclosureResult> startDisclosure(String disclosureUri, bool isQrCode) async {
-    final result = await _walletCore.startDisclosure(disclosureUri, isQrCode);
+  Future<StartDisclosureResult> startDisclosure(String disclosureUri, {bool isQrCode = false}) async {
+    final result = await _walletCore.startDisclosure(disclosureUri, isQrCode: isQrCode);
     return result.map(
       request: (value) {
         final cards = _disclosureCardMapper.mapList(value.requestedCards);
@@ -46,11 +46,11 @@ class CoreDisclosureRepository implements DisclosureRepository {
           relyingParty,
           value.requestOriginBaseUrl,
           _localizedStringMapper.map(value.requestPurpose),
-          value.sharedDataWithRelyingPartyBefore,
           _disclosureSessionTypeMapper.map(value.sessionType),
           _disclosureTypeMapper.map(value.requestType),
           requestedAttributes,
           policy,
+          sharedDataWithOrganizationBefore: value.sharedDataWithRelyingPartyBefore,
         );
       },
       requestAttributesMissing: (value) {
@@ -60,9 +60,9 @@ class CoreDisclosureRepository implements DisclosureRepository {
           relyingParty,
           value.requestOriginBaseUrl,
           _localizedStringMapper.map(value.requestPurpose),
-          value.sharedDataWithRelyingPartyBefore,
           _disclosureSessionTypeMapper.map(value.sessionType),
           missingAttributes,
+          sharedDataWithOrganizationBefore: value.sharedDataWithRelyingPartyBefore,
         );
       },
     );

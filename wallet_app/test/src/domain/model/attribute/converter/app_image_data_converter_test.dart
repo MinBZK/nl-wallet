@@ -3,7 +3,7 @@ import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/converter/app_image_data_converter.dart';
 
 void main() {
-  AppImageDataConverter converter = const AppImageDataConverter();
+  const AppImageDataConverter converter = AppImageDataConverter();
 
   test('asset', () {
     const image = AppAssetImage('asset');

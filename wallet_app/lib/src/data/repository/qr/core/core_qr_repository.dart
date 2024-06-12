@@ -29,7 +29,7 @@ class CoreQrRepository implements QrRepository {
     try {
       EdiQrCode.fromJson(jsonDecode(barcode.rawValue!));
       // No exception, so create the deeplink uri that we can process normally
-      String url = 'walletdebuginteraction://deeplink#${barcode.rawValue}';
+      final String url = 'walletdebuginteraction://deeplink#${barcode.rawValue}';
       return Uri.parse(url).toString(); // uri encode the content
     } catch (ex) {
       Fimber.e('Failed to extract process as EdiQrCode. Contents: ${barcode.rawValue}');

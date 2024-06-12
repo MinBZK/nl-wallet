@@ -70,7 +70,7 @@ final kIssuanceResponses = [
     requestPurpose: [LocalizedString(language: 'nl', value: _kMockRequestPurpose)],
     policy: _kMockIssuancePolicy,
     cards: [_kMockVOGWalletCard],
-  )
+  ),
 ];
 
 // region WalletCards

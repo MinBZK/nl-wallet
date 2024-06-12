@@ -39,7 +39,7 @@ const kBankId = 'bank';
 const kMonkeyBikeId = 'monkey_bike';
 const kPharmacyId = 'pharmacy';
 
-final _kRvigOrganizationName = 'Rijksdienst voor Identiteits­gegevens';
+const _kRvigOrganizationName = 'Rijksdienst voor Identiteits­gegevens';
 final _kRvigOrganization = Organization(
   //id: kRvigId,
   legalName: _kRvigOrganizationName.untranslated,
@@ -50,10 +50,13 @@ final _kRvigOrganization = Organization(
   ],
   description: [
     LocalizedString(
-        language: 'en', value: 'RvIG is the authority and director for the secure and reliable use of identity data.'),
+      language: 'en',
+      value: 'RvIG is the authority and director for the secure and reliable use of identity data.',
+    ),
     LocalizedString(
-        language: 'nl',
-        value: 'RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteits­gegevens.'),
+      language: 'nl',
+      value: 'RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteits­gegevens.',
+    ),
   ],
   city: [
     LocalizedString(language: 'en', value: 'The Hague, The Netherlands'),
@@ -195,19 +198,19 @@ final _kMunicipalityAmsterdamOrganization = Organization(
   //id: kMunicipalityAmsterdamId,
   legalName: [
     LocalizedString(language: 'en', value: 'City of Amsterdam'),
-    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam')
+    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam'),
   ],
   displayName: [
     LocalizedString(language: 'en', value: 'City of Amsterdam'),
-    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam')
+    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam'),
   ],
   category: [
     LocalizedString(language: 'en', value: 'Municipality'),
-    LocalizedString(language: 'nl', value: 'Gemeente')
+    LocalizedString(language: 'nl', value: 'Gemeente'),
   ],
   description: [
     LocalizedString(language: 'en', value: 'Everything we do, we do for the city and the people of Amsterdam.'),
-    LocalizedString(language: 'nl', value: 'Alles wat we doen, doen we voor de stad en de Amsterdammers.')
+    LocalizedString(language: 'nl', value: 'Alles wat we doen, doen we voor de stad en de Amsterdammers.'),
   ],
   image: Image.asset(path: MockAssets.logo_municipality_amsterdam),
   city: 'Amsterdam'.untranslated,
@@ -236,7 +239,7 @@ final _kBankOrganization = Organization(
   //id: kBankId,
   legalName: [
     LocalizedString(language: 'en', value: 'XYZ Bank N.V.'),
-    LocalizedString(language: 'nl', value: 'XYZ Bank N.V.')
+    LocalizedString(language: 'nl', value: 'XYZ Bank N.V.'),
   ],
   displayName: [
     LocalizedString(language: 'en', value: 'XYZ Bank'),
@@ -245,17 +248,17 @@ final _kBankOrganization = Organization(
   category: [LocalizedString(language: 'en', value: 'Bank'), LocalizedString(language: 'nl', value: 'Bank')],
   description: [
     LocalizedString(language: 'en', value: 'The accessible bank for paying, saving and investing.'),
-    LocalizedString(language: 'nl', value: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.')
+    LocalizedString(language: 'nl', value: 'Maak het leven makkelijk. Regel je financieën digitaal met Jouw Bank.'),
   ],
   image: Image.asset(path: MockAssets.logo_bank),
   department: [
     LocalizedString(language: 'en', value: 'Customer service'),
-    LocalizedString(language: 'nl', value: 'Klantenservice')
+    LocalizedString(language: 'nl', value: 'Klantenservice'),
   ],
   countryCode: 'nl',
   city: [
     LocalizedString(language: 'en', value: 'Utrecht, The Netherlands'),
-    LocalizedString(language: 'nl', value: 'Utrecht, Nederland')
+    LocalizedString(language: 'nl', value: 'Utrecht, Nederland'),
   ],
   webUrl: 'https://jouwbank.nl',
 );
@@ -264,30 +267,32 @@ final _kMonkeyBikeOrganization = Organization(
   //id: kMonkeyBikeId,
   legalName: [
     LocalizedString(language: 'en', value: 'MonkeyBike Bezorgdiensten B.V.'),
-    LocalizedString(language: 'nl', value: 'MonkeyBike Bezorgdiensten B.V.')
+    LocalizedString(language: 'nl', value: 'MonkeyBike Bezorgdiensten B.V.'),
   ],
   displayName: [
     LocalizedString(language: 'en', value: 'MonkeyBike'),
-    LocalizedString(language: 'nl', value: 'MonkeyBike')
+    LocalizedString(language: 'nl', value: 'MonkeyBike'),
   ],
   category: [
     LocalizedString(language: 'en', value: 'Delivery service'),
-    LocalizedString(language: 'nl', value: 'Bezorgdienst')
+    LocalizedString(language: 'nl', value: 'Bezorgdienst'),
   ],
   description: [
     LocalizedString(language: 'en', value: 'Your groceries delivered to your home within 10 minutes.'),
     LocalizedString(
-        language: 'nl', value: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.')
+      language: 'nl',
+      value: 'Razendsnel jouw boodschappen of bestelling bij jouw thuis. Altijd binnen 10 minuten.',
+    ),
   ],
   image: Image.asset(path: MockAssets.logo_monkeybike),
   department: [
     LocalizedString(language: 'en', value: 'Online marketing'),
-    LocalizedString(language: 'nl', value: 'Online marketing')
+    LocalizedString(language: 'nl', value: 'Online marketing'),
   ],
   countryCode: 'nl',
   city: [
     LocalizedString(language: 'en', value: 'Groningen, The Netherlands'),
-    LocalizedString(language: 'nl', value: 'Groningen, Nederland')
+    LocalizedString(language: 'nl', value: 'Groningen, Nederland'),
   ],
   webUrl: 'https://flitsbezorger-monkeybike.nl',
   kvk: '3945-2932',

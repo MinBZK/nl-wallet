@@ -33,7 +33,7 @@ class WalletDataSourceProvider extends StatelessWidget {
           create: (context) => TypedWalletCore(provideMocks ? mock.api : core.api, context.read()),
         ),
         RepositoryProvider<LanguageStore>(
-          create: (context) => LanguageStoreImpl(() => SharedPreferences.getInstance()),
+          create: (context) => LanguageStoreImpl(SharedPreferences.getInstance),
         ),
         RepositoryProvider<WalletDataSource>(
           create: (context) => WalletDataSourceImpl(context.read(), context.read()),

@@ -20,7 +20,7 @@ class CardHistoryScreen extends StatelessWidget {
   static String getArguments(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as String;
+      return args! as String;
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in a (mock) id when opening the CardHistoryScreen');
@@ -72,7 +72,7 @@ class CardHistoryScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessSliver(BuildContext context, CardHistoryLoadSuccess state) {
-    List<Widget> sections = state.events.sectionedByMonth
+    final List<Widget> sections = state.events.sectionedByMonth
         .map(
           (section) => HistorySectionSliver(
             section: section,

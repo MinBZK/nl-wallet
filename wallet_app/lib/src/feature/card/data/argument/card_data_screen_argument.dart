@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class CardDataScreenArgument {
   static const _kCardIdKey = 'cardId';
   static const _kCardTitleKey = 'cardTitle';
@@ -14,12 +17,9 @@ class CardDataScreenArgument {
     };
   }
 
-  static CardDataScreenArgument fromMap(Map<String, dynamic> map) {
-    return CardDataScreenArgument(
-      cardId: map[_kCardIdKey],
-      cardTitle: map[_kCardTitleKey],
-    );
-  }
+  CardDataScreenArgument.fromMap(Map<String, dynamic> map)
+      : cardId = map[_kCardIdKey],
+        cardTitle = map[_kCardTitleKey];
 
   @override
   bool operator ==(Object other) =>

@@ -14,7 +14,7 @@ class TextStylesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       children: [
         Text('DisplayLarge', style: context.textTheme.displayLarge),
         Text('DisplayMedium', style: context.textTheme.displayMedium),
@@ -42,7 +42,8 @@ class TextStylesTab extends StatelessWidget {
         SecondaryButton(
           onPressed: () {
             final request = DisclosureNavigationRequest(
-                'walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D');
+              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D',
+            );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
           icon: const Icon(Icons.share_outlined),
@@ -52,7 +53,8 @@ class TextStylesTab extends StatelessWidget {
         SecondaryButton(
           onPressed: () {
             final request = DisclosureNavigationRequest(
-                'walletdebuginteraction://deeplink#%7B%22id%22%3A%22AMSTERDAM_LOGIN%22%2C%22type%22%3A%22verify%22%7D');
+              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22AMSTERDAM_LOGIN%22%2C%22type%22%3A%22verify%22%7D',
+            );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
           icon: const Icon(Icons.login_outlined),
@@ -62,7 +64,8 @@ class TextStylesTab extends StatelessWidget {
         SecondaryButton(
           onPressed: () {
             final request = IssuanceNavigationRequest(
-                'walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE%22%2C%22type%22%3A%22issue%22%7D');
+              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE%22%2C%22type%22%3A%22issue%22%7D',
+            );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
           icon: const Icon(Icons.credit_card_outlined),
@@ -72,7 +75,8 @@ class TextStylesTab extends StatelessWidget {
         SecondaryButton(
           onPressed: () {
             final request = SignNavigationRequest(
-                'walletdebuginteraction://deeplink#%7B%22id%22%3A%22RENTAL_AGREEMENT%22%2C%22type%22%3A%22sign%22%7D');
+              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22RENTAL_AGREEMENT%22%2C%22type%22%3A%22sign%22%7D',
+            );
             context.read<NavigationService>().handleNavigationRequest(request);
           },
           icon: const Icon(Icons.document_scanner_outlined),

@@ -18,6 +18,7 @@ extension BlocExtensions on Bloc {
   Future<void> handleError(
     Object ex, {
     Function(CoreGenericError)? onGenericError,
+    //ignore: avoid_positional_boolean_parameters
     Function(CoreNetworkError, bool /* hasInternet */)? onNetworkError,
     Function(CoreRedirectUriError)? onRedirectUriError,
     Function(CoreHardwareKeyUnsupportedError)? onHardwareKeyUnsupportedError,

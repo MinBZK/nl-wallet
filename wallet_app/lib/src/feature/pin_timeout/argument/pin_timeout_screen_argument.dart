@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class PinTimeoutScreenArgument {
   static const _kExpiryTimeKey = 'expiryTime';
 
@@ -13,11 +16,7 @@ class PinTimeoutScreenArgument {
     };
   }
 
-  static PinTimeoutScreenArgument fromMap(Map<String, dynamic> map) {
-    return PinTimeoutScreenArgument(
-      expiryTime: DateTime.parse(map[_kExpiryTimeKey]),
-    );
-  }
+  PinTimeoutScreenArgument.fromMap(Map<String, dynamic> map) : expiryTime = DateTime.parse(map[_kExpiryTimeKey]);
 
   @override
   bool operator ==(Object other) =>

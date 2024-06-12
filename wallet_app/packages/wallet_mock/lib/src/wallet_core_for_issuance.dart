@@ -87,15 +87,13 @@ class WalletCoreForIssuance {
     assert(_activeIssuanceResponse != null, 'Can not accept when no issuance is active');
     final selectedCards = _activeIssuanceResponse!.cards.where((card) => cardDocTypes.contains(card.docType)).toList();
     _wallet.add(selectedCards);
-    for (final card in selectedCards) {
-      _eventLog.logIssuance(card);
-    }
+    selectedCards.forEach(_eventLog.logIssuance);
     _activeIssuanceResponse = null;
     _itemsHaveBeenDisclosed = false;
   }
 
   Future<void> cancelIssuance() async {
-    if (_activeIssuanceResponse != null && _itemsHaveBeenDisclosed == false /* true when already logged */) {
+    if (_activeIssuanceResponse != null && !_itemsHaveBeenDisclosed /* true when already logged */) {
       _eventLog.logDisclosureStep(
         _activeIssuanceResponse!.organization,
         _activeIssuanceResponse!.policy,

@@ -28,10 +28,10 @@ class AttributeValueFormatter {
   }
 
   static String _prettyPrintDateTime(String locale, DateTime dateTime) {
-    try {
+    if (DateFormat.localeExists(locale)) {
       return DateFormat(DateFormat.YEAR_MONTH_DAY, locale).format(dateTime);
-    } on ArgumentError catch (ex) {
-      Fimber.e('No DateFormat for locale: $locale, formatting without locale.', ex: ex);
+    } else {
+      Fimber.i('DateFormat does not support locale: $locale, formatting without locale.');
       return DateFormat(DateFormat.YEAR_MONTH_DAY).format(dateTime);
     }
   }
