@@ -11,6 +11,7 @@ import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/list_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
+import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/text/title_text.dart';
@@ -29,8 +30,13 @@ class CheckAttributesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const WalletAppBar(
-        actions: [HelpIconButton()],
+      appBar: WalletAppBar(
+        actions: const [HelpIconButton()],
+        title: FadeInAtOffset(
+          appearOffset: 120,
+          visibleOffset: 150,
+          child: Text(_generateTitle(context)),
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -73,13 +79,7 @@ class CheckAttributesScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TitleText(
-                    context.l10n.checkAttributesScreenTitle(
-                      attributes.length,
-                      attributes.length,
-                      card.front.title.l10nValue(context),
-                    ),
-                  ),
+                  TitleText(_generateTitle(context)),
                   const SizedBox(height: 8),
                   BlocBuilder<CheckAttributesBloc, CheckAttributesState>(builder: (context, state) {
                     switch (state) {
@@ -139,6 +139,16 @@ class CheckAttributesScreen extends StatelessWidget {
     return ListButton(
       onPressed: onDataIncorrectPressed,
       text: Text(context.l10n.checkAttributesScreenDataIncorrectCta),
+    );
+  }
+
+  String _generateTitle(BuildContext context) {
+    final card = context.read<CheckAttributesBloc>().state.card;
+    final attributes = context.read<CheckAttributesBloc>().state.attributes;
+    return context.l10n.checkAttributesScreenTitle(
+      attributes.length,
+      attributes.length,
+      card.front.title.l10nValue(context),
     );
   }
 
