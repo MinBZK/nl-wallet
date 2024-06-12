@@ -77,10 +77,10 @@ pub enum VerificationError {
     NoItemsRequests,
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
-    #[error("redirect URI nonce '{0}' does not match expected")]
-    RedirectUriMismatch(String),
-    #[error("missing redirect URI")]
-    RedirectUriMissing,
+    #[error("redirect URI nonce '{0}' does not equal the expected nonce")]
+    RedirectUriNonceMismatch(String),
+    #[error("missing nonce in redirect URI")]
+    RedirectUriNonceMissing,
     #[error("missing DNS SAN from RP certificate")]
     MissingSAN,
     #[error("RP certificate error: {0}")]
@@ -594,9 +594,9 @@ where
                     },
             }) => match (redirect_uri_nonce, expected_nonce) {
                 (_, None) => Ok(disclosed_attributes),
-                (None, Some(_)) => Err(VerificationError::RedirectUriMissing),
+                (None, Some(_)) => Err(VerificationError::RedirectUriNonceMissing),
                 (Some(received), Some(expected)) if received == expected => Ok(disclosed_attributes),
-                (Some(received), Some(_)) => Err(VerificationError::RedirectUriMismatch(received)),
+                (Some(received), Some(_)) => Err(VerificationError::RedirectUriNonceMismatch(received)),
             },
             _ => Err(VerificationError::SessionNotDone),
         }
