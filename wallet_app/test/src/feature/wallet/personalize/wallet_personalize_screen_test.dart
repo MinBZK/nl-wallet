@@ -283,10 +283,11 @@ void main() {
       'WalletPersonalizeAuthenticating - Cancel Dialog - Light',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-            const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-          MockWalletPersonalizeBloc(),
-          const WalletPersonalizeAuthenticating(),
-        ));
+          const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+            MockWalletPersonalizeBloc(),
+            const WalletPersonalizeAuthenticating(),
+          ),
+        );
         final l10n = await TestUtils.englishLocalizations;
         final cancelButtonFinder = find.text(l10n.walletPersonalizeScreenDigidLoadingStopCta);
         await tester.tap(cancelButtonFinder);

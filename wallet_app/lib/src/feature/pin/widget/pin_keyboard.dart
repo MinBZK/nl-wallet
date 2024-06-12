@@ -74,7 +74,7 @@ class PinKeyboard extends StatelessWidget {
                     key: const Key('keyboardKeyBackspace'),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),

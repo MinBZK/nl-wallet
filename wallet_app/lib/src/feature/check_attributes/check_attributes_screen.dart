@@ -81,23 +81,25 @@ class CheckAttributesScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  BlocBuilder<CheckAttributesBloc, CheckAttributesState>(builder: (context, state) {
-                    switch (state) {
-                      case CheckAttributesInitial():
-                        return const SizedBox.shrink();
-                      case CheckAttributesSuccess():
-                        return SizedBox(
-                          width: double.infinity,
-                          child: Text(
-                            context.l10n.checkAttributesScreenSubtitle(
-                              state.card.issuer.displayName.l10nValue(context),
+                  BlocBuilder<CheckAttributesBloc, CheckAttributesState>(
+                    builder: (context, state) {
+                      switch (state) {
+                        case CheckAttributesInitial():
+                          return const SizedBox.shrink();
+                        case CheckAttributesSuccess():
+                          return SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              context.l10n.checkAttributesScreenSubtitle(
+                                state.card.issuer.displayName.l10nValue(context),
+                              ),
+                              style: context.textTheme.bodySmall,
+                              textAlign: TextAlign.start,
                             ),
-                            style: context.textTheme.bodySmall,
-                            textAlign: TextAlign.start,
-                          ),
-                        );
-                    }
-                  })
+                          );
+                      }
+                    },
+                  ),
                 ],
               ),
             ),

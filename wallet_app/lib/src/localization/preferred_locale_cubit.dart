@@ -9,6 +9,6 @@ class PreferredLocaleCubit extends Cubit<Locale?> {
   final LanguageRepository languageRepository;
 
   PreferredLocaleCubit(this.languageRepository) : super(null) {
-    languageRepository.preferredLocale.listen((event) => emit(event));
+    languageRepository.preferredLocale.listen(emit);
   }
 }

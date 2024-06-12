@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -70,27 +71,26 @@ class SetupSecurityScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<SetupSecurityBloc, SetupSecurityState>(
       listener: (context, state) async {
-        if (state is SetupSecurityGenericError) {
-          ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
+        unawaited(_runAnnouncements(context, state));
+        switch (state) {
+          case SetupSecurityGenericError():
+            ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
+          case SetupSecurityNetworkError():
+            ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
+          case SetupSecuritySelectPinFailed():
+            await _showErrorDialog(context, state.reason).then((_) => context.bloc.add(PinBackspacePressed()));
+          case SetupSecurityPinConfirmationFailed():
+            await _showConfirmationErrorDialog(context, state.retryAllowed).then((_) {
+              context.bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
+            });
+          case SetupSecurityDeviceIncompatibleError():
+            ErrorScreen.showDeviceIncompatible(context);
+          default:
+            break;
         }
-        if (state is SetupSecurityNetworkError) {
-          ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
-        }
-        if (state is SetupSecuritySelectPinFailed) {
-          _showErrorDialog(context, state.reason).then((_) => context.bloc.add(PinBackspacePressed()));
-        }
-        if (state is SetupSecurityPinConfirmationFailed) {
-          _showConfirmationErrorDialog(context, state.retryAllowed).then((_) {
-            context.bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
-          });
-        }
-        if (state is SetupSecurityDeviceIncompatibleError) {
-          ErrorScreen.showDeviceIncompatible(context);
-        }
-        _runAnnouncements(context, state);
       },
       builder: (context, state) {
-        Widget result = switch (state) {
+        final Widget result = switch (state) {
           SetupSecuritySelectPinInProgress() => _buildSelectPinPage(context, enteredDigits: state.enteredDigits),
           SetupSecuritySelectPinFailed() => _buildSelectPinPage(context, enteredDigits: kPinDigits),
           SetupSecurityPinConfirmationInProgress() =>
@@ -107,7 +107,7 @@ class SetupSecurityScreen extends StatelessWidget {
     );
   }
 
-  void _runAnnouncements(BuildContext context, SetupSecurityState state) async {
+  Future<void> _runAnnouncements(BuildContext context, SetupSecurityState state) async {
     if (!context.isScreenReaderEnabled) return;
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
@@ -123,7 +123,7 @@ class SetupSecurityScreen extends StatelessWidget {
       if (state.afterBackspacePressed) {
         _announceEnteredDigits(l10n, state.enteredDigits);
       } else if (state.enteredDigits == 0) {
-        SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
+        await SemanticsService.announce(l10n.setupSecurityScreenWCAGPinChosenAnnouncement, TextDirection.ltr);
       } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
         _announceEnteredDigits(l10n, state.enteredDigits);
       }
@@ -272,7 +272,7 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   Widget _buildTitle(BuildContext context, SetupSecurityState state) {
-    String title = switch (state) {
+    final String title = switch (state) {
       SetupSecuritySelectPinInProgress() => '',
       SetupSecuritySelectPinFailed() => '',
       SetupSecurityPinConfirmationInProgress() => '',

@@ -28,7 +28,7 @@ class DisclosureSuccessPage extends StatelessWidget {
     final title = isLoginFlow
         ? context.l10n.disclosureSuccessPageDescriptionForLogin(organizationDisplayName.l10nValue(context))
         : context.l10n.disclosureSuccessPageDescription(organizationDisplayName.l10nValue(context));
-    bool hasReturnUrl = returnUrl != null;
+    final bool hasReturnUrl = returnUrl != null;
     return TerminalPage(
       title: context.l10n.disclosureSuccessPageTitle,
       onPrimaryPressed: () => onPrimaryPressed(returnUrl),
@@ -42,7 +42,7 @@ class DisclosureSuccessPage extends StatelessWidget {
   }
 
   String _resolvePrimaryCta(BuildContext context) {
-    final returnUrlCase = ReturnUrlCase.resolve(isLoginFlow, returnUrl != null);
+    final returnUrlCase = ReturnUrlCase.resolve(isLoginFlow: isLoginFlow, hasReturnUrl: returnUrl != null);
     return switch (returnUrlCase) {
       ReturnUrlCase.returnUrl => context.l10n.disclosureSuccessPageCloseCta,
       ReturnUrlCase.noReturnUrl => context.l10n.disclosureSuccessPageToDashboardCta,

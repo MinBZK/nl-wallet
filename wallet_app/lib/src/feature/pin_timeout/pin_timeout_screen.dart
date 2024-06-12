@@ -21,11 +21,12 @@ class PinTimeoutScreen extends StatelessWidget {
   static PinTimeoutScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return PinTimeoutScreenArgument.fromMap(args as Map<String, dynamic>);
+      return PinTimeoutScreenArgument.fromMap(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError(
-          'Make sure to pass in [PinTimeoutScreenArgument].toMap() when opening the PinTimeoutScreen');
+        'Make sure to pass in [PinTimeoutScreenArgument].toMap() when opening the PinTimeoutScreen',
+      );
     }
   }
 
@@ -85,7 +86,7 @@ class PinTimeoutScreen extends StatelessWidget {
                 text: Text(context.l10n.pinTimeoutScreenForgotPinCta),
                 onPressed: () => ForgotPinScreen.show(context),
               ),
-            )
+            ),
           ],
         ),
       ),

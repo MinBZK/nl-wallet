@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -23,21 +25,21 @@ class QrBloc extends Bloc<QrEvent, QrState> {
     add(const QrScanCheckPermission());
   }
 
-  void _onCheckPermission(QrScanCheckPermission event, emit) async {
+  Future<void> _onCheckPermission(QrScanCheckPermission event, emit) async {
     final status = await Permission.camera.request();
     if (status.isGranted) {
       emit(QrScanScanning());
     } else {
-      emit(QrScanNoPermission(status.isPermanentlyDenied));
+      emit(QrScanNoPermission(permanentlyDenied: status.isPermanentlyDenied));
     }
   }
 
-  void onCodeDetected(QrScanCodeDetected event, emit) async {
+  Future<void> onCodeDetected(QrScanCodeDetected event, emit) async {
     if (state is QrScanLoading || state is QrScanSuccess || state is QrScanFailure) {
       return; //Already processing a QR code
     }
     emit(const QrScanLoading());
-    Vibration.vibrate();
+    unawaited(Vibration.vibrate());
     final request = await _decodeQrUseCase.invoke(event.code);
     await Future.delayed(kProcessingDelay);
     if (request == null) {

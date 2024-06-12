@@ -30,7 +30,7 @@ class ListButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: _resolveDividerDecoration(context),
       child: TextButton(
         style: _resolveButtonStyle(context),
@@ -45,29 +45,32 @@ class ListButton extends StatelessWidget {
           Size(0, context.isLandscape ? _kLandscapeButtonHeight : _kButtonHeight),
         ),
         shape: WidgetStateProperty.all(
-          const LinearBorder(),
+          LinearBorder.none,
         ),
         padding: WidgetStateProperty.all(
           EdgeInsets.symmetric(
-              horizontal: 16, vertical: context.isLandscape ? _kLandscapeVerticalPadding : _kVerticalPadding),
+            horizontal: 16,
+            vertical: context.isLandscape ? _kLandscapeVerticalPadding : _kVerticalPadding,
+          ),
         ),
       );
 
   BoxDecoration _resolveDividerDecoration(BuildContext context) => BoxDecoration(
-          border: Border(
-        top: dividerSide.top
-            ? BorderSide(
-                color: context.theme.dividerTheme.color!,
-                width: context.theme.dividerTheme.thickness!,
-              )
-            : BorderSide.none,
-        bottom: dividerSide.bottom
-            ? BorderSide(
-                color: context.theme.dividerTheme.color!,
-                width: context.theme.dividerTheme.thickness!,
-              )
-            : BorderSide.none,
-      ));
+        border: Border(
+          top: dividerSide.top
+              ? BorderSide(
+                  color: context.theme.dividerTheme.color!,
+                  width: context.theme.dividerTheme.thickness!,
+                )
+              : BorderSide.none,
+          bottom: dividerSide.bottom
+              ? BorderSide(
+                  color: context.theme.dividerTheme.color!,
+                  width: context.theme.dividerTheme.thickness!,
+                )
+              : BorderSide.none,
+        ),
+      );
 
   ButtonContent _buildContent() => ButtonContent(
         text: text,

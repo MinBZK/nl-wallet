@@ -19,15 +19,15 @@ class SvgOrImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (asset) {
-      case (String svg) when asset.endsWith('.svg'):
+      case (final String svg) when asset.endsWith('.svg'):
         return SvgPicture.asset(svg, fit: fit, alignment: alignment);
-      case (String vec) when asset.endsWith('.svg.vec'):
+      case (final String vec) when asset.endsWith('.svg.vec'):
         return SvgPicture(
           AssetBytesLoader(vec, assetBundle: DefaultAssetBundle.of(context)),
           fit: fit,
           alignment: alignment,
         );
-      case (String other):
+      case (final String other):
         return Image.asset(other, fit: fit, alignment: alignment);
     }
   }

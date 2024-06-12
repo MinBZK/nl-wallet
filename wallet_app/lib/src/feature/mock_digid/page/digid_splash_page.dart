@@ -46,7 +46,7 @@ class DigidSplashPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),

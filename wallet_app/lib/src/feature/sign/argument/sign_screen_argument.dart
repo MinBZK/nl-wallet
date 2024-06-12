@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+
+@immutable
 class SignScreenArgument {
   static const _kSessionIdKey = 'sessionId';
   static const _kUriKey = 'uri';
@@ -5,7 +8,8 @@ class SignScreenArgument {
   final String? mockSessionId;
   final String? uri;
 
-  const SignScreenArgument({this.mockSessionId, this.uri}) : assert(mockSessionId != null || uri != null);
+  const SignScreenArgument({this.mockSessionId, this.uri})
+      : assert(mockSessionId != null || uri != null, 'Either a mockSessionId of a uri is needed to start signing');
 
   Map<String, dynamic> toMap() {
     return {
@@ -14,12 +18,9 @@ class SignScreenArgument {
     };
   }
 
-  static SignScreenArgument fromMap(Map<String, dynamic> map) {
-    return SignScreenArgument(
-      mockSessionId: map[_kSessionIdKey],
-      uri: map[_kUriKey],
-    );
-  }
+  SignScreenArgument.fromMap(Map<String, dynamic> map)
+      : mockSessionId = map[_kSessionIdKey],
+        uri = map[_kUriKey];
 
   @override
   bool operator ==(Object other) =>

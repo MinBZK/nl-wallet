@@ -34,7 +34,7 @@ class IssuanceScreen extends StatelessWidget {
   static IssuanceScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return tryCast<IssuanceScreenArgument>(args) ?? IssuanceScreenArgument.fromMap(args as Map<String, dynamic>);
+      return tryCast<IssuanceScreenArgument>(args) ?? IssuanceScreenArgument.fromMap(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [IssuanceScreenArgument] when opening the IssuanceScreen');
@@ -91,7 +91,7 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocBuilder<IssuanceBloc, IssuanceState>(
       builder: (context, state) {
-        Widget result = switch (state) {
+        final Widget result = switch (state) {
           IssuanceInitial() => _buildLoading(),
           IssuanceLoadInProgress() => _buildLoading(),
           IssuanceCheckOrganization() => _buildCheckOrganizationPage(context, state),
@@ -139,7 +139,7 @@ class IssuanceScreen extends StatelessWidget {
         OrganizationDetailScreen.showPreloaded(
           context,
           state.organization,
-          false,
+          sharedDataWithOrganizationBefore: false,
         );
       },
     );
@@ -175,10 +175,8 @@ class IssuanceScreen extends StatelessWidget {
         switch (result) {
           case DataIncorrectResult.declineCard:
             bloc.add(const IssuanceStopRequested());
-            break;
           case DataIncorrectResult.acceptCard:
             bloc.add(const IssuanceCheckDataOfferingApproved());
-            break;
         }
       },
       onAcceptPressed: () => context.bloc.add(const IssuanceCheckDataOfferingApproved()),
@@ -212,7 +210,7 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  void _stopIssuance(BuildContext context) async {
+  Future<void> _stopIssuance(BuildContext context) async {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
       final organizationName = bloc.organization?.displayName ?? '-'.untranslated;
@@ -253,10 +251,8 @@ class IssuanceScreen extends StatelessWidget {
         switch (result) {
           case DataIncorrectResult.declineCard:
             bloc.add(IssuanceCardDeclined(state.cardToCheck));
-            break;
           case DataIncorrectResult.acceptCard:
             bloc.add(IssuanceCardApproved(state.cardToCheck));
-            break;
         }
       },
       totalNrOfCards: state.totalNrOfCardsToCheck,

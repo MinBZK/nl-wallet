@@ -117,7 +117,7 @@ class ConfirmActionSheet extends StatelessWidget {
         );
       },
     );
-    return confirmed == true;
+    return confirmed ?? false;
   }
 
   ElevatedButtonThemeData? buttonTheme(BuildContext context) {

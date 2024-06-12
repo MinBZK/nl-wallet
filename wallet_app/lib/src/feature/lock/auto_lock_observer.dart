@@ -32,7 +32,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   @override
   Widget build(BuildContext context) {
     return InteractionDetector(
-      onInteraction: () => _resetIdleTimeout(),
+      onInteraction: _resetIdleTimeout,
       child: widget.child,
     );
   }

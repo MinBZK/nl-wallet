@@ -38,7 +38,7 @@ class QrScanFailure extends QrState {
 class QrScanNoPermission extends QrState {
   final bool permanentlyDenied;
 
-  const QrScanNoPermission(this.permanentlyDenied);
+  const QrScanNoPermission({required this.permanentlyDenied});
 
   @override
   List<Object> get props => [permanentlyDenied];

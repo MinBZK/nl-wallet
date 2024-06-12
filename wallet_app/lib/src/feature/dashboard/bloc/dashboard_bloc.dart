@@ -24,7 +24,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<DashboardLoadTriggered>(_onCardOverviewLoadTriggered, transformer: restartable());
   }
 
-  void _onCardOverviewLoadTriggered(DashboardLoadTriggered event, Emitter<DashboardState> emit) async {
+  Future<void> _onCardOverviewLoadTriggered(DashboardLoadTriggered event, Emitter<DashboardState> emit) async {
     if (state is! DashboardLoadSuccess || event.forceRefresh) emit(const DashboardLoadInProgress());
     await emit.forEach(
       CombineLatestStream.combine2(

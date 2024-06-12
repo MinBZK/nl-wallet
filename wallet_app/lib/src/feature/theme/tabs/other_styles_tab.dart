@@ -82,7 +82,7 @@ final _kSampleAttributes = [
     label: 'Sample #2'.untranslated,
     value: const StringValue('2'),
     sourceCardDocType: 'sourceCardDocType',
-  )
+  ),
 ];
 
 final _kSampleCard = WalletCard(
@@ -138,7 +138,7 @@ class OtherStylesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       children: [
         _buildAppBarSection(context),
         _buildSheetSection(context),
@@ -368,10 +368,12 @@ class OtherStylesTab extends StatelessWidget {
           holograph: WalletAssets.svg_rijks_card_holo,
         ),
         const ThemeSectionSubHeader(title: 'StackedWalletCards'),
-        StackedWalletCards(cards: [
-          _kAltSampleCard,
-          _kSampleCard,
-        ]),
+        StackedWalletCards(
+          cards: [
+            _kAltSampleCard,
+            _kSampleCard,
+          ],
+        ),
         const ThemeSectionSubHeader(title: 'SharedWalletCard'),
         SharedAttributesCard(
           card: _kSampleCard,
@@ -557,7 +559,7 @@ class OtherStylesTab extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text('Scroll this page to see the collapsing effect'),
                   ),
-                )
+                ),
               ],
             ),
           );

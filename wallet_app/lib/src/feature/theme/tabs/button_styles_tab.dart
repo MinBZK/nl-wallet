@@ -17,7 +17,7 @@ class ButtonStylesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
         const ThemeSectionSubHeader(title: 'Themed Framework Buttons'),
         const SizedBox(height: 16),

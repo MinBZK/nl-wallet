@@ -11,4 +11,5 @@ const _base = 'wallet_core';
 final _dylib = io.Platform.isWindows ? '$_base.dll' : 'lib$_base.so';
 
 final api = WalletCoreImpl(
-    io.Platform.isIOS || io.Platform.isMacOS ? DynamicLibrary.executable() : DynamicLibrary.open(_dylib));
+  io.Platform.isIOS || io.Platform.isMacOS ? DynamicLibrary.executable() : DynamicLibrary.open(_dylib),
+);

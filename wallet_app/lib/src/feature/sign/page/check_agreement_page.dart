@@ -127,7 +127,7 @@ class CheckAgreementPage extends StatelessWidget {
               ),
               style: context.textTheme.bodyLarge,
             ),
-          )
+          ),
         ],
       ),
     );

@@ -24,7 +24,7 @@ class CorePidRepository extends PidRepository {
   @override
   Future<List<DataAttribute>> continuePidIssuance(String uri) async {
     final result = await _walletCore.continuePidIssuance(uri);
-    return result.map((card) => _cardMapper.map(card)).map((card) => card.attributes).flattened.toList();
+    return result.map(_cardMapper.map).map((card) => card.attributes).flattened.toList();
   }
 
   @override

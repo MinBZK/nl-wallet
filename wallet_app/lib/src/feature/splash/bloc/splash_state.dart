@@ -13,7 +13,8 @@ class SplashLoaded extends SplashState {
   final bool isRegistered;
   final bool hasPid;
 
-  const SplashLoaded({required this.isRegistered, required this.hasPid}) : assert(!hasPid || isRegistered);
+  const SplashLoaded({required this.isRegistered, required this.hasPid})
+      : assert(!hasPid || isRegistered, 'The user should never have a pid but NOT be registered');
 
   @override
   List<Object> get props => [isRegistered, hasPid];

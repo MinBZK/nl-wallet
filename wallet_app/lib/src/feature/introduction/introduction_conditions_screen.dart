@@ -68,13 +68,13 @@ class IntroductionConditionsScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    FitsWidthWidget nextButton = PrimaryButton(
+    final FitsWidthWidget nextButton = PrimaryButton(
       key: const Key('introductionConditionsScreenNextCta'),
       onPressed: () => Navigator.of(context).restorablePushNamed(WalletRoutes.setupSecurityRoute),
       icon: const Icon(Icons.arrow_forward_rounded),
       text: Text(context.l10n.introductionConditionsScreenNextCta),
     );
-    FitsWidthWidget conditionsButton = TertiaryButton(
+    final FitsWidthWidget conditionsButton = TertiaryButton(
       text: Text(context.l10n.introductionConditionsScreenConditionsCta),
       icon: const Icon(Icons.arrow_forward_rounded),
       onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),

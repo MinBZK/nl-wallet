@@ -46,7 +46,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeContinuePidIssuance>(_continuePidIssuance);
   }
 
-  void _continuePidIssuance(WalletPersonalizeContinuePidIssuance event, emit) async {
+  Future<void> _continuePidIssuance(WalletPersonalizeContinuePidIssuance event, emit) async {
     try {
       add(const WalletPersonalizeUpdateState(WalletPersonalizeAuthenticating()));
       final result = await continuePidIssuanceUseCase.invoke(event.authUrl);
@@ -72,12 +72,12 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onLoginWithDigidClicked(event, emit) async {
+  Future<void> _onLoginWithDigidClicked(event, emit) async {
     try {
       emit(const WalletPersonalizeLoadingIssuanceUrl());
       // Fixes PVW-2171 (lock during WalletPersonalizeCheckData)
       await cancelPidIssuanceUseCase.invoke();
-      String url = await getPidIssuanceUrlUseCase.invoke();
+      final String url = await getPidIssuanceUrlUseCase.invoke();
       emit(WalletPersonalizeConnectDigid(url));
     } catch (ex, stack) {
       Fimber.e('Failed to get authentication url', ex: ex, stacktrace: stack);
@@ -89,11 +89,11 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onLoginWithDigidSucceeded(WalletPersonalizeLoginWithDigidSucceeded event, emit) async {
+  Future<void> _onLoginWithDigidSucceeded(WalletPersonalizeLoginWithDigidSucceeded event, emit) async {
     emit(WalletPersonalizeCheckData(availableAttributes: event.previewAttributes));
   }
 
-  void _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
+  Future<void> _onLoginWithDigidFailed(WalletPersonalizeLoginWithDigidFailed event, emit) async {
     Object error = event.error ?? 'unknown';
     try {
       emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
@@ -111,7 +111,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, emit) async {
+  Future<void> _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, emit) async {
     Object error = event.error ?? 'unknown';
     try {
       emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
@@ -129,11 +129,11 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onOfferingVerified(WalletPersonalizeOfferingAccepted event, emit) async {
+  Future<void> _onOfferingVerified(WalletPersonalizeOfferingAccepted event, emit) async {
     emit(WalletPersonalizeConfirmPin(event.previewAttributes));
   }
 
-  void _onOfferingRejected(event, emit) async {
+  Future<void> _onOfferingRejected(event, emit) async {
     emit(const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kSetupSteps)));
     try {
       await cancelPidIssuanceUseCase.invoke();
@@ -144,11 +144,11 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  void _onRetryPressed(event, emit) async => emit(const WalletPersonalizeInitial());
+  Future<void> _onRetryPressed(event, emit) async => emit(const WalletPersonalizeInitial());
 
   void _onStateUpdate(WalletPersonalizeUpdateState event, emit) => emit(event.state);
 
-  void _onBackPressed(event, emit) async {
+  Future<void> _onBackPressed(event, emit) async {
     final state = this.state;
     if (state.canGoBack) {
       if (state is WalletPersonalizeConfirmPin) {

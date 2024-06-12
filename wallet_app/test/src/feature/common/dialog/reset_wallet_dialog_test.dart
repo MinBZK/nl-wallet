@@ -33,7 +33,7 @@ void main() {
   });
 
   testWidgets('ResetWalletDialog invokes ResetWalletUseCase when confirm is pressed', (tester) async {
-    ResetWalletUseCase usecase = MockResetWalletUseCase();
+    final ResetWalletUseCase usecase = MockResetWalletUseCase();
     await tester.pumpWidget(
       RepositoryProvider<ResetWalletUseCase>(
         create: (BuildContext context) => usecase,
@@ -53,7 +53,7 @@ void main() {
   });
 
   testWidgets('ResetWalletDialog does not invoke ResetWalletUseCase when cancel is pressed', (tester) async {
-    ResetWalletUseCase usecase = MockResetWalletUseCase();
+    final ResetWalletUseCase usecase = MockResetWalletUseCase();
     await tester.pumpWidget(
       RepositoryProvider<ResetWalletUseCase>(
         create: (BuildContext context) => usecase,

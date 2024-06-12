@@ -56,7 +56,7 @@ class SecuredPageRoute<T> extends MaterialPageRoute<T> {
 
   Widget _buildSlideInFromBottomTransitions(Animation<double> animation, Widget child) {
     final curveTween = CurveTween(curve: Curves.easeInOutCubic);
-    final offsetTween = Tween(begin: const Offset(0.0, 1.0), end: Offset.zero);
+    final offsetTween = Tween(begin: const Offset(0, 1), end: Offset.zero);
     final offsetAnimation = animation.drive(curveTween).drive(offsetTween);
     return SlideTransition(position: offsetAnimation, child: child);
   }

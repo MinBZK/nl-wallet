@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,6 +31,7 @@ const kNonFinalRoundMLeftoverAttemptsMentionThreshold = 3;
 typedef PinHeaderBuilder = Widget Function(
   BuildContext context,
   int? attemptsLeftInRound,
+  //ignore: avoid_positional_boolean_parameters
   bool isFinalRound,
 );
 
@@ -82,17 +85,19 @@ class PinPage extends StatelessWidget {
       listener: (context, state) async {
         final l10n = context.l10n;
         if (state is PinEntryInProgress) {
-          Future.delayed(kDefaultAnnouncementDelay).then((value) {
-            if (state.afterBackspacePressed) {
-              _announceEnteredDigits(l10n, state.enteredDigits);
-            } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-              _announceEnteredDigits(l10n, state.enteredDigits);
-            }
-          });
+          unawaited(
+            Future.delayed(kDefaultAnnouncementDelay).then((value) {
+              if (state.afterBackspacePressed) {
+                _announceEnteredDigits(l10n, state.enteredDigits);
+              } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+                _announceEnteredDigits(l10n, state.enteredDigits);
+              }
+            }),
+          );
         }
 
         /// Check for state interceptions
-        if (onStateChanged?.call(context, state) == true) return;
+        if (onStateChanged?.call(context, state) ?? false) return;
         if (onPinError != null && state is ErrorState) {
           onPinError!(context, state as ErrorState);
           return;
@@ -102,22 +107,16 @@ class PinPage extends StatelessWidget {
         switch (state) {
           case PinValidateSuccess():
             onPinValidated.call(state.returnUrl);
-            break;
           case PinValidateTimeout():
             PinTimeoutScreen.show(context, state.expiryTime);
-            break;
           case PinValidateBlocked():
             PinBlockedScreen.show(context);
-            break;
           case PinValidateNetworkError():
             ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
-            break;
           case PinValidateGenericError():
             ErrorScreen.showGeneric(context, secured: false);
-            break;
           case PinValidateFailure():
-            _showErrorDialog(context, state);
-            break;
+            await _showErrorDialog(context, state);
 
           /// No need to handle these explicitly as events for now.
           case PinEntryInProgress():
@@ -175,7 +174,7 @@ class PinPage extends StatelessWidget {
     );
     final rightSection = Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: SafeArea(
           left: false,
           right: true,

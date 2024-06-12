@@ -48,14 +48,14 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     on<DisclosureConfirmPinFailed>(_onConfirmPinFailed);
   }
 
-  void _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
+  Future<void> _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
     try {
       // Cancel any potential ongoing disclosure, this can happen when a second disclosure
       // deeplink is pressed while the disclosure flow is currently open. This opens a second
       // disclosure bloc before the original one is closed, thus we need to cancel it here.
       await _cancelDisclosureUseCase.invoke();
       final startDisclosureResult =
-          _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri, event.isQrCode);
+          _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri, isQrCode: event.isQrCode);
       if (startDisclosureResult is StartDisclosureReadyToDisclose && isLoginFlow) {
         emit(
           DisclosureCheckOrganizationForLogin(
@@ -94,7 +94,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     }
   }
 
-  void _onStopRequested(DisclosureStopRequested event, emit) async {
+  Future<void> _onStopRequested(DisclosureStopRequested event, emit) async {
     try {
       emit(DisclosureLoadInProgress());
       await _cancelDisclosureUseCase.invoke();
@@ -107,16 +107,16 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       } else {
         emit(
           DisclosureStopped(
-              organization: _startDisclosureResult!.relyingParty,
-              isLoginFlow: isLoginFlow,
-              returnUrl: null // See PVW-2577,
-              ),
+            organization: _startDisclosureResult!.relyingParty,
+            isLoginFlow: isLoginFlow,
+            returnUrl: null, // See PVW-2577,
+          ),
         );
       }
     }
   }
 
-  void _onBackPressed(DisclosureBackPressed event, emit) async {
+  Future<void> _onBackPressed(DisclosureBackPressed event, emit) async {
     final state = this.state;
     if (state is DisclosureConfirmDataAttributes) {
       assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
@@ -124,7 +124,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       emit(
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
-          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
+          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore ?? false,
           sessionType: _startDisclosureResult!.sessionType,
           originUrl: _startDisclosureResult!.originUrl,
           afterBackPressed: true,
@@ -137,14 +137,14 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         DisclosureCheckOrganization(
           relyingParty: state.relyingParty,
           originUrl: _startDisclosureResult!.originUrl,
-          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore == true,
+          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore ?? false,
           sessionType: _startDisclosureResult!.sessionType,
           afterBackPressed: true,
         ),
       );
     } else if (state is DisclosureConfirmPin) {
       assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state');
-      final result = _startDisclosureResult as StartDisclosureReadyToDisclose;
+      final result = _startDisclosureResult! as StartDisclosureReadyToDisclose;
       if (state.isLoginFlow) {
         emit(
           DisclosureCheckOrganizationForLogin(
@@ -171,7 +171,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     }
   }
 
-  void _onOrganizationApproved(DisclosureOrganizationApproved event, emit) async {
+  Future<void> _onOrganizationApproved(DisclosureOrganizationApproved event, emit) async {
     final startDisclosureResult = _startDisclosureResult;
     switch (startDisclosureResult) {
       case null:
@@ -227,7 +227,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     );
   }
 
-  void _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
+  Future<void> _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
     Fimber.d('User selected reporting option ${event.option}');
     try {
       emit(DisclosureLoadInProgress());
@@ -239,7 +239,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     }
   }
 
-  void _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
+  Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
     try {
       emit(DisclosureLoadInProgress());
       await _cancelDisclosureUseCase.invoke();
@@ -256,7 +256,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   @override
   Future<void> close() async {
-    _startDisclosureStreamSubscription?.cancel();
+    await _startDisclosureStreamSubscription?.cancel();
     return super.close();
   }
 }

@@ -29,7 +29,7 @@ class ActivitySummary extends StatelessWidget {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            border: Border.all(color: (context.colorScheme.outlineVariant)),
+            border: Border.all(color: context.colorScheme.outlineVariant),
             borderRadius: BorderRadius.circular(14),
           ),
           padding: const EdgeInsets.all(24),
@@ -85,7 +85,7 @@ class ActivitySummary extends StatelessWidget {
   }
 
   String _resolveSubtitleForEvents(BuildContext context, List<WalletEvent> events) {
-    List<String?> subtitleLines = [
+    final List<String?> subtitleLines = [
       _generateCardsAddedLine(context, events),
       _generatedLoggedInLine(context, events),
       _generateSharedWithLine(context, events),

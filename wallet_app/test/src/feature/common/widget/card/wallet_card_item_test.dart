@@ -12,7 +12,7 @@ void _voidCallback() {}
 /// This test also (indirectly) verifies:
 /// [ShowDetailsCta], [CardLogo] and [CardHolograph]
 void main() {
-  setUp(() => TestUtils.mockAccelerometerPlugin());
+  setUp(TestUtils.mockAccelerometerPlugin);
 
   group('goldens', () {
     testGoldens(

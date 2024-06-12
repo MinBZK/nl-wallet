@@ -1,3 +1,4 @@
+/// This implementation communicates with the rust implementation of the wallet_core
 library;
 
 /// Export [FlutterRustBridgeTaskConstMeta] so wallet_mock can implement [WalletCore]

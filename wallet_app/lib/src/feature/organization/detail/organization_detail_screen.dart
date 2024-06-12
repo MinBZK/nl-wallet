@@ -23,11 +23,12 @@ class OrganizationDetailScreen extends StatelessWidget {
   static OrganizationDetailScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return OrganizationDetailScreenArgument.fromMap(args as Map<String, dynamic>);
+      return OrganizationDetailScreenArgument.fromMap(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError(
-          'Make sure to pass in [organizationDetailScreenArgument] when opening the organizationDetailScreen');
+        'Make sure to pass in [organizationDetailScreenArgument] when opening the organizationDetailScreen',
+      );
     }
   }
 
@@ -153,7 +154,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             textAlign: TextAlign.start,
             style: context.textTheme.bodyLarge,
           ),
-        )
+        ),
       ],
     );
   }
@@ -310,8 +311,8 @@ class OrganizationDetailScreen extends StatelessWidget {
 
   static Future<void> showPreloaded(
     BuildContext context,
-    Organization organization,
-    bool sharedDataWithOrganizationBefore, {
+    Organization organization, {
+    required bool sharedDataWithOrganizationBefore,
     VoidCallback? onReportIssuePressed,
   }) {
     return Navigator.push(
@@ -342,7 +343,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildInteractionRow(BuildContext context, OrganizationDetailSuccess state) {
-    String interaction =
+    final String interaction =
         context.l10n.organizationDetailScreenSomeInteractions(state.organization.displayName.l10nValue(context));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),

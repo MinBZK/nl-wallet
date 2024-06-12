@@ -34,7 +34,7 @@ class _CheckPermissionOnResumeState extends State<CheckPermissionOnResume> with 
     if (state == AppLifecycleState.resumed) _checkPermission();
   }
 
-  void _checkPermission() async {
+  Future<void> _checkPermission() async {
     if (await widget.permission.isGranted) {
       widget.onPermissionGranted();
     }

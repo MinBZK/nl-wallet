@@ -43,7 +43,7 @@ class WalletPersonalizeConfirmPinPage extends StatelessWidget {
           }
 
           /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
-          bool forcedReset = state is PinValidateTimeout || state is PinValidateBlocked;
+          final bool forcedReset = state is PinValidateTimeout || state is PinValidateBlocked;
           if (forcedReset) WalletPersonalizeSetupFailedScreen.show(context);
           return forcedReset;
         },

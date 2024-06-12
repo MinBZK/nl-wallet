@@ -54,7 +54,7 @@ void main() {
                   DateTime(2023, 1),
                   mockAttributes,
                 ),
-              )
+              ),
             ],
           ),
           surfaceSize: kGoldenSize,
@@ -74,7 +74,7 @@ void main() {
                   DateTime(2023, 1),
                   mockAttributes,
                 ),
-              )
+              ),
             ],
           ),
           surfaceSize: kGoldenSize,
@@ -96,7 +96,7 @@ void main() {
                 DateTime(2023, 1),
                 mockAttributes,
               ),
-            )
+            ),
           ],
         ),
       );

@@ -35,7 +35,7 @@ class ErrorDetailsSheet extends StatelessWidget {
               ],
             ),
           ),
-          const BottomCloseButton()
+          const BottomCloseButton(),
         ],
       ),
     );

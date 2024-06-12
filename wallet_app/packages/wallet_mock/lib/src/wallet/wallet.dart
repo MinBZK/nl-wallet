@@ -20,7 +20,7 @@ class Wallet {
 
   bool get isEmpty => _cards.isEmpty;
 
-  bool containsAttributes(Iterable<String> keys) => keys.every((key) => containsAttribute(key));
+  bool containsAttributes(Iterable<String> keys) => keys.every(containsAttribute);
 
   bool containsAttribute(String attributeKey) {
     return _cards.any((element) => element.attributes.any((element) => element.key == attributeKey));
@@ -29,7 +29,7 @@ class Wallet {
   CardAttribute? findAttribute(String key) => _allAttributes.firstWhereOrNull((attribute) => attribute.key == key);
 
   List<DisclosureCard> getDisclosureCards(Iterable<String> keys) {
-    final allRequestedAttributes = keys.map((key) => findAttribute(key)).nonNulls;
+    final allRequestedAttributes = keys.map(findAttribute).nonNulls;
     final cardToAttributes = allRequestedAttributes
         .groupListsBy((attribute) => _cards.firstWhere((card) => card.attributes.contains(attribute)));
     return cardToAttributes.entries
