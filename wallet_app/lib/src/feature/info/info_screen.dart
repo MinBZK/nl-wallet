@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/paragraphed_list.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
-import '../common/widget/text/body_text.dart';
 
 /// Simple screen that renders the provided [title] and [description].
 class InfoScreen extends StatelessWidget {
   final String title;
+
+  /// Supports paragraphs by relying on [ParagraphedList]. I.e. the description is split by `\n\n`.
   final String description;
 
   const InfoScreen({
@@ -25,7 +27,9 @@ class InfoScreen extends StatelessWidget {
           slivers: [
             SliverWalletAppBar(title: title),
             SliverPadding(
-              sliver: SliverToBoxAdapter(child: BodyText(description)),
+              sliver: SliverToBoxAdapter(
+                child: ParagraphedList.splitContent(description),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),
             const SliverFillRemaining(
