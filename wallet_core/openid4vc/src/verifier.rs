@@ -438,12 +438,13 @@ where
             return Err(VerificationError::ReturnUrlConfigurationMismatch);
         }
 
-        let (session_token, session_state) = Session::<Created>::new(
+        let session_state = Session::<Created>::new(
             items_requests,
             usecase_id,
             use_case.client_id.clone(),
             return_url_template,
         )?;
+        let session_token = session_state.state.token.clone();
 
         self.sessions
             .write(session_state.into(), true)
@@ -690,7 +691,7 @@ impl Session<Created> {
         usecase_id: String,
         client_id: String,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<(SessionToken, Session<Created>), VerificationError> {
+    ) -> Result<Session<Created>, VerificationError> {
         let session_token = SessionToken::new_random();
         let session = Session::<Created> {
             state: SessionState::new(
@@ -704,7 +705,7 @@ impl Session<Created> {
             ),
         };
 
-        Ok((session_token, session))
+        Ok(session)
     }
 
     /// Process the device's request for the Authorization Request,
