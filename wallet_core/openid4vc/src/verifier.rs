@@ -106,6 +106,10 @@ pub enum GetAuthRequestError {
     AuthRequest(#[from] AuthRequestError),
     #[error("error signing Authorization Request JWE: {0}")]
     Jwt(#[from] JwtError),
+    #[error("presence or absence of return url template does not match configuration for the required use case")]
+    ReturnUrlConfigurationMismatch,
+    #[error("unknown use case: {0}")]
+    UnknownUseCase(String),
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
@@ -759,10 +763,11 @@ impl Session<Created> {
         ),
         GetAuthRequestError,
     > {
-        let usecase = &use_cases
+        let usecase = &self.state().usecase_id;
+        let usecase = use_cases
             .as_ref()
-            .get(&self.state().usecase_id)
-            .expect("usecase_id should always refers to existing use case");
+            .get(usecase)
+            .ok_or(GetAuthRequestError::UnknownUseCase(usecase.to_string()))?;
 
         // Determine if we should include a redirect URI, based on the use case configuration and session type.
         let redirect_uri = match (
@@ -778,7 +783,11 @@ impl Session<Created> {
             (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
                 None
             }
-            _ => panic!("return URL configuration mismatch"), // We checked for this case when the session was created
+            _ => {
+                // We checked for this case when the session was created, so this should not happen
+                // except when the configuration has changed during this session.
+                return Err(GetAuthRequestError::ReturnUrlConfigurationMismatch);
+            }
         };
 
         // Construct the Authorization Request.
