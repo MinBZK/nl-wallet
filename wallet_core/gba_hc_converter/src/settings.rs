@@ -86,7 +86,7 @@ impl Settings {
 
         Config::builder()
             .set_default("ip", "0.0.0.0")?
-            .set_default("port", 3006)?
+            .set_default("port", 3008)?
             .add_source(File::from(config_path.join("gba_hc_converter.toml")).required(false))
             .add_source(
                 Environment::with_prefix("gba_hc_converter")

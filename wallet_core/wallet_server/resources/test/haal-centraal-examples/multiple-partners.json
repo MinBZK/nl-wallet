@@ -1,0 +1,101 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "burgerservicenummer": "999992958",
+      "geslacht": {
+        "code": "V"
+      },
+      "leeftijd": 54,
+      "naam": {
+        "aanduidingNaamgebruik": {
+          "code": "E"
+        },
+        "voornamen": "Anita",
+        "voorvoegsel": "van",
+        "geslachtsnaam": "Buren",
+        "voorletters": "A.",
+        "volledigeNaam": "Anita van Buren"
+      },
+      "nationaliteiten": [
+        {
+          "type": "Nationaliteit",
+          "datumIngangGeldigheid": {
+            "type": "Datum",
+            "datum": "1969-12-15",
+            "langFormaat": "15 december 1969"
+          },
+          "nationaliteit": {
+            "code": "0001",
+            "omschrijving": "Nederlandse"
+          },
+          "redenOpname": {
+            "code": "001"
+          },
+          "reason_termination": null
+        }
+      ],
+      "geboorte": {
+        "land": {
+          "code": "6030",
+          "omschrijving": "Nederland"
+        },
+        "plaats": {
+          "code": "0294",
+          "omschrijving": "Winterswijk"
+        },
+        "datum": {
+          "type": "Datum",
+          "datum": "1969-12-15",
+          "langFormaat": "15 december 1969"
+        }
+      },
+      "verblijfplaats": {
+        "type": "Adres",
+        "verblijfadres": {
+          "officieleStraatnaam": "Bijlmerplein",
+          "korteStraatnaam": "Bijlmerplein",
+          "huisnummer": 550,
+          "postcode": "1102DS",
+          "woonplaats": "Amsterdam"
+        },
+        "functieAdres": {
+          "code": "T"
+        }
+      },
+      "adressering": {
+        "aanhef": "Geachte mevrouw Van Buren",
+        "aanschrijfwijze": {
+          "naam": "A. van Buren"
+        },
+        "gebruikInLopendeTekst": "mevrouw Van Buren",
+        "adresregel1": "Bijlmerplein 550",
+        "adresregel2": "1102 DS  AMSTERDAM"
+      },
+      "partners": [
+        {
+          "soortVerbintenis": {
+            "code": "H"
+          },
+          "naam": {
+            "geslachtsnaam": "Postma",
+            "aanduidingNaamgebruik": {
+              "code": "E"
+            }
+          }
+        },
+        {
+          "soortVerbintenis": {
+            "code": "H"
+          },
+          "naam": {
+            "geslachtsnaam": "Schoon",
+            "aanduidingNaamgebruik": {
+              "code": "E"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

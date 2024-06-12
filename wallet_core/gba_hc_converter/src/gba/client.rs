@@ -143,21 +143,10 @@ const VRAAG_REQUEST: &str = r#"
                     <ns0:item>48310</ns0:item>
                     <ns0:item>48320</ns0:item>
                     <ns0:item>48510</ns0:item>
-                    <ns0:item>50120</ns0:item>
-                    <ns0:item>50210</ns0:item>
                     <ns0:item>50230</ns0:item>
                     <ns0:item>50240</ns0:item>
-                    <ns0:item>50310</ns0:item>
-                    <ns0:item>50320</ns0:item>
-                    <ns0:item>50330</ns0:item>
-                    <ns0:item>50410</ns0:item>
                     <ns0:item>50610</ns0:item>
-                    <ns0:item>50620</ns0:item>
-                    <ns0:item>50630</ns0:item>
-                    <ns0:item>50710</ns0:item>
                     <ns0:item>51510</ns0:item>
-                    <ns0:item>58310</ns0:item>
-                    <ns0:item>58320</ns0:item>
                     <ns0:item>81110</ns0:item>
                     <ns0:item>81115</ns0:item>
                     <ns0:item>81120</ns0:item>

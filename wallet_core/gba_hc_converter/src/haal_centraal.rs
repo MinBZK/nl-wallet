@@ -286,10 +286,15 @@ impl TryFrom<&Categorievoorkomen> for GbaPartner {
     fn try_from(value: &Categorievoorkomen) -> Result<Self, Self::Error> {
         let partner = GbaPartner {
             name: value.try_into()?,
-            birth: value.try_into()?,
-            gender: GbaCode {
-                code: value.elementen.get_mandatory(Element::Geslacht.code())?,
-            },
+            birth: value
+                .elementen
+                .get_optional(Element::Geboortedatum.code())
+                .map(|_| value.try_into())
+                .transpose()?,
+            gender: value
+                .elementen
+                .get_optional(Element::Geslacht.code())
+                .map(|geslacht| GbaCode { code: geslacht }),
             kind: GbaCode {
                 code: value.elementen.get_mandatory(Element::SoortVerbintenis.code())?,
             },
@@ -491,13 +496,13 @@ pub struct GbaNationality {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct GbaPartner {
     #[serde(rename = "geslacht")]
-    gender: GbaCode,
+    gender: Option<GbaCode>,
 
     #[serde(rename = "naam")]
     name: GbaName,
 
     #[serde(rename = "geboorte")]
-    birth: GbaBirth,
+    birth: Option<GbaBirth>,
 
     #[serde(rename = "soortVerbintenis")]
     kind: GbaCode,
