@@ -127,7 +127,8 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
 
   String getNationality(BuildContext context, List<T> attributes) => findByKey(context, attributes, nationalityKey)!;
 
-  String getSpouseOrPartner(BuildContext context, List<T> attributes) => findByKey(context, attributes, hasSpouseOrPartnerKey)!;
+  String getSpouseOrPartner(BuildContext context, List<T> attributes) =>
+      findByKey(context, attributes, hasSpouseOrPartnerKey)!;
 
   String getBsn(BuildContext context, List<T> attributes) => findByKey(context, attributes, bsnKey)!;
 
