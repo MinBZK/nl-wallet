@@ -20,7 +20,10 @@ use openid4vc::{
     disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
     jwt,
     mock::MockMdocDataSource,
-    openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+    openid4vp::{
+        IsoVpAuthorizationRequest, VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse,
+        VpRequestUriObject,
+    },
     verifier::{DisclosureData, StatusResponse, UseCase, Verifier, WalletAuthResponse},
     ErrorResponse,
 };
@@ -35,7 +38,7 @@ async fn disclosure_direct() {
     let nonce = "nonce".to_string();
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
-    let auth_request = VpAuthorizationRequest::new(
+    let iso_auth_request = IsoVpAuthorizationRequest::new(
         &Examples::items_requests(),
         auth_keypair.certificate(),
         nonce.clone(),
@@ -43,6 +46,7 @@ async fn disclosure_direct() {
         response_uri,
     )
     .unwrap();
+    let auth_request = iso_auth_request.clone().into();
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
@@ -52,7 +56,7 @@ async fn disclosure_direct() {
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
     let disclosed_attrs = auth_response
         .verify(
-            &auth_request.try_into().unwrap(),
+            &iso_auth_request,
             &mdoc_nonce,
             &IsoCertTimeGenerator,
             Examples::iaca_trust_anchors(),
@@ -155,14 +159,15 @@ impl DirectMockVpMessageClient {
         let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
-        let auth_request = VpAuthorizationRequest::new(
+        let auth_request = IsoVpAuthorizationRequest::new(
             &Examples::items_requests(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
             response_uri.clone(),
         )
-        .unwrap();
+        .unwrap()
+        .into();
 
         Self {
             nonce,

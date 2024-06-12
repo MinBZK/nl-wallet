@@ -261,46 +261,6 @@ pub enum AuthRequestValidationError {
 }
 
 impl VpAuthorizationRequest {
-    pub fn new(
-        items_requests: &ItemsRequests,
-        rp_certificate: &Certificate,
-        nonce: String,
-        encryption_pubkey: JwePublicKey,
-        response_uri: BaseUrl,
-    ) -> Result<Self, AuthRequestError> {
-        Ok(VpAuthorizationRequest {
-            aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequest {
-                response_type: ResponseType::VpToken.into(),
-                client_id: rp_certificate
-                    .san_dns_name()
-                    .map_err(AuthRequestError::CertificateParsing)?
-                    .ok_or(AuthRequestError::MissingSAN)?,
-                nonce: Some(nonce),
-                response_mode: Some(ResponseMode::DirectPostJwt),
-                redirect_uri: None,
-                state: None,
-                authorization_details: None,
-                request_uri: None,
-                code_challenge: None,
-                scope: None,
-            },
-            presentation_definition: VpPresentationDefinition::Direct(items_requests.into()),
-            client_metadata: Some(VpClientMetadata::Direct(ClientMetadata {
-                jwks: VpJwks::Direct {
-                    keys: vec![encryption_pubkey.into_inner()],
-                },
-                vp_formats: VpFormat::MsoMdoc {
-                    alg: IndexSet::from([FormatAlg::ES256]),
-                },
-                authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
-                authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
-            })),
-            client_id_scheme: Some(ClientIdScheme::X509SanDns),
-            response_uri: Some(response_uri),
-        })
-    }
-
     /// Verify an Authorization Request JWT against the specified trust anchors, additionally checking that
     /// - the request contents are compliant with the profile from ISO 18013-7 Appendix B,
     /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the
@@ -785,14 +745,15 @@ mod tests {
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
-        let auth_request = VpAuthorizationRequest::new(
+        let auth_request = IsoVpAuthorizationRequest::new(
             &Examples::items_requests(),
             rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             "https://example.com/response_uri".parse().unwrap(),
         )
-        .unwrap();
+        .unwrap()
+        .into();
 
         (ca, rp_keypair, encryption_privkey, auth_request)
     }
