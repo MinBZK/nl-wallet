@@ -472,19 +472,21 @@ where
         Ok(())
     }
 
+    async fn get_session(&self, session_token: &SessionToken) -> Result<SessionState<DisclosureData>, SessionError> {
+        self.sessions
+            .get(session_token)
+            .await
+            .map_err(SessionError::SessionStore)?
+            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))
+    }
+
     pub async fn process_get_request(
         &self,
         session_token: &SessionToken,
         verifier_base_url: &BaseUrl,
         url_params: VerifierUrlParameters,
     ) -> Result<Jwt<VpAuthorizationRequest>, GetAuthRequestError> {
-        let session: Session<Created> = self
-            .sessions
-            .get(session_token)
-            .await
-            .map_err(SessionError::SessionStore)?
-            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
-            .try_into()?;
+        let session: Session<Created> = self.get_session(session_token).await?.try_into()?;
 
         info!("Session({session_token}): get request");
 
@@ -515,13 +517,7 @@ where
         wallet_response: WalletAuthResponse,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VpResponse, PostAuthResponseError> {
-        let session: Session<WaitingForResponse> = self
-            .sessions
-            .get(session_token)
-            .await
-            .map_err(SessionError::SessionStore)?
-            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
-            .try_into()?;
+        let session: Session<WaitingForResponse> = self.get_session(session_token).await?.try_into()?;
 
         let (result, next) = session.process_authorization_response(
             session_token,
@@ -549,14 +545,7 @@ where
         verifier_base_url: &BaseUrl,
         session_type: SessionType,
     ) -> Result<StatusResponse, VerificationError> {
-        let response = match self
-            .sessions
-            .get(session_token)
-            .await
-            .map_err(SessionError::SessionStore)?
-            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
-            .data
-        {
+        let response = match self.get_session(session_token).await?.data {
             DisclosureData::Created(Created { client_id, .. }) => {
                 let time = Utc::now();
                 let ul = Self::format_ul(
@@ -594,13 +583,7 @@ where
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
     ) -> Result<DisclosedAttributes, VerificationError> {
-        let disclosure_data = self
-            .sessions
-            .get(session_token)
-            .await
-            .map_err(SessionError::SessionStore)?
-            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))?
-            .data;
+        let disclosure_data = self.get_session(session_token).await?.data;
 
         match disclosure_data {
             DisclosureData::Done(Done {
