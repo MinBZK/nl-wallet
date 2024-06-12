@@ -787,7 +787,7 @@ impl Session<Created> {
             .join_base_url("response_uri")
             .join_base_url(self.state.token.as_ref());
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256)?;
-        let auth_request = VpAuthorizationRequest::new(
+        let auth_request = IsoVpAuthorizationRequest::new(
             &self.state.data.items_requests,
             usecase.key_pair.certificate(),
             nonce.clone(),
@@ -795,10 +795,10 @@ impl Session<Created> {
             response_uri,
         )?;
 
-        let jws = jwt::sign_with_certificate(&auth_request, &usecase.key_pair).await?;
+        let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
+        let jws = jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair).await?;
 
-        let iso_auth_request = IsoVpAuthorizationRequest::new(auth_request).unwrap(); // Our own requests are always valid
-        Ok((jws, iso_auth_request, redirect_uri, encryption_keypair))
+        Ok((jws, auth_request, redirect_uri, encryption_keypair))
     }
 }
 

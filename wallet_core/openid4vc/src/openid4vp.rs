@@ -320,7 +320,7 @@ impl VpAuthorizationRequest {
             });
         }
 
-        let validated_auth_request = IsoVpAuthorizationRequest::new(auth_request)?;
+        let validated_auth_request = IsoVpAuthorizationRequest::try_from(auth_request)?;
 
         Ok((validated_auth_request, rp_cert))
     }
@@ -342,9 +342,68 @@ pub struct IsoVpAuthorizationRequest {
 }
 
 impl IsoVpAuthorizationRequest {
-    /// Construct a new instance from a [`VpAuthorizationRequest`], validating that the specified request contents
-    /// are compliant with the profile from ISO 18013-7 Appendix B.
-    pub fn new(vp_auth_request: VpAuthorizationRequest) -> Result<Self, AuthRequestValidationError> {
+    pub fn new(
+        items_requests: &ItemsRequests,
+        rp_certificate: &Certificate,
+        nonce: String,
+        encryption_pubkey: JwePublicKey,
+        response_uri: BaseUrl,
+    ) -> Result<Self, AuthRequestError> {
+        let encryption_pubkey = encryption_pubkey.into_inner();
+
+        Ok(Self {
+            client_id: rp_certificate
+                .san_dns_name()
+                .map_err(AuthRequestError::CertificateParsing)?
+                .ok_or(AuthRequestError::MissingSAN)?,
+            nonce,
+            encryption_pubkey: encryption_pubkey.clone(),
+            response_uri,
+            presentation_definition: items_requests.into(),
+            items_requests: items_requests.clone(),
+            client_metadata: ClientMetadata {
+                jwks: VpJwks::Direct {
+                    keys: vec![encryption_pubkey.clone()],
+                },
+                vp_formats: VpFormat::MsoMdoc {
+                    alg: IndexSet::from([FormatAlg::ES256]),
+                },
+                authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
+                authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
+            },
+            state: None,
+        })
+    }
+}
+
+impl From<IsoVpAuthorizationRequest> for VpAuthorizationRequest {
+    fn from(value: IsoVpAuthorizationRequest) -> Self {
+        Self {
+            aud: VpAuthorizationRequestAudience::SelfIssued,
+            oauth_request: AuthorizationRequest {
+                response_type: ResponseType::VpToken.into(),
+                client_id: value.client_id,
+                nonce: Some(value.nonce),
+                response_mode: Some(ResponseMode::DirectPostJwt),
+                redirect_uri: None,
+                state: None,
+                authorization_details: None,
+                request_uri: None,
+                code_challenge: None,
+                scope: None,
+            },
+            presentation_definition: VpPresentationDefinition::Direct(value.presentation_definition),
+            client_metadata: Some(VpClientMetadata::Direct(value.client_metadata)),
+            client_id_scheme: Some(ClientIdScheme::X509SanDns),
+            response_uri: Some(value.response_uri),
+        }
+    }
+}
+
+impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
+    type Error = AuthRequestValidationError;
+
+    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, Self::Error> {
         // Check absence of fields that must not be present in an OpenID4VP Authorization Request
         if vp_auth_request.oauth_request.authorization_details.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
@@ -442,14 +501,6 @@ impl IsoVpAuthorizationRequest {
             client_metadata,
             state: vp_auth_request.oauth_request.state,
         })
-    }
-}
-
-impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
-    type Error = AuthRequestValidationError;
-
-    fn try_from(value: VpAuthorizationRequest) -> Result<Self, Self::Error> {
-        Self::new(value)
     }
 }
 
@@ -752,7 +803,7 @@ mod tests {
         // an Authorization Response JWE.
         let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
-        let auth_request = IsoVpAuthorizationRequest::new(auth_request).unwrap();
+        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
         let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
 
@@ -831,7 +882,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        IsoVpAuthorizationRequest::new(auth_request).unwrap();
+        IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
     #[test]
@@ -917,7 +968,7 @@ mod tests {
         let (_, _, _, auth_request) = setup();
         let mdoc_nonce = "mdoc_nonce";
 
-        let auth_request = IsoVpAuthorizationRequest::new(auth_request).unwrap();
+        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
             &auth_request.client_id,
