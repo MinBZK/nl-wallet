@@ -52,21 +52,22 @@ class ConfirmAgreementPage extends StatelessWidget {
             hasScrollBody: false,
             fillOverscroll: true,
             child: Container(
-                alignment: Alignment.bottomCenter,
-                child: ConfirmButtons(
-                  primaryButton: PrimaryButton(
-                    key: const Key('acceptButton'),
-                    onPressed: onAcceptPressed,
-                    text: Text(context.l10n.confirmAgreementPageConfirmCta),
-                    icon: null,
-                  ),
-                  secondaryButton: SecondaryButton(
-                    key: const Key('rejectButton'),
-                    onPressed: onDeclinePressed,
-                    icon: const Icon(Icons.block_flipped),
-                    text: Text(context.l10n.confirmAgreementPageCancelCta),
-                  ),
-                )),
+              alignment: Alignment.bottomCenter,
+              child: ConfirmButtons(
+                primaryButton: PrimaryButton(
+                  key: const Key('acceptButton'),
+                  onPressed: onAcceptPressed,
+                  text: Text(context.l10n.confirmAgreementPageConfirmCta),
+                  icon: null,
+                ),
+                secondaryButton: SecondaryButton(
+                  key: const Key('rejectButton'),
+                  onPressed: onDeclinePressed,
+                  icon: const Icon(Icons.block_flipped),
+                  text: Text(context.l10n.confirmAgreementPageCancelCta),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -124,7 +125,7 @@ class ConfirmAgreementPage extends StatelessWidget {
               context.l10n.confirmAgreementPageSignProvider(trustProvider.displayName.l10nValue(context)),
               style: context.textTheme.bodyLarge,
             ),
-          )
+          ),
         ],
       ),
     );

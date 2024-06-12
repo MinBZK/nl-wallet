@@ -36,13 +36,13 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   Organization? get organization => _startIssuanceResult?.relyingParty;
 
   IssuanceBloc(
-    String issuanceUri,
-    this.isRefreshFlow,
     this.startIssuanceUseCase,
     this.continueIssuanceUseCase,
     this.acceptIssuanceUseCase,
-    this.cancelIssuanceUseCase,
-  ) : super(const IssuanceInitial()) {
+    this.cancelIssuanceUseCase, {
+    required String issuanceUri,
+    required this.isRefreshFlow,
+  }) : super(const IssuanceInitial()) {
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
     on<IssuanceOrganizationApproved>(_onIssuanceOrganizationApproved);
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
@@ -59,14 +59,14 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     _initIssuance(issuanceUri);
   }
 
-  void _initIssuance(String issuanceUri) async {
+  Future<void> _initIssuance(String issuanceUri) async {
     try {
       _startIssuanceResult = await startIssuanceUseCase.invoke(issuanceUri);
       if (isRefreshFlow) {
         /// We assume all the app is in [StartIssuanceReadyToDisclose] state for ALL refresh flows, as the
         /// requested attributes were available for the initial issuance. If that's somehow not the case the
         /// user will always be presented with the [IssuanceGenericError] state.
-        final attributes = (_startIssuanceResult as StartIssuanceReadyToDisclose).requestedAttributes;
+        final attributes = (_startIssuanceResult! as StartIssuanceReadyToDisclose).requestedAttributes;
         add(
           IssuanceUpdateState(
             IssuanceProofIdentity(
@@ -86,14 +86,16 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  void _onIssuanceBackPressed(event, emit) async {
+  Future<void> _onIssuanceBackPressed(event, emit) async {
     final state = this.state;
     if (state.canGoBack) {
       if (state is IssuanceProofIdentity) {
-        emit(IssuanceCheckOrganization(
-          organization: _startIssuanceResult!.relyingParty,
-          afterBackPressed: true,
-        ));
+        emit(
+          IssuanceCheckOrganization(
+            organization: _startIssuanceResult!.relyingParty,
+            afterBackPressed: true,
+          ),
+        );
       }
       if (state is IssuanceProvidePin) {
         emit(
@@ -103,7 +105,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
             organization: _startIssuanceResult!.relyingParty,
             policy: _startIssuanceResult!.policy,
             requestedAttributes:
-                (_startIssuanceResult as StartIssuanceReadyToDisclose).requestedAttributes.values.flattened.toList(),
+                (_startIssuanceResult! as StartIssuanceReadyToDisclose).requestedAttributes.values.flattened.toList(),
           ),
         );
       }
@@ -118,16 +120,18 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         );
       }
       if (state is IssuanceCheckCards && !state.multipleCardsFlow.isAtFirstCard) {
-        emit(IssuanceCheckCards(
-          isRefreshFlow: isRefreshFlow,
-          multipleCardsFlow: state.multipleCardsFlow.previous(),
-          didGoBack: true,
-        ));
+        emit(
+          IssuanceCheckCards(
+            isRefreshFlow: isRefreshFlow,
+            multipleCardsFlow: state.multipleCardsFlow.previous(),
+            didGoBack: true,
+          ),
+        );
       }
     }
   }
 
-  void _onIssuanceOrganizationApproved(event, emit) async {
+  Future<void> _onIssuanceOrganizationApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckOrganization) throw UnsupportedError('Incorrect state to $state');
     final result = _startIssuanceResult;
@@ -154,18 +158,18 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  void _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
+  Future<void> _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
     await cancelIssuanceUseCase.invoke();
     emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
   }
 
-  void _onIssuanceShareRequestedAttributesApproved(event, emit) async {
+  Future<void> _onIssuanceShareRequestedAttributesApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceProofIdentity) throw UnsupportedError('Incorrect state to $state');
     emit(IssuanceProvidePin(isRefreshFlow: isRefreshFlow));
   }
 
-  void _onIssuancePinConfirmed(event, emit) async {
+  Future<void> _onIssuancePinConfirmed(event, emit) async {
     final issuance = _startIssuanceResult;
     if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
     if (issuance == null) throw UnsupportedError('Can not move to select cards state without date');
@@ -181,14 +185,16 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         ),
       );
     } else {
-      emit(IssuanceCheckDataOffering(
-        isRefreshFlow: isRefreshFlow,
-        card: result.cards.first,
-      ));
+      emit(
+        IssuanceCheckDataOffering(
+          isRefreshFlow: isRefreshFlow,
+          card: result.cards.first,
+        ),
+      );
     }
   }
 
-  void _onIssuanceCheckDataOfferingApproved(event, emit) async {
+  Future<void> _onIssuanceCheckDataOfferingApproved(event, emit) async {
     final state = this.state;
     if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state to $state');
 
@@ -196,7 +202,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     emit(IssuanceCompleted(isRefreshFlow: isRefreshFlow, addedCards: _continueIssuanceResult!.cards));
   }
 
-  void _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
+  Future<void> _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
     await cancelIssuanceUseCase.invoke();
     emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
   }

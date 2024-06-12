@@ -36,56 +36,62 @@ void main() {
       });
 
       test('when all provided activities occurred today, the mode is today', () {
-        final summary = ActivitySummary(events: [
-          WalletEvent.issuance(
-            dateTime: DateTime.now(),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          ),
-          WalletEvent.issuance(
-            dateTime: DateTime.now(),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          ),
-        ]);
+        final summary = ActivitySummary(
+          events: [
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+          ],
+        );
         expect(summary.mode, ActivityDisplayMode.today);
       });
 
       test('when the provided activities include activities from the last week, the mode is lastWeek', () {
-        final summary = ActivitySummary(events: [
-          WalletEvent.issuance(
-            dateTime: DateTime.now(),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          ),
-          WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 3)),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          ),
-          WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 20)),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          ),
-        ]);
+        final summary = ActivitySummary(
+          events: [
+            WalletEvent.issuance(
+              dateTime: DateTime.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now().add(const Duration(days: 3)),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now().add(const Duration(days: 20)),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+          ],
+        );
         expect(summary.mode, ActivityDisplayMode.lastWeek);
       });
 
       test('when the provided activities only include activities from the more than a week ago, the mode is lastMonth',
           () {
-        final summary = ActivitySummary(events: [
-          WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 8)),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          ),
-          WalletEvent.issuance(
-            dateTime: DateTime.now().add(const Duration(days: 20)),
-            status: EventStatus.success,
-            card: WalletMockData.card,
-          ),
-        ]);
+        final summary = ActivitySummary(
+          events: [
+            WalletEvent.issuance(
+              dateTime: DateTime.now().add(const Duration(days: 8)),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+            WalletEvent.issuance(
+              dateTime: DateTime.now().add(const Duration(days: 20)),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+          ],
+        );
         expect(summary.mode, ActivityDisplayMode.lastWeek);
       });
     },

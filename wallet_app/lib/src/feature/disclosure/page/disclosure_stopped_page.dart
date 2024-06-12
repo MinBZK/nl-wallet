@@ -38,7 +38,7 @@ class DisclosureStoppedPage extends StatelessWidget {
   }
 
   String _resolvePrimaryCta(BuildContext context) {
-    final returnUrlCase = ReturnUrlCase.resolve(isLoginFlow, returnUrl != null);
+    final returnUrlCase = ReturnUrlCase.resolve(isLoginFlow: isLoginFlow, hasReturnUrl: returnUrl != null);
     return switch (returnUrlCase) {
       ReturnUrlCase.returnUrl => context.l10n.disclosureStoppedPageCloseCta,
       ReturnUrlCase.noReturnUrl => context.l10n.disclosureStoppedPageCloseCta,

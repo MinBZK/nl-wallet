@@ -27,7 +27,10 @@ class HistoryDetailLoadSuccess extends HistoryDetailState {
   }
 
   HistoryDetailLoadSuccess(this.event, this.relatedCards)
-      : assert(_verifyAllRelatedCardsProvided(relatedCards, event.attributes));
+      : assert(
+          _verifyAllRelatedCardsProvided(relatedCards, event.attributes),
+          'All cards of which data is provided should also be available',
+        );
 
   /// Groups the [DataAttribute]s with the [WalletCard] they are sourced from.
   /// The call to [cardByDocType] is safely force unwrapped because we assert [_verifyAllRelatedCardsProvided]

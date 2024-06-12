@@ -15,7 +15,7 @@ class Environment {
       const String.fromEnvironment('SENTRY_ENVIRONMENT', defaultValue: 'unspecified');
 
   static String? sentryRelease() {
-    var release = const String.fromEnvironment('SENTRY_RELEASE', defaultValue: 'unspecified');
+    const release = String.fromEnvironment('SENTRY_RELEASE', defaultValue: 'unspecified');
     if (release == 'unspecified') {
       return null;
     } else {

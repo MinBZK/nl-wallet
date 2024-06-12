@@ -19,7 +19,7 @@ import '../pin/pin_page_test.dart';
 class MockIssuanceBloc extends MockBloc<IssuanceEvent, IssuanceState> implements IssuanceBloc {}
 
 void main() {
-  MultipleCardsFlow mockMultipleCardsFlow = MultipleCardsFlow(
+  final MultipleCardsFlow mockMultipleCardsFlow = MultipleCardsFlow(
     cardToOrganizations: {
       WalletMockData.card: WalletMockData.organization,
       WalletMockData.altCard: WalletMockData.organization,

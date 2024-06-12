@@ -28,7 +28,7 @@ class CoreSignRepository implements SignRepository {
 
   @override
   Future<StartSignResult> startSigning(String signUri) async {
-    final result = (await _coreForSigning.startSigning(signUri));
+    final result = await _coreForSigning.startSigning(signUri);
     switch (result) {
       case StartSignResultReadyToDisclose():
         final cards = _disclosureCardMapper.mapList(result.disclosureCards);

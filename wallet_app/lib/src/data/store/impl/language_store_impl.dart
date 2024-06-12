@@ -19,9 +19,9 @@ class LanguageStoreImpl extends LanguageStore {
   Future<void> setPreferredLanguageCode(String? languageCode) async {
     final prefs = await _preferences.call();
     if (languageCode == null) {
-      prefs.remove(_kPreferredLanguageCodeKey);
+      await prefs.remove(_kPreferredLanguageCodeKey);
     } else {
-      prefs.setString(_kPreferredLanguageCodeKey, languageCode);
+      await prefs.setString(_kPreferredLanguageCodeKey, languageCode);
     }
   }
 }

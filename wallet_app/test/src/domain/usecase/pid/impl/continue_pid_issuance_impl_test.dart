@@ -19,7 +19,11 @@ void main() {
   group('PidIssuance Status Verification', () {
     test('PidIssuanceSuccess is emitted with the sample attributes', () async {
       final sampleAttribute = DataAttribute.untranslated(
-          key: 'key', label: 'label', value: const StringValue('value'), sourceCardDocType: 'sourceCardId');
+        key: 'key',
+        label: 'label',
+        value: const StringValue('value'),
+        sourceCardDocType: 'sourceCardId',
+      );
       const samplePidIssuanceUri = 'https://example.org';
       when(mockRepo.continuePidIssuance(samplePidIssuanceUri)).thenAnswer((_) async => [sampleAttribute]);
 

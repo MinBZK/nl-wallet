@@ -14,15 +14,12 @@ class CheckNavigationPrerequisitesUseCaseImpl implements CheckNavigationPrerequi
         case NavigationPrerequisite.walletUnlocked:
           final isLocked = await _walletRepository.isLockedStream.first;
           if (isLocked) return false;
-          break;
         case NavigationPrerequisite.walletInitialized:
           final isInitialized = await _walletRepository.isRegistered();
           if (!isInitialized) return false;
-          break;
         case NavigationPrerequisite.pidInitialized:
           final containsPid = await _walletRepository.containsPid();
           if (!containsPid) return false;
-          break;
       }
     }
     return true;

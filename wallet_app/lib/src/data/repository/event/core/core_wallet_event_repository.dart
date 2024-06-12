@@ -41,6 +41,5 @@ class CoreWalletEventRepository extends WalletEventRepository {
   }
 
   @override
-  Stream<List<WalletEvent>> observeRecentEvents() =>
-      _walletCore.observeRecentHistory().map((event) => _walletEventMapper.mapList(event));
+  Stream<List<WalletEvent>> observeRecentEvents() => _walletCore.observeRecentHistory().map(_walletEventMapper.mapList);
 }

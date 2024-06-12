@@ -10,7 +10,7 @@ class ColorStylesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       children: [
         _ColorRow(
           name: 'colorScheme.primary',

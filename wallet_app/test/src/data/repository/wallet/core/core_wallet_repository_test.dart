@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:rxdart/rxdart.dart';
@@ -43,15 +45,15 @@ void main() {
 
   group('locked state', () {
     test('locked defaults to true', () async {
-      expect((await repo.isLockedStream.first), true);
+      expect(await repo.isLockedStream.first, true);
     });
 
     test('locked state is updated when unlocked', () async {
       // Setup to make sure wallet is registered and can be unlocked
       await repo.createWallet(_kValidPin);
-      repo.lockWallet();
+      await repo.lockWallet();
 
-      expectLater(repo.isLockedStream, emitsInOrder([true, false]));
+      unawaited(expectLater(repo.isLockedStream, emitsInOrder([true, false])));
       await repo.unlockWallet(_kValidPin);
     });
 
@@ -59,12 +61,12 @@ void main() {
       // Setup to make sure wallet is registered and can is unlocked
       await repo.createWallet(_kValidPin);
 
-      expectLater(repo.isLockedStream, emitsInOrder([false, true]));
-      repo.lockWallet();
+      unawaited(expectLater(repo.isLockedStream, emitsInOrder([false, true])));
+      await repo.lockWallet();
     });
 
     test('locked state is not updated when incorrect pin is provided', () async {
-      expectLater(repo.isLockedStream, emitsInOrder([true]));
+      unawaited(expectLater(repo.isLockedStream, emitsInOrder([true])));
       await repo.createWallet('invalid');
     });
 
@@ -88,8 +90,8 @@ void main() {
 
   group('wallet creation', () {
     test('wallet is unlocked after registration', () async {
-      expectLater(repo.isLockedStream, emitsInOrder([true, false]));
-      repo.createWallet(_kValidPin);
+      unawaited(expectLater(repo.isLockedStream, emitsInOrder([true, false])));
+      await repo.createWallet(_kValidPin);
     });
   });
 
@@ -115,7 +117,7 @@ void main() {
   group('leftover attempts', () {
     test('result exposes correct amount of leftover pin attempts', () async {
       await repo.createWallet(_kValidPin);
-      repo.lockWallet();
+      await repo.lockWallet();
 
       when(core.unlockWallet(any)).thenAnswer(
         (_) async => const WalletInstructionResult.instructionError(

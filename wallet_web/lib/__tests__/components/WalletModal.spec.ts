@@ -1,4 +1,4 @@
-import { createEngagement } from "@/api/engagement"
+import { createSession } from "@/api/session"
 import { getStatus } from "@/api/status"
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
@@ -9,13 +9,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 await import("../setup")
 
-vi.mock("@/api/engagement")
+vi.mock("@/api/session")
 vi.mock("@/api/status")
 
 describe("WalletModal", () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllTimers()
+  })
+
+  it("should show loading screen", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+    })
+
+    expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
+    await flushPromises()
+    expect(wrapper.find("[data-testid=loading]").exists()).toBe(false)
   })
 
   it("should show qr code directly for desktop mode", async () => {
@@ -91,7 +101,7 @@ describe("WalletModal", () => {
     expect(choice.find("[data-testid=device_choice]").exists()).toBe(true)
   })
 
-  it("should emit open_link event for same device flow and show in progress screen", async () => {
+  it("should have anchor for same device flow", async () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
@@ -99,17 +109,9 @@ describe("WalletModal", () => {
       },
     })
     await flushPromises()
-    await wrapper.find("[data-testid=same_device_button]").trigger("click")
 
-    const event = await vi.waitFor(() => {
-      const openLinkEvent = wrapper.emitted("open_link") || []
-      expect(openLinkEvent).toHaveLength(1)
-      return openLinkEvent as unknown[][]
-    })
-
-    expect(event).not.toBeUndefined
-    expect(event).not.toBeNull
-    expect(event[0][0]).toEqual("engagement_url_123")
+    const sameDeviceButton = wrapper.find("[data-testid=same_device_button]")
+    expect(sameDeviceButton.attributes("href")).toEqual("engagement_url_123")
   })
 
   describe("error screens for status", () => {
@@ -149,7 +151,7 @@ describe("WalletModal", () => {
   })
 
   it("should show error for post engagement failure", async () => {
-    vi.mocked(createEngagement).mockRejectedValueOnce(new Error("http error"))
+    vi.mocked(createSession).mockRejectedValueOnce(new Error("http error"))
 
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
@@ -169,6 +171,7 @@ describe("WalletModal", () => {
 
     vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
     await vi.advanceTimersToNextTimerAsync()
+
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=qr]").exists()).toBe(false)
 

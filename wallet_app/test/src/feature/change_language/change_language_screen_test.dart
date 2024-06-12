@@ -14,7 +14,7 @@ void main() {
   const mockLanguages = [
     Language('English', Locale('en')),
     Language('Dutch', Locale('nl')),
-    Language('Spanish', Locale('es'))
+    Language('Spanish', Locale('es')),
   ];
 
   group('goldens', () {

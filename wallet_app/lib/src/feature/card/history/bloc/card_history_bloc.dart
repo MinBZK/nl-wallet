@@ -21,11 +21,11 @@ class CardHistoryBloc extends Bloc<CardHistoryEvent, CardHistoryState> {
     on<CardHistoryLoadTriggered>(_onCardHistoryLoadTriggered);
   }
 
-  void _onCardHistoryLoadTriggered(CardHistoryLoadTriggered event, emit) async {
+  Future<void> _onCardHistoryLoadTriggered(CardHistoryLoadTriggered event, emit) async {
     emit(const CardHistoryLoadInProgress());
     try {
-      WalletCard card = await getWalletCardUseCase.invoke(event.docType);
-      List<WalletEvent> events = await getEventsForCardUseCase.invoke(event.docType);
+      final WalletCard card = await getWalletCardUseCase.invoke(event.docType);
+      final List<WalletEvent> events = await getEventsForCardUseCase.invoke(event.docType);
       emit(CardHistoryLoadSuccess(card, events));
     } catch (error, stack) {
       Fimber.e('Failed to load card history for ${event.docType}', ex: error, stacktrace: stack);

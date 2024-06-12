@@ -59,10 +59,10 @@ class _VerticalConfirmButtonsState extends State<VerticalConfirmButtons> with Si
     return AnimatedBuilder(
       animation: controller,
       builder: (context, child) {
-        final yScaleTween = Tween(begin: 1.0, end: 0.0);
+        final yScaleTween = Tween<double>(begin: 1, end: 0);
         final opacityTween = TweenSequence<double>([
-          TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 1),
-          TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 0.0), weight: 3),
+          TweenSequenceItem(tween: Tween<double>(begin: 1, end: 0), weight: 1),
+          TweenSequenceItem(tween: Tween<double>(begin: 0, end: 0), weight: 3),
         ]);
         final columnChildren = [
           widget.primaryButton,

@@ -16,7 +16,7 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
 
     List<MissingAttribute> remaining = List.of(requestedAttributes);
     List<DataAttribute> found = [];
-    List<Attribute> results = [];
+    final List<Attribute> results = [];
     do {
       found = _findAttributes(cards, remaining);
       remaining = _getRemainingAttributes(found, remaining);
@@ -33,7 +33,7 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
     final Set<AttributeKey> findTypes = requestedAttributes.map((e) => e.key).toSet();
 
     List<DataAttribute> results = [];
-    for (WalletCard card in cards) {
+    for (final WalletCard card in cards) {
       final Set<AttributeKey> cardAttributeKeys = card.attributes.map((e) => e.key).toSet();
       final Set<AttributeKey> intersection = findTypes.intersection(cardAttributeKeys);
 
@@ -55,8 +55,8 @@ class GetRequestedAttributesFromWalletUseCaseImpl implements GetRequestedAttribu
   /// Sorts result [List<Attribute>] list based on [List<RequestedAttribute>] order
   List<Attribute> _sortResultAttributes(List<Attribute> results, List<MissingAttribute> requestedAttributes) {
     return [
-      for (MissingAttribute requestedAttribute in requestedAttributes)
-        results.singleWhere((element) => element.key == requestedAttribute.key)
+      for (final MissingAttribute requestedAttribute in requestedAttributes)
+        results.singleWhere((element) => element.key == requestedAttribute.key),
     ];
   }
 }

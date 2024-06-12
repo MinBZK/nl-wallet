@@ -16,8 +16,10 @@ extension LocalizedLabelsExtension on LocalizedText {
   String l10nValueFromLocale(String languageCode) => this[languageCode] ?? this['en'] ?? values.firstOrNull ?? '';
 
   String get testValue {
-    assert(Environment.isTest,
-        'This should never be used in real builds, as a BuildContext should readily be available in that case');
+    assert(
+      Environment.isTest,
+      'This should never be used in real builds, as a BuildContext should readily be available in that case',
+    );
     return this['en'] ?? values.firstOrNull ?? '';
   }
 }

@@ -18,7 +18,7 @@ class PolicyScreen extends StatelessWidget {
   static PolicyScreenArguments getArguments(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as PolicyScreenArguments;
+      return args! as PolicyScreenArguments;
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args (type: ${args.runtimeType})', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in a PolicyScreenArguments object');

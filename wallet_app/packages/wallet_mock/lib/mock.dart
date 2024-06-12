@@ -1,3 +1,4 @@
+/// This is an in-memory implementation of the rust provided wallet_core api
 library;
 
 export 'src/wallet_core.dart';

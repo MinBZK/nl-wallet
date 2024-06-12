@@ -58,7 +58,8 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
+#[derive(Debug, Clone, Serialize)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: Option<DeviceEngagementBytes>,
     pub ereader_key_bytes: Option<ESenderKeyBytes>,
@@ -137,7 +138,8 @@ pub enum Handover {
     Oid4vpHandover(CborSeq<OID4VPHandover>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
+#[derive(Debug, Clone, Serialize)]
 pub struct OID4VPHandover {
     /// Must be `SHA256(CBOR_encode([client_id, mdoc_nonce]))`
     pub client_id_hash: ByteBuf,
@@ -146,7 +148,8 @@ pub struct OID4VPHandover {
     pub nonce: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
+#[derive(Debug, Clone, Serialize)]
 pub struct NFCHandover {
     pub handover_select_message: ByteBuf,
     pub handover_request_message: Option<ByteBuf>,

@@ -46,16 +46,18 @@ void _setupMockitoDummies() {
   provideDummy<AttributeValue>(const StringValue(''));
   provideDummy<CardFront>(CardFront(title: ''.untranslated, backgroundImage: '', theme: CardFrontTheme.light));
   provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
-  provideDummy<StartDisclosureResult>(StartDisclosureReadyToDisclose(
-    WalletMockData.organization,
-    'http://origin.org',
-    'requestPurpose'.untranslated,
-    false,
-    DisclosureSessionType.crossDevice,
-    DisclosureType.regular,
-    {},
-    WalletMockData.policy,
-  ));
+  provideDummy<StartDisclosureResult>(
+    StartDisclosureReadyToDisclose(
+      WalletMockData.organization,
+      'http://origin.org',
+      'requestPurpose'.untranslated,
+      DisclosureSessionType.crossDevice,
+      DisclosureType.regular,
+      {},
+      WalletMockData.policy,
+      sharedDataWithOrganizationBefore: false,
+    ),
+  );
   provideDummy<CoreError>(const CoreGenericError('dummy'));
 }
 

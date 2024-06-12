@@ -373,8 +373,8 @@ pub mod tests {
         ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
     });
 
-    /// This creates a minimal `UnsignedMdoc` that is valid.
-    pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
+    /// This creates an `UnsignedMdoc` that only contains a bsn entry.
+    pub fn create_bsn_only_unsigned_pid_mdoc() -> UnsignedMdoc {
         UnsignedMdoc {
             doc_type: PID_DOCTYPE.to_string(),
             copy_count: NonZeroU8::new(1).unwrap(),
@@ -382,32 +382,43 @@ pub mod tests {
             valid_until: (Utc::now() + Days::new(365)).into(),
             attributes: IndexMap::from([(
                 PID_DOCTYPE.to_string(),
-                vec![
-                    Entry {
-                        name: "bsn".to_string(),
-                        value: DataElementValue::Text("999999999".to_string()),
-                    },
-                    Entry {
-                        name: "family_name".to_string(),
-                        value: DataElementValue::Text("De Bruijn".to_string()),
-                    },
-                    Entry {
-                        name: "given_name".to_string(),
-                        value: DataElementValue::Text("Willeke Liselotte".to_string()),
-                    },
-                    Entry {
-                        name: "birth_date".to_string(),
-                        value: DataElementValue::Text("1997-05-10".to_string()),
-                    },
-                    Entry {
-                        name: "age_over_18".to_string(),
-                        value: DataElementValue::Bool(true),
-                    },
-                ],
+                vec![Entry {
+                    name: "bsn".to_string(),
+                    value: DataElementValue::Text("999999999".to_string()),
+                }],
             )])
             .try_into()
             .unwrap(),
         }
+    }
+
+    /// This creates a minimal `UnsignedMdoc` that is valid.
+    pub fn create_minimal_unsigned_pid_mdoc() -> UnsignedMdoc {
+        let mut unsigned_mdoc = create_bsn_only_unsigned_pid_mdoc();
+        let mut attributes = unsigned_mdoc.attributes.into_inner();
+
+        attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
+            Entry {
+                name: "family_name".to_string(),
+                value: DataElementValue::Text("De Bruijn".to_string()),
+            },
+            Entry {
+                name: "given_name".to_string(),
+                value: DataElementValue::Text("Willeke Liselotte".to_string()),
+            },
+            Entry {
+                name: "birth_date".to_string(),
+                value: DataElementValue::Text("1997-05-10".to_string()),
+            },
+            Entry {
+                name: "age_over_18".to_string(),
+                value: DataElementValue::Bool(true),
+            },
+        ]);
+
+        unsigned_mdoc.attributes = attributes.try_into().unwrap();
+
+        unsigned_mdoc
     }
 
     /// This creates a full `UnsignedMdoc` that is valid.
@@ -952,5 +963,21 @@ pub mod tests {
 
         // If `expected_result` is None, the result should be an error.
         assert!(result.is_err());
+    }
+
+    #[rstest]
+    #[case(create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
+    #[case(create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
+    #[case(create_full_unsigned_pid_mdoc(), DisclosureType::Regular)]
+    fn test_disclosure_type_from_proposed_attributes(#[case] input: UnsignedMdoc, #[case] expected: DisclosureType) {
+        let pa = ProposedAttributes::from([(
+            PID_DOCTYPE.to_string(),
+            ProposedDocumentAttributes {
+                attributes: input.attributes.into_inner(),
+                issuer: ISSUER_KEY.certificate().clone(),
+            },
+        )]);
+
+        assert_eq!(DisclosureType::from_proposed_attributes(&pa), expected)
     }
 }

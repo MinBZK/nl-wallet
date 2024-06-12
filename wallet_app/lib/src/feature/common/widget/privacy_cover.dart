@@ -47,7 +47,7 @@ class _PrivacyCoverState extends State<PrivacyCover> with WidgetsBindingObserver
             color: _resolveBgColor(context),
             alignment: Alignment.center,
             child: const WalletLogo(size: 100),
-          )
+          ),
       ],
     );
   }
@@ -57,7 +57,7 @@ class _PrivacyCoverState extends State<PrivacyCover> with WidgetsBindingObserver
   /// [MaterialApp], which provides the [Theme] to all of it's children.
   Color _resolveBgColor(BuildContext context) {
     final brightness = context.mediaQuery.platformBrightness;
-    bool isDarkMode = brightness == Brightness.dark;
+    final bool isDarkMode = brightness == Brightness.dark;
     return isDarkMode ? DarkWalletTheme.colorScheme.surface : LightWalletTheme.colorScheme.surface;
   }
 

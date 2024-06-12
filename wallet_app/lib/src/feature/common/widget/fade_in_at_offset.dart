@@ -32,7 +32,10 @@ class FadeInAtOffset extends StatefulWidget {
     required this.child,
     this.scrollController,
     super.key,
-  }) : assert(appearOffset < visibleOffset);
+  }) : assert(
+          appearOffset < visibleOffset,
+          'appear offset should be smaller than the offset at which the child is fully visible',
+        );
 
   @override
   State<FadeInAtOffset> createState() => _FadeInAtOffsetState();
@@ -47,7 +50,7 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
     final scrollOffset = context.watch<ScrollOffset?>();
 
     /// Check if we are ready to build, as before the first layout the _scrollController will not be initialized.
-    if (scrollOffset == null && _afterFirstLayout == false) return const SizedBox.shrink();
+    if (scrollOffset == null && !_afterFirstLayout) return const SizedBox.shrink();
     final offset = scrollOffset?.offset ?? (_scrollController!.hasClients ? _scrollController!.offset : 0);
     return IgnorePointer(
       ignoring: offset <= widget.appearOffset,
@@ -106,16 +109,18 @@ class ScrollOffsetProvider extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => ScrollOffset(debugLabel),
-      child: Builder(builder: (context) {
-        if (!observeScrollNotifications) return child;
-        return NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            context.read<ScrollOffset>().offset = notification.metrics.pixels;
-            return false;
-          },
-          child: child,
-        );
-      }),
+      child: Builder(
+        builder: (context) {
+          if (!observeScrollNotifications) return child;
+          return NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              context.read<ScrollOffset>().offset = notification.metrics.pixels;
+              return false;
+            },
+            child: child,
+          );
+        },
+      ),
     );
   }
 }
@@ -129,7 +134,7 @@ class ScrollOffsetProvider extends StatelessWidget {
 class ScrollOffset extends ChangeNotifier {
   final String debugLabel;
 
-  double _offset = 0.0;
+  double _offset = 0;
 
   ScrollOffset(this.debugLabel);
 

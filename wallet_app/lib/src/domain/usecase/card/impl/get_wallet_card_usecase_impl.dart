@@ -8,5 +8,5 @@ class GetWalletCardUseCaseImpl implements GetWalletCardUseCase {
   GetWalletCardUseCaseImpl(this.walletCardRepository);
 
   @override
-  Future<WalletCard> invoke(String docType) async => await walletCardRepository.read(docType);
+  Future<WalletCard> invoke(String docType) async => walletCardRepository.read(docType);
 }

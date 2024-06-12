@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:wallet_core/core.dart';
 
+@immutable
 class FlutterAppConfiguration {
   final Duration idleLockTimeout;
   final Duration backgroundLockTimeout;

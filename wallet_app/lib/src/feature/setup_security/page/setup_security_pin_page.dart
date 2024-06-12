@@ -29,14 +29,16 @@ class SetupSecurityPinPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OrientationBuilder(builder: (context, orientation) {
-      switch (orientation) {
-        case Orientation.portrait:
-          return _buildPortrait(context);
-        case Orientation.landscape:
-          return _buildLandscape(context);
-      }
-    });
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        switch (orientation) {
+          case Orientation.portrait:
+            return _buildPortrait(context);
+          case Orientation.landscape:
+            return _buildLandscape(context);
+        }
+      },
+    );
   }
 
   Widget _buildPortrait(BuildContext context) {

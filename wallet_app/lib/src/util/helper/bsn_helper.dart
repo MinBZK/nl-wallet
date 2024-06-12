@@ -14,7 +14,7 @@ class BsnHelper {
     if (input.length != kBsnLength) return false;
     try {
       // 11-proef (https://nl.wikipedia.org/wiki/Burgerservicenummer#11-proef)
-      final digits = input.split('').map((digit) => int.parse(digit)).toList();
+      final digits = input.split('').map(int.parse).toList();
       final x = 0 + // for formatter
           (9 * digits[0]) +
           (8 * digits[1]) +

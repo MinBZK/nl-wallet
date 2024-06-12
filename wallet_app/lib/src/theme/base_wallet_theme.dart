@@ -53,7 +53,7 @@ class BaseWalletTheme {
 
   static final baseElevatedButtonTheme = ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      elevation: 0.0,
+      elevation: 0,
       textStyle: buttonTextStyle,
       minimumSize: const Size.fromHeight(buttonMinHeight),
       shape: buttonShape,
@@ -78,7 +78,7 @@ class BaseWalletTheme {
 
   static final textButtonTheme = TextButtonThemeData(
     style: TextButton.styleFrom(
-      minimumSize: const Size(0.0, buttonMinHeight),
+      minimumSize: const Size(0, buttonMinHeight),
       shape: buttonShape,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
     ),
@@ -94,7 +94,7 @@ class BaseWalletTheme {
   );
 
   static const baseBottomNavigationBarThemeData = BottomNavigationBarThemeData(
-    elevation: 0.0,
+    elevation: 0,
     selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, fontFamily: fontFamily),
     unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily),
   );
@@ -103,7 +103,7 @@ class BaseWalletTheme {
     centerTitle: false,
     elevation: 0,
     scrolledUnderElevation: 12,
-    shape: LinearBorder(), /* hides the app bar divider */
+    shape: LinearBorder.none, /* hides the app bar divider */
   );
 
   static final tabBarTheme = TabBarTheme(
@@ -113,10 +113,10 @@ class BaseWalletTheme {
   );
 
   static const baseScrollbarTheme = ScrollbarThemeData(
-    crossAxisMargin: 8.0,
-    mainAxisMargin: 8.0,
+    crossAxisMargin: 8,
+    mainAxisMargin: 8,
     radius: Radius.circular(8),
-    thickness: WidgetStatePropertyAll(4.0),
+    thickness: WidgetStatePropertyAll(4),
     thumbVisibility: WidgetStatePropertyAll(true),
     trackVisibility: WidgetStatePropertyAll(true),
   );

@@ -37,7 +37,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     _initSigning(signUri);
   }
 
-  void _initSigning(String signUri) async {
+  Future<void> _initSigning(String signUri) async {
     try {
       final result = _startSignResult = await _startSignUseCase.invoke(signUri);
       add(
@@ -53,8 +53,8 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  void _onOrganizationApproved(event, emit) async {
-    assert(state is SignCheckOrganization);
+  Future<void> _onOrganizationApproved(event, emit) async {
+    assert(state is SignCheckOrganization, 'State should be SignCheckOrganization when the user approves');
     assert(_startSignResult != null, 'Can not approve organization when result is not available');
     try {
       emit(
@@ -70,13 +70,15 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  void _onAgreementChecked(event, emit) async {
-    assert(state is SignCheckAgreement);
+  Future<void> _onAgreementChecked(event, emit) async {
+    assert(state is SignCheckAgreement, 'State should be SignCheckAgreement when the user checks the agreement');
     assert(_startSignResult != null, 'Can not check agreement when result is not available');
-    assert(_startSignResult is StartSignReadyToSign,
-        'Mock only supports flow where all attributes are available for singing');
+    assert(
+      _startSignResult is StartSignReadyToSign,
+      'Mock only supports flow where all attributes are available for singing',
+    );
     try {
-      final requestedAttributes = (_startSignResult as StartSignReadyToSign).requestedAttributes;
+      final requestedAttributes = (_startSignResult! as StartSignReadyToSign).requestedAttributes;
       emit(
         SignConfirmAgreement(
           document: _startSignResult!.document,
@@ -91,8 +93,8 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  void _onAgreementApproved(event, emit) async {
-    assert(state is SignConfirmAgreement);
+  Future<void> _onAgreementApproved(event, emit) async {
+    assert(state is SignConfirmAgreement, 'State should be SignConfirmAgreement when the user approves the agreement');
     assert(_startSignResult != null, 'Can not approve agreement when result is not available');
     try {
       emit(const SignConfirmPin());
@@ -102,8 +104,8 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  void _onPinConfirmed(event, emit) async {
-    assert(state is SignConfirmPin);
+  Future<void> _onPinConfirmed(event, emit) async {
+    assert(state is SignConfirmPin, 'State should be SignConfirmPin when the user confirms with pin');
     assert(_startSignResult != null, 'Can not confirm pin when result is not available');
     emit(const SignLoadInProgress());
     try {
@@ -114,7 +116,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  void _onStopRequested(event, emit) async {
+  Future<void> _onStopRequested(event, emit) async {
     assert(_startSignResult != null, 'Stop can only be requested after flow is loaded');
     try {
       await _rejectSignAgreementUseCase.invoke();
@@ -125,30 +127,36 @@ class SignBloc extends Bloc<SignEvent, SignState> {
     }
   }
 
-  void _onBackPressed(event, emit) async {
+  Future<void> _onBackPressed(event, emit) async {
     final state = this.state;
     if (state.canGoBack) {
       if (state is SignCheckAgreement) {
-        emit(SignCheckOrganization(
-          organization: _startSignResult!.relyingParty,
-          afterBackPressed: true,
-        ));
+        emit(
+          SignCheckOrganization(
+            organization: _startSignResult!.relyingParty,
+            afterBackPressed: true,
+          ),
+        );
       } else if (state is SignConfirmAgreement) {
-        emit(SignCheckAgreement(
-          organization: _startSignResult!.relyingParty,
-          trustProvider: _startSignResult!.trustProvider,
-          document: _startSignResult!.document,
-          afterBackPressed: true,
-        ));
+        emit(
+          SignCheckAgreement(
+            organization: _startSignResult!.relyingParty,
+            trustProvider: _startSignResult!.trustProvider,
+            document: _startSignResult!.document,
+            afterBackPressed: true,
+          ),
+        );
       } else if (state is SignConfirmPin) {
-        final requestedAttributes = (_startSignResult as StartSignReadyToSign).requestedAttributes.values;
-        emit(SignConfirmAgreement(
-          policy: _startSignResult!.policy,
-          trustProvider: _startSignResult!.trustProvider,
-          document: _startSignResult!.document,
-          afterBackPressed: true,
-          requestedAttributes: requestedAttributes.flattened.toList(),
-        ));
+        final requestedAttributes = (_startSignResult! as StartSignReadyToSign).requestedAttributes.values;
+        emit(
+          SignConfirmAgreement(
+            policy: _startSignResult!.policy,
+            trustProvider: _startSignResult!.trustProvider,
+            document: _startSignResult!.document,
+            afterBackPressed: true,
+            requestedAttributes: requestedAttributes.flattened.toList(),
+          ),
+        );
       }
     }
   }

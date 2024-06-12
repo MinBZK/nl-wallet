@@ -34,8 +34,6 @@ pub struct Settings {
     pub requester_server: RequesterAuth,
     // used by the wallet
     pub public_url: BaseUrl,
-    // used by the application
-    pub internal_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     pub log_requests: bool,
 

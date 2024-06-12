@@ -74,7 +74,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   Future<AcceptDisclosureResult> acceptDisclosure({required String pin, hint}) async {
     final disclosure = _ongoingDisclosure;
     assert(disclosure != null, 'No ongoing disclosure to accept');
-    assert(disclosure is StartDisclosureResult_Request, 'Can\'t accept disclosure with missing attributes');
+    assert(disclosure is StartDisclosureResult_Request, "Can't accept disclosure with missing attributes");
 
     // Check if correct pin was provided
     final result = _pinManager.checkPin(pin);
@@ -83,7 +83,6 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
         case WalletInstructionError_Timeout():
         case WalletInstructionError_Blocked():
           _wallet.lock();
-          break;
       }
       return AcceptDisclosureResult.instructionError(error: result.error);
     }
@@ -108,10 +107,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
     // Add the PID cards to the user's wallet
     _wallet.add(kPidCards);
     // Log the issuance events
-    for (final card in kPidCards) {
-      _eventLog.logIssuance(card);
-    }
-
+    kPidCards.forEach(_eventLog.logIssuance);
     return result;
   }
 
@@ -172,11 +168,11 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
     if (pin.split('').toSet().length <= 1) return PinValidationResult.TooFewUniqueDigits;
 
     // Check for ascending or descending sequences
-    final pinDigits = pin.split('').map((e) => int.parse(e));
+    final pinDigits = pin.split('').map(int.parse);
     var ascending = true;
     var descending = true;
     int? prev;
-    for (var digit in pinDigits) {
+    for (final digit in pinDigits) {
       if (prev != null) {
         if (digit != prev + 1) ascending = false;
         if (digit != prev - 1) descending = false;
@@ -199,7 +195,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
 
   @override
   Future<void> resetWallet({hint}) async {
-    _pinManager.resetPin();
+    await _pinManager.resetPin();
     _wallet.reset();
     _eventLog.reset();
   }
@@ -224,7 +220,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   @override
   Future<WalletInstructionResult> unlockWallet({required String pin, hint}) async {
     final result = _pinManager.checkPin(pin);
-    bool pinMatches = result is WalletInstructionResult_Ok;
+    final bool pinMatches = result is WalletInstructionResult_Ok;
     if (pinMatches) {
       _wallet.unlock();
     } else {

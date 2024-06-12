@@ -27,7 +27,7 @@ class ResetWalletDialog extends StatelessWidget {
           onPressed: () async {
             final navigator = Navigator.of(context);
             await context.read<ResetWalletUseCase>().invoke();
-            navigator.pushNamedAndRemoveUntil(
+            await navigator.pushNamedAndRemoveUntil(
               WalletRoutes.splashRoute,
               ModalRoute.withName(WalletRoutes.splashRoute),
             );

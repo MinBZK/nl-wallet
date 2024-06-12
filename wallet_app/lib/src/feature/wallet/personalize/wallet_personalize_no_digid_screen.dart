@@ -59,7 +59,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
           forceVertical: !context.isLandscape,
           primaryButton: PrimaryButton(
             key: const Key('applyForDigidCta'),
-            onPressed: () => _openRequestDigidUrl(),
+            onPressed: _openRequestDigidUrl,
             text: Text(context.l10n.walletPersonalizeNoDigidPageRequestDigidCta),
             icon: const Icon(Icons.arrow_forward_rounded),
           ),

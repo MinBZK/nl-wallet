@@ -5,7 +5,7 @@ import { nextTick } from "vue"
 
 await import("../setup")
 
-vi.mock("@/api/engagement")
+vi.mock("@/api/session")
 vi.mock("@/api/status")
 
 describe("WalletButton", () => {

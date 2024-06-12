@@ -29,15 +29,16 @@ class IssuanceSuccessPage extends StatelessWidget {
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           const SliverSizedBox(height: 32),
           SliverToBoxAdapter(
-              child: Column(
-            children: [
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: StackedWalletCards(cards: cards),
-              ),
-            ],
-          )),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: StackedWalletCards(cards: cards),
+                ),
+              ],
+            ),
+          ),
           const SliverSizedBox(height: 16),
           SliverFillRemaining(hasScrollBody: false, fillOverscroll: true, child: _buildBottomSection(context)),
         ],

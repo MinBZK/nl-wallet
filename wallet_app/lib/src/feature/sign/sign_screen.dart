@@ -28,7 +28,7 @@ class SignScreen extends StatelessWidget {
   static SignScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return tryCast<SignScreenArgument>(args) ?? SignScreenArgument.fromMap(args as Map<String, dynamic>);
+      return tryCast<SignScreenArgument>(args) ?? SignScreenArgument.fromMap(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [SignScreenArgument] when opening the SignScreen');
@@ -79,7 +79,7 @@ class SignScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocBuilder<SignBloc, SignState>(
       builder: (context, state) {
-        Widget result = switch (state) {
+        final Widget result = switch (state) {
           SignInitial() => _buildLoading(),
           SignLoadInProgress() => _buildLoading(),
           SignCheckOrganization() => _buildCheckOrganization(context, state),
@@ -119,7 +119,7 @@ class SignScreen extends StatelessWidget {
         OrganizationDetailScreen.showPreloaded(
           context,
           state.organization,
-          false,
+          sharedDataWithOrganizationBefore: false,
         );
       },
     );
@@ -154,7 +154,7 @@ class SignScreen extends StatelessWidget {
     );
   }
 
-  void _stopSigning(BuildContext context) async {
+  Future<void> _stopSigning(BuildContext context) async {
     final bloc = context.read<SignBloc>();
     if (bloc.state.showStopConfirmation) {
       final stopped = await ConfirmActionSheet.show(
