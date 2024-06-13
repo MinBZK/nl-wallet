@@ -228,7 +228,7 @@ pub fn wallet_server_settings() -> WsSettings {
         port: requester_port,
     });
 
-    settings.public_url = format!("http://localhost:{}/", ws_port).parse().unwrap();
+    settings.urls.public_url = format!("http://localhost:{}/", ws_port).parse().unwrap();
     settings
 }
 
@@ -245,7 +245,7 @@ pub fn wallet_server_internal_url(auth: &RequesterAuth, public_url: &BaseUrl) ->
 
 pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(settings: WsSettings, attr_service: A) {
     let storage_settings = &settings.storage;
-    let public_url = settings.public_url.clone();
+    let public_url = settings.urls.public_url.clone();
     let disclosure_sessions = SessionStoreVariant::new(storage_settings.url.clone(), storage_settings.into())
         .await
         .unwrap();
