@@ -18,6 +18,7 @@ import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/animated_fade_in.dart';
 import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
@@ -67,7 +68,10 @@ class CardDetailScreen extends StatelessWidget {
                   return WalletScrollbar(
                     child: CustomScrollView(
                       slivers: [
-                        SliverWalletAppBar(title: _getTitle(context, state)),
+                        SliverWalletAppBar(
+                          title: _getTitle(context, state),
+                          actions: const [HelpIconButton()],
+                        ),
                         _buildBody(context, state),
                       ],
                     ),
