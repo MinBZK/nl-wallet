@@ -2,7 +2,6 @@ use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf
 
 use config::{Config, ConfigError, Environment, File};
 use nutype::nutype;
-use openid4vc::verifier::{UseCase, UseCases};
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use ring::hmac;
 use serde::Deserialize;
@@ -10,6 +9,7 @@ use serde_with::{base64::Base64, hex::Hex, serde_as};
 use url::Url;
 
 use nl_wallet_mdoc::{server_state::SessionStoreTimeouts, utils::x509::Certificate, verifier::SessionTypeReturnUrl};
+use openid4vc::verifier::{UseCase, UseCases};
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
     sentry::Sentry,

@@ -870,14 +870,14 @@ mod tests {
     #[tokio::test]
     async fn test_disclosure_session_start_error_reader_engagement_source_mismatch(
         #[case] session_type: SessionType,
-        #[case] reader_engagement_source: DisclosureUriSource,
+        #[case] uri_source: DisclosureUriSource,
     ) {
         // Starting a `DisclosureSession` with a `ReaderEngagement` that contains a
         // `SessionType` that is incompatible with its source should result in an error.
         let mut payloads = Vec::new();
         let error = disclosure_session_start(
             session_type,
-            reader_engagement_source,
+            uri_source,
             ReaderCertificateKind::WithReaderRegistration,
             &mut payloads,
             identity,
@@ -892,7 +892,7 @@ mod tests {
             Error::Holder(HolderError::ReaderEnagementSourceMismatch(
                 typ,
                 source
-            )) if typ == session_type && source == reader_engagement_source
+            )) if typ == session_type && source == uri_source
         );
         assert!(payloads.is_empty());
     }
