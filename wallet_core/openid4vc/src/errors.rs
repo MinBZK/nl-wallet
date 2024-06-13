@@ -84,12 +84,14 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
             error: match err {
                 GetAuthRequestError::ExpiredEphemeralId(_) => GetRequestErrorCode::ExpiredEphemeralId,
                 GetAuthRequestError::Session(SessionError::Expired) => GetRequestErrorCode::ExpiredSession,
+                GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
                 GetAuthRequestError::EncryptionKey(_)
                 | GetAuthRequestError::AuthRequest(_)
                 | GetAuthRequestError::Jwt(_)
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
+
                 GetAuthRequestError::InvalidEphemeralId(_) | GetAuthRequestError::Session(_) => {
                     GetRequestErrorCode::InvalidRequest
                 }
@@ -104,6 +106,7 @@ impl ErrorStatusCode for GetRequestErrorCode {
     fn status_code(&self) -> reqwest::StatusCode {
         match self {
             GetRequestErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            GetRequestErrorCode::ExpiredSession | GetRequestErrorCode::UnknownSession => StatusCode::NOT_FOUND,
             _ => StatusCode::BAD_REQUEST,
         }
     }
@@ -116,6 +119,9 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
             error: match err {
                 PostAuthResponseError::Session(SessionError::Expired) => PostAuthResponseErrorCode::ExpiredSession,
                 PostAuthResponseError::Session(SessionError::SessionStore(_)) => PostAuthResponseErrorCode::ServerError,
+                PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
+                    PostAuthResponseErrorCode::UnknownSession
+                }
                 PostAuthResponseError::AuthResponse(_) | PostAuthResponseError::Session(_) => {
                     PostAuthResponseErrorCode::InvalidRequest
                 }
@@ -129,7 +135,12 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
 
 impl ErrorStatusCode for PostAuthResponseErrorCode {
     fn status_code(&self) -> reqwest::StatusCode {
-        StatusCode::BAD_REQUEST
+        match self {
+            PostAuthResponseErrorCode::ExpiredSession | PostAuthResponseErrorCode::UnknownSession => {
+                StatusCode::NOT_FOUND
+            }
+            _ => StatusCode::BAD_REQUEST,
+        }
     }
 }
 
@@ -139,6 +150,7 @@ impl From<VerificationError> for ErrorResponse<VerificationErrorCode> {
         ErrorResponse {
             error: match err {
                 VerificationError::Session(SessionError::Expired) => VerificationErrorCode::ExpiredSession,
+                VerificationError::Session(SessionError::UnknownSession(_)) => VerificationErrorCode::SessionUnknown,
                 VerificationError::Session(SessionError::SessionStore(_)) | VerificationError::UrlEncoding(_) => {
                     VerificationErrorCode::ServerError
                 }
@@ -162,6 +174,7 @@ impl ErrorStatusCode for VerificationErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             VerificationErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            VerificationErrorCode::SessionUnknown | VerificationErrorCode::ExpiredSession => StatusCode::NOT_FOUND,
             _ => StatusCode::BAD_REQUEST,
         }
     }

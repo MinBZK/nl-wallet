@@ -98,6 +98,7 @@ pub enum VerificationError {
 pub enum VerificationErrorCode {
     InvalidRequest,
     ExpiredSession,
+    SessionUnknown,
     ServerError,
 }
 
@@ -128,6 +129,7 @@ pub enum GetRequestErrorCode {
     InvalidRequest,
     ExpiredEphemeralId,
     ExpiredSession,
+    UnknownSession,
 
     ServerError,
 }
@@ -148,6 +150,7 @@ pub enum PostAuthResponseError {
 pub enum PostAuthResponseErrorCode {
     InvalidRequest,
     ExpiredSession,
+    UnknownSession,
 
     ServerError,
 }
