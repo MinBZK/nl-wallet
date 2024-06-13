@@ -760,11 +760,13 @@ impl Session<Created> {
         ),
         GetAuthRequestError,
     > {
-        let usecase = &self.state().usecase_id;
-        let usecase = use_cases
-            .as_ref()
-            .get(usecase)
-            .ok_or(GetAuthRequestError::UnknownUseCase(usecase.to_string()))?;
+        let usecase_id = &self.state().usecase_id;
+        let usecase = use_cases.as_ref().get(usecase_id);
+        let Some(usecase) = usecase else {
+            // This should not happen except when the configuration has changed during this session.
+            warn!("configuration inconsistency: existing session referenced nonexisting usecase '{usecase_id}'");
+            return Err(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()));
+        };
 
         // Determine if we should include a redirect URI, based on the use case configuration and session type.
         let redirect_uri = match (
@@ -783,6 +785,13 @@ impl Session<Created> {
             _ => {
                 // We checked for this case when the session was created, so this should not happen
                 // except when the configuration has changed during this session.
+                warn!(
+                    "configuration inconsistency: return URL configuration mismatch \
+                        type {0:?}, session type {1:?}, redirect URI template {2:?}",
+                    usecase.session_type_return_url,
+                    session_type,
+                    self.state().redirect_uri_template.clone()
+                );
                 return Err(GetAuthRequestError::ReturnUrlConfigurationMismatch);
             }
         };
