@@ -59,7 +59,9 @@ impl BrpPerson {
     fn has_spouse_or_partner(&self) -> bool {
         self.partners
             .first()
-            .map(|partner| partner.kind != BrpMaritalStatus::Onbekend)
+            .map(|partner| {
+                partner.kind != BrpMaritalStatus::Onbekend && partner.start.is_some() && partner.end.is_none()
+            })
             .unwrap_or(false)
     }
 
@@ -238,7 +240,7 @@ pub struct BrpName {
 #[derive(Deserialize)]
 pub struct BrpBirth {
     #[serde(rename = "datum")]
-    date: BrpBirthDate,
+    date: BrpDate,
 
     #[serde(rename = "land")]
     country: BrpBirthCountry,
@@ -248,7 +250,7 @@ pub struct BrpBirth {
 }
 
 #[derive(Deserialize)]
-pub struct BrpBirthDate {
+pub struct BrpDate {
     #[serde(rename = "datum")]
     date: chrono::NaiveDate,
 }
@@ -328,7 +330,19 @@ pub struct BrpNationalityName {
 pub struct BrpPartner {
     #[serde(rename = "soortVerbintenis")]
     kind: BrpMaritalStatus,
+
+    #[serde(rename = "aangaanHuwelijkPartnerschap")]
+    start: Option<GbaMarriagePartnershipStart>,
+
+    #[serde(rename = "ontbindingHuwelijkPartnerschap")]
+    end: Option<GbaMarriagePartnershipEnd>,
 }
+
+#[derive(Deserialize)]
+pub struct GbaMarriagePartnershipStart {}
+
+#[derive(Deserialize)]
+pub struct GbaMarriagePartnershipEnd {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BrpMaritalStatus {
@@ -415,9 +429,11 @@ mod tests {
         assert!(brp_person.has_spouse_or_partner());
     }
 
-    #[test]
-    fn should_not_have_spouse_or_partner() {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
+    #[rstest]
+    #[case("divorced")]
+    #[case("frouke")]
+    fn should_not_have_spouse_or_partner(#[case] json_file_name: &str) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
         let brp_person = brp_persons.persons.first().unwrap();
         assert!(!brp_person.has_spouse_or_partner());
     }

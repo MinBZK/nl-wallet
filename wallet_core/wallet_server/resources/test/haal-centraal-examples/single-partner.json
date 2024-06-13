@@ -82,6 +82,13 @@
             "aanduidingNaamgebruik": {
               "code": "E"
             }
+          },
+          "aangaanHuwelijkPartnerschap": {
+            "datum": {
+              "type": "Datum",
+              "datum": "2015-10-01",
+              "langFormaat": "1 oktober 2015"
+            }
           }
         }
       ]

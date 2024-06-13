@@ -83,6 +83,24 @@
               "code": "E"
             }
           },
+          "ontbindingHuwelijkPartnerschap": {
+            "datum": {
+              "type": "Datum",
+              "datum": "2023-09-21",
+              "langFormaat": "21 september 2023"
+            }
+          }
+        },
+        {
+          "soortVerbintenis": {
+            "code": "H"
+          },
+          "naam": {
+            "geslachtsnaam": "Postma",
+            "aanduidingNaamgebruik": {
+              "code": "E"
+            }
+          },
           "aangaanHuwelijkPartnerschap": {
             "datum": {
               "type": "Datum",

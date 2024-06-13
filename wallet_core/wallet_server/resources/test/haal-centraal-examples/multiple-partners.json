@@ -82,6 +82,13 @@
             "aanduidingNaamgebruik": {
               "code": "E"
             }
+          },
+          "aangaanHuwelijkPartnerschap": {
+            "datum": {
+              "type": "Datum",
+              "datum": "2015-10-01",
+              "langFormaat": "1 oktober 2015"
+            }
           }
         },
         {
@@ -92,6 +99,13 @@
             "geslachtsnaam": "Schoon",
             "aanduidingNaamgebruik": {
               "code": "E"
+            }
+          },
+          "ontbindingHuwelijkPartnerschap": {
+            "datum": {
+              "type": "Datum",
+              "datum": "2003-09-21",
+              "langFormaat": "21 september 2003"
             }
           }
         }
