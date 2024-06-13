@@ -8,6 +8,7 @@ import '../../../util/cast_util.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/attribute/data_attribute_row.dart';
 import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/sliver_sized_box.dart';
@@ -68,6 +69,7 @@ class CardDataScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: _generateTitle(context, state),
+                      actions: const [HelpIconButton()],
                     ),
                     const SliverToBoxAdapter(
                       child: Padding(

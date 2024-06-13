@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/paragraphed_list.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
@@ -21,7 +22,10 @@ class CardDataIncorrectScreen extends StatelessWidget {
               child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(title: context.l10n.cardDataIncorrectScreenSubhead),
+                    SliverWalletAppBar(
+                      title: context.l10n.cardDataIncorrectScreenSubhead,
+                      actions: const [HelpIconButton()],
+                    ),
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
