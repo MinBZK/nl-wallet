@@ -35,7 +35,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       final titleFinder = find.text(l10n.reportIssueScreenTitle);
       final backButtonFinder = find.text(l10n.generalBottomBackCta);
-      expect(titleFinder, findsOneWidget);
+      expect(titleFinder, findsNWidgets(2) /* app bar + content */);
       expect(backButtonFinder, findsOneWidget);
     });
   });
