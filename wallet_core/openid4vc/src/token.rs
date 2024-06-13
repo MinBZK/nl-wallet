@@ -208,7 +208,7 @@ pub enum TokenType {
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-6.3
 /// and https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TokenErrorCode {
     InvalidRequest,
@@ -243,7 +243,7 @@ impl ErrorStatusCode for TokenErrorCode {
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthBearerErrorCode {
     InvalidRequest,
