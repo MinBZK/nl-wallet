@@ -357,7 +357,9 @@ async fn request_uri_from_status_endpoint(
             session_token,
             session_type,
             &"https://example.com/ul".parse().unwrap(),
-            &"https://example.com/verifier_base_url".parse().unwrap(),
+            format!("https://example.com/verifier_base_url/{session_token}/request_uri")
+                .parse()
+                .unwrap(),
             &TimeGenerator,
         )
         .await
@@ -396,7 +398,9 @@ impl VpMessageClient for VerifierMockVpMessageClient {
             .verifier
             .process_get_request(
                 &session_token,
-                &"https://example.com".parse().unwrap(),
+                format!("https://example.com/verifier_base_url/{session_token}/response_uri")
+                    .parse()
+                    .unwrap(),
                 url_params,
                 wallet_nonce,
             )

@@ -90,7 +90,9 @@ where
         .verifier
         .process_get_request(
             &session_token,
-            &state.public_url.join_base_url("disclosure"),
+            state
+                .public_url
+                .join_base_url(&format!("disclosure/{session_token}/response_uri")),
             url_params,
             wallet_request.and_then(|r| r.0.wallet_nonce),
         )
@@ -152,7 +154,9 @@ where
             &session_token,
             params.session_type,
             &state.universal_link_base_url.join_base_url("disclosure"),
-            &state.public_url.join_base_url("disclosure"),
+            state
+                .public_url
+                .join_base_url(&format!("disclosure/{session_token}/request_uri")),
             &TimeGenerator,
         )
         .await

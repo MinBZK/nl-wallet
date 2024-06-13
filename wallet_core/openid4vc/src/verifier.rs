@@ -531,7 +531,7 @@ where
     pub async fn process_get_request(
         &self,
         session_token: &SessionToken,
-        verifier_base_url: &BaseUrl,
+        response_uri: BaseUrl,
         url_params: VerifierUrlParameters,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, GetAuthRequestError> {
@@ -545,12 +545,7 @@ where
         self.verify_ephemeral_id(session_token, &url_params)?;
 
         let (result, next) = match session
-            .process_get_request(
-                verifier_base_url,
-                url_params.session_type,
-                wallet_nonce,
-                &self.use_cases,
-            )
+            .process_get_request(response_uri, url_params.session_type, wallet_nonce, &self.use_cases)
             .await
         {
             Ok((jws, next)) => (Ok(jws), next.into()),
@@ -597,7 +592,7 @@ where
         session_token: &SessionToken,
         session_type: SessionType,
         ul_base: &BaseUrl,
-        verifier_base_url: &BaseUrl,
+        request_uri: BaseUrl,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusResponse, VerificationError> {
         let response = match self.get_session(session_token).await?.data {
@@ -605,8 +600,7 @@ where
                 let time = time.generate();
                 let ul = Self::format_ul(
                     ul_base,
-                    verifier_base_url,
-                    session_token,
+                    request_uri,
                     time,
                     self.generate_ephemeral_id(session_token, &time),
                     session_type,
@@ -671,17 +665,13 @@ impl<S> Verifier<S> {
 
     fn format_ul(
         base_ul: &BaseUrl,
-        verifier_base_url: &BaseUrl,
-        session_token: &SessionToken,
+        request_uri: BaseUrl,
         time: DateTime<Utc>,
         ephemeral_id: Vec<u8>,
         session_type: SessionType,
         client_id: String,
     ) -> Result<BaseUrl, VerificationError> {
-        let mut request_uri = verifier_base_url
-            .join_base_url(session_token.as_ref())
-            .join_base_url("request_uri")
-            .into_inner();
+        let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
             time,
             ephemeral_id,
@@ -764,7 +754,7 @@ impl Session<Created> {
     /// returning a response to answer the device with and the next session state.
     async fn process_get_request(
         self,
-        verifier_base_url: &BaseUrl,
+        response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
         use_cases: &UseCases,
@@ -772,7 +762,7 @@ impl Session<Created> {
         info!("Session({}): process get request", self.state.token);
 
         let (response, next) = match self
-            .process_get_request_inner(verifier_base_url, session_type, wallet_nonce, use_cases)
+            .process_get_request_inner(response_uri, session_type, wallet_nonce, use_cases)
             .await
         {
             Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
@@ -800,7 +790,7 @@ impl Session<Created> {
     // Helper function that returns ordinary errors instead of `Session<...>`
     async fn process_get_request_inner(
         &self,
-        verifier_base_url: &BaseUrl,
+        response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
         use_cases: &UseCases,
@@ -851,9 +841,6 @@ impl Session<Created> {
 
         // Construct the Authorization Request.
         let nonce = random_string(32);
-        let response_uri = verifier_base_url
-            .join_base_url(self.state.token.as_ref())
-            .join_base_url("response_uri");
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256)?;
         let auth_request = IsoVpAuthorizationRequest::new(
             &self.state.data.items_requests,
