@@ -53,6 +53,7 @@ mock = ["dep:rand", "issuance"]
 anyhow.workspace = true
 assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, features = [
+    "form",
     "headers",
     "http1",
     "json",
