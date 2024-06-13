@@ -34,10 +34,14 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('description is shown', (tester) async {
+    testWidgets('description is shown in paragraphs', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const WalletPersonalizeNoDigidScreen());
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.walletPersonalizeNoDigidPageDescription), findsOneWidget);
+      l10n.walletPersonalizeNoDigidPageDescription.split('\n\n').forEach(
+        (paragraph) {
+          expect(find.text(paragraph), findsOneWidget);
+        },
+      );
     });
   });
 }

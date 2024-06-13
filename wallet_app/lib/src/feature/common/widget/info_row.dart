@@ -61,7 +61,8 @@ class InfoRow extends StatelessWidget {
               if (onTap != null)
                 Icon(
                   Icons.chevron_right,
-                  color: context.theme.primaryColorDark,
+                  size: 24,
+                  color: context.colorScheme.primary,
                 ),
             ],
           ),

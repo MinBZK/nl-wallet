@@ -1,7 +1,7 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-06-11T14:47:25+02:00",
-    "aboutScreenDescription": "This demo is realized by a collaboration of multiple organizations and was commissioned by the dutch government. For more information please refer to the website {url}.",
+    "@@last_modified": "2024-06-12T13:58:21+02:00",
+    "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
         "translatable": "false"

@@ -32,6 +32,7 @@ import 'bloc/dashboard_bloc.dart';
 /// Defines the width required to render a card,
 /// used to calculate the crossAxisCount.
 const _kCardBreakPointWidth = 300.0;
+const _kMaxCrossAxisCount = 2;
 
 class DashboardScreen extends StatelessWidget {
   static DashboardScreenArgument? getArgument(RouteSettings settings) {
@@ -172,7 +173,7 @@ class DashboardScreen extends StatelessWidget {
     final crossAxisCount = max(1, (context.mediaQuery.size.width / _kCardBreakPointWidth).floor());
     return SliverMasonryGrid(
       gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
+        crossAxisCount: min(crossAxisCount, _kMaxCrossAxisCount),
       ),
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
