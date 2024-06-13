@@ -119,7 +119,7 @@ pub struct AuthorizationResponse {
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthorizationErrorCode {
     InvalidRequest,

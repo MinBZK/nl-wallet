@@ -89,7 +89,7 @@ pub enum IssuanceSessionError {
     AttributeRandomLength(usize, usize),
 }
 
-pub trait IssuanceSession<H = HttpOpenidMessageClient> {
+pub trait IssuanceSession<H = HttpVcMessageClient> {
     async fn start_issuance(
         message_client: H,
         base_url: BaseUrl,
@@ -110,14 +110,14 @@ pub trait IssuanceSession<H = HttpOpenidMessageClient> {
 }
 
 #[derive(Debug)]
-pub struct HttpIssuanceSession<H = HttpOpenidMessageClient> {
+pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
     message_client: H,
     session_state: IssuanceState,
 }
 
 /// Contract for sending OpenID4VCI protocol messages.
 #[cfg_attr(test, mockall::automock)]
-pub trait OpenidMessageClient {
+pub trait VcMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError>;
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
 
@@ -140,17 +140,17 @@ pub trait OpenidMessageClient {
         -> Result<(), IssuanceSessionError>;
 }
 
-pub struct HttpOpenidMessageClient {
+pub struct HttpVcMessageClient {
     http_client: reqwest::Client,
 }
 
-impl From<reqwest::Client> for HttpOpenidMessageClient {
+impl From<reqwest::Client> for HttpVcMessageClient {
     fn from(http_client: reqwest::Client) -> Self {
         Self { http_client }
     }
 }
 
-impl OpenidMessageClient for HttpOpenidMessageClient {
+impl VcMessageClient for HttpVcMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
         let metadata = IssuerMetadata::discover(&self.http_client, url)
             .await
@@ -279,7 +279,7 @@ impl Debug for IssuanceState {
     }
 }
 
-impl<H: OpenidMessageClient> HttpIssuanceSession<H> {
+impl<H: VcMessageClient> HttpIssuanceSession<H> {
     /// Discover the token endpoint from the OAuth server metadata.
     async fn discover_token_endpoint(message_client: &H, base_url: &BaseUrl) -> Result<Url, IssuanceSessionError> {
         let issuer_metadata = message_client.discover_metadata(base_url).await?;
@@ -311,7 +311,7 @@ impl<H: OpenidMessageClient> HttpIssuanceSession<H> {
     }
 }
 
-impl<H: OpenidMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
+impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn start_issuance(
         message_client: H,
         base_url: BaseUrl,
@@ -596,8 +596,8 @@ mod tests {
 
     use super::*;
 
-    fn mock_openid_message_client() -> MockOpenidMessageClient {
-        let mut mock_msg_client = MockOpenidMessageClient::new();
+    fn mock_openid_message_client() -> MockVcMessageClient {
+        let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_discover_metadata()
             .returning(|url| Ok(IssuerMetadata::new_mock(url.clone())));

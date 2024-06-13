@@ -27,8 +27,7 @@ use crate::{
 
 use super::{
     proposed_document::{ProposedDocument, ProposedDocumentAttributes},
-    request::DeviceRequestMatch,
-    MdocDataSource,
+    DisclosureRequestMatch, MdocDataSource,
 };
 
 const REFERRER_URL: &str = "https://referrer.url/";
@@ -273,12 +272,11 @@ where
 
         // Fetch documents from the database, calculate which ones satisfy the request and
         // formulate proposals for those documents. If there is a mismatch, return an error.
-        let candidates_by_doc_type = match device_request
-            .match_stored_documents(mdoc_data_source, session_transcript)
-            .await?
-        {
-            DeviceRequestMatch::Candidates(candidates) => candidates,
-            DeviceRequestMatch::MissingAttributes(missing_attributes) => {
+        let matches =
+            DisclosureRequestMatch::new(device_request.items_requests(), mdoc_data_source, session_transcript).await?;
+        let candidates_by_doc_type = match matches {
+            DisclosureRequestMatch::Candidates(candidates) => candidates,
+            DisclosureRequestMatch::MissingAttributes(missing_attributes) => {
                 // Attributes are missing, return these.
                 let result = VerifierSessionDataCheckResult::MissingAttributes(missing_attributes);
 

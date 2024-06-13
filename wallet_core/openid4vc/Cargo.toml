@@ -19,7 +19,7 @@ required-features = ["integration"]
 
 [features]
 # Include mock implementations for testing
-mock = ["dep:mockall"]
+mock = ["dep:mockall", "nl_wallet_mdoc/examples"]
 # All features needed to run the integration test
 integration = ["mock", "dep:ciborium"]
 
@@ -30,6 +30,7 @@ chrono = { workspace = true, features = ["std", "clock"] }
 ciborium = { workspace = true, optional = true }
 derive_more.workspace = true
 futures.workspace = true
+hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit.workspace = true
@@ -39,8 +40,10 @@ mockall = { workspace = true, optional = true }
 nutype = { workspace = true, features = ["serde"] }
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
+rand_core.workspace = true
 regex.workspace = true
 reqwest = { workspace = true, features = ["json"] }
+ring.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
@@ -48,6 +51,7 @@ serde_with = { workspace = true }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true }
+tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true

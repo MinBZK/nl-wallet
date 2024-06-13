@@ -7,7 +7,7 @@ use crate::{
 use super::proposed_document::ProposedDocument;
 
 impl DeviceResponse {
-    pub(super) async fn from_proposed_documents<I, KF, K>(
+    pub async fn from_proposed_documents<I, KF, K>(
         proposed_documents: Vec<ProposedDocument<I>>,
         key_factory: &KF,
     ) -> Result<Self>

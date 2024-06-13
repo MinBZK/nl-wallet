@@ -1,7 +1,7 @@
 use std::{net::IpAddr, process, str::FromStr};
 
 use openid4vc::{
-    issuance_session::{HttpIssuanceSession, HttpOpenidMessageClient, IssuanceSession},
+    issuance_session::{HttpIssuanceSession, HttpVcMessageClient, IssuanceSession},
     oidc::HttpOidcClient,
 };
 
@@ -90,7 +90,7 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(
-        HttpOpenidMessageClient::from(reqwest::Client::new()),
+        HttpVcMessageClient::from(reqwest::Client::new()),
         server_url.clone(),
         token_request,
         &wallet_config.mdoc_trust_anchors(),
