@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{FromRequest, Path, Query, State},
-    response::{IntoResponse, Response},
+    extract::{Path, Query, State},
     routing::{get, on, post, MethodFilter},
-    Form, Json, RequestExt, Router,
+    Form, Json, Router,
 };
-use http::{header, HeaderMap, HeaderValue, Method, Request, StatusCode};
+use http::{header, HeaderMap, HeaderValue, Method};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
@@ -113,7 +112,7 @@ where
 async fn post_response<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
-    JsonOrForm(wallet_response): JsonOrForm<WalletAuthResponse>,
+    Form(wallet_response): Form<WalletAuthResponse>,
 ) -> Result<Json<VpResponse>, ErrorResponse<PostAuthResponseErrorCode>>
 where
     S: SessionStore<DisclosureData>,
@@ -213,39 +212,4 @@ where
         .await
         .map_err(|e| ErrorResponse(e.into()))?;
     Ok(Json(disclosed_attributes))
-}
-
-/// An `axum` content type like [`Json`] for HTTP requests that deserializes from JSON or URL encoding,
-/// based on the content type HTTP header.
-/// Based on https://github.com/tokio-rs/axum/blob/main/examples/parse-body-based-on-content-type/src/main.rs.
-struct JsonOrForm<T>(T);
-
-#[axum::async_trait]
-impl<S, T> FromRequest<S, axum::body::Body> for JsonOrForm<T>
-where
-    S: Send + Sync,
-    T: 'static,
-    Json<T>: FromRequest<(), axum::body::Body>,
-    Form<T>: FromRequest<(), axum::body::Body>,
-{
-    type Rejection = Response;
-
-    async fn from_request(req: Request<axum::body::Body>, _state: &S) -> Result<Self, Self::Rejection> {
-        let content_type_header = req.headers().get(header::CONTENT_TYPE);
-        let content_type = content_type_header.and_then(|value| value.to_str().ok());
-
-        if let Some(content_type) = content_type {
-            if content_type.starts_with("application/json") {
-                let Json(payload) = req.extract().await.map_err(IntoResponse::into_response)?;
-                return Ok(Self(payload));
-            }
-
-            if content_type.starts_with("application/x-www-form-urlencoded") {
-                let Form(payload) = req.extract().await.map_err(IntoResponse::into_response)?;
-                return Ok(Self(payload));
-            }
-        }
-
-        Err(StatusCode::UNSUPPORTED_MEDIA_TYPE.into_response())
-    }
 }
