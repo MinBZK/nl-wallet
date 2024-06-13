@@ -151,7 +151,7 @@ impl VpMessageClient for HttpVpMessageClient {
         let response = self
             .http_client
             .post(url.into_inner())
-            .json(&error)
+            .form(&error)
             .send()
             .await?
             .error_for_status()?;
