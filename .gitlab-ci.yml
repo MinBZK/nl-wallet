@@ -1231,43 +1231,15 @@ check-gitlab-ci-changed:
   script:
     - gradle wrapper --gradle-version=7.5
     - ./gradlew --info --stacktrace test
-      --tests suite.AppStartToDashboardTestSuite
-      -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
+      --tests $TESTS
+      -Dtest.config.app.identifier="$APP_IDENTIFIER"
       -Dtest.config.device.name="$DEVICE_NAME"
       -Dtest.config.platform.name="$PLATFORM_NAME"
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
 
-run-automation-tests-12:
-  extends: [.run-automation-tests]
-  rules:
-    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
-      when: always
-  needs:
-    - job: run-automation-tests-13
-      artifacts: false
-    - job: run-automation-tests-14
-      artifacts: false
-  variables:
-    DEVICE_NAME: "Google Pixel 6"
-    PLATFORM_NAME: "Android"
-    PLATFORM_VERSION: "12.0"
-
-run-automation-tests-13:
-  extends: [.run-automation-tests]
-  rules:
-    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
-      when: always
-  needs:
-    - job: run-automation-tests-14
-      artifacts: false
-  variables:
-    DEVICE_NAME: "Google Pixel 7"
-    PLATFORM_NAME: "Android"
-    PLATFORM_VERSION: "13.0"
-
-run-automation-tests-14:
+run-automation-tests-14-part-1:
   extends: [.run-automation-tests]
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
@@ -1275,9 +1247,28 @@ run-automation-tests-14:
     - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
       when: manual
   variables:
+    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
+    TESTS: "suite.AppStartToDashboardTestSuite"
+
+run-automation-tests-14-part-2:
+  extends: [.run-automation-tests]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: always
+    - if: $CI_COMMIT_BRANCH == $AUTOMATION_TESTS_BRANCH
+      when: manual
+  needs:
+    - job: run-automation-tests-14-part-1
+      artifacts: false
+  variables:
+    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
+    DEVICE_NAME: "Google Pixel 8"
+    PLATFORM_NAME: "Android"
+    PLATFORM_VERSION: "14.0"
+    TESTS: "suite.DashboardAndBeyondTestSuite"
 
 run-automation-smoke-test-ont:
   extends: [.run-automation-tests-common-setup]
