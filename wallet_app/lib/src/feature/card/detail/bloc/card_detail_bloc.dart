@@ -44,7 +44,8 @@ class CardDetailBloc extends Bloc<CardDetailEvent, CardDetailState> {
       observeWalletCardDetailUseCase
           .invoke(event.cardId)
           .debounce((_) => Stream.fromFuture(_entryTransitionCompleted.future.timeout(_kMaxEntryTransitionDuration))),
-      onData: CardDetailLoadSuccess.new,
+      // ignore: unnecessary_lambdas, not actually unnecessary due to expected signature
+      onData: (data) => CardDetailLoadSuccess(data),
       onError: (ex, stack) {
         //Note: when providing onError like this the subscription is not cancelled on errors
         Fimber.e('Failed to observe card detail', ex: ex, stacktrace: stack);
