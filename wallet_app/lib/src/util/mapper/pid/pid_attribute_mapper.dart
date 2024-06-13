@@ -23,8 +23,6 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
 
   String get genderKey;
 
-  String get nationalityKey;
-
   String get hasSpouseOrPartnerKey;
 
   String get bsnKey;
@@ -57,11 +55,6 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
         value: StringValue(getGender(context, input)),
         icon: getGenderIcon(input),
         label: l10n.walletPersonalizeCheckDataOfferingPageGenderLabel,
-      ),
-      UiAttribute.untranslated(
-        label: l10n.walletPersonalizeCheckDataOfferingPageNationalityLabel,
-        value: StringValue(getNationality(context, input)),
-        icon: Icons.language_outlined,
       ),
       UiAttribute.untranslated(
         label: l10n.walletPersonalizeCheckDataOfferingPageSpouseOrPartnerLabel,
@@ -124,8 +117,6 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
       attributes.whereType<DataAttribute>().firstWhere((attribute) => attribute.key == genderKey).value as GenderValue;
 
   String getGender(BuildContext context, List<T> attributes) => findByKey(context, attributes, genderKey)!;
-
-  String getNationality(BuildContext context, List<T> attributes) => findByKey(context, attributes, nationalityKey)!;
 
   String getSpouseOrPartner(BuildContext context, List<T> attributes) =>
       findByKey(context, attributes, hasSpouseOrPartnerKey)!;

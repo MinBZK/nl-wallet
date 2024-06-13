@@ -66,7 +66,6 @@ impl GetByBsnRequest {
                 String::from("partners.naam.voornamen"),
                 String::from("partners.naam.voorvoegsel"),
                 String::from("partners.naam.geslachtsnaam"),
-                String::from("nationaliteiten.nationaliteit.omschrijving"),
             ],
         }
     }

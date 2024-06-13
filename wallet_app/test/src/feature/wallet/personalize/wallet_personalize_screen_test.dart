@@ -87,12 +87,6 @@ void main() {
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
-      label: 'Nationaliteit',
-      value: const StringValue('Nederlands'),
-      key: 'mock.nationality',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
       label: 'Stad',
       value: const StringValue('Amsterdam'),
       key: 'mock.city',
@@ -171,12 +165,6 @@ void main() {
       label: 'Burger­service­nummer (BSN)',
       value: const StringValue('001222333'),
       key: 'mock.citizenshipNumber',
-      sourceCardDocType: kPidId,
-    ),
-    DataAttribute.untranslated(
-      label: 'Nationaliteit',
-      value: const StringValue('Nederlands'),
-      key: 'mock.nationality',
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
