@@ -447,7 +447,7 @@ where
             usecase_id,
             use_case.client_id.clone(),
             return_url_template,
-        )?;
+        );
         let session_token = session_state.state.token.clone();
 
         self.sessions
@@ -695,11 +695,10 @@ impl Session<Created> {
         usecase_id: String,
         client_id: String,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<Session<Created>, VerificationError> {
-        let session_token = SessionToken::new_random();
-        let session = Session::<Created> {
+    ) -> Session<Created> {
+        Session::<Created> {
             state: SessionState::new(
-                session_token.clone(),
+                SessionToken::new_random(),
                 Created {
                     items_requests,
                     usecase_id,
@@ -707,9 +706,7 @@ impl Session<Created> {
                     redirect_uri_template: return_url_template,
                 },
             ),
-        };
-
-        Ok(session)
+        }
     }
 
     /// Process the device's request for the Authorization Request,
