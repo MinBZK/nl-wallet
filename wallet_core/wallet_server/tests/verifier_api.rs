@@ -17,9 +17,10 @@ use tokio::time;
 use nl_wallet_mdoc::{
     server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS},
     utils::mock_time::MockTimeGenerator,
-    verifier::{DisclosureData, SessionType, StatusResponse},
+    verifier::SessionType,
     ItemsRequest,
 };
+use openid4vc::verifier::{DisclosureData, StatusResponse, VerifierUrlParameters};
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
 use wallet_server::{
     settings::{Authentication, RequesterAuth, Server, Settings},
@@ -261,25 +262,31 @@ async fn test_disclosure_not_found() {
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
+
     // check if a non-existent token returns a 404 on the status URL
-    let response = client
-        .get(
-            settings
-                .public_url
-                .join("disclosure/sessions/nonexistent_session/status"),
-        )
-        .send()
-        .await
-        .unwrap();
+    let mut status_url = settings.public_url.join("disclosure/nonexistent_session/status");
+    let status_query = serde_urlencoded::to_string(StatusParams {
+        session_type: SessionType::SameDevice,
+    })
+    .unwrap();
+    status_url.set_query(status_query.as_str().into());
+    let response = client.get(status_url).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // check if a non-existent token returns a 404 on the wallet URL
-    let response = client
-        .post(settings.public_url.join("disclosure/sessions/nonexistent_session"))
-        .send()
-        .await
-        .unwrap();
+    let mut request_uri = settings.public_url.join("disclosure/nonexistent_session/request_uri");
+    request_uri.set_query(
+        serde_urlencoded::to_string(VerifierUrlParameters {
+            session_type: SessionType::SameDevice,
+            ephemeral_id: vec![42],
+            time: Utc::now(),
+        })
+        .unwrap()
+        .as_str()
+        .into(),
+    );
+    let response = client.post(request_uri).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
