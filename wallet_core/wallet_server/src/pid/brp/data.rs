@@ -420,8 +420,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case("single-partner")]
-    #[case("multiple-partners")]
+    #[case("married")]
+    #[case("remarried")]
     #[case("geregistreerd-partnerschap")]
     fn should_have_spouse_or_partner(#[case] json_file_name: &str) {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
