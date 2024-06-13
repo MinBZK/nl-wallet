@@ -52,31 +52,22 @@ class CardDataTests : TestBase() {
         assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "data privacy banner not visible")
     }
 
-    //This test is commented out because of a missing UI element and click behaviour, bug ticket link: https://SSSS/browse/PVW-2401
-    /*@RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 Clicking the warning provides: A motivation why it is important to keep data to yourself AND An explanation how the User can share this data (with QR). [${JIRA_ID}]")
-    fun verifyDataPrivacySheet() {
-        cardDataScreen.clickDataPrivacyBanner()
-
-        assertTrue(cardDataScreen.dataPrivacySheetVisible(), "data privacy sheet not visible")
-    }*/
-
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("$USE_CASE.5 The Card attribute labels are multi-lingual. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.4 The Card attribute labels are multi-lingual. [${JIRA_ID}]")
     fun verifyDataLabelMultiLingual() {
         assertTrue(cardDataScreen.englishDataLabelsVisible(), "english data labels are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("$USE_CASE.6 The Card attribute values are multi-lingual if applicable and are rendered according to their schema. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.5 The Card attribute values are multi-lingual if applicable and are rendered according to their schema. [${JIRA_ID}]")
     fun verifyDataValueMultiLingual() {
         assertTrue(cardDataScreen.englishDataValuesVisible(), "english data values are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.7 The App provides a button for help if the data seems incorrect. This leads to a help screen explaining what to do in case of incorrect data. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.6 The App provides a button for help if the data seems incorrect. This leads to a help screen explaining what to do in case of incorrect data. [${JIRA_ID}]")
     fun verifyDataIncorrectButton() {
         cardDataScreen.scrollToEnd()
         cardDataScreen.clickDataIncorrectButton()
