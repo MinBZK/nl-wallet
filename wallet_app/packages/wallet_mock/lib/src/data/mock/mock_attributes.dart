@@ -79,14 +79,6 @@ final kMockPidDataAttributes = [
     value: CardValue.string(value: '111222333'),
     key: 'mock.citizenshipNumber',
   ),
-  CardAttribute(
-    labels: [
-      LocalizedString(language: 'nl', value: 'Nationaliteit'),
-      LocalizedString(language: 'en', value: 'Nationality'),
-    ],
-    value: CardValue.string(value: 'Nederlands'),
-    key: 'mock.nationality',
-  ),
 ];
 
 final kMockAddressDataAttributes = [
