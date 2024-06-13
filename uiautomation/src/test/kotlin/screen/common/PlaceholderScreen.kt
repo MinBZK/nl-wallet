@@ -4,7 +4,7 @@ import util.MobileActions
 
 class PlaceholderScreen : MobileActions() {
 
-    private val screen = find.byValueKey("placeholderScreen")
+    private val headlineText = find.byText(l10n.getString("placeholderScreenHeadline"))
 
-    fun visible() = isElementVisible(screen)
+    fun visible() = isElementVisible(headlineText)
 }
