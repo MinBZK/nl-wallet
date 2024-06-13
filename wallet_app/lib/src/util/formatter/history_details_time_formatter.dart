@@ -5,7 +5,7 @@ import '../extension/build_context_extension.dart';
 
 class HistoryDetailsTimeFormatter {
   static String format(BuildContext context, DateTime dateTime) {
-    DateFormat dateTimeFormat = DateFormat('d MMMM y, HH:mm', context.l10n.localeName);
+    final DateFormat dateTimeFormat = DateFormat('d MMMM y, HH:mm', context.l10n.localeName);
     return dateTimeFormat.format(dateTime);
   }
 }

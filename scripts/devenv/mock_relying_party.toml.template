@@ -1,35 +1,36 @@
-wallet_server_url = 'http://${SERVICES_HOST}:${MOCK_RP_RS_PORT}'
+internal_wallet_server_url = 'http://${SERVICES_HOST}:${MOCK_RP_RS_PORT}'
+public_wallet_server_url = 'http://${SERVICES_HOST}:${MOCK_RP_WS_PORT}'
 public_url = 'http://${SERVICES_HOST}:${MOCK_RP_PORT}/'
-allow_origins = ["http://localhost:5175", "http://localhost:5174", "http://localhost:5173"]
+allow_origins = ["http://localhost:5175", "http://localhost:5174", "http://localhost:5173", "http://${SERVICES_HOST}:5175", "http://${SERVICES_HOST}:5174", "http://${SERVICES_HOST}:5173"]
 
 [webserver]
 ip = '0.0.0.0'
 port = ${MOCK_RP_PORT}
 
-[[usecases.mijn_amsterdam]]
+[[usecases.mijn_amsterdam.items_requests]]
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { bsn = true } }
 
-[[usecases.xyz_bank]]
+[[usecases.xyz_bank.items_requests]]
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, bsn = true } }
 
-[[usecases.xyz_bank]]
+[[usecases.xyz_bank.items_requests]]
 docType = "com.example.address"
 nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
 
-[[usecases.online_marketplace]]
+[[usecases.online_marketplace.items_requests]]
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true } }
 
-[[usecases.online_marketplace]]
+[[usecases.online_marketplace.items_requests]]
 docType = "com.example.address"
 nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true } }
 
-[[usecases.monkey_bike]]
+[[usecases.monkey_bike.items_requests]]
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, gender = true, nationality = true } }
 
-[[usecases.monkey_bike]]
+[[usecases.monkey_bike.items_requests]]
 docType = "com.example.address"
 nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_postal_code = true, resident_city = true } }

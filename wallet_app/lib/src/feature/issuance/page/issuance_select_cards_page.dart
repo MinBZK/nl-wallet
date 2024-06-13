@@ -44,7 +44,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
             hasScrollBody: false,
             fillOverscroll: true,
             child: _buildActionButtons(context),
-          )
+          ),
         ],
       ),
     );
@@ -150,7 +150,7 @@ class IssuanceSelectCardsPage extends StatelessWidget {
               context.l10n.issuanceSelectCardsPageNoSelectionError,
               style: context.textTheme.bodyMedium?.copyWith(color: errorColor),
             ),
-          )
+          ),
         ],
       ),
     );

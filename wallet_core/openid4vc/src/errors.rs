@@ -87,6 +87,8 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 GetAuthRequestError::EncryptionKey(_)
                 | GetAuthRequestError::AuthRequest(_)
                 | GetAuthRequestError::Jwt(_)
+                | GetAuthRequestError::ReturnUrlConfigurationMismatch
+                | GetAuthRequestError::UnknownUseCase(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
                 GetAuthRequestError::InvalidEphemeralId(_) | GetAuthRequestError::Session(_) => {
                     GetRequestErrorCode::InvalidRequest
@@ -145,7 +147,7 @@ impl From<VerificationError> for ErrorResponse<VerificationErrorCode> {
                 | VerificationError::ReturnUrlConfigurationMismatch
                 | VerificationError::NoItemsRequests
                 | VerificationError::SessionNotDone
-                | VerificationError::RedirectUriMismatch(_)
+                | VerificationError::RedirectUriNonceMismatch(_)
                 | VerificationError::RedirectUriNonceMissing
                 | VerificationError::MissingSAN
                 | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,

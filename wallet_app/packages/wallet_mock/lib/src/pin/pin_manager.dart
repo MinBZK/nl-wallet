@@ -36,7 +36,7 @@ class PinManager {
     }
     // Intermediate timeout, report as such
     if (_attempts % _kAttemptsBeforeTimeout == 0) {
-      int timeoutMillis = Duration(seconds: _attempts * 2).inMilliseconds;
+      final int timeoutMillis = Duration(seconds: _attempts * 2).inMilliseconds;
       return WalletInstructionResult.instructionError(
         error: WalletInstructionError.timeout(timeoutMillis: timeoutMillis),
       );

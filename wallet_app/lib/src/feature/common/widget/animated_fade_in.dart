@@ -15,7 +15,7 @@ class AnimatedFadeIn extends StatefulWidget {
 }
 
 class _AnimatedFadeInState extends State<AnimatedFadeIn> with AfterLayoutMixin<AnimatedFadeIn> {
-  double _opacity = 0.0;
+  double _opacity = 0;
 
   @override
   FutureOr<void> afterFirstLayout(BuildContext context) {

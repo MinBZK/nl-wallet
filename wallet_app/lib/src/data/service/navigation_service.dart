@@ -38,36 +38,38 @@ class NavigationService {
   }
 
   Future<void> _navigate(NavigationRequest request) async {
-    assert(await _checkNavigationPrerequisitesUseCase.invoke(request.navigatePrerequisites),
-        'NavigationPreRequisites should have been validated before calling _navigate!');
+    assert(
+      await _checkNavigationPrerequisitesUseCase.invoke(request.navigatePrerequisites),
+      'NavigationPreRequisites should have been validated before calling _navigate!',
+    );
     await _performPreNavigationActionsUseCase.invoke(request.preNavigationActions);
     switch (request) {
       case PidIssuanceNavigationRequest():
-        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
           ModalRoute.withName(WalletRoutes.splashRoute),
           arguments: request.argument,
         );
       case DisclosureNavigationRequest():
-        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
           ModalRoute.withName(WalletRoutes.dashboardRoute),
           arguments: request.argument,
         );
       case IssuanceNavigationRequest():
-        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
           ModalRoute.withName(WalletRoutes.dashboardRoute),
           arguments: request.argument,
         );
       case SignNavigationRequest():
-        _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        await _navigatorKey.currentState?.pushNamedAndRemoveUntil(
           request.destination,
           ModalRoute.withName(WalletRoutes.dashboardRoute),
           arguments: request.argument,
         );
       case GenericNavigationRequest():
-        _navigatorKey.currentState?.pushNamed(
+        await _navigatorKey.currentState?.pushNamed(
           request.destination,
           arguments: request.argument,
         );

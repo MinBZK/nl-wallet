@@ -110,7 +110,7 @@ class WalletRoutes {
   static const loginDetailRoute = '/login_detail';
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
-    WidgetBuilder builder = _widgetBuilderFactory(settings);
+    final WidgetBuilder builder = _widgetBuilderFactory(settings);
     final pageTransition = _resolvePageTransition(settings);
     if (publicRoutes.contains(settings.name)) {
       return MaterialPageRoute(builder: builder, settings: settings);
@@ -248,7 +248,7 @@ Widget _createMenuScreenBuilder(BuildContext context) {
 
 WidgetBuilder _createCardDetailScreenBuilder(RouteSettings settings) {
   return (context) {
-    CardDetailScreenArgument argument = CardDetailScreen.getArgument(settings);
+    final CardDetailScreenArgument argument = CardDetailScreen.getArgument(settings);
     return BlocProvider<CardDetailBloc>(
       create: (context) => CardDetailBloc(context.read(), argument.card)..add(CardDetailLoadTriggered(argument.cardId)),
       child: CardDetailScreen(cardTitle: argument.cardTitle.l10nValue(context)),
@@ -285,10 +285,12 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
       create: (BuildContext context) => DisclosureBloc(
         context.read(),
         context.read(),
-      )..add(DisclosureSessionStarted(
-          args.uri,
-          isQrCode: args.isQrCode,
-        )),
+      )..add(
+          DisclosureSessionStarted(
+            args.uri,
+            isQrCode: args.isQrCode,
+          ),
+        ),
       child: const DisclosureScreen(),
     );
   };
@@ -296,7 +298,7 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
   return (context) {
-    PolicyScreenArguments args = PolicyScreen.getArguments(settings);
+    final PolicyScreenArguments args = PolicyScreen.getArguments(settings);
     return PolicyScreen(
       policy: args.policy,
       showSignatureRow: args.showSignatureRow,
@@ -306,16 +308,16 @@ WidgetBuilder _createPolicyScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
   return (context) {
-    IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
+    final IssuanceScreenArgument argument = IssuanceScreen.getArgument(settings);
     return BlocProvider<IssuanceBloc>(
       create: (BuildContext context) {
         return IssuanceBloc(
-          argument.uri!,
-          argument.isRefreshFlow,
           context.read(),
           context.read(),
           context.read(),
           context.read(),
+          issuanceUri: argument.uri!,
+          isRefreshFlow: argument.isRefreshFlow,
         );
       },
       child: const IssuanceScreen(),
@@ -367,13 +369,15 @@ Widget _createHistoryOverviewScreenBuilder(BuildContext context) {
 
 WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
   return (context) {
-    HistoryDetailScreenArgument argument = HistoryDetailScreen.getArgument(settings);
+    final HistoryDetailScreenArgument argument = HistoryDetailScreen.getArgument(settings);
     return BlocProvider<HistoryDetailBloc>(
       create: (BuildContext context) => HistoryDetailBloc(context.read())
-        ..add(HistoryDetailLoadTriggered(
-          event: argument.walletEvent,
-          docType: argument.docType,
-        )),
+        ..add(
+          HistoryDetailLoadTriggered(
+            event: argument.walletEvent,
+            docType: argument.docType,
+          ),
+        ),
       child: const HistoryDetailScreen(),
     );
   };
@@ -411,7 +415,7 @@ WidgetBuilder _createLoginDetailScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
   return (context) {
-    OrganizationDetailScreenArgument argument = OrganizationDetailScreen.getArgument(settings);
+    final OrganizationDetailScreenArgument argument = OrganizationDetailScreen.getArgument(settings);
     return BlocProvider<OrganizationDetailBloc>(
       create: (BuildContext context) => OrganizationDetailBloc()
         ..add(

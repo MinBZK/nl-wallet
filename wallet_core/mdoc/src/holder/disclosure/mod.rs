@@ -2,13 +2,14 @@ use std::{collections::HashSet, error::Error};
 
 use super::Mdoc;
 
+pub use disclosure_request_match::DisclosureRequestMatch;
 pub use proposed_document::{ProposedDocument, ProposedDocumentAttributes};
-pub use request::DisclosureRequestMatch;
 pub use session::{
     DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, DisclosureUriSource, ProposedAttributes,
 };
 
 mod device_signed;
+mod disclosure_request_match;
 mod engagement;
 mod issuer_signed;
 mod proposed_document;

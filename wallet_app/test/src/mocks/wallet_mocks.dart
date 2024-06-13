@@ -100,35 +100,35 @@ class Mocks {
 
   static void initialize() {
     // Core
-    sl.registerFactory<WalletCore>(() => MockWalletCore());
+    sl.registerFactory<WalletCore>(MockWalletCore.new);
 
     // Services
-    sl.registerFactory<AppLifecycleService>(() => AppLifecycleService());
-    sl.registerFactory<TypedWalletCore>(() => getTypedWalletCoreMock());
+    sl.registerFactory<AppLifecycleService>(AppLifecycleService.new);
+    sl.registerFactory<TypedWalletCore>(getTypedWalletCoreMock);
 
     // Use cases
-    sl.registerFactory<DecodeUriUseCase>(() => MockDecodeUriUseCase());
-    sl.registerFactory<IsWalletInitializedUseCase>(() => MockIsWalletInitializedUseCase());
-    sl.registerFactory<IsWalletInitializedWithPidUseCase>(() => MockIsWalletInitializedWithPidUseCase());
-    sl.registerFactory<ObserveWalletLockedUseCase>(() => MockObserveWalletLockedUseCase());
-    sl.registerFactory<CheckPinUseCase>(() => MockCheckPinUseCase());
-    sl.registerFactory<SetupMockedWalletUseCase>(() => MockSetupMockedWalletUseCase());
+    sl.registerFactory<DecodeUriUseCase>(MockDecodeUriUseCase.new);
+    sl.registerFactory<IsWalletInitializedUseCase>(MockIsWalletInitializedUseCase.new);
+    sl.registerFactory<IsWalletInitializedWithPidUseCase>(MockIsWalletInitializedWithPidUseCase.new);
+    sl.registerFactory<ObserveWalletLockedUseCase>(MockObserveWalletLockedUseCase.new);
+    sl.registerFactory<CheckPinUseCase>(MockCheckPinUseCase.new);
+    sl.registerFactory<SetupMockedWalletUseCase>(MockSetupMockedWalletUseCase.new);
     sl.registerFactory<CheckHasInternetUseCase>(() {
       final mock = MockCheckHasInternetUseCase();
       when(mock.invoke()).thenAnswer((realInvocation) async => true);
       BlocExtensions.checkHasInternetUseCase = mock;
       return mock;
     });
-    sl.registerFactory<AcceptOfferedPidUseCase>(() => MockAcceptOfferedPidUseCase());
-    sl.registerFactory<StartDisclosureUseCase>(() => MockStartDisclosureUseCase());
-    sl.registerFactory<CancelDisclosureUseCase>(() => MockCancelDisclosureUseCase());
+    sl.registerFactory<AcceptOfferedPidUseCase>(MockAcceptOfferedPidUseCase.new);
+    sl.registerFactory<StartDisclosureUseCase>(MockStartDisclosureUseCase.new);
+    sl.registerFactory<CancelDisclosureUseCase>(MockCancelDisclosureUseCase.new);
 
     // Repositories
-    sl.registerFactory<PidRepository>(() => getMockPidRepository());
-    sl.registerFactory<WalletRepository>(() => MockWalletRepository());
+    sl.registerFactory<PidRepository>(getMockPidRepository);
+    sl.registerFactory<WalletRepository>(MockWalletRepository.new);
 
     // Mappers
-    sl.registerFactory<Mapper>(() => MockMapper());
+    sl.registerFactory<Mapper>(MockMapper.new);
 
     isInitialized = true;
   }

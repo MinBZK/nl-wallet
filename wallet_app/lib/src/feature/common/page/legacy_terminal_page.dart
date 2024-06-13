@@ -85,7 +85,7 @@ class LegacyTerminalPage extends StatelessWidget {
                     description,
                     style: context.textTheme.bodyLarge,
                     textAlign: TextAlign.start,
-                  )
+                  ),
                 ],
               ),
             ),

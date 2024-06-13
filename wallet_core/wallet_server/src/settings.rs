@@ -2,17 +2,14 @@ use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf
 
 use config::{Config, ConfigError, Environment, File};
 use nutype::nutype;
+use openid4vc::verifier::{UseCase, UseCases};
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
 use ring::hmac;
 use serde::Deserialize;
 use serde_with::{base64::Base64, hex::Hex, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::{
-    server_state::SessionStoreTimeouts,
-    utils::x509::Certificate,
-    verifier::{SessionTypeReturnUrl, UseCase, UseCases},
-};
+use nl_wallet_mdoc::{server_state::SessionStoreTimeouts, utils::x509::Certificate, verifier::SessionTypeReturnUrl};
 use wallet_common::{
     config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
     sentry::Sentry,
@@ -34,8 +31,6 @@ pub struct Settings {
     pub requester_server: RequesterAuth,
     // used by the wallet
     pub public_url: BaseUrl,
-    // used by the application
-    pub internal_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     pub log_requests: bool,
 
@@ -175,7 +170,7 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
 }
 
 impl TryFrom<VerifierUseCases> for UseCases {
-    type Error = p256::pkcs8::Error;
+    type Error = anyhow::Error;
 
     fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
         let use_cases = value
@@ -194,13 +189,10 @@ impl TryFrom<VerifierUseCases> for UseCases {
 }
 
 impl TryFrom<&VerifierUseCase> for UseCase {
-    type Error = p256::pkcs8::Error;
+    type Error = anyhow::Error;
 
     fn try_from(value: &VerifierUseCase) -> Result<Self, Self::Error> {
-        let use_case = UseCase {
-            key_pair: (&value.key_pair).try_into()?,
-            session_type_return_url: value.session_type_return_url,
-        };
+        let use_case = UseCase::new((&value.key_pair).try_into()?, value.session_type_return_url)?;
 
         Ok(use_case)
     }

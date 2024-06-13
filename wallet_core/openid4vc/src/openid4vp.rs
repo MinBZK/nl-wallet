@@ -111,10 +111,10 @@ pub enum VpPresentationDefinition {
 }
 
 impl VpPresentationDefinition {
-    pub fn direct(&self) -> &PresentationDefinition {
+    pub fn direct(self) -> Option<PresentationDefinition> {
         match self {
-            VpPresentationDefinition::Direct(pd) => pd,
-            VpPresentationDefinition::Indirect(_) => panic!("uri variant not supported"),
+            VpPresentationDefinition::Direct(pd) => Some(pd),
+            VpPresentationDefinition::Indirect(_) => None,
         }
     }
 }
@@ -128,10 +128,10 @@ pub enum VpClientMetadata {
 }
 
 impl VpClientMetadata {
-    pub fn direct(&self) -> &ClientMetadata {
+    pub fn direct(self) -> Option<ClientMetadata> {
         match self {
-            VpClientMetadata::Direct(c) => c,
-            VpClientMetadata::Indirect(_) => panic!("uri variant not supported"),
+            VpClientMetadata::Direct(c) => Some(c),
+            VpClientMetadata::Indirect(_) => None,
         }
     }
 }
@@ -172,10 +172,10 @@ pub enum VpJwks {
 }
 
 impl VpJwks {
-    pub fn direct(&self) -> &Vec<Jwk> {
+    pub fn direct(&self) -> Option<&Vec<Jwk>> {
         match self {
-            VpJwks::Direct { keys } => keys,
-            VpJwks::Indirect(_) => panic!("uri variant not supported"),
+            VpJwks::Direct { keys } => Some(keys),
+            VpJwks::Indirect(_) => None,
         }
     }
 }
@@ -240,21 +240,6 @@ impl JwePublicKey {
     }
 }
 
-/// An OpenID4VP Authorization Request that has been validated to conform to the ISO 18013-7 profile:
-/// a subset of [`VpAuthorizationRequest`] that always contains fields we require, and no fields we don't.
-#[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IsoVpAuthorizationRequest {
-    pub client_id: String,
-    pub nonce: String,
-    pub encryption_pubkey: Jwk,
-    pub response_uri: BaseUrl,
-    pub items_requests: ItemsRequests,
-    pub presentation_definition: PresentationDefinition,
-    pub client_metadata: ClientMetadata,
-    pub state: Option<String>,
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestValidationError {
     #[error("unexpected field: {0}")]
@@ -294,48 +279,6 @@ pub enum AuthRequestValidationError {
 }
 
 impl VpAuthorizationRequest {
-    pub fn new(
-        items_requests: &ItemsRequests,
-        rp_certificate: &Certificate,
-        nonce: String,
-        encryption_pubkey: JwePublicKey,
-        response_uri: BaseUrl,
-        wallet_nonce: Option<String>,
-    ) -> Result<Self, AuthRequestError> {
-        Ok(VpAuthorizationRequest {
-            aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequest {
-                response_type: ResponseType::VpToken.into(),
-                client_id: rp_certificate
-                    .san_dns_name()
-                    .map_err(AuthRequestError::CertificateParsing)?
-                    .ok_or(AuthRequestError::MissingSAN)?,
-                nonce: Some(nonce),
-                response_mode: Some(ResponseMode::DirectPostJwt),
-                redirect_uri: None,
-                state: None,
-                authorization_details: None,
-                request_uri: None,
-                code_challenge: None,
-                scope: None,
-            },
-            presentation_definition: VpPresentationDefinition::Direct(items_requests.into()),
-            client_metadata: Some(VpClientMetadata::Direct(ClientMetadata {
-                jwks: VpJwks::Direct {
-                    keys: vec![encryption_pubkey.into_inner()],
-                },
-                vp_formats: VpFormat::MsoMdoc {
-                    alg: IndexSet::from([FormatAlg::ES256]),
-                },
-                authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
-                authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
-            })),
-            client_id_scheme: Some(ClientIdScheme::X509SanDns),
-            response_uri: Some(response_uri),
-            wallet_nonce,
-        })
-    }
-
     /// Verify an Authorization Request JWT against the specified trust anchors, additionally checking that
     /// - the request contents are compliant with the profile from ISO 18013-7 Appendix B,
     /// - the `client_id` equals the DNS SAN name in the X.509 certificate, as required by the
@@ -360,123 +303,196 @@ impl VpAuthorizationRequest {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 
-        let validated_auth_request = auth_request.validate()?;
+        let validated_auth_request = IsoVpAuthorizationRequest::try_from(auth_request)?;
 
         Ok((validated_auth_request, rp_cert))
     }
+}
 
-    /// Validate that the request contents are compliant with the profile from ISO 18013-7 Appendix B.
-    pub fn validate(&self) -> Result<IsoVpAuthorizationRequest, AuthRequestValidationError> {
-        // Check absence of fields that must not be present in an OpenID4VP Authorization Request
-        if self.oauth_request.authorization_details.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
-        }
-        if self.oauth_request.code_challenge.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("code_challenge"));
-        }
-        if self.oauth_request.redirect_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri"));
-        }
-        if self.oauth_request.scope.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("scope"));
-        }
-        if self.oauth_request.request_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
-        }
-        // Check presence of fields that must be present in an OpenID4VP Authorization Request
-        if self.oauth_request.nonce.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
-        }
-        if self.oauth_request.response_mode.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
-        }
-        if self.client_metadata.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
-        }
-        if self.client_id_scheme.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme"));
-        }
-        if self.response_uri.is_none() {
-            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
-        }
+/// An OpenID4VP Authorization Request that has been validated to conform to the ISO 18013-7 profile:
+/// a subset of [`VpAuthorizationRequest`] that always contains fields we require, and no fields we don't.
+///
+/// Note that this data type is internal to both the wallet and verifier, and not part of the OpenID4VP protocol,
+/// so it is never sent over the wire. It implements (De)serialize so that the verifier can persist it to
+/// the session store.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IsoVpAuthorizationRequest {
+    pub client_id: String,
+    pub nonce: String,
+    pub encryption_pubkey: Jwk,
+    pub response_uri: BaseUrl,
+    pub items_requests: ItemsRequests,
+    pub presentation_definition: PresentationDefinition,
+    pub client_metadata: ClientMetadata,
+    pub state: Option<String>,
+    pub wallet_nonce: Option<String>,
+}
 
-        // Check that various enums have the expected values
-        if self.oauth_request.response_type != ResponseType::VpToken.into() {
-            return Err(AuthRequestValidationError::UnsupportedFieldValue {
-                field: "response_type",
-                expected: "vp_token",
-                found: serde_json::to_string(&self.oauth_request.response_type).unwrap(),
-            });
-        }
-        if *self.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
-            return Err(AuthRequestValidationError::UnsupportedFieldValue {
-                field: "response_mode",
-                expected: "direct_post.jwt",
-                found: serde_json::to_string(&self.oauth_request.response_mode).unwrap(),
-            });
-        }
-        if *self.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
-            return Err(AuthRequestValidationError::UnsupportedFieldValue {
-                field: "client_id_scheme",
-                expected: "x509_san_dns",
-                found: serde_json::to_string(&self.client_id_scheme).unwrap(),
-            });
-        }
+impl IsoVpAuthorizationRequest {
+    pub fn new(
+        items_requests: &ItemsRequests,
+        rp_certificate: &Certificate,
+        nonce: String,
+        encryption_pubkey: JwePublicKey,
+        response_uri: BaseUrl,
+        wallet_nonce: Option<String>,
+    ) -> Result<Self, AuthRequestError> {
+        let encryption_pubkey = encryption_pubkey.into_inner();
 
-        // Of fields that have an "_uri" variant, check that they are not used
-        if matches!(self.presentation_definition, VpPresentationDefinition::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported(
-                "presentation_definition",
-            ));
-        }
-        if matches!(*self.client_metadata.as_ref().unwrap(), VpClientMetadata::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
-        }
-        let client_metadata = self.client_metadata.as_ref().unwrap().direct();
-        if matches!(client_metadata.jwks, VpJwks::Indirect(..)) {
-            return Err(AuthRequestValidationError::UriVariantNotSupported(
-                "presentation_definition",
-            ));
-        }
-
-        // check that we received exactly one EC/P256 curve
-        let jwks = client_metadata.jwks.direct();
-        if jwks.len() != 1 {
-            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
-        }
-        JwePublicKey::validate(jwks.first().unwrap())?;
-
-        if self
-            .presentation_definition
-            .direct()
-            .input_descriptors
-            .iter()
-            .map(|i| i.constraints.fields.len())
-            .sum::<usize>()
-            == 0
-        {
-            return Err(AuthRequestValidationError::NoAttributesRequested);
-        }
-
-        // The code above establishes that all these .unwrap() and .direct() calls are safe.
-        Ok(IsoVpAuthorizationRequest {
-            client_id: self.oauth_request.client_id.clone(),
-            nonce: self.oauth_request.nonce.as_ref().unwrap().clone(),
-            encryption_pubkey: jwks.first().unwrap().clone(),
-            items_requests: self.presentation_definition.direct().try_into()?,
-            response_uri: self.response_uri.as_ref().unwrap().clone(),
-            presentation_definition: self.presentation_definition.direct().clone(),
-            client_metadata: client_metadata.clone(),
-            state: self.oauth_request.state.clone(),
+        Ok(Self {
+            client_id: rp_certificate
+                .san_dns_name()
+                .map_err(AuthRequestError::CertificateParsing)?
+                .ok_or(AuthRequestError::MissingSAN)?,
+            nonce,
+            encryption_pubkey: encryption_pubkey.clone(),
+            response_uri,
+            presentation_definition: items_requests.into(),
+            items_requests: items_requests.clone(),
+            client_metadata: ClientMetadata {
+                jwks: VpJwks::Direct {
+                    keys: vec![encryption_pubkey.clone()],
+                },
+                vp_formats: VpFormat::MsoMdoc {
+                    alg: IndexSet::from([FormatAlg::ES256]),
+                },
+                authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
+                authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
+            },
+            state: None,
+            wallet_nonce,
         })
+    }
+}
+
+impl From<IsoVpAuthorizationRequest> for VpAuthorizationRequest {
+    fn from(value: IsoVpAuthorizationRequest) -> Self {
+        Self {
+            aud: VpAuthorizationRequestAudience::SelfIssued,
+            oauth_request: AuthorizationRequest {
+                response_type: ResponseType::VpToken.into(),
+                client_id: value.client_id,
+                nonce: Some(value.nonce),
+                response_mode: Some(ResponseMode::DirectPostJwt),
+                redirect_uri: None,
+                state: None,
+                authorization_details: None,
+                request_uri: None,
+                code_challenge: None,
+                scope: None,
+            },
+            presentation_definition: VpPresentationDefinition::Direct(value.presentation_definition),
+            client_metadata: Some(VpClientMetadata::Direct(value.client_metadata)),
+            client_id_scheme: Some(ClientIdScheme::X509SanDns),
+            response_uri: Some(value.response_uri),
+            wallet_nonce: value.wallet_nonce,
+        }
     }
 }
 
 impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
     type Error = AuthRequestValidationError;
 
-    fn try_from(value: VpAuthorizationRequest) -> Result<Self, Self::Error> {
-        value.validate()
+    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, Self::Error> {
+        // Check absence of fields that must not be present in an OpenID4VP Authorization Request
+        if vp_auth_request.oauth_request.authorization_details.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
+        }
+        if vp_auth_request.oauth_request.code_challenge.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("code_challenge"));
+        }
+        if vp_auth_request.oauth_request.redirect_uri.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri"));
+        }
+        if vp_auth_request.oauth_request.scope.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("scope"));
+        }
+        if vp_auth_request.oauth_request.request_uri.is_some() {
+            return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
+        }
+
+        // Check presence of fields that must be present in an OpenID4VP Authorization Request
+        if vp_auth_request.oauth_request.nonce.is_none() {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
+        }
+        if vp_auth_request.oauth_request.response_mode.is_none() {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
+        }
+        if vp_auth_request.client_id_scheme.is_none() {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_id_scheme"));
+        }
+        if vp_auth_request.response_uri.is_none() {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("response_uri"));
+        }
+        let Some(client_metadata) = vp_auth_request.client_metadata else {
+            return Err(AuthRequestValidationError::ExpectedFieldMissing("client_metadata"));
+        };
+
+        // Check that various enums have the expected values
+        if vp_auth_request.oauth_request.response_type != ResponseType::VpToken.into() {
+            return Err(AuthRequestValidationError::UnsupportedFieldValue {
+                field: "response_type",
+                expected: "vp_token",
+                found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap(),
+            });
+        }
+        if *vp_auth_request.oauth_request.response_mode.as_ref().unwrap() != ResponseMode::DirectPostJwt {
+            return Err(AuthRequestValidationError::UnsupportedFieldValue {
+                field: "response_mode",
+                expected: "direct_post.jwt",
+                found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
+            });
+        }
+        if *vp_auth_request.client_id_scheme.as_ref().unwrap() != ClientIdScheme::X509SanDns {
+            return Err(AuthRequestValidationError::UnsupportedFieldValue {
+                field: "client_id_scheme",
+                expected: "x509_san_dns",
+                found: serde_json::to_string(&vp_auth_request.client_id_scheme).unwrap(),
+            });
+        }
+
+        // Of fields that have an "_uri" variant, check that they are not used
+        let Some(presentation_definition) = vp_auth_request.presentation_definition.direct() else {
+            return Err(AuthRequestValidationError::UriVariantNotSupported(
+                "presentation_definition",
+            ));
+        };
+        let Some(client_metadata) = client_metadata.direct() else {
+            return Err(AuthRequestValidationError::UriVariantNotSupported("client_metadata"));
+        };
+        let Some(jwks) = client_metadata.jwks.direct() else {
+            return Err(AuthRequestValidationError::UriVariantNotSupported(
+                "presentation_definition",
+            ));
+        };
+
+        // check that we received exactly one EC/P256 curve
+        if jwks.len() != 1 {
+            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
+        }
+        let jwk = jwks.first().unwrap().clone();
+        JwePublicKey::validate(&jwk)?;
+
+        if presentation_definition
+            .input_descriptors
+            .iter()
+            .all(|i| i.constraints.fields.is_empty())
+        {
+            return Err(AuthRequestValidationError::NoAttributesRequested);
+        }
+
+        Ok(IsoVpAuthorizationRequest {
+            client_id: vp_auth_request.oauth_request.client_id,
+            nonce: vp_auth_request.oauth_request.nonce.unwrap(),
+            encryption_pubkey: jwk,
+            items_requests: (&presentation_definition).try_into()?,
+            response_uri: vp_auth_request.response_uri.unwrap(),
+            presentation_definition,
+            client_metadata,
+            state: vp_auth_request.oauth_request.state,
+            wallet_nonce: vp_auth_request.wallet_nonce,
+        })
     }
 }
 
@@ -589,9 +605,9 @@ impl VpAuthorizationResponse {
         header.set_agreement_partyvinfo(auth_request.nonce.clone());
 
         // Use the AES key size that the server wants.
-        let client_metadata = &auth_request.client_metadata;
         header.set_content_encryption(
-            client_metadata
+            &auth_request
+                .client_metadata
                 .authorization_encryption_enc_values_supported
                 .to_string(),
         );
@@ -702,14 +718,16 @@ pub struct VpResponse {
     pub redirect_uri: Option<BaseUrl>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
-    AuthorizationError(AuthorizationErrorCode),
     VpFormatsNotSupported,
     InvalidPresentationDefinitionUri,
     InvalidPresentationDefinitionReference,
     InvalidRequestUriMethod,
+
+    #[serde(untagged)]
+    AuthorizationError(AuthorizationErrorCode),
 }
 
 #[cfg(test)]
@@ -729,7 +747,25 @@ mod tests {
     };
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
+    use crate::{
+        authorization::AuthorizationErrorCode,
+        openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationErrorCode},
+    };
+
     use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
+
+    #[test]
+    fn test_vp_authorization_error_code_serialization() {
+        assert_eq!(
+            serde_json::from_str::<VpAuthorizationErrorCode>(r#""invalid_request""#).unwrap(),
+            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
+        );
+
+        assert_eq!(
+            serde_json::from_str::<VpAuthorizationErrorCode>(r#""vp_formats_not_supported""#).unwrap(),
+            VpAuthorizationErrorCode::VpFormatsNotSupported,
+        );
+    }
 
     fn setup() -> (KeyPair, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
@@ -737,7 +773,7 @@ mod tests {
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
-        let auth_request = VpAuthorizationRequest::new(
+        let auth_request = IsoVpAuthorizationRequest::new(
             &Examples::items_requests(),
             rp_keypair.certificate(),
             "nonce".to_string(),
@@ -745,7 +781,8 @@ mod tests {
             "https://example.com/response_uri".parse().unwrap(),
             None,
         )
-        .unwrap();
+        .unwrap()
+        .into();
 
         (ca, rp_keypair, encryption_privkey, auth_request)
     }
@@ -760,7 +797,7 @@ mod tests {
         // an Authorization Response JWE.
         let mdoc_nonce = "mdoc_nonce".to_string();
         let device_response = DeviceResponse::example();
-        let auth_request = auth_request.validate().unwrap();
+        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request);
         let jwe = auth_response.encrypt(&auth_request, &mdoc_nonce).unwrap();
 
@@ -839,7 +876,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        auth_request.validate().unwrap();
+        IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
     #[test]
@@ -925,7 +962,7 @@ mod tests {
         let (_, _, _, auth_request) = setup();
         let mdoc_nonce = "mdoc_nonce";
 
-        let auth_request = auth_request.validate().unwrap();
+        let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
             &auth_request.client_id,

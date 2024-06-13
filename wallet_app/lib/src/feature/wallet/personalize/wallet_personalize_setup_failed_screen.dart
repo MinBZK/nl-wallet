@@ -63,7 +63,7 @@ class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () async {
           final navigator = Navigator.of(context);
-          navigator.pushNamedAndRemoveUntil(
+          await navigator.pushNamedAndRemoveUntil(
             WalletRoutes.setupSecurityRoute,
             ModalRoute.withName(WalletRoutes.splashRoute),
           );

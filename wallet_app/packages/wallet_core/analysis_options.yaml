@@ -1,5 +1,8 @@
-include: package:lints/core.yaml
+include: ./../../analysis_options.yaml
 
-# analyzer:
+linter:
+  rules:
+  # Optionally add or exclude extra rules
+
 exclude:
   - lib/src/bridge_generated.dart

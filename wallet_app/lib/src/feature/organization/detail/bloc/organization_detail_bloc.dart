@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/organization.dart';
 
@@ -11,7 +11,7 @@ class OrganizationDetailBloc extends Bloc<OrganizationDetailEvent, OrganizationD
     on<OrganizationProvided>(_onOrganizationProvided);
   }
 
-  void _onOrganizationProvided(OrganizationProvided event, emit) async {
+  Future<void> _onOrganizationProvided(OrganizationProvided event, emit) async {
     emit(
       OrganizationDetailSuccess(
         organization: event.organization,

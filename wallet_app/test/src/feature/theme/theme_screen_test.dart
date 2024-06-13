@@ -9,7 +9,7 @@ import '../../util/test_utils.dart';
 void main() {
   const otherTabSize = Size(375, 3150);
 
-  setUp(() => TestUtils.mockAccelerometerPlugin());
+  setUp(TestUtils.mockAccelerometerPlugin);
 
   group('goldens', () {
     testGoldens(

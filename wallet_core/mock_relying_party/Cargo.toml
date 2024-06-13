@@ -22,8 +22,8 @@ axum-extra.workspace = true
 base64.workspace = true
 config.workspace = true
 dashmap.workspace = true
-nutype = { workspace = true, features = ["serde"] }
 futures.workspace = true
+nutype = { workspace = true, features = ["serde"] }
 reqwest.workspace = true
 sentry = { workspace = true, features = [
     "backtrace",

@@ -13,9 +13,11 @@ void main() {
       'light header',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          Builder(builder: (context) {
-            return HistorySectionHeader(dateTime: DateTime(2023, 1, 1));
-          }),
+          Builder(
+            builder: (context) {
+              return HistorySectionHeader(dateTime: DateTime(2023, 1, 1));
+            },
+          ),
           surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden(tester, 'history_section_header/light');
@@ -25,9 +27,11 @@ void main() {
       'dark header',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          Builder(builder: (context) {
-            return HistorySectionHeader(dateTime: DateTime(2023, 5, 9));
-          }),
+          Builder(
+            builder: (context) {
+              return HistorySectionHeader(dateTime: DateTime(2023, 5, 9));
+            },
+          ),
           brightness: Brightness.dark,
           surfaceSize: kGoldenSize,
         );
@@ -39,9 +43,11 @@ void main() {
   group('widgets', () {
     testWidgets('Date is rendered as "January 2023"', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        Builder(builder: (context) {
-          return HistorySectionHeader(dateTime: DateTime(2023, 1, 1));
-        }),
+        Builder(
+          builder: (context) {
+            return HistorySectionHeader(dateTime: DateTime(2023, 1, 1));
+          },
+        ),
       );
 
       // Validate that the widget exists

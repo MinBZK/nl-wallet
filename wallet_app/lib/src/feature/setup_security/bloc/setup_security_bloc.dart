@@ -102,7 +102,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
         onNetworkError: (ex, hasInternet) => emit(SetupSecurityNetworkError(error: ex, hasInternet: hasInternet)),
         onUnhandledError: (ex) => emit(SetupSecurityGenericError(error: ex)),
       );
-      _resetFlow(emit);
+      await _resetFlow(emit);
     }
   }
 

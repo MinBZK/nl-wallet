@@ -35,7 +35,8 @@ class InfoRow extends StatelessWidget {
               leading ??
                   Icon(
                     icon,
-                    color: context.colorScheme.primary,
+                    color: context.colorScheme.onSurfaceVariant,
+                    size: 24,
                   ),
               const SizedBox(width: 16),
               Expanded(

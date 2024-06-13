@@ -64,7 +64,7 @@ void main() {
           ..addScenario(
             widget: const QrScreen().withState<QrBloc, QrState>(
               MockQrScanBloc(),
-              const QrScanNoPermission(true),
+              const QrScanNoPermission(permanentlyDenied: true),
             ),
           ),
         wrapper: walletAppWrapper(),

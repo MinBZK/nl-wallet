@@ -58,8 +58,8 @@ class CoreWalletRepository implements WalletRepository {
 
   @override
   Future<WalletInstructionResult> unlockWallet(String pin) async {
-    if (await isRegistered() == false) throw UnsupportedError('Wallet not yet registered!');
-    return await _walletCore.unlockWallet(pin);
+    if (!(await isRegistered())) throw UnsupportedError('Wallet not yet registered!');
+    return _walletCore.unlockWallet(pin);
   }
 
   @override

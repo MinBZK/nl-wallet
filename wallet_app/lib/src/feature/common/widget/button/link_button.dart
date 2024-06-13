@@ -40,7 +40,7 @@ class LinkButton extends StatelessWidget {
           const Size(0, 48),
         ),
         shape: WidgetStateProperty.all(
-          const LinearBorder(),
+          LinearBorder.none,
         ),
         overlayColor: WidgetStateProperty.all(Colors.transparent),
         splashFactory: NoSplash.splashFactory,

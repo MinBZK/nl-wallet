@@ -165,7 +165,7 @@ impl VpMessageClient for HttpVpMessageClient {
                     let error = response.json::<ErrorResponse<String>>().await?;
                     Err(VpMessageClientError::ErrorResponse(error))
                 } else {
-                    deserialize_vp_response(response).await
+                    Self::deserialize_vp_response(response).await
                 }
             })
             .await
@@ -179,28 +179,29 @@ impl VpMessageClient for HttpVpMessageClient {
         let response = self
             .http_client
             .post(url.into_inner())
-            .json(&error)
+            .form(&error)
             .send()
             .await?
             .error_for_status()?;
 
-        let response = deserialize_vp_response(response).await?;
+        let response = Self::deserialize_vp_response(response).await?;
         Ok(response)
     }
 }
 
-/// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
-/// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
-async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
-    let response_bytes = response.bytes().await?;
-    if response_bytes.is_empty() {
-        return Ok(None);
+impl HttpVpMessageClient {
+    /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
+    /// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
+    async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
+        let response_bytes = response.bytes().await?;
+        if response_bytes.is_empty() {
+            return Ok(None);
+        }
+        let response: VpResponse = serde_json::from_slice(&response_bytes)?;
+        Ok(response.redirect_uri)
     }
-    let response: VpResponse = serde_json::from_slice(&response_bytes)?;
-    Ok(response.redirect_uri)
 }
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum DisclosureSession<H, I> {
     MissingAttributes(DisclosureMissingAttributes<H>),
@@ -347,7 +348,12 @@ where
             error_uri: None,
         };
 
-        let _ = client.send_error(url, error_response).await; // ignore errors in sending this error
+        // If sending the error results in an error, log it but do nothing else.
+        let _ = client
+            .send_error(url, error_response)
+            .await
+            .inspect_err(|err| warn!("failed to send error to server: {err}"));
+
         Err(error)
     }
 
@@ -501,9 +507,8 @@ where
             .client
             .send_authorization_response(self.data.auth_request.response_uri.clone(), jwe)
             .await
-            .map_err(|err| {
-                warn!("sending Authorization Response failed: {err:?}");
-                DisclosureError::from(err)
+            .inspect_err(|err| {
+                warn!("sending Authorization Response failed: {err}");
             })?;
 
         info!("sending Authorization Response succeeded");
@@ -539,180 +544,5 @@ impl From<VpMessageClientError> for DisclosureError {
             VpMessageClientError::ErrorResponse(_) | VpMessageClientError::Json(_) => true,
         };
         Self::new(data_shared, VpClientError::Request(source))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use chrono::Utc;
-    use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
-
-    use crate::{
-        disclosure_session::DisclosureSession,
-        jwt,
-        mock::MockMdocDataSource,
-        openid4vp::{VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
-        verifier::VerifierUrlParameters,
-        ErrorResponse,
-    };
-    use nl_wallet_mdoc::{
-        examples::{Examples, IsoCertTimeGenerator},
-        holder::DisclosureUriSource,
-        server_keys::KeyPair,
-        software_key_factory::SoftwareKeyFactory,
-        unsigned::Entry,
-        utils::reader_auth::ReaderRegistration,
-        verifier::SessionType,
-    };
-    use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt};
-
-    use super::{VpMessageClient, VpMessageClientError};
-
-    // A mock implementation of the `VpMessageClient` trait that implements the RP side of OpenID4VP
-    // directly in its methods.
-    struct MockVpMessageClient {
-        nonce: String,
-        encryption_keypair: EcKeyPair,
-        auth_keypair: KeyPair,
-        auth_request: VpAuthorizationRequest,
-        request_uri: BaseUrl,
-        response_uri: BaseUrl,
-    }
-
-    impl MockVpMessageClient {
-        fn new(auth_keypair: KeyPair) -> Self {
-            let query = serde_urlencoded::to_string(VerifierUrlParameters {
-                session_type: SessionType::SameDevice,
-                ephemeral_id: vec![42],
-                time: Utc::now(),
-            })
-            .unwrap();
-            let request_uri = ("https://example.com/request_uri?".to_string() + &query)
-                .parse()
-                .unwrap();
-
-            let nonce = "nonce".to_string();
-            let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
-            let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
-
-            let auth_request = VpAuthorizationRequest::new(
-                &Examples::items_requests(),
-                auth_keypair.certificate(),
-                nonce.clone(),
-                encryption_keypair.to_jwk_public_key().try_into().unwrap(),
-                response_uri.clone(),
-                None,
-            )
-            .unwrap();
-
-            Self {
-                nonce,
-                encryption_keypair,
-                auth_keypair,
-                auth_request,
-                request_uri,
-                response_uri,
-            }
-        }
-
-        fn start_session(&self) -> String {
-            serde_urlencoded::to_string(VpRequestUriObject {
-                request_uri: self.request_uri.clone(),
-                client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
-                request_uri_method: Default::default(),
-            })
-            .unwrap()
-        }
-    }
-
-    impl VpMessageClient for MockVpMessageClient {
-        async fn get_authorization_request(
-            &self,
-            url: BaseUrl,
-            _request_nonce: Option<String>,
-        ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
-            assert_eq!(url, self.request_uri);
-
-            let jws = jwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
-                .await
-                .unwrap();
-            Ok(jws)
-        }
-
-        async fn send_authorization_response(
-            &self,
-            url: BaseUrl,
-            jwe: String,
-        ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-            assert_eq!(url, self.response_uri);
-
-            let (auth_response, mdoc_nonce) =
-                VpAuthorizationResponse::decrypt(&jwe, &self.encryption_keypair, &self.nonce).unwrap();
-            let disclosed_attrs = auth_response
-                .verify(
-                    &self.auth_request.clone().try_into().unwrap(),
-                    &mdoc_nonce,
-                    &IsoCertTimeGenerator,
-                    Examples::iaca_trust_anchors(),
-                )
-                .unwrap();
-
-            assert_eq!(
-                *disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
-                    .first()
-                    .unwrap(),
-                Entry {
-                    name: "family_name".to_string(),
-                    value: "Doe".into()
-                }
-            );
-
-            Ok(None)
-        }
-
-        async fn send_error(
-            &self,
-            _url: BaseUrl,
-            error: ErrorResponse<VpAuthorizationErrorCode>,
-        ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-            panic!("error: {:?}", error)
-        }
-    }
-
-    #[tokio::test]
-    async fn disclosure() {
-        let ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
-        let trust_anchors = &[ca.certificate().try_into().unwrap()];
-        let rp_keypair = ca
-            .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
-                &Examples::items_requests(),
-            )))
-            .unwrap();
-
-        // Initialize the "wallet"
-        let mdocs = MockMdocDataSource::default();
-        let key_factory = &SoftwareKeyFactory::default();
-
-        // Start a session at the "RP"
-        let message_client = MockVpMessageClient::new(rp_keypair);
-        let request_uri = message_client.start_session();
-
-        // Perform the first part of the session, resulting in the proposed disclosure.
-        let session = DisclosureSession::start(
-            message_client,
-            &request_uri,
-            DisclosureUriSource::Link,
-            &mdocs,
-            trust_anchors,
-        )
-        .await
-        .unwrap();
-
-        let DisclosureSession::Proposal(proposal) = session else {
-            panic!("should have requested attributes")
-        };
-
-        // Finish the disclosure.
-        proposal.disclose(key_factory).await.unwrap();
     }
 }

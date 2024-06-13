@@ -97,7 +97,7 @@ class QrScreen extends StatelessWidget {
             TextButton(
               onPressed: () => context.read<QrBloc>().add(const QrScanReset()),
               child: Text(context.l10n.qrScanTabContinueCta),
-            )
+            ),
           ],
         ),
       );
@@ -120,7 +120,7 @@ class QrScreen extends StatelessWidget {
         ],
       );
 
-  void _showInvalidQrDialog(BuildContext context) async {
+  Future<void> _showInvalidQrDialog(BuildContext context) async {
     final qrScanBloc = context.read<QrBloc>();
     await showDialog(
       context: context,
@@ -132,7 +132,7 @@ class QrScreen extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(context.l10n.invalidQrDialogCta),
-            )
+            ),
           ],
         );
       },

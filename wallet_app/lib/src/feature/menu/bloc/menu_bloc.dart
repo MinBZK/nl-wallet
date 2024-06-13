@@ -13,7 +13,7 @@ class MenuBloc extends Bloc<MenuEvent, MenuState> {
     on<MenuLockWalletPressed>(_onLockWalletPressed);
   }
 
-  void _onLockWalletPressed(event, emit) async {
+  Future<void> _onLockWalletPressed(event, emit) async {
     lockWalletUseCase.invoke();
   }
 }

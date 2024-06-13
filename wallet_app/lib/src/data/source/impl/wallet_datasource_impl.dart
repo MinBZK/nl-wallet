@@ -25,5 +25,5 @@ class WalletDataSourceImpl implements WalletDataSource {
   }
 
   @override
-  Stream<List<WalletCard>> observeCards() => _walletCore.observeCards().map((cards) => _cardMapper.mapList(cards));
+  Stream<List<WalletCard>> observeCards() => _walletCore.observeCards().map(_cardMapper.mapList);
 }

@@ -162,7 +162,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           SliverSizedBox(
             height: context.mediaQuery.padding.bottom,
-          )
+          ),
         ],
       ),
     );
@@ -220,7 +220,7 @@ class DashboardScreen extends StatelessWidget {
                   context.l10n.dashboardScreenQrCta,
                   textAlign: TextAlign.center,
                 ),
-              )
+              ),
             ],
           ),
         ),

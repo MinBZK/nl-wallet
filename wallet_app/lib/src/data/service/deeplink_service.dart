@@ -42,11 +42,14 @@ class DeeplinkService {
     // processed twice, which would otherwise happen when the user hides and shows the app.
     final clearController = StreamController<Uri?>();
     final allLinksStream = Rx.merge<Uri?>([initialLinkStream, _appLinks.uriLinkStream, clearController.stream]);
-    final debounceUntilResumedStream = CombineLatestStream.combine2(allLinksStream, _appLifecycleService.observe(),
-        (uri, state) => state == AppLifecycleState.resumed ? uri : null).whereNotNull();
+    final debounceUntilResumedStream = CombineLatestStream.combine2(
+      allLinksStream,
+      _appLifecycleService.observe(),
+      (uri, state) => state == AppLifecycleState.resumed ? uri : null,
+    ).whereNotNull();
     debounceUntilResumedStream.debounceTime(kResumeDebounceDuration).asyncMap((uri) async {
       clearController.add(null);
-      return await _decodeUriUseCase.invoke(uri);
+      return _decodeUriUseCase.invoke(uri);
     }).listen(
       (navigationRequest) => _navigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true),
       onError: (exception) => Fimber.e('Error while processing deeplink', ex: exception),

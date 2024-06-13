@@ -9,5 +9,5 @@ class GetWalletEventsUseCaseImpl implements GetWalletEventsUseCase {
 
   /// Returns all wallet cards [WalletEvent]s, sorted by date DESC (newest first)
   @override
-  Future<List<WalletEvent>> invoke() async => await walletEventRepository.getEvents();
+  Future<List<WalletEvent>> invoke() async => walletEventRepository.getEvents();
 }

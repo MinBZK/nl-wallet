@@ -73,7 +73,7 @@ class PolicyEntryRow extends StatelessWidget {
                   ),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

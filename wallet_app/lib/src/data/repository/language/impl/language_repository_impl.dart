@@ -22,7 +22,7 @@ class LanguageRepositoryImpl extends LanguageRepository {
 
   @override
   Future<void> setPreferredLocale(Locale? locale) async {
-    _languageStore.setPreferredLanguageCode(locale?.languageCode);
+    await _languageStore.setPreferredLanguageCode(locale?.languageCode);
     _localeStream.add(locale);
   }
 

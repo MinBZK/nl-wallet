@@ -40,7 +40,7 @@ class DisclosureScreen extends StatelessWidget {
   static DisclosureScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return tryCast<DisclosureScreenArgument>(args) ?? DisclosureScreenArgument.fromMap(args as Map<String, dynamic>);
+      return tryCast<DisclosureScreenArgument>(args) ?? DisclosureScreenArgument.fromMap(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [DisclosureScreenArgument] when opening the DisclosureScreen');
@@ -107,7 +107,7 @@ class DisclosureScreen extends StatelessWidget {
         }
       },
       builder: (context, state) {
-        Widget result = switch (state) {
+        final Widget result = switch (state) {
           DisclosureInitial() => _buildInitialLoading(context),
           DisclosureLoadInProgress() => _buildLoading(),
           DisclosureCheckOrganization() => _buildCheckOrganizationPage(context, state),
@@ -155,7 +155,7 @@ class DisclosureScreen extends StatelessWidget {
         OrganizationDetailScreen.showPreloaded(
           context,
           state.relyingParty,
-          state.sharedDataWithOrganizationBefore,
+          sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
           onReportIssuePressed: () {
             _onReportIssuePressed(context, _resolveReportingOptionsForState(context));
           },
@@ -179,8 +179,8 @@ class DisclosureScreen extends StatelessWidget {
           state.relyingParty,
           state.policy,
           state.requestedAttributes,
-          state.sharedDataWithOrganizationBefore,
           onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
+          sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
         );
       },
     );
@@ -261,7 +261,7 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  void _stopDisclosure(BuildContext context) async {
+  Future<void> _stopDisclosure(BuildContext context) async {
     final bloc = context.bloc;
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
@@ -283,7 +283,7 @@ class DisclosureScreen extends StatelessWidget {
     }
   }
 
-  void _onReportIssuePressed(BuildContext context, List<ReportingOption> optionsToShow) async {
+  Future<void> _onReportIssuePressed(BuildContext context, List<ReportingOption> optionsToShow) async {
     final bloc = context.bloc;
     final selectedOption = await ReportIssueScreen.show(context, optionsToShow);
     if (selectedOption != null) {
@@ -328,7 +328,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildTitle(BuildContext context) {
     return BlocBuilder<DisclosureBloc, DisclosureState>(
       builder: (context, state) {
-        Widget? result = switch (state) {
+        final Widget? result = switch (state) {
           DisclosureInitial() => null,
           DisclosureLoadInProgress() => null,
           DisclosureCheckOrganization() => FadeInAtOffset(
@@ -374,9 +374,9 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureNetworkError() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
-              child: Text(state.hasInternet
-                  ? context.l10n.errorScreenServerHeadline
-                  : context.l10n.errorScreenNoInternetHeadline),
+              child: Text(
+                state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
+              ),
             ),
           DisclosureExternalScannerError() => FadeInAtOffset(
               appearOffset: 48,
@@ -393,7 +393,6 @@ class DisclosureScreen extends StatelessWidget {
               visibleOffset: 70,
               child: Text(context.l10n.errorScreenSessionExpiredHeadline),
             ),
-          // TODO: Handle this case.
         };
 
         return result ?? const SizedBox.shrink();

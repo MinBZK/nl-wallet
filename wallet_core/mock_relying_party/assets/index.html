@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+    <title>Relying Party demopage</title>
+    <style>
+        main {
+            display: grid;
+            grid-template-columns: repeat(2, min-content);
+            gap: 20px;
+        }
+
+        @media (max-width: 500px) {
+            main {
+                grid-template-columns: repeat(1, min-content);
+            }
+        }
+
+        section {
+            width: 100%;
+            height: 100%;
+        }
+
+        h1 {
+            white-space: pre;
+        }
+
+        nl-wallet-button::part(button) {
+            white-space: pre;
+        }
+    </style>
+    <script type="module" src="nl-wallet-web.iife.js"></script>
+</head>
+
+<body>
+<main>
+    <section id="mijn_amsterdam">
+        <h1>Mijn Amsterdam</h1>
+        <nl-wallet-button id="mijn_amsterdam_button" text="Inloggen met NL Wallet"
+                          usecase="mijn_amsterdam"></nl-wallet-button>
+    </section>
+    <section id="xyz_bank">
+        <h1>XYZ bank</h1>
+        <nl-wallet-button id="xyz_bank_button" text="Vul gegevens in met NL Wallet"
+                          usecase="xyz_bank"></nl-wallet-button>
+    </section>
+    <section id="online_marketplace">
+        <h1>Online marketplace</h1>
+        <nl-wallet-button id="online_marketplace_button" text="Vul gegevens in met NL Wallet"
+                          usecase="online_marketplace"></nl-wallet-button>
+    </section>
+    <section id="monkey_bike">
+        <h1>Monkey bike</h1>
+        <nl-wallet-button id="monkey_bike_button" text="Vul gegevens in met NL Wallet"
+                          usecase="monkey_bike"></nl-wallet-button>
+    </section>
+</main>
+
+<script>
+    const wallet_buttons = document.getElementsByTagName("nl-wallet-button")
+    for (const wallet_button of wallet_buttons) {
+        wallet_button.addEventListener("success", (e) => {
+            if (e.detail && e.detail.length > 1) {
+                const session_token = e.detail[0]
+                const session_type = e.detail[1]
+                if (session_type === "cross_device") {
+                    window.open("./" + wallet_button.attributes["usecase"].value + "/return?session_token=" + session_token)
+                }
+            }
+        }, false)
+    }
+</script>
+
+</body>
+</html>

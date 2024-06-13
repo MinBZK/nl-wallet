@@ -25,7 +25,7 @@ class CardDataScreen extends StatelessWidget {
   static CardDataScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return CardDataScreenArgument.fromMap(args as Map<String, dynamic>);
+      return CardDataScreenArgument.fromMap(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [CardDataScreenArgument] when opening the CardDataScreen');
@@ -57,7 +57,7 @@ class CardDataScreen extends StatelessWidget {
         Expanded(
           child: BlocBuilder<CardDataBloc, CardDataState>(
             builder: (context, state) {
-              Widget contentSliver = switch (state) {
+              final Widget contentSliver = switch (state) {
                 CardDataInitial() => _buildLoading(),
                 CardDataLoadInProgress() => _buildLoading(),
                 CardDataLoadSuccess() => _buildDataAttributes(context, state.card.attributes),
@@ -98,13 +98,15 @@ class CardDataScreen extends StatelessWidget {
 
     // Data attributes
     slivers.add(const SliverSizedBox(height: 24));
-    for (var element in attributes) {
-      slivers.add(SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: DataAttributeRow(attribute: element),
+    for (final element in attributes) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: DataAttributeRow(attribute: element),
+          ),
         ),
-      ));
+      );
     }
 
     // Incorrect button

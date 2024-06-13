@@ -10,7 +10,50 @@
 <div id="app"></div>
 <script type="module" src="/lib/main.ts"></script>
 <div class="wrapper" style="font-family: Arial, Helvetica, sans-serif">
-  <nl-wallet-button text="18+ bewijzen met NL Wallet" usecase="mijn_amsterdam" base-url="http://localhost:3004"></nl-wallet-button>
+  <p>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Nullam eget felis eget nunc
+    lobortis mattis aliquam. Nullam non nisi est sit amet facilisis. Neque egestas congue quisque egestas. Mauris pellentesque pulvinar pellentesque habitant.
+    Semper auctor neque vitae tempus quam. Venenatis tellus in metus vulputate eu. Iaculis at erat pellentesque adipiscing commodo elit at. Amet venenatis urna
+    cursus eget nunc. Adipiscing at in tellus integer feugiat. Curabitur gravida arcu ac tortor dignissim convallis. Blandit cursus risus at ultrices mi tempus
+    imperdiet. Sed cras ornare arcu dui. Amet mauris commodo quis imperdiet massa tincidunt nunc. Mattis molestie a iaculis at erat pellentesque adipiscing.
+    Neque viverra justo nec ultrices dui sapien eget. Sagittis vitae et leo duis ut diam quam nulla porttitor.
+  </p>
+  <p>
+    Gravida quis blandit turpis cursus. Porttitor massa id neque aliquam. In nisl nisi scelerisque eu ultrices. Suspendisse potenti nullam ac tortor vitae
+    purus. Eget aliquet nibh praesent tristique magna sit amet purus gravida. Eu consequat ac felis donec et odio. Fusce ut placerat orci nulla pellentesque
+    dignissim enim sit. Aliquam eleifend mi in nulla posuere. Quam viverra orci sagittis eu volutpat. Commodo odio aenean sed adipiscing diam donec adipiscing
+    tristique risus. Ut lectus arcu bibendum at varius vel pharetra. Mattis aliquam faucibus purus in massa tempor nec. Tincidunt tortor aliquam nulla facilisi
+    cras fermentum odio eu. Lacus viverra vitae congue eu consequat ac felis donec et. Sit amet commodo nulla facilisi nullam vehicula ipsum a arcu. Orci a
+    scelerisque purus semper eget duis at tellus at.
+  </p>
+  <p>
+    In est ante in nibh mauris cursus mattis. Purus sit amet volutpat consequat mauris nunc congue nisi. Enim praesent elementum facilisis leo vel. Tortor
+    dignissim convallis aenean et tortor. Mi tempus imperdiet nulla malesuada. Varius vel pharetra vel turpis. Eu ultrices vitae auctor eu augue ut lectus arcu
+    bibendum. Amet purus gravida quis blandit turpis cursus in hac habitasse. Scelerisque varius morbi enim nunc. Amet luctus venenatis lectus magna fringilla
+    urna porttitor rhoncus. Ipsum dolor sit amet consectetur adipiscing. Vestibulum morbi blandit cursus risus at ultrices mi tempus imperdiet.
+  </p>
+  <p>
+    Tellus orci ac auctor augue mauris augue neque. Aliquam sem et tortor consequat id. Dui id ornare arcu odio. Tellus pellentesque eu tincidunt tortor aliquam
+    nulla. Neque convallis a cras semper auctor neque. Rutrum tellus pellentesque eu tincidunt tortor. Ullamcorper velit sed ullamcorper morbi tincidunt.
+    Elementum facilisis leo vel fringilla est ullamcorper eget. Laoreet id donec ultrices tincidunt arcu non. Suspendisse ultrices gravida dictum fusce ut
+    placerat orci. Nibh cras pulvinar mattis nunc. Varius quam quisque id diam vel quam elementum pulvinar. Viverra vitae congue eu consequat ac felis. Velit
+    dignissim sodales ut eu sem. Nunc pulvinar sapien et ligula.
+  </p>
+  <nl-wallet-button id="mijn_amsterdam_button" text="18+ bewijzen met NL Wallet" usecase="mijn_amsterdam"
+                    base-url="http://localhost:3004"></nl-wallet-button>
 </div>
 </body>
+
+<script>
+  const wallet_button = document.getElementById("mijn_amsterdam_button")
+  wallet_button.addEventListener("success", (e) => {
+    if (e.detail && e.detail.length > 1) {
+      const session_token = e.detail[0]
+      const session_type = e.detail[1]
+      if (session_type === "cross_device") {
+        window.open("http://localhost:3004/mijn_amsterdam/return?session_token=" + session_token)
+      }
+    }
+  }, false)
+</script>
 </html>

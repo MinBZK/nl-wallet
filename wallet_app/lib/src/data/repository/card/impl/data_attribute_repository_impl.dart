@@ -24,7 +24,7 @@ class DataAttributeRepositoryImpl implements DataAttributeRepository {
   @override
   Future<DataAttribute?> find(AttributeKey key) async {
     final cards = await _dataSource.readAll();
-    for (WalletCard card in cards) {
+    for (final WalletCard card in cards) {
       final result = card.attributes.firstWhereOrNull((attribute) => attribute.key == key);
       if (result != null) return result;
     }

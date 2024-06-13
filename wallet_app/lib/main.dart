@@ -28,7 +28,7 @@ void main() async {
 
   // Propagate uncaught errors
   final errorHandler = WalletErrorHandler();
-  PlatformDispatcher.instance.onError = (error, stack) => errorHandler.handleError(error, stack);
+  PlatformDispatcher.instance.onError = errorHandler.handleError;
 
   if (Environment.hasSentryDsn) {
     await SentryFlutter.init(
@@ -37,13 +37,14 @@ void main() async {
         ..environment = Environment.sentryEnvironment
         ..release = Environment.sentryRelease() // default applies when SENTRY_RELEASE not set
         ..debug = kDebugMode,
-      appRunner: () => mainImpl(),
+      appRunner: mainImpl,
     );
   } else {
     mainImpl();
   }
 }
 
+//ignore: avoid_void_async
 void mainImpl() async {
   // Debug specific setup
   if (kDebugMode) {

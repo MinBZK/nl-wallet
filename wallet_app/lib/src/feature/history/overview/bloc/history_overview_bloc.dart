@@ -17,10 +17,10 @@ class HistoryOverviewBloc extends Bloc<HistoryOverviewEvent, HistoryOverviewStat
     add(const HistoryOverviewLoadTriggered());
   }
 
-  void _onHistoryOverviewLoadTriggered(HistoryOverviewLoadTriggered event, emit) async {
+  Future<void> _onHistoryOverviewLoadTriggered(HistoryOverviewLoadTriggered event, emit) async {
     emit(const HistoryOverviewLoadInProgress());
     try {
-      List<WalletEvent> attributes = await getWalletEventsUseCase.invoke();
+      final List<WalletEvent> attributes = await getWalletEventsUseCase.invoke();
       emit(HistoryOverviewLoadSuccess(attributes));
     } catch (error) {
       Fimber.e('Failed to load history', ex: error);

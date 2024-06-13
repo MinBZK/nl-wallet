@@ -92,7 +92,7 @@ class CheckDataOfferingPage extends StatelessWidget {
                   subtitle,
                   style: context.textTheme.bodyLarge,
                 ),
-              )
+              ),
           ],
         ),
       ),

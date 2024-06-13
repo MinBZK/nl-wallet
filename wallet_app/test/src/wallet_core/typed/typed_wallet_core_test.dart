@@ -105,11 +105,13 @@ void main() {
   group('observeConfig', () {
     test('configuration is fetched through core by setting the configuration stream', () async {
       when(core.setConfigurationStream()).thenAnswer(
-        (_) => Stream.value(const FlutterConfiguration(
-          inactiveLockTimeout: 0,
-          backgroundLockTimeout: 0,
-          version: 0,
-        )),
+        (_) => Stream.value(
+          const FlutterConfiguration(
+            inactiveLockTimeout: 0,
+            backgroundLockTimeout: 0,
+            version: 0,
+          ),
+        ),
       );
       // Verify we don't observe the stream pre-emptively
       verifyNever(core.setConfigurationStream());
@@ -135,7 +137,7 @@ void main() {
 
   group('observeCards', () {
     test('observeCards should fetch cards through WalletCore', () {
-      List<Card> mockCards = [
+      final List<Card> mockCards = [
         const Card(
           persistence: CardPersistence.stored(id: '0'),
           docType: 'pid_id',
@@ -157,15 +159,15 @@ void main() {
     });
 
     test('observeCards should emit a new value when WalletCore exposes new cards', () {
-      List<Card> initialCards = [
+      final List<Card> initialCards = [
         const Card(
           persistence: CardPersistence.stored(id: '0'),
           docType: 'pid_id',
           attributes: [],
           issuer: _kSampleIssuer,
-        )
+        ),
       ];
-      List<Card> updatedCards = [
+      final List<Card> updatedCards = [
         const Card(
           persistence: CardPersistence.stored(id: '0'),
           docType: 'pid_id',
@@ -188,15 +190,15 @@ void main() {
     });
 
     test('observeCards should emit only the last value on a new subscription', () async {
-      List<Card> initialCards = [
+      final List<Card> initialCards = [
         const Card(
           persistence: CardPersistence.stored(id: '0'),
           docType: 'pid_id',
           attributes: [],
           issuer: _kSampleIssuer,
-        )
+        ),
       ];
-      List<Card> updatedCards = [
+      final List<Card> updatedCards = [
         const Card(
           persistence: CardPersistence.stored(id: '0'),
           docType: 'pid_id',
@@ -228,32 +230,32 @@ void main() {
 
     test('isValidPin', () async {
       when(core.isValidPin(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.isValidPin(_kSamplePin), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.isValidPin(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('register', () async {
       when(core.register(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.register(_kSamplePin), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.register(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('isRegistered', () async {
       when(core.hasRegistration()).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.isRegistered(), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.isRegistered(), throwsA(isA<CoreError>()));
     });
 
     test('lockWallet', () async {
       when(core.lockWallet()).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.lockWallet(), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.lockWallet(), throwsA(isA<CoreError>()));
     });
 
     test('unlockWallet', () async {
       when(core.unlockWallet(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.unlockWallet(_kSamplePin), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.unlockWallet(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('createPidIssuanceRedirectUri', () async {
       when(core.createPidIssuanceRedirectUri()).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.createPidIssuanceRedirectUri(), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.createPidIssuanceRedirectUri(), throwsA(isA<CoreError>()));
     });
 
     test('identifyUri', () async {
@@ -263,17 +265,17 @@ void main() {
 
     test('cancelPidIssuance', () async {
       when(core.cancelPidIssuance()).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.cancelPidIssuance(), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.cancelPidIssuance(), throwsA(isA<CoreError>()));
     });
 
     test('acceptOfferedPid', () async {
       when(core.acceptPidIssuance(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.acceptOfferedPid(_kSamplePin), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.acceptOfferedPid(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('resetWallet', () async {
       when(core.resetWallet()).thenAnswer((_) async => throw ffiException);
-      expect(() async => await typedWalletCore.resetWallet(), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.resetWallet(), throwsA(isA<CoreError>()));
     });
   });
 }

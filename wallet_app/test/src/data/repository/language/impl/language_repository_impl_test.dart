@@ -6,7 +6,7 @@ import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/store/language_store.dart';
 
 void main() {
-  _MockLanguageStore languageStore = _MockLanguageStore();
+  final _MockLanguageStore languageStore = _MockLanguageStore();
   const defaultLocales = [Locale('nl'), Locale('en')];
   late LanguageRepository languageRepository;
 
@@ -23,13 +23,13 @@ void main() {
       const nlLocale = Locale('nl');
       const enLocale = Locale('en');
       expect(languageRepository.preferredLocale, emitsInOrder([isNull, nlLocale, enLocale]));
-      languageRepository.setPreferredLocale(nlLocale);
-      languageRepository.setPreferredLocale(enLocale);
+      await languageRepository.setPreferredLocale(nlLocale);
+      await languageRepository.setPreferredLocale(enLocale);
     });
 
     test('should not emit null locale if locale was previously set', () async {
       const nlLocale = Locale('nl');
-      languageRepository.setPreferredLocale(nlLocale);
+      await languageRepository.setPreferredLocale(nlLocale);
       expect(languageRepository.preferredLocale, emitsInOrder([nlLocale]));
     });
   });

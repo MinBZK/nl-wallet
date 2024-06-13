@@ -27,8 +27,7 @@ use crate::{
 
 use super::{
     proposed_document::{ProposedDocument, ProposedDocumentAttributes},
-    request::DisclosureRequestMatch,
-    MdocDataSource,
+    DisclosureRequestMatch, MdocDataSource,
 };
 
 const REFERRER_URL: &str = "https://referrer.url/";
