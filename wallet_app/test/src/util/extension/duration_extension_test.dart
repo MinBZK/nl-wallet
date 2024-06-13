@@ -12,7 +12,7 @@ void main() {
     });
 
     test('0 days duration returns 0', () async {
-      expect(const Duration(days: 0).inMonths, 0);
+      expect(Duration.zero.inMonths, 0);
     });
   });
 }

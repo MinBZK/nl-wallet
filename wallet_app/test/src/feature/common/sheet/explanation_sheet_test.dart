@@ -42,11 +42,13 @@ void main() {
 
   group('widgets', () {
     testWidgets('widgets are visible', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(const ExplanationSheet(
-        title: 'T',
-        description: 'D',
-        closeButtonText: 'C',
-      ));
+      await tester.pumpWidgetWithAppWrapper(
+        const ExplanationSheet(
+          title: 'T',
+          description: 'D',
+          closeButtonText: 'C',
+        ),
+      );
 
       // Validate that the widget exists
       final titleFinder = find.text('T');

@@ -83,6 +83,6 @@ class DisclosureStopSheet extends StatelessWidget {
         );
       },
     );
-    return confirmed == true;
+    return confirmed ?? false;
   }
 }

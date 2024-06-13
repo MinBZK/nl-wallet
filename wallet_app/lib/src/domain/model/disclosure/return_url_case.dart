@@ -5,7 +5,7 @@ enum ReturnUrlCase {
   loginReturnUrl,
   loginNoReturnUrl;
 
-  static ReturnUrlCase resolve(bool isLoginFlow, bool hasReturnUrl) {
+  static ReturnUrlCase resolve({required bool isLoginFlow, required bool hasReturnUrl}) {
     if (hasReturnUrl) {
       // Return url
       return isLoginFlow ? ReturnUrlCase.loginReturnUrl : ReturnUrlCase.returnUrl;

@@ -16,7 +16,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     credential::{CredentialErrorCode, CredentialRequestProof, CredentialRequests, CredentialResponses},
     dpop::Dpop,
-    issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, OpenidMessageClient},
+    issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, VcMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     metadata::IssuerMetadata,
     oidc,
@@ -251,7 +251,7 @@ fn invalidate_jwt(jwt: &str) -> String {
     jwt[..jwt.len() - 1].to_string() + &new_char.to_string()
 }
 
-impl OpenidMessageClient for MockOpenidMessageClient {
+impl VcMessageClient for MockOpenidMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
         Ok(IssuerMetadata::new_mock(url.clone()))
     }

@@ -111,7 +111,7 @@ class WalletEventRow extends StatelessWidget {
         children: [
           if (errorStatusIcon != null) ...[
             Icon(errorStatusIcon, color: context.colorScheme.error, size: 16),
-            const SizedBox(width: 8)
+            const SizedBox(width: 8),
           ],
           Flexible(
             child: Text(

@@ -1,7 +1,7 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-04T16:23:56+02:00",
-    "aboutScreenDescription": "Deze demo app is tot stand gekomen door een samenwerking van verschillende organisaties in opdracht van de Nederlandse Overheid. Voor meer informatie over deze app verwijzen we naar de website {url}.",
+    "@@last_modified": "2024-06-13T11:53:29+02:00",
+    "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -299,7 +299,7 @@
     "disclosureSuccessPageTitle": "Gelukt!",
     "disclosureSuccessPageToDashboardCta": "Naar mijn overzicht",
     "disclosureSuccessPageToWebsiteCta": "Ga naar website",
-    "errorDetailsSheetTitle": "Fout details",
+    "errorDetailsSheetTitle": "Foutdetails",
     "errorScreenDeviceIncompatibleDescription": "Het is niet mogelijk om de NL Wallet app te gebruiken op dit apparaat. Verwijder de app van dit apparaat en download de app op een geschikt apparaat.",
     "errorScreenDeviceIncompatibleHeadline": "Sorry, dit apparaat is niet geschikt",
     "errorScreenGenericDescription": "Het is niet gelukt. Wil je het opnieuw proberen?",
@@ -322,7 +322,7 @@
     "generalBottomBackCta": "Terug",
     "generalCancelCta": "Annuleren",
     "generalClose": "Sluiten",
-    "generalConfigVersionText": "App config:",
+    "generalConfigVersionText": "Appconfig:",
     "generalDays": "{days, plural, one {{days} dag} other {{days} dagen}}",
     "@generalDays": {
         "placeholders": {
@@ -383,7 +383,7 @@
     "generalShowDetailsCta": "Bekijk details",
     "generalTimeAgo": "geleden",
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
-    "generalVersionText": "App versie:",
+    "generalVersionText": "Appversie:",
     "generalWCAGBack": "Terug",
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
@@ -727,8 +727,8 @@
         }
     },
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
-    "placeholderScreenGenericDescription": "Helaas, aan deze pagina wordt nog gewerkt.\nHeb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
-    "placeholderScreenHeadline": "Deze pagina bestaat nog niet",
+    "placeholderScreenGenericDescription": "Heb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
+    "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
     "placeholderScreenHelpDescription": "Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
     "placeholderScreenHelpHeadline": "Heb je vragen of hulp nodig?",
     "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",

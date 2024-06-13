@@ -9,5 +9,5 @@ class ConfigurationRepositoryImpl implements ConfigurationRepository {
 
   @override
   Stream<FlutterAppConfiguration> get appConfiguration =>
-      _walletCore.observeConfig().map((event) => FlutterAppConfiguration.fromFlutterConfig(event));
+      _walletCore.observeConfig().map(FlutterAppConfiguration.fromFlutterConfig);
 }

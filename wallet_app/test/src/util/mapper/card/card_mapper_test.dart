@@ -51,7 +51,7 @@ void main() {
 
   group('map', () {
     test('card with `InMemory` persistence should return docType as `id`', () {
-      WalletCard actual = mapper.map(_kSampleCard);
+      final WalletCard actual = mapper.map(_kSampleCard);
       expect(actual.id, _kSampleCard.docType);
     });
 

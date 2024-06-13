@@ -15,7 +15,7 @@ class CardFrontMapper extends Mapper<Card, CardFront> {
 
   @override
   CardFront map(Card input) {
-    final l10ns = AppLocalizations.supportedLocales.map((e) => lookupAppLocalizations(e)).toList();
+    final l10ns = AppLocalizations.supportedLocales.map(lookupAppLocalizations).toList();
     switch (input.docType) {
       case kPidDocType:
         return _getPidCardFront(l10ns, input);

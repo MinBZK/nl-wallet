@@ -60,15 +60,12 @@ class _PinFieldState extends State<PinField> with TickerProviderStateMixin {
       switch (widget.state) {
         case PinFieldState.idle:
           _amplitudeController.reverse();
-          break;
         case PinFieldState.error:
           _shakeController.forward(from: 0);
           _amplitudeController.reverse();
-          break;
         case PinFieldState.loading:
           _waveController.forward(from: 0);
           _amplitudeController.forward();
-          break;
       }
     }
   }
@@ -115,7 +112,7 @@ class _PinFieldState extends State<PinField> with TickerProviderStateMixin {
     // The period of the sinusoidal function, 2 means we go to 1 and -1 in one animation cycle
     const period = 2;
     // The horizontal translation, takes the index as an input to make the dots appear to be animating in order.
-    final horizontalTranslation = ((pi / widget.digits) * index);
+    final horizontalTranslation = (pi / widget.digits) * index;
     // Calculate the actual offset
     final dy = sin(period * x - horizontalTranslation);
     // We only care about the positive values, to avoid a 'snake' like animation.

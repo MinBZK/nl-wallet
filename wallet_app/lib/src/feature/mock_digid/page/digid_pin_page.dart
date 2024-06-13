@@ -99,7 +99,7 @@ class DigidPinPage extends StatelessWidget {
               onKeyPressed: onKeyPressed,
               onBackspacePressed: onBackspacePressed,
             ),
-          )
+          ),
         ],
       ),
     );

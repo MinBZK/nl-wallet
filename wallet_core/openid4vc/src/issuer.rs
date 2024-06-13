@@ -340,6 +340,19 @@ where
         response
     }
 
+    async fn get_session(
+        &self,
+        code: AuthorizationCode,
+    ) -> Result<Session<WaitingForResponse>, CredentialRequestError> {
+        self.sessions
+            .get(&code.clone().into())
+            .await
+            .map_err(IssuanceError::SessionStore)?
+            .ok_or(IssuanceError::UnknownSession(code))?
+            .try_into()
+            .map_err(CredentialRequestError::IssuanceError)
+    }
+
     pub async fn process_credential(
         &self,
         access_token: AccessToken,
@@ -347,13 +360,7 @@ where
         credential_request: CredentialRequest,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self
-            .sessions
-            .get(&code.clone().into())
-            .await
-            .map_err(IssuanceError::SessionStore)?
-            .ok_or(IssuanceError::UnknownSession(code))?;
-        let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
+        let session = self.get_session(code).await?;
 
         let (response, next) = session
             .process_credential(credential_request, access_token, dpop, &self.issuer_data)
@@ -374,13 +381,7 @@ where
         credential_requests: CredentialRequests,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self
-            .sessions
-            .get(&code.clone().into())
-            .await
-            .map_err(IssuanceError::SessionStore)?
-            .ok_or(IssuanceError::UnknownSession(code))?;
-        let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
+        let session = self.get_session(code).await?;
 
         let (response, next) = session
             .process_batch_credential(credential_requests, access_token, dpop, &self.issuer_data)
@@ -401,13 +402,7 @@ where
         endpoint_name: &str,
     ) -> Result<(), CredentialRequestError> {
         let code = access_token.code().ok_or(CredentialRequestError::MalformedToken)?;
-        let session = self
-            .sessions
-            .get(&code.clone().into())
-            .await
-            .map_err(IssuanceError::SessionStore)?
-            .ok_or(IssuanceError::UnknownSession(code))?;
-        let session: Session<WaitingForResponse> = session.try_into().map_err(CredentialRequestError::IssuanceError)?;
+        let session = self.get_session(code).await?;
 
         // Check authorization of the request
         let session_data = session.session_data();

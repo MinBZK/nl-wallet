@@ -15,11 +15,12 @@ class CardDataBloc extends Bloc<CardDataEvent, CardDataState> {
     on<CardDataLoadTriggered>(_onCardDataLoadTriggered);
   }
 
-  void _onCardDataLoadTriggered(CardDataLoadTriggered event, emit) async {
+  Future<void> _onCardDataLoadTriggered(CardDataLoadTriggered event, emit) async {
     if (state is! CardDataLoadSuccess) emit(const CardDataLoadInProgress());
     await emit.forEach(
       observeWalletCardUseCase.invoke(event.cardId),
-      onData: (card) => CardDataLoadSuccess(card),
+      // ignore: unnecessary_lambdas, not actually unnecessary due to expected signature
+      onData: (data) => CardDataLoadSuccess(data),
       onError: (ex, stack) {
         //Note: when providing onError like this the subscription is not cancelled on errors
         Fimber.e('Failed to observe card', ex: ex, stacktrace: stack);

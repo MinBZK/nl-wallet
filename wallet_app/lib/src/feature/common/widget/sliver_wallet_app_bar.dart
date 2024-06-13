@@ -32,7 +32,7 @@ class SliverWalletAppBar extends StatefulWidget {
 
 class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
   /// Exposes the collapsed ratio (from the expanded to collapsed toolbar height), useful for animating widgets.
-  ValueNotifier<double> collapsedRatio = ValueNotifier(1.0);
+  ValueNotifier<double> collapsedRatio = ValueNotifier(1);
 
   /// Cached height of the title, used to avoid having to re-calculate on every rebuilt of this widget.
   /// Automatically invalidated when the title changes.
@@ -93,7 +93,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
             children: [
               _buildPositionedProgressBar(),
               FlexibleSpaceBar(
-                expandedTitleScale: 1.0,
+                expandedTitleScale: 1,
                 centerTitle: false,
                 titlePadding: _expandedTitlePadding,
                 title: Opacity(
@@ -142,7 +142,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
   }
 
   double _calculateTextHeight(String text) {
-    TextPainter tp = TextPainter(
+    final TextPainter tp = TextPainter(
       text: TextSpan(text: text, style: context.textTheme.displayMedium),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.of(context).textScaler,

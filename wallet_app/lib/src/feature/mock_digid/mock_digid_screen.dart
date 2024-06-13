@@ -32,7 +32,7 @@ class MockDigidScreen extends StatelessWidget {
           if (state is MockDigidRejected) Navigator.pop(context, false);
         },
         builder: (context, state) {
-          Widget result = switch (state) {
+          final Widget result = switch (state) {
             MockDigidInitial() => const DigidSplashPage(),
             MockDigidEnteringPin() => _buildEnteringPinPage(context, state),
             MockDigidConfirmApp() => _buildConfirmAppPage(context),

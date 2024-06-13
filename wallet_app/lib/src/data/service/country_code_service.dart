@@ -10,7 +10,7 @@ class CountryCodeService {
     localeProvider.observe().listen(_onLocaleChanged);
   }
 
-  void _onLocaleChanged(Locale locale) async {
+  Future<void> _onLocaleChanged(Locale locale) async {
     final result = await CountryCodes.init(locale);
     if (result) {
       Fimber.d('CountryCodes successfully updated to locale: $locale');

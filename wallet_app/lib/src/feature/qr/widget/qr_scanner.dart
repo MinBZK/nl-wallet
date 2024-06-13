@@ -63,7 +63,7 @@ class _QrScannerState extends State<QrScanner> {
 
   Widget _buildPositionedFlashLightButton() {
     if (cameraController.value.torchState == TorchState.unavailable) return const SizedBox.shrink();
-    bool isOn = cameraController.value.torchState.isOn;
+    final bool isOn = cameraController.value.torchState.isOn;
     final buttonRadius = BorderRadius.circular(200);
     return Positioned(
       bottom: 32,
@@ -110,9 +110,9 @@ class _QrScannerState extends State<QrScanner> {
     final postToggleOnState = !currentOnState;
     cameraController.toggleTorch().then((value) async {
       if (postToggleOnState) {
-        SemanticsService.announce(l10n.flashlightEnabledWCAGAnnouncement, TextDirection.ltr);
+        await SemanticsService.announce(l10n.flashlightEnabledWCAGAnnouncement, TextDirection.ltr);
       } else {
-        SemanticsService.announce(l10n.flashlightDisabledWCAGAnnouncement, TextDirection.ltr);
+        await SemanticsService.announce(l10n.flashlightDisabledWCAGAnnouncement, TextDirection.ltr);
       }
     });
   }

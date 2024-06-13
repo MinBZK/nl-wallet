@@ -35,7 +35,8 @@ class InfoRow extends StatelessWidget {
               leading ??
                   Icon(
                     icon,
-                    color: context.colorScheme.primary,
+                    color: context.colorScheme.onSurfaceVariant,
+                    size: 24,
                   ),
               const SizedBox(width: 16),
               Expanded(
@@ -60,7 +61,8 @@ class InfoRow extends StatelessWidget {
               if (onTap != null)
                 Icon(
                   Icons.chevron_right,
-                  color: context.theme.primaryColorDark,
+                  size: 24,
+                  color: context.colorScheme.primary,
                 ),
             ],
           ),

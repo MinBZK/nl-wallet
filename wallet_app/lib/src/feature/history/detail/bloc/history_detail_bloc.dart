@@ -19,7 +19,7 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
     on<HistoryDetailLoadTriggered>(_onHistoryDetailLoadTriggered);
   }
 
-  void _onHistoryDetailLoadTriggered(HistoryDetailLoadTriggered event, emit) async {
+  Future<void> _onHistoryDetailLoadTriggered(HistoryDetailLoadTriggered event, emit) async {
     emit(const HistoryDetailLoadInProgress());
     try {
       final relatedCardDocTypes = event.event.attributes.map((e) => e.sourceCardDocType).toSet();

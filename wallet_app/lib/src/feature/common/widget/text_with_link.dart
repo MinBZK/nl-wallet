@@ -23,7 +23,7 @@ class TextWithLink extends StatelessWidget {
   })  : assert(fullText.contains(ctaText), 'ctaText should be part of the full text'),
         assert(
             kDebugMode && fullText.split(ctaText).length == 2,
-            'Currently only text formatted as "View {cta} for more info"'
+            'Currently only text formatted as "View {cta} for more info" '
             'is supported (i.e. where ctaText is enclosed in the fullText)');
 
   @override

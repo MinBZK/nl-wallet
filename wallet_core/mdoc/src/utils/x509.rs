@@ -12,6 +12,7 @@ use serde_bytes::ByteBuf;
 use webpki::{EndEntityCert, Time, TrustAnchor, ECDSA_P256_SHA256};
 use x509_parser::{
     der_parser::Oid,
+    extensions::GeneralName,
     nom::{self, AsBytes},
     pem,
     prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
@@ -219,6 +220,17 @@ impl Certificate {
             Ok::<_, CertificateError>(registration)
         })
         .transpose()
+    }
+
+    /// Returns the first DNS SAN, if any, from the certificate.
+    pub fn san_dns_name(&self) -> Result<Option<String>, CertificateError> {
+        let san = self.to_x509()?.subject_alternative_name()?.and_then(|ext| {
+            ext.value.general_names.iter().find_map(|name| match name {
+                GeneralName::DNSName(name) => Some(name.to_string()),
+                _ => None,
+            })
+        });
+        Ok(san)
     }
 }
 

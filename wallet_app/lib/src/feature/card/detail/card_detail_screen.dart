@@ -18,6 +18,7 @@ import '../../common/screen/placeholder_screen.dart';
 import '../../common/sheet/explanation_sheet.dart';
 import '../../common/widget/animated_fade_in.dart';
 import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/info_row.dart';
@@ -41,11 +42,12 @@ class CardDetailScreen extends StatelessWidget {
   static CardDetailScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return CardDetailScreenArgument.fromJson(args as Map<String, dynamic>);
+      return CardDetailScreenArgument.fromJson(args! as Map<String, dynamic>);
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode type: ${args.runtimeType} arg: $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError(
-          'Make sure to pass in [CardDetailScreenArgument] as json when opening the CardDetailScreen');
+        'Make sure to pass in [CardDetailScreenArgument] as json when opening the CardDetailScreen',
+      );
     }
   }
 
@@ -61,16 +63,21 @@ class CardDetailScreen extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: BlocBuilder<CardDetailBloc, CardDetailState>(builder: (context, state) {
-                return WalletScrollbar(
-                  child: CustomScrollView(
-                    slivers: [
-                      SliverWalletAppBar(title: _getTitle(context, state)),
-                      _buildBody(context, state),
-                    ],
-                  ),
-                );
-              }),
+              child: BlocBuilder<CardDetailBloc, CardDetailState>(
+                builder: (context, state) {
+                  return WalletScrollbar(
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverWalletAppBar(
+                          title: _getTitle(context, state),
+                          actions: const [HelpIconButton()],
+                        ),
+                        _buildBody(context, state),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
             const BottomBackButton(),
           ],
@@ -185,8 +192,12 @@ class CardDetailScreen extends StatelessWidget {
         leading: OrganizationLogo(image: card.issuer.logo, size: 24),
         title: Text(context.l10n.cardDetailScreenIssuerCta),
         subtitle: Text(card.issuer.displayName.l10nValue(context)),
-        onTap: () => OrganizationDetailScreen.showPreloaded(context, card.issuer, false,
-            onReportIssuePressed: () => PlaceholderScreen.showGeneric(context)),
+        onTap: () => OrganizationDetailScreen.showPreloaded(
+          context,
+          card.issuer,
+          sharedDataWithOrganizationBefore: false,
+          onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
+        ),
       ),
       if (card.config.updatable)
         InfoRow(
@@ -237,13 +248,13 @@ class CardDetailScreen extends StatelessWidget {
   String _createOperationText(BuildContext context, IssuanceEvent? event) {
     if (event == null) return context.l10n.cardDetailScreenLatestIssuedOperationUnknown;
 
-    String issuedTime = OperationIssuedTimeFormatter.format(context, event.dateTime);
-    String issuedText = context.l10n.cardDetailScreenLatestIssuedOperation(issuedTime);
+    final String issuedTime = OperationIssuedTimeFormatter.format(context, event.dateTime);
+    final String issuedText = context.l10n.cardDetailScreenLatestIssuedOperation(issuedTime);
 
-    // TODO: Don't hardcode expiry
-    DateTime validUntil = event.dateTime.add(const Duration(days: _kCardExpiresInDays));
-    String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
-    String validUntilText = context.l10n.cardDetailScreenCardValidUntil(validUntilTime);
+    // TODO(anyone): Don't hardcode expiry
+    final DateTime validUntil = event.dateTime.add(const Duration(days: _kCardExpiresInDays));
+    final String validUntilTime = CardValidUntilTimeFormatter.format(context, validUntil);
+    final String validUntilText = context.l10n.cardDetailScreenCardValidUntil(validUntilTime);
 
     return '$issuedText\n$validUntilText';
   }

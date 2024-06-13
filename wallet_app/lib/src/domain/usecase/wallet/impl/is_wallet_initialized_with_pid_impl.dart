@@ -10,6 +10,6 @@ class IsWalletInitializedWithPidUseCaseImpl implements IsWalletInitializedWithPi
   Future<bool> invoke() async {
     final isInitialized = await _walletRepository.isRegistered();
     if (!isInitialized) return false;
-    return await _walletRepository.containsPid();
+    return _walletRepository.containsPid();
   }
 }

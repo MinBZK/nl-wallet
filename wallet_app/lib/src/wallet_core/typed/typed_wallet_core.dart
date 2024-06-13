@@ -31,8 +31,8 @@ class TypedWalletCore {
     _setupRecentHistoryStream();
   }
 
-  void _initWalletCore() async {
-    if ((await _walletCore.isInitialized()) == false) {
+  Future<void> _initWalletCore() async {
+    if (!(await _walletCore.isInitialized())) {
       // Initialize the Asynchronous runtime and the wallet itself.
       // This is required to call any subsequent API function on the wallet.
       await _walletCore.init();
@@ -54,34 +54,34 @@ class TypedWalletCore {
   void _setupLockedStream() {
     _isLocked.onListen = () async {
       await _isInitialized.future;
-      _walletCore.setLockStream().listen((event) => _isLocked.add(event));
+      _walletCore.setLockStream().listen(_isLocked.add);
     };
-    _isLocked.onCancel = () => _walletCore.clearLockStream();
+    _isLocked.onCancel = _walletCore.clearLockStream;
   }
 
   void _setupConfigurationStream() {
     _flutterConfig.onListen = () async {
       await _isInitialized.future;
-      _walletCore.setConfigurationStream().listen((event) => _flutterConfig.add(event));
+      _walletCore.setConfigurationStream().listen(_flutterConfig.add);
     };
-    _flutterConfig.onCancel = () => _walletCore.clearConfigurationStream();
+    _flutterConfig.onCancel = _walletCore.clearConfigurationStream;
   }
 
-  void _setupCardsStream() async {
+  Future<void> _setupCardsStream() async {
     //FIXME: Ideally we don't set the card stream until we start observing it (i.e. in onListen())
     //FIXME: but since the cards are not persisted yet that means we might miss events, so observing
     //FIXME: the wallet_core cards stream through the complete lifecycle of the app for now.
     //To reproduce issue: 1. Start clean, 2. Setup Wallet, 3. Kill app, 4. Continue Setup, 5. Cards don't show up on success page
     await _isInitialized.future;
-    _walletCore.setCardsStream().listen((event) => _cards.add(event));
+    _walletCore.setCardsStream().listen(_cards.add);
   }
 
   void _setupRecentHistoryStream() {
     _recentHistory.onListen = () async {
       await _isInitialized.future;
-      _walletCore.setRecentHistoryStream().listen((event) => _recentHistory.add(event));
+      _walletCore.setRecentHistoryStream().listen(_recentHistory.add);
     };
-    _recentHistory.onCancel = () => _walletCore.clearRecentHistoryStream();
+    _recentHistory.onCancel = _walletCore.clearRecentHistoryStream;
   }
 
   Future<PinValidationResult> isValidPin(String pin) => call((core) => core.isValidPin(pin: pin));
@@ -110,7 +110,7 @@ class TypedWalletCore {
 
   Future<bool> hasActivePidIssuanceSession() => call((core) => core.hasActivePidIssuanceSession());
 
-  Future<StartDisclosureResult> startDisclosure(String uri, bool isQrCode) =>
+  Future<StartDisclosureResult> startDisclosure(String uri, {bool isQrCode = false}) =>
       call((core) => core.startDisclosure(uri: uri, isQrCode: isQrCode));
 
   Future<void> cancelDisclosure() => call((core) => core.cancelDisclosure());
@@ -144,7 +144,7 @@ class TypedWalletCore {
   /// Converts the exception to a [CoreError] if it can be mapped into one, otherwise returns the original exception.
   Future<Object> _handleCoreException(Object ex, {StackTrace? stackTrace}) async {
     try {
-      String coreErrorJson = _extractErrorJson(ex)!;
+      final String coreErrorJson = _extractErrorJson(ex)!;
       final error = _errorMapper.map(coreErrorJson);
       if (error is CoreStateError) {
         Fimber.e(

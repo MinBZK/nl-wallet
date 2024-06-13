@@ -5,8 +5,9 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/report_option_title_formatter.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/icon_row.dart';
-import '../common/widget/wallet_app_bar.dart';
+import '../common/widget/info_row.dart';
+import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class ReportIssueScreen extends StatelessWidget {
@@ -17,9 +18,6 @@ class ReportIssueScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: WalletAppBar(
-        title: Text(context.l10n.reportIssueScreenTitle),
-      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -36,11 +34,13 @@ class ReportIssueScreen extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     return WalletScrollbar(
       child: CustomScrollView(
-        restorationId: 'data_incorrect',
         slivers: <Widget>[
+          SliverWalletAppBar(title: context.l10n.reportIssueScreenTitle),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
+          const SliverSizedBox(height: 24),
           const SliverToBoxAdapter(child: Divider(height: 1)),
-          SliverList(delegate: _getOptionsDelegate(context)),
+          _buildOptionsSliver(context),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
         ],
       ),
     );
@@ -48,7 +48,7 @@ class ReportIssueScreen extends StatelessWidget {
 
   Widget _buildHeaderSection(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -61,29 +61,17 @@ class ReportIssueScreen extends StatelessWidget {
     );
   }
 
-  SliverChildBuilderDelegate _getOptionsDelegate(BuildContext context) {
-    return SliverChildBuilderDelegate(
-      (context, index) => Column(
-        children: [
-          InkWell(
-            // Use selected option once "issue report" is implemented: Navigator.pop(context, options[index]),
-            onTap: () => PlaceholderScreen.showGeneric(context),
-            child: IconRow(
-              icon: Icon(
-                Icons.sms_failed_outlined,
-                color: context.colorScheme.primary,
-              ),
-              text: Text(
-                ReportOptionTitleFormatter.map(context, options[index]),
-                style: context.textTheme.titleMedium,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            ),
-          ),
-          const Divider(height: 1),
-        ],
-      ),
-      childCount: options.length,
+  Widget _buildOptionsSliver(BuildContext context) {
+    return SliverList.separated(
+      itemBuilder: (c, i) {
+        return InfoRow(
+          icon: Icons.history,
+          title: Text(ReportOptionTitleFormatter.map(context, options[i])),
+          onTap: () => PlaceholderScreen.showGeneric(context),
+        );
+      },
+      separatorBuilder: (c, i) => const Divider(height: 1),
+      itemCount: options.length,
     );
   }
 

@@ -39,7 +39,7 @@ class QrNoPermission extends StatelessWidget {
             permission: Permission.camera,
             onPermissionGranted: () => context.read<QrBloc>().add(const QrScanCheckPermission()),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TertiaryButton(
                 onPressed: () {
                   if (isPermanentlyDenied) {

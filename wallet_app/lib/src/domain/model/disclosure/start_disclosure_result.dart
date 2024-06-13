@@ -18,9 +18,9 @@ sealed class StartDisclosureResult {
     this.relyingParty,
     this.originUrl,
     this.requestPurpose,
-    this.sharedDataWithOrganizationBefore,
-    this.sessionType,
-  );
+    this.sessionType, {
+    required this.sharedDataWithOrganizationBefore,
+  });
 }
 
 class StartDisclosureReadyToDisclose extends StartDisclosureResult {
@@ -32,12 +32,12 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
     super.relyingParty,
     super.originUrl,
     super.requestPurpose,
-    super.sharedDataWithOrganizationBefore,
     super.sessionType,
     this.type,
     this.requestedAttributes,
-    this.policy,
-  );
+    this.policy, {
+    required super.sharedDataWithOrganizationBefore,
+  });
 }
 
 class StartDisclosureMissingAttributes extends StartDisclosureResult {
@@ -45,10 +45,10 @@ class StartDisclosureMissingAttributes extends StartDisclosureResult {
 
   StartDisclosureMissingAttributes(
     super.relyingParty,
-    super.requestPurpose,
     super.originUrl,
-    super.sharedDataWithOrganizationBefore,
+    super.requestPurpose,
     super.sessionType,
-    this.missingAttributes,
-  );
+    this.missingAttributes, {
+    required super.sharedDataWithOrganizationBefore,
+  });
 }

@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../domain/model/event/wallet_event.dart';
 
+@immutable
 class HistoryDetailScreenArgument {
   static const _kWalletEventKey = 'walletEvent';
   static const _kCardDocType = 'docType';
@@ -16,12 +19,9 @@ class HistoryDetailScreenArgument {
     };
   }
 
-  static HistoryDetailScreenArgument fromMap(Map<String, dynamic> map) {
-    return HistoryDetailScreenArgument(
-      walletEvent: map[_kWalletEventKey],
-      docType: map[_kCardDocType],
-    );
-  }
+  HistoryDetailScreenArgument.fromMap(Map<String, dynamic> map)
+      : walletEvent = map[_kWalletEventKey],
+        docType = map[_kCardDocType];
 
   @override
   bool operator ==(Object other) =>

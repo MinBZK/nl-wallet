@@ -56,7 +56,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   /// The scroll offset of the active page's [ScrollController]
   double get _currentScrollControllerPixelOffset {
     final scrollController = _currentScrollController;
-    return (scrollController?.hasClients == true) ? scrollController!.position.pixels : 0;
+    return (scrollController?.hasClients ?? false) ? scrollController!.position.pixels : 0;
   }
 
   bool get showSkipSetupButton => kDebugMode && !Environment.isTest && Environment.mockRepositories;
@@ -241,7 +241,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       onPressed: () async {
         final navigator = Navigator.of(context);
         await context.read<SetupMockedWalletUseCase>().invoke();
-        navigator.pushReplacementNamed(WalletRoutes.dashboardRoute);
+        await navigator.pushReplacementNamed(WalletRoutes.dashboardRoute);
       },
       icon: const Icon(
         Icons.skip_next_outlined,
@@ -296,7 +296,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   Widget? _buildBackButton() {
     if (_currentPage < 0.5) return null;
     return Opacity(
-      opacity: (_currentPage).clamp(0.0, 1.0),
+      opacity: _currentPage.clamp(0.0, 1.0),
       child: BackIconButton(
         onPressed: () => _onPreviousPagePressed(context),
       ),

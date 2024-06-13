@@ -35,7 +35,7 @@ class LoginDetailScreen extends StatelessWidget {
   static LoginDetailScreenArgument getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
-      return args as LoginDetailScreenArgument;
+      return args! as LoginDetailScreenArgument;
     } catch (exception, stacktrace) {
       Fimber.e('Failed to decode $args', ex: exception, stacktrace: stacktrace);
       throw UnsupportedError('Make sure to pass in [LoginDetailScreenArgument] when opening the LoginDetailScreen');
@@ -98,7 +98,7 @@ class LoginDetailScreen extends StatelessWidget {
         onTap: () => OrganizationDetailScreen.showPreloaded(
           context,
           organization,
-          sharedDataWithOrganizationBefore,
+          sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -225,8 +225,8 @@ class LoginDetailScreen extends StatelessWidget {
     BuildContext context,
     Organization organization,
     Policy policy,
-    Map<WalletCard, List<DataAttribute>> requestedAttributes,
-    bool sharedDataWithOrganizationBefore, {
+    Map<WalletCard, List<DataAttribute>> requestedAttributes, {
+    required bool sharedDataWithOrganizationBefore,
     VoidCallback? onReportIssuePressed,
   }) {
     return Navigator.push(

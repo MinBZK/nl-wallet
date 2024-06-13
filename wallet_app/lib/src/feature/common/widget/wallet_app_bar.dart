@@ -25,7 +25,7 @@ class WalletAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
   }) : assert(
             progress == null || bottom == null,
-            'Can\'t provide both a bottom widget and a progress value, '
+            "Can't provide both a bottom widget and a progress value, "
             'since the progress is rendered as a bottom widget');
 
   @override

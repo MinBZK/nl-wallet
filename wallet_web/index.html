@@ -40,7 +40,7 @@
     dignissim sodales ut eu sem. Nunc pulvinar sapien et ligula.
   </p>
   <nl-wallet-button id="mijn_amsterdam_button" text="18+ bewijzen met NL Wallet" usecase="mijn_amsterdam"
-                    base-url="http://192.168.1.148:3004"></nl-wallet-button>
+                    base-url="http://localhost:3004"></nl-wallet-button>
 </div>
 </body>
 
@@ -51,7 +51,7 @@
       const session_token = e.detail[0]
       const session_type = e.detail[1]
       if (session_type === "cross_device") {
-        window.open("http://192.168.1.148:3004/sessions/" + session_token + "?usecase=mijn_amsterdam")
+        window.open("http://localhost:3004/mijn_amsterdam/return?session_token=" + session_token)
       }
     }
   }, false)

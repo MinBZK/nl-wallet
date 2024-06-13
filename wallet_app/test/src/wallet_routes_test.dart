@@ -11,7 +11,7 @@ void main() {
   });
 
   test('.publicRoutes should not be a `SecuredPageRoute`', () {
-    for (var routeName in WalletRoutes.publicRoutes) {
+    for (final routeName in WalletRoutes.publicRoutes) {
       final Route route = WalletRoutes.routeFactory(RouteSettings(name: routeName));
       expect(route, isNot(isA<SecuredPageRoute>()));
     }

@@ -99,7 +99,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => CheckPinResultBlocked(),
+        CheckPinResultBlocked.new,
       ),
       skip: 6,
       expect: () => [const PinValidateBlocked()],

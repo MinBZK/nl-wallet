@@ -138,7 +138,7 @@ void main() {
               DisclosureConfirmDataAttributes(
                 relyingParty: WalletMockData.organization,
                 requestedAttributes: {
-                  WalletMockData.card: [WalletMockData.textDataAttribute]
+                  WalletMockData.card: [WalletMockData.textDataAttribute],
                 },
                 requestPurpose: 'Sample reason'.untranslated,
                 policy: WalletMockData.policy,

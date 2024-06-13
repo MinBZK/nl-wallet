@@ -6,8 +6,8 @@ import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
+import '../../common/widget/paragraphed_list.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
-import '../../common/widget/text/body_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 const _kRequestDigidUrl = 'https://www.digid.nl/aanvragen-en-activeren/digid-aanvragen';
@@ -19,32 +19,32 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       key: const Key('personalizeNoDigidScreen'),
-      body: Column(
-        children: [
-          Expanded(
-            child: WalletScrollbar(
-              child: CustomScrollView(
-                slivers: [
-                  SliverWalletAppBar(
-                    title: context.l10n.walletPersonalizeNoDigidPageHeadline,
-                    actions: const [HelpIconButton()],
-                  ),
-                  SliverSafeArea(
-                    top: false,
-                    bottom: false,
-                    sliver: SliverPadding(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: WalletScrollbar(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverWalletAppBar(
+                      title: context.l10n.walletPersonalizeNoDigidPageHeadline,
+                      actions: const [HelpIconButton()],
+                    ),
+                    SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverToBoxAdapter(
-                        child: BodyText(context.l10n.walletPersonalizeNoDigidPageDescription),
+                        child: ParagraphedList.splitContent(
+                          context.l10n.walletPersonalizeNoDigidPageDescription,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          _buildBottomSection(context),
-        ],
+            _buildBottomSection(context),
+          ],
+        ),
       ),
     );
   }
@@ -59,7 +59,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
           forceVertical: !context.isLandscape,
           primaryButton: PrimaryButton(
             key: const Key('applyForDigidCta'),
-            onPressed: () => _openRequestDigidUrl(),
+            onPressed: _openRequestDigidUrl,
             text: Text(context.l10n.walletPersonalizeNoDigidPageRequestDigidCta),
             icon: const Icon(Icons.arrow_forward_rounded),
           ),
