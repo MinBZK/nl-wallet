@@ -73,6 +73,14 @@ final kMockPidDataAttributes = [
   ),
   CardAttribute(
     labels: [
+      LocalizedString(language: 'nl', value: 'Married or registered partnership'),
+      LocalizedString(language: 'en', value: 'Getrouwd of geregistreerd partnerschap'),
+    ],
+    value: CardValue.boolean(value: true),
+    key: 'mock.hasSpouseOrPartner',
+  ),
+  CardAttribute(
+    labels: [
       LocalizedString(language: 'nl', value: 'Burger­service­nummer (BSN)'),
       LocalizedString(language: 'en', value: 'BSN'),
     ],
