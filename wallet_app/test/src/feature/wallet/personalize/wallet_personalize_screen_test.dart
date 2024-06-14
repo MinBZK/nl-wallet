@@ -75,6 +75,12 @@ void main() {
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
+      label: 'Getrouwd of geregistreerd partnerschap',
+      value: const StringValue('Nee'),
+      key: 'mock.hasSpouseOrPartner',
+      sourceCardDocType: kPidId,
+    ),
+    DataAttribute.untranslated(
       label: 'Burger­service­nummer (BSN)',
       value: const StringValue('111222333'),
       key: 'mock.citizenshipNumber',
@@ -153,6 +159,12 @@ void main() {
       label: 'Geboorteland',
       value: const StringValue('Nederland'),
       key: 'mock.birthCountry',
+      sourceCardDocType: kPidId,
+    ),
+    DataAttribute.untranslated(
+      label: 'Getrouwd of geregistreerd partnerschap',
+      value: const StringValue('Nee'),
+      key: 'mock.hasSpouseOrPartner',
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(

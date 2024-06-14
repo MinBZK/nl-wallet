@@ -3,7 +3,7 @@ use std::{num::NonZeroU8, ops::Add};
 use chrono::{Days, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
 
@@ -21,6 +21,9 @@ pub struct BrpPersons {
     pub persons: Vec<BrpPerson>,
 }
 
+// Represents a person from the BRP.
+// Note: for categories that can occur multiple times, the ordering is such that the most recent category is first.
+// See Logisch Ontwerp BRP 2024 Q2 section 5.1.7.3
 #[derive(Deserialize)]
 pub struct BrpPerson {
     #[serde(rename = "burgerservicenummer")]
@@ -43,11 +46,23 @@ pub struct BrpPerson {
 
     #[serde(rename = "nationaliteiten")]
     nationalities: Vec<BrpNationality>,
+
+    #[serde(rename = "partners", default)]
+    partners: Vec<BrpPartner>,
 }
 
 impl BrpPerson {
     fn is_over_18(&self) -> bool {
         self.age >= 18
+    }
+
+    fn has_spouse_or_partner(&self) -> bool {
+        self.partners
+            .first()
+            .map(|partner| {
+                partner.kind != BrpMaritalStatus::Onbekend && partner.start.is_some() && partner.end.is_none()
+            })
+            .unwrap_or(false)
     }
 
     fn nationalities_as_string(&self) -> Result<String, BrpDataError> {
@@ -125,6 +140,11 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                         unsigned::Entry {
                             name: String::from(PID_NATIONALITY),
                             value: ciborium::Value::Text(value.nationalities_as_string()?),
+                        }
+                        .into(),
+                        unsigned::Entry {
+                            name: String::from(PID_SPOUSE_OR_PARTNER),
+                            value: ciborium::Value::Bool(value.has_spouse_or_partner()),
                         }
                         .into(),
                     ]
@@ -220,7 +240,7 @@ pub struct BrpName {
 #[derive(Deserialize)]
 pub struct BrpBirth {
     #[serde(rename = "datum")]
-    date: BrpBirthDate,
+    date: BrpDate,
 
     #[serde(rename = "land")]
     country: BrpBirthCountry,
@@ -230,7 +250,7 @@ pub struct BrpBirth {
 }
 
 #[derive(Deserialize)]
-pub struct BrpBirthDate {
+pub struct BrpDate {
     #[serde(rename = "datum")]
     date: chrono::NaiveDate,
 }
@@ -306,6 +326,51 @@ pub struct BrpNationalityName {
     name: String,
 }
 
+#[derive(Deserialize)]
+pub struct BrpPartner {
+    #[serde(rename = "soortVerbintenis")]
+    kind: BrpMaritalStatus,
+
+    #[serde(rename = "aangaanHuwelijkPartnerschap")]
+    start: Option<GbaMarriagePartnershipStart>,
+
+    #[serde(rename = "ontbindingHuwelijkPartnerschap")]
+    end: Option<GbaMarriagePartnershipEnd>,
+}
+
+#[derive(Deserialize)]
+pub struct GbaMarriagePartnershipStart {}
+
+#[derive(Deserialize)]
+pub struct GbaMarriagePartnershipEnd {}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum BrpMaritalStatus {
+    Huwelijk,
+    GeregistreerdPartnerschap,
+    Onbekend,
+}
+
+impl<'de> Deserialize<'de> for BrpMaritalStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = BrpCode::deserialize(deserializer)?;
+        let status = match value.code.as_str() {
+            "H" => BrpMaritalStatus::Huwelijk,
+            "P" => BrpMaritalStatus::GeregistreerdPartnerschap,
+            _ => BrpMaritalStatus::Onbekend,
+        };
+        Ok(status)
+    }
+}
+
+#[derive(Deserialize)]
+pub struct BrpCode {
+    code: String,
+}
+
 #[cfg(test)]
 mod tests {
     use std::{env, fs, path::PathBuf};
@@ -330,13 +395,13 @@ mod tests {
         .unwrap()
     }
 
-    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> Vec<(String, String)> {
+    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> Vec<(&str, &str)> {
         attrs
             .iter()
             .flat_map(|(_ns, entries)| {
                 entries
                     .iter()
-                    .map(|entry| (entry.name.clone(), String::from(entry.value.as_text().unwrap_or(""))))
+                    .map(|entry| (entry.name.as_str(), entry.value.as_text().unwrap_or("")))
             })
             .collect::<Vec<_>>()
     }
@@ -352,6 +417,25 @@ mod tests {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
         let brp_person = brp_persons.persons.first().unwrap();
         assert!(brp_person.is_over_18());
+    }
+
+    #[rstest]
+    #[case("married")]
+    #[case("remarried")]
+    #[case("geregistreerd-partnerschap")]
+    fn should_have_spouse_or_partner(#[case] json_file_name: &str) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert!(brp_person.has_spouse_or_partner());
+    }
+
+    #[rstest]
+    #[case("divorced")]
+    #[case("frouke")]
+    fn should_not_have_spouse_or_partner(#[case] json_file_name: &str) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert!(!brp_person.has_spouse_or_partner());
     }
 
     #[rstest]
@@ -405,11 +489,9 @@ mod tests {
                 ("age_over_18", ""),
                 ("gender", ""),
                 ("nationality", "Nederlandse"),
+                ("has_spouse_or_partner", ""),
             ],
             readable_attrs(pid_card.attributes.as_ref())
-                .iter()
-                .map(|(a, b)| (a.as_str(), b.as_str()))
-                .collect::<Vec<_>>()
         );
 
         assert_eq!(
@@ -421,9 +503,6 @@ mod tests {
                 ("resident_city", "Toetsoog"),
             ],
             readable_attrs(address_card.attributes.as_ref())
-                .iter()
-                .map(|(a, b)| (a.as_str(), b.as_str()))
-                .collect::<Vec<_>>()
         );
     }
 }
