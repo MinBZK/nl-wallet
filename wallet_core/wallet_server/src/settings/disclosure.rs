@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use nutype::nutype;
 use ring::hmac;
 use serde::Deserialize;
-use serde_with::hex::Hex;
-use serde_with::serde_as;
+use serde_with::{hex::Hex, serde_as};
 
 use nl_wallet_mdoc::verifier::{SessionTypeReturnUrl, UseCase, UseCases};
 use wallet_common::trust_anchor::DerTrustAnchor;

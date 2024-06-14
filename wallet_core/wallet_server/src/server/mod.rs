@@ -21,14 +21,20 @@ fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-pub fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
-    let mut router = Router::new().nest(prefix, router).nest(prefix, health_router());
+pub fn decorate_router_with_health_log_and_tracing(prefix: &str, router: Router, log_requests: bool) -> Router {
+    let mut router = router.nest(prefix, health_router());
 
     if log_requests {
         router = router.layer(axum::middleware::from_fn(log_request_response));
     }
 
     router.layer(TraceLayer::new_for_http())
+}
+
+pub fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
+    let router = Router::new().nest(prefix, router);
+
+    decorate_router_with_health_log_and_tracing(prefix, router, log_requests)
 }
 
 /// Create Wallet socket from [settings].

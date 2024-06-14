@@ -297,7 +297,7 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --features "allow_http_return_url,issuance" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --features "issuance" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
@@ -316,7 +316,7 @@ then
 
     if [ -n "${SENTRY_DSN+x}" ]
     then
-	echo "Sentry DSN: '${SENTRY_DSN}'"
+        echo "Sentry DSN: '${SENTRY_DSN}'"
         export VERIFICATION_SERVER_SENTRY__DSN="${SENTRY_DSN}"
         export VERIFICATION_SERVER_SENTRY__ENVIRONMENT="${SENTRY_ENVIRONMENT}"
     fi

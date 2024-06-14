@@ -11,16 +11,16 @@ use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
-    mod disclosure;
-    pub use disclosure::*;
-    use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
+        mod disclosure;
+        pub use disclosure::*;
+        use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
     }
 }
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "issuance")] {
-    mod issuance;
-    pub use issuance::*;
+        mod issuance;
+        pub use issuance::*;
     }
 }
 

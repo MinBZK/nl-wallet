@@ -26,7 +26,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["cfg_test"]
+required-features = ["cfg_test", "disclosure"]
 
 [[test]]
 name = "postgres"
@@ -100,7 +100,7 @@ cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
-hyper = { version = "0.14.27", features = ["full"] } # TODO do we realy need full here? we onoly use hyper::body::to_bytes(body)
+hyper.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 openssl = { workspace = true, features = ["vendored"] }

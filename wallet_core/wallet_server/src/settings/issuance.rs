@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
+use indexmap::IndexMap;
 use serde::Deserialize;
 
 use nl_wallet_mdoc::utils::x509::Certificate;
-use wallet_common::config::wallet_config::BaseUrl;
-
-use {indexmap::IndexMap, wallet_common::reqwest::deserialize_certificates};
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::deserialize_certificates};
 
 use super::*;
 use crate::pid::{

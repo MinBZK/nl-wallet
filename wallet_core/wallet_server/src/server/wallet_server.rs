@@ -20,18 +20,19 @@ where
     let log_requests = settings.log_requests;
 
     let wallet_issuance_router =
-        create_issuance_router(&settings.urls, settings.issuer, issuance_sessions, attr_service).await?;
+        create_issuance_router(&settings.urls, settings.issuer, issuance_sessions, attr_service)?;
     let (wallet_disclosure_router, requester_router) =
         verifier::create_routers(settings.urls, settings.verifier, disclosure_sessions)?;
+
+    let mut wallet_router = Router::new()
+        .nest("/issuance/", wallet_issuance_router)
+        .merge(Router::new().nest("/disclosure/", wallet_disclosure_router));
+    wallet_router = decorate_router_with_health_log_and_tracing("/", wallet_router, log_requests);
 
     listen(
         settings.wallet_server,
         settings.requester_server.into(),
-        decorate_router("/issuance/", wallet_issuance_router, log_requests).merge(decorate_router(
-            "/disclosure/",
-            wallet_disclosure_router,
-            log_requests,
-        )),
+        wallet_router,
         decorate_router("/disclosure/sessions", requester_router, log_requests).into(),
     )
     .await

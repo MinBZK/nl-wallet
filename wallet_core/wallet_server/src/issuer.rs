@@ -64,7 +64,7 @@ impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
     }
 }
 
-pub async fn create_issuance_router<A, S>(
+pub fn create_issuance_router<A, S>(
     urls: &Urls,
     issuer: settings::Issuer,
     sessions: S,

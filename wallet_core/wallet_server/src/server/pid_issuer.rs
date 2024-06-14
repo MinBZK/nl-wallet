@@ -14,7 +14,7 @@ where
     let log_requests = settings.log_requests;
 
     let wallet_issuance_router =
-        create_issuance_router(&settings.urls, settings.issuer, issuance_sessions, attr_service).await?;
+        create_issuance_router(&settings.urls, settings.issuer, issuance_sessions, attr_service)?;
 
     listen(
         settings.wallet_server,
