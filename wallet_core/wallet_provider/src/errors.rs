@@ -114,7 +114,6 @@ impl ConvertibleError for InstructionError {
             InstructionError::PinTimeout(data) => ErrorType::PinTimeout(*data),
             InstructionError::AccountBlocked => ErrorType::AccountBlocked,
             InstructionError::Validation(_) => ErrorType::InstructionValidation,
-            InstructionError::KeyNotFound(data) => ErrorType::KeyNotFound(data.to_string()),
             InstructionError::Signing(_)
             | InstructionError::Storage(_)
             | InstructionError::WalletCertificate(_)

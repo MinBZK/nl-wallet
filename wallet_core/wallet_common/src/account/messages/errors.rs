@@ -13,7 +13,6 @@ pub enum ErrorType {
     PinTimeout(PinTimeoutData),
     AccountBlocked,
     InstructionValidation,
-    KeyNotFound(String),
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
@@ -40,7 +39,6 @@ impl From<&ErrorType> for StatusCode {
             ErrorType::PinTimeout(_) => StatusCode::FORBIDDEN,
             ErrorType::AccountBlocked => StatusCode::UNAUTHORIZED,
             ErrorType::InstructionValidation => StatusCode::FORBIDDEN,
-            ErrorType::KeyNotFound(_) => StatusCode::NOT_FOUND,
         }
     }
 }
