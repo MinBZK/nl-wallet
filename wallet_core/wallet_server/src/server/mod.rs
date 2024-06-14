@@ -39,10 +39,8 @@ fn create_wallet_socket(wallet_server: Server) -> SocketAddr {
 /// Secure [requester_router] with an API key when required by [settings].
 fn secure_requester_router(requester_server: &RequesterAuth, requester_router: Router) -> Router {
     match requester_server {
-        RequesterAuth::Authentication(Authentication::ApiKey(api_key)) => {
-            requester_router.layer(ValidateRequestHeaderLayer::bearer(api_key))
-        }
-        RequesterAuth::ProtectedInternalEndpoint {
+        RequesterAuth::Authentication(Authentication::ApiKey(api_key))
+        | RequesterAuth::ProtectedInternalEndpoint {
             authentication: Authentication::ApiKey(api_key),
             ..
         } => requester_router.layer(ValidateRequestHeaderLayer::bearer(api_key)),
@@ -53,12 +51,10 @@ fn secure_requester_router(requester_server: &RequesterAuth, requester_router: R
 /// Create Requester socket when required by [settings].
 fn create_requester_socket(requester_server: &RequesterAuth) -> Option<SocketAddr> {
     match requester_server {
-        RequesterAuth::Authentication(Authentication::ApiKey(_)) => None,
-        RequesterAuth::ProtectedInternalEndpoint {
-            authentication: Authentication::ApiKey(_),
-            server,
-        } => Some(SocketAddr::new(server.ip, server.port)),
-        RequesterAuth::InternalEndpoint(server) => Some(SocketAddr::new(server.ip, server.port)),
+        RequesterAuth::Authentication(_) => None,
+        RequesterAuth::ProtectedInternalEndpoint { server, .. } | RequesterAuth::InternalEndpoint(server) => {
+            Some(SocketAddr::new(server.ip, server.port))
+        }
     }
 }
 
