@@ -372,7 +372,7 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
 
 /// Session status for the frontend.
 #[derive(Debug, Deserialize, Serialize, strum::Display)]
-#[serde(rename_all = "UPPERCASE", tag = "status")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
 pub enum StatusResponse {
     Created { ul: BaseUrl },
     WaitingForResponse,

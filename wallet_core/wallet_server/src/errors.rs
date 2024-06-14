@@ -2,9 +2,10 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use openid4vc::ErrorStatusCode;
 use serde::Serialize;
 use tracing::warn;
+
+use openid4vc::ErrorStatusCode;
 
 /// Newtype of [`openid4vc::ErrorResponse`] so that we can implement [`IntoResponse`] on it.
 #[derive(Serialize, Debug)]
