@@ -44,9 +44,6 @@ pub struct BrpPerson {
     #[serde(rename = "verblijfplaats")]
     residence: BrpResidence,
 
-    #[serde(rename = "nationaliteiten")]
-    nationalities: Vec<BrpNationality>,
-
     #[serde(rename = "partners", default)]
     partners: Vec<BrpPartner>,
 }
@@ -63,21 +60,6 @@ impl BrpPerson {
                 partner.kind != BrpMaritalStatus::Onbekend && partner.start.is_some() && partner.end.is_none()
             })
             .unwrap_or(false)
-    }
-
-    fn nationalities_as_string(&self) -> Result<String, BrpDataError> {
-        // Filter out optional nationalities that could not be deserialized, e.g. NationaliteitOnbekend.
-        let nationatities = self
-            .nationalities
-            .iter()
-            .filter_map(|nationality| nationality.nationality.clone().map(|n| n.name))
-            .collect::<Vec<_>>();
-
-        if nationatities.is_empty() {
-            return Err(BrpDataError::MissingNationality);
-        }
-
-        Ok(nationatities.join(", "))
     }
 }
 
@@ -135,11 +117,6 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                         unsigned::Entry {
                             name: String::from(PID_GENDER),
                             value: value.gender.code.clone().into(),
-                        }
-                        .into(),
-                        unsigned::Entry {
-                            name: String::from(PID_NATIONALITY),
-                            value: ciborium::Value::Text(value.nationalities_as_string()?),
                         }
                         .into(),
                         unsigned::Entry {
@@ -314,18 +291,6 @@ impl Default for BrpCountry {
     }
 }
 
-#[derive(Deserialize, Clone)]
-pub struct BrpNationality {
-    #[serde(rename = "nationaliteit")]
-    nationality: Option<BrpNationalityName>,
-}
-
-#[derive(Deserialize, Clone)]
-pub struct BrpNationalityName {
-    #[serde(rename = "omschrijving")]
-    name: String,
-}
-
 #[derive(Deserialize)]
 pub struct BrpPartner {
     #[serde(rename = "soortVerbintenis")]
@@ -451,24 +416,6 @@ mod tests {
     }
 
     #[test]
-    fn should_return_multiple_nationalities() {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json("multiple-nationalities")).unwrap();
-        let brp_person = brp_persons.persons.first().unwrap();
-        assert_eq!("Belgische, Nederlandse", brp_person.nationalities_as_string().unwrap());
-    }
-
-    #[rstest]
-    #[case("empty-nationalities")]
-    #[case("unknown-nationalities")]
-    fn should_err_for_missing_nationality(#[case] json_file_name: &str) {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
-        let brp_person = brp_persons.persons.first().unwrap();
-        brp_person
-            .nationalities_as_string()
-            .expect_err("should error when nationality is missing");
-    }
-
-    #[test]
     fn should_convert_brp_person_to_mdoc() {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
         let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.first().unwrap().try_into().unwrap();
@@ -488,7 +435,6 @@ mod tests {
                 ("birth_city", "Luik"),
                 ("age_over_18", ""),
                 ("gender", ""),
-                ("nationality", "Nederlandse"),
                 ("has_spouse_or_partner", ""),
             ],
             readable_attrs(pid_card.attributes.as_ref())
