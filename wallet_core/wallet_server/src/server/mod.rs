@@ -64,23 +64,20 @@ fn create_requester_socket(requester_server: &RequesterAuth) -> Option<SocketAdd
     }
 }
 
+#[cfg(feature = "disclosure")]
 async fn listen(
     wallet_server: Server,
-    requester_server: Option<RequesterAuth>,
+    requester_server: RequesterAuth,
     wallet_router: Router,
-    requester_router: Option<Router>,
+    requester_router: Router,
 ) -> Result<()> {
     let wallet_socket = create_wallet_socket(wallet_server);
-    let requester_socket = requester_server.as_ref().and_then(create_requester_socket);
+    let requester_socket = create_requester_socket(&requester_server);
 
-    let requester_router = requester_router.and_then(|router| {
-        requester_server
-            .as_ref()
-            .map(|server| secure_requester_router(server, router))
-    });
+    let requester_router = secure_requester_router(&requester_server, requester_router);
 
-    match (requester_socket, requester_router) {
-        (Some(requester_socket), Some(requester_router)) => {
+    match requester_socket {
+        Some(requester_socket) => {
             debug!("listening for requester on {}", requester_socket);
             let requester_server = tokio::spawn(async move {
                 axum::Server::bind(&requester_socket)
@@ -99,21 +96,27 @@ async fn listen(
 
             tokio::try_join!(requester_server, wallet_server)?;
         }
-        (None, Some(requester_router)) => {
+        None => {
             debug!("listening for wallet and requester on {}", wallet_socket);
             axum::Server::bind(&wallet_socket)
                 .serve(wallet_router.merge(requester_router).into_make_service())
                 .await
                 .expect("wallet server should be started");
         }
-        (_, None) => {
-            debug!("listening for wallet on {}", wallet_socket);
-            axum::Server::bind(&wallet_socket)
-                .serve(wallet_router.into_make_service())
-                .await
-                .expect("wallet server should be started");
-        }
     }
+
+    Ok(())
+}
+
+#[cfg(feature = "issuance")]
+async fn listen_wallet_only(wallet_server: Server, wallet_router: Router) -> Result<()> {
+    let wallet_socket = create_wallet_socket(wallet_server);
+
+    debug!("listening for wallet on {}", wallet_socket);
+    axum::Server::bind(&wallet_socket)
+        .serve(wallet_router.into_make_service())
+        .await
+        .expect("wallet server should be started");
 
     Ok(())
 }

@@ -16,11 +16,9 @@ where
     let wallet_issuance_router =
         create_issuance_router(&settings.urls, settings.issuer, issuance_sessions, attr_service)?;
 
-    listen(
+    listen_wallet_only(
         settings.wallet_server,
-        None,
         decorate_router("/issuance/", wallet_issuance_router, log_requests),
-        None,
     )
     .await
 }
