@@ -97,7 +97,7 @@ async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType, sessi
       case "CREATED":
         modalState.value = {
           kind: "created",
-          engagement_url: statusResponse.engagement_url,
+          ul: statusResponse.ul,
           status_url: statusUrl,
           session_type: sessionType,
           session_token,
@@ -184,13 +184,13 @@ onUnmounted(cancelPolling)
       <loading-section v-if="modalState.kind === 'loading'" @stop="close"></loading-section>
       <device-choice
         v-if="modalState.kind === 'created' && modalState.session_type === SessionType.SameDevice"
-        :engagement-url="modalState.engagement_url"
+        :ul="modalState.ul"
         @choice="handleChoice"
         @close="close"
       ></device-choice>
       <qr-code
         v-if="modalState.kind === 'created' && modalState.session_type === SessionType.CrossDevice"
-        :text="modalState.engagement_url"
+        :text="modalState.ul"
         :small="width <= 420 || height <= 800"
         @close="close"
       ></qr-code>

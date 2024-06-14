@@ -7,7 +7,7 @@ import { mdiArrowRight } from "@mdi/js"
 import { onMounted, ref } from "vue"
 
 defineProps<{
-  engagementUrl: string
+  ul: string
 }>()
 
 const emit = defineEmits<{
@@ -32,7 +32,7 @@ onMounted(() => {
     <h2>Op welk apparaat staat je NL Wallet app?</h2>
     <section class="device-choice" data-testid="device_choice">
       <a
-        :href="engagementUrl"
+        :href="ul"
         target="_blank"
         class="button primary full-width"
         :class="{ disabled: chosen }"
