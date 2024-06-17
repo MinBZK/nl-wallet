@@ -172,11 +172,12 @@ impl Settings {
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
-            .prefix_separator("_")
-            .list_separator(",");
+            .prefix_separator("_");
 
         #[cfg(feature = "disclosure")]
-        let environment_parser = environment_parser.with_list_parse_key("verifier.trust_anchors");
+        let environment_parser = environment_parser
+            .list_separator(",")
+            .with_list_parse_key("verifier.trust_anchors");
 
         let environment_parser = environment_parser.try_parsing(true);
 
