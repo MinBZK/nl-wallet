@@ -18,8 +18,6 @@ use serde_with::{
     DeserializeAs, SerializeAs,
 };
 
-use crate::jwt::EcdsaDecodingKey;
-
 use super::signed::{SignedDouble, SignedInner};
 
 /// ECDSA signature that (de)serializes from/to base64-encoded DER.
@@ -125,12 +123,6 @@ pub struct DerVerifyingKey(pub VerifyingKey);
 impl From<VerifyingKey> for DerVerifyingKey {
     fn from(val: VerifyingKey) -> Self {
         DerVerifyingKey(val)
-    }
-}
-
-impl From<EcdsaDecodingKey> for DerVerifyingKey {
-    fn from(value: EcdsaDecodingKey) -> Self {
-        value.into()
     }
 }
 
