@@ -129,7 +129,7 @@ where
         .issuer
         .process_token_request(token_request, dpop)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
@@ -153,7 +153,7 @@ where
         .issuer
         .process_credential(access_token, dpop, credential_request)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     Ok(Json(response))
 }
 
@@ -173,7 +173,7 @@ where
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     Ok(Json(response))
 }
 
@@ -195,7 +195,7 @@ where
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -267,10 +267,13 @@ impl ErrorStatusCode for MetadataError {
 
 impl From<Box<dyn Display>> for ErrorResponse<MetadataError> {
     fn from(error: Box<dyn Display>) -> Self {
-        ErrorResponse(openid4vc::ErrorResponse {
-            error: MetadataError::Metadata,
-            error_description: Some(error.to_string()),
-            error_uri: None,
-        })
+        ErrorResponse {
+            error_response: openid4vc::ErrorResponse {
+                error: MetadataError::Metadata,
+                error_description: Some(error.to_string()),
+                error_uri: None,
+            },
+            redirect_uri: None,
+        }
     }
 }

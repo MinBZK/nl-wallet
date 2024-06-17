@@ -3,17 +3,40 @@ use axum::{
     Json,
 };
 use serde::Serialize;
+use serde_with::skip_serializing_none;
 use tracing::warn;
 
-use openid4vc::ErrorStatusCode;
+use openid4vc::{verifier::WithRedirectUri, ErrorStatusCode};
+use wallet_common::config::wallet_config::BaseUrl;
 
-/// Newtype of [`openid4vc::ErrorResponse`] so that we can implement [`IntoResponse`] on it.
+/// Wrapper of [`openid4vc::ErrorResponse`] that implements [`IntoResponse`] and has an optional redirect URI.
+#[skip_serializing_none]
 #[derive(Serialize, Debug)]
-pub(crate) struct ErrorResponse<T>(pub(crate) openid4vc::ErrorResponse<T>);
+pub(crate) struct ErrorResponse<T> {
+    #[serde(flatten)]
+    pub(crate) error_response: openid4vc::ErrorResponse<T>,
+    pub(crate) redirect_uri: Option<BaseUrl>,
+}
 
 impl<T: ErrorStatusCode + Serialize + std::fmt::Debug> IntoResponse for ErrorResponse<T> {
     fn into_response(self) -> Response {
         warn!("{:?}", &self);
-        (self.0.error.status_code(), Json(self)).into_response()
+        (self.error_response.error.status_code(), Json(self)).into_response()
+    }
+}
+
+impl<T> ErrorResponse<T> {
+    pub(crate) fn new(err: impl Into<openid4vc::ErrorResponse<T>>) -> Self {
+        Self {
+            error_response: err.into(),
+            redirect_uri: None,
+        }
+    }
+
+    pub(crate) fn with_uri(err: WithRedirectUri<impl Into<openid4vc::ErrorResponse<T>> + std::fmt::Debug>) -> Self {
+        Self {
+            error_response: err.error.into(),
+            redirect_uri: err.redirect_uri,
+        }
     }
 }

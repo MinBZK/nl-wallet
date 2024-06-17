@@ -18,7 +18,6 @@ use serde_with::{hex::Hex, serde_as};
 use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
-use url::Url;
 
 use nl_wallet_mdoc::{
     holder::TrustAnchor,
@@ -155,6 +154,27 @@ pub enum PostAuthResponseErrorCode {
     ServerError,
 }
 
+#[derive(thiserror::Error, Debug)]
+pub struct WithRedirectUri<T: std::fmt::Debug> {
+    pub error: T,
+    pub redirect_uri: Option<BaseUrl>,
+}
+
+impl<T: std::fmt::Debug> From<T> for WithRedirectUri<T> {
+    fn from(error: T) -> Self {
+        Self {
+            error,
+            redirect_uri: None,
+        }
+    }
+}
+
+impl<T: std::fmt::Debug> WithRedirectUri<T> {
+    fn new(error: T, redirect_uri: Option<BaseUrl>) -> Self {
+        Self { error, redirect_uri }
+    }
+}
+
 /// A disclosure session. `S` must implement [`DisclosureState`] and is the state that the session is in.
 /// The session progresses through the possible states using a state engine that uses the typestate pattern:
 /// for each state `S`, `Session<S>` has its own state transition method that consume the previous state.
@@ -177,7 +197,8 @@ pub struct Created {
 pub struct WaitingForResponse {
     auth_request: IsoVpAuthorizationRequest,
     encryption_key: EncryptionPrivateKey,
-    redirect_uri: Option<RedirectUri>,
+    redirect_uri: Option<BaseUrl>,
+    redirect_uri_nonce: Option<String>,
 }
 
 /// State for a session that has ended (for any reason).
@@ -199,20 +220,6 @@ pub enum SessionResult {
     },
     Cancelled,
     Expired,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct RedirectUri {
-    template: ReturnUrlTemplate,
-    nonce: String,
-}
-
-impl RedirectUri {
-    fn into_url(self, session_token: &SessionToken) -> Url {
-        let mut url = self.template.into_url(session_token);
-        url.query_pairs_mut().append_pair("nonce", &self.nonce);
-        url
-    }
 }
 
 /// Wrapper for [`EcKeyPair`] that can be serialized.
@@ -520,12 +527,31 @@ where
         Ok(())
     }
 
-    async fn get_session(&self, session_token: &SessionToken) -> Result<SessionState<DisclosureData>, SessionError> {
+    async fn get_session_state(
+        &self,
+        session_token: &SessionToken,
+    ) -> Result<SessionState<DisclosureData>, SessionError> {
         self.sessions
             .get(session_token)
             .await
             .map_err(SessionError::SessionStore)?
             .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))
+    }
+
+    async fn get_session<T, E>(&self, session_token: &SessionToken) -> Result<Session<T>, WithRedirectUri<E>>
+    where
+        T: DisclosureState,
+        E: std::fmt::Debug + From<SessionError>,
+        Session<T>: TryFrom<SessionState<DisclosureData>, Error = SessionError>,
+    {
+        let session = self
+            .get_session_state(session_token)
+            .await
+            .map_err(E::from)?
+            .try_into()
+            .map_err(E::from)?;
+
+        Ok(session)
     }
 
     pub async fn process_get_request(
@@ -534,8 +560,8 @@ where
         response_uri: BaseUrl,
         url_params: VerifierUrlParameters,
         wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, GetAuthRequestError> {
-        let session: Session<Created> = self.get_session(session_token).await?.try_into()?;
+    ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
+        let session: Session<Created> = self.get_session(session_token).await?;
 
         info!("Session({session_token}): get request");
 
@@ -544,18 +570,27 @@ where
         // session. This means that the QR code/UL stays on the website so that the user can try again.
         self.verify_ephemeral_id(session_token, &url_params)?;
 
-        let (result, next) = match session
-            .process_get_request(response_uri, url_params.session_type, wallet_nonce, &self.use_cases)
+        let (result, redirect_uri, next) = match session
+            .process_get_request(
+                session_token,
+                response_uri,
+                url_params.session_type,
+                wallet_nonce,
+                &self.use_cases,
+            )
             .await
         {
-            Ok((jws, next)) => (Ok(jws), next.into()),
-            Err((err, next)) => (Err(err), next.into()),
+            Ok((jws, next)) => (Ok(jws), next.state().redirect_uri.clone(), next.into()),
+            Err((err, next)) => {
+                let redirect_uri = err.redirect_uri.clone();
+                (Err(err), redirect_uri, next.into())
+            }
         };
 
         self.sessions
             .write(next, false)
             .await
-            .map_err(SessionError::SessionStore)?;
+            .map_err(|err| WithRedirectUri::new(SessionError::SessionStore(err).into(), redirect_uri))?;
 
         result
     }
@@ -565,11 +600,10 @@ where
         session_token: &SessionToken,
         wallet_response: WalletAuthResponse,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<VpResponse, PostAuthResponseError> {
-        let session: Session<WaitingForResponse> = self.get_session(session_token).await?.try_into()?;
+    ) -> Result<VpResponse, WithRedirectUri<PostAuthResponseError>> {
+        let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
 
         let (result, next) = session.process_authorization_response(
-            session_token,
             wallet_response,
             time,
             self.trust_anchors
@@ -579,10 +613,15 @@ where
                 .as_slice(),
         );
 
+        let redirect_uri = match &result {
+            Ok(response) => response.redirect_uri.clone(),
+            Err(err) => err.redirect_uri.clone(),
+        };
+
         self.sessions
             .write(next.into(), false)
             .await
-            .map_err(SessionError::SessionStore)?;
+            .map_err(|err| WithRedirectUri::new(SessionError::SessionStore(err).into(), redirect_uri))?;
 
         result
     }
@@ -595,7 +634,7 @@ where
         request_uri: BaseUrl,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusResponse, VerificationError> {
-        let response = match self.get_session(session_token).await?.data {
+        let response = match self.get_session_state(session_token).await?.data {
             DisclosureData::Created(Created { client_id, .. }) => {
                 let time = time.generate();
                 let ul = Self::format_ul(
@@ -632,7 +671,7 @@ where
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
     ) -> Result<DisclosedAttributes, VerificationError> {
-        let disclosure_data = self.get_session(session_token).await?.data;
+        let disclosure_data = self.get_session_state(session_token).await?.data;
 
         match disclosure_data {
             DisclosureData::Done(Done {
@@ -754,22 +793,27 @@ impl Session<Created> {
     /// returning a response to answer the device with and the next session state.
     async fn process_get_request(
         self,
+        session_token: &SessionToken,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
         use_cases: &UseCases,
-    ) -> Result<(Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>), (GetAuthRequestError, Session<Done>)> {
+    ) -> Result<
+        (Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
+        (WithRedirectUri<GetAuthRequestError>, Session<Done>),
+    > {
         info!("Session({}): process get request", self.state.token);
 
         let (response, next) = match self
-            .process_get_request_inner(response_uri, session_type, wallet_nonce, use_cases)
+            .process_get_request_inner(session_token, response_uri, session_type, wallet_nonce, use_cases)
             .await
         {
-            Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
+            Ok((jws, auth_request, redirect_uri, redirect_uri_nonce, enc_keypair)) => {
                 let next = WaitingForResponse {
                     auth_request,
                     encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     redirect_uri,
+                    redirect_uri_nonce,
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -779,7 +823,7 @@ impl Session<Created> {
                     "Session({}): process get request failed, returning error",
                     self.state.token
                 );
-                let next = self.transition_fail(&err);
+                let next = self.transition_fail(&err.error);
                 Err((err, next))
             }
         }?;
@@ -790,6 +834,7 @@ impl Session<Created> {
     // Helper function that returns ordinary errors instead of `Session<...>`
     async fn process_get_request_inner(
         &self,
+        session_token: &SessionToken,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
@@ -798,50 +843,32 @@ impl Session<Created> {
         (
             Jwt<VpAuthorizationRequest>,
             IsoVpAuthorizationRequest,
-            Option<RedirectUri>,
+            Option<BaseUrl>,
+            Option<String>,
             EcKeyPair,
         ),
-        GetAuthRequestError,
+        WithRedirectUri<GetAuthRequestError>,
     > {
         let usecase_id = &self.state().usecase_id;
         let usecase = use_cases.as_ref().get(usecase_id);
         let Some(usecase) = usecase else {
             // This should not happen except when the configuration has changed during this session.
             warn!("configuration inconsistency: existing session referenced nonexisting usecase '{usecase_id}'");
-            return Err(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()));
+            return Err(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()).into());
         };
 
         // Determine if we should include a redirect URI, based on the use case configuration and session type.
-        let redirect_uri = match (
+        let (redirect_uri, redirect_uri_nonce) = Self::redirect_uri_and_nonce(
+            session_token,
             usecase.session_type_return_url,
             session_type,
             self.state().redirect_uri_template.clone(),
-        ) {
-            (SessionTypeReturnUrl::Both, _, Some(uri_template))
-            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(uri_template)) => Some(RedirectUri {
-                template: uri_template.clone(),
-                nonce: random_string(32),
-            }),
-            (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
-                None
-            }
-            _ => {
-                // We checked for this case when the session was created, so this should not happen
-                // except when the configuration has changed during this session.
-                warn!(
-                    "configuration inconsistency: return URL configuration mismatch \
-                        type {0:?}, session type {1:?}, redirect URI template {2:?}",
-                    usecase.session_type_return_url,
-                    session_type,
-                    self.state().redirect_uri_template.clone()
-                );
-                return Err(GetAuthRequestError::ReturnUrlConfigurationMismatch);
-            }
-        };
+        )?;
 
         // Construct the Authorization Request.
         let nonce = random_string(32);
-        let encryption_keypair = EcKeyPair::generate(EcCurve::P256)?;
+        let encryption_keypair =
+            EcKeyPair::generate(EcCurve::P256).map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.clone()))?;
         let auth_request = IsoVpAuthorizationRequest::new(
             &self.state.data.items_requests,
             usecase.key_pair.certificate(),
@@ -849,12 +876,45 @@ impl Session<Created> {
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
             response_uri,
             wallet_nonce,
-        )?;
+        )
+        .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.clone()))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
-        let jws = jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair).await?;
+        let jws = jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
+            .await
+            .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.clone()))?;
 
-        Ok((jws, auth_request, redirect_uri, encryption_keypair))
+        Ok((jws, auth_request, redirect_uri, redirect_uri_nonce, encryption_keypair))
+    }
+
+    fn redirect_uri_and_nonce(
+        session_token: &SessionToken,
+        session_type_return_url: SessionTypeReturnUrl,
+        session_type: SessionType,
+        template: Option<ReturnUrlTemplate>,
+    ) -> Result<(Option<BaseUrl>, Option<String>), GetAuthRequestError> {
+        match (session_type_return_url, session_type, template.clone()) {
+            (SessionTypeReturnUrl::Both, _, Some(uri_template))
+            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(uri_template)) => {
+                let nonce = random_string(32);
+                let mut redirect_uri = uri_template.into_url(session_token);
+                redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
+                Ok((Some(redirect_uri.try_into().unwrap()), Some(nonce)))
+            }
+            (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
+                Ok((None, None))
+            }
+            _ => {
+                // We checked for this case when the session was created, so this should not happen
+                // except when the configuration has changed during this session.
+                warn!(
+                    "configuration inconsistency: return URL configuration mismatch \
+                        type {0:?}, session type {1:?}, redirect URI template {2:?}",
+                    session_type_return_url, session_type, template
+                );
+                Err(GetAuthRequestError::ReturnUrlConfigurationMismatch)
+            }
+        }
     }
 }
 
@@ -868,11 +928,13 @@ impl Session<WaitingForResponse> {
     /// the OpenID4VP spec), while we fail our session. This does not neatly fit in the `_inner()` method pattern.
     fn process_authorization_response(
         self,
-        session_token: &SessionToken,
         wallet_response: WalletAuthResponse,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> (Result<VpResponse, PostAuthResponseError>, Session<Done>) {
+    ) -> (
+        Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
+        Session<Done>,
+    ) {
         debug!("Session({}): process response", self.state.token);
 
         let jwe = match wallet_response {
@@ -884,7 +946,7 @@ impl Session<WaitingForResponse> {
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
-                let response = self.ok_response(session_token);
+                let response = self.ok_response();
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
@@ -909,27 +971,24 @@ impl Session<WaitingForResponse> {
             trust_anchors,
         ) {
             Ok(disclosed) => {
-                let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|r| r.nonce.clone());
-                let response = self.ok_response(session_token);
+                let redirect_uri_nonce = self.state().redirect_uri_nonce.clone();
+                let response = self.ok_response();
                 let next = self.transition_finish(disclosed, redirect_uri_nonce);
                 (Ok(response), next)
             }
             Err(err) => {
+                let redirect_uri = self.state().redirect_uri.clone();
                 let next = self.transition_fail(&err);
-                (Err(err.into()), next)
+                (Err(WithRedirectUri::new(err.into(), redirect_uri)), next)
             }
         };
 
         (result, next)
     }
 
-    fn ok_response(&self, session_token: &SessionToken) -> VpResponse {
+    fn ok_response(&self) -> VpResponse {
         VpResponse {
-            redirect_uri: self
-                .state()
-                .redirect_uri
-                .as_ref()
-                .map(|u| u.clone().into_url(session_token).try_into().unwrap()),
+            redirect_uri: self.state().redirect_uri.clone(),
         }
     }
 

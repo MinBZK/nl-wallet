@@ -97,9 +97,9 @@ where
             wallet_request.and_then(|r| r.0.wallet_nonce),
         )
         .await
-        .map_err(|e| {
+        .map_err(|err| {
             warn!("processing message failed, returning error");
-            ErrorResponse(e.into())
+            ErrorResponse::with_uri(err)
         })?;
 
     info!("message processed successfully, returning response");
@@ -125,9 +125,9 @@ where
         .verifier
         .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
         .await
-        .map_err(|e| {
+        .map_err(|err| {
             warn!("processing message failed, returning error");
-            ErrorResponse(e.into())
+            ErrorResponse::with_uri(err)
         })?;
 
     info!("message processed successfully, returning response");
@@ -160,7 +160,7 @@ where
             &TimeGenerator,
         )
         .await
-        .map_err(|e| ErrorResponse(e.into()))?;
+        .map_err(ErrorResponse::new)?;
 
     Ok(Json(response))
 }
@@ -192,7 +192,7 @@ where
             start_request.return_url_template,
         )
         .await
-        .map_err(|e| ErrorResponse(e.into()))?;
+        .map_err(ErrorResponse::new)?;
 
     Ok(Json(StartDisclosureResponse { session_token }))
 }
@@ -214,6 +214,6 @@ where
         .verifier
         .disclosed_attributes(&session_token, params.nonce)
         .await
-        .map_err(|e| ErrorResponse(e.into()))?;
+        .map_err(ErrorResponse::new)?;
     Ok(Json(disclosed_attributes))
 }
