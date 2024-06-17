@@ -24,16 +24,14 @@ where
     let (wallet_disclosure_router, requester_router) =
         verifier::create_routers(settings.urls, settings.verifier, disclosure_sessions)?;
 
-    let mut wallet_router = Router::new()
-        .nest("/issuance/", wallet_issuance_router)
-        .merge(Router::new().nest("/disclosure/", wallet_disclosure_router));
-    wallet_router = decorate_router_with_health_log_and_tracing("/", wallet_router, log_requests);
-
     listen(
         settings.wallet_server,
         settings.requester_server,
-        wallet_router,
-        decorate_router("/disclosure/sessions", requester_router, log_requests),
+        Router::new()
+            .nest("/issuance/", wallet_issuance_router)
+            .nest("/disclosure/", wallet_disclosure_router),
+        Router::new().nest("/disclosure/sessions", requester_router),
+        log_requests,
     )
     .await
 }

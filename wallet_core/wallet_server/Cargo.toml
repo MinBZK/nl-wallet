@@ -26,7 +26,7 @@ doctest = false
 [[test]]
 name = "verifier_api"
 path = "tests/verifier_api.rs"
-required-features = ["cfg_test", "disclosure"]
+required-features = ["verifier_test"]
 
 [[test]]
 name = "postgres"
@@ -48,12 +48,13 @@ postgres = [
 ]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
-    "cfg_test",
+    "verifier_test",
     "postgres",
     "dep:serial_test",
     "nl_wallet_mdoc/test",
 ]
-cfg_test = [
+verifier_test = [
+    "disclosure",
     "dep:assert_matches",
     "dep:indexmap",
     "dep:parking_lot",

@@ -17,8 +17,9 @@ where
     listen(
         settings.wallet_server,
         settings.requester_server,
-        decorate_router("/disclosure/", wallet_disclosure_router, log_requests),
-        decorate_router("/disclosure/sessions", requester_router, log_requests),
+        Router::new().nest("/disclosure/", wallet_disclosure_router),
+        Router::new().nest("/disclosure/sessions", requester_router),
+        log_requests,
     )
     .await
 }

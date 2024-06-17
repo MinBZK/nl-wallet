@@ -1,7 +1,16 @@
 #[cfg(feature = "issuance")]
 pub mod pid_issuer;
-#[cfg(feature = "disclosure")]
-pub mod verification_server;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "disclosure")] {
+        pub mod verification_server;
+
+        use tower_http::validate_request::ValidateRequestHeaderLayer;
+
+        use crate::settings::{Authentication, RequesterAuth};
+    }
+}
+
 #[cfg(all(feature = "disclosure", feature = "issuance"))]
 pub mod wallet_server;
 
@@ -9,20 +18,20 @@ use std::{future::Future, net::SocketAddr};
 
 use anyhow::Result;
 use axum::{routing::get, Router};
-use tower_http::{trace::TraceLayer, validate_request::ValidateRequestHeaderLayer};
+use tower_http::trace::TraceLayer;
 use tracing::debug;
 
 use crate::{
     log_requests::log_request_response,
-    settings::{Authentication, RequesterAuth, Server, Settings},
+    settings::{Server, Settings},
 };
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
 }
 
-pub fn decorate_router_with_health_log_and_tracing(prefix: &str, router: Router, log_requests: bool) -> Router {
-    let mut router = router.nest(prefix, health_router());
+pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
+    router = router.merge(health_router());
 
     if log_requests {
         router = router.layer(axum::middleware::from_fn(log_request_response));
@@ -31,18 +40,13 @@ pub fn decorate_router_with_health_log_and_tracing(prefix: &str, router: Router,
     router.layer(TraceLayer::new_for_http())
 }
 
-pub fn decorate_router(prefix: &str, router: Router, log_requests: bool) -> Router {
-    let router = Router::new().nest(prefix, router);
-
-    decorate_router_with_health_log_and_tracing(prefix, router, log_requests)
-}
-
 /// Create Wallet socket from [settings].
 fn create_wallet_socket(wallet_server: Server) -> SocketAddr {
     SocketAddr::new(wallet_server.ip, wallet_server.port)
 }
 
 /// Secure [requester_router] with an API key when required by [settings].
+#[cfg(feature = "disclosure")]
 fn secure_requester_router(requester_server: &RequesterAuth, requester_router: Router) -> Router {
     match requester_server {
         RequesterAuth::Authentication(Authentication::ApiKey(api_key))
@@ -55,6 +59,7 @@ fn secure_requester_router(requester_server: &RequesterAuth, requester_router: R
 }
 
 /// Create Requester socket when required by [settings].
+#[cfg(feature = "disclosure")]
 fn create_requester_socket(requester_server: &RequesterAuth) -> Option<SocketAddr> {
     match requester_server {
         RequesterAuth::Authentication(_) => None,
@@ -68,13 +73,17 @@ fn create_requester_socket(requester_server: &RequesterAuth) -> Option<SocketAdd
 async fn listen(
     wallet_server: Server,
     requester_server: RequesterAuth,
-    wallet_router: Router,
-    requester_router: Router,
+    mut wallet_router: Router,
+    mut requester_router: Router,
+    log_requests: bool,
 ) -> Result<()> {
     let wallet_socket = create_wallet_socket(wallet_server);
     let requester_socket = create_requester_socket(&requester_server);
 
-    let requester_router = secure_requester_router(&requester_server, requester_router);
+    wallet_router = decorate_router(wallet_router, log_requests);
+    requester_router = decorate_router(requester_router, log_requests);
+
+    requester_router = secure_requester_router(&requester_server, requester_router);
 
     match requester_socket {
         Some(requester_socket) => {
@@ -109,7 +118,9 @@ async fn listen(
 }
 
 #[cfg(feature = "issuance")]
-async fn listen_wallet_only(wallet_server: Server, wallet_router: Router) -> Result<()> {
+async fn listen_wallet_only(wallet_server: Server, mut wallet_router: Router, log_requests: bool) -> Result<()> {
+    wallet_router = decorate_router(wallet_router, log_requests);
+
     let wallet_socket = create_wallet_socket(wallet_server);
 
     debug!("listening for wallet on {}", wallet_socket);
