@@ -106,12 +106,11 @@ mod tests {
     use wallet_common::{
         account::{
             messages::{
-                errors::{ErrorType, IncorrectPinData, PinTimeoutData},
+                errors::{AccountError, IncorrectPinData, PinTimeoutData},
                 instructions::{CheckPin, Instruction, InstructionResultClaims},
             },
             signed::SequenceNumberComparison,
         },
-        http_error::ErrorData,
         jwt::Jwt,
         keys::EcdsaKey,
         utils,
@@ -315,15 +314,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_incorrect_pin() {
-        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
-            StatusCode::FORBIDDEN,
-            ErrorData {
-                typ: ErrorType::IncorrectPin(IncorrectPinData {
-                    attempts_left_in_round: 2,
-                    is_final_round: false,
-                }),
-                title: "incorrect pin".to_string(),
-            },
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Account(
+            AccountError::IncorrectPin(IncorrectPinData {
+                attempts_left_in_round: 2,
+                is_final_round: false,
+            }),
+            None,
         ))
         .await;
 
@@ -338,12 +334,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_timeout() {
-        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
-            StatusCode::FORBIDDEN,
-            ErrorData {
-                typ: ErrorType::PinTimeout(PinTimeoutData { time_left_in_ms: 5000 }),
-                title: "pin timeout".to_string(),
-            },
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Account(
+            AccountError::PinTimeout(PinTimeoutData { time_left_in_ms: 5000 }),
+            None,
         ))
         .await;
 
@@ -355,12 +348,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_blocked() {
-        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
-            StatusCode::UNAUTHORIZED,
-            ErrorData {
-                typ: ErrorType::AccountBlocked,
-                title: "blocked".to_string(),
-            },
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Account(
+            AccountError::AccountBlocked,
+            None,
         ))
         .await;
 
@@ -369,12 +359,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_validation() {
-        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
-            StatusCode::FORBIDDEN,
-            ErrorData {
-                typ: ErrorType::InstructionValidation,
-                title: "instruction validation".to_string(),
-            },
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Account(
+            AccountError::InstructionValidation,
+            None,
         ))
         .await;
 
@@ -386,12 +373,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_unlock_error_instruction_server_unexpected() {
-        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Data(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            ErrorData {
-                typ: ErrorType::Unexpected,
-                title: "unexpected error".to_string(),
-            },
+        let error = test_wallet_unlock_error_instruction_response(AccountProviderResponseError::Account(
+            AccountError::Unexpected,
+            None,
         ))
         .await;
 

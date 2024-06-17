@@ -11,6 +11,8 @@ workspace = true
 doctest = false
 
 [features]
+# Include implementations of the axum IntoResponse trait.
+axum = ["dep:axum"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 # and implement SecureEncryptionKey on aes-gcm cipher.
 mock_secure_keys = []
@@ -42,16 +44,20 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 sha2.workspace = true
+strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
+axum = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
 
 [dev-dependencies]
+assert_matches.workspace = true
 aes-gcm = { workspace = true, features = ["std"] }
+hyper.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

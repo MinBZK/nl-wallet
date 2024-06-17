@@ -71,7 +71,7 @@ config = { workspace = true, features = ["toml"] }
 dashmap = { workspace = true, features = ["serde"] }
 futures = { workspace = true, optional = true }
 http.workspace = true
-hyper = { version = "0.14.27", features = ["full"] }
+hyper.workspace = true
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }

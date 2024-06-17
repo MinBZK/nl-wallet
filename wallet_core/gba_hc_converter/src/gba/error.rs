@@ -1,5 +1,3 @@
-use http::StatusCode;
-
 use crate::gba::data::GbaResult;
 
 #[derive(Debug, thiserror::Error)]
@@ -22,13 +20,4 @@ pub enum Error {
     UnexpectedResponse,
     #[error("Received error response: {0}")]
     GbaErrorResponse(GbaResult),
-}
-
-impl From<&Error> for StatusCode {
-    fn from(value: &Error) -> Self {
-        match value {
-            Error::Transport(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            _ => StatusCode::PRECONDITION_FAILED,
-        }
-    }
 }

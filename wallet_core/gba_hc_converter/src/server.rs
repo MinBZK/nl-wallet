@@ -12,10 +12,12 @@ use http::StatusCode;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, info};
 
+use wallet_common::http_error::HttpJsonError;
+
 use crate::{
-    error::Error,
+    error::{Error, ErrorType},
     gba::client::GbavClient,
-    haal_centraal::{PersonQuery, PersonsResponse},
+    haal_centraal::{Bsn, PersonQuery, PersonsResponse},
 };
 
 struct ApplicationState<T> {
@@ -54,20 +56,31 @@ fn health_router() -> Router {
 async fn personen<T>(
     State(state): State<Arc<ApplicationState<T>>>,
     Json(payload): Json<PersonQuery>,
-) -> Result<(StatusCode, Json<PersonsResponse>), Error>
+) -> Result<(StatusCode, Json<PersonsResponse>), HttpJsonError<ErrorType>>
 where
     T: GbavClient + Sync,
 {
     info!("Received personen request");
 
     // We can safely unwrap here, because the brpproxy already guarantees there is at least one burgerservicenummer.
-    let gba_response = state.gbav_client.vraag(payload.bsn.first().unwrap()).await?;
-    gba_response.as_error()?;
-
-    let mut body = PersonsResponse::create(gba_response)?;
-    body.filter_terminated_nationalities();
+    let body = request_personen(&state.gbav_client, payload.bsn.first().unwrap())
+        .await
+        .inspect_err(|error| info!("error handling request: {:?}", error))?;
 
     info!("Sending personen response");
 
     Ok((StatusCode::OK, body.into()))
+}
+
+async fn request_personen<T>(gbav_client: &T, bsn: &Bsn) -> Result<PersonsResponse, Error>
+where
+    T: GbavClient,
+{
+    let gba_response = gbav_client.vraag(bsn).await?;
+    gba_response.as_error()?;
+
+    let mut response = PersonsResponse::create(gba_response)?;
+    response.filter_terminated_nationalities();
+
+    Ok(response)
 }
