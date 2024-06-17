@@ -86,7 +86,7 @@ where
         }
     });
 
-    wait_for_server(public_url.join_base_url("disclosure/")).await;
+    wait_for_server(public_url).await;
 }
 
 async fn wait_for_server(base_url: BaseUrl) {
