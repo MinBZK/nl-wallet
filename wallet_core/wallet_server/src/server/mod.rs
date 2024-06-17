@@ -80,13 +80,13 @@ async fn listen(
     let wallet_socket = create_wallet_socket(wallet_server);
     let requester_socket = create_requester_socket(&requester_server);
 
-    wallet_router = decorate_router(wallet_router, log_requests);
-    requester_router = decorate_router(requester_router, log_requests);
-
     requester_router = secure_requester_router(&requester_server, requester_router);
 
     match requester_socket {
         Some(requester_socket) => {
+            wallet_router = decorate_router(wallet_router, log_requests);
+            requester_router = decorate_router(requester_router, log_requests);
+
             debug!("listening for requester on {}", requester_socket);
             let requester_server = tokio::spawn(async move {
                 axum::Server::bind(&requester_socket)
@@ -106,9 +106,10 @@ async fn listen(
             tokio::try_join!(requester_server, wallet_server)?;
         }
         None => {
+            wallet_router = decorate_router(wallet_router.merge(requester_router), log_requests);
             debug!("listening for wallet and requester on {}", wallet_socket);
             axum::Server::bind(&wallet_socket)
-                .serve(wallet_router.merge(requester_router).into_make_service())
+                .serve(wallet_router.into_make_service())
                 .await
                 .expect("wallet server should be started");
         }
