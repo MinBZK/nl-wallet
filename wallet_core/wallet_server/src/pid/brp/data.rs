@@ -57,10 +57,8 @@ impl BrpPerson {
     }
 }
 
-impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
-    type Error = BrpDataError;
-
-    fn try_from(value: &BrpPerson) -> Result<Self, Self::Error> {
+impl From<&BrpPerson> for Vec<UnsignedMdoc> {
+    fn from(value: &BrpPerson) -> Self {
         let mdocs = vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
@@ -168,7 +166,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
             },
         ];
 
-        Ok(mdocs)
+        mdocs
     }
 }
 
