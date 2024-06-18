@@ -14,10 +14,11 @@ spec:
       labels:
         name: brpproxy
         tier: vertrouwd
+        gba-in-zeer-vertrouwd: allow
     spec:
       containers:
         - name: brpproxy
-          image: $HARBOR_REGISTRY/ghcr-io-proxy/brp-api/haal-centraal-brp-bevragen-proxy:latest
+          image: $HARBOR_REGISTRY/ghcr-io-proxy/brp-api/haal-centraal-brp-bevragen-proxy:2.1.2
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Release"
