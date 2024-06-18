@@ -1096,7 +1096,6 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
- "serde",
 ]
 
 [[package]]
@@ -1221,12 +1220,6 @@ dependencies = [
  "quote",
  "syn 2.0.66",
 ]
-
-[[package]]
-name = "dissimilar"
-version = "1.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "440d59c0c6d96354061909b4769b2ca03868dbaee203e7b779d9021ebbde3058"
 
 [[package]]
 name = "doc-comment"
@@ -5004,7 +4997,6 @@ version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33a5f13f11071020bb12de7a16b925d2d58636175c20c11dc5f96cb64bb6c9b3"
 dependencies = [
- "dissimilar",
  "glob",
  "serde",
  "serde_derive",
@@ -5562,11 +5554,10 @@ dependencies = [
  "assert_matches",
  "axum",
  "base64 0.21.4",
+ "cfg-if",
  "chrono",
  "ciborium",
- "clap",
  "config",
- "dashmap",
  "futures",
  "http",
  "hyper",
@@ -5589,7 +5580,6 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
- "strfmt",
  "strum",
  "thiserror",
  "tokio",

@@ -1,6 +1,6 @@
 use std::{num::NonZeroU8, ops::Add};
 
-use chrono::{Days, Utc};
+use chrono::{Days, NaiveDate, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer};
@@ -229,7 +229,7 @@ pub struct BrpBirth {
 #[derive(Deserialize)]
 pub struct BrpDate {
     #[serde(rename = "datum")]
-    date: chrono::NaiveDate,
+    date: NaiveDate,
 }
 
 #[derive(Deserialize)]
