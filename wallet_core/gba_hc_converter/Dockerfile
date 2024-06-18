@@ -10,6 +10,7 @@ RUN cargo build --locked --target x86_64-unknown-linux-musl --release --package 
 # Bundle Stage
 FROM scratch
 COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/gba_hc_converter .
+COPY --from=builder /usr/src/gba_hc_converter/remote/bsn_zoeken_template.xml .
 COPY --from=builder /usr/src/gba_hc_converter/resources/stamdata /resources/stamdata
 USER 1000
 CMD ["./gba_hc_converter"]

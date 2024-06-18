@@ -40,18 +40,17 @@ pub struct GbavSettings {
     pub trust_anchor: reqwest::Certificate,
 }
 
-impl TryFrom<GbavSettings> for HttpGbavClient {
-    type Error = gba::error::Error;
-
-    fn try_from(value: GbavSettings) -> Result<Self, Self::Error> {
-        HttpGbavClient::new(
-            value.adhoc_url,
-            value.username,
-            value.password,
-            value.trust_anchor,
-            value.client_cert,
-            value.client_cert_key,
+impl HttpGbavClient {
+    pub async fn from_settings(settings: GbavSettings) -> Result<Self, gba::error::Error> {
+        Self::new(
+            settings.adhoc_url,
+            settings.username,
+            settings.password,
+            settings.trust_anchor,
+            settings.client_cert,
+            settings.client_cert_key,
         )
+        .await
     }
 }
 
