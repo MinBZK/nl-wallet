@@ -25,14 +25,11 @@ enum ChildError {
 #[allow(dead_code)]
 enum RootError {
     #[category(defer)]
-    SingleTuple(#[defer] ChildError),
+    SingleTuple(ChildError),
     #[category(defer)]
     DoubleTuple(#[defer] ChildError, u32),
     #[category(defer)]
-    SingleStruct {
-        #[defer]
-        field: ChildError,
-    },
+    SingleStruct { field: ChildError },
     #[category(defer)]
     DoubleStruct {
         field_1: u32,

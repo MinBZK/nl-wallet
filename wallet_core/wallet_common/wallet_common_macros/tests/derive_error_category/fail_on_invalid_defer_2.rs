@@ -9,7 +9,7 @@ enum ChildError {
 #[allow(dead_code)]
 enum RootError {
     #[category(defer)]
-    SingleTuple(ChildError),
+    SingleStruct {},
 }
 
 fn main() {}

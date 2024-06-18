@@ -9,9 +9,7 @@ enum ChildError {
 #[allow(dead_code)]
 enum RootError {
     #[category(defer)]
-    SingleStruct {
-        field: ChildError,
-    }
+    SingleStruct,
 }
 
 fn main() {}

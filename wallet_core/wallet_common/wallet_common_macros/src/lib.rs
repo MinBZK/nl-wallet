@@ -200,8 +200,8 @@ fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
     let name = &variant.ident;
     let result = match &variant.fields {
         Fields::Named(fields) => {
-            // Verify there is a single field with the defer attribute
-            let defer_field = find_defer_field(variant, &fields.named)?.ident.clone();
+            let (_index, defer_field) = find_defer_field(variant, &fields.named)?;
+            let defer_field = defer_field.ident.clone();
             if fields.named.len() == 1 {
                 quote! { Self::#name { #defer_field: defer } }
             } else {
@@ -209,14 +209,9 @@ fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
             }
         }
         Fields::Unnamed(fields) => {
-            // Verify there is a single field with the defer attribute
-            let _defer_field = find_defer_field(variant, &fields.unnamed)?;
-            let fields = fields.unnamed.iter().map(|f| {
-                let pattern = if find_path_attribute(&f.attrs, DEFER).is_some() {
-                    DEFER
-                } else {
-                    "_"
-                };
+            let (index, _defer_field) = find_defer_field(variant, &fields.unnamed)?;
+            let fields = fields.unnamed.iter().enumerate().map(|(i, f)| {
+                let pattern = if i == index { DEFER } else { "_" };
                 Ident::new(pattern, f.span())
             });
             quote! { Self::#name( #(#fields),* ) }
@@ -229,35 +224,39 @@ fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
     Ok(result)
 }
 
-/// Find the [`Field`] in `fields` that is annotated with the `defer` attribute.
-/// Returns an Error when none or multiple fields are found.
-fn find_defer_field<'a>(variant: &'a Variant, fields: &'a Punctuated<Field, Comma>) -> Result<&'a Field> {
-    let deferred_fields: Vec<&Field> = fields
-        .iter()
-        .filter(|field| find_path_attribute(&field.attrs, DEFER).is_some())
-        .collect();
-
-    if fields.is_empty() {
-        Err(Error::new(
+/// Find the [`Field`] together with its index in `fields` to defer into.
+/// When there is only a single field, that field is selected.
+/// When there are multiple fields, select the single field which is marked by the `#[defer]` attribute.
+/// Returns an Error when no single field is found.
+fn find_defer_field<'a>(variant: &'a Variant, fields: &'a Punctuated<Field, Comma>) -> Result<(usize, &'a Field)> {
+    match fields.len() {
+        0 => Err(Error::new(
             variant.ident.span(),
             "Expected a field to defer into, found none.",
-        ))
-    } else if deferred_fields.is_empty() {
-        Err(Error::new(
-            variant.ident.span(),
-            "Expected #[defer] attribute to identify the field to defer into, found none.",
-        ))
-    } else if deferred_fields.len() > 1 {
-        Err(Error::new(
-            variant.ident.span(),
-            format!(
-                "Expected a single #[defer] attribute to identify the field to defer into, found {}.",
-                deferred_fields.len()
-            ),
-        ))
-    } else {
-        let defer_field = deferred_fields.first().unwrap();
-        Ok(defer_field)
+        )),
+        1 => Ok((0, &fields[0])),
+        _ => {
+            let deferred_fields: Vec<(usize, &Field)> = fields
+                .iter()
+                .enumerate()
+                .filter(|(_index, field)| find_path_attribute(&field.attrs, DEFER).is_some())
+                .collect();
+
+            match deferred_fields.len() {
+                0 => Err(Error::new(
+                    variant.ident.span(),
+                    "Expected #[defer] attribute to identify the field to defer into, found none.",
+                )),
+                1 => Ok(deferred_fields[0]),
+                _ => Err(Error::new(
+                    variant.ident.span(),
+                    format!(
+                        "Expected a single #[defer] attribute to identify the field to defer into, found {}.",
+                        deferred_fields.len()
+                    ),
+                )),
+            }
+        }
     }
 }
 

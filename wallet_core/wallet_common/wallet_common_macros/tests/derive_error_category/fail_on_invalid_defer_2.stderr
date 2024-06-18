@@ -1,5 +1,5 @@
-error: Expected #[defer] attribute to identify the field to defer into, found none.
+error: Expected a field to defer into, found none.
   --> tests/derive_error_category/fail_on_invalid_defer_2.rs:12:5
    |
-12 |     SingleTuple(ChildError),
-   |     ^^^^^^^^^^^
+12 |     SingleStruct {},
+   |     ^^^^^^^^^^^^
