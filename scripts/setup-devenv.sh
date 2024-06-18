@@ -222,17 +222,19 @@ render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PAR
 
 # Generate relying party ephemeral ID secret
 generate_ws_random_key ephemeral_id_secret
-MRP_WALLET_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
-export MRP_WALLET_SERVER_EPHEMERAL_ID_SECRET
+MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
+export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 # And the mrp's wallet_server config
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/wallet_server.toml"
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
-render_template "${DEVENV}/mrp_wallet_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
-render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
-render_template_append "${DEVENV}/mrp_wallet_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+render_template "${DEVENV}/mrp_verification_server.toml.template" "${WALLET_SERVER_DIR}/verification_server.toml"
 
-# And the pid_issuer config, for integration tests append to `wallet_server.toml`
+render_template "${DEVENV}/mrp_verification_server.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
+render_template_append "${DEVENV}/mrp_verification_server.it.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
+
+render_template "${DEVENV}/mrp_verification_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+render_template_append "${DEVENV}/mrp_verification_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
+
+# And the pid_issuer config, for integration tests append to `verification_server.toml`
 render_template "${DEVENV}/pid_issuer.toml.template" "${WALLET_SERVER_DIR}/pid_issuer.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"

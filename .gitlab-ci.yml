@@ -214,7 +214,7 @@ test-rust:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
-    WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/wallet_server"
+    WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres@sha256:8260dcdfd90b550c80d8a2e5527c0efb2280b371ab34c28f713f770a749c49dc"
       alias: postgres
@@ -222,7 +222,7 @@ test-rust:
         POSTGRES_USER: "postgres"
         POSTGRES_PASSWORD: "postgres"
         POSTGRES_INITDB_ARGS: "--encoding=UTF8"
-        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,wallet_server"
+        POSTGRES_MULTIPLE_DATABASES: "wallet_provider,verification_server"
   before_script:
     - set -euxo pipefail
     - ./scripts/setup-devenv.sh
@@ -248,7 +248,9 @@ test-rust:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider --bin wallet_provider
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_provider_migrations --bin wallet_provider_migrations
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package configuration_server --bin configuration_server
-    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --bin wallet_server
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --no-default-features --bin pid_issuer --features issuance,postgres
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --no-default-features --bin wallet_server --features issuance,disclosure,postgres
+    - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server --no-default-features --bin verification_server --features disclosure,postgres
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package wallet_server_migration --bin wallet_server_migration
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package mock_relying_party --bin mock_relying_party
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package gba_hc_converter --bin gba_hc_converter
@@ -487,7 +489,7 @@ sonar-android:
 #      -Dsonar.junit.reportPaths="platform_support/build/outputs/androidTest-results/*/*.xml"
 #      -Dsonar.coverage.jacoco.xmlReportPaths="platform_support/build/reports/coverage/androidTest/*/*/report.xml"
 
-build-wp-image:
+.build-docker-image:
   extends: .kaniko
   rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
@@ -498,98 +500,63 @@ build-wp-image:
   script:
     - /kaniko/executor
       --context wallet_core
-      --dockerfile wallet_core/wallet_provider/Dockerfile
+      --dockerfile $DOCKER_FILE_TO_BUILD
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider:$CI_COMMIT_SHORT_SHA
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --cache=true
+
+build-wp-image:
+  extends: .build-docker-image
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-provider
 
 build-wp-migrations-image:
-  extends: .kaniko
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
-  needs:
-    - job: test-rust
-      artifacts: false
-    - job: test-rust-compilation-android-linux
-      artifacts: false
-  script:
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile wallet_core/wallet_provider/migrations/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-provider-migrations:$CI_COMMIT_SHORT_SHA
-      --cache=true
+  extends: .build-docker-image
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/migrations/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-provider-migrations
 
 build-mock-relying-party-image:
-  extends: .kaniko
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  extends: .build-docker-image
   needs:
-    - job: test-rust
-      artifacts: false
-    - job: test-rust-compilation-android-linux
-      artifacts: false
+    - !reference [.build-docker-image, needs]
     - job: build-frontend-lib
       artifacts: true
-  script:
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile wallet_core/mock_relying_party/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-mock-relying-party:$CI_COMMIT_SHORT_SHA
-      --cache=true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/mock_relying_party/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-mock-relying-party
 
 build-wallet-server-image:
-  extends: .kaniko
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
-  needs:
-    - job: test-rust
-      artifacts: false
-    - job: test-rust-compilation-android-linux
-      artifacts: false
-  script:
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile wallet_core/wallet_server/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server:$CI_COMMIT_SHORT_SHA
-      --cache=true
+  extends: .build-docker-image
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.wallet_server
+    DOCKER_IMAGE_NAME: nl-wallet-server
+
+build-verification-server-image:
+  extends: .build-docker-image
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.verification_server
+    DOCKER_IMAGE_NAME: nl-verification-server
+
+build-pid-issuer-image:
+  extends: .build-docker-image
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.pid_issuer
+    DOCKER_IMAGE_NAME: nl-pid-issuer
 
 build-ws-migrations-image:
-  extends: .kaniko
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
-  needs:
-    - job: test-rust
-      artifacts: false
-    - job: test-rust-compilation-android-linux
-      artifacts: false
-  script:
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile wallet_core/wallet_server/migration/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-server-migrations:$CI_COMMIT_SHORT_SHA
-      --cache=true
+  extends: .build-docker-image
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/migration/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-server-migrations
 
 build-gba-hc-converter-image:
-  extends: .kaniko
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
-  needs:
-    - job: test-rust
-      artifacts: false
-    - job: test-rust-compilation-android-linux
-      artifacts: false
-  script:
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile wallet_core/gba_hc_converter/Dockerfile
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-gba-hc-converter:$CI_COMMIT_SHORT_SHA
-      --cache=true
+  extends: .build-docker-image
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-gba-hc-converter
 
 ### Android building
 .build-android-app:
@@ -1017,6 +984,10 @@ dependency-check-images:
       artifacts: false
     - job: build-wallet-server-image
       artifacts: false
+    - job: build-verification-server-image
+      artifacts: false
+    - job: build-pid-issuer-image
+      artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-sonar-flutter@sha256:56bb32022328b2f9067181494540787088eed9d750f62606047f33dd26533468"
   variables:
@@ -1033,6 +1004,8 @@ dependency-check-images:
       "nl-wallet-provider"
       "nl-wallet-server-migration"
       "nl-wallet-server"
+      "nl-verification-server"
+      "nl-pid-issuer"
       "nl-wallet-gba-hc-converter"
       )
     - mkdir -p trivy

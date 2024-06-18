@@ -1,61 +1,36 @@
-#[cfg(feature = "postgres")]
-pub mod postgres;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "postgres")] {
+        pub mod postgres;
+        use postgres::PostgresSessionStore;
+    }
+}
 
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
-use nl_wallet_mdoc::{
-    server_state::{
-        Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError,
-        SessionStoreTimeouts, SessionToken,
-    },
-    verifier::DisclosureData,
+use nl_wallet_mdoc::server_state::{
+    Expirable, HasProgress, MemorySessionStore, SessionState, SessionStore, SessionStoreError, SessionStoreTimeouts,
+    SessionToken,
 };
-
-#[cfg(feature = "issuance")]
-use openid4vc::issuer::IssuanceData;
-
-#[cfg(feature = "postgres")]
-use crate::store::postgres::PostgresSessionStore;
 
 pub trait SessionDataType {
     const TYPE: &'static str;
 }
 
-impl SessionDataType for DisclosureData {
-    const TYPE: &'static str = "mdoc_disclosure";
+cfg_if::cfg_if! {
+    if #[cfg(feature = "disclosure")] {
+        use nl_wallet_mdoc::verifier::DisclosureData;
+        impl SessionDataType for DisclosureData {
+            const TYPE: &'static str = "mdoc_disclosure";
+        }
+    }
 }
 
-#[cfg(feature = "issuance")]
-impl SessionDataType for openid4vc::issuer::IssuanceData {
-    const TYPE: &'static str = "openid4vci_issuance";
-}
-
-pub struct SessionStores {
-    pub disclosure: SessionStoreVariant<DisclosureData>,
-
-    #[cfg(feature = "issuance")]
-    pub issuance: SessionStoreVariant<IssuanceData>,
-}
-
-impl SessionStores {
-    pub async fn init(url: Url, timeouts: SessionStoreTimeouts) -> Result<SessionStores, anyhow::Error> {
-        match url.scheme() {
-            #[cfg(feature = "postgres")]
-            "postgres" => {
-                let store = PostgresSessionStore::try_new(url, timeouts).await?;
-                Ok(SessionStores {
-                    #[cfg(feature = "issuance")]
-                    issuance: SessionStoreVariant::Postgres(store.clone()),
-                    disclosure: SessionStoreVariant::Postgres(store),
-                })
-            }
-            "memory" => Ok(SessionStores {
-                #[cfg(feature = "issuance")]
-                issuance: SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
-                disclosure: SessionStoreVariant::Memory(MemorySessionStore::new(timeouts)),
-            }),
-            e => unimplemented!("{}", e),
+cfg_if::cfg_if! {
+    if #[cfg(feature = "issuance")] {
+        use openid4vc::issuer::IssuanceData;
+        impl SessionDataType for IssuanceData {
+            const TYPE: &'static str = "openid4vci_issuance";
         }
     }
 }
@@ -66,6 +41,33 @@ pub enum SessionStoreVariant<T> {
     #[cfg(feature = "postgres")]
     Postgres(PostgresSessionStore),
     Memory(MemorySessionStore<T>),
+}
+
+impl<T> SessionStoreVariant<T> {
+    pub async fn new(url: Url, timeouts: SessionStoreTimeouts) -> Result<SessionStoreVariant<T>, anyhow::Error> {
+        match url.scheme() {
+            #[cfg(feature = "postgres")]
+            "postgres" => {
+                let store = PostgresSessionStore::try_new(url, timeouts).await?;
+                Ok(SessionStoreVariant::Postgres(store))
+            }
+            "memory" => Ok(SessionStoreVariant::Memory(MemorySessionStore::new(timeouts))),
+            e => unimplemented!("{}", e),
+        }
+    }
+
+    /// Clone this [SessionStoreVariant] into a SessionStoreVariant with a different generic type, reusing the
+    /// underlying implementation. This function is provided so that the same connection pool is used for PostgreSQL
+    /// connections.
+    pub fn clone_into<R>(&self) -> SessionStoreVariant<R> {
+        match self {
+            #[cfg(feature = "postgres")]
+            SessionStoreVariant::Postgres(store) => SessionStoreVariant::Postgres(store.clone()),
+            SessionStoreVariant::Memory(MemorySessionStore { timeouts, .. }) => {
+                SessionStoreVariant::Memory(MemorySessionStore::new(*timeouts))
+            }
+        }
+    }
 }
 
 impl<T> SessionStore<T> for SessionStoreVariant<T>

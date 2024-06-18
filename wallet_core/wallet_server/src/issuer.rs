@@ -25,7 +25,7 @@ use openid4vc::{
 };
 use tracing::warn;
 
-use crate::settings::{self, Settings};
+use crate::settings::{self, Urls};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
@@ -64,7 +64,12 @@ impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing {
     }
 }
 
-pub async fn create_issuance_router<A, S>(settings: Settings, sessions: S, attr_service: A) -> anyhow::Result<Router>
+pub fn create_issuance_router<A, S>(
+    urls: &Urls,
+    issuer: settings::Issuer,
+    sessions: S,
+    attr_service: A,
+) -> anyhow::Result<Router>
 where
     A: AttributeService + Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -73,9 +78,9 @@ where
         issuer: Issuer::new(
             sessions,
             attr_service,
-            IssuerKeyRing::try_from(settings.issuer.private_keys)?,
-            &settings.public_url,
-            settings.issuer.wallet_client_ids,
+            IssuerKeyRing::try_from(issuer.private_keys)?,
+            &urls.public_url,
+            issuer.wallet_client_ids,
         ),
     });
 
