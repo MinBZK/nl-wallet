@@ -1,5 +1,5 @@
 error: Expected any of ["expected", "critical", "pd", "defer"], got "invalid".
- --> tests/derive_error_category/fail_on_invalid_category.rs:3:16
+ --> tests/derive_error_category/fail_on_invalid_category.rs:4:16
   |
-3 |     #[category(invalid)]
+4 |     #[category(invalid)]
   |                ^^^^^^^

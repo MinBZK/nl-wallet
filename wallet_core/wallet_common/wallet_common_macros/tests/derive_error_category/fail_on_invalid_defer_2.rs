@@ -12,6 +12,4 @@ enum RootError {
     SingleTuple(ChildError),
 }
 
-fn main() {
-    let _ = RootError::SingleTuple(ChildError::Unit);
-}
+fn main() {}

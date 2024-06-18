@@ -17,9 +17,4 @@ enum RootError {
     }
 }
 
-fn main() {
-    let _ = RootError::SingleStruct {
-        field_1: ChildError::Unit,
-        field_2: ChildError::Unit,
-    };
-}
+fn main() {}

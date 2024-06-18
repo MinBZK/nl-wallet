@@ -12,6 +12,4 @@ enum RootError {
     SingleStruct,
 }
 
-fn main() {
-    let _ = RootError::SingleStruct {};
-}
+fn main() {}
