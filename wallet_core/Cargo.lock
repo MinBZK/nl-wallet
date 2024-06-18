@@ -1096,7 +1096,6 @@ dependencies = [
  "lock_api",
  "once_cell",
  "parking_lot_core",
- "serde",
 ]
 
 [[package]]
@@ -5482,11 +5481,10 @@ dependencies = [
  "assert_matches",
  "axum",
  "base64 0.21.4",
+ "cfg-if",
  "chrono",
  "ciborium",
- "clap",
  "config",
- "dashmap",
  "futures",
  "http",
  "hyper",
@@ -5509,7 +5507,6 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
- "strfmt",
  "strum",
  "thiserror",
  "tokio",

@@ -86,7 +86,7 @@ async fn test_pid_issuance_digid_bridge() {
     .await;
     let token_request = digid_session.into_token_request(redirect_url).await.unwrap();
 
-    let server_url = local_pid_base_url(&settings.public_url.as_ref().port().unwrap());
+    let server_url = local_pid_base_url(&settings.urls.public_url.as_ref().port().unwrap());
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(
