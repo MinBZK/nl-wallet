@@ -434,7 +434,7 @@ where
             return Err(VerificationError::ReturnUrlConfigurationMismatch.into());
         }
 
-        let (session_token, session_state) = Session::<Created>::new(items_requests, usecase_id, return_url_template)?;
+        let (session_token, session_state) = Session::<Created>::new(items_requests, usecase_id, return_url_template);
         self.sessions
             .write(session_state.state.into(), true)
             .await
@@ -732,7 +732,7 @@ impl Session<Created> {
         items_requests: ItemsRequests,
         usecase_id: String,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<(SessionToken, Session<Created>)> {
+    ) -> (SessionToken, Session<Created>) {
         let session_token = SessionToken::new_random();
         let ephemeral_privkey = SecretKey::random(&mut OsRng);
         let session = Session::<Created> {
@@ -747,7 +747,7 @@ impl Session<Created> {
             ),
         };
 
-        Ok((session_token, session))
+        (session_token, session)
     }
 
     /// Process the device's [`DeviceEngagement`],

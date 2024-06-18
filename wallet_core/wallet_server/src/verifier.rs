@@ -21,7 +21,11 @@ use nl_wallet_mdoc::{
     },
     SessionData,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator};
+use wallet_common::{
+    config::wallet_config::BaseUrl,
+    generator::TimeGenerator,
+    http_error::{HttpJsonError, HttpJsonErrorType},
+};
 
 use crate::{
     cbor::Cbor,
@@ -29,36 +33,93 @@ use crate::{
 };
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+#[error("process mdoc message error: {0}")]
+pub struct ProcessMdocError(#[from] nl_wallet_mdoc::Error);
+
+impl IntoResponse for ProcessMdocError {
+    fn into_response(self) -> Response {
+        match self.0 {
+            nl_wallet_mdoc::Error::Verification(error) => match error {
+                VerificationError::UnknownSessionId(_) => StatusCode::NOT_FOUND,
+                VerificationError::SessionStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                _ => StatusCode::BAD_REQUEST,
+            },
+            _ => StatusCode::BAD_REQUEST,
+        }
+        .into_response()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum RequesterErrorType {
+    Server,
+    SessionParameters,
+    UnknownSession,
+    ReturnUrlNonce,
+    SessionState,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RequesterError {
     #[error("starting mdoc session failed: {0}")]
     StartSession(#[source] nl_wallet_mdoc::Error),
-    #[error("process mdoc message error: {0}")]
-    ProcessMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("retrieving status error: {0}")]
     SessionStatus(#[source] nl_wallet_mdoc::Error),
     #[error("retrieving disclosed attributes error: {0}")]
     DisclosedAttributes(#[source] nl_wallet_mdoc::Error),
 }
 
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
+impl HttpJsonErrorType for RequesterErrorType {
+    fn summary(&self) -> String {
         match self {
-            Error::StartSession(nl_wallet_mdoc::Error::Verification(_)) => StatusCode::BAD_REQUEST,
-            Error::StartSession(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ProcessMdoc(nl_wallet_mdoc::Error::Verification(verification_error))
-            | Error::SessionStatus(nl_wallet_mdoc::Error::Verification(verification_error))
-            | Error::DisclosedAttributes(nl_wallet_mdoc::Error::Verification(verification_error)) => {
-                match verification_error {
-                    VerificationError::UnknownSessionId(_) => StatusCode::NOT_FOUND,
-                    VerificationError::SessionStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                    _ => StatusCode::BAD_REQUEST,
-                }
-            }
-            Error::ProcessMdoc(_) => StatusCode::BAD_REQUEST,
-            Error::SessionStatus(_) => StatusCode::BAD_REQUEST,
-            Error::DisclosedAttributes(_) => StatusCode::BAD_REQUEST,
+            Self::Server => "A server error occurred.".to_string(),
+            Self::SessionParameters => "Incorrect session parameters provided".to_string(),
+            Self::UnknownSession => "Unkown session for provided ID.".to_string(),
+            Self::ReturnUrlNonce => "Return URL nonce authentication failed.".to_string(),
+            Self::SessionState => "Session is not in the required state.".to_string(),
         }
-        .into_response()
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::Server => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::SessionParameters => StatusCode::BAD_REQUEST,
+            Self::UnknownSession => StatusCode::NOT_FOUND,
+            Self::ReturnUrlNonce => StatusCode::UNAUTHORIZED,
+            Self::SessionState => StatusCode::BAD_REQUEST,
+        }
+    }
+}
+
+impl From<RequesterError> for RequesterErrorType {
+    fn from(value: RequesterError) -> Self {
+        match value {
+            RequesterError::StartSession(nl_wallet_mdoc::Error::Verification(error)) => match error {
+                VerificationError::UnknownUseCase(_)
+                | VerificationError::NoItemsRequests
+                | VerificationError::ReturnUrlConfigurationMismatch => Self::SessionParameters,
+                _ => Self::Server,
+            },
+            RequesterError::SessionStatus(nl_wallet_mdoc::Error::Verification(
+                VerificationError::UnknownSessionId(_),
+            )) => Self::UnknownSession,
+            RequesterError::DisclosedAttributes(nl_wallet_mdoc::Error::Verification(error)) => match error {
+                VerificationError::UnknownSessionId(_) => Self::UnknownSession,
+                VerificationError::ReturnUrlNonceMissing | VerificationError::ReturnUrlNonceMismatch(_) => {
+                    Self::ReturnUrlNonce
+                }
+                VerificationError::SessionNotDone => Self::SessionState,
+                _ => Self::Server,
+            },
+            _ => Self::Server,
+        }
+    }
+}
+
+impl From<RequesterError> for HttpJsonError<RequesterErrorType> {
+    fn from(value: RequesterError) -> Self {
+        Self::from_error(value)
     }
 }
 
@@ -123,7 +184,7 @@ async fn session<S>(
     OriginalUri(uri): OriginalUri,
     Path(session_token): Path<SessionToken>,
     msg: Bytes,
-) -> Result<Cbor<SessionData>, Error>
+) -> Result<Cbor<SessionData>, ProcessMdocError>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -137,9 +198,8 @@ where
         .verifier
         .process_message(&msg, &session_token, verifier_url)
         .await
-        .map_err(|e| {
-            warn!("processing message failed, returning ProcessMdoc error");
-            Error::ProcessMdoc(e)
+        .inspect_err(|error| {
+            warn!("processing message failed: {}", error);
         })?;
 
     info!("message processed successfully, returning response");
@@ -156,7 +216,7 @@ async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<StatusParams>,
-) -> Result<Json<StatusResponse>, Error>
+) -> Result<Json<StatusResponse>, HttpJsonError<RequesterErrorType>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -170,7 +230,10 @@ where
             &TimeGenerator,
         )
         .await
-        .map_err(Error::SessionStatus)?;
+        .inspect_err(|error| {
+            warn!("querying session status failed: {}", error);
+        })
+        .map_err(RequesterError::SessionStatus)?;
 
     Ok(Json(response))
 }
@@ -190,7 +253,7 @@ pub struct StartDisclosureResponse {
 async fn start<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Json(start_request): Json<StartDisclosureRequest>,
-) -> Result<Json<StartDisclosureResponse>, Error>
+) -> Result<Json<StartDisclosureResponse>, HttpJsonError<RequesterErrorType>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -202,7 +265,10 @@ where
             start_request.return_url_template,
         )
         .await
-        .map_err(Error::StartSession)?;
+        .inspect_err(|error| {
+            warn!("starting new session failed: {}", error);
+        })
+        .map_err(RequesterError::StartSession)?;
 
     Ok(Json(StartDisclosureResponse { session_token }))
 }
@@ -216,7 +282,7 @@ async fn disclosed_attributes<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
-) -> Result<Json<DisclosedAttributes>, Error>
+) -> Result<Json<DisclosedAttributes>, HttpJsonError<RequesterErrorType>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -224,6 +290,10 @@ where
         .verifier
         .disclosed_attributes(&session_token, params.nonce)
         .await
-        .map_err(Error::DisclosedAttributes)?;
+        .inspect_err(|error| {
+            warn!("fetching disclosed attributes failed: {}", error);
+        })
+        .map_err(RequesterError::DisclosedAttributes)?;
+
     Ok(Json(disclosed_attributes))
 }
