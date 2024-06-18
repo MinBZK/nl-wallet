@@ -144,14 +144,14 @@ describe("WalletModal", () => {
     })
 
     it("should show error for get status failure", async () => {
-      vi.mocked(getStatus).mockRejectedValueOnce(new Error("http error 123"))
+      vi.mocked(getStatus).mockRejectedValueOnce(new Error("mock http error"))
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
   })
 
   it("should show error for post engagement failure", async () => {
-    vi.mocked(createSession).mockRejectedValueOnce(new Error("http error 123"))
+    vi.mocked(createSession).mockRejectedValueOnce(new Error("mock http error"))
 
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
