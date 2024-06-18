@@ -41,18 +41,32 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
 fn variant_categories(data: &Data) -> Result<TokenStream> {
     match *data {
         Data::Enum(ref data) => {
-            let variants = data.variants.iter().map(variant_category).collect::<Result<Vec<_>>>()?;
-            Ok(quote! {
-                #(#variants)*
-            })
+            let (variants, errors): (Vec<_>, Vec<_>) =
+                data.variants.iter().map(variant_category).partition(Result::is_ok);
+            if errors.is_empty() {
+                let variants = variants.into_iter().map(Result::unwrap);
+                Ok(quote! { #(#variants)* })
+            } else {
+                // Combine multiple syn::Errors into a single syn::Error.
+                // unwrap is safe here because of is_empty check above
+                let error = errors
+                    .into_iter()
+                    .map(Result::unwrap_err)
+                    .reduce(|mut acc, item| {
+                        acc.combine(item);
+                        acc
+                    })
+                    .unwrap();
+                Err(error)
+            }
         }
         Data::Struct(ref data) => Err(Error::new(
             data.struct_token.span(),
-            "ErrorCategory can only be derived for Enums.",
+            "ErrorCategory can only be derived for enums.",
         )),
         Data::Union(ref data) => Err(Error::new(
             data.union_token.span(),
-            "ErrorCategory can only be derived for Enums.",
+            "ErrorCategory can only be derived for enums.",
         )),
     }
 }
@@ -62,10 +76,8 @@ fn variant_category(variant: &Variant) -> Result<TokenStream> {
 
     let result = if let Some(category) = category_attribute {
         let variant_pattern = category_variant_pattern(variant, category)?;
-        let variant_code_block = category_code_block(category)?;
-        quote! {
-            #variant_pattern => #variant_code_block,
-        }
+        let variant_code_block = category_variant_code(category)?;
+        quote! { #variant_pattern => #variant_code_block, }
     } else {
         return Err(Error::new(
             variant.ident.span(),
@@ -91,35 +103,39 @@ fn find_list_attribute<'a>(attrs: &'a [Attribute], name: &str) -> Option<&'a Met
 }
 
 fn category_variant_pattern(variant: &Variant, category: &MetaList) -> Result<TokenStream> {
-    let result = match category.tokens.to_string().as_str() {
+    let cat = category.tokens.to_string();
+    let result = match cat.as_str() {
         CRITICAL | EXPECTED | PD => variant_pattern(variant),
         DEFER => variant_pattern_defer(variant)?,
         _ => {
-            return Err(Error::new(
-                category.tokens.span(),
-                format!("Expected any of {:?}.", vec![EXPECTED, CRITICAL, PD, DEFER]),
-            ))
+            return Err(Error::new(category.tokens.span(), invalid_category_error(&cat)));
         }
     };
 
     Ok(result)
 }
 
-fn category_code_block(category: &MetaList) -> Result<TokenStream> {
-    let result = match category.tokens.to_string().as_str() {
+fn category_variant_code(category: &MetaList) -> Result<TokenStream> {
+    let cat = category.tokens.to_string();
+    let result = match cat.as_str() {
         CRITICAL => quote! { wallet_common::error_category::Category::Critical },
         EXPECTED => quote! { wallet_common::error_category::Category::Expected },
         PD => quote! { wallet_common::error_category::Category::PersonalData },
         DEFER => quote! { wallet_common::error_category::ErrorCategory::category(defer) },
         _ => {
-            return Err(Error::new(
-                category.tokens.span(),
-                format!("Expected any of {:?}.", vec![EXPECTED, CRITICAL, PD, DEFER]),
-            ))
+            return Err(Error::new(category.tokens.span(), invalid_category_error(&cat)));
         }
     };
 
     Ok(result)
+}
+
+fn invalid_category_error(cat: &String) -> String {
+    format!(
+        "Expected any of {:?}, got {:?}.",
+        vec![EXPECTED, CRITICAL, PD, DEFER],
+        cat
+    )
 }
 
 /// Generate a [`TokenStream`] that represents a match case.
@@ -137,7 +153,7 @@ fn category_code_block(category: &MetaList) -> Result<TokenStream> {
 /// ```
 ///
 /// ```ignore
-/// Variant(_, _, ...)
+/// Variant(_, _)
 /// ```
 ///
 /// ```ignore
@@ -148,25 +164,17 @@ fn variant_pattern(variant: &Variant) -> TokenStream {
     match &variant.fields {
         Fields::Named(fields) => {
             if fields.named.is_empty() {
-                quote! {
-                    Self::#name {}
-                }
+                quote! { Self::#name {} }
             } else {
-                quote! {
-                    Self::#name { .. }
-                }
+                quote! { Self::#name { .. } }
             }
         }
         Fields::Unnamed(fields) => {
             let fields = fields.unnamed.iter().map(|f| Ident::new("_", f.span()));
-            quote! {
-                Self::#name( #(#fields),* )
-            }
+            quote! { Self::#name( #(#fields),* ) }
         }
         Fields::Unit => {
-            quote! {
-                Self::#name
-            }
+            quote! { Self::#name }
         }
     }
 }
@@ -195,13 +203,9 @@ fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
             // Verify there is a single field with the defer attribute
             let defer_field = find_defer_field(variant, &fields.named)?.ident.clone();
             if fields.named.len() == 1 {
-                quote! {
-                    Self::#name { #defer_field: defer }
-                }
+                quote! { Self::#name { #defer_field: defer } }
             } else {
-                quote! {
-                    Self::#name { #defer_field: defer, .. }
-                }
+                quote! { Self::#name { #defer_field: defer, .. } }
             }
         }
         Fields::Unnamed(fields) => {
@@ -215,9 +219,7 @@ fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
                 };
                 Ident::new(pattern, f.span())
             });
-            quote! {
-                Self::#name( #(#fields),* )
-            }
+            quote! { Self::#name( #(#fields),* ) }
         }
         Fields::Unit => Err(Error::new(
             variant.ident.span(),

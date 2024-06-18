@@ -1,5 +1,5 @@
 error[E0277]: the trait bound `std::io::Error: ErrorCategory` is not satisfied
- --> tests/derive_error_category/fail_on_invalid_defer.rs:1:10
+ --> tests/derive_error_category/fail_on_invalid_defer_1.rs:1:10
   |
 1 | #[derive(wallet_common_macros::ErrorCategory)]
   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `ErrorCategory` is not implemented for `std::io::Error`

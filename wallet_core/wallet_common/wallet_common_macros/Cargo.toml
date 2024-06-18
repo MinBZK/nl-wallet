@@ -16,6 +16,7 @@ quote.workspace = true
 syn.workspace = true
 
 [dev-dependencies]
-trybuild.workspace = true
+rstest.workspace = true
+trybuild = { workspace = true, features = ["diff"] }
 
 wallet_common.path = "../"

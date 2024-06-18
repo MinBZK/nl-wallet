@@ -1,9 +1,9 @@
 #[derive(wallet_common_macros::ErrorCategory)]
 enum Error {
-    #[category(expected)]
-    MyError,
+    First,
+    Second,
 }
 
 fn main() {
-    let _ = Error::MyError;
+    let _ = Error::First;
 }

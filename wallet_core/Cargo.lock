@@ -1223,6 +1223,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dissimilar"
+version = "1.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "440d59c0c6d96354061909b4769b2ca03868dbaee203e7b779d9021ebbde3058"
+
+[[package]]
 name = "doc-comment"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4998,6 +5004,7 @@ version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33a5f13f11071020bb12de7a16b925d2d58636175c20c11dc5f96cb64bb6c9b3"
 dependencies = [
+ "dissimilar",
  "glob",
  "serde",
  "serde_derive",
@@ -5427,6 +5434,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
+ "rstest",
  "syn 2.0.66",
  "trybuild",
  "wallet_common",

@@ -1,0 +1,11 @@
+error: Enum variant is missing `category` attribute
+ --> tests/derive_error_category/fail_multiple_errors.rs:3:5
+  |
+3 |     First,
+  |     ^^^^^
+
+error: Enum variant is missing `category` attribute
+ --> tests/derive_error_category/fail_multiple_errors.rs:4:5
+  |
+4 |     Second,
+  |     ^^^^^^
