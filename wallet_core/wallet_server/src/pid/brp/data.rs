@@ -9,12 +9,6 @@ use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
 
 use crate::pid::constants::*;
 
-#[derive(Debug, thiserror::Error)]
-pub enum BrpDataError {
-    #[error("there should at least be one nationality")]
-    MissingNationality,
-}
-
 #[derive(Deserialize)]
 pub struct BrpPersons {
     #[serde(rename = "personen")]
@@ -63,10 +57,8 @@ impl BrpPerson {
     }
 }
 
-impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
-    type Error = BrpDataError;
-
-    fn try_from(value: &BrpPerson) -> Result<Self, Self::Error> {
+impl From<&BrpPerson> for Vec<UnsignedMdoc> {
+    fn from(value: &BrpPerson) -> Self {
         let mdocs = vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
@@ -174,7 +166,7 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
             },
         ];
 
-        Ok(mdocs)
+        mdocs
     }
 }
 
@@ -418,7 +410,7 @@ mod tests {
     #[test]
     fn should_convert_brp_person_to_mdoc() {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.first().unwrap().try_into().unwrap();
+        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.first().unwrap().into();
 
         assert_eq!(2, unsigned_mdoc.len());
 
