@@ -9,12 +9,6 @@ use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
 
 use crate::pid::constants::*;
 
-#[derive(Debug, thiserror::Error)]
-pub enum BrpDataError {
-    #[error("there should at least be one nationality")]
-    MissingNationality,
-}
-
 #[derive(Deserialize)]
 pub struct BrpPersons {
     #[serde(rename = "personen")]
