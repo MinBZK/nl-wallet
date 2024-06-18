@@ -75,15 +75,15 @@ void main() {
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
-      label: 'Burger­service­nummer (BSN)',
-      value: const StringValue('111222333'),
-      key: 'mock.citizenshipNumber',
+      label: 'Getrouwd of geregistreerd partnerschap',
+      value: const StringValue('Nee'),
+      key: 'mock.hasSpouseOrPartner',
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
-      label: 'Nationaliteit',
-      value: const StringValue('Nederlands'),
-      key: 'mock.nationality',
+      label: 'Burger­service­nummer (BSN)',
+      value: const StringValue('111222333'),
+      key: 'mock.citizenshipNumber',
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
@@ -156,15 +156,15 @@ void main() {
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
-      label: 'Burger­service­nummer (BSN)',
-      value: const StringValue('001222333'),
-      key: 'mock.citizenshipNumber',
+      label: 'Getrouwd of geregistreerd partnerschap',
+      value: const StringValue('Nee'),
+      key: 'mock.hasSpouseOrPartner',
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(
-      label: 'Nationaliteit',
-      value: const StringValue('Nederlands'),
-      key: 'mock.nationality',
+      label: 'Burger­service­nummer (BSN)',
+      value: const StringValue('001222333'),
+      key: 'mock.citizenshipNumber',
       sourceCardDocType: kPidId,
     ),
     DataAttribute.untranslated(

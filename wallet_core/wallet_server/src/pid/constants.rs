@@ -21,4 +21,4 @@ pub const PID_RESIDENT_POSTAL_CODE: &str = "resident_postal_code";
 pub const PID_RESIDENT_STREET: &str = "resident_street";
 pub const PID_RESIDENT_HOUSE_NUMBER: &str = "resident_house_number";
 pub const PID_GENDER: &str = "gender";
-pub const PID_NATIONALITY: &str = "nationality";
+pub const PID_SPOUSE_OR_PARTNER: &str = "has_spouse_or_partner";

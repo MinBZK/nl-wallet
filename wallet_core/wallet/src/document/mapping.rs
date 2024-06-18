@@ -137,20 +137,23 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
+                    (PID_DOCTYPE, "has_spouse_or_partner"),
+                    DataElementValueMapping {
+                        key: "has_spouse_or_partner",
+                        is_mandatory: false,
+                        key_labels: HashMap::from([
+                            ("en", "Married or registered partnership"),
+                            ("nl", "Getrouwd of geregistreerd partnerschap"),
+                        ]),
+                        value_type: AttributeValueType::Bool,
+                    },
+                ),
+                (
                     (PID_DOCTYPE, "bsn"),
                     DataElementValueMapping {
                         key: "bsn",
                         is_mandatory: true,
                         key_labels: HashMap::from([("en", "BSN"), ("nl", "BSN")]),
-                        value_type: AttributeValueType::String,
-                    },
-                ),
-                (
-                    (PID_DOCTYPE, "nationality"),
-                    DataElementValueMapping {
-                        key: "nationality",
-                        is_mandatory: false,
-                        key_labels: HashMap::from([("en", "Nationality"), ("nl", "Nationaliteit")]),
                         value_type: AttributeValueType::String,
                     },
                 ),

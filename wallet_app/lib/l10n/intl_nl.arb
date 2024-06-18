@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-12T13:58:21+02:00",
+    "@@last_modified": "2024-06-13T11:53:29+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -727,8 +727,8 @@
         }
     },
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
-    "placeholderScreenGenericDescription": "Helaas, aan deze pagina wordt nog gewerkt.\n\nHeb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
-    "placeholderScreenHeadline": "Deze pagina bestaat nog niet",
+    "placeholderScreenGenericDescription": "Heb je vragen of hulp nodig? Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
+    "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
     "placeholderScreenHelpDescription": "Tijdens de beproeving staat het NL Wallet-team voor je klaar. Spreek iemand aan, die zal je verder helpen.",
     "placeholderScreenHelpHeadline": "Heb je vragen of hulp nodig?",
     "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
@@ -888,7 +888,7 @@
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "Nee, er klopt iets niet",
     "walletPersonalizeCheckDataOfferingPageGenderLabel": "Geslacht",
     "walletPersonalizeCheckDataOfferingPageNameLabel": "Naam",
-    "walletPersonalizeCheckDataOfferingPageNationalityLabel": "Nationaliteit",
+    "walletPersonalizeCheckDataOfferingPageSpouseOrPartnerLabel": "Getrouwd of geregistreerd partnerschap",
     "walletPersonalizeCheckDataOfferingPageSubtitle": "Je gegevens zijn opgehaald via DigiD.",
     "walletPersonalizeCheckDataOfferingPageTitle": "Kloppen deze gegevens?",
     "walletPersonalizeConfirmPinPageTitle": "Gegevens toevoegen met je pincode",
