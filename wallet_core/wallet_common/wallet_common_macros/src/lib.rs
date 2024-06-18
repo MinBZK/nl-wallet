@@ -12,6 +12,83 @@ const EXPECTED: &str = "expected";
 const PD: &str = "pd";
 const DEFER: &str = "defer";
 
+/// Derive `wallet_common::error_category::ErrorCategory` for Error enums.
+///
+/// Each variant can be categorized using the `category` attribute, which can have the following values:
+///
+/// - `expected`: This is an expected error and does not need to be reported.
+/// - `critical`: This is a critical error that must be reported.
+/// - `pd`: This is a critical error that must be reported, but the contents may contain privacy sensitive data.
+/// - `defer`: Analysis of categorization is deferred to one of the fields of this variant.
+///
+/// A flat error hierarchy may look like this:
+///
+/// ```
+/// # use std::io::{self, ErrorKind};
+/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # struct Attribute;
+/// #[derive(wallet_common_macros::ErrorCategory)]
+/// enum AttributeError {
+///   #[category(pd)]
+///   UnexpectedAttributes(Vec<Attribute>),
+///   #[category(critical)]
+///   IoError(io::Error),
+///   #[category(expected)]
+///   NotFound,
+/// }
+///
+/// assert_eq!(AttributeError::UnexpectedAttributes(vec![]).category(), Category::PersonalData);
+/// assert_eq!(AttributeError::IoError(io::Error::new(ErrorKind::PermissionDenied, "")).category(), Category::Critical);
+/// assert_eq!(AttributeError::NotFound.category(), Category::Expected);
+/// ```
+///
+/// For nested Error hierarchies, the `defer` category can be used to defer the decision lower in the hierarchy, for example:
+///
+/// ```
+/// # use std::io::{self, ErrorKind};
+/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # struct Attribute;
+/// # #[derive(wallet_common_macros::ErrorCategory)]
+/// # enum AttributeError {
+/// #   #[category(pd)]
+/// #   UnexpectedAttributes(Vec<Attribute>),
+/// #   #[category(critical)]
+/// #   IoError(io::Error),
+/// #   #[category(expected)]
+/// #   NotFound(String)
+/// # }
+/// #[derive(wallet_common_macros::ErrorCategory)]
+/// enum Error {
+///   #[category(defer)]
+///   Attribute(AttributeError),
+/// }
+/// ```
+///
+/// When the enum variant contains multiple fields, the `defer` attribute must be used to mark the field containing the nested error.
+///
+/// ```
+/// # use std::io::{self, ErrorKind};
+/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # struct Attribute;
+/// # #[derive(wallet_common_macros::ErrorCategory)]
+/// # enum AttributeError {
+/// #   #[category(pd)]
+/// #   UnexpectedAttributes(Vec<Attribute>),
+/// #   #[category(critical)]
+/// #   IoError(io::Error),
+/// #   #[category(expected)]
+/// #   NotFound(String),
+/// # }
+/// #[derive(wallet_common_macros::ErrorCategory)]
+/// enum Error {
+///   #[category(defer)]
+///   Attribute {
+///     msg: String,
+///     #[defer]
+///     cause: AttributeError,
+///    },
+/// }
+/// ```
 #[proc_macro_derive(ErrorCategory, attributes(category, defer))]
 pub fn error_category(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -71,23 +148,24 @@ fn variant_categories(data: &Data) -> Result<TokenStream> {
     }
 }
 
+/// Generate code for this `variant`.
 fn variant_category(variant: &Variant) -> Result<TokenStream> {
     let category_attribute = find_list_attribute(&variant.attrs, CATEGORY);
 
-    let result = if let Some(category) = category_attribute {
-        let variant_pattern = category_variant_pattern(variant, category)?;
-        let variant_code_block = category_variant_code(category)?;
-        quote! { #variant_pattern => #variant_code_block, }
-    } else {
-        return Err(Error::new(
+    match category_attribute {
+        Some(category) => {
+            let variant_pattern = category_variant_pattern(variant, category)?;
+            let variant_code = category_variant_code(category)?;
+            Ok(quote! { #variant_pattern => #variant_code, })
+        }
+        None => Err(Error::new(
             variant.ident.span(),
             format!("Enum variant is missing `{}` attribute", CATEGORY),
-        ));
-    };
-
-    Ok(result)
+        )),
+    }
 }
 
+/// Find the [`MetaList`] attribute in `attrs` with the given `name`.
 fn find_list_attribute<'a>(attrs: &'a [Attribute], name: &str) -> Option<&'a MetaList> {
     attrs
         .iter()
@@ -102,19 +180,19 @@ fn find_list_attribute<'a>(attrs: &'a [Attribute], name: &str) -> Option<&'a Met
         .find(|a| path_equals(&a.path, name))
 }
 
+/// Generate the match pattern for `variant` based on the `category`.
 fn category_variant_pattern(variant: &Variant, category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
     let result = match cat.as_str() {
         CRITICAL | EXPECTED | PD => variant_pattern(variant),
         DEFER => variant_pattern_defer(variant)?,
-        _ => {
-            return Err(Error::new(category.tokens.span(), invalid_category_error(&cat)));
-        }
+        _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
 
     Ok(result)
 }
 
+/// Generate code for the match arm based on the `category`.
 fn category_variant_code(category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
     let result = match cat.as_str() {
@@ -122,14 +200,13 @@ fn category_variant_code(category: &MetaList) -> Result<TokenStream> {
         EXPECTED => quote! { wallet_common::error_category::Category::Expected },
         PD => quote! { wallet_common::error_category::Category::PersonalData },
         DEFER => quote! { wallet_common::error_category::ErrorCategory::category(defer) },
-        _ => {
-            return Err(Error::new(category.tokens.span(), invalid_category_error(&cat)));
-        }
+        _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
 
     Ok(result)
 }
 
+/// Construct error message for invalid category `cat`.
 fn invalid_category_error(cat: &String) -> String {
     format!(
         "Expected any of {:?}, got {:?}.",
@@ -139,26 +216,7 @@ fn invalid_category_error(cat: &String) -> String {
 }
 
 /// Generate a [`TokenStream`] that represents a match case.
-///
-/// ```ignore
-/// Variant {}
-/// ```
-///
-/// ```ignore
-/// Variant { .. }
-/// ```
-///
-/// ```ignore
-/// Variant()
-/// ```
-///
-/// ```ignore
-/// Variant(_, _)
-/// ```
-///
-/// ```ignore
-/// Variant
-/// ```
+/// This function supports unit, named and tuple structs with 0, 1, or multiple fields.
 fn variant_pattern(variant: &Variant) -> TokenStream {
     let name = &variant.ident;
     match &variant.fields {
@@ -180,22 +238,7 @@ fn variant_pattern(variant: &Variant) -> TokenStream {
 }
 
 /// Generate a [`TokenStream`] that represents a match case for the defer case.
-///
-/// ```ignore
-/// Variant { field: defer }
-/// ```
-///
-/// ```ignore
-/// Variant { field: defer, .. }
-/// ```
-///
-/// ```ignore
-/// Variant(defer)
-/// ```
-///
-/// ```ignore
-/// Variant(_, defer, _)
-/// ```
+/// This function supports named and tuple structs with one or more fields.
 fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
     let name = &variant.ident;
     let result = match &variant.fields {
