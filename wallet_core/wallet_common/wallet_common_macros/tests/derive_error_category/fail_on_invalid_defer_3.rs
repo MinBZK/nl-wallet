@@ -1,13 +1,8 @@
-#[derive(wallet_common_macros::ErrorCategory)]
-#[allow(dead_code)]
-enum ChildError {
-    #[category(expected)]
-    Unit,
-}
+use wallet_common::error_category::ErrorCategory;
 
-#[derive(wallet_common_macros::ErrorCategory)]
+#[derive(ErrorCategory)]
 #[allow(dead_code)]
-enum RootError {
+enum Error {
     #[category(defer)]
     SingleStruct,
 }

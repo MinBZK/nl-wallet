@@ -2,7 +2,7 @@ use rstest::rstest;
 
 use wallet_common::error_category::{Category, ErrorCategory};
 
-#[derive(wallet_common_macros::ErrorCategory)]
+#[derive(ErrorCategory)]
 #[allow(dead_code)]
 enum ChildError {
     #[category(expected)]
@@ -21,7 +21,7 @@ enum ChildError {
     DoubleStruct { field_1: u32, field_2: u32 },
 }
 
-#[derive(wallet_common_macros::ErrorCategory)]
+#[derive(ErrorCategory)]
 #[allow(dead_code)]
 enum RootError {
     #[category(defer)]

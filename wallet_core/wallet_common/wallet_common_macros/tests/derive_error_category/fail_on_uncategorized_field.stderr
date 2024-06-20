@@ -1,5 +1,5 @@
-error: Enum variant is missing `category` attribute
- --> tests/derive_error_category/fail_on_uncategorized_field.rs:4:5
+error: enum variant is missing `category` attribute
+ --> tests/derive_error_category/fail_on_uncategorized_field.rs:6:5
   |
-4 |     MyError,
+6 |     MyError,
   |     ^^^^^^^

@@ -5418,6 +5418,7 @@ dependencies = [
  "tokio",
  "url",
  "uuid",
+ "wallet_common_macros",
 ]
 
 [[package]]

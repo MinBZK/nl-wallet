@@ -27,7 +27,7 @@ const DEFER: &str = "defer";
 /// # use std::io::{self, ErrorKind};
 /// # use wallet_common::error_category::{Category, ErrorCategory};
 /// # struct Attribute;
-/// #[derive(wallet_common_macros::ErrorCategory)]
+/// #[derive(ErrorCategory)]
 /// enum AttributeError {
 ///   #[category(pd)]
 ///   UnexpectedAttributes(Vec<Attribute>),
@@ -48,7 +48,7 @@ const DEFER: &str = "defer";
 /// # use std::io::{self, ErrorKind};
 /// # use wallet_common::error_category::{Category, ErrorCategory};
 /// # struct Attribute;
-/// # #[derive(wallet_common_macros::ErrorCategory)]
+/// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
 /// #   #[category(pd)]
 /// #   UnexpectedAttributes(Vec<Attribute>),
@@ -57,7 +57,7 @@ const DEFER: &str = "defer";
 /// #   #[category(expected)]
 /// #   NotFound(String)
 /// # }
-/// #[derive(wallet_common_macros::ErrorCategory)]
+/// #[derive(ErrorCategory)]
 /// enum Error {
 ///   #[category(defer)]
 ///   Attribute(AttributeError),
@@ -71,7 +71,7 @@ const DEFER: &str = "defer";
 /// # use std::io::{self, ErrorKind};
 /// # use wallet_common::error_category::{Category, ErrorCategory};
 /// # struct Attribute;
-/// # #[derive(wallet_common_macros::ErrorCategory)]
+/// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
 /// #   #[category(pd)]
 /// #   UnexpectedAttributes(Vec<Attribute>),
@@ -80,7 +80,7 @@ const DEFER: &str = "defer";
 /// #   #[category(expected)]
 /// #   NotFound(String),
 /// # }
-/// #[derive(wallet_common_macros::ErrorCategory)]
+/// #[derive(ErrorCategory)]
 /// enum Error {
 ///   #[category(defer)]
 ///   Attribute {
@@ -104,8 +104,8 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
 
     let expanded = quote! {
         #[automatically_derived]
-        impl wallet_common::error_category::ErrorCategory for #name {
-            fn category(&self) -> wallet_common::error_category::Category {
+        impl ::wallet_common::error_category::ErrorCategory for #name {
+            fn category(&self) -> ::wallet_common::error_category::Category {
                 match self {
                     #variant_categories
                 }
@@ -140,11 +140,11 @@ fn variant_categories(data: &Data) -> Result<TokenStream> {
         }
         Data::Struct(ref data) => Err(Error::new(
             data.struct_token.span(),
-            "ErrorCategory can only be derived for enums.",
+            "`ErrorCategory` can only be derived for enums",
         )),
         Data::Union(ref data) => Err(Error::new(
             data.union_token.span(),
-            "ErrorCategory can only be derived for enums.",
+            "`ErrorCategory` can only be derived for enums",
         )),
     }
 }
@@ -161,7 +161,7 @@ fn variant_category(variant: &Variant) -> Result<TokenStream> {
         }
         None => Err(Error::new(
             variant.ident.span(),
-            format!("Enum variant is missing `{}` attribute", CATEGORY),
+            format!("enum variant is missing `{}` attribute", CATEGORY),
         )),
     }
 }
@@ -197,10 +197,10 @@ fn category_variant_pattern(variant: &Variant, category: &MetaList) -> Result<To
 fn category_variant_code(category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
     let result = match cat.as_str() {
-        CRITICAL => quote! { wallet_common::error_category::Category::Critical },
-        EXPECTED => quote! { wallet_common::error_category::Category::Expected },
-        PD => quote! { wallet_common::error_category::Category::PersonalData },
-        DEFER => quote! { wallet_common::error_category::ErrorCategory::category(defer) },
+        CRITICAL => quote! { ::wallet_common::error_category::Category::Critical },
+        EXPECTED => quote! { ::wallet_common::error_category::Category::Expected },
+        PD => quote! { ::wallet_common::error_category::Category::PersonalData },
+        DEFER => quote! { ::wallet_common::error_category::ErrorCategory::category(defer) },
         _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
 
@@ -210,7 +210,7 @@ fn category_variant_code(category: &MetaList) -> Result<TokenStream> {
 /// Construct error message for invalid category `cat`.
 fn invalid_category_error(cat: &String) -> String {
     format!(
-        "Expected any of {:?}, got {:?}.",
+        "expected any of {:?}, got {:?}",
         vec![EXPECTED, CRITICAL, PD, DEFER],
         cat
     )
@@ -262,7 +262,7 @@ fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
         }
         Fields::Unit => Err(Error::new(
             variant.ident.span(),
-            "#[category(defer)] is not supported on unit variants.",
+            "`#[category(defer)]` is not supported on unit variants",
         ))?,
     };
     Ok(result)
@@ -276,7 +276,7 @@ fn find_defer_field<'a>(variant: &'a Variant, fields: &'a Punctuated<Field, Comm
     match fields.len() {
         0 => Err(Error::new(
             variant.ident.span(),
-            "Expected a field to defer into, found none.",
+            "expected a field to defer into, found none",
         )),
         1 => Ok((0, &fields[0])),
         _ => {
@@ -289,13 +289,13 @@ fn find_defer_field<'a>(variant: &'a Variant, fields: &'a Punctuated<Field, Comm
             match deferred_fields.len() {
                 0 => Err(Error::new(
                     variant.ident.span(),
-                    "Expected #[defer] attribute to identify the field to defer into, found none.",
+                    "expected `#[defer]` attribute to identify the field to defer into, found none",
                 )),
                 1 => Ok(deferred_fields[0]),
                 _ => Err(Error::new(
                     variant.ident.span(),
                     format!(
-                        "Expected a single #[defer] attribute to identify the field to defer into, found {}.",
+                        "expected a single `#[defer]` attribute to identify the field to defer into, found {}",
                         deferred_fields.len()
                     ),
                 )),

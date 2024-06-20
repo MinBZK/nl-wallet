@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
+pub use wallet_common_macros::ErrorCategory;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Category {
     Expected,     // Don't report to Sentry
     Critical,     // Report Error to Sentry, with contents

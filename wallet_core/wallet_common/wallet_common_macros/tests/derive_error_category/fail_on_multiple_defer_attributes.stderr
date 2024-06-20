@@ -1,5 +1,5 @@
-error: Expected a single #[defer] attribute to identify the field to defer into, found 2.
-  --> tests/derive_error_category/fail_on_multiple_defer_attributes.rs:12:5
+error: expected a single `#[defer]` attribute to identify the field to defer into, found 2
+  --> tests/derive_error_category/fail_on_multiple_defer_attributes.rs:14:5
    |
-12 |     SingleStruct {
+14 |     SingleStruct {
    |     ^^^^^^^^^^^^

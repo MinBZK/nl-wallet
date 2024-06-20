@@ -51,6 +51,8 @@ rand_core = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true, features = ["v4"] }
 
+wallet_common_macros.path = "wallet_common_macros"
+
 [dev-dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 rand_core.workspace = true
