@@ -227,7 +227,7 @@ button.link:hover {
     black 0 0 0 0,
     rgba(0, 0, 0, 0.4) 0 25px 50px -12px;
 
-  font-family: "RO Sans", sans-serif !important;
+  font-family: "RO Sans", sans-serif;
 }
 
 .modal article {
