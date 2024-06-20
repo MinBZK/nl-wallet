@@ -97,7 +97,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
               scrollController: _currentScrollController,
               appearOffset: 38,
               visibleOffset: 58,
-              child: Text(_resolveTitle()),
+              child: TitleText(_resolveTitle()),
             ),
           ),
           body: PopScope(
