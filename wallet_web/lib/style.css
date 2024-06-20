@@ -286,7 +286,14 @@ button.link:hover {
 section.qr {
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 32px 0;
+}
+
+section.qr img#logo {
+  position: absolute;
+  width: 48px;
+  height: 48px;
 }
 
 section.help {

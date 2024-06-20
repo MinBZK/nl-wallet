@@ -27,7 +27,7 @@ import 'argument/history_detail_screen_argument.dart';
 import 'bloc/history_detail_bloc.dart';
 import 'widget/history_detail_wallet_event_row.dart';
 
-const _kOrganizationLogoSize = 24.0;
+const _kIconSize = 24.0;
 
 class HistoryDetailScreen extends StatelessWidget {
   static HistoryDetailScreenArgument getArgument(RouteSettings settings) {
@@ -236,6 +236,7 @@ class HistoryDetailScreen extends StatelessWidget {
       subtitle: Text(purpose.l10nValue(context)),
       leading: Icon(
         Icons.outlined_flag_outlined,
+        size: _kIconSize,
         color: context.colorScheme.onSurfaceVariant,
       ),
     );
@@ -248,7 +249,7 @@ class HistoryDetailScreen extends StatelessWidget {
       leading: ExcludeSemantics(
         child: OrganizationLogo(
           image: organization.logo,
-          size: _kOrganizationLogoSize,
+          size: _kIconSize,
         ),
       ),
       title: Text(
@@ -320,7 +321,7 @@ class HistoryDetailScreen extends StatelessWidget {
         icon = Icon(
           Icons.credit_card_outlined,
           color: iconColor,
-          size: 24,
+          size: _kIconSize,
         );
       case SignEvent():
         title = context.l10n.historyDetailScreenSigningAttributesTitle;
@@ -332,8 +333,8 @@ class HistoryDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            height: 24,
-            width: 24,
+            height: _kIconSize,
+            width: _kIconSize,
             child: icon,
           ),
           const SizedBox(width: 16),

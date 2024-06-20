@@ -5,6 +5,7 @@ import 'package:wallet/src/feature/introduction/introduction_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
+import '../../util/test_utils.dart';
 
 /// Note: The page indicator placement misbehaves when rendering multiple instances of the [IntroductionScreen]
 /// in the same golden. To verify it's normal placement the [page_1.stepper.light] test is added.
@@ -89,9 +90,10 @@ void main() {
 }
 
 Future<void> _skipPage(Key scenarioWidgetKey, WidgetTester tester) async {
+  final l10n = await TestUtils.englishLocalizations;
   final finder = find.descendant(
     of: find.byKey(scenarioWidgetKey),
-    matching: find.byKey(const Key('introductionNextPageCta')),
+    matching: find.text(l10n.introductionNextPageCta),
   );
   expect(finder, findsOneWidget);
 
