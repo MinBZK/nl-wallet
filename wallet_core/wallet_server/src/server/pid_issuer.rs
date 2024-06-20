@@ -18,7 +18,7 @@ where
 
     listen_wallet_only(
         settings.wallet_server,
-        Router::new().nest("/issuance/", wallet_issuance_router),
+        Router::new().nest("/issuance", wallet_issuance_router),
         log_requests,
     )
     .await
