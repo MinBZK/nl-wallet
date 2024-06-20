@@ -1,9 +1,9 @@
 use futures::TryFutureExt;
 use nl_wallet_mdoc::server_state::SessionToken;
-use reqwest::Client;
+use reqwest::{Client, Response};
 
 use nl_wallet_mdoc::verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate};
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::{config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody};
 use wallet_server::verifier::{DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse};
 
 pub struct WalletServerClient {
@@ -12,6 +12,33 @@ pub struct WalletServerClient {
 }
 
 impl WalletServerClient {
+    async fn error_for_response(response: Response) -> Result<Response, anyhow::Error> {
+        let status = response.status();
+
+        if status.is_client_error() || status.is_server_error() {
+            // Try to decode the body as `HttpJsonErrorBody` in order to generate an error message.
+            let message = if let Some(body) = response
+                .bytes()
+                .await
+                .ok()
+                .and_then(|bytes| serde_json::from_slice::<HttpJsonErrorBody<String>>(&bytes).ok())
+            {
+                let detail = body
+                    .detail
+                    .as_deref()
+                    .map(|detail| format!("({}) {}", body.r#type, detail))
+                    .unwrap_or(body.r#type);
+                format!("wallet_server responded with error {}: {}", status.as_u16(), detail)
+            } else {
+                format!("wallet_server responded with error {}", status.as_u16())
+            };
+
+            return Err(anyhow::Error::msg(message));
+        }
+
+        Ok(response)
+    }
+
     pub fn new(base_url: BaseUrl) -> Self {
         Self {
             client: reqwest::Client::new(),
@@ -34,8 +61,9 @@ impl WalletServerClient {
                 return_url_template,
             })
             .send()
+            .map_err(anyhow::Error::from)
+            .and_then(|response| async { Self::error_for_response(response).await })
             .await?
-            .error_for_status()?
             .json::<StartDisclosureResponse>()
             .await?;
         Ok(response.session_token)
@@ -73,9 +101,19 @@ impl WalletServerClient {
             .client
             .get(disclosed_attributes_url)
             .send()
-            .and_then(|response| async { response.error_for_status() })
-            .and_then(|response| async { response.json::<DisclosedAttributes>().await })
-            .map_err(|error| error.with_url(error_url)) // Show the prepared error query instead for all reqwest errors.
+            .map_err(anyhow::Error::from)
+            .and_then(|response| async { Self::error_for_response(response).await })
+            .and_then(|response| async {
+                response
+                    .json::<DisclosedAttributes>()
+                    .map_err(anyhow::Error::from)
+                    .await
+            })
+            .map_err(|error| match error.downcast::<reqwest::Error>() {
+                // Show the prepared error query instead for all reqwest errors.
+                Ok(req_error) => req_error.with_url(error_url).into(),
+                Err(error) => error,
+            })
             .await?;
 
         Ok(disclosed_attributes)
