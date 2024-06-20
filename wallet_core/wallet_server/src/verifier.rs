@@ -56,7 +56,7 @@ pub enum RequesterErrorType {
     Server,
     SessionParameters,
     UnknownSession,
-    ReturnUrlNonce,
+    Nonce,
     SessionState,
 }
 
@@ -76,7 +76,7 @@ impl HttpJsonErrorType for RequesterErrorType {
             Self::Server => "A server error occurred.".to_string(),
             Self::SessionParameters => "Incorrect session parameters provided".to_string(),
             Self::UnknownSession => "Unkown session for provided ID.".to_string(),
-            Self::ReturnUrlNonce => "Return URL nonce authentication failed.".to_string(),
+            Self::Nonce => "Nonce is missing or incorrect.".to_string(),
             Self::SessionState => "Session is not in the required state.".to_string(),
         }
     }
@@ -86,7 +86,7 @@ impl HttpJsonErrorType for RequesterErrorType {
             Self::Server => StatusCode::INTERNAL_SERVER_ERROR,
             Self::SessionParameters => StatusCode::BAD_REQUEST,
             Self::UnknownSession => StatusCode::NOT_FOUND,
-            Self::ReturnUrlNonce => StatusCode::UNAUTHORIZED,
+            Self::Nonce => StatusCode::UNAUTHORIZED,
             Self::SessionState => StatusCode::BAD_REQUEST,
         }
     }
@@ -106,9 +106,7 @@ impl From<RequesterError> for RequesterErrorType {
             )) => Self::UnknownSession,
             RequesterError::DisclosedAttributes(nl_wallet_mdoc::Error::Verification(error)) => match error {
                 VerificationError::UnknownSessionId(_) => Self::UnknownSession,
-                VerificationError::ReturnUrlNonceMissing | VerificationError::ReturnUrlNonceMismatch(_) => {
-                    Self::ReturnUrlNonce
-                }
+                VerificationError::ReturnUrlNonceMissing | VerificationError::ReturnUrlNonceMismatch(_) => Self::Nonce,
                 VerificationError::SessionNotDone => Self::SessionState,
                 _ => Self::Server,
             },
