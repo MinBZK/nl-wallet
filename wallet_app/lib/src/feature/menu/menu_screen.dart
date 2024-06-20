@@ -80,7 +80,7 @@ class MenuScreen extends StatelessWidget {
                 },
                 child: Row(
                   children: [
-                    const Icon(Icons.lock, size: 14),
+                    const Icon(Icons.key_outlined, size: 14),
                     const SizedBox(width: 8),
                     Text(context.l10n.menuScreenLockCta),
                   ],
@@ -99,7 +99,7 @@ class MenuScreen extends StatelessWidget {
       MenuRow(
         label: context.l10n.menuScreenHelpCta,
         icon: Icons.help_outline,
-        onTap: () => PlaceholderScreen.showGeneric(context),
+        onTap: () => PlaceholderScreen.showHelp(context),
       ),
       MenuRow(
         label: context.l10n.menuScreenScanQrCta,

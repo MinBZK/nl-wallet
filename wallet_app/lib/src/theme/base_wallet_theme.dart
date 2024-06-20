@@ -121,5 +121,7 @@ class BaseWalletTheme {
     trackVisibility: WidgetStatePropertyAll(true),
   );
 
+  static const baseIconTheme = IconThemeData(size: 16);
+
 //endregion Other Themes
 }
