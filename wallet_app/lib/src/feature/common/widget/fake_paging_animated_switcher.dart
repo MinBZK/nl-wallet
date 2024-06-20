@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 
 class FakePagingAnimatedSwitcher extends StatelessWidget {
@@ -21,9 +22,11 @@ class FakePagingAnimatedSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Used to disable animations when the screenReader is on
+    final screenReaderEnabled = context.isScreenReaderEnabled;
     return AnimatedSwitcher(
-      reverseDuration: kDefaultAnimationDuration,
-      duration: animate ? kDefaultAnimationDuration : Duration.zero,
+      reverseDuration: screenReaderEnabled ? Duration.zero : kDefaultAnimationDuration,
+      duration: animate && !screenReaderEnabled ? kDefaultAnimationDuration : Duration.zero,
       switchOutCurve: Curves.easeInOut,
       switchInCurve: Curves.easeInOut,
       transitionBuilder: (child, animation) {
