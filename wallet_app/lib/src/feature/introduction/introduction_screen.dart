@@ -97,7 +97,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
               scrollController: _currentScrollController,
               appearOffset: 38,
               visibleOffset: 58,
-              child: Text(_resolveTitle()),
+              child: TitleText(_resolveTitle()),
             ),
           ),
           body: PopScope(
@@ -120,6 +120,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
       right: 0,
       child: Center(
         child: Semantics(
+          hidden: _currentPageInt > 0,
           label: context.l10n.introductionWCAGDutchGovernmentLogoLabel,
           child: Image.asset(
             WalletAssets.logo_rijksoverheid_label,
@@ -263,7 +264,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             text: Text(context.l10n.introductionNextPageCta),
             onPressed: () => _onNextPressed(context),
             icon: const Icon(Icons.arrow_forward),
-            key: const Key('introductionNextPageCta'),
+            key: Key('introductionNextPageCta_$_currentPageInt'),
           ),
           secondaryButton: TertiaryButton(
             text: Text(context.l10n.introductionSkipCta),

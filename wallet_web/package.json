@@ -2,9 +2,7 @@
   "name": "nl-wallet-web",
   "version": "0.0.1",
   "type": "module",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "main": "./dist/nl-wallet-web.umd.cjs",
   "module": "./dist/nl-wallet-web.js",
   "exports": {
@@ -22,7 +20,6 @@
     "format": "prettier --write lib/"
   },
   "devDependencies": {
-    "@mdi/js": "^7.4.47",
     "@rushstack/eslint-patch": "^1.8.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.12.5",

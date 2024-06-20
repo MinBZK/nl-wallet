@@ -388,7 +388,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     echo -e "${SECTION}Build wallet_web frontend${NC}"
 
     cd "${WALLET_WEB_DIR}"
-    npm install && npm run build
+    npm ci && npm run build
     cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/
 fi
 

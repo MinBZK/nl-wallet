@@ -29,7 +29,7 @@ nameSpaces = { "com.example.address" = { resident_street = true, resident_house_
 
 [[usecases.monkey_bike.items_requests]]
 docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, gender = true, nationality = true } }
+nameSpaces = { "com.example.pid" = { given_name = true, family_name = true, birth_date = true, gender = true } }
 
 [[usecases.monkey_bike.items_requests]]
 docType = "com.example.address"
