@@ -64,7 +64,8 @@ const DEFER: &str = "defer";
 /// }
 /// ```
 ///
-/// When the enum variant contains multiple fields, the `defer` attribute must be used to mark the field containing the nested error.
+/// When an enum variant that uses `#[category(defer)]` contains multiple fields, the `defer` attribute must be used
+/// to mark the field containing the nested error.
 ///
 /// ```
 /// # use std::io::{self, ErrorKind};
