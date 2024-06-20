@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+/// The list of uniquely identifiable error types. A client
+/// can use these types to distinguish between different errors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumDiscriminants)]
 #[strum_discriminants(
     name(AccountErrorType),
@@ -28,6 +30,8 @@ pub struct PinTimeoutData {
     pub time_left_in_ms: u64,
 }
 
+// Allow conversion from `AccountError` to `Map<String, Value>`, which
+// is necessary to populate the `extra` field of `HttpJsonErrorBody`.
 impl From<AccountError> for Map<String, Value> {
     fn from(value: AccountError) -> Self {
         match value {
@@ -49,6 +53,8 @@ impl From<AccountError> for Map<String, Value> {
 }
 
 impl AccountError {
+    /// This constructor can be used to help conversion from
+    /// `HttpJsonErrorBody<AccountErrorType>` to `AccountError`.
     pub fn try_from_type_and_data(
         r#type: AccountErrorType,
         data: Map<String, Value>,
