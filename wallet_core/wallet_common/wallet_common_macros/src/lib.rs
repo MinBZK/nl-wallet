@@ -1,8 +1,8 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::Comma, AttrStyle, Attribute, Data, DeriveInput,
-    Error, Field, Fields, Ident, Meta, MetaList, Path, Result, Variant,
+    parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::Comma, AttrStyle, Attribute, Data, DataEnum,
+    DataStruct, DeriveInput, Error, Field, Fields, Ident, Meta, MetaList, Path, Result, Variant,
 };
 
 const CATEGORY: &str = "category";
@@ -12,9 +12,9 @@ const EXPECTED: &str = "expected";
 const PD: &str = "pd";
 const DEFER: &str = "defer";
 
-/// Derive `wallet_common::error_category::ErrorCategory` for Error enums.
+/// Derive `wallet_common::error_category::ErrorCategory` for Error types.
 ///
-/// Each variant can be categorized using the `category` attribute, which can have the following values:
+/// Errors can be classified using the `category` attribute, which can have the following values:
 ///
 /// - `expected`: This is an expected error and does not need to be reported.
 /// - `critical`: This is a critical error that must be reported.
@@ -45,7 +45,7 @@ const DEFER: &str = "defer";
 /// For nested Error hierarchies, the `defer` category can be used to defer the decision lower in the hierarchy, for example:
 ///
 /// ```
-/// # use std::io::{self, ErrorKind};
+/// # use std::io;
 /// # use wallet_common::error_category::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
@@ -68,7 +68,7 @@ const DEFER: &str = "defer";
 /// to mark the field containing the nested error.
 ///
 /// ```
-/// # use std::io::{self, ErrorKind};
+/// # use std::io;
 /// # use wallet_common::error_category::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
@@ -90,6 +90,30 @@ const DEFER: &str = "defer";
 ///    },
 /// }
 /// ```
+///
+/// `ErrorCategory` can also be derived for structs, as shown in the following example:
+///
+/// ```
+/// # use std::io;
+/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # struct Attribute;
+/// # #[derive(ErrorCategory)]
+/// # enum AttributeError {
+/// #   #[category(pd)]
+/// #   UnexpectedAttributes(Vec<Attribute>),
+/// #   #[category(critical)]
+/// #   IoError(io::Error),
+/// #   #[category(expected)]
+/// #   NotFound(String),
+/// # }
+/// #[derive(ErrorCategory)]
+/// #[category(defer)]
+/// struct Error {
+///   msg: String,
+///   #[defer]
+///   cause: AttributeError,
+/// }
+/// ```
 #[proc_macro_derive(ErrorCategory, attributes(category, defer))]
 pub fn error_category(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -98,17 +122,22 @@ pub fn error_category(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 }
 
 fn expand(input: DeriveInput) -> Result<TokenStream> {
-    let name = input.ident;
+    let body = match input.data {
+        Data::Enum(ref data) => expand_enum(data),
+        Data::Struct(ref data) => expand_struct(&input, data),
+        Data::Union(ref data) => Err(Error::new(
+            data.union_token.span(),
+            "`ErrorCategory` can not be derived for unions",
+        )),
+    }?;
 
-    let variant_categories = variant_categories(&input.data)?;
+    let name = input.ident;
 
     let expanded = quote! {
         #[automatically_derived]
         impl ::wallet_common::error_category::ErrorCategory for #name {
             fn category(&self) -> ::wallet_common::error_category::Category {
-                match self {
-                    #variant_categories
-                }
+                #body
             }
         }
     };
@@ -116,54 +145,68 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
     Ok(expanded)
 }
 
-fn variant_categories(data: &Data) -> Result<TokenStream> {
-    match *data {
-        Data::Enum(ref data) => {
-            let (variants, errors): (Vec<_>, Vec<_>) =
-                data.variants.iter().map(variant_category).partition(Result::is_ok);
-            if errors.is_empty() {
-                let variants = variants.into_iter().map(Result::unwrap);
-                Ok(quote! { #(#variants)* })
-            } else {
-                // Combine multiple syn::Errors into a single syn::Error.
-                // unwrap is safe here because of is_empty check above
-                let error = errors
-                    .into_iter()
-                    .map(Result::unwrap_err)
-                    .reduce(|mut acc, item| {
-                        acc.combine(item);
-                        acc
-                    })
-                    .unwrap();
-                Err(error)
+/// Generate code for the implementation of `ErrorCategory` for the given `enum_data`.
+fn expand_enum(enum_data: &DataEnum) -> Result<TokenStream> {
+    let (variants, errors): (Vec<_>, Vec<_>) = enum_data
+        .variants
+        .iter()
+        .map(enum_variant_category)
+        .partition(Result::is_ok);
+    if errors.is_empty() {
+        let variants = variants.into_iter().map(Result::unwrap);
+        Ok(quote! {
+            match self {
+                #(#variants),*
             }
-        }
-        Data::Struct(ref data) => Err(Error::new(
-            data.struct_token.span(),
-            "`ErrorCategory` can only be derived for enums",
-        )),
-        Data::Union(ref data) => Err(Error::new(
-            data.union_token.span(),
-            "`ErrorCategory` can only be derived for enums",
-        )),
+        })
+    } else {
+        // Combine multiple syn::Errors into a single syn::Error.
+        // unwrap is safe here because of is_empty check above
+        let error = errors
+            .into_iter()
+            .map(Result::unwrap_err)
+            .reduce(|mut acc, item| {
+                acc.combine(item);
+                acc
+            })
+            .unwrap();
+        Err(error)
     }
 }
 
-/// Generate code for this `variant`.
-fn variant_category(variant: &Variant) -> Result<TokenStream> {
-    let category_attribute = find_list_attribute(&variant.attrs, CATEGORY);
+/// Generate code for the implementation of `ErrorCategory` for the given `struct_data`.
+fn expand_struct(input: &DeriveInput, struct_data: &DataStruct) -> Result<TokenStream> {
+    let name = &input.ident;
+    let category = find_list_attribute(&input.attrs, CATEGORY).ok_or(Error::new(
+        input.span(),
+        format!("expected `{}` attribute on struct `{}`", CATEGORY, name),
+    ))?;
 
-    match category_attribute {
-        Some(category) => {
-            let variant_pattern = category_variant_pattern(variant, category)?;
-            let variant_code = category_variant_code(category)?;
-            Ok(quote! { #variant_pattern => #variant_code, })
+    let category_code = category_code(category)?;
+    let cat = category.tokens.to_string();
+    match cat.as_str() {
+        CRITICAL | EXPECTED | PD => Ok(quote! { #category_code }),
+        DEFER => {
+            let category_defer_pattern = category_defer_pattern(name.span(), &struct_data.fields)?;
+            Ok(quote! {
+                let #name #category_defer_pattern = self;
+                #category_code
+            })
         }
-        None => Err(Error::new(
-            variant.ident.span(),
-            format!("enum variant is missing `{}` attribute", CATEGORY),
-        )),
+        _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     }
+}
+
+/// Generate code for this enum  `variant`.
+fn enum_variant_category(variant: &Variant) -> Result<TokenStream> {
+    let category = find_list_attribute(&variant.attrs, CATEGORY).ok_or(Error::new(
+        variant.ident.span(),
+        format!("enum variant is missing `{}` attribute", CATEGORY),
+    ))?;
+
+    let variant_pattern = enum_variant_category_pattern(variant, category)?;
+    let variant_code = category_code(category)?;
+    Ok(quote! { #variant_pattern => #variant_code })
 }
 
 /// Find the [`MetaList`] attribute in `attrs` with the given `name`.
@@ -181,20 +224,73 @@ fn find_list_attribute<'a>(attrs: &'a [Attribute], name: &str) -> Option<&'a Met
         .find(|a| path_equals(&a.path, name))
 }
 
-/// Generate the match pattern for `variant` based on the `category`.
-fn category_variant_pattern(variant: &Variant, category: &MetaList) -> Result<TokenStream> {
+/// Generate a [`TokenStream`] match pattern for the enum `variant` based on the `category`.
+fn enum_variant_category_pattern(variant: &Variant, category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
-    let result = match cat.as_str() {
-        CRITICAL | EXPECTED | PD => variant_pattern(variant),
-        DEFER => variant_pattern_defer(variant)?,
+    let pattern = match cat.as_str() {
+        CRITICAL | EXPECTED | PD => variant_pattern(&variant.fields),
+        DEFER => category_defer_pattern(variant.ident.span(), &variant.fields)?,
         _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
 
+    let name = &variant.ident;
+    Ok(quote! { Self::#name #pattern })
+}
+
+/// Generate a [`TokenStream`] that represents a pattern match for a struct with the given `fields`, that ignores the fields.
+/// This function supports unit, named and tuple structs with 0, 1, or multiple fields.
+/// It returns the pattern without the struct or enum variant name, e.g.: `(_, _)`, `{ .. }`, `()`, `{}`,
+fn variant_pattern(fields: &Fields) -> TokenStream {
+    match fields {
+        Fields::Named(fields) => {
+            if fields.named.is_empty() {
+                quote! { {} }
+            } else {
+                quote! { { .. } }
+            }
+        }
+        Fields::Unnamed(fields) => {
+            let fields = fields.unnamed.iter().map(|f| Ident::new("_", f.span()));
+            quote! { ( #(#fields),* ) }
+        }
+        Fields::Unit => {
+            quote! {}
+        }
+    }
+}
+
+/// Generate a [`TokenStream`] that represents a pattern match for a struct with the given `fields`, extracting the defer field.
+/// This function supports named and tuple structs with one or more fields.
+/// It returns the pattern without the struct or enum variant name, e.g. `(defer, _)`, `{ field_1: defer, .. }`
+fn category_defer_pattern(span: Span, fields: &Fields) -> Result<TokenStream> {
+    let result = match fields {
+        Fields::Named(fields) => {
+            let (_index, defer_field) = find_defer_field(span, &fields.named)?;
+            let defer_field = defer_field.ident.clone();
+            if fields.named.len() == 1 {
+                quote! { { #defer_field: defer } }
+            } else {
+                quote! { { #defer_field: defer, .. } }
+            }
+        }
+        Fields::Unnamed(fields) => {
+            let (index, _defer_field) = find_defer_field(span, &fields.unnamed)?;
+            let fields = fields.unnamed.iter().enumerate().map(|(i, f)| {
+                let pattern = if i == index { DEFER } else { "_" };
+                Ident::new(pattern, f.span())
+            });
+            quote! { ( #(#fields),* ) }
+        }
+        Fields::Unit => Err(Error::new(
+            span,
+            "`#[category(defer)]` is not supported on unit variants",
+        ))?,
+    };
     Ok(result)
 }
 
-/// Generate code for the match arm based on the `category`.
-fn category_variant_code(category: &MetaList) -> Result<TokenStream> {
+/// Generate an expression for the given `category`.
+fn category_code(category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
     let result = match cat.as_str() {
         CRITICAL => quote! { ::wallet_common::error_category::Category::Critical },
@@ -216,68 +312,13 @@ fn invalid_category_error(cat: &String) -> String {
     )
 }
 
-/// Generate a [`TokenStream`] that represents a match case.
-/// This function supports unit, named and tuple structs with 0, 1, or multiple fields.
-fn variant_pattern(variant: &Variant) -> TokenStream {
-    let name = &variant.ident;
-    match &variant.fields {
-        Fields::Named(fields) => {
-            if fields.named.is_empty() {
-                quote! { Self::#name {} }
-            } else {
-                quote! { Self::#name { .. } }
-            }
-        }
-        Fields::Unnamed(fields) => {
-            let fields = fields.unnamed.iter().map(|f| Ident::new("_", f.span()));
-            quote! { Self::#name( #(#fields),* ) }
-        }
-        Fields::Unit => {
-            quote! { Self::#name }
-        }
-    }
-}
-
-/// Generate a [`TokenStream`] that represents a match case for the defer case.
-/// This function supports named and tuple structs with one or more fields.
-fn variant_pattern_defer(variant: &Variant) -> Result<TokenStream> {
-    let name = &variant.ident;
-    let result = match &variant.fields {
-        Fields::Named(fields) => {
-            let (_index, defer_field) = find_defer_field(variant, &fields.named)?;
-            let defer_field = defer_field.ident.clone();
-            if fields.named.len() == 1 {
-                quote! { Self::#name { #defer_field: defer } }
-            } else {
-                quote! { Self::#name { #defer_field: defer, .. } }
-            }
-        }
-        Fields::Unnamed(fields) => {
-            let (index, _defer_field) = find_defer_field(variant, &fields.unnamed)?;
-            let fields = fields.unnamed.iter().enumerate().map(|(i, f)| {
-                let pattern = if i == index { DEFER } else { "_" };
-                Ident::new(pattern, f.span())
-            });
-            quote! { Self::#name( #(#fields),* ) }
-        }
-        Fields::Unit => Err(Error::new(
-            variant.ident.span(),
-            "`#[category(defer)]` is not supported on unit variants",
-        ))?,
-    };
-    Ok(result)
-}
-
 /// Find the [`Field`] together with its index in `fields` to defer into.
 /// When there is only a single field, that field is selected.
 /// When there are multiple fields, select the single field which is marked by the `#[defer]` attribute.
 /// Returns an Error when no single field is found.
-fn find_defer_field<'a>(variant: &'a Variant, fields: &'a Punctuated<Field, Comma>) -> Result<(usize, &'a Field)> {
+fn find_defer_field(span: Span, fields: &Punctuated<Field, Comma>) -> Result<(usize, &Field)> {
     match fields.len() {
-        0 => Err(Error::new(
-            variant.ident.span(),
-            "expected a field to defer into, found none",
-        )),
+        0 => Err(Error::new(span, "expected a field to defer into, found none")),
         1 => Ok((0, &fields[0])),
         _ => {
             let deferred_fields: Vec<(usize, &Field)> = fields
@@ -288,12 +329,12 @@ fn find_defer_field<'a>(variant: &'a Variant, fields: &'a Punctuated<Field, Comm
 
             match deferred_fields.len() {
                 0 => Err(Error::new(
-                    variant.ident.span(),
+                    span,
                     "expected `#[defer]` attribute to identify the field to defer into, found none",
                 )),
                 1 => Ok(deferred_fields[0]),
                 _ => Err(Error::new(
-                    variant.ident.span(),
+                    span,
                     format!(
                         "expected a single `#[defer]` attribute to identify the field to defer into, found {}",
                         deferred_fields.len()

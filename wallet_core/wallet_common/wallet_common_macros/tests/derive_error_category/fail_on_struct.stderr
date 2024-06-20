@@ -1,5 +1,0 @@
-error: `ErrorCategory` can only be derived for enums
- --> tests/derive_error_category/fail_on_struct.rs:5:1
-  |
-5 | struct Error {}
-  | ^^^^^^
