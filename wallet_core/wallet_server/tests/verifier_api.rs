@@ -11,16 +11,19 @@ use chrono::{DateTime, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
 use parking_lot::RwLock;
+use reqwest::Response;
 use rstest::rstest;
 use tokio::time;
 
 use nl_wallet_mdoc::{
     server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS},
     utils::mock_time::MockTimeGenerator,
-    verifier::{DisclosureData, SessionType, StatusResponse},
+    verifier::{DisclosureData, ReturnUrlTemplate, SessionType, StatusResponse},
     ItemsRequest,
 };
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
+use wallet_common::{
+    config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody, reqwest::default_reqwest_client_builder,
+};
 use wallet_server::{
     settings::{Authentication, RequesterAuth, Server, Settings},
     verifier::{StartDisclosureRequest, StartDisclosureResponse, StatusParams},
@@ -255,6 +258,56 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+async fn test_http_json_error_body(response: Response, status_code: StatusCode, error_type: &str) {
+    assert_eq!(response.status(), status_code);
+
+    let body = serde_json::from_slice::<HttpJsonErrorBody<String>>(&response.bytes().await.unwrap())
+        .expect("response body should deserialize to HttpJsonErrorBody");
+
+    assert_eq!(body.r#type, error_type);
+    assert_eq!(body.status, Some(status_code));
+}
+
+#[tokio::test]
+async fn test_new_session_parameters_error() {
+    let settings = wallet_server_settings();
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+    start_wallet_server(settings, MemorySessionStore::default()).await;
+    let client = default_reqwest_client_builder().build().unwrap();
+
+    let bad_use_case_request = {
+        let mut request = start_disclosure_request();
+        request.usecase = "bad".to_string();
+        request
+    };
+
+    let no_items_request = {
+        let mut request = start_disclosure_request();
+        request.items_requests = vec![].into();
+        request
+    };
+
+    let bad_return_url_request = {
+        let mut request = start_disclosure_request();
+        request.return_url_template = "https://example.com/{session_token}"
+            .parse::<ReturnUrlTemplate>()
+            .unwrap()
+            .into();
+        request
+    };
+
+    for request in [bad_use_case_request, no_items_request, bad_return_url_request] {
+        let response = client
+            .post(internal_url.join("disclosure/sessions"))
+            .json(&request)
+            .send()
+            .await
+            .unwrap();
+
+        test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_parameters").await;
+    }
+}
+
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let settings = wallet_server_settings();
@@ -268,22 +321,23 @@ async fn test_disclosure_not_found() {
             settings
                 .urls
                 .public_url
-                .join("disclosure/sessions/nonexistent_session/status"),
+                .join("disclosure/nonexistent_session/status?session_type=same_device"),
         )
         .send()
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the wallet URL
     let response = client
-        .post(settings.urls.public_url.join("disclosure/sessions/nonexistent_session"))
+        .post(settings.urls.public_url.join("disclosure/nonexistent_session"))
         .send()
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.content_length(), Some(0));
 
     // check if a non-existent token returns a 404 on the disclosed_attributes URL
     let response = client
@@ -292,7 +346,7 @@ async fn test_disclosure_not_found() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await
 }
 
 async fn test_disclosure_expired<S>(
@@ -345,7 +399,7 @@ async fn test_disclosure_expired<S>(
     // Fetching the disclosed attributes should return 400, since the session is not finished.
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
 
     // Advance the clock just enough so that session expiry will have occurred.
     let expiry_time = Utc::now() + timeouts.expiration;
@@ -370,7 +424,7 @@ async fn test_disclosure_expired<S>(
     // Fetching the disclosed attributes should still return 400, since the session did not succeed.
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
 
     // Advance the clock again so that the expired session will be purged.
     *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);
