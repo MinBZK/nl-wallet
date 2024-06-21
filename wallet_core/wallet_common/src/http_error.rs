@@ -112,7 +112,10 @@ where
 
 #[cfg(feature = "axum")]
 mod axum {
-    use ::axum::response::{IntoResponse, Response};
+    use ::axum::{
+        response::{IntoResponse, Response},
+        Json,
+    };
     use http::{header::CONTENT_TYPE, HeaderValue};
 
     use super::*;
@@ -123,17 +126,14 @@ mod axum {
         T::Err: Display,
     {
         fn into_response(self) -> Response {
-            // Use a sensible default status code when none is provided.
-            let status_code = self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-            // The `HttpJsonErrorBody` type has no fields that cannot be serialized.
-            let (content_type, body) = serde_json::to_string(&self)
-                .map(|body| (APPLICATION_PROBLEM_JSON.as_ref(), body))
-                .expect("serializing HttpJsonErrorBody should not fail");
-
             (
-                status_code,
-                [(CONTENT_TYPE, HeaderValue::from_static(content_type))],
-                body,
+                // Use a sensible default status code when none is provided.
+                self.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
+                [(
+                    CONTENT_TYPE,
+                    HeaderValue::from_static(APPLICATION_PROBLEM_JSON.as_ref()),
+                )],
+                Json(self),
             )
                 .into_response()
         }
