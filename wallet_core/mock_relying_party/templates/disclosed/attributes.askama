@@ -1,0 +1,29 @@
+{% extends "../base.askama" %}
+{%- import "components/header.askama" as header -%}
+{%- import "components/products.askama" as products -%}
+{%- import "components/attributes.askama" as attributes -%}
+
+{% block styles %}
+<link rel="stylesheet" href="/css/demo_bar.css" />
+<link rel="stylesheet" href="/css/{{ usecase }}-return.css" />
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="/nl-wallet-web.iife.js"></script>
+{% endblock %}
+
+{% block content %}
+{% include "../demo_bar.askama" %}
+{% match usecase %}
+    {% when "mijn_amsterdam" %}
+        {% include "mijn_amsterdam.askama" %}
+    {% when "monkey_bike" %}
+        {% include "monkey_bike.askama" %}
+    {% when "online_marketplace" %}
+        {% include "online_marketplace.askama" %}
+    {% when "xyz_bank" %}
+        {% include "xyz_bank.askama" %}
+    {% else %}
+        Usecase not found
+{% endmatch %}
+{% endblock %}

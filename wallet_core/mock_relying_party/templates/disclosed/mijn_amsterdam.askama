@@ -1,0 +1,10 @@
+{% let title = "" %}
+
+{% call header::header(title, "Willeke") %}
+<main>
+    <div class="notification"><span>Gelukt</span>Je bent ingelogd.</div>
+    <section>
+        <h2 class="primary">Welkom in Mijn Amsterdam</h2>
+        <h3>Persoonlijke online dienstverlening voor de Amsterdammer</h3>
+    </section>
+</main>

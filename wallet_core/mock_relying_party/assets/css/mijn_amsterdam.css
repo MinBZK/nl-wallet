@@ -1,0 +1,33 @@
+@import url("/css/reset.css");
+@import url("/css/button-reset.css");
+@import url("/css/fonts.css");
+@import url("/css/common.css");
+@import url("/css/title_bar.css");
+@import url("/css/container.css");
+
+:root {
+    --primary-color: #da2e20;
+    --hover-color: #85150b;
+    --logo-url: url("/images/mijn_amsterdam_text.svg");
+}
+
+header {
+    border-bottom: 0;
+}
+
+header h1::before {
+    width: 100px;
+    height: 40px;
+    background-position-x: left;
+}
+
+@media only screen and (min-width: 1145px) {
+    header h1::before {
+        width: 200px;
+        height: 74px;
+    }
+
+    header {
+        padding: 24px;
+    }
+}

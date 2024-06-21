@@ -1,0 +1,14 @@
+@import url("/css/monkey_bike.css");
+@import url("/css/title_bar.css");
+@import url("/css/page.css");
+@import url("/css/notification.css");
+@import url("/css/search.css");
+@import url("/css/products.css");
+
+@media only screen and (min-width: 1145px) {
+    header h1::before {
+        border-radius: 12px;
+        width: 64px;
+        height: 64px;
+    }
+}
