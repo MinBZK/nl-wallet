@@ -1,0 +1,18 @@
+{% let title = "" %}
+
+{% call header::header(title, "") %}
+<main>
+    <h2>Inloggen op Mijn Amsterdam</h2>
+    <section>
+        <h3>Voor particulieren en eenmanszaken</h3>
+        <p>U heeft de NL Wallet app of DigiD nodig. </p>
+    </section>
+    <section class="buttons">
+        <nl-wallet-button
+            text="Inloggen met NL Wallet"
+            usecase="{{ usecase }}"
+            base-url="/"
+        ></nl-wallet-button>
+        <button id="digid" disabled><span>Inloggen met DigiD</span></button>
+    </section>
+</main>

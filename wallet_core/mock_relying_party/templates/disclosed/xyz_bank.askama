@@ -1,0 +1,14 @@
+{% let title = "XYZ Bank" %}
+
+{% call header::header(title, "") %}
+<main>
+    <section>
+        <h4>Bankrekening openen</h4>
+        <h2>Stap 1. Identificeer uzelf</h2>
+        <div class="notification"><span>Identificatie gelukt</span></div>
+    </section>
+    <section>
+        {% call attributes::attributes(attributes) %}
+    </section>
+    <button disabled><span>Volgende</span></button>
+</main>

@@ -1,0 +1,7 @@
+{% macro products(n) %}
+<section class="products">
+    {% for i in 0..n %}
+    <div></div>
+    {% endfor %}
+</section>
+{% endmacro %}

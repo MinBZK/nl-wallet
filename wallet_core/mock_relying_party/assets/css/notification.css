@@ -1,0 +1,26 @@
+.notification {
+    display: flex;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0.15px;
+    padding: 16px 24px;
+    border-radius: 7px;
+    background-color: var(--notification-color, var(--primary-color));
+    width: 100%;
+}
+
+.notification span {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+}
+
+.notification span::before {
+    content: " ";
+    background: transparent url("/images/checkmark.svg") center center / contain;
+    width: 32px;
+    height: 32px;
+}

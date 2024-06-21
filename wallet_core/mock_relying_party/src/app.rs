@@ -86,6 +86,7 @@ pub fn create_router(settings: Settings) -> Router {
 
     let mut app = Router::new()
         .route("/sessions", post(create_session))
+        .route("/:usecase/", get(usecase))
         .route(&format!("/:usecase/{}", RETURN_URL_SEGMENT), get(disclosed_attributes))
         .fallback_service(
             ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
@@ -112,10 +113,16 @@ struct SessionResponse {
 }
 
 #[derive(Template, Serialize)]
-#[template(path = "disclosed_attributes.askama", escape = "html", ext = "html")]
+#[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosureTemplate<'a> {
     usecase: &'a str,
     attributes: DisclosedAttributes,
+}
+
+#[derive(Template, Serialize)]
+#[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
+struct UsecaseTemplate<'a> {
+    usecase: &'a str,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -170,6 +177,12 @@ async fn create_session(
     Ok(result.into())
 }
 
+async fn usecase(Path(usecase): Path<String>) -> Result<Response> {
+    let result = UsecaseTemplate { usecase: &usecase };
+
+    Ok(askama_axum::into_response(&result))
+}
+
 async fn disclosed_attributes(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
@@ -189,9 +202,19 @@ async fn disclosed_attributes(
 }
 
 mod filters {
-    pub fn bsn<T: std::fmt::Display>(s: T) -> ::askama::Result<String> {
-        let mut s = s.to_string();
-        s.replace_range(1..(s.len() - 1), &"x".repeat(s.len()));
-        Ok(s)
+    use nl_wallet_mdoc::verifier::DisclosedAttributes;
+
+    pub fn attribute(attributes: &DisclosedAttributes, name: &str) -> ::askama::Result<String> {
+        for doctype in attributes {
+            for namespace in doctype.1.attributes.iter() {
+                for attribute in namespace.1 {
+                    if attribute.name == name {
+                        return Ok(attribute.value.as_text().unwrap().to_owned());
+                    }
+                }
+            }
+        }
+
+        Ok(format!("attribute '{name}' cannot be found"))
     }
 }

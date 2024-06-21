@@ -1,0 +1,57 @@
+@import url("/css/mijn_amsterdam.css");
+@import url("/css/notification.css");
+
+:root {
+    --notification-color: #3d8540;
+}
+
+.username {
+    color: #30293d;
+}
+
+.username::before {
+    background-color: #30293d;
+}
+
+.primary {
+    color: var(--primary-color);
+}
+
+/* notification bar */
+.notification {
+    flex-direction: column;
+    justify-content: left;
+    border-radius: 0;
+    letter-spacing: 0.5px;
+    padding: 12px 16px 12px 52px; /* 16 + 24 + 12 */
+}
+
+.notification span::before {
+    margin-left: -36px;
+    width: 24px;
+    height: 24px;
+}
+
+main {
+    padding: 0;
+    gap: 24px;
+}
+
+main > *:nth-child(2) {
+    padding: 0 16px;
+}
+
+main section {
+    gap: 40px;
+}
+
+@media only screen and (min-width: 1145px) {
+    main {
+        padding: 64px;
+        gap: 40px;
+    }
+
+    main > *:nth-child(2) {
+        padding: 0;
+    }
+}
