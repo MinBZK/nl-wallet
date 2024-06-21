@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use tracing::warn;
 
-use openid4vc::{verifier::WithRedirectUri, ErrorStatusCode};
+use openid4vc::ErrorStatusCode;
 use wallet_common::config::wallet_config::BaseUrl;
 
 /// Wrapper of [`openid4vc::ErrorResponse`] that implements [`IntoResponse`] and has an optional redirect URI.
@@ -33,7 +33,10 @@ impl<T> ErrorResponse<T> {
         }
     }
 
-    pub(crate) fn with_uri(err: WithRedirectUri<impl Into<openid4vc::ErrorResponse<T>> + std::fmt::Debug>) -> Self {
+    #[cfg(feature = "disclosure")]
+    pub(crate) fn with_uri(
+        err: openid4vc::verifier::WithRedirectUri<impl Into<openid4vc::ErrorResponse<T>> + std::fmt::Debug>,
+    ) -> Self {
         Self {
             error_response: err.error.into(),
             redirect_uri: err.redirect_uri,
