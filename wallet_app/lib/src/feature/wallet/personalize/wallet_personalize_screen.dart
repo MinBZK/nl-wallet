@@ -24,7 +24,9 @@ import '../../common/page/page_illustration.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
+import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
 import '../../digid_help/digid_help_screen.dart';
@@ -233,6 +235,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     return Scaffold(
       appBar: WalletAppBar(
         progress: state.stepperProgress,
+        title: _buildFadeInTitle(context.l10n.walletPersonalizeSuccessPageTitle),
       ),
       body: WalletPersonalizeSuccessPage(
         key: const Key('personalizeSuccessPage'),
@@ -244,8 +247,9 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildErrorPage(BuildContext context) {
     return Scaffold(
-      appBar: const WalletAppBar(
-        progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
+      appBar: WalletAppBar(
+        progress: const FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
+        title: _buildFadeInTitle(context.l10n.walletPersonalizeScreenErrorTitle),
       ),
       body: TerminalPage(
         illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
@@ -321,7 +325,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildNetworkError(BuildContext context, WalletPersonalizeNetworkError state) {
     if (state.hasInternet) {
       return Scaffold(
-        appBar: WalletAppBar(progress: state.stepperProgress),
+        appBar: WalletAppBar(
+          progress: state.stepperProgress,
+          title: _buildFadeInTitle(context.l10n.errorScreenServerHeadline),
+        ),
         body: ErrorPage.network(
           context,
           style: ErrorCtaStyle.retry,
@@ -330,7 +337,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
       );
     } else {
       return Scaffold(
-        appBar: WalletAppBar(progress: state.stepperProgress),
+        appBar: WalletAppBar(
+          progress: state.stepperProgress,
+          title: _buildFadeInTitle(context.l10n.errorScreenNoInternetHeadline),
+        ),
         body: ErrorPage.noInternet(
           context,
           onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
@@ -342,7 +352,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildGenericError(BuildContext context) {
     return Scaffold(
-      appBar: const WalletAppBar(progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps)),
+      appBar: WalletAppBar(
+        progress: const FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
+        title: _buildFadeInTitle(context.l10n.errorScreenGenericHeadline),
+      ),
       body: ErrorPage.generic(
         context,
         style: ErrorCtaStyle.retry,
@@ -353,12 +366,23 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Widget _buildSessionExpired(BuildContext context) {
     return Scaffold(
-      appBar: const WalletAppBar(progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps)),
+      appBar: WalletAppBar(
+        progress: const FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
+        title: _buildFadeInTitle(context.l10n.errorScreenSessionExpiredHeadline),
+      ),
       body: ErrorPage.sessionExpired(
         context,
         style: ErrorCtaStyle.retry,
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       ),
+    );
+  }
+
+  Widget _buildFadeInTitle(String title) {
+    return FadeInAtOffset(
+      appearOffset: 50,
+      visibleOffset: 100,
+      child: TitleText(title),
     );
   }
 }

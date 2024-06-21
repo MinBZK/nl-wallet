@@ -2,7 +2,6 @@
 import ModalFooter from "@/components/ModalFooter.vue"
 import { FooterState } from "@/models/footer-state"
 import { type ErrorType } from "@/models/modal-state"
-import { mdiCellphoneRemove } from "@mdi/js"
 
 defineProps<{
   error_type: ErrorType
@@ -15,8 +14,10 @@ const emit = defineEmits(["close", "retry"])
   <article>
     <section class="error status-update">
       <div>
-        <svg fill="currentColor" width="24" height="24" viewBox="0 0 24 24">
-          <path :d="mdiCellphoneRemove"></path>
+        <svg width="24" height="24" fill="currentColor">
+          <path
+            d="m13 8.2-1-1-4 4-4-4-1 1 4 4-4 4 1 1 4-4 4 4 1-1-4-4zM19 1H9c-1.1 0-2 .9-2 2v3h2V4h10v16H9v-2H7v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2"
+          />
         </svg>
       </div>
       <template v-if="error_type === 'expired'">

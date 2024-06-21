@@ -125,7 +125,7 @@ async fn test_disclosure_usecases_ok(
     });
 
     let ws_settings = wallet_server_settings();
-    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.public_url);
+    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.urls.public_url);
 
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
@@ -150,6 +150,7 @@ async fn test_disclosure_usecases_ok(
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
     let mut status_url = ws_settings
+        .urls
         .public_url
         .join(&format!("disclosure/{session_token}/status"));
     let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
@@ -237,7 +238,7 @@ async fn test_disclosure_without_pid() {
     });
 
     let ws_settings = wallet_server_settings();
-    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.public_url);
+    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.urls.public_url);
 
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
@@ -280,6 +281,7 @@ async fn test_disclosure_without_pid() {
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
     let mut status_url = ws_settings
+        .urls
         .public_url
         .join(&format!("disclosure/{session_token}/status"));
     let status_query = serde_urlencoded::to_string(StatusParams {

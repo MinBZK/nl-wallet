@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 
-const _kMinHeight = 56.0;
+const _kMinHeight = 72.0;
+const _kIconSize = 24.0;
 
 class MenuRow extends StatelessWidget {
   final IconData? icon;
@@ -34,12 +35,7 @@ class MenuRow extends StatelessWidget {
                   style: context.textTheme.titleMedium,
                 ),
               ),
-              const SizedBox(
-                width: _kMinHeight,
-                child: Center(
-                  child: Icon(Icons.chevron_right),
-                ),
-              ),
+              _buildTrailing(context),
             ],
           ),
         ),
@@ -48,14 +44,28 @@ class MenuRow extends StatelessWidget {
   }
 
   Widget _buildLeading(BuildContext context) {
-    if (icon == null) return const SizedBox(width: 16);
-    return SizedBox(
-      width: _kMinHeight,
-      child: Center(
-        child: Icon(
-          icon,
-          color: context.colorScheme.onSurfaceVariant,
-        ),
+    const edgeInsets = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
+    if (icon == null) return SizedBox(width: edgeInsets.horizontal + _kIconSize, height: _kMinHeight);
+    return Container(
+      padding: edgeInsets,
+      alignment: Alignment.center,
+      child: Icon(
+        icon,
+        color: context.colorScheme.onSurfaceVariant,
+        size: _kIconSize,
+      ),
+    );
+  }
+
+  Widget _buildTrailing(BuildContext context) {
+    const edgeInsets = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
+    return Container(
+      padding: edgeInsets,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.chevron_right,
+        size: _kIconSize,
+        color: context.colorScheme.primary,
       ),
     );
   }

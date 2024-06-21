@@ -3,7 +3,6 @@ import LoadingIndicator from "@/components/LoadingIndicator.vue"
 import ModalFooter from "@/components/ModalFooter.vue"
 import { FooterState } from "@/models/footer-state"
 import { SessionType } from "@/models/status"
-import { mdiArrowRight } from "@mdi/js"
 import { onMounted, ref } from "vue"
 
 defineProps<{
@@ -44,8 +43,8 @@ onMounted(() => {
           size="small"
           data-testid="same_device_loading_indicator"
         ></loading-indicator>
-        <svg v-else fill="currentColor" width="16" height="16" viewBox="0 0 24 24">
-          <path :d="mdiArrowRight"></path>
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4z" />
         </svg>
         <span>Op dit apparaat</span>
       </a>
@@ -62,8 +61,8 @@ onMounted(() => {
           size="small"
           data-testid="cross_device_loading_indicator"
         ></loading-indicator>
-        <svg v-else fill="currentColor" width="16" height="16" viewBox="0 0 24 24">
-          <path :d="mdiArrowRight"></path>
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4z" />
         </svg>
         <span>Op een ander apparaat</span>
       </button>

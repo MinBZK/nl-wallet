@@ -68,7 +68,7 @@ fn wallet_server_settings() -> Settings {
         port: requester_port,
     });
 
-    settings.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
+    settings.urls.public_url = format!("http://localhost:{ws_port}/").parse().unwrap();
 
     settings
 }
@@ -77,17 +77,17 @@ async fn start_wallet_server<S>(settings: Settings, disclosure_sessions: S)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let public_url = settings.public_url.clone();
+    let public_url = settings.urls.public_url.clone();
 
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::serve_disclosure(settings, disclosure_sessions).await {
+        if let Err(error) = wallet_server::server::verification_server::serve(settings, disclosure_sessions).await {
             println!("Could not start wallet_server: {error:?}");
 
             process::exit(1);
         }
     });
 
-    wait_for_server(public_url.join_base_url("disclosure/")).await;
+    wait_for_server(public_url).await;
 }
 
 async fn wait_for_server(base_url: BaseUrl) {
@@ -136,7 +136,7 @@ fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let mut settings = wallet_server_settings();
-    let internal_url = internal_url(&auth, &settings.public_url);
+    let internal_url = internal_url(&auth, &settings.urls.public_url);
     settings.requester_server = auth.clone();
 
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
@@ -147,7 +147,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .post(settings.public_url.join("disclosure/sessions"))
+        .post(settings.urls.public_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -173,7 +173,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
-        .post(settings.public_url.join("disclosure/sessions"))
+        .post(settings.urls.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
         .json(&start_request)
         .send()
@@ -198,6 +198,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     let session_token = response.json::<StartDisclosureResponse>().await.unwrap().session_token;
     let public_disclosed_attributes_url = settings
+        .urls
         .public_url
         .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
     let internal_disclosed_attributes_url =
@@ -258,13 +259,13 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let settings = wallet_server_settings();
-    let internal_url = internal_url(&settings.requester_server, &settings.public_url);
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
     // check if a non-existent token returns a 404 on the status URL
-    let mut status_url = settings.public_url.join("disclosure/nonexistent_session/status");
+    let mut status_url = settings.urls.public_url.join("disclosure/nonexistent_session/status");
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
@@ -275,7 +276,10 @@ async fn test_disclosure_not_found() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     // check if a non-existent token returns a 404 on the wallet URL
-    let mut request_uri = settings.public_url.join("disclosure/nonexistent_session/request_uri");
+    let mut request_uri = settings
+        .urls
+        .public_url
+        .join("disclosure/nonexistent_session/request_uri");
     request_uri.set_query(
         serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
@@ -309,7 +313,7 @@ async fn test_disclosure_expired<S>(
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let timeouts = SessionStoreTimeouts::from(&settings.storage);
-    let internal_url = internal_url(&settings.requester_server, &settings.public_url);
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
     start_wallet_server(settings.clone(), session_store).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
@@ -326,7 +330,10 @@ async fn test_disclosure_expired<S>(
 
     let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
     let session_token = disclosure_response.session_token;
-    let mut status_url = settings.public_url.join(&format!("disclosure/{session_token}/status"));
+    let mut status_url = settings
+        .urls
+        .public_url
+        .join(&format!("disclosure/{session_token}/status"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })

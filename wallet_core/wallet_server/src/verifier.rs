@@ -23,7 +23,10 @@ use openid4vc::{
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator};
 
-use crate::{errors::ErrorResponse, settings::Settings};
+use crate::{
+    errors::ErrorResponse,
+    settings::{self, Urls},
+};
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,
@@ -31,25 +34,36 @@ struct ApplicationState<S> {
     universal_link_base_url: BaseUrl,
 }
 
-pub fn create_routers<S>(settings: Settings, sessions: S) -> anyhow::Result<(Router, Router)>
+fn create_application_state<S>(
+    urls: Urls,
+    verifier: settings::Verifier,
+    sessions: S,
+) -> anyhow::Result<ApplicationState<S>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let application_state = Arc::new(ApplicationState {
+    let application_state = ApplicationState {
         verifier: Verifier::new(
-            settings.verifier.usecases.try_into()?,
+            verifier.usecases.try_into()?,
             sessions,
-            settings
-                .verifier
+            verifier
                 .trust_anchors
                 .into_iter()
                 .map(|ta| ta.owned_trust_anchor)
                 .collect::<Vec<_>>(),
-            (&settings.verifier.ephemeral_id_secret).into(),
+            (&verifier.ephemeral_id_secret).into(),
         ),
-        public_url: settings.public_url,
-        universal_link_base_url: settings.universal_link_base_url,
-    });
+        public_url: urls.public_url,
+        universal_link_base_url: urls.universal_link_base_url,
+    };
+    Ok(application_state)
+}
+
+pub fn create_routers<S>(urls: Urls, verifier: settings::Verifier, sessions: S) -> anyhow::Result<(Router, Router)>
+where
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+{
+    let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     let wallet_router = Router::new()

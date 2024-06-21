@@ -103,9 +103,9 @@ class DarkWalletTheme {
     surfaceTintColor: Colors.transparent,
   );
 
-  //endregion Modified (colored) BaseThemes
+  static final iconTheme = BaseWalletTheme.baseIconTheme.copyWith(color: colorScheme.onSurface);
 
-  static final iconTheme = IconThemeData(color: colorScheme.onSurface, size: 16);
+  //endregion Modified (colored) BaseThemes
 
   static const progressIndicatorTheme = ProgressIndicatorThemeData(linearTrackColor: Color(0xFF292D3A));
 }

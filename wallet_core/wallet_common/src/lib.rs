@@ -1,5 +1,6 @@
 pub mod account;
 pub mod config;
+pub mod error_category;
 pub mod generator;
 pub mod http_error;
 pub mod jwt;

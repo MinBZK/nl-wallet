@@ -49,8 +49,7 @@
         "given_name": {},
         "family_name": {},
         "birth_date": {},
-        "gender": {},
-        "nationality": {}
+        "gender": {}
       }
     },
     "com.example.address": {

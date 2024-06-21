@@ -147,7 +147,7 @@ wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps
 wallet_common = { path = "../wallet_common", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
-wallet_server = { path = "../wallet_server", optional = true, features = ["issuance", "mock"] }
+wallet_server = { path = "../wallet_server", optional = true, features = ["issuance", "disclosure", "mock"] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }

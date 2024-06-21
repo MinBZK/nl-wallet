@@ -1,25 +1,37 @@
-use std::{collections::HashMap, env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
+use std::{env, net::IpAddr, num::NonZeroU64, path::PathBuf, time::Duration};
 
 use config::{Config, ConfigError, Environment, File};
-use nutype::nutype;
 use p256::{ecdsa::SigningKey, pkcs8::DecodePrivateKey};
-use ring::hmac;
 use serde::Deserialize;
-use serde_with::{base64::Base64, hex::Hex, serde_as};
+use serde_with::{base64::Base64, serde_as};
 use url::Url;
 
-use nl_wallet_mdoc::{server_state::SessionStoreTimeouts, utils::x509::Certificate, verifier::SessionTypeReturnUrl};
-use openid4vc::verifier::{UseCase, UseCases};
-use wallet_common::{
-    config::wallet_config::{BaseUrl, DEFAULT_UNIVERSAL_LINK_BASE},
-    sentry::Sentry,
-    trust_anchor::DerTrustAnchor,
-};
+use nl_wallet_mdoc::{server_state::SessionStoreTimeouts, utils::x509::Certificate};
+use wallet_common::{config::wallet_config::BaseUrl, sentry::Sentry};
 
-#[cfg(feature = "issuance")]
-use {indexmap::IndexMap, wallet_common::reqwest::deserialize_certificates};
+cfg_if::cfg_if! {
+    if #[cfg(feature = "disclosure")] {
+        mod disclosure;
+        pub use disclosure::*;
+        use wallet_common::config::wallet_config::DEFAULT_UNIVERSAL_LINK_BASE;
+    }
+}
 
-const MIN_KEY_LENGTH_BYTES: usize = 16;
+cfg_if::cfg_if! {
+    if #[cfg(feature = "issuance")] {
+        mod issuance;
+        pub use issuance::*;
+    }
+}
+
+#[derive(Clone, Deserialize)]
+pub struct Urls {
+    // used by the wallet
+    pub public_url: BaseUrl,
+
+    #[cfg(feature = "disclosure")]
+    pub universal_link_base_url: BaseUrl,
+}
 
 #[derive(Clone, Deserialize)]
 pub struct Settings {
@@ -28,10 +40,12 @@ pub struct Settings {
     // used by the application, SHOULD be reachable only by the application.
     // if not configured the wallet_server will be used, but an api_key is required in that case
     // if it conflicts with wallet_server, the application will crash on startup
+    #[cfg(feature = "disclosure")]
     pub requester_server: RequesterAuth,
-    // used by the wallet
-    pub public_url: BaseUrl,
-    pub universal_link_base_url: BaseUrl,
+
+    #[serde(flatten)]
+    pub urls: Urls,
+
     pub log_requests: bool,
 
     pub storage: Storage,
@@ -39,7 +53,9 @@ pub struct Settings {
     #[cfg(feature = "issuance")]
     pub issuer: Issuer,
 
+    #[cfg(feature = "disclosure")]
     pub verifier: Verifier,
+
     pub sentry: Option<Sentry>,
 }
 
@@ -78,32 +94,6 @@ pub struct Storage {
     pub failed_deletion_minutes: NonZeroU64,
 }
 
-#[cfg(feature = "issuance")]
-#[derive(Clone, Deserialize)]
-pub struct Issuer {
-    // Issuer private keys index per doctype
-    pub private_keys: HashMap<String, KeyPair>,
-
-    /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
-    /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
-    /// implementation).
-    /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession JWTs.
-    pub wallet_client_ids: Vec<String>,
-
-    pub digid: Digid,
-
-    pub brp_server: BaseUrl,
-}
-
-#[cfg(feature = "issuance")]
-#[derive(Clone, Deserialize)]
-pub struct Digid {
-    pub issuer_url: BaseUrl,
-    pub bsn_privkey: String,
-    #[serde(deserialize_with = "deserialize_certificates", default)]
-    pub trust_anchors: Vec<reqwest::Certificate>,
-}
-
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct KeyPair {
@@ -113,29 +103,6 @@ pub struct KeyPair {
     pub private_key: Vec<u8>,
 }
 
-#[serde_as]
-#[derive(Clone, Deserialize)]
-pub struct Verifier {
-    pub usecases: VerifierUseCases,
-    pub trust_anchors: Vec<DerTrustAnchor>,
-    #[serde_as(as = "Hex")]
-    pub ephemeral_id_secret: EhpemeralIdSecret,
-}
-
-#[nutype(derive(Clone, Deserialize))]
-pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
-
-#[derive(Clone, Deserialize)]
-pub struct VerifierUseCase {
-    #[serde(default)]
-    pub session_type_return_url: SessionTypeReturnUrl,
-    #[serde(flatten)]
-    pub key_pair: KeyPair,
-}
-
-#[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
-pub struct EhpemeralIdSecret(Vec<u8>);
-
 impl From<&Storage> for SessionStoreTimeouts {
     fn from(value: &Storage) -> Self {
         SessionStoreTimeouts {
@@ -143,16 +110,6 @@ impl From<&Storage> for SessionStoreTimeouts {
             successful_deletion: Duration::from_secs(60 * value.successful_deletion_minutes.get()),
             failed_deletion: Duration::from_secs(60 * value.failed_deletion_minutes.get()),
         }
-    }
-}
-
-#[cfg(feature = "issuance")]
-impl Issuer {
-    pub fn certificates(&self) -> IndexMap<String, Certificate> {
-        self.private_keys
-            .iter()
-            .map(|(doctype, privkey)| (doctype.clone(), privkey.certificate.clone().into()))
-            .collect()
     }
 }
 
@@ -169,41 +126,6 @@ impl TryFrom<&KeyPair> for nl_wallet_mdoc::server_keys::KeyPair {
     }
 }
 
-impl TryFrom<VerifierUseCases> for UseCases {
-    type Error = anyhow::Error;
-
-    fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
-        let use_cases = value
-            .into_inner()
-            .into_iter()
-            .map(|(id, use_case)| {
-                let use_case = UseCase::try_from(&use_case)?;
-
-                Ok((id, use_case))
-            })
-            .collect::<Result<HashMap<_, _>, Self::Error>>()?
-            .into();
-
-        Ok(use_cases)
-    }
-}
-
-impl TryFrom<&VerifierUseCase> for UseCase {
-    type Error = anyhow::Error;
-
-    fn try_from(value: &VerifierUseCase) -> Result<Self, Self::Error> {
-        let use_case = UseCase::new((&value.key_pair).try_into()?, value.session_type_return_url)?;
-
-        Ok(use_case)
-    }
-}
-
-impl From<&EhpemeralIdSecret> for hmac::Key {
-    fn from(value: &EhpemeralIdSecret) -> Self {
-        hmac::Key::new(hmac::HMAC_SHA256, value.as_ref())
-    }
-}
-
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Settings::new_custom("wallet_server.toml", "wallet_server")
@@ -216,7 +138,6 @@ impl Settings {
             .set_default("wallet_server.ip", "0.0.0.0")?
             .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
-            .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("log_requests", false)?
             .set_default("storage.url", "memory://")?
             .set_default(
@@ -232,6 +153,9 @@ impl Settings {
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?;
 
+        #[cfg(feature = "disclosure")]
+        let config_builder = config_builder.set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?;
+
         #[cfg(feature = "issuance")]
         let config_builder = config_builder
             .set_default(
@@ -246,17 +170,21 @@ impl Settings {
         let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
         let config_source = config_path.join(config_file);
 
+        let environment_parser = Environment::with_prefix(env_prefix)
+            .separator("__")
+            .prefix_separator("_");
+
+        #[cfg(feature = "disclosure")]
+        let environment_parser = environment_parser
+            .list_separator(",")
+            .with_list_parse_key("verifier.trust_anchors");
+
+        let environment_parser = environment_parser.try_parsing(true);
+
         config_builder
             .add_source(File::from(config_source).required(false))
             .add_source(File::from(PathBuf::from(config_file)).required(false))
-            .add_source(
-                Environment::with_prefix(env_prefix)
-                    .separator("__")
-                    .prefix_separator("_")
-                    .list_separator(",")
-                    .with_list_parse_key("verifier.trust_anchors")
-                    .try_parsing(true),
-            )
+            .add_source(environment_parser)
             .build()?
             .try_deserialize()
     }
