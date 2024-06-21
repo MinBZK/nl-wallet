@@ -1,7 +1,10 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, error::Error};
 
-use sentry::{ClientInitGuard, ClientOptions};
+use sentry::{protocol::Event, ClientInitGuard, ClientOptions, Level};
 use serde::Deserialize;
+use uuid::Uuid;
+
+use crate::error_category::{Category, ErrorCategory};
 
 #[derive(Clone, Deserialize)]
 pub struct Sentry {
@@ -24,5 +27,23 @@ impl Sentry {
                 ..Default::default()
             },
         ))
+    }
+}
+
+pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: &T) {
+    match error.category() {
+        Category::Expected => {}
+        Category::Critical => {
+            let _uuid = sentry::capture_error(error);
+        }
+        Category::PersonalData => {
+            let event = Event {
+                event_id: Uuid::new_v4(),
+                message: Some(std::any::type_name_of_val(error).to_string()),
+                level: Level::Error,
+                ..Default::default()
+            };
+            let _uuid = sentry::capture_event(event);
+        }
     }
 }
