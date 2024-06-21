@@ -1,0 +1,19 @@
+@import url("/css/xyz_bank.css");
+@import url("/css/buttons-after.css");
+
+/* only xyz_bank has a link */
+main a {
+    color: var(--primary-color);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+main a:hover {
+    color: var(--hover-color);
+}
+
+.buttons button::after,
+.buttons nl-wallet-button::after {
+    width: 52px;
+    height: 52px;
+}

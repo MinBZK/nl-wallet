@@ -1,0 +1,23 @@
+@import url("/css/reset.css");
+@import url("/css/button-reset.css");
+@import url("/css/fonts.css");
+@import url("/css/common.css");
+
+:root {
+    --primary-color: #563dc8;
+    --logo-url: url("/images/monkey_bike.svg");
+}
+
+header h1::before {
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+}
+
+@media only screen and (min-width: 1145px) {
+    header h1::before {
+        border-radius: 12px;
+        width: 64px;
+        height: 64px;
+    }
+}

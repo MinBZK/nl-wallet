@@ -2,16 +2,22 @@
 
 *:not(style, svg, path, circle) {
   all: unset;
+  box-sizing: border-box;
 }
 
 :root,
 :host {
-  --blue-color: #01689b;
-  --bluer-color: #00425e;
+  --primary-color: #383ede;
+  --primary-hover: #0c1195;
+  --secondary-hover: #f3f3f3;
+  --text-color: #152a62;
+  --success-color: #3d8540;
+  --error-color: #ab0065;
+  --overlay-color: rgba(0, 0, 0, 0.6);
 }
 
 a {
-  color: var(--blue-color);
+  color: var(--primary-color);
 }
 
 .xs {
@@ -41,7 +47,7 @@ svg.loading-indicator {
     transform: rotateZ(0deg);
   }
   100% {
-    transform: rotateZ(360deg)
+    transform: rotateZ(360deg);
   }
 }
 
@@ -49,7 +55,7 @@ svg.loading-indicator circle {
   animation: 1.4s ease-in-out infinite both circle-animation;
   display: block;
   fill: transparent;
-  stroke: var(--blue-color);
+  stroke: var(--primary-color);
   stroke-linecap: round;
   stroke-dasharray: 283;
   stroke-dashoffset: 280;
@@ -90,8 +96,9 @@ svg.loading-indicator.large {
 
 /* Buttons */
 
-button, a.button {
-  background-color: var(--blue-color);
+button,
+a.button {
+  background-color: var(--primary-color);
   border: none;
   border-radius: 12px;
   color: white;
@@ -103,7 +110,7 @@ button, a.button {
 }
 
 button.default-button:hover {
-  background-color: var(--bluer-color);
+  background-color: var(--primary-hover);
 }
 
 button.default-button {
@@ -113,50 +120,64 @@ button.default-button {
   padding: 1rem;
 }
 
-button.primary, a.button.primary {
-  background-color: var(--blue-color);
+button.primary,
+a.button.primary {
+  background-color: var(--primary-color);
+  border: 1px solid var(--primary-color);
   color: white;
 }
 
-button.primary:hover, a.button.primary:hover {
-  background-color: var(--bluer-color);
+button.primary:hover,
+a.button.primary:hover {
+  background-color: var(--primary-hover);
+  border: 1px solid var(--primary-hover);
 }
 
-button.secondary, a.button.secondary {
+button.secondary,
+a.button.secondary {
   background-color: white;
-  color: var(--blue-color);
-  border: 1px solid var(--blue-color);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
 }
 
-button.secondary:hover, a.button.secondary:hover {
-  background-color: #f2f2f2;
+button.secondary:hover,
+a.button.secondary:hover {
+  color: var(--primary-hover);
+  border: 1px solid var(--primary-hover);
 }
 
-button svg, a.button svg {
+button svg,
+a.button svg {
   margin-right: 0.5rem;
 }
 
-button.full-width, a.button.full-width {
+button.full-width,
+a.button.full-width {
   width: 100%;
 }
 
-button:disabled, button[disabled], a.button.disabled {
+button:disabled,
+button[disabled],
+a.button.disabled {
   cursor: not-allowed;
-  color: lightgrey;
-  border-color: lightgrey;
+  color: var(--secondary-hover);
+  border-color: var(--secondary-hover);
   pointer-events: none;
   text-decoration: none;
 }
 
-button:disabled, button[disabled] circle, a.button.disabled circle {
-  stroke: lightgrey;
+button:disabled,
+button[disabled] circle,
+a.button.disabled circle {
+  stroke: var(--secondary-hover);
 }
 
 /* Links */
 
 .link {
   background-color: white;
-  color: var(--blue-color);
+  border: 1px solid white;
+  color: var(--primary-color);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -169,10 +190,13 @@ button:disabled, button[disabled] circle, a.button.disabled circle {
 
 .link:hover {
   text-decoration: underline;
+  color: var(--primary-hover);
 }
 
 button.link:hover {
-  background-color: #f2f2f2;
+  background-color: var(--secondary-hover);
+  border: 1px solid var(--secondary-hover);
+  color: var(--primary-hover);
   text-decoration: none;
 }
 
@@ -205,8 +229,7 @@ button.link:hover {
   width: 100%;
   height: 100%;
   z-index: 1045;
-  background-color: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(1px);
+  background-color: var(--overlay-color);
 }
 
 .modal {
@@ -220,6 +243,7 @@ button.link:hover {
 
   z-index: 1050;
 
+  color: var(--text-color);
   background-color: white;
   border-radius: 0.5rem;
   box-shadow:
@@ -227,7 +251,7 @@ button.link:hover {
     black 0 0 0 0,
     rgba(0, 0, 0, 0.4) 0 25px 50px -12px;
 
-  font-family: "RO Sans", sans-serif;
+  font-family: "RO Sans" sans-serif;
 }
 
 .modal article {
@@ -337,15 +361,15 @@ section.loading h2 {
 }
 
 section.success.same-device svg {
-  color: var(--blue-color);
+  color: var(--primary-color);
 }
 
 section.in-progress svg {
-  color: var(--blue-color);
+  color: var(--primary-color);
 }
 
 section.error svg {
-  color: red;
+  color: var(--error-color);
 }
 
 section.in-progress h2,
@@ -360,7 +384,7 @@ section.loading p {
 }
 
 section.success svg {
-  color: green;
+  color: var(--success-color);
 }
 
 @media (max-height: 1000px) {

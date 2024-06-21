@@ -1,0 +1,51 @@
+aside {
+    width: 100vw;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f2f1fe;
+    color: #152a62;
+}
+
+@media screen and (min-width: 500px) {
+    aside {
+        padding: 8px 24px;
+    }
+}
+
+aside b {
+    font-weight: 700;
+}
+
+aside a {
+    color: #383ede;
+}
+
+aside a:hover {
+    color: #3237c4;
+    text-decoration: none;
+}
+
+aside .logo {
+    content: " ";
+    background: url("/images/nl-wallet.svg") no-repeat center center / cover;
+    width: 40px;
+    height: 40px;
+}
+
+aside .text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+@media screen and (min-width: 500px) {
+    aside .text {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+}

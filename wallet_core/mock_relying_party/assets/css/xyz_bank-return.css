@@ -1,0 +1,19 @@
+@import url("/css/xyz_bank.css");
+@import url("/css/notification.css");
+
+:root {
+    --notification-color: #007279;
+}
+
+.notification {
+    padding: 8px 24px;
+}
+
+/* buttons for xyz_bank */
+button > span {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 1px;
+}

@@ -1,6 +1,0 @@
-{% match usecase %}
-    {% when "mijn_amsterdam" %}
-        {% include "mijn_amsterdam.askama" %}
-    {% else %}
-        {% include "generic.askama" %}
-{% endmatch %}
