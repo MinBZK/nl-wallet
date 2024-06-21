@@ -21,7 +21,7 @@ software_keys = ["mock_secure_keys", "dep:parking_lot", "dep:rand_core"]
 # Enable helper code for integration tests
 integration_test = []
 # Enable sentry feature
-sentry = ["dep:sentry"]
+sentry = ["dep:sentry", "dep:uuid"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -53,6 +53,9 @@ axum = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true, features = ["v4"] }
+
+wallet_common_macros.path = "wallet_common_macros"
 
 [dev-dependencies]
 assert_matches.workspace = true

@@ -42,6 +42,24 @@ function success(session_token: string, session_type: string) {
 }
 
 provide(isMobileKey, isMobile)
+
+// @font-face doesn't seem to be working in the shadow DOM, so we insert it into the parent
+// document instead.
+let fontFaceSheet = new CSSStyleSheet()
+fontFaceSheet.replaceSync(`@font-face {
+  font-family: "RO Sans";
+  font-weight: normal;
+  font-style: normal;
+  SSSS format('woff2');
+}
+
+@font-face {
+  font-family: "RO Sans";
+  font-weight: bold;
+  font-style: normal;
+  SSSS format('woff2');
+}`)
+document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
 </script>
 
 <template>
