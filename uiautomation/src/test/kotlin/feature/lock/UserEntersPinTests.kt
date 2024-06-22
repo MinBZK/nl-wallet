@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Nested
 import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.dashboard.DashboardScreen
+import screen.menu.MenuScreen
 import screen.security.ForgotPinScreen
 import screen.security.PinScreen
 
@@ -27,7 +28,8 @@ class UserEntersPinTests : TestBase() {
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
 
-        restartApp()
+        DashboardScreen().clickMenuButton()
+        MenuScreen().clickLogoutButton()
 
         pinScreen = PinScreen()
     }
