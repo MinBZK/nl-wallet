@@ -2,18 +2,15 @@ package helper
 
 import com.codeborne.selenide.Configuration
 import com.codeborne.selenide.Selenide
-import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import data.TestConfigRepository.Companion.testConfig
 import driver.BrowserStackMobileDriver
 import driver.LocalMobileDriver
-import io.appium.java_client.android.AndroidDriver
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
-import org.openqa.selenium.remote.RemoteWebDriver
 import service.AppiumServiceProvider
 import util.TestInfoHandler.Companion.processTestInfo
 
@@ -41,19 +38,6 @@ open class TestBase {
         // Close web driver
         if (!testConfig.remote) {
             Selenide.closeWebDriver()
-        }
-    }
-
-    protected fun restartApp() {
-        val driver = getWebDriver() as RemoteWebDriver
-        val platform = driver.capabilities.platformName.name
-        val appIdentifier = testConfig.appIdentifier
-        if (platform == "ANDROID") {
-            val androidDriver = driver as AndroidDriver
-            androidDriver.terminateApp(appIdentifier)
-            androidDriver.activateApp(appIdentifier)
-        } else {
-            throw Exception("Platform $platform is not supported")
         }
     }
 
