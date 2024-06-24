@@ -1,6 +1,5 @@
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use futures::future::try_join_all;
-use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::{
@@ -15,7 +14,7 @@ use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, nonempty::NonEmpty
 use crate::{
     issuance_session::IssuanceSessionError,
     jwt::{self, jwk_jwt_header},
-    ErrorStatusCode, Format,
+    Format,
 };
 
 /// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-8.1.
@@ -65,43 +64,6 @@ pub struct CredentialRequestProofJwtPayload {
 }
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
-
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CredentialErrorCode {
-    InvalidCredentialRequest,
-    UnsupportedCredentialType,
-    UnsupportedCredentialFormat,
-    InvalidProof,
-    InvalidEncryptionParameters,
-
-    // From https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-    InvalidRequest,
-    InvalidToken,
-    InsufficientScope,
-
-    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
-    /// This error type is not defined in the spec, but then again the entire HTTP response in case
-    /// 5xx status codes is not defined by the spec, so we have freedom to return what we want.
-    ServerError,
-}
-
-impl ErrorStatusCode for CredentialErrorCode {
-    fn status_code(&self) -> reqwest::StatusCode {
-        match self {
-            CredentialErrorCode::InvalidCredentialRequest
-            | CredentialErrorCode::UnsupportedCredentialType
-            | CredentialErrorCode::UnsupportedCredentialFormat
-            | CredentialErrorCode::InvalidProof
-            | CredentialErrorCode::InvalidEncryptionParameters
-            | CredentialErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
-            CredentialErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            CredentialErrorCode::InvalidToken => StatusCode::UNAUTHORIZED,
-            CredentialErrorCode::InsufficientScope => StatusCode::FORBIDDEN,
-        }
-    }
-}
 
 impl CredentialRequestProof {
     pub async fn new_multiple<K: MdocEcdsaKey>(

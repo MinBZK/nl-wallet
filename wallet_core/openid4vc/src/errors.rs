@@ -4,13 +4,8 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::{
-    credential::CredentialErrorCode,
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
-    token::TokenErrorCode,
-    verifier::{
-        GetAuthRequestError, GetRequestErrorCode, PostAuthResponseError, PostAuthResponseErrorCode, SessionError,
-        VerificationError, VerificationErrorCode,
-    },
+    verifier::{GetAuthRequestError, PostAuthResponseError, SessionError, VerificationError},
 };
 
 #[skip_serializing_none]
@@ -23,6 +18,27 @@ pub struct ErrorResponse<T> {
 
 pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
+}
+
+/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#name-credential-error-response
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CredentialErrorCode {
+    InvalidCredentialRequest,
+    UnsupportedCredentialType,
+    UnsupportedCredentialFormat,
+    InvalidProof,
+    InvalidEncryptionParameters,
+
+    // From https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
+    InvalidRequest,
+    InvalidToken,
+    InsufficientScope,
+
+    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
+    /// This error type is not defined in the spec, but then again the entire HTTP response in case
+    /// 5xx status codes is not defined by the spec, so we have freedom to return what we want.
+    ServerError,
 }
 
 impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
@@ -61,6 +77,42 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
     }
 }
 
+impl ErrorStatusCode for CredentialErrorCode {
+    fn status_code(&self) -> reqwest::StatusCode {
+        match self {
+            CredentialErrorCode::InvalidCredentialRequest
+            | CredentialErrorCode::UnsupportedCredentialType
+            | CredentialErrorCode::UnsupportedCredentialFormat
+            | CredentialErrorCode::InvalidProof
+            | CredentialErrorCode::InvalidEncryptionParameters
+            | CredentialErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+            CredentialErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            CredentialErrorCode::InvalidToken => StatusCode::UNAUTHORIZED,
+            CredentialErrorCode::InsufficientScope => StatusCode::FORBIDDEN,
+        }
+    }
+}
+
+/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-6.3
+/// and https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2.
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TokenErrorCode {
+    InvalidRequest,
+    InvalidClient,
+    InvalidGrant,
+    UnauthorizedClient,
+    UnsupportedGrantType,
+    InvalidScope,
+    AuthorizationPending, // OpenID4VCI-specific error type
+    SlowDown,             // OpenID4VCI-specific error type
+
+    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
+    /// This error type is not defined in the specs, but then again the entire HTTP response in case
+    /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
+    ServerError,
+}
+
 impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
     fn from(err: TokenRequestError) -> Self {
         let description = err.to_string();
@@ -75,6 +127,33 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
             error_uri: None,
         }
     }
+}
+
+impl ErrorStatusCode for TokenErrorCode {
+    fn status_code(&self) -> reqwest::StatusCode {
+        match self {
+            TokenErrorCode::InvalidRequest
+            | TokenErrorCode::InvalidGrant
+            | TokenErrorCode::UnauthorizedClient
+            | TokenErrorCode::UnsupportedGrantType
+            | TokenErrorCode::InvalidScope
+            | TokenErrorCode::AuthorizationPending
+            | TokenErrorCode::SlowDown => StatusCode::BAD_REQUEST,
+            TokenErrorCode::InvalidClient => StatusCode::UNAUTHORIZED,
+            TokenErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GetRequestErrorCode {
+    InvalidRequest,
+    ExpiredEphemeralId,
+    ExpiredSession,
+    UnknownSession,
+
+    ServerError,
 }
 
 impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
@@ -112,6 +191,16 @@ impl ErrorStatusCode for GetRequestErrorCode {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PostAuthResponseErrorCode {
+    InvalidRequest,
+    ExpiredSession,
+    UnknownSession,
+
+    ServerError,
+}
+
 impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
     fn from(err: PostAuthResponseError) -> Self {
         let description = err.to_string();
@@ -143,6 +232,15 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
             _ => StatusCode::BAD_REQUEST,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VerificationErrorCode {
+    InvalidRequest,
+    ExpiredSession,
+    SessionUnknown,
+    ServerError,
 }
 
 impl From<VerificationError> for ErrorResponse<VerificationErrorCode> {
@@ -179,4 +277,38 @@ impl ErrorStatusCode for VerificationErrorCode {
             VerificationErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
         }
     }
+}
+
+/// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthBearerErrorCode {
+    InvalidRequest,
+    InvalidToken,
+    InsufficientScope,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VpAuthorizationErrorCode {
+    VpFormatsNotSupported,
+    InvalidPresentationDefinitionUri,
+    InvalidPresentationDefinitionReference,
+    InvalidRequestUriMethod,
+
+    #[serde(untagged)]
+    AuthorizationError(AuthorizationErrorCode),
+}
+
+/// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorizationErrorCode {
+    InvalidRequest,
+    UnauthorizedClient,
+    AccessDenied,
+    UnsupportedResponseType,
+    InvalidScope,
+    ServerError,
+    TemporarilyUnavailable,
 }

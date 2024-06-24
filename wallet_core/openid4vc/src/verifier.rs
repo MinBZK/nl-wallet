@@ -41,13 +41,12 @@ use wallet_common::{
 };
 
 use crate::{
-    authorization::AuthorizationErrorCode,
     jwt,
     openid4vp::{
-        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationErrorCode,
-        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
+        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod, VpAuthorizationRequest,
+        VpAuthorizationResponse, VpRequestUriObject, VpResponse,
     },
-    ErrorResponse,
+    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
 
 /// Errors that can occur during processing of any of the endpoints.
@@ -92,15 +91,6 @@ pub enum VerificationError {
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum VerificationErrorCode {
-    InvalidRequest,
-    ExpiredSession,
-    SessionUnknown,
-    ServerError,
-}
-
 /// Errors returned by the endpoint that returns the Authorization Request.
 #[derive(thiserror::Error, Debug)]
 pub enum GetAuthRequestError {
@@ -122,17 +112,6 @@ pub enum GetAuthRequestError {
     UnknownUseCase(String),
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GetRequestErrorCode {
-    InvalidRequest,
-    ExpiredEphemeralId,
-    ExpiredSession,
-    UnknownSession,
-
-    ServerError,
-}
-
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
 #[derive(thiserror::Error, Debug)]
 pub enum PostAuthResponseError {
@@ -142,16 +121,6 @@ pub enum PostAuthResponseError {
     AuthResponse(#[from] AuthResponseError),
     #[error("user aborted with error: {0:?}")]
     UserError(ErrorResponse<VpAuthorizationErrorCode>),
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PostAuthResponseErrorCode {
-    InvalidRequest,
-    ExpiredSession,
-    UnknownSession,
-
-    ServerError,
 }
 
 #[derive(thiserror::Error, Debug)]

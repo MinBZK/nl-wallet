@@ -21,12 +21,9 @@ use openid4vc::{
     disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
     jwt,
     mock::MockMdocDataSource,
-    openid4vp::{
-        IsoVpAuthorizationRequest, VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse,
-        VpRequestUriObject,
-    },
+    openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     verifier::{DisclosureData, StatusResponse, Verifier, VerifierUrlParameters, VpToken, WalletAuthResponse},
-    ErrorResponse,
+    ErrorResponse, VpAuthorizationErrorCode,
 };
 use wallet_common::{
     config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,

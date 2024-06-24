@@ -22,14 +22,12 @@ use nl_wallet_mdoc::{
 };
 
 use crate::{
-    authorization::AuthorizationErrorCode,
     openid4vp::{
         AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod,
-        VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
-        WalletRequest,
+        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
-    ErrorResponse,
+    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
 
 #[derive(Debug, thiserror::Error)]

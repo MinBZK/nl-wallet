@@ -29,7 +29,7 @@ use wallet_common::{
 };
 
 use crate::{
-    authorization::{AuthorizationErrorCode, AuthorizationRequest, ResponseMode, ResponseType},
+    authorization::{AuthorizationRequest, ResponseMode, ResponseType},
     jwt::{self, JwtX5cError},
     presentation_exchange::{
         InputDescriptorMappingObject, PdConversionError, PresentationDefinition, PresentationSubmission, PsError,
@@ -718,18 +718,6 @@ pub struct VpResponse {
     pub redirect_uri: Option<BaseUrl>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum VpAuthorizationErrorCode {
-    VpFormatsNotSupported,
-    InvalidPresentationDefinitionUri,
-    InvalidPresentationDefinitionReference,
-    InvalidRequestUriMethod,
-
-    #[serde(untagged)]
-    AuthorizationError(AuthorizationErrorCode),
-}
-
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
@@ -747,10 +735,7 @@ mod tests {
     };
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::{
-        authorization::AuthorizationErrorCode,
-        openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationErrorCode},
-    };
+    use crate::{openid4vp::IsoVpAuthorizationRequest, AuthorizationErrorCode, VpAuthorizationErrorCode};
 
     use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
 

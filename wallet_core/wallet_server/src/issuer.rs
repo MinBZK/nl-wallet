@@ -15,12 +15,12 @@ use nl_wallet_mdoc::{
     server_state::SessionStore,
 };
 use openid4vc::{
-    credential::{CredentialErrorCode, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
+    credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     metadata::IssuerMetadata,
     oidc,
-    token::{AccessToken, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
-    ErrorStatusCode,
+    token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
+    CredentialErrorCode, ErrorStatusCode, TokenErrorCode,
 };
 
 use crate::{

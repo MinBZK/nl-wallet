@@ -16,10 +16,8 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::{
     openid4vp::{VpResponse, WalletRequest},
-    verifier::{
-        DisclosureData, GetRequestErrorCode, PostAuthResponseErrorCode, StatusResponse, VerificationErrorCode,
-        Verifier, VerifierUrlParameters, WalletAuthResponse,
-    },
+    verifier::{DisclosureData, StatusResponse, Verifier, VerifierUrlParameters, WalletAuthResponse},
+    GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator};
 
