@@ -133,7 +133,10 @@ where
         .issuer
         .process_token_request(token_request, dpop)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(|err| {
+            warn!("{:?}", &err);
+            return ErrorResponse(err.into());
+        })?;
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),

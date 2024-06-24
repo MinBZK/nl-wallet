@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-13T11:53:29+02:00",
+    "@@last_modified": "2024-06-24T21:18:16+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -224,7 +224,7 @@
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
     "disclosureLoadingSubtitle": "De aanvraag wordt opgehaald",
     "disclosureLoadingTitle": "Even geduld",
-    "disclosureMissingAttributesPageCloseCta": "Aanvraag sluiten",
+    "disclosureMissingAttributesPageCloseCta": "Aanvraag stoppen",
     "disclosureMissingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
     "@disclosureMissingAttributesPageDescription": {
         "placeholders": {
@@ -385,6 +385,7 @@
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
     "generalVersionText": "Appversie:",
     "generalWCAGBack": "Terug",
+    "generalWCAGChangeLanguage": "Taal te selecteren",
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",
@@ -433,6 +434,8 @@
             }
         }
     },
+    "historyDetailScreenErrorTitleForDisclosure": "Delen mogelijk mislukt met {organization}",
+    "historyDetailScreenErrorTitleForLogin": "Inloggen bij {organization} mislukt",
     "historyDetailScreenHelpdeskSubtitle": "Om hulp en antwoorden te krijgen",
     "historyDetailScreenHelpdeskTitle": "Naar de helpdesk",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {1 gegeven gedeeld} other {{attributes} gegevens gedeeld}}",
@@ -477,6 +480,8 @@
             }
         }
     },
+    "historyDetailScreenStoppedTitleForDisclosure": "Delen gestopt met {organization}",
+    "historyDetailScreenStoppedTitleForLogin": "Inloggen gestopt met {organization}",
     "historyDetailScreenTermsSubtitle": "Zo gaat {organization} met jouw gegevens om",
     "@historyDetailScreenTermsSubtitle": {
         "placeholders": {
@@ -488,6 +493,8 @@
     },
     "historyDetailScreenTermsTitle": "Voorwaarden",
     "historyDetailScreenTitle": "Details",
+    "historyDetailScreenTitleForDisclosure": "Gedeeld met {organization}",
+    "historyDetailScreenTitleForLogin": "Ingelogd bij {organization}",
     "historyOverviewScreenTitle": "Activiteiten",
     "introductionConditionsScreenBulletPoints": "Je kunt je gegevens online gebruiken.\nJe kunt op elk moment stoppen.\nJe houdt je pincode voor jezelf.\nJe deelt je gegevens op eigen risico.",
     "introductionConditionsScreenConditionsCta": "Lees de voorwaarden",
@@ -865,6 +872,7 @@
     "signSuccessPageTitle": "Gelukt!",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Ja, klopt",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
+    "walletPersonalizeCheckDataOfferingPageBirthDateValue": "{birthDate}",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",
     "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
     "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {

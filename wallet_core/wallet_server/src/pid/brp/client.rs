@@ -63,10 +63,10 @@ impl GetByBsnRequest {
                 String::from("verblijfplaats.verblijfadres.postcode"),
                 String::from("verblijfplaats.verblijfadres.woonplaats"),
                 String::from("leeftijd"),
-                String::from("partners.soortVerbintenis.code"),
-                String::from("partners.naam.voornamen"),
                 String::from("partners.naam.voorvoegsel"),
                 String::from("partners.naam.geslachtsnaam"),
+                String::from("partners.soortVerbintenis.code"),
+                String::from("partners.aangaanHuwelijkPartnerschap"),
             ],
         }
     }

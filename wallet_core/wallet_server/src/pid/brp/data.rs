@@ -50,7 +50,7 @@ pub struct BrpPerson {
 
 impl BrpPerson {
     fn pid_family_name(&self) -> Result<String, BrpDataError> {
-        let name = match self.name.name_usage {
+        let name = match self.name.name_usage.as_ref().unwrap_or(&BrpNameUsage::Own) {
             BrpNameUsage::Own => {
                 BrpName::create_family_name(self.name.family_name_prefix.clone(), self.name.family_name.clone())
             }
@@ -100,11 +100,8 @@ impl BrpPerson {
     }
 
     fn has_spouse_or_partner(&self) -> bool {
-        self.partners
-            .first()
-            .map(|partner| {
-                partner.kind != BrpMaritalStatus::Onbekend && partner.start.is_some() && partner.end.is_none()
-            })
+        self.partner()
+            .map(|partner| partner.kind != BrpMaritalStatus::Onbekend)
             .unwrap_or(false)
     }
 }
@@ -146,16 +143,14 @@ impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
                             value: ciborium::Value::Text(value.birth.date.date.format("%Y-%m-%d").to_string()),
                         }
                         .into(),
-                        unsigned::Entry {
+                        value.birth.country.as_ref().map(|country| unsigned::Entry {
                             name: String::from(PID_BIRTH_COUNTRY),
-                            value: ciborium::Value::Text(value.birth.country.name.clone()),
-                        }
-                        .into(),
-                        unsigned::Entry {
+                            value: ciborium::Value::Text(country.name.clone()),
+                        }),
+                        value.birth.place.as_ref().map(|place| unsigned::Entry {
                             name: String::from(PID_BIRTH_CITY),
-                            value: ciborium::Value::Text(value.birth.place.name.clone()),
-                        }
-                        .into(),
+                            value: ciborium::Value::Text(place.name.clone()),
+                        }),
                         unsigned::Entry {
                             name: String::from(PID_AGE_OVER_18),
                             value: ciborium::Value::Bool(value.is_over_18()),
@@ -261,7 +256,7 @@ pub struct BrpName {
     family_name: String,
 
     #[serde(rename = "aanduidingNaamgebruik")]
-    name_usage: BrpNameUsage,
+    name_usage: Option<BrpNameUsage>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -309,10 +304,10 @@ pub struct BrpBirth {
     date: BrpDate,
 
     #[serde(rename = "land")]
-    country: BrpBirthCountry,
+    country: Option<BrpBirthCountry>,
 
     #[serde(rename = "plaats")]
-    place: BrpBirthPlace,
+    place: Option<BrpBirthPlace>,
 }
 
 #[derive(Deserialize)]

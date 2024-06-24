@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-06-13T11:53:29+02:00",
+    "@@last_modified": "2024-06-24T21:18:16+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -228,7 +228,7 @@
     "disclosureGenericErrorPageTitle": "Something went wrong",
     "disclosureLoadingSubtitle": "Your request is being retrieved",
     "disclosureLoadingTitle": "Please wait",
-    "disclosureMissingAttributesPageCloseCta": "Close request",
+    "disclosureMissingAttributesPageCloseCta": "Stop request",
     "disclosureMissingAttributesPageDescription": "{organization} is requesting data which is not yet in your Wallet.",
     "@disclosureMissingAttributesPageDescription": {
         "placeholders": {
@@ -389,6 +389,7 @@
     "generalTimeAgoLessThenOneMinute": "less then a minute",
     "generalVersionText": "App version:",
     "generalWCAGBack": "Back",
+    "generalWCAGChangeLanguage": "Change language",
     "generalWCAGClose": "Close",
     "generalWCAGHelp": "Need help?",
     "generalWCAGInfo": "More info",
@@ -437,6 +438,8 @@
             }
         }
     },
+    "historyDetailScreenErrorTitleForDisclosure": "Sharing with {organization} has potentially failed",
+    "historyDetailScreenErrorTitleForLogin": "Login at {organization} failed",
     "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
     "historyDetailScreenHelpdeskTitle": "Open support",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {Shared 1 data} other {Shared {attributes} data}}",
@@ -481,6 +484,8 @@
             }
         }
     },
+    "historyDetailScreenStoppedTitleForDisclosure": "Sharing stopped with {organization}",
+    "historyDetailScreenStoppedTitleForLogin": "Login stopped with {organization}",
     "historyDetailScreenTermsSubtitle": "This is how {organization} processes your data",
     "@historyDetailScreenTermsSubtitle": {
         "placeholders": {
@@ -492,6 +497,8 @@
     },
     "historyDetailScreenTermsTitle": "Terms and Conditions",
     "historyDetailScreenTitle": "Details",
+    "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
+    "historyDetailScreenTitleForLogin": "Logged in with {organization}",
     "historyOverviewScreenTitle": "Activities",
     "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can stop at any time.\nYou keep your PIN code to yourself.\nYou share your data at your own risk.",
     "introductionConditionsScreenConditionsCta": "Read the terms and conditions",
@@ -869,6 +876,7 @@
     "signSuccessPageTitle": "Success!",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Yes, correct",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Address",
+    "walletPersonalizeCheckDataOfferingPageBirthDateValue": "{birthDate}",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Born",
     "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
     "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {
