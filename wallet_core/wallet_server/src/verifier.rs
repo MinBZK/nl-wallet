@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{OriginalUri, Path, Query, State},
+    extract::{Path, Query, State},
     routing::{get, on, post, MethodFilter},
     Form, Json, Router,
 };
-use http::{header, HeaderMap, HeaderValue, Method};
+use http::{header, HeaderMap, HeaderValue, Method, Uri};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
@@ -89,9 +89,9 @@ where
 }
 
 async fn retrieve_request<S>(
+    uri: Uri,
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
-    OriginalUri(uri): OriginalUri,
     Form(wallet_request): Form<WalletRequest>,
 ) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
 where

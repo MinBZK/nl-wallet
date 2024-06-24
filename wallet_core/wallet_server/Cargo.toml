@@ -94,7 +94,6 @@ axum = { workspace = true, features = [
     "tokio",
     "tower-log",
     "tracing",
-    "original-uri",
 ] }
 base64.workspace = true
 cfg-if.workspace = true
