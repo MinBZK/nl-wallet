@@ -549,7 +549,7 @@ mod tests {
         // with the items parsed from the disclosure URI.
         assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == IsoDisclosureUriData {
             reader_engagement_bytes: b"foobar".to_vec(),
-        } && session.reader_engagement_source == DisclosureUriSource::QrCode );
+        } && session.disclosure_uri_source == DisclosureUriSource::QrCode );
 
         // Test that the returned `DisclosureProposal` contains the
         // `ReaderRegistration` we set up earlier, as well as the

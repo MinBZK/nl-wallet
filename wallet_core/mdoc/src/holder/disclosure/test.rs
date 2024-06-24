@@ -454,7 +454,7 @@ pub enum ReaderCertificateKind {
 /// defaults just before they are actually used.
 pub async fn disclosure_session_start<FS, FM, FD>(
     session_type: SessionType,
-    reader_engagement_source: DisclosureUriSource,
+    disclosure_uri_source: DisclosureUriSource,
     certificate_kind: ReaderCertificateKind,
     payloads: &mut Vec<Vec<u8>>,
     transform_verfier_session: FS,
@@ -509,7 +509,7 @@ where
     let result = DisclosureSession::start(
         client,
         &verifier_session.reader_engagement_bytes(),
-        reader_engagement_source,
+        disclosure_uri_source,
         &mdoc_data_source,
         &verifier_session.trust_anchors(),
     )

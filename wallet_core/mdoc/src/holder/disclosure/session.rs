@@ -122,7 +122,7 @@ where
     pub async fn start<'a, S>(
         client: H,
         reader_engagement_bytes: &[u8],
-        reader_engagement_source: DisclosureUriSource,
+        disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self>
@@ -145,8 +145,8 @@ where
         // Check the `SessionType` that was contained in the verifier URL against the source of the reader engagement.
         // A same-device session is expected to come from a Universal Link,
         // while a cross-device session should come from a scanned QR code.
-        if reader_engagement_source.session_type() != session_type {
-            return Err(HolderError::ReaderEnagementSourceMismatch(session_type, reader_engagement_source).into());
+        if disclosure_uri_source.session_type() != session_type {
+            return Err(HolderError::ReaderEnagementSourceMismatch(session_type, disclosure_uri_source).into());
         }
 
         // Create a new `DeviceEngagement` message and private key. Use a
