@@ -92,7 +92,7 @@ async fn retrieve_request<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     OriginalUri(uri): OriginalUri,
-    wallet_request: Option<Form<WalletRequest>>,
+    Form(wallet_request): Form<WalletRequest>,
 ) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
@@ -107,7 +107,7 @@ where
                 .public_url
                 .join_base_url(&format!("disclosure/{session_token}/response_uri")),
             uri.query(),
-            wallet_request.and_then(|r| r.0.wallet_nonce),
+            wallet_request.wallet_nonce,
         )
         .await
         .map_err(|err| {
