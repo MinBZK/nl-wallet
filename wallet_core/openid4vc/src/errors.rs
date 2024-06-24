@@ -92,9 +92,8 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 | GetAuthRequestError::UnknownUseCase(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
 
-                GetAuthRequestError::InvalidEphemeralId(_) | GetAuthRequestError::Session(_) => {
-                    GetRequestErrorCode::InvalidRequest
-                }
+                GetAuthRequestError::InvalidEphemeralId(_)
+                | GetAuthRequestError::Session(SessionError::UnexpectedState) => GetRequestErrorCode::InvalidRequest,
             },
             error_description: Some(description),
             error_uri: None,
@@ -122,7 +121,8 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                 PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
                     PostAuthResponseErrorCode::UnknownSession
                 }
-                PostAuthResponseError::AuthResponse(_) | PostAuthResponseError::Session(_) => {
+                PostAuthResponseError::AuthResponse(_)
+                | PostAuthResponseError::Session(SessionError::UnexpectedState) => {
                     PostAuthResponseErrorCode::InvalidRequest
                 }
                 PostAuthResponseError::UserError(_) => panic!("UserError should never be sent as response to user"),
@@ -154,7 +154,7 @@ impl From<VerificationError> for ErrorResponse<VerificationErrorCode> {
                 VerificationError::Session(SessionError::SessionStore(_)) | VerificationError::UrlEncoding(_) => {
                     VerificationErrorCode::ServerError
                 }
-                VerificationError::Session(_) => VerificationErrorCode::InvalidRequest,
+                VerificationError::Session(SessionError::UnexpectedState) => VerificationErrorCode::InvalidRequest,
                 VerificationError::UnknownUseCase(_)
                 | VerificationError::ReturnUrlConfigurationMismatch
                 | VerificationError::NoItemsRequests
@@ -175,7 +175,7 @@ impl ErrorStatusCode for VerificationErrorCode {
         match self {
             VerificationErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             VerificationErrorCode::SessionUnknown | VerificationErrorCode::ExpiredSession => StatusCode::NOT_FOUND,
-            _ => StatusCode::BAD_REQUEST,
+            VerificationErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
         }
     }
 }
