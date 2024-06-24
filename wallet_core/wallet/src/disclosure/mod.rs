@@ -45,7 +45,7 @@ pub trait MdocDisclosureSession<D> {
         disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> nl_wallet_mdoc::Result<Self, Self::Error>
+    ) -> Result<Self, Self::Error>
     where
         Self: Sized;
 
