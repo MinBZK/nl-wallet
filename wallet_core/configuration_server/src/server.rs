@@ -1,7 +1,4 @@
-use std::{
-    error::Error,
-    net::{SocketAddr, TcpListener},
-};
+use std::{error::Error, net::SocketAddr};
 
 use axum::{
     extract::State,
@@ -20,7 +17,6 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
     let config = RustlsConfig::from_der(vec![settings.config_server_cert], settings.config_server_key).await?;
 
     let socket = SocketAddr::new(settings.ip, settings.port);
-    let listener = TcpListener::bind(socket)?;
     debug!("listening on {}", socket);
 
     let app = Router::new().nest("/", health_router()).nest(
@@ -30,7 +26,7 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
             .with_state(settings.wallet_config_jwt.into_bytes()),
     );
 
-    axum_server::from_tcp_rustls(listener, config)
+    axum_server::bind_rustls(socket, config)
         .serve(app.into_make_service())
         .await?;
 
