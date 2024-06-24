@@ -106,6 +106,7 @@ impl ErrorStatusCode for GetRequestErrorCode {
         match self {
             GetRequestErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             GetRequestErrorCode::ExpiredSession | GetRequestErrorCode::UnknownSession => StatusCode::NOT_FOUND,
+            GetRequestErrorCode::ExpiredEphemeralId => StatusCode::FORBIDDEN,
             _ => StatusCode::BAD_REQUEST,
         }
     }
