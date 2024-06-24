@@ -15,6 +15,7 @@ use nl_wallet_mdoc::{
     verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType},
 };
 use openid4vc::{
+    disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
     openid4vp::{VpResponse, WalletRequest},
     verifier::{DisclosureData, StatusResponse, Verifier, VerifierUrlParameters, WalletAuthResponse},
     GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
@@ -118,7 +119,7 @@ where
 
     let headers = HeaderMap::from_iter([(
         header::CONTENT_TYPE,
-        HeaderValue::from_str("application/oauth-authz-req+jwt").unwrap(),
+        HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
     )]);
     Ok((headers, response.0))
 }

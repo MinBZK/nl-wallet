@@ -1,6 +1,8 @@
 use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
+use mime::Mime;
+use once_cell::sync::Lazy;
 use reqwest::{header::ACCEPT, Method, Response};
 use tracing::{info, warn};
 
@@ -105,6 +107,12 @@ pub trait VpMessageClient {
     }
 }
 
+pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: Lazy<Mime> = Lazy::new(|| {
+    "application/oauth-authz-req+jwt"
+        .parse()
+        .expect("could not parse MIME type")
+});
+
 #[derive(From)]
 pub struct HttpVpMessageClient {
     http_client: reqwest::Client,
@@ -124,7 +132,7 @@ impl VpMessageClient for HttpVpMessageClient {
         let mut request = self
             .http_client
             .request(method, url.into_inner())
-            .header(ACCEPT, "application/oauth-authz-req+jwt");
+            .header(ACCEPT, APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref());
 
         if wallet_nonce.is_some() {
             request = request.form(&WalletRequest { wallet_nonce });

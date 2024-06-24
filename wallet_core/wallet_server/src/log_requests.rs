@@ -5,6 +5,7 @@ use axum::{
 };
 use base64::prelude::*;
 use hyper::{body::Bytes, Body};
+use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 
 pub(crate) async fn log_request_response(
     req: Request<Body>,
@@ -55,7 +56,7 @@ fn body_to_string(bytes: &Bytes, headers: &HeaderMap<HeaderValue>) -> String {
         "application/json",
         "application/x-www-form-urlencoded",
         "text/plain",
-        "application/oauth-authz-req+jwt",
+        APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref(),
     ]
     .into_iter()
     .any(|header| match std::str::from_utf8(content_type) {
