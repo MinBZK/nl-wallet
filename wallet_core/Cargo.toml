@@ -37,7 +37,7 @@ async_fn_in_trait = "allow"
 
 [workspace.dependencies]
 aes-gcm = "0.10.3"
-android_logger = "0.13.1"
+android_logger = "0.14.1"
 anyhow = "1.0.66"
 assert_cmd = "2.0.12"
 assert_fs = "1.0.13"
