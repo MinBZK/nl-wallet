@@ -61,7 +61,7 @@ pub struct VpRequestUriObject {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")] // SCREAMING_SNAKE_CASE might make more sense but the spec says lowercase
 pub enum RequestUriMethod {
     #[default]
     GET,
