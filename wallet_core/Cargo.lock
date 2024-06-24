@@ -2458,7 +2458,7 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "assert_matches",
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "ciborium",
  "coset",
@@ -2660,7 +2660,7 @@ name = "openid4vc"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
- "base64 0.21.7",
+ "base64 0.22.1",
  "biscuit",
  "chrono",
  "ciborium",
@@ -5279,7 +5279,7 @@ version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "assert_matches",
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "ciborium",
  "dotenvy",
@@ -5347,7 +5347,7 @@ name = "wallet_common"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "config",
  "etag",
@@ -5511,7 +5511,7 @@ dependencies = [
  "assert_matches",
  "axum",
  "axum-extra",
- "base64 0.21.7",
+ "base64 0.22.1",
  "cfg-if",
  "chrono",
  "ciborium",
