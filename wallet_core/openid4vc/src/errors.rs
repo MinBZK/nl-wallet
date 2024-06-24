@@ -185,7 +185,11 @@ impl ErrorStatusCode for GetRequestErrorCode {
         match self {
             GetRequestErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             GetRequestErrorCode::ExpiredSession | GetRequestErrorCode::UnknownSession => StatusCode::NOT_FOUND,
-            GetRequestErrorCode::ExpiredEphemeralId => StatusCode::FORBIDDEN,
+
+            // Per RFC 7235 we MUST include a `WWW-Authenticate` HTTP header with this, but we can't do that
+            // conveniently here. It seems this header is often skipped, and we use it internally here, we skip it too.
+            GetRequestErrorCode::ExpiredEphemeralId => StatusCode::UNAUTHORIZED,
+
             _ => StatusCode::BAD_REQUEST,
         }
     }
@@ -275,6 +279,9 @@ impl ErrorStatusCode for VerificationErrorCode {
             VerificationErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             VerificationErrorCode::SessionUnknown | VerificationErrorCode::ExpiredSession => StatusCode::NOT_FOUND,
             VerificationErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+
+            // See the other comment on `StatusCode::UNAUTHORIZED`
+            VerificationErrorCode::Nonce => StatusCode::UNAUTHORIZED,
         }
     }
 }
