@@ -387,8 +387,6 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
 
-        let url_params = serde_urlencoded::from_str(url.as_ref().query().unwrap()).unwrap();
-
         let jws = self
             .verifier
             .process_get_request(
@@ -396,7 +394,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
                 format!("https://example.com/verifier_base_url/{session_token}/response_uri")
                     .parse()
                     .unwrap(),
-                url_params,
+                url.as_ref().query(),
                 wallet_nonce,
             )
             .await

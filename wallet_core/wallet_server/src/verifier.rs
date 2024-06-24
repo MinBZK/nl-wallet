@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{OriginalUri, Path, Query, State},
     routing::{get, on, post, MethodFilter},
     Form, Json, Router,
 };
@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{
     disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
     openid4vp::{VpResponse, WalletRequest},
-    verifier::{DisclosureData, StatusResponse, Verifier, VerifierUrlParameters, WalletAuthResponse},
+    verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
     GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator};
@@ -91,7 +91,7 @@ where
 async fn retrieve_request<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
-    Query(url_params): Query<VerifierUrlParameters>,
+    OriginalUri(uri): OriginalUri,
     wallet_request: Option<Form<WalletRequest>>,
 ) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
 where
@@ -106,7 +106,7 @@ where
             state
                 .public_url
                 .join_base_url(&format!("disclosure/{session_token}/response_uri")),
-            url_params,
+            uri.query(),
             wallet_request.and_then(|r| r.0.wallet_nonce),
         )
         .await

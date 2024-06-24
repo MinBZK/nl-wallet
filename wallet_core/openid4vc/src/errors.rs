@@ -170,8 +170,9 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
-
-                GetAuthRequestError::InvalidEphemeralId(_)
+                GetAuthRequestError::QueryParametersMissing
+                | GetAuthRequestError::QueryParametersDeserialization(_)
+                | GetAuthRequestError::InvalidEphemeralId(_)
                 | GetAuthRequestError::Session(SessionError::UnexpectedState) => GetRequestErrorCode::InvalidRequest,
             },
             error_description: Some(description),

@@ -110,6 +110,10 @@ pub enum GetAuthRequestError {
     ReturnUrlConfigurationMismatch,
     #[error("unknown use case: {0}")]
     UnknownUseCase(String),
+    #[error("missing query parameters")]
+    QueryParametersMissing,
+    #[error("failed to deserialize query parameters: {0}")]
+    QueryParametersDeserialization(#[from] serde_urlencoded::de::Error),
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
@@ -537,12 +541,16 @@ where
         &self,
         session_token: &SessionToken,
         response_uri: BaseUrl,
-        url_params: VerifierUrlParameters,
+        query: Option<&str>,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
         let session: Session<Created> = self.get_session(session_token).await?;
 
         info!("Session({session_token}): get request");
+
+        let url_params: VerifierUrlParameters =
+            serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
+                .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
 
         // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
         // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
