@@ -247,7 +247,7 @@ where
 {
     pub async fn start<'a, S>(
         client: H,
-        request_uri: &str,
+        request_uri_query: &str,
         uri_source: DisclosureUriSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
@@ -258,7 +258,7 @@ where
         info!("start disclosure session");
 
         let request_uri_object: VpRequestUriObject =
-            serde_urlencoded::from_str(request_uri).map_err(VpClientError::RequestUri)?;
+            serde_urlencoded::from_str(request_uri_query).map_err(VpClientError::RequestUri)?;
 
         // Parse the `SessionType` from the verifier URL.
         let VerifierUrlParameters { session_type, .. } = serde_urlencoded::from_str(
