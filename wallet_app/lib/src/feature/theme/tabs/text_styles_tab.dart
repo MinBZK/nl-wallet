@@ -63,6 +63,17 @@ class TextStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         SecondaryButton(
           onPressed: () {
+            final request = DisclosureNavigationRequest(
+              'walletdebuginteraction://deeplink#%7B%22id%22%3A%22CAR_RENTAL%22%2C%22type%22%3A%22verify%22%7D',
+            );
+            context.read<NavigationService>().handleNavigationRequest(request);
+          },
+          icon: const Icon(Icons.warning_amber_outlined),
+          text: const Text('missing attributes'),
+        ),
+        const SizedBox(height: 12),
+        SecondaryButton(
+          onPressed: () {
             final request = IssuanceNavigationRequest(
               'walletdebuginteraction://deeplink#%7B%22id%22%3A%22DRIVING_LICENSE%22%2C%22type%22%3A%22issue%22%7D',
             );
