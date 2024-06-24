@@ -238,10 +238,6 @@ final _kOpenBankAccountRequestedAttributes = [
     label: 'Geboortedatum',
     key: 'mock.birthDate',
   ),
-  RequestedAttribute(
-    label: 'Nationaliteit',
-    key: 'mock.nationality',
-  ),
   ..._kCitizenshipNumberRequest,
   RequestedAttribute(
     label: 'Straatnaam',
@@ -270,10 +266,6 @@ final _kCreateMbAccountRequestedAttributes = [
   RequestedAttribute(
     label: 'Geboortedatum',
     key: 'mock.birthDate',
-  ),
-  RequestedAttribute(
-    label: 'Nationaliteit',
-    key: 'mock.nationality',
   ),
   RequestedAttribute(
     label: 'Straatnaam',
