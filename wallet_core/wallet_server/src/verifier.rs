@@ -97,7 +97,7 @@ async fn retrieve_request<S>(
 where
     S: SessionStore<DisclosureData>,
 {
-    info!("process received message");
+    info!("process request for Authorization Request JWT");
 
     let response = state
         .verifier
@@ -111,11 +111,11 @@ where
         )
         .await
         .map_err(|err| {
-            warn!("processing message failed, returning error");
+            warn!("processing request for Authorization Request JWT failed, returning error");
             ErrorResponse::with_uri(err)
         })?;
 
-    info!("message processed successfully, returning response");
+    info!("processing request for Authorization Request JWT successful, returning response");
 
     let headers = HeaderMap::from_iter([(
         header::CONTENT_TYPE,
@@ -132,18 +132,18 @@ async fn post_response<S>(
 where
     S: SessionStore<DisclosureData>,
 {
-    info!("process received message");
+    info!("process Verifiable Presentation");
 
     let response = state
         .verifier
         .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
         .await
         .map_err(|err| {
-            warn!("processing message failed, returning error");
+            warn!("processing Verifiable Presentation failed, returning error");
             ErrorResponse::with_uri(err)
         })?;
 
-    info!("message processed successfully, returning response");
+    info!("Verifiable Presentation processed successfully, returning response");
 
     Ok(Json(response))
 }
