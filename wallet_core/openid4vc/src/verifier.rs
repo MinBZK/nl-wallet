@@ -166,8 +166,7 @@ pub struct Created {
 pub struct WaitingForResponse {
     auth_request: IsoVpAuthorizationRequest,
     encryption_key: EncryptionPrivateKey,
-    redirect_uri: Option<BaseUrl>,
-    redirect_uri_nonce: Option<String>,
+    redirect_uri: Option<RedirectUri>,
 }
 
 /// State for a session that has ended (for any reason).
@@ -189,6 +188,17 @@ pub enum SessionResult {
     },
     Cancelled,
     Expired,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RedirectUri {
+    uri: BaseUrl,
+    nonce: String,
+}
+
+/// Convenience function for to avoid repetitive dealing with Option<RedirectUri>
+fn uri_from_option(redirect_uri: &Option<RedirectUri>) -> Option<BaseUrl> {
+    redirect_uri.as_ref().map(|u| u.uri.clone())
 }
 
 /// Wrapper for [`EcKeyPair`] that can be serialized.
@@ -549,7 +559,7 @@ where
             )
             .await
         {
-            Ok((jws, next)) => (Ok(jws), next.state().redirect_uri.clone(), next.into()),
+            Ok((jws, next)) => (Ok(jws), uri_from_option(&next.state().redirect_uri), next.into()),
             Err((err, next)) => {
                 let redirect_uri = err.redirect_uri.clone();
                 (Err(err), redirect_uri, next.into())
@@ -777,12 +787,11 @@ impl Session<Created> {
             .process_get_request_inner(session_token, response_uri, session_type, wallet_nonce, use_cases)
             .await
         {
-            Ok((jws, auth_request, redirect_uri, redirect_uri_nonce, enc_keypair)) => {
+            Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
                 let next = WaitingForResponse {
                     auth_request,
                     encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     redirect_uri,
-                    redirect_uri_nonce,
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -812,8 +821,7 @@ impl Session<Created> {
         (
             Jwt<VpAuthorizationRequest>,
             IsoVpAuthorizationRequest,
-            Option<BaseUrl>,
-            Option<String>,
+            Option<RedirectUri>,
             EcKeyPair,
         ),
         WithRedirectUri<GetAuthRequestError>,
@@ -827,7 +835,7 @@ impl Session<Created> {
         };
 
         // Determine if we should include a redirect URI, based on the use case configuration and session type.
-        let (redirect_uri, redirect_uri_nonce) = Self::redirect_uri_and_nonce(
+        let redirect_uri = Self::redirect_uri_and_nonce(
             session_token,
             usecase.session_type_return_url,
             session_type,
@@ -836,8 +844,8 @@ impl Session<Created> {
 
         // Construct the Authorization Request.
         let nonce = random_string(32);
-        let encryption_keypair =
-            EcKeyPair::generate(EcCurve::P256).map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.clone()))?;
+        let encryption_keypair = EcKeyPair::generate(EcCurve::P256)
+            .map_err(|err| WithRedirectUri::new(err.into(), uri_from_option(&redirect_uri)))?;
         let auth_request = IsoVpAuthorizationRequest::new(
             &self.state.data.items_requests,
             usecase.key_pair.certificate(),
@@ -846,14 +854,14 @@ impl Session<Created> {
             response_uri,
             wallet_nonce,
         )
-        .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.clone()))?;
+        .map_err(|err| WithRedirectUri::new(err.into(), uri_from_option(&redirect_uri)))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
         let jws = jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
-            .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.clone()))?;
+            .map_err(|err| WithRedirectUri::new(err.into(), uri_from_option(&redirect_uri)))?;
 
-        Ok((jws, auth_request, redirect_uri, redirect_uri_nonce, encryption_keypair))
+        Ok((jws, auth_request, redirect_uri, encryption_keypair))
     }
 
     fn redirect_uri_and_nonce(
@@ -861,17 +869,20 @@ impl Session<Created> {
         session_type_return_url: SessionTypeReturnUrl,
         session_type: SessionType,
         template: Option<ReturnUrlTemplate>,
-    ) -> Result<(Option<BaseUrl>, Option<String>), GetAuthRequestError> {
+    ) -> Result<Option<RedirectUri>, GetAuthRequestError> {
         match (session_type_return_url, session_type, template.clone()) {
             (SessionTypeReturnUrl::Both, _, Some(uri_template))
             | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(uri_template)) => {
                 let nonce = random_string(32);
                 let mut redirect_uri = uri_template.into_url(session_token);
                 redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
-                Ok((Some(redirect_uri.try_into().unwrap()), Some(nonce)))
+                Ok(Some(RedirectUri {
+                    uri: redirect_uri.try_into().unwrap(),
+                    nonce,
+                }))
             }
             (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
-                Ok((None, None))
+                Ok(None)
             }
             _ => {
                 // We checked for this case when the session was created, so this should not happen
@@ -940,13 +951,13 @@ impl Session<WaitingForResponse> {
             trust_anchors,
         ) {
             Ok(disclosed) => {
-                let redirect_uri_nonce = self.state().redirect_uri_nonce.clone();
+                let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
                 let response = self.ok_response();
                 let next = self.transition_finish(disclosed, redirect_uri_nonce);
                 (Ok(response), next)
             }
             Err(err) => {
-                let redirect_uri = self.state().redirect_uri.clone();
+                let redirect_uri = uri_from_option(&self.state().redirect_uri);
                 let next = self.transition_fail(&err);
                 (Err(WithRedirectUri::new(err.into(), redirect_uri)), next)
             }
@@ -957,7 +968,7 @@ impl Session<WaitingForResponse> {
 
     fn ok_response(&self) -> VpResponse {
         VpResponse {
-            redirect_uri: self.state().redirect_uri.clone(),
+            redirect_uri: uri_from_option(&self.state().redirect_uri),
         }
     }
 
