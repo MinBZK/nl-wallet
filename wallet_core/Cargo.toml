@@ -56,7 +56,7 @@ chrono = { version = "0.4.38", default-features = false }
 ciborium = "0.2.1"
 clap = "4.4.7"
 clio = "0.3.4"
-config = { version = "0.13.3", default-features = false }
+config = { version = "0.14.0", default-features = false }
 coset = "0.3.3"
 cryptoki = "0.7.0"
 cstr = "0.2.11"
