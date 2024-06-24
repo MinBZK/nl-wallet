@@ -1,6 +1,5 @@
 mod uri;
 
-use openid4vc::disclosure_session::{HttpVpMessageClient, VpClientError};
 use url::Url;
 use uuid::Uuid;
 
@@ -17,6 +16,7 @@ use nl_wallet_mdoc::{
     },
     verifier::SessionType,
 };
+use openid4vc::disclosure_session::{HttpVpMessageClient, VpClientError};
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
 
 pub use nl_wallet_mdoc::holder::DisclosureUriSource;
