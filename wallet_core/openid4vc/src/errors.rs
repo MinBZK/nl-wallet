@@ -228,7 +228,8 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
             PostAuthResponseErrorCode::ExpiredSession | PostAuthResponseErrorCode::UnknownSession => {
                 StatusCode::NOT_FOUND
             }
-            _ => StatusCode::BAD_REQUEST,
+            PostAuthResponseErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            PostAuthResponseErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
         }
     }
 }
