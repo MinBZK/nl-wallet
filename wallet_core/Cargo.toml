@@ -85,7 +85,6 @@ mockall = "0.11.4"
 never = "0.1.0"
 nutype = "0.4.0"
 once_cell = "1.17.1"
-openssl = "0.10.6"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false }
 parking_lot = "0.12.1"

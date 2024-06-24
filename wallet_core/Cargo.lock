@@ -5483,7 +5483,6 @@ dependencies = [
  "nl_wallet_mdoc",
  "nutype",
  "openid4vc",
- "openssl",
  "p256",
  "parking_lot",
  "rand",

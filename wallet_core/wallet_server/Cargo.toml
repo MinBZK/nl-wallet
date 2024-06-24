@@ -79,7 +79,6 @@ config = { workspace = true, features = ["toml"] }
 http.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-openssl = { workspace = true, features = ["vendored"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 sentry = { workspace = true, features = [
     "backtrace",
