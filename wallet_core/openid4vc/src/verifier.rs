@@ -119,9 +119,11 @@ pub enum PostAuthResponseError {
     Session(#[from] SessionError),
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
-    #[error("user aborted with error: {0:?}")]
-    UserError(ErrorResponse<VpAuthorizationErrorCode>),
 }
+
+#[derive(thiserror::Error, Debug)]
+#[error("user aborted with error: {0:?}")]
+pub struct UserError(ErrorResponse<VpAuthorizationErrorCode>);
 
 #[derive(thiserror::Error, Debug)]
 pub struct WithRedirectUri<T: std::fmt::Debug> {
@@ -920,7 +922,7 @@ impl Session<WaitingForResponse> {
                     self.transition_abort()
                 } else {
                     // If the user sent any other error, fail the session.
-                    self.transition_fail(&PostAuthResponseError::UserError(err))
+                    self.transition_fail(&UserError(err))
                 };
                 // Return a non-error response to the wallet (including the redirect URI) to indicate
                 // we successfully processed its error response.

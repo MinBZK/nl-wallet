@@ -215,7 +215,6 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                 | PostAuthResponseError::Session(SessionError::UnexpectedState) => {
                     PostAuthResponseErrorCode::InvalidRequest
                 }
-                PostAuthResponseError::UserError(_) => panic!("UserError should never be sent as response to user"),
             },
             error_description: Some(description),
             error_uri: None,
