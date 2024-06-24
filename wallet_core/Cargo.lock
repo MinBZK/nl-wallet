@@ -1424,7 +1424,7 @@ dependencies = [
  "cstr",
  "flutter_api_macros",
  "flutter_rust_bridge",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "once_cell",
  "oslog",
  "parking_lot",
@@ -2153,9 +2153,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.11.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -2468,7 +2468,7 @@ dependencies = [
  "hex-literal",
  "http",
  "indexmap 2.2.6",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "nutype",
  "once_cell",
  "p256",
@@ -2667,7 +2667,7 @@ dependencies = [
  "futures",
  "hex",
  "indexmap 2.2.6",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "josekit",
  "jsonwebtoken",
  "mime",
@@ -5286,7 +5286,7 @@ dependencies = [
  "futures",
  "http",
  "indexmap 2.2.6",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "jsonwebtoken",
  "libsqlite3-sys",
  "migration",
@@ -5330,7 +5330,7 @@ dependencies = [
  "chrono",
  "clap",
  "clio",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "nl_wallet_mdoc",
  "p256",
  "pem 3.0.4",
