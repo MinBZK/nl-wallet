@@ -270,7 +270,7 @@ where
         )
         .map_err(VpClientError::MalformedSessionType)?;
 
-        // Check the `SessionType` that was contained in the verifier URL against the source of the reader engagement.
+        // Check the `SessionType` that was contained in the verifier URL against the source of the URI.
         // A same-device session is expected to come from a Universal Link,
         // while a cross-device session should come from a scanned QR code.
         if uri_source.session_type() != session_type {
