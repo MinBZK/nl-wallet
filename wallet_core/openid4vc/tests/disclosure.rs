@@ -22,7 +22,7 @@ use openid4vc::{
     jwt,
     mock::MockMdocDataSource,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
-    verifier::{DisclosureData, StatusResponse, Verifier, VerifierUrlParameters, VpToken, WalletAuthResponse},
+    verifier::{DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken, WalletAuthResponse},
     ErrorResponse, VpAuthorizationErrorCode,
 };
 use wallet_common::{
@@ -265,8 +265,6 @@ impl VpMessageClient for DirectMockVpMessageClient {
 #[case(SessionType::CrossDevice, DisclosureUriSource::QrCode)]
 #[tokio::test]
 async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_source: DisclosureUriSource) {
-    use openid4vc::verifier::UseCase;
-
     let items_requests = Examples::items_requests();
 
     // Initialize key material
