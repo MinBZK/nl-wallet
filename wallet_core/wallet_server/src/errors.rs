@@ -35,7 +35,7 @@ impl<T> ErrorResponse<T> {
 
     #[cfg(feature = "disclosure")]
     pub(crate) fn with_uri(
-        err: openid4vc::verifier::WithRedirectUri<impl Into<openid4vc::ErrorResponse<T>> + std::fmt::Debug>,
+        err: openid4vc::verifier::WithRedirectUri<impl Into<openid4vc::ErrorResponse<T>> + std::error::Error>,
     ) -> Self {
         Self {
             error_response: err.error.into(),

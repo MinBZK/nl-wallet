@@ -126,21 +126,19 @@ pub enum PostAuthResponseError {
 pub struct UserError(ErrorResponse<VpAuthorizationErrorCode>);
 
 #[derive(thiserror::Error, Debug)]
-pub struct WithRedirectUri<T: std::fmt::Debug> {
+pub struct WithRedirectUri<T: std::error::Error> {
+    #[source]
     pub error: T,
     pub redirect_uri: Option<BaseUrl>,
 }
 
-impl<T: std::fmt::Debug> From<T> for WithRedirectUri<T> {
+impl<T: std::error::Error> From<T> for WithRedirectUri<T> {
     fn from(error: T) -> Self {
-        Self {
-            error,
-            redirect_uri: None,
-        }
+        Self::new(error, None)
     }
 }
 
-impl<T: std::fmt::Debug> WithRedirectUri<T> {
+impl<T: std::error::Error> WithRedirectUri<T> {
     fn new(error: T, redirect_uri: Option<BaseUrl>) -> Self {
         Self { error, redirect_uri }
     }
@@ -512,7 +510,7 @@ where
     async fn get_session<T, E>(&self, session_token: &SessionToken) -> Result<Session<T>, WithRedirectUri<E>>
     where
         T: DisclosureState,
-        E: std::fmt::Debug + From<SessionError>,
+        E: std::error::Error + From<SessionError>,
         Session<T>: TryFrom<SessionState<DisclosureData>, Error = SessionError>,
     {
         let session = self
