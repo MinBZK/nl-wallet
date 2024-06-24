@@ -870,7 +870,7 @@ impl Session<Created> {
         session_type: SessionType,
         template: Option<ReturnUrlTemplate>,
     ) -> Result<Option<RedirectUri>, GetAuthRequestError> {
-        match (session_type_return_url, session_type, template.clone()) {
+        match (session_type_return_url, session_type, template) {
             (SessionTypeReturnUrl::Both, _, Some(uri_template))
             | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(uri_template)) => {
                 let nonce = random_string(32);
@@ -884,7 +884,7 @@ impl Session<Created> {
             (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
                 Ok(None)
             }
-            _ => {
+            (_, _, template) => {
                 // We checked for this case when the session was created, so this should not happen
                 // except when the configuration has changed during this session.
                 warn!(
