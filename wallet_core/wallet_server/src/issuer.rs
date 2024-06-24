@@ -108,11 +108,7 @@ where
     K: KeyRing,
     S: SessionStore<IssuanceData>,
 {
-    let metadata = state
-        .issuer
-        .oauth_metadata()
-        .await
-        .map_err(|e| Box::new(e) as Box<dyn Display>)?;
+    let metadata = state.issuer.oauth_metadata().await?;
     Ok(Json(metadata))
 }
 
@@ -270,8 +266,11 @@ impl ErrorStatusCode for MetadataError {
     }
 }
 
-impl From<Box<dyn Display>> for ErrorResponse<MetadataError> {
-    fn from(error: Box<dyn Display>) -> Self {
+impl<T> From<T> for ErrorResponse<MetadataError>
+where
+    T: Display,
+{
+    fn from(error: T) -> Self {
         ErrorResponse {
             error_response: openid4vc::ErrorResponse {
                 error: MetadataError::Metadata,
