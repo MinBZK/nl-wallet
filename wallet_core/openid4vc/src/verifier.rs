@@ -592,15 +592,15 @@ where
                 .as_slice(),
         );
 
-        let redirect_uri = match &result {
-            Ok(response) => response.redirect_uri.clone(),
-            Err(err) => err.redirect_uri.clone(),
-        };
-
-        self.sessions
-            .write(next.into(), false)
-            .await
-            .map_err(|err| WithRedirectUri::new(SessionError::SessionStore(err).into(), redirect_uri))?;
+        self.sessions.write(next.into(), false).await.map_err(|err| {
+            WithRedirectUri::new(
+                SessionError::SessionStore(err).into(),
+                match &result {
+                    Ok(response) => response.redirect_uri.clone(),
+                    Err(err) => err.redirect_uri.clone(),
+                },
+            )
+        })?;
 
         result
     }
