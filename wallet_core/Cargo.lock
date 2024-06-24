@@ -5592,6 +5592,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wallet_common",
+ "wallet_server",
 ]
 
 [[package]]

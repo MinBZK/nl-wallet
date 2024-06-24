@@ -35,20 +35,20 @@ pub(super) static MDOC_DOCUMENT_MAPPING: Lazy<MdocDocumentMapping> = Lazy::new(|
                     },
                 ),
                 (
-                    (PID_DOCTYPE, "family_name_prefix"),
-                    DataElementValueMapping {
-                        key: "family_name_prefix",
-                        is_mandatory: false,
-                        key_labels: HashMap::from([("en", "Prefix"), ("nl", "Voorvoegsel")]),
-                        value_type: AttributeValueType::String,
-                    },
-                ),
-                (
                     (PID_DOCTYPE, "family_name"),
                     DataElementValueMapping {
                         key: "family_name",
                         is_mandatory: true,
                         key_labels: HashMap::from([("en", "Surname"), ("nl", "Achternaam")]),
+                        value_type: AttributeValueType::String,
+                    },
+                ),
+                (
+                    (PID_DOCTYPE, "own_family_name"),
+                    DataElementValueMapping {
+                        key: "own_family_name",
+                        is_mandatory: false,
+                        key_labels: HashMap::from([("en", "Family name"), ("nl", "Geslachtsnaam")]),
                         value_type: AttributeValueType::String,
                     },
                 ),

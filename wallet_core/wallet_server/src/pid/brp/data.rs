@@ -9,6 +9,12 @@ use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
 
 use crate::pid::constants::*;
 
+#[derive(Debug, thiserror::Error)]
+pub enum BrpDataError {
+    #[error("missing partner")]
+    MissingPartner,
+}
+
 #[derive(Deserialize)]
 pub struct BrpPersons {
     #[serde(rename = "personen")]
@@ -43,8 +49,54 @@ pub struct BrpPerson {
 }
 
 impl BrpPerson {
+    fn pid_family_name(&self) -> Result<String, BrpDataError> {
+        let name = match self.name.name_usage {
+            BrpNameUsage::Own => {
+                BrpName::create_family_name(self.name.family_name_prefix.clone(), self.name.family_name.clone())
+            }
+            BrpNameUsage::Partner => {
+                let partner = self.partner().ok_or(BrpDataError::MissingPartner)?;
+                BrpName::create_family_name(
+                    partner.name.family_name_prefix.clone(),
+                    partner.name.family_name.clone(),
+                )
+            }
+            BrpNameUsage::OwnThenPartner => {
+                let partner = self.partner().ok_or(BrpDataError::MissingPartner)?;
+                BrpName::concat_names(
+                    BrpName::create_family_name(self.name.family_name_prefix.clone(), self.name.family_name.clone()),
+                    BrpName::create_family_name(
+                        partner.name.family_name_prefix.clone(),
+                        partner.name.family_name.clone(),
+                    ),
+                )
+            }
+            BrpNameUsage::PartnerThenOwn => {
+                let partner = self.partner().ok_or(BrpDataError::MissingPartner)?;
+                BrpName::concat_names(
+                    BrpName::create_family_name(
+                        partner.name.family_name_prefix.clone(),
+                        partner.name.family_name.clone(),
+                    ),
+                    BrpName::create_family_name(self.name.family_name_prefix.clone(), self.name.family_name.clone()),
+                )
+            }
+        };
+        Ok(name)
+    }
+
+    fn pid_own_name(&self) -> String {
+        BrpName::create_family_name(self.name.family_name_prefix.clone(), self.name.family_name.clone())
+    }
+
     fn is_over_18(&self) -> bool {
         self.age >= 18
+    }
+
+    fn partner(&self) -> Option<&BrpPartner> {
+        self.partners
+            .iter()
+            .find(|partner| partner.start.is_some() && partner.end.is_none())
     }
 
     fn has_spouse_or_partner(&self) -> bool {
@@ -57,8 +109,10 @@ impl BrpPerson {
     }
 }
 
-impl From<&BrpPerson> for Vec<UnsignedMdoc> {
-    fn from(value: &BrpPerson) -> Self {
+impl TryFrom<&BrpPerson> for Vec<UnsignedMdoc> {
+    type Error = BrpDataError;
+
+    fn try_from(value: &BrpPerson) -> Result<Self, Self::Error> {
         let mdocs = vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
@@ -75,13 +129,14 @@ impl From<&BrpPerson> for Vec<UnsignedMdoc> {
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_FAMILY_NAME),
-                            value: ciborium::Value::Text(value.name.family_name.clone()),
+                            value: ciborium::Value::Text(value.pid_family_name()?),
                         }
                         .into(),
-                        value.name.family_name_prefix.clone().map(|prefix| unsigned::Entry {
-                            name: String::from(PID_FAMILY_NAME_PREFIX),
-                            value: ciborium::Value::Text(prefix),
-                        }),
+                        unsigned::Entry {
+                            name: String::from(PID_OWN_FAMILY_NAME),
+                            value: ciborium::Value::Text(value.pid_own_name()),
+                        }
+                        .into(),
                         value.name.given_names.clone().map(|names| unsigned::Entry {
                             name: String::from(PID_GIVEN_NAME),
                             value: ciborium::Value::Text(names),
@@ -166,7 +221,7 @@ impl From<&BrpPerson> for Vec<UnsignedMdoc> {
             },
         ];
 
-        mdocs
+        Ok(mdocs)
     }
 }
 
@@ -204,6 +259,48 @@ pub struct BrpName {
 
     #[serde(rename = "geslachtsnaam")]
     family_name: String,
+
+    #[serde(rename = "aanduidingNaamgebruik")]
+    name_usage: BrpNameUsage,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum BrpNameUsage {
+    Own,
+    Partner,
+    PartnerThenOwn,
+    OwnThenPartner,
+}
+
+impl<'de> Deserialize<'de> for BrpNameUsage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = BrpCode::deserialize(deserializer)?;
+        let status = match value.code.as_str() {
+            "E" => BrpNameUsage::Own,
+            "P" => BrpNameUsage::Partner,
+            "V" => BrpNameUsage::PartnerThenOwn,
+            "N" => BrpNameUsage::OwnThenPartner,
+            _ => BrpNameUsage::Own,
+        };
+        Ok(status)
+    }
+}
+
+impl BrpName {
+    fn create_family_name(prefix: Option<String>, name: String) -> String {
+        if let Some(prefix) = prefix {
+            format!("{} {}", prefix, name)
+        } else {
+            name
+        }
+    }
+
+    fn concat_names(name1: String, name2: String) -> String {
+        format!("{}-{}", name1, name2)
+    }
 }
 
 #[derive(Deserialize)]
@@ -288,6 +385,9 @@ pub struct BrpPartner {
     #[serde(rename = "soortVerbintenis")]
     kind: BrpMaritalStatus,
 
+    #[serde(rename = "naam")]
+    name: BrpName,
+
     #[serde(rename = "aangaanHuwelijkPartnerschap")]
     start: Option<GbaMarriagePartnershipStart>,
 
@@ -337,10 +437,10 @@ mod tests {
 
     use nl_wallet_mdoc::{
         unsigned::{Entry, UnsignedMdoc},
-        NameSpace,
+        DataElementValue, NameSpace,
     };
 
-    use crate::pid::brp::data::BrpPersons;
+    use crate::pid::brp::data::{BrpDataError, BrpPersons};
 
     fn read_json(name: &str) -> String {
         fs::read_to_string(
@@ -352,14 +452,10 @@ mod tests {
         .unwrap()
     }
 
-    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> Vec<(&str, &str)> {
+    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> Vec<(&str, DataElementValue)> {
         attrs
             .iter()
-            .flat_map(|(_ns, entries)| {
-                entries
-                    .iter()
-                    .map(|entry| (entry.name.as_str(), entry.value.as_text().unwrap_or("")))
-            })
+            .flat_map(|(_ns, entries)| entries.iter().map(|entry| (entry.name.as_str(), entry.value.clone())))
             .collect::<Vec<_>>()
     }
 
@@ -367,6 +463,34 @@ mod tests {
     fn should_deserialize_empty_response() {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json("empty")).unwrap();
         assert!(brp_persons.persons.is_empty());
+    }
+
+    #[rstest]
+    #[case("frouke", "Jansen", "Jansen")]
+    #[case("naamgebruik-eigen", "van Buren", "van Buren")]
+    #[case("naamgebruik-partner", "Postma", "van Buren")]
+    #[case("naamgebruik-partner-first", "ten Hag-van Buren", "van Buren")]
+    #[case("naamgebruik-partner-last", "van Buren-ten Hag", "van Buren")]
+    #[case("prefix-family-name", "van Buren", "van Buren")]
+    fn should_handle_family_name(
+        #[case] json_file_name: &str,
+        #[case] expected_family_name: &str,
+        #[case] expected_own_family_name: &str,
+    ) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert_eq!(expected_family_name, brp_person.pid_family_name().unwrap());
+        assert_eq!(expected_own_family_name, brp_person.pid_own_name());
+    }
+
+    #[test]
+    fn should_error_for_naamgebruik_partner_without_partner() {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json("naamgebruik-illegal")).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert!(matches!(
+            brp_person.pid_family_name(),
+            Err(BrpDataError::MissingPartner)
+        ));
     }
 
     #[test]
@@ -410,7 +534,7 @@ mod tests {
     #[test]
     fn should_convert_brp_person_to_mdoc() {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.first().unwrap().into();
+        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.first().unwrap().try_into().unwrap();
 
         assert_eq!(2, unsigned_mdoc.len());
 
@@ -419,26 +543,27 @@ mod tests {
 
         assert_eq!(
             vec![
-                ("bsn", "999991772"),
-                ("family_name", "Jansen"),
-                ("given_name", "Frouke"),
-                ("birth_date", "2000-03-24"),
-                ("birth_country", "België"),
-                ("birth_city", "Luik"),
-                ("age_over_18", ""),
-                ("gender", ""),
-                ("has_spouse_or_partner", ""),
+                ("bsn", "999991772".into()),
+                ("family_name", "Jansen".into()),
+                ("own_family_name", "Jansen".into()),
+                ("given_name", "Frouke".into()),
+                ("birth_date", "2000-03-24".into()),
+                ("birth_country", "België".into()),
+                ("birth_city", "Luik".into()),
+                ("age_over_18", true.into()),
+                ("gender", 2.into()),
+                ("has_spouse_or_partner", false.into()),
             ],
             readable_attrs(pid_card.attributes.as_ref())
         );
 
         assert_eq!(
             vec![
-                ("resident_country", "Nederland"),
-                ("resident_street", "Van Wijngaerdenstraat"),
-                ("resident_postal_code", "2596TW"),
-                ("resident_house_number", "1"),
-                ("resident_city", "Toetsoog"),
+                ("resident_country", "Nederland".into()),
+                ("resident_street", "Van Wijngaerdenstraat".into()),
+                ("resident_postal_code", "2596TW".into()),
+                ("resident_house_number", "1".into()),
+                ("resident_city", "Toetsoog".into()),
             ],
             readable_attrs(address_card.attributes.as_ref())
         );

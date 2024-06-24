@@ -55,6 +55,7 @@ impl GetByBsnRequest {
                 String::from("naam.voornamen"),
                 String::from("naam.voorvoegsel"),
                 String::from("naam.geslachtsnaam"),
+                String::from("naam.aanduidingNaamgebruik"),
                 String::from("geboorte"),
                 String::from("verblijfplaats.verblijfadres.officieleStraatnaam"),
                 String::from("verblijfplaats.verblijfadres.korteStraatnaam"),

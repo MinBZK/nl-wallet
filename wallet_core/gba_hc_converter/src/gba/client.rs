@@ -127,22 +127,8 @@ const VRAAG_REQUEST: &str = r#"
                     <ns0:item>10230</ns0:item>
                     <ns0:item>10240</ns0:item>
                     <ns0:item>10310</ns0:item>
-                    <ns0:item>10320</ns0:item>
-                    <ns0:item>10330</ns0:item>
                     <ns0:item>10410</ns0:item>
                     <ns0:item>16110</ns0:item>
-                    <ns0:item>18310</ns0:item>
-                    <ns0:item>18320</ns0:item>
-                    <ns0:item>40510</ns0:item>
-                    <ns0:item>46310</ns0:item>
-                    <ns0:item>46410</ns0:item>
-                    <ns0:item>46510</ns0:item>
-                    <ns0:item>48210</ns0:item>
-                    <ns0:item>48220</ns0:item>
-                    <ns0:item>48230</ns0:item>
-                    <ns0:item>48310</ns0:item>
-                    <ns0:item>48320</ns0:item>
-                    <ns0:item>48510</ns0:item>
                     <ns0:item>50230</ns0:item>
                     <ns0:item>50240</ns0:item>
                     <ns0:item>50610</ns0:item>
@@ -153,9 +139,10 @@ const VRAAG_REQUEST: &str = r#"
                     <ns0:item>81120</ns0:item>
                     <ns0:item>81130</ns0:item>
                     <ns0:item>81140</ns0:item>
+                    <ns0:item>81150</ns0:item>
                     <ns0:item>81160</ns0:item>
                     <ns0:item>81170</ns0:item>
-                    <ns0:item>87210</ns0:item>
+                    <ns0:item>81210</ns0:item>
                 </ns0:masker>
                 <ns0:parameters>
                     <ns0:item>

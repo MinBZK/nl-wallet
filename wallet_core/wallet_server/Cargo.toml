@@ -152,3 +152,5 @@ wallet_common = { path = "../wallet_common", features = ["sentry"] }
 
 [dev-dependencies]
 rstest.workspace = true
+
+wallet_server = { path = ".", features = ["issuance"] }
