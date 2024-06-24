@@ -244,6 +244,7 @@ pub enum VerificationErrorCode {
     InvalidRequest,
     ExpiredSession,
     SessionUnknown,
+    Nonce,
     ServerError,
 }
 
@@ -262,10 +263,11 @@ impl From<VerificationError> for ErrorResponse<VerificationErrorCode> {
                 | VerificationError::ReturnUrlConfigurationMismatch
                 | VerificationError::NoItemsRequests
                 | VerificationError::SessionNotDone
-                | VerificationError::RedirectUriNonceMismatch(_)
-                | VerificationError::RedirectUriNonceMissing
                 | VerificationError::MissingSAN
                 | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,
+                VerificationError::RedirectUriNonceMismatch(_) | VerificationError::RedirectUriNonceMissing => {
+                    VerificationErrorCode::Nonce
+                }
             },
             error_description: Some(description),
             error_uri: None,
