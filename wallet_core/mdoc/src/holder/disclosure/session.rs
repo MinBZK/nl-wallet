@@ -146,7 +146,7 @@ where
         // A same-device session is expected to come from a Universal Link,
         // while a cross-device session should come from a scanned QR code.
         if disclosure_uri_source.session_type() != session_type {
-            return Err(HolderError::ReaderEnagementSourceMismatch(session_type, disclosure_uri_source).into());
+            return Err(HolderError::DisclosureUriSourceMismatch(session_type, disclosure_uri_source).into());
         }
 
         // Create a new `DeviceEngagement` message and private key. Use a
@@ -889,7 +889,7 @@ mod tests {
 
         assert_matches!(
             error,
-            Error::Holder(HolderError::ReaderEnagementSourceMismatch(
+            Error::Holder(HolderError::DisclosureUriSourceMismatch(
                 typ,
                 source
             )) if typ == session_type && source == uri_source

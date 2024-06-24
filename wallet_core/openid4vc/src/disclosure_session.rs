@@ -60,8 +60,8 @@ pub enum VpClientError {
     MissingSessionType,
     #[error("malformed session_type query parameter in request URI: {0}")]
     MalformedSessionType(#[source] serde_urlencoded::de::Error),
-    #[error("mismatch between session type and reader engagement source: {0} not allowed from {1}")]
-    ReaderEnagementSourceMismatch(SessionType, DisclosureUriSource),
+    #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
+    DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -268,7 +268,7 @@ where
         // A same-device session is expected to come from a Universal Link,
         // while a cross-device session should come from a scanned QR code.
         if uri_source.session_type() != session_type {
-            return Err(VpClientError::ReaderEnagementSourceMismatch(session_type, uri_source));
+            return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source));
         }
 
         // If the server supports it, require it to include a nonce in the Authorization Request JWT
