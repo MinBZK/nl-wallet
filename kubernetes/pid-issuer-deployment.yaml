@@ -44,14 +44,8 @@ spec:
           env:
             - name: PID_ISSUER_PUBLIC_URL
               value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
-            - name: PID_ISSUER_INTERNAL_URL
-              value: "https://${PID_ISSUER_INTERNAL_HOSTNAME}/"
-            - name: PID_ISSUER_UNIVERSAL_LINK_BASE_URL
-              value: "${UNIVERSAL_LINK_BASE}"
             - name: PID_ISSUER_ISSUER__DIGID__ISSUER_URL
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
-            # - name: PID_ISSUER_ISSUER__DIGID__CLIENT_ID
-            #   value: "SSSS"
             - name: PID_ISSUER_ISSUER__BRP_SERVER
               value: "http://brpproxy:5001/"
             - name: DB_USERNAME
