@@ -77,7 +77,7 @@ indexmap = "2.0.2"
 itertools = "0.13.0"
 jni = "0.21.1"
 josekit = "0.8.3"
-jsonwebtoken = "8.2.0"
+jsonwebtoken = "9.3.0"
 lazy_static = "1.4.0"
 libsqlite3-sys = { version = "0.27.0", default-features = false }
 mime = "0.3.17"
