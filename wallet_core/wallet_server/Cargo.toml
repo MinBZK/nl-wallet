@@ -102,7 +102,7 @@ url = { workspace = true, features = ["serde"] }
 
 assert_matches = { workspace = true, optional = true }
 ciborium = { workspace = true, optional = true }
-futures = { workspace = true, optional = true }
+futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 parking_lot = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }

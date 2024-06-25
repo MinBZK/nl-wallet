@@ -27,7 +27,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 config.workspace = true
 etag.workspace = true
-futures.workspace = true
+futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 jsonwebtoken.workspace = true
 mime.workspace = true

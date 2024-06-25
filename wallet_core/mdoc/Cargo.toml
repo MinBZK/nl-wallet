@@ -43,7 +43,7 @@ ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
 dashmap.workspace = true
 derive_more.workspace = true
-futures.workspace = true
+futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true

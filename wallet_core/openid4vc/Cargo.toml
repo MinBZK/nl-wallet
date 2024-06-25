@@ -29,7 +29,7 @@ biscuit.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium = { workspace = true, optional = true }
 derive_more.workspace = true
-futures.workspace = true
+futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true

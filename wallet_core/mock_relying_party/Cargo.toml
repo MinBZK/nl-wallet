@@ -21,7 +21,7 @@ axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "
 # base64.workspace = true
 config = { workspace = true, features = ["toml"] }
 # dashmap.workspace = true
-futures.workspace = true
+futures = { workspace = true, features = ["std"] }
 http.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }

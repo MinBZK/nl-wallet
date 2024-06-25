@@ -68,7 +68,7 @@ derive_more = "0.99.17"
 dotenvy = "0.15.7"
 etag = "4.0.0"
 flutter_rust_bridge = "1.70.0"
-futures = "0.3.17"
+futures = { version = "0.3.17", default-features = false }
 hex = "0.4.3"
 hex-literal = "0.4.1"
 http = "1.1.0"
