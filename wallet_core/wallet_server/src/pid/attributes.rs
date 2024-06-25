@@ -32,9 +32,9 @@ pub enum Error {
     NoAttributesFound,
     #[error("missing certificate for issuance of doctype {0}")]
     MissingCertificate(String),
-    #[error("error retrieving from BRP")]
+    #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
-    #[error("error mapping BRP data to PID data")]
+    #[error("error mapping BRP data to PID data: {0}")]
     BrpData(#[from] BrpDataError),
 }
 
