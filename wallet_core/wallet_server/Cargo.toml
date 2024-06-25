@@ -97,7 +97,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["auth", "cors", "trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["parking_lot"] }
+tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
 assert_matches = { workspace = true, optional = true }
