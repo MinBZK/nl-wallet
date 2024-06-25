@@ -19,7 +19,7 @@ required-features = ["integration"]
 
 [features]
 # Include mock implementations for testing
-mock = ["dep:mockall", "nl_wallet_mdoc/examples"]
+mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/software_keys", "nl_wallet_mdoc/mock"]
 # All features needed to run the integration test
 integration = ["mock", "dep:ciborium"]
 
