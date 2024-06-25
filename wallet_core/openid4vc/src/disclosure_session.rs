@@ -12,7 +12,8 @@ use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
     holder::{
-        DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor,
+        DisclosureError, DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes,
+        ProposedDocument, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -484,7 +485,7 @@ where
             .collect()
     }
 
-    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError>
+    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
@@ -522,28 +523,7 @@ where
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error("could not perform disclosure, attributes were shared: {data_shared}, error: {error}")]
-pub struct DisclosureError {
-    pub data_shared: bool,
-    #[source]
-    pub error: VpClientError,
-}
-
-impl DisclosureError {
-    pub fn new(data_shared: bool, error: VpClientError) -> Self {
-        Self { data_shared, error }
-    }
-
-    pub fn before_sharing(error: VpClientError) -> Self {
-        Self {
-            data_shared: false,
-            error,
-        }
-    }
-}
-
-impl From<VpMessageClientError> for DisclosureError {
+impl From<VpMessageClientError> for DisclosureError<VpClientError> {
     fn from(source: VpMessageClientError) -> Self {
         let data_shared = match source {
             VpMessageClientError::Http(ref reqwest_error) => !reqwest_error.is_connect(),

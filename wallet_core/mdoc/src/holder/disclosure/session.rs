@@ -363,7 +363,7 @@ where
             .collect()
     }
 
-    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
+    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<(), Error>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
+use openid4vc::disclosure_session::VpClientError;
 use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
@@ -11,7 +12,6 @@ use nl_wallet_mdoc::{
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
     verifier::SessionType,
 };
-use openid4vc::disclosure_session::VpClientError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
@@ -19,8 +19,8 @@ use crate::{
     account_provider::AccountProviderClient,
     config::{ConfigurationRepository, UNIVERSAL_LINK_BASE_URL},
     disclosure::{
-        DisclosureUriError, DisclosureUriSource, MdocDisclosureMissingAttributes, MdocDisclosureProposal,
-        MdocDisclosureSession, MdocDisclosureSessionState,
+        DisclosureUriError, DisclosureUriSource, MdocDisclosureError, MdocDisclosureMissingAttributes,
+        MdocDisclosureProposal, MdocDisclosureSession, MdocDisclosureSessionState,
     },
     document::{DisclosureDocument, DisclosureType, DocumentMdocError, MissingDisclosureAttributes},
     instruction::{InstructionClient, InstructionError, RemoteEcdsaKeyError, RemoteEcdsaKeyFactory},
@@ -71,6 +71,15 @@ pub enum DisclosureError {
     EventStorage(#[source] EventStorageError),
 }
 
+impl From<MdocDisclosureError> for DisclosureError {
+    fn from(error: MdocDisclosureError) -> Self {
+        match error {
+            MdocDisclosureError::Iso(err) => Self::IsoDisclosureSession(err),
+            MdocDisclosureError::Vp(err) => Self::VpDisclosureSession(err),
+        }
+    }
+}
+
 impl<CR, S, PEK, APC, DS, IS, MDS> Wallet<CR, S, PEK, APC, DS, IS, MDS>
 where
     CR: ConfigurationRepository,
@@ -109,9 +118,7 @@ where
         .map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the `ReaderEngagement`.
-        let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors())
-            .await
-            .map_err(Into::into)?;
+        let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors()).await?;
 
         let shared_data_with_relying_party_before = self
             .storage
@@ -209,7 +216,7 @@ where
             disclosure_type,
         );
 
-        session.terminate().await.map_err(Into::into)?;
+        session.terminate().await?;
 
         self.store_history_event(event)
             .await
@@ -364,16 +371,11 @@ where
                 }
 
                 let error = match error.error {
-                    nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
-                        // This `unwrap()` is safe because of the `is()` check above.
-                        match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                            RemoteEcdsaKeyError::Instruction(error) => DisclosureError::Instruction(error),
-                            error => DisclosureError::IsoDisclosureSession(nl_wallet_mdoc::Error::KeysError(
-                                KeysError::KeyGeneration(error.into()),
-                            )),
-                        }
-                    }
-                    _ => DisclosureError::IsoDisclosureSession(error.error),
+                    MdocDisclosureError::Iso(err) => check_key_error(err),
+                    MdocDisclosureError::Vp(err) => match err {
+                        VpClientError::DeviceResponse(err) => check_key_error(err),
+                        _ => DisclosureError::VpDisclosureSession(err),
+                    },
                 };
 
                 if matches!(
@@ -425,6 +427,22 @@ where
             .map_err(DisclosureError::EventStorage)?;
 
         Ok(return_url)
+    }
+}
+
+/// Transform the error into the appropriate variant if it involves remote ECDSA attestation keys.
+fn check_key_error(error: nl_wallet_mdoc::Error) -> DisclosureError {
+    match error {
+        nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
+            // This `unwrap()` is safe because of the `is()` check above.
+            match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                RemoteEcdsaKeyError::Instruction(error) => DisclosureError::Instruction(error),
+                error => DisclosureError::IsoDisclosureSession(nl_wallet_mdoc::Error::KeysError(
+                    KeysError::KeyGeneration(error.into()),
+                )),
+            }
+        }
+        _ => DisclosureError::IsoDisclosureSession(error),
     }
 }
 

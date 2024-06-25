@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use nl_wallet_mdoc::{
     holder::{
-        CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult, DisclosureSession,
-        MdocDataSource, ProposedAttributes, TrustAnchor,
+        CborHttpClient, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult,
+        DisclosureSession, MdocDataSource, ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -32,11 +32,18 @@ pub enum MdocDisclosureSessionState<M, P> {
     Proposal(P),
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum MdocDisclosureError {
+    #[error("error in mdoc disclosure session: {0}")]
+    Iso(#[from] nl_wallet_mdoc::Error),
+    #[error("error in OpenID4VP disclosure session: {0}")]
+    Vp(#[from] VpClientError),
+}
+
 pub trait MdocDisclosureSession<D> {
     type MissingAttributes: MdocDisclosureMissingAttributes;
     type Proposal: MdocDisclosureProposal;
     type DisclosureUriData;
-    type Error: std::error::Error + Into<crate::wallet::DisclosureError>;
 
     fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError>;
 
@@ -45,7 +52,7 @@ pub trait MdocDisclosureSession<D> {
         disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<Self, Self::Error>
+    ) -> Result<Self, MdocDisclosureError>
     where
         Self: Sized;
 
@@ -54,7 +61,7 @@ pub trait MdocDisclosureSession<D> {
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
     fn session_type(&self) -> SessionType;
 
-    async fn terminate(self) -> Result<(), Self::Error>;
+    async fn terminate(self) -> Result<(), MdocDisclosureError>;
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -67,7 +74,7 @@ pub trait MdocDisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey;
@@ -84,7 +91,6 @@ where
     type MissingAttributes = VpDisclosureMissingAttributes;
     type Proposal = VpDisclosureProposal;
     type DisclosureUriData = VpDisclosureUriData;
-    type Error = VpClientError;
 
     fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
         VpDisclosureUriData::parse_from_uri(uri, base_uri)
@@ -95,7 +101,7 @@ where
         uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> Result<Self, Self::Error>
+    ) -> Result<Self, MdocDisclosureError>
     where
         Self: Sized,
     {
@@ -103,14 +109,16 @@ where
             .build()
             .expect("Could not build reqwest HTTP client")
             .into();
-        Self::start(
+        let session = Self::start(
             client,
             &disclosure_uri.query,
             uri_source,
             mdoc_data_source,
             trust_anchors,
         )
-        .await
+        .await?;
+
+        Ok(session)
     }
 
     fn rp_certificate(&self) -> &Certificate {
@@ -132,8 +140,8 @@ where
         self.session_type()
     }
 
-    async fn terminate(self) -> Result<(), Self::Error> {
-        self.terminate().await
+    async fn terminate(self) -> Result<(), MdocDisclosureError> {
+        Ok(self.terminate().await?)
     }
 }
 
@@ -156,12 +164,16 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
     {
-        Ok(self.disclose(key_factory).await.unwrap())
+        let redirect_uri = self
+            .disclose(key_factory)
+            .await
+            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
+        Ok(redirect_uri)
     }
 }
 
@@ -172,7 +184,6 @@ where
     type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
     type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
     type DisclosureUriData = IsoDisclosureUriData;
-    type Error = nl_wallet_mdoc::Error;
 
     fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
         IsoDisclosureUriData::parse_from_uri(uri, base_uri)
@@ -183,19 +194,21 @@ where
         disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> nl_wallet_mdoc::Result<Self> {
+    ) -> Result<Self, MdocDisclosureError> {
         let http_client = default_reqwest_client_builder()
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        Self::start(
+        let session = Self::start(
             CborHttpClient(http_client),
             &disclosure_uri.reader_engagement_bytes,
             disclosure_uri_source,
             mdoc_data_source,
             trust_anchors,
         )
-        .await
+        .await?;
+
+        Ok(session)
     }
 
     fn rp_certificate(&self) -> &Certificate {
@@ -218,8 +231,8 @@ where
         }
     }
 
-    async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
-        self.terminate().await
+    async fn terminate(self) -> Result<(), MdocDisclosureError> {
+        Ok(self.terminate().await?)
     }
 
     fn session_type(&self) -> SessionType {
@@ -246,12 +259,14 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
     {
-        self.disclose(key_factory).await?;
+        self.disclose(key_factory)
+            .await
+            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
         Ok(None)
     }
 }
@@ -321,13 +336,13 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<BaseUrl>>
+        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
         where
             KF: KeyFactory<Key = K>,
             K: MdocEcdsaKey,
         {
             if let Some(error) = self.next_error.lock().take() {
-                return Err(DisclosureError::new(self.attributes_shared, error));
+                return Err(DisclosureError::new(self.attributes_shared, error.into()));
             }
 
             self.disclosure_count
@@ -386,7 +401,6 @@ mod mock {
         type MissingAttributes = MockMdocDisclosureMissingAttributes;
         type Proposal = MockMdocDisclosureProposal;
         type DisclosureUriData = IsoDisclosureUriData;
-        type Error = nl_wallet_mdoc::Error;
 
         fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
             IsoDisclosureUriData::parse_from_uri(uri, base_uri)
@@ -397,9 +411,9 @@ mod mock {
             disclosure_uri_source: DisclosureUriSource,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
-        ) -> nl_wallet_mdoc::Result<Self> {
+        ) -> Result<Self, MdocDisclosureError> {
             if let Some(error) = NEXT_START_ERROR.lock().take() {
-                return Err(error);
+                Err(error)?;
             }
 
             let (reader_registration, session_state) = NEXT_MOCK_FIELDS
@@ -431,7 +445,7 @@ mod mock {
             &self.reader_registration
         }
 
-        async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
+        async fn terminate(self) -> Result<(), MdocDisclosureError> {
             self.was_terminated.store(true, Ordering::Relaxed);
 
             Ok(())
