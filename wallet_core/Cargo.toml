@@ -67,7 +67,7 @@ der = "0.7.7"
 derive_more = "0.99.17"
 dotenvy = "0.15.7"
 etag = "4.0.0"
-flutter_rust_bridge = "1.70.0"
+flutter_rust_bridge = { version = "1.70.0", default-features = false }
 futures = { version = "0.3.17", default-features = false }
 hex = "0.4.3"
 hex-literal = "0.4.1"

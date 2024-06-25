@@ -89,7 +89,6 @@ dependencies = [
  "anyhow",
  "atomic",
  "backtrace",
- "chrono",
 ]
 
 [[package]]
@@ -680,10 +679,8 @@ checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
- "js-sys",
  "num-traits",
  "serde",
- "wasm-bindgen",
  "windows-targets 0.52.5",
 ]
 
@@ -826,16 +823,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "wallet_common",
-]
-
-[[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1444,8 +1431,6 @@ dependencies = [
  "build-target",
  "bytemuck",
  "cc",
- "chrono",
- "console_error_panic_hook",
  "dart-sys",
  "flutter_rust_bridge_macros",
  "js-sys",
