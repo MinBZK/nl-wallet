@@ -389,7 +389,6 @@
     "generalTimeAgoLessThenOneMinute": "less then a minute",
     "generalVersionText": "App version:",
     "generalWCAGBack": "Back",
-    "generalWCAGChangeLanguage": "Change language",
     "generalWCAGClose": "Close",
     "generalWCAGHelp": "Need help?",
     "generalWCAGInfo": "More info",
@@ -438,8 +437,6 @@
             }
         }
     },
-    "historyDetailScreenErrorTitleForDisclosure": "Sharing with {organization} has potentially failed",
-    "historyDetailScreenErrorTitleForLogin": "Login at {organization} failed",
     "historyDetailScreenHelpdeskSubtitle": "To receive help and answers",
     "historyDetailScreenHelpdeskTitle": "Open support",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {Shared 1 data} other {Shared {attributes} data}}",
@@ -484,8 +481,6 @@
             }
         }
     },
-    "historyDetailScreenStoppedTitleForDisclosure": "Sharing stopped with {organization}",
-    "historyDetailScreenStoppedTitleForLogin": "Login stopped with {organization}",
     "historyDetailScreenTermsSubtitle": "This is how {organization} processes your data",
     "@historyDetailScreenTermsSubtitle": {
         "placeholders": {
@@ -497,8 +492,6 @@
     },
     "historyDetailScreenTermsTitle": "Terms and Conditions",
     "historyDetailScreenTitle": "Details",
-    "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
-    "historyDetailScreenTitleForLogin": "Logged in with {organization}",
     "historyOverviewScreenTitle": "Activities",
     "introductionConditionsScreenBulletPoints": "You can use your data online.\nYou can stop at any time.\nYou keep your PIN code to yourself.\nYou share your data at your own risk.",
     "introductionConditionsScreenConditionsCta": "Read the terms and conditions",

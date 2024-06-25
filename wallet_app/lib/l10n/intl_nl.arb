@@ -385,7 +385,6 @@
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
     "generalVersionText": "Appversie:",
     "generalWCAGBack": "Terug",
-    "generalWCAGChangeLanguage": "Taal te selecteren",
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",
@@ -434,8 +433,6 @@
             }
         }
     },
-    "historyDetailScreenErrorTitleForDisclosure": "Delen mogelijk mislukt met {organization}",
-    "historyDetailScreenErrorTitleForLogin": "Inloggen bij {organization} mislukt",
     "historyDetailScreenHelpdeskSubtitle": "Om hulp en antwoorden te krijgen",
     "historyDetailScreenHelpdeskTitle": "Naar de helpdesk",
     "historyDetailScreenInteractionAttributesTitle": "{attributes, plural, one {1 gegeven gedeeld} other {{attributes} gegevens gedeeld}}",
@@ -480,8 +477,6 @@
             }
         }
     },
-    "historyDetailScreenStoppedTitleForDisclosure": "Delen gestopt met {organization}",
-    "historyDetailScreenStoppedTitleForLogin": "Inloggen gestopt met {organization}",
     "historyDetailScreenTermsSubtitle": "Zo gaat {organization} met jouw gegevens om",
     "@historyDetailScreenTermsSubtitle": {
         "placeholders": {
@@ -493,8 +488,6 @@
     },
     "historyDetailScreenTermsTitle": "Voorwaarden",
     "historyDetailScreenTitle": "Details",
-    "historyDetailScreenTitleForDisclosure": "Gedeeld met {organization}",
-    "historyDetailScreenTitleForLogin": "Ingelogd bij {organization}",
     "historyOverviewScreenTitle": "Activiteiten",
     "introductionConditionsScreenBulletPoints": "Je kunt je gegevens online gebruiken.\nJe kunt op elk moment stoppen.\nJe houdt je pincode voor jezelf.\nJe deelt je gegevens op eigen risico.",
     "introductionConditionsScreenConditionsCta": "Lees de voorwaarden",
