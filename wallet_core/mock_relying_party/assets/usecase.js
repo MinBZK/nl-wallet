@@ -9,8 +9,9 @@ for (button of wallet_buttons) {
         const usecase = button.attributes.getNamedItem("usecase").value
 
         if (session_type === "cross_device") {
-          window.location =
-            "/" + usecase + "/return?session_token=" + session_token
+          window.location.assign(
+            "../" + usecase + "/return?session_token=" + session_token,
+          )
         }
       }
     },

@@ -1,5 +1,5 @@
-@import url("/css/mijn_amsterdam.css");
-@import url("/css/buttons-after.css");
+@import url("./mijn_amsterdam.css");
+@import url("./buttons-after.css");
 
 .buttons button > span,
 .buttons nl-wallet-button::part(button) {
