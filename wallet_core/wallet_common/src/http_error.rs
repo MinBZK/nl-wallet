@@ -266,11 +266,14 @@ mod tests {
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let json = serde_json::from_slice::<Value>(&body).unwrap();
+        let expected_json = json!({
+            "type": "foobar",
+            "title": "A foobar error.",
+            "status": 402,
+            "detail": "Something happened.",
+        });
 
-        assert_eq!(json.get("type").unwrap(), "foobar");
-        assert_eq!(json.get("title").unwrap(), "A foobar error.");
-        assert_eq!(json.get("status").unwrap(), 402);
-        assert_eq!(json.get("detail").unwrap(), "Something happened.");
+        assert_eq!(json, expected_json);
 
         let error_body = HttpJsonErrorBody {
             r#type: "simple".to_string(),
@@ -305,10 +308,13 @@ mod tests {
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let json = serde_json::from_slice::<Value>(&body).unwrap();
+        let expected_json = json!({
+            "type": "loop",
+            "title": "Loop detected.",
+            "status": 508,
+            "detail": "Caught in a time vortex.",
+        });
 
-        assert_eq!(json.get("type").unwrap(), "loop");
-        assert_eq!(json.get("title").unwrap(), "Loop detected.");
-        assert_eq!(json.get("status").unwrap(), 508);
-        assert_eq!(json.get("detail").unwrap(), "Caught in a time vortex.");
+        assert_eq!(json, expected_json);
     }
 }
