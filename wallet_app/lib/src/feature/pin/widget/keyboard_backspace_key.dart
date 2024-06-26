@@ -27,6 +27,7 @@ class KeyboardBackspaceKey extends StatelessWidget {
           child: Icon(
             Icons.keyboard_backspace_rounded,
             color: color,
+            size: 24,
           ),
         ),
       ),
