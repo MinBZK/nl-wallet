@@ -65,7 +65,7 @@ class ChangeLanguageScreen extends StatelessWidget {
                     },
               excludeSemantics: true,
               label: language.name,
-              onTapHint: context.l10n.generalWCAGLogoutAnnouncement,
+              onTapHint: context.l10n.generalWCAGChangeLanguage,
               child: InkWell(
                 onTap: isSelectedLanguage
                     ? null
