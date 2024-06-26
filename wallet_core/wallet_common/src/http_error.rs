@@ -63,9 +63,10 @@ pub struct HttpJsonError<T> {
     data: Map<String, Value>,
 }
 
-/// This trait is to be used as a bound for the `r#type` field of `HttpJsonError`.
-/// The intention of it is that every distinct error type always resolves to the
-/// same summary and HTTP status code.
+/// This trait is to be used as a bound for the `r#type` field of [`HttpJsonError`].
+/// The result of this is that, when using the [`HttpJsonError`] type as a bridge
+/// for conversion to [`HttpJsonErrorBody`], every distinct error type always
+/// resolves to the same summary and HTTP status code.
 pub trait HttpJsonErrorType {
     fn title(&self) -> String;
     fn status_code(&self) -> StatusCode;
