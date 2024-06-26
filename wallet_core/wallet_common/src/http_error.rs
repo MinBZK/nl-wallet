@@ -10,7 +10,7 @@ use serde_with::{serde_as, skip_serializing_none, DisplayFromStr, TryFromInto};
 pub static APPLICATION_PROBLEM_JSON: Lazy<Mime> =
     Lazy::new(|| "application/problem+json".parse().expect("could not parse MIME type"));
 
-/// This type represents the HTTP body for an error response, as defined in RFC 7807.
+/// The HTTP body for an error response, as defined in RFC 7807.
 /// If the `axum` feature is enabled, `IntoResponse` will be implemented for this
 /// type, using `application/problem+json` as `Content-Type`.
 ///
