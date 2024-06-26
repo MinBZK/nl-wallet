@@ -16,7 +16,7 @@ spec:
                 port:
                   number: 3007
             path: /$PID_ISSUER_EXTERNAL_CONTEXT_PATH/(.*)
-            pathType: Prefix
+            pathType: ImplementationSpecific
   tls:
     - hosts:
         - $PID_ISSUER_EXTERNAL_HOSTNAME
