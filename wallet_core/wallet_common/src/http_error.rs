@@ -113,13 +113,15 @@ where
 
 #[cfg(feature = "axum")]
 mod axum {
-    use ::axum::{
+    use std::{fmt::Display, str::FromStr};
+
+    use axum::{
         response::{IntoResponse, Response},
         Json,
     };
-    use http::{header::CONTENT_TYPE, HeaderValue};
+    use http::{header::CONTENT_TYPE, HeaderValue, StatusCode};
 
-    use super::*;
+    use super::{HttpJsonError, HttpJsonErrorBody, HttpJsonErrorType, APPLICATION_PROBLEM_JSON};
 
     impl<T> IntoResponse for HttpJsonErrorBody<T>
     where
