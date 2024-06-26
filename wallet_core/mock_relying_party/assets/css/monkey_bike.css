@@ -5,7 +5,7 @@
 
 :root {
     --primary-color: #563dc8;
-    --logo-url: url("/images/monkey_bike.svg");
+    --logo-url: url("../images/monkey_bike.svg");
 }
 
 header h1::before {

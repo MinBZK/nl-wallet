@@ -39,11 +39,11 @@
 }
 
 .buttons nl-wallet-button::after {
-    background: url("/images/nl-wallet.svg") no-repeat center center / cover;
+    background: url("../images/nl-wallet.svg") no-repeat center center / cover;
 }
 
 .buttons #digid::after {
-    background: url("/images/digid.svg") no-repeat center center / cover;
+    background: url("../images/digid.svg") no-repeat center center / cover;
 }
 
 /* only show cursor when hovering the span */
