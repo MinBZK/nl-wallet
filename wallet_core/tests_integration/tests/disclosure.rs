@@ -7,7 +7,7 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     test::{
-        data::{addr_street, pid_family_name, pid_full_name, pid_given_name},
+        data::{addr_street, pid_family_name, pid_full_name, pid_given_name, pid_own_family_name},
         TestDocuments,
     },
     verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType, StatusResponse},
@@ -73,7 +73,7 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
 #[case(SessionType::SameDevice,
     None,
     "xyz_bank_no_return_url",
-    pid_family_name() + pid_given_name(),
+    pid_family_name() + pid_own_family_name() + pid_given_name(),
     pid_full_name()
 )]
 #[case(
