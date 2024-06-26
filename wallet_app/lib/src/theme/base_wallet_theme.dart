@@ -112,13 +112,14 @@ class BaseWalletTheme {
     indicatorSize: TabBarIndicatorSize.tab,
   );
 
+  /// Also see
   static const baseScrollbarTheme = ScrollbarThemeData(
     crossAxisMargin: 8,
     mainAxisMargin: 8,
     radius: Radius.circular(8),
     thickness: WidgetStatePropertyAll(4),
     thumbVisibility: WidgetStatePropertyAll(true),
-    trackVisibility: WidgetStatePropertyAll(true),
+    trackVisibility: WidgetStatePropertyAll(false),
   );
 
   static const baseIconTheme = IconThemeData(size: 16);
