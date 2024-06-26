@@ -1,11 +1,11 @@
-@import url("/css/reset.css");
-@import url("/css/button-reset.css");
-@import url("/css/fonts.css");
-@import url("/css/common.css");
+@import url("./reset.css");
+@import url("./button-reset.css");
+@import url("./fonts.css");
+@import url("./common.css");
 
 :root {
     --primary-color: #563dc8;
-    --logo-url: url("/images/monkey_bike.svg");
+    --logo-url: url("../images/monkey_bike.svg");
 }
 
 header h1::before {

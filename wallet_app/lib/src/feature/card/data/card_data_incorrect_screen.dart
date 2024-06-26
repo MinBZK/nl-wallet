@@ -24,6 +24,7 @@ class CardDataIncorrectScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.cardDataIncorrectScreenSubhead,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       actions: const [HelpIconButton()],
                     ),
                     SliverToBoxAdapter(

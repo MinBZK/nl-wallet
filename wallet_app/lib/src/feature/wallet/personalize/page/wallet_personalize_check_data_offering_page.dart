@@ -35,6 +35,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
           slivers: <Widget>[
             SliverWalletAppBar(
               title: context.l10n.walletPersonalizeCheckDataOfferingPageTitle,
+              scrollController: PrimaryScrollController.maybeOf(context),
               progress: progress,
             ),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),

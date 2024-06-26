@@ -42,6 +42,7 @@ class MenuScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.menuScreenTitle,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       leading: const BackIconButton(),
                     ),
                     _buildContentSliver(context),

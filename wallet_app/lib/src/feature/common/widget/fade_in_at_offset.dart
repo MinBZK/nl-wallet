@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:after_layout/after_layout.dart';
 import 'package:flutter/material.dart';
@@ -51,11 +52,21 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
 
     /// Check if we are ready to build, as before the first layout the _scrollController will not be initialized.
     if (scrollOffset == null && !_afterFirstLayout) return const SizedBox.shrink();
-    final offset = scrollOffset?.offset ?? (_scrollController!.hasClients ? _scrollController!.offset : 0);
+    final scrollControllerHasClients = _scrollController?.hasClients ?? false;
+    final offset = scrollOffset?.offset ?? (scrollControllerHasClients ? _scrollController!.offset : 0);
+    final maxScrollExtent = scrollControllerHasClients ? _scrollController!.position.maxScrollExtent : double.infinity;
+
+    // When the maxScrollExtent is smaller then where the child would appear, simply never show the child.
+    if (maxScrollExtent <= widget.appearOffset) return const SizedBox.shrink();
+
+    // We make sure the widget will always animate to 100% opacity by comparing it with the maximum scrollable extend.
+    final startAppearingAt = min(widget.appearOffset, maxScrollExtent - 1);
+    final completelyVisibleAt = min(widget.visibleOffset, maxScrollExtent);
+
     return IgnorePointer(
-      ignoring: offset <= widget.appearOffset,
+      ignoring: offset <= startAppearingAt,
       child: Opacity(
-        opacity: offset.normalize(widget.appearOffset, widget.visibleOffset).toDouble(),
+        opacity: offset.normalize(startAppearingAt, completelyVisibleAt).toDouble(),
         child: widget.child,
       ),
     );

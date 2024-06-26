@@ -25,6 +25,7 @@ class SettingsScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.settingsScreenTitle,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                     ),
                     _buildContentSliver(context),
                   ],
