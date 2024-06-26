@@ -32,6 +32,10 @@ use crate::{
     settings::{self, Urls},
 };
 
+/// The error returned from the sessions endpoint that the wallet
+/// communicates with. As opposed to [`RequesterError`], this
+/// results in a simple HTTP status code without a body, in
+/// order to conform to ISO 23220-4.
 #[derive(Debug, thiserror::Error)]
 #[error("process mdoc message error: {0}")]
 pub struct ProcessMdocError(#[from] nl_wallet_mdoc::Error);
@@ -60,6 +64,9 @@ pub enum RequesterErrorType {
     SessionState,
 }
 
+/// The error returned by the endpoints that the RP can query.
+/// It results in a HTTP response containing a JSON body
+/// formatted according to RFC 7807.
 #[derive(Debug, thiserror::Error)]
 pub enum RequesterError {
     #[error("starting mdoc session failed: {0}")]
