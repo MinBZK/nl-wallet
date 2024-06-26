@@ -73,6 +73,7 @@ class LoginDetailScreen extends StatelessWidget {
         slivers: [
           SliverWalletAppBar(
             title: context.l10n.loginDetailScreenTitle(organization.displayName.l10nValue(context)),
+            scrollController: PrimaryScrollController.maybeOf(context),
             actions: const [HelpIconButton()],
           ),
           const SliverSizedBox(height: 24),

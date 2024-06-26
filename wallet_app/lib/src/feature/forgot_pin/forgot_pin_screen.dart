@@ -32,7 +32,10 @@ class ForgotPinScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
-          SliverWalletAppBar(title: context.l10n.forgotPinScreenTitle),
+          SliverWalletAppBar(
+            title: context.l10n.forgotPinScreenTitle,
+            scrollController: PrimaryScrollController.maybeOf(context),
+          ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             sliver: _buildContentSliver(context),

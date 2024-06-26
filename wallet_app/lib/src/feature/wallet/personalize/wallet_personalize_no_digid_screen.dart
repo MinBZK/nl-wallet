@@ -28,6 +28,7 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.walletPersonalizeNoDigidPageHeadline,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       actions: const [HelpIconButton()],
                     ),
                     SliverPadding(

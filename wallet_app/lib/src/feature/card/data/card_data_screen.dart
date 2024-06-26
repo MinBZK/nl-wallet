@@ -69,6 +69,7 @@ class CardDataScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: _generateTitle(context, state),
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       actions: const [HelpIconButton()],
                     ),
                     const SliverToBoxAdapter(
