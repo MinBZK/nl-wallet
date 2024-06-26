@@ -2,7 +2,7 @@
 name = "uniffi-bindgen"
 version = "0.28.0"
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.76"
 
 [dependencies]
 uniffi = { version = "0.28.0", features = ["cli"] }

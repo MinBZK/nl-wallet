@@ -1,11 +1,12 @@
 use std::{ffi::CStr, fmt::Write, io};
 
 use android_logger::{LogId, PlatformLogWriter};
+use cstr::cstr;
 use tracing::{log, Metadata};
 use tracing_subscriber::fmt::MakeWriter;
 
 /// Print "core" as the tag in Android logs, to differentiate from Flutter messages.
-const TAG: &CStr = c"core";
+const TAG: &CStr = cstr!("core");
 const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;
 
 /// We need something that implements the [`WriterMaker`] trait in order to have different
