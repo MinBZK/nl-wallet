@@ -43,7 +43,6 @@ wallet.path = "../wallet"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger.workspace = true
-cstr.workspace = true
 
 [target.'cfg(target_os = "ios")'.dependencies]
 oslog.workspace = true
