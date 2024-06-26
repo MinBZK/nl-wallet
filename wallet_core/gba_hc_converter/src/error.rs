@@ -30,9 +30,9 @@ impl HttpJsonErrorType for ErrorType {
 
     fn title(&self) -> String {
         match self {
-            Self::Transport => "HTTP transport error.".to_string(),
-            Self::Gba => "GBA error.".to_string(),
-            Self::Conversion => "Conversion error.".to_string(),
+            Self::Transport => "HTTP transport error".to_string(),
+            Self::Gba => "GBA error".to_string(),
+            Self::Conversion => "Conversion error".to_string(),
         }
     }
 }

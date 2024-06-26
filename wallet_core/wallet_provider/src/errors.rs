@@ -30,13 +30,13 @@ pub enum WalletProviderError {
 impl HttpJsonErrorType for WalletProviderErrorType {
     fn title(&self) -> String {
         let title = match self.as_ref() {
-            AccountErrorType::Unexpected => "An unexpected error occurred.",
-            AccountErrorType::ChallengeValidation => "Could not validate registration challenge.",
-            AccountErrorType::RegistrationParsing => "Could not parse or validate registration message.",
-            AccountErrorType::IncorrectPin => "The PIN provided is incorrect.",
-            AccountErrorType::PinTimeout => "PIN checking is currently in timeout.",
-            AccountErrorType::AccountBlocked => "The requested account is blocked.",
-            AccountErrorType::InstructionValidation => "Could not validate instruction.",
+            AccountErrorType::Unexpected => "An unexpected error occurred",
+            AccountErrorType::ChallengeValidation => "Could not validate registration challenge",
+            AccountErrorType::RegistrationParsing => "Could not parse or validate registration message",
+            AccountErrorType::IncorrectPin => "The PIN provided is incorrect",
+            AccountErrorType::PinTimeout => "PIN checking is currently in timeout",
+            AccountErrorType::AccountBlocked => "The requested account is blocked",
+            AccountErrorType::InstructionValidation => "Could not validate instruction",
         };
 
         title.to_string()
