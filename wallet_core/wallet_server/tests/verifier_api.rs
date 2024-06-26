@@ -289,10 +289,11 @@ async fn test_new_session_parameters_error() {
 
     let bad_return_url_request = {
         let mut request = start_disclosure_request();
-        request.return_url_template = "https://example.com/{session_token}"
-            .parse::<ReturnUrlTemplate>()
-            .unwrap()
-            .into();
+        request.return_url_template = Some(
+            "https://example.com/{session_token}"
+                .parse::<ReturnUrlTemplate>()
+                .unwrap(),
+        );
         request
     };
 

@@ -96,14 +96,14 @@ where
     T::Err: Display,
 {
     fn from(value: HttpJsonError<T>) -> Self {
-        let title = value.r#type.title().into();
-        let status = value.r#type.status_code().into();
+        let title = Some(value.r#type.title());
+        let status = Some(value.r#type.status_code());
 
         HttpJsonErrorBody {
             r#type: value.r#type,
             title,
             status,
-            detail: value.detail.into(),
+            detail: Some(value.detail),
             instance: None,
             extra: value.data,
         }
@@ -207,10 +207,10 @@ mod tests {
     fn test_http_json_error_body_serialization_full() {
         let error_body = HttpJsonErrorBody {
             r#type: "some_type".to_string(),
-            title: "The summary of the error type.".to_string().into(),
-            status: StatusCode::BAD_REQUEST.into(),
-            detail: "SomeError: ThisHappened".to_string().into(),
-            instance: "https://example.com".to_string().into(),
+            title: Some("The summary of the error type.".to_string()),
+            status: Some(StatusCode::BAD_REQUEST),
+            detail: Some("SomeError: ThisHappened".to_string()),
+            instance: Some("https://example.com".to_string()),
             extra: [
                 ("string".to_string(), "value".to_string().into()),
                 ("number".to_string(), 1234.into()),
@@ -247,9 +247,9 @@ mod tests {
 
         let error_body = HttpJsonErrorBody {
             r#type: "foobar".to_string(),
-            title: "A foobar error.".to_string().into(),
-            status: StatusCode::PAYMENT_REQUIRED.into(),
-            detail: "Something happened.".to_string().into(),
+            title: Some("A foobar error.".to_string()),
+            status: Some(StatusCode::PAYMENT_REQUIRED),
+            detail: Some("Something happened.".to_string()),
             instance: None,
             extra: Default::default(),
         };
