@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../util/extension/build_context_extension.dart';
+
 class WalletScrollbar extends StatelessWidget {
   final Widget child;
   final ScrollController? controller;
@@ -10,8 +12,8 @@ class WalletScrollbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scrollbar(
       controller: controller,
-      thumbVisibility: true,
-      trackVisibility: true,
+      thumbVisibility: context.theme.scrollbarTheme.thumbVisibility?.resolve({}) ?? true,
+      trackVisibility: context.theme.scrollbarTheme.trackVisibility?.resolve({}) ?? false,
       child: child,
     );
   }
