@@ -28,8 +28,8 @@ pub enum WalletProviderError {
 }
 
 impl HttpJsonErrorType for WalletProviderErrorType {
-    fn summary(&self) -> String {
-        let summary = match self.as_ref() {
+    fn title(&self) -> String {
+        let title = match self.as_ref() {
             AccountErrorType::Unexpected => "An unexpected error occurred.",
             AccountErrorType::ChallengeValidation => "Could not validate registration challenge.",
             AccountErrorType::RegistrationParsing => "Could not parse or validate registration message.",
@@ -39,7 +39,7 @@ impl HttpJsonErrorType for WalletProviderErrorType {
             AccountErrorType::InstructionValidation => "Could not validate instruction.",
         };
 
-        summary.to_string()
+        title.to_string()
     }
 
     fn status_code(&self) -> StatusCode {

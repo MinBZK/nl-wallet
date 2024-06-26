@@ -50,16 +50,16 @@ where
 
 /// This convenience type can be used as a bridge from types that implement
 /// [`Error`] to [`HttpJsonErrorBody`]. It contains a type (which prescribes
-/// the error type string, summary and status code), a description of the
+/// the error type string, title and status code), the details of the
 /// error and any extra key-value pairs of data pertaining to the error.
 ///
 /// If the `axum` feature is enabled, `IntoResponse` will also be implemented
 /// for this type.
 #[derive(Debug, thiserror::Error)]
-#[error("({r#type}): {description}")]
+#[error("({r#type}): {detail}")]
 pub struct HttpJsonError<T> {
     r#type: T,
-    description: String,
+    detail: String,
     data: Map<String, Value>,
 }
 
@@ -67,7 +67,7 @@ pub struct HttpJsonError<T> {
 /// The intention of it is that every distinct error type always resolves to the
 /// same summary and HTTP status code.
 pub trait HttpJsonErrorType {
-    fn summary(&self) -> String;
+    fn title(&self) -> String;
     fn status_code(&self) -> StatusCode;
 }
 
@@ -75,7 +75,7 @@ impl<T> HttpJsonError<T> {
     pub fn new(r#type: T, description: String, data: Map<String, Value>) -> Self {
         HttpJsonError {
             r#type,
-            description,
+            detail: description,
             data,
         }
     }
@@ -96,14 +96,14 @@ where
     T::Err: Display,
 {
     fn from(value: HttpJsonError<T>) -> Self {
-        let title = value.r#type.summary().into();
+        let title = value.r#type.title().into();
         let status = value.r#type.status_code().into();
 
         HttpJsonErrorBody {
             r#type: value.r#type,
             title,
             status,
-            detail: value.description.into(),
+            detail: value.detail.into(),
             instance: None,
             extra: value.data,
         }
@@ -164,7 +164,7 @@ mod tests {
     }
 
     impl HttpJsonErrorType for TestErrorType {
-        fn summary(&self) -> String {
+        fn title(&self) -> String {
             match self {
                 Self::Teapot => "I'm a teapot".to_string(),
                 Self::Loop => "Loop detected.".to_string(),

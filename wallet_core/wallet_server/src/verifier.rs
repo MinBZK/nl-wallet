@@ -71,7 +71,7 @@ pub enum RequesterError {
 }
 
 impl HttpJsonErrorType for RequesterErrorType {
-    fn summary(&self) -> String {
+    fn title(&self) -> String {
         match self {
             Self::Server => "A server error occurred.".to_string(),
             Self::SessionParameters => "Incorrect session parameters provided".to_string(),
