@@ -28,6 +28,7 @@ class ChangeLanguageScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.changeLanguageScreenTitle,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       leading: const BackIconButton(
                         key: Key('changeLanguageScreenBackCta'),
                       ),

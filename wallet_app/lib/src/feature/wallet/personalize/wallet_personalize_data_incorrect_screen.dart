@@ -28,6 +28,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.walletPersonalizeDataIncorrectScreenSubhead,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                     ),
                     SliverToBoxAdapter(
                       child: _buildContent(context),

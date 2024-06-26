@@ -19,7 +19,10 @@ class DataIncorrectScreen extends StatelessWidget {
           child: CustomScrollView(
             restorationId: 'data_incorrect',
             slivers: <Widget>[
-              SliverWalletAppBar(title: context.l10n.dataIncorrectScreenHeaderTitle),
+              SliverWalletAppBar(
+                title: context.l10n.dataIncorrectScreenHeaderTitle,
+                scrollController: PrimaryScrollController.maybeOf(context),
+              ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),

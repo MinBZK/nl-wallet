@@ -25,7 +25,10 @@ class InfoScreen extends StatelessWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            SliverWalletAppBar(title: title),
+            SliverWalletAppBar(
+              title: title,
+              scrollController: PrimaryScrollController.maybeOf(context),
+            ),
             SliverPadding(
               sliver: SliverToBoxAdapter(
                 child: ParagraphedList.splitContent(description),

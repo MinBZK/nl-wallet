@@ -35,7 +35,10 @@ class ReportIssueScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: <Widget>[
-          SliverWalletAppBar(title: context.l10n.reportIssueScreenTitle),
+          SliverWalletAppBar(
+            title: context.l10n.reportIssueScreenTitle,
+            scrollController: PrimaryScrollController.maybeOf(context),
+          ),
           SliverToBoxAdapter(child: _buildHeaderSection(context)),
           const SliverSizedBox(height: 24),
           const SliverToBoxAdapter(child: Divider(height: 1)),
