@@ -7,7 +7,6 @@
 .pub-cache/
 .pub/
 /build/
-download_translations.sh
 
 # Symbolication related
 app.*.symbols
