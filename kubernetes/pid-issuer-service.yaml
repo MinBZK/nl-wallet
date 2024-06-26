@@ -11,5 +11,5 @@ spec:
   ports:
     - name: pid-issuer-http
       port: 3007
-      targetPort: 3007
+      targetPort: 3001
       protocol: TCP
