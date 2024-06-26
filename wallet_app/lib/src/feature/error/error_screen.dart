@@ -46,6 +46,7 @@ class ErrorScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: headline,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       automaticallyImplyLeading: false,
                       actions: actions,
                     ),

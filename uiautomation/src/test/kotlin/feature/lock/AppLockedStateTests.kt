@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junitpioneer.jupiter.RetryingTest
+import screen.dashboard.DashboardScreen
+import screen.menu.MenuScreen
 import screen.security.PinScreen
 
 @DisplayName("${AppLockedStateTests.USE_CASE} App locked state [${AppLockedStateTests.JIRA_ID}]")
@@ -21,9 +23,10 @@ class AppLockedStateTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizeInform)
+        OnboardingNavigator().toScreen(OnboardingScreen.Dashboard)
 
-        restartApp()
+        DashboardScreen().clickMenuButton()
+        MenuScreen().clickLogoutButton()
 
         pinScreen = PinScreen()
     }

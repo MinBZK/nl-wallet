@@ -69,6 +69,7 @@ class PolicyScreen extends StatelessWidget {
         slivers: [
           SliverWalletAppBar(
             title: context.l10n.policyScreenTitle,
+            scrollController: PrimaryScrollController.maybeOf(context),
           ),
           SliverToBoxAdapter(
             child: Padding(

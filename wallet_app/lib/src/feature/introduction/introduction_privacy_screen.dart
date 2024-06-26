@@ -37,6 +37,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
               slivers: [
                 SliverWalletAppBar(
                   title: context.l10n.introductionPrivacyScreenHeadline,
+                  scrollController: PrimaryScrollController.maybeOf(context),
                   leading: const BackIconButton(),
                   progress: const FlowProgress(currentStep: 1, totalSteps: kSetupSteps),
                   actions: const [HelpIconButton()],

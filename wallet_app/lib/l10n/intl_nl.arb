@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-13T11:53:29+02:00",
+    "@@last_modified": "2024-06-24T14:24:02+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -224,7 +224,7 @@
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
     "disclosureLoadingSubtitle": "De aanvraag wordt opgehaald",
     "disclosureLoadingTitle": "Even geduld",
-    "disclosureMissingAttributesPageCloseCta": "Aanvraag sluiten",
+    "disclosureMissingAttributesPageCloseCta": "Aanvraag stoppen",
     "disclosureMissingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
     "@disclosureMissingAttributesPageDescription": {
         "placeholders": {
@@ -385,6 +385,7 @@
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
     "generalVersionText": "Appversie:",
     "generalWCAGBack": "Terug",
+    "generalWCAGChangeLanguage": "Taal te selecteren",
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",

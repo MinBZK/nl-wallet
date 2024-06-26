@@ -1,5 +1,5 @@
-@import url("/css/xyz_bank.css");
-@import url("/css/buttons-after.css");
+@import url("./xyz_bank.css");
+@import url("./buttons-after.css");
 
 /* only xyz_bank has a link */
 main a {

@@ -18,7 +18,10 @@ class WalletPersonalizeSetupFailedScreen extends StatelessWidget {
         child: WalletScrollbar(
           child: CustomScrollView(
             slivers: [
-              SliverWalletAppBar(title: context.l10n.walletPersonalizeSetupFailedScreenHeadline),
+              SliverWalletAppBar(
+                title: context.l10n.walletPersonalizeSetupFailedScreenHeadline,
+                scrollController: PrimaryScrollController.maybeOf(context),
+              ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),

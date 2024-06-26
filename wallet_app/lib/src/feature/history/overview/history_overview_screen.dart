@@ -44,7 +44,10 @@ class HistoryOverviewScreen extends StatelessWidget {
         return WalletScrollbar(
           child: CustomScrollView(
             slivers: [
-              SliverWalletAppBar(title: context.l10n.historyOverviewScreenTitle),
+              SliverWalletAppBar(
+                title: context.l10n.historyOverviewScreenTitle,
+                scrollController: PrimaryScrollController.maybeOf(context),
+              ),
               content,
             ],
           ),

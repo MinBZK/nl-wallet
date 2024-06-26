@@ -22,9 +22,8 @@ class UserForgetsPinTests : TestBase() {
 
     @BeforeEach
     fun setUp() {
-        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizeInform)
+        OnboardingNavigator().toScreen(OnboardingScreen.PersonalizeConfirmIssuance)
 
-        restartApp()
         PinScreen().clickForgotPinButton()
 
         forgotPinScreen = ForgotPinScreen()

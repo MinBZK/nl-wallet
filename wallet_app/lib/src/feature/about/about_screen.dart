@@ -29,7 +29,10 @@ class AboutScreen extends StatelessWidget {
               child: WalletScrollbar(
                 child: CustomScrollView(
                   slivers: [
-                    SliverWalletAppBar(title: context.l10n.aboutScreenTitle),
+                    SliverWalletAppBar(
+                      title: context.l10n.aboutScreenTitle,
+                      scrollController: PrimaryScrollController.maybeOf(context),
+                    ),
                     _buildContentSliver(context),
                   ],
                 ),

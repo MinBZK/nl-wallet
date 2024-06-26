@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/num_extensions.dart';
+import '../../../util/extension/scroll_controller_extensions.dart';
 import 'button/icon/back_icon_button.dart';
 import 'stepper_indicator.dart';
 import 'text/title_text.dart';
@@ -17,12 +18,18 @@ class SliverWalletAppBar extends StatefulWidget {
   final Widget? leading;
   final bool automaticallyImplyLeading;
 
+  /// Providing a scroll controller allows the widget to 'speed up' the animation in case the
+  /// maxScrollExtent is smaller than the pixels it would normally take to completely transition
+  /// to showing the app bar title.
+  final ScrollController? scrollController;
+
   const SliverWalletAppBar({
     required this.title,
     this.leading,
     this.automaticallyImplyLeading = true,
     this.progress,
     this.actions,
+    this.scrollController,
     super.key,
   });
 
@@ -38,9 +45,6 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
   /// Automatically invalidated when the title changes.
   double? _textHeightCache;
 
-  /// Top padding (insets), used as a small optimization to avoid resolving on every frame.
-  late double _topPadding;
-
   /// Padding used to indent the expanded title, also used when calculating textHeight.
   final _expandedTitlePadding = const EdgeInsets.only(bottom: 14, left: 16, top: 0, right: 16);
 
@@ -49,11 +53,13 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
 
   double get toolbarHeight => widget.progress == null ? kToolbarHeight : kToolbarHeight + kStepIndicatorHeight;
 
-  double get expandedHeight => toolbarHeight + 32 + (_textHeightCache ?? _calculateTextHeight(widget.title));
+  double get expandedHeight => toolbarHeight + 32 + _getTextHeight(widget.title);
+
+  double get maxScrollExtent => widget.scrollController?.maxScrollExtent(fallback: double.infinity) ?? double.infinity;
 
   @override
   Widget build(BuildContext context) {
-    _topPadding = context.mediaQuery.padding.top;
+    final topPadding = context.mediaQuery.padding.top;
 
     /// Decide if we should show the [WalletBackButton] when no [leading] widget is provided.
     final showBackButton = Navigator.of(context).canPop() && widget.automaticallyImplyLeading;
@@ -78,8 +84,15 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
       flexibleSpace: LayoutBuilder(
         builder: (context, constraints) {
           /// Calculate the flexibleSpace's collapsed ratio, used to animate titles
-          final minHeight = _topPadding + toolbarHeight;
-          final maxHeight = _topPadding + expandedHeight;
+          double minHeight = topPadding + toolbarHeight;
+          final maxHeight = topPadding + expandedHeight;
+          final scrollRange = maxHeight - minHeight;
+
+          if (scrollRange > maxScrollExtent) {
+            /// maxScrollExtent not sufficient to perform full animation, speeding up the process by
+            /// providing a minHeight based on the available scroll range.
+            minHeight = maxHeight - maxScrollExtent;
+          }
           final collapsedRatio = constraints.maxHeight.normalize(minHeight, maxHeight).toDouble();
 
           /// Notify the [collapsedRatio] ValueNotifier so the SliverAppBar.title can be animated.
@@ -91,7 +104,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
           /// Render the flexible space, which includes the (optional) progress bar and expanded title
           return Stack(
             children: [
-              _buildPositionedProgressBar(),
+              _buildPositionedProgressBar(context),
               FlexibleSpaceBar(
                 expandedTitleScale: 1,
                 centerTitle: false,
@@ -124,10 +137,10 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
     _textHeightCache = null;
   }
 
-  Widget _buildPositionedProgressBar() {
+  Widget _buildPositionedProgressBar(BuildContext context) {
     if (widget.progress == null) return const SizedBox.shrink();
     return Positioned(
-      top: _topPadding + toolbarHeight - kStepIndicatorHeight,
+      top: context.mediaQuery.padding.top + toolbarHeight - kStepIndicatorHeight,
       left: 0,
       right: 0,
       child: SafeArea(
@@ -140,6 +153,8 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
       ),
     );
   }
+
+  double _getTextHeight(String text) => _textHeightCache ?? _calculateTextHeight(text);
 
   double _calculateTextHeight(String text) {
     final TextPainter tp = TextPainter(

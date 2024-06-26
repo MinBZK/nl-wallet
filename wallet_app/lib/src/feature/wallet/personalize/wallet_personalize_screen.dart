@@ -59,7 +59,9 @@ class WalletPersonalizeScreen extends StatelessWidget {
             _showExitSheet(context);
           }
         },
-        child: _buildPage(),
+        child: ScrollOffsetProvider(
+          child: _buildPage(),
+        ),
       ),
     );
   }
