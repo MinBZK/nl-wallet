@@ -32,7 +32,7 @@ aside {
 
 header {
     content: " ";
-    background: url("/images/nl-wallet.svg") no-repeat center center / cover;
+    background: url("../images/nl-wallet.svg") no-repeat center center / cover;
     width: 64px;
     height: 64px;
 }
@@ -110,19 +110,19 @@ nav a::before {
 
 /* use case icons */
 #mijn_amsterdam::before {
-    background: url("/images/mijn_amsterdam.svg") no-repeat center center /
+    background: url("../images/mijn_amsterdam.svg") no-repeat center center /
         cover;
 }
 
 #online_marketplace::before {
-    background: url("/images/online_marketplace.svg") no-repeat center center /
+    background: url("../images/online_marketplace.svg") no-repeat center center /
         cover;
 }
 
 #xyz_bank::before {
-    background: url("/images/xyz_bank.svg") no-repeat center center / cover;
+    background: url("../images/xyz_bank.svg") no-repeat center center / cover;
 }
 
 #monkey_bike::before {
-    background: url("/images/monkey_bike.svg") no-repeat center center / cover;
+    background: url("../images/monkey_bike.svg") no-repeat center center / cover;
 }

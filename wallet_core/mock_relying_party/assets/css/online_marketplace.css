@@ -5,5 +5,5 @@
 
 :root {
     --primary-color: #007279;
-    --logo-url: url("/images/online_marketplace.svg");
+    --logo-url: url("../images/online_marketplace.svg");
 }
