@@ -28,6 +28,7 @@ class ChangeLanguageScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.changeLanguageScreenTitle,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       leading: const BackIconButton(
                         key: Key('changeLanguageScreenBackCta'),
                       ),
@@ -64,7 +65,7 @@ class ChangeLanguageScreen extends StatelessWidget {
                     },
               excludeSemantics: true,
               label: language.name,
-              onTapHint: context.l10n.generalWCAGLogoutAnnouncement,
+              onTapHint: context.l10n.generalWCAGChangeLanguage,
               child: InkWell(
                 onTap: isSelectedLanguage
                     ? null

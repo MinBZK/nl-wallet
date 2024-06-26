@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-25T09:18:05+02:00",
+    "@@last_modified": "2024-06-24T14:24:02+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -385,6 +385,7 @@
     "generalTimeAgoLessThenOneMinute": "minder dan een minuut",
     "generalVersionText": "Appversie:",
     "generalWCAGBack": "Terug",
+    "generalWCAGChangeLanguage": "Taal te selecteren",
     "generalWCAGClose": "Sluiten",
     "generalWCAGHelp": "Hulp nodig?",
     "generalWCAGInfo": "Meer info",

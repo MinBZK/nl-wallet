@@ -1,9 +1,9 @@
-@import url("/css/online_marketplace.css");
-@import url("/css/title_bar.css");
-@import url("/css/page.css");
-@import url("/css/notification.css");
-@import url("/css/search.css");
-@import url("/css/products.css");
+@import url("./online_marketplace.css");
+@import url("./title_bar.css");
+@import url("./page.css");
+@import url("./notification.css");
+@import url("./search.css");
+@import url("./products.css");
 
 header h1::before {
     border-radius: 4.36px;

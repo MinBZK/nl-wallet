@@ -1,5 +1,5 @@
-@import url("/css/xyz_bank.css");
-@import url("/css/notification.css");
+@import url("./xyz_bank.css");
+@import url("./notification.css");
 
 :root {
     --notification-color: #007279;

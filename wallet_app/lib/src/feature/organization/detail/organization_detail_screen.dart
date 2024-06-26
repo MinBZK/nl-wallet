@@ -68,6 +68,7 @@ class OrganizationDetailScreen extends StatelessWidget {
             slivers: [
               SliverWalletAppBar(
                 title: _resolveTitle(context),
+                scrollController: PrimaryScrollController.maybeOf(context),
                 actions: const [HelpIconButton()],
               ),
               content,

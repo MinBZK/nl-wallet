@@ -4,12 +4,12 @@
 {%- import "components/attributes.askama" as attributes -%}
 
 {% block styles %}
-<link rel="stylesheet" href="/css/demo_bar.css" />
-<link rel="stylesheet" href="/css/{{ usecase }}-return.css" />
+<link rel="stylesheet" href="../css/demo_bar.css" />
+<link rel="stylesheet" href="../css/{{ usecase }}-return.css" />
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="/nl-wallet-web.iife.js"></script>
+<script type="module" src="../nl-wallet-web.iife.js"></script>
 {% endblock %}
 
 {% block content %}

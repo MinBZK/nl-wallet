@@ -29,6 +29,7 @@ class PinBlockedScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.pinBlockedScreenHeadline,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       actions: const [HelpIconButton()],
                     ),
                     SliverPadding(

@@ -49,6 +49,7 @@ class PinTimeoutScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: context.l10n.pinTimeoutScreenHeadline,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       actions: const [HelpIconButton()],
                     ),
                     SliverPadding(

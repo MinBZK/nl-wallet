@@ -1,4 +1,4 @@
-@import url("input-reset.css");
+@import url("./input-reset.css");
 
 input[name="search"] {
     display: flex;
@@ -14,6 +14,6 @@ input[name="search"] {
     width: 100%;
 
     /* icon */
-    background: url("/images/search.svg") no-repeat right center / 18px
+    background: url("../images/search.svg") no-repeat right center / 18px
         content-box;
 }
