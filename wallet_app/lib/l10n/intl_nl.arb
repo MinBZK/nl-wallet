@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-24T21:18:16+02:00",
+    "@@last_modified": "2024-06-25T09:18:05+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -865,7 +865,6 @@
     "signSuccessPageTitle": "Gelukt!",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Ja, klopt",
     "walletPersonalizeCheckDataOfferingPageAddressLabel": "Adres",
-    "walletPersonalizeCheckDataOfferingPageBirthDateValue": "{birthDate}",
     "walletPersonalizeCheckDataOfferingPageBirthInfoLabel": "Geboren",
     "walletPersonalizeCheckDataOfferingPageBirthInfoValue": "{birthDate} in {birthPlace}, {birthCountry}",
     "@walletPersonalizeCheckDataOfferingPageBirthInfoValue": {

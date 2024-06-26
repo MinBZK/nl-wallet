@@ -95,7 +95,7 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
         birthCity,
       );
     } else {
-      return context.l10n.walletPersonalizeCheckDataOfferingPageBirthDateValue(birthDate);
+      return birthDate;
     }
   }
 
