@@ -7,13 +7,12 @@ use wallet_common::{
     account::{
         messages::{
             auth::{Registration, WalletCertificate},
-            errors::ErrorType,
+            errors::{AccountError, AccountErrorType},
             instructions::{Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult},
         },
         signed::SignedDouble,
     },
     config::wallet_config::BaseUrl,
-    http_error::ErrorData,
 };
 
 pub use self::client::HttpAccountProviderClient;
@@ -34,8 +33,8 @@ pub enum AccountProviderResponseError {
     Status(StatusCode),
     #[error("status code {0} and contents: {1}")]
     Text(StatusCode, String),
-    #[error("status code {0} and error: {1}")]
-    Data(StatusCode, ErrorData<ErrorType>),
+    #[error("error with type and detail: ({}) {}", AccountErrorType::from(.0), .1.as_deref().unwrap_or("<NO DETAIL>"))]
+    Account(AccountError, Option<String>),
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
