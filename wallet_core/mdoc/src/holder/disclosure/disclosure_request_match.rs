@@ -174,6 +174,10 @@ impl<I> DisclosureRequestMatch<I> {
                         .into_iter()
                         .map(|items_request| items_request.doc_type.as_str())
                         .unique()
+                        // Get all of the requested attributes that are still remaining from
+                        // `requested_attributes_by_doc_type`, ignoring any `None` entries.
+                        // Note that this removes the attributes from that `HashMap`, so that
+                        // we can take ownership and avoid cloning the `AttributeIdentifier`s.
                         .flat_map(|doc_type| requested_attributes_by_doc_type.remove(doc_type))
                         .flatten(),
                 )

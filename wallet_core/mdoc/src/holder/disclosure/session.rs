@@ -643,6 +643,8 @@ mod tests {
         assert_eq!(proposal_session.proposed_source_identifiers(), ["id_1"]);
 
         // Test that the proposal for disclosure contains the example attributes, in order.
+        // Note that `swap_remove()` is used to quickly gain ownership of the `Entry`s
+        // contained within the proposed attributes for the example doc_type and namespace.
         let entry_keys = proposal_session
             .proposed_attributes()
             .swap_remove(EXAMPLE_DOC_TYPE)
