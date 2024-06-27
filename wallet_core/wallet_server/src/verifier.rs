@@ -20,7 +20,7 @@ use openid4vc::{
     verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
     GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator};
+use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonError};
 
 use crate::{
     errors::ErrorResponse,
@@ -155,7 +155,7 @@ async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<StatusParams>,
-) -> Result<Json<StatusResponse>, ErrorResponse<VerificationErrorCode>>
+) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -171,8 +171,7 @@ where
             &TimeGenerator,
         )
         .await
-        .inspect_err(|error| warn!("querying session status failed: {error}"))
-        .map_err(ErrorResponse::new)?;
+        .inspect_err(|error| warn!("querying session status failed: {error}"))?;
 
     Ok(Json(response))
 }
@@ -192,7 +191,7 @@ pub struct StartDisclosureResponse {
 async fn start<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Json(start_request): Json<StartDisclosureRequest>,
-) -> Result<Json<StartDisclosureResponse>, ErrorResponse<VerificationErrorCode>>
+) -> Result<Json<StartDisclosureResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -204,8 +203,7 @@ where
             start_request.return_url_template,
         )
         .await
-        .inspect_err(|error| warn!("starting new session failed: {error}"))
-        .map_err(ErrorResponse::new)?;
+        .inspect_err(|error| warn!("starting new session failed: {error}"))?;
 
     Ok(Json(StartDisclosureResponse { session_token }))
 }
@@ -219,7 +217,7 @@ async fn disclosed_attributes<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
-) -> Result<Json<DisclosedAttributes>, ErrorResponse<VerificationErrorCode>>
+) -> Result<Json<DisclosedAttributes>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -227,8 +225,7 @@ where
         .verifier
         .disclosed_attributes(&session_token, params.nonce)
         .await
-        .inspect_err(|error| warn!("fetching disclosed attributes failed: {error}"))
-        .map_err(ErrorResponse::new)?;
+        .inspect_err(|error| warn!("fetching disclosed attributes failed: {error}"))?;
 
     Ok(Json(disclosed_attributes))
 }

@@ -2,12 +2,14 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
+use wallet_common::http_error::{HttpJsonError, HttpJsonErrorType};
 
 use crate::{
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
     verifier::{GetAuthRequestError, PostAuthResponseError, SessionError, VerificationError},
 };
 
+/// Describes an error that occured when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ErrorResponse<T> {
@@ -239,8 +241,14 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+// The `VerificationError` and `VerificationErrorCode` is handled differently from the errors above:
+// instead of returning them as an `ErrorResponse`, they are returned as a `HttpJsonErrorBody`.
+// This is because the endpoints that return these errors are not part of a protocol from the
+// OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
+
+/// Error codes sent to the Relying Party when an error occurs when handling their request.
+#[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
     InvalidRequest,
     ExpiredSession,
@@ -249,34 +257,17 @@ pub enum VerificationErrorCode {
     ServerError,
 }
 
-impl From<VerificationError> for ErrorResponse<VerificationErrorCode> {
-    fn from(err: VerificationError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                VerificationError::Session(SessionError::Expired) => VerificationErrorCode::ExpiredSession,
-                VerificationError::Session(SessionError::UnknownSession(_)) => VerificationErrorCode::SessionUnknown,
-                VerificationError::Session(SessionError::SessionStore(_)) | VerificationError::UrlEncoding(_) => {
-                    VerificationErrorCode::ServerError
-                }
-                VerificationError::Session(SessionError::UnexpectedState) => VerificationErrorCode::InvalidRequest,
-                VerificationError::UnknownUseCase(_)
-                | VerificationError::ReturnUrlConfigurationMismatch
-                | VerificationError::NoItemsRequests
-                | VerificationError::SessionNotDone
-                | VerificationError::MissingSAN
-                | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,
-                VerificationError::RedirectUriNonceMismatch(_) | VerificationError::RedirectUriNonceMissing => {
-                    VerificationErrorCode::Nonce
-                }
-            },
-            error_description: Some(description),
-            error_uri: None,
+impl HttpJsonErrorType for VerificationErrorCode {
+    fn title(&self) -> String {
+        match self {
+            VerificationErrorCode::InvalidRequest => "Invalid request".to_string(),
+            VerificationErrorCode::ExpiredSession => "Session has expired".to_string(),
+            VerificationErrorCode::SessionUnknown => "Unknown session".to_string(),
+            VerificationErrorCode::Nonce => "Redirect URI nonce incorrect or missing".to_string(),
+            VerificationErrorCode::ServerError => "Internal server error occurred".to_string(),
         }
     }
-}
 
-impl ErrorStatusCode for VerificationErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             VerificationErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
@@ -289,6 +280,34 @@ impl ErrorStatusCode for VerificationErrorCode {
     }
 }
 
+impl From<VerificationError> for VerificationErrorCode {
+    fn from(err: VerificationError) -> Self {
+        match err {
+            VerificationError::Session(SessionError::Expired) => VerificationErrorCode::ExpiredSession,
+            VerificationError::Session(SessionError::UnknownSession(_)) => VerificationErrorCode::SessionUnknown,
+            VerificationError::Session(SessionError::SessionStore(_)) | VerificationError::UrlEncoding(_) => {
+                VerificationErrorCode::ServerError
+            }
+            VerificationError::Session(SessionError::UnexpectedState) => VerificationErrorCode::InvalidRequest,
+            VerificationError::UnknownUseCase(_)
+            | VerificationError::ReturnUrlConfigurationMismatch
+            | VerificationError::NoItemsRequests
+            | VerificationError::SessionNotDone
+            | VerificationError::MissingSAN
+            | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,
+            VerificationError::RedirectUriNonceMismatch(_) | VerificationError::RedirectUriNonceMissing => {
+                VerificationErrorCode::Nonce
+            }
+        }
+    }
+}
+
+impl From<VerificationError> for HttpJsonError<VerificationErrorCode> {
+    fn from(value: VerificationError) -> Self {
+        HttpJsonError::from_error(value)
+    }
+}
+
 /// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -298,6 +317,7 @@ pub enum AuthBearerErrorCode {
     InsufficientScope,
 }
 
+/// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
