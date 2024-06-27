@@ -1160,8 +1160,7 @@ deploy-mock-relying-party-demo:
 
 run-pi-migrations-ont:
   extends: [.env-ont-k8s, .run-pi-migrations]
-  # rules: !reference [.default-or-merge-request, rules]
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request, rules]
 
 run-pi-migrations-demo:
   extends: [.env-demo-k8s, .run-pi-migrations]
@@ -1182,8 +1181,7 @@ run-pi-migrations-demo:
 
 deploy-pid-issuer-ont:
   extends: [.env-ont-k8s, .deploy-pid-issuer]
-  # rules: !reference [.default-or-merge-request, rules]
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request, rules]
   needs:
     - !reference [.deploy-pid-issuer, needs]
     - job: run-pi-migrations-ont
