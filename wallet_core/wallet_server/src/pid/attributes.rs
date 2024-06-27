@@ -98,7 +98,7 @@ impl AttributeService for BrpPidAttributeService {
         };
 
         let bsn = self.openid_client.bsn(openid_token_request).await?;
-        let persons = self.brp_client.get_person_by_bsn(bsn).await?;
+        let persons = self.brp_client.get_person_by_bsn(&bsn).await?;
 
         persons
             .persons

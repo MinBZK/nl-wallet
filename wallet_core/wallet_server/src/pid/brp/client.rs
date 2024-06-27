@@ -16,7 +16,7 @@ pub enum BrpError {
 }
 
 pub trait BrpClient {
-    async fn get_person_by_bsn(&self, bsn: String) -> Result<BrpPersons, BrpError>;
+    async fn get_person_by_bsn(&self, bsn: &str) -> Result<BrpPersons, BrpError>;
 }
 
 pub struct HttpBrpClient {
@@ -36,46 +36,48 @@ impl HttpBrpClient {
 }
 
 #[derive(Serialize)]
-struct GetByBsnRequest {
-    r#type: String,
-
+struct GetByBsnRequest<'a> {
+    r#type: &'a str,
     #[serde(rename = "burgerservicenummer")]
-    bsn: Vec<String>,
-    fields: Vec<String>,
+    bsn: &'a [&'a str],
+    fields: &'a [&'a str],
 }
 
-impl GetByBsnRequest {
-    fn create(bsn: String) -> GetByBsnRequest {
-        GetByBsnRequest {
-            r#type: String::from("RaadpleegMetBurgerservicenummer"),
-            bsn: vec![bsn],
-            fields: vec![
-                String::from("burgerservicenummer"),
-                String::from("geslacht"),
-                String::from("naam.voornamen"),
-                String::from("naam.voorvoegsel"),
-                String::from("naam.geslachtsnaam"),
-                String::from("naam.aanduidingNaamgebruik"),
-                String::from("geboorte"),
-                String::from("verblijfplaats.verblijfadres.officieleStraatnaam"),
-                String::from("verblijfplaats.verblijfadres.korteStraatnaam"),
-                String::from("verblijfplaats.verblijfadres.huisnummer"),
-                String::from("verblijfplaats.verblijfadres.postcode"),
-                String::from("verblijfplaats.verblijfadres.woonplaats"),
-                String::from("leeftijd"),
-                String::from("partners.naam.voorvoegsel"),
-                String::from("partners.naam.geslachtsnaam"),
-                String::from("partners.soortVerbintenis.code"),
-                String::from("partners.aangaanHuwelijkPartnerschap"),
-            ],
-        }
-    }
+impl GetByBsnRequest<'_> {
+    const TYPE: &'static str = "RaadpleegMetBurgerservicenummer";
+    const FIELDS: [&'static str; 17] = [
+        "burgerservicenummer",
+        "geslacht",
+        "naam.voornamen",
+        "naam.voorvoegsel",
+        "naam.geslachtsnaam",
+        "naam.aanduidingNaamgebruik",
+        "geboorte",
+        "verblijfplaats.verblijfadres.officieleStraatnaam",
+        "verblijfplaats.verblijfadres.korteStraatnaam",
+        "verblijfplaats.verblijfadres.huisnummer",
+        "verblijfplaats.verblijfadres.postcode",
+        "verblijfplaats.verblijfadres.woonplaats",
+        "leeftijd",
+        "partners.naam.voorvoegsel",
+        "partners.naam.geslachtsnaam",
+        "partners.soortVerbintenis.code",
+        "partners.aangaanHuwelijkPartnerschap",
+    ];
 }
 
 impl BrpClient for HttpBrpClient {
-    async fn get_person_by_bsn(&self, bsn: String) -> Result<BrpPersons, BrpError> {
+    async fn get_person_by_bsn(&self, bsn: &str) -> Result<BrpPersons, BrpError> {
         let url = self.base_url.join("haalcentraal/api/brp/personen");
-        let request = self.http_client.post(url).json(&GetByBsnRequest::create(bsn)).build()?;
+        let request = self
+            .http_client
+            .post(url)
+            .json(&GetByBsnRequest {
+                r#type: GetByBsnRequest::TYPE,
+                bsn: &[bsn],
+                fields: &GetByBsnRequest::FIELDS,
+            })
+            .build()?;
 
         let response = self.http_client.execute(request).await?.error_for_status()?;
         let body = response.json().await?;
