@@ -49,7 +49,7 @@ import '../../common/widget/wallet_logo.dart';
 import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
-import '../../history/detail/widget/history_detail_wallet_event_row.dart';
+import '../../history/detail/widget/wallet_event_status_header.dart';
 import '../theme_screen.dart';
 
 final _kSampleCardFront = CardFront(

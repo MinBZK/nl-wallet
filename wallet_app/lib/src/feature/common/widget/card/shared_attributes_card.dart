@@ -103,9 +103,11 @@ class SharedAttributesCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          SvgOrImage(
-            asset: card.front.backgroundImage,
-            fit: BoxFit.cover,
+          Positioned.fill(
+            child: SvgOrImage(
+              asset: card.front.backgroundImage,
+              fit: BoxFit.cover,
+            ),
           ),
           _buildPositionedHolograph(),
         ],

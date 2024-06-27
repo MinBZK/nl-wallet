@@ -373,10 +373,7 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
     return BlocProvider<HistoryDetailBloc>(
       create: (BuildContext context) => HistoryDetailBloc(context.read())
         ..add(
-          HistoryDetailLoadTriggered(
-            event: argument.walletEvent,
-            docType: argument.docType,
-          ),
+          HistoryDetailLoadTriggered(event: argument.walletEvent),
         ),
       child: const HistoryDetailScreen(),
     );

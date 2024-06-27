@@ -90,6 +90,16 @@ abstract class WalletMockData {
         type: DisclosureType.regular,
       ) as DisclosureEvent;
 
+  static DisclosureEvent get loginEvent => WalletEvent.disclosure(
+        dateTime: DateTime(2024, 2, 1),
+        status: EventStatus.success,
+        relyingParty: organization,
+        purpose: 'disclosure'.untranslated,
+        cards: [card],
+        policy: policy,
+        type: DisclosureType.login,
+      ) as DisclosureEvent;
+
   static SignEvent get signEvent => WalletEvent.sign(
         dateTime: DateTime(2024, 1, 1),
         status: EventStatus.success,
