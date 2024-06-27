@@ -290,7 +290,7 @@ async fn test_disclosure_not_found() {
         .as_str()
         .into(),
     );
-    let response = client.post(request_uri).send().await.unwrap();
+    let response = client.get(request_uri).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 

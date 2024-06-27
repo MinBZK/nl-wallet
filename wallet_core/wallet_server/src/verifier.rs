@@ -65,6 +65,8 @@ where
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
+    // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
+    // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
     let wallet_router = Router::new()
         .route(
             "/:session_token/request_uri",
