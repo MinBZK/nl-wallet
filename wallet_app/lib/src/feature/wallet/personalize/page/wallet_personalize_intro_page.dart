@@ -35,6 +35,7 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
                   SliverWalletAppBar(
                     title: context.l10n.walletPersonalizeIntroPageTitle,
                     progress: progress,
+                    scrollController: PrimaryScrollController.maybeOf(context),
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),

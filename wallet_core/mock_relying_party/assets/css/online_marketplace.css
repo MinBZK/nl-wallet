@@ -1,0 +1,9 @@
+@import url("./reset.css");
+@import url("./button-reset.css");
+@import url("./fonts.css");
+@import url("./common.css");
+
+:root {
+    --primary-color: #007279;
+    --logo-url: url("../images/online_marketplace.svg");
+}

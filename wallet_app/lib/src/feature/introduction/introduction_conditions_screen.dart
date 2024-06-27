@@ -37,6 +37,7 @@ class IntroductionConditionsScreen extends StatelessWidget {
               slivers: [
                 SliverWalletAppBar(
                   title: context.l10n.introductionConditionsScreenHeadline,
+                  scrollController: PrimaryScrollController.maybeOf(context),
                   progress: const FlowProgress(currentStep: 2, totalSteps: kSetupSteps),
                   leading: const BackIconButton(),
                   actions: const [HelpIconButton()],

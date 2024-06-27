@@ -1,0 +1,17 @@
+@import url("./mijn_amsterdam.css");
+@import url("./buttons-after.css");
+
+.buttons button > span,
+.buttons nl-wallet-button::part(button) {
+    padding: 10px 16px;
+}
+
+.buttons nl-wallet-button::part(button) {
+    border-radius: 0;
+}
+
+.buttons button::after,
+.buttons nl-wallet-button::after {
+    width: 40px;
+    height: 40px;
+}

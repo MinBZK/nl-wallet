@@ -112,10 +112,8 @@ where
             wallet_request.wallet_nonce,
         )
         .await
-        .map_err(|err| {
-            warn!("processing request for Authorization Request JWT failed, returning error");
-            ErrorResponse::with_uri(err)
-        })?;
+        .inspect_err(|error| warn!("processing request for Authorization Request JWT failed, returning error: {error}"))
+        .map_err(ErrorResponse::with_uri)?;
 
     info!("processing request for Authorization Request JWT successful, returning response");
 
@@ -140,10 +138,8 @@ where
         .verifier
         .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
         .await
-        .map_err(|err| {
-            warn!("processing Verifiable Presentation failed, returning error");
-            ErrorResponse::with_uri(err)
-        })?;
+        .inspect_err(|error| warn!("processing Verifiable Presentation failed, returning error: {error}"))
+        .map_err(ErrorResponse::with_uri)?;
 
     info!("Verifiable Presentation processed successfully, returning response");
 
@@ -175,6 +171,7 @@ where
             &TimeGenerator,
         )
         .await
+        .inspect_err(|error| warn!("querying session status failed: {error}"))
         .map_err(ErrorResponse::new)?;
 
     Ok(Json(response))
@@ -207,6 +204,7 @@ where
             start_request.return_url_template,
         )
         .await
+        .inspect_err(|error| warn!("starting new session failed: {error}"))
         .map_err(ErrorResponse::new)?;
 
     Ok(Json(StartDisclosureResponse { session_token }))
@@ -229,6 +227,8 @@ where
         .verifier
         .disclosed_attributes(&session_token, params.nonce)
         .await
+        .inspect_err(|error| warn!("fetching disclosed attributes failed: {error}"))
         .map_err(ErrorResponse::new)?;
+
     Ok(Json(disclosed_attributes))
 }

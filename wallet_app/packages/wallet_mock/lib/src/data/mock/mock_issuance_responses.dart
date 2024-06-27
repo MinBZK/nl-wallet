@@ -153,61 +153,46 @@ final _kMockPidDataAttributes = [
     labels: [LocalizedString(language: 'nl', value: 'Voornamen')],
     value: _kMockFirstNames,
     key: 'mock.firstNames',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Achternaam')],
     value: _kMockLastName,
     key: 'mock.lastName',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Naam bij geboorte')],
     value: const CardValue.string(value: 'Molenaar'),
     key: 'mock.birthName',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Geslacht')],
     value: _kMockGender,
     key: 'mock.gender',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Geboortedatum')],
     value: _kMockBirthDate,
     key: 'mock.birthDate',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Ouder dan 18')],
     value: CardValue.boolean(value: true),
     key: 'mock.olderThan18',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Geboorteplaats')],
     value: _kMockBirthPlace,
     key: 'mock.birthPlace',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Geboorteland')],
     value: const CardValue.string(value: 'Nederland'),
     key: 'mock.birthCountry',
-    // sourceCardId: _kPidId,
   ),
   CardAttribute(
     labels: [LocalizedString(language: 'nl', value: 'Burger­service­nummer (BSN)')],
     value: const CardValue.string(value: '111222333'),
     key: 'mock.citizenshipNumber',
-    // sourceCardId: _kPidId,
-  ),
-  CardAttribute(
-    labels: [LocalizedString(language: 'nl', value: 'Nationaliteit')],
-    value: const CardValue.string(value: 'Nederlands'),
-    key: 'mock.nationality',
-    // sourceCardId: _kPidId,
   ),
 ];
 

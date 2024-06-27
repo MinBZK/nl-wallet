@@ -28,8 +28,8 @@ where
         settings.wallet_server,
         settings.requester_server,
         Router::new()
-            .nest("/issuance/", wallet_issuance_router)
-            .nest("/disclosure/", wallet_disclosure_router),
+            .nest("/issuance", wallet_issuance_router)
+            .nest("/disclosure", wallet_disclosure_router),
         Router::new().nest("/disclosure/sessions", requester_router),
         log_requests,
     )

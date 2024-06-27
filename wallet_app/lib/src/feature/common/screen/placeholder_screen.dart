@@ -35,6 +35,7 @@ class PlaceholderScreen extends StatelessWidget {
                   slivers: [
                     SliverWalletAppBar(
                       title: headline,
+                      scrollController: PrimaryScrollController.maybeOf(context),
                       automaticallyImplyLeading: true,
                     ),
                     SliverToBoxAdapter(

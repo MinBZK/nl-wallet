@@ -1,0 +1,56 @@
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
+.buttons button,
+.buttons nl-wallet-button {
+    display: flex;
+    gap: 12px;
+}
+
+.buttons button > span,
+.buttons nl-wallet-button::part(button) {
+    display: flex;
+    background: var(--primary-color);
+    color: white;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 20px;
+}
+
+.buttons button::after,
+.buttons nl-wallet-button::after {
+    content: " ";
+    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+}
+
+.buttons button:hover:not(:disabled) > span,
+.buttons nl-wallet-button::part(button):hover:not(:disabled) {
+    background: var(--hover-color);
+}
+
+.buttons nl-wallet-button::after {
+    background: url("../images/nl-wallet.svg") no-repeat center center / cover;
+}
+
+.buttons #digid::after {
+    background: url("../images/digid.svg") no-repeat center center / cover;
+}
+
+/* only show cursor when hovering the span */
+.buttons button:disabled {
+    cursor: default;
+}
+
+.buttons button:disabled > span {
+    cursor: not-allowed;
+}

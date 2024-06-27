@@ -45,7 +45,7 @@ class MenuRow extends StatelessWidget {
 
   Widget _buildLeading(BuildContext context) {
     const edgeInsets = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
-    if (icon == null) return SizedBox(width: edgeInsets.horizontal + _kIconSize, height: _kMinHeight);
+    if (icon == null) return const SizedBox(width: 16);
     return Container(
       padding: edgeInsets,
       alignment: Alignment.center,

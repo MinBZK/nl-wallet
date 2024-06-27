@@ -545,16 +545,17 @@ class OtherStylesTab extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) {
-          return const Scaffold(
+          return Scaffold(
             body: CustomScrollView(
               slivers: [
                 SliverWalletAppBar(
                   title: 'Sliver App Bar',
-                  progress: FlowProgress(currentStep: 2, totalSteps: 3),
-                  leading: BackIconButton(),
-                  actions: [HelpIconButton()],
+                  scrollController: PrimaryScrollController.maybeOf(context),
+                  progress: const FlowProgress(currentStep: 2, totalSteps: 3),
+                  leading: const BackIconButton(),
+                  actions: const [HelpIconButton()],
                 ),
-                SliverFillRemaining(
+                const SliverFillRemaining(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text('Scroll this page to see the collapsing effect'),

@@ -39,7 +39,10 @@ class DigidHelpScreen extends StatelessWidget {
   Widget _buildBody(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverWalletAppBar(title: context.l10n.digidHelpScreenTitle),
+        SliverWalletAppBar(
+          title: context.l10n.digidHelpScreenTitle,
+          scrollController: PrimaryScrollController.maybeOf(context),
+        ),
         const SliverDivider(),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

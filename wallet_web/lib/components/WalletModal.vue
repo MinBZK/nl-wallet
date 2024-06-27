@@ -8,7 +8,6 @@ import LoadingSection from "@/components/LoadingSection.vue"
 import ModalHeader from "@/components/ModalHeader.vue"
 import QrCode from "@/components/QrCode.vue"
 import SuccessSection from "@/components/SuccessSection.vue"
-import { useWindowsSize } from "@/composables/use-windows-size"
 import { type ModalState, type StatusUrl } from "@/models/modal-state"
 import { SessionType } from "@/models/status"
 import { isMobileKey } from "@/util/projection_keys"
@@ -36,12 +35,10 @@ const isMobile = inject(isMobileKey)
 const pollHandle = ref<NodeJS.Timeout>()
 const modalState = ref<ModalState>({ kind: "loading" })
 
-const { width, height } = useWindowsSize()
-
 watch(modalState, (state) => {
   switch (state.kind) {
     case "created":
-    case "in_progress": {
+    case "in-progress": {
       pollStatus(state.status_url, state.session_type, state.session_token)
       break
     }
@@ -105,7 +102,7 @@ async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType, sessi
         break
       case "WAITING_FOR_RESPONSE":
         modalState.value = {
-          kind: "in_progress",
+          kind: "in-progress",
           status_url: statusUrl,
           session_type: sessionType,
           session_token,
@@ -149,7 +146,13 @@ async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType, sessi
 async function handleChoice(choice: SessionType) {
   if (modalState.value.kind === "created") {
     cancelPolling()
-    await checkStatus(modalState.value.status_url, choice, modalState.value.session_token)
+
+    let status_url = modalState.value.status_url
+    let session_token = modalState.value.session_token
+    if (choice === SessionType.CrossDevice) {
+      modalState.value = { kind: "loading" }
+    }
+    await checkStatus(status_url, choice, session_token)
   } else {
     modalState.value = {
       kind: "error",
@@ -178,7 +181,7 @@ onUnmounted(cancelPolling)
 
 <template>
   <div class="modal-anchor">
-    <aside class="modal reset visible" data-testid="wallet_modal">
+    <aside class="modal" :class="modalState.kind" data-testid="wallet_modal">
       <modal-header></modal-header>
 
       <loading-section v-if="modalState.kind === 'loading'" @stop="close"></loading-section>
@@ -191,11 +194,10 @@ onUnmounted(cancelPolling)
       <qr-code
         v-if="modalState.kind === 'created' && modalState.session_type === SessionType.CrossDevice"
         :text="modalState.ul"
-        :small="width <= 420 || height <= 800"
         @close="close"
       ></qr-code>
       <in-progress-section
-        v-if="modalState.kind === 'in_progress'"
+        v-if="modalState.kind === 'in-progress'"
         @stop="close"
       ></in-progress-section>
       <success-section

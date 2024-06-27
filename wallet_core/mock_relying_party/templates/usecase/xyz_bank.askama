@@ -1,0 +1,17 @@
+{% let title = "XYZ Bank" %}
+
+{% call header::header(title, "") %}
+<main>
+    <section>
+        <h4>Bankrekening openen</h4>
+        <h2>Stap 1. Identificeer uzelf</h2>
+    </section>
+    <section class="buttons">
+        <nl-wallet-button
+            text="Gebruik NL Wallet"
+            usecase="{{ usecase }}"
+            base-url="../"
+        ></nl-wallet-button>
+        <a href="#">Kies een ander middel</a>
+    </section>
+</main>

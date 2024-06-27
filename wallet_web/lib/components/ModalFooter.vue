@@ -6,49 +6,28 @@ defineProps<{
 }>()
 
 const emit = defineEmits(["close", "stop", "retry"])
-
-function close() {
-  emit("close")
-}
-
-function stop() {
-  emit("stop")
-}
-
-function retry() {
-  emit("retry")
-}
 </script>
 
 <template>
-  <section v-if="state == FooterState.Close" class="website-link" data-testid="website_link">
-    <p data-testid="no_wallet_app_text">Nog geen NL Wallet app? Of hulp nodig?</p>
-    <p>
-      <a href="/deeplink" class="link">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M6.4 18.5 5 17.1l9.6-9.6H6v-2h12v12h-2V8.9z" />
-        </svg>
-        <span>Naar NL Wallet website</span>
-      </a>
-    </p>
-  </section>
-
   <footer>
-    <section v-if="state == FooterState.Stop" class="help" data-testid="help">
-      <a href="/help" class="link">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M6.4 18.5 5 17.1l9.6-9.6H6v-2h12v12h-2V8.9z" />
-        </svg>
-        <span>Hulp nodig?</span>
-      </a>
-    </section>
+    <a
+      v-if="state === FooterState.Stop || state === FooterState.Cancel"
+      href="/help"
+      class="button link"
+      data-testid="help"
+    >
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M6.4 18.5 5 17.1l9.6-9.6H6v-2h12v12h-2V8.9z" />
+      </svg>
+      <span>Hulp nodig?</span>
+    </a>
 
     <button
-      v-if="state == FooterState.Stop || state == FooterState.Cancel"
+      v-if="state === FooterState.Stop || state === FooterState.Cancel"
       type="button"
-      class="secondary full-width"
+      class="button secondary"
       data-testid="cancel_button"
-      @click="stop"
+      @click="emit('stop')"
     >
       <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
         <path
@@ -59,11 +38,11 @@ function retry() {
     </button>
 
     <button
-      v-if="state == FooterState.Retry"
+      v-if="state === FooterState.Retry"
       type="button"
-      class="primary full-width"
+      class="button primary"
       data-testid="retry_button"
-      @click="retry"
+      @click="emit('retry')"
     >
       <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
         <path
@@ -76,13 +55,13 @@ function retry() {
     <button
       v-if="state === FooterState.Close || state === FooterState.Ok || state === FooterState.Retry"
       type="button"
-      class="full-width"
+      class="button"
       :class="{
         link: state === FooterState.Close || state === FooterState.Retry,
         primary: state === FooterState.Ok,
       }"
       data-testid="close_button"
-      @click="close"
+      @click="emit('close')"
     >
       <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
         <path

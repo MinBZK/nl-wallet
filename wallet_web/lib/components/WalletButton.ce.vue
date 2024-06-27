@@ -48,15 +48,6 @@ provide(isMobileKey, isMobile)
 let fontFaceSheet = new CSSStyleSheet()
 fontFaceSheet.replaceSync(`@font-face {
   font-family: "RO Sans";
-  font-weight: normal;
-  font-style: normal;
-  SSSS format('woff2');
-}
-
-@font-face {
-  font-family: "RO Sans";
-  font-weight: bold;
-  font-style: normal;
   SSSS format('woff2');
 }`)
 document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
@@ -66,7 +57,7 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
   <button
     part="button"
     type="button"
-    class="default-button primary"
+    class="nl-wallet-button"
     :id="id"
     :style="style"
     @click="show"
@@ -74,13 +65,15 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
   >
     {{ text }}
   </button>
-  <wallet-modal
-    v-if="isVisible"
-    :base-url="absoluteBaseUrl"
-    :usecase
-    @close="hide"
-    @success="success"
-  ></wallet-modal>
+  <Transition name="fade">
+    <wallet-modal
+      v-if="isVisible"
+      :base-url="absoluteBaseUrl"
+      :usecase
+      @close="hide"
+      @success="success"
+    ></wallet-modal>
+  </Transition>
 </template>
 
 <style>

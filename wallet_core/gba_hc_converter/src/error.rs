@@ -1,16 +1,18 @@
-use axum::{
-    response::{IntoResponse, Response},
-    Json,
-};
-use http::{header, HeaderValue, StatusCode};
-use serde::Serialize;
-use tracing::info;
+use http::StatusCode;
 
-use wallet_common::http_error::{ErrorData, APPLICATION_PROBLEM_JSON};
+use wallet_common::http_error::{HttpJsonError, HttpJsonErrorType};
 
 use crate::{gba, haal_centraal};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum ErrorType {
+    Transport,
+    Gba,
+    Conversion,
+}
+
+#[derive(Debug, thiserror::Error, strum::EnumDiscriminants)]
 pub enum Error {
     #[error("GBA error: {0}")]
     Gba(#[from] gba::error::Error),
@@ -18,46 +20,35 @@ pub enum Error {
     Conversion(#[from] haal_centraal::Error),
 }
 
-impl From<&Error> for StatusCode {
-    fn from(value: &Error) -> Self {
-        match value {
-            Error::Gba(e) => e.into(),
-            Error::Conversion(e) => e.into(),
+impl HttpJsonErrorType for ErrorType {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::Transport => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Gba | Self::Conversion => StatusCode::PRECONDITION_FAILED,
+        }
+    }
+
+    fn title(&self) -> String {
+        match self {
+            Self::Transport => "HTTP transport error".to_string(),
+            Self::Gba => "GBA error".to_string(),
+            Self::Conversion => "Conversion error".to_string(),
         }
     }
 }
 
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        info!("error handling request: {:?}", &self);
-
-        let status_code: StatusCode = (&self).into();
-
-        #[derive(Serialize)]
-        struct InnerType {
-            r#type: String,
+impl From<Error> for ErrorType {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::Gba(gba::error::Error::Transport(_)) => Self::Transport,
+            Error::Gba(_) => Self::Gba,
+            Error::Conversion(_) => Self::Conversion,
         }
+    }
+}
 
-        let error_data = ErrorData {
-            typ: match self {
-                Error::Gba(_) => InnerType {
-                    r#type: String::from("gba_error"),
-                },
-                Error::Conversion(_) => InnerType {
-                    r#type: String::from("conversion_error"),
-                },
-            },
-            title: self.to_string(),
-        };
-
-        (
-            status_code,
-            [(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static(APPLICATION_PROBLEM_JSON.as_ref()),
-            )],
-            Json(error_data),
-        )
-            .into_response()
+impl From<Error> for HttpJsonError<ErrorType> {
+    fn from(value: Error) -> Self {
+        HttpJsonError::from_error(value)
     }
 }

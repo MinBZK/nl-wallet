@@ -1,6 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
@@ -134,6 +134,12 @@ pub struct WithRedirectUri<T: std::error::Error> {
     #[source]
     pub error: T,
     pub redirect_uri: Option<BaseUrl>,
+}
+
+impl<T: std::error::Error> Display for WithRedirectUri<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "error: {}, redirect_uri: {:?}", self.error, self.redirect_uri)
+    }
 }
 
 impl<T: std::error::Error> From<T> for WithRedirectUri<T> {

@@ -1,183 +1,110 @@
-use std::error::Error;
-
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
-use http::{header, HeaderValue};
-use tracing::debug;
+use axum::response::{IntoResponse, Response};
+use http::StatusCode;
+use nutype::nutype;
 
 use wallet_common::{
-    account::messages::errors::ErrorType,
-    http_error::{ErrorData, APPLICATION_PROBLEM_JSON},
+    account::messages::errors::{AccountError, AccountErrorType},
+    http_error::{HttpJsonError, HttpJsonErrorType},
 };
 use wallet_provider_service::{
     account_server::{ChallengeError, InstructionError, RegistrationError, WalletCertificateError},
-    hsm,
+    hsm::HsmError,
 };
 
-/// This type wraps a [`StatusCode`] and [`ErrorData`] instance,
-/// which forms the JSON body of the error reponses.
-#[derive(Debug, Clone)]
-pub struct WalletProviderError {
-    pub status_code: StatusCode,
-    pub body: ErrorData<ErrorType>,
+// Make a newtype to circumvent the orphan rule.
+#[nutype(derive(Debug, Clone, From, AsRef, Display, FromStr))]
+pub struct WalletProviderErrorType(AccountErrorType);
+
+#[derive(Debug, thiserror::Error)]
+pub enum WalletProviderError {
+    #[error("{0}")]
+    Challenge(#[from] ChallengeError),
+    #[error("{0}")]
+    Registration(#[from] RegistrationError),
+    #[error("{0}")]
+    Instruction(#[from] InstructionError),
+    #[error("{0}")]
+    Hsm(#[from] HsmError),
 }
 
-/// Any top-level error should implement this trait in order to be
-/// convertible to a [`WalletProviderError`].
-pub trait ConvertibleError: Error {
-    fn error_type(&self) -> ErrorType;
-    fn error_title(&self) -> String {
-        self.to_string()
+impl HttpJsonErrorType for WalletProviderErrorType {
+    fn title(&self) -> String {
+        let title = match self.as_ref() {
+            AccountErrorType::Unexpected => "An unexpected error occurred",
+            AccountErrorType::ChallengeValidation => "Could not validate registration challenge",
+            AccountErrorType::RegistrationParsing => "Could not parse or validate registration message",
+            AccountErrorType::IncorrectPin => "The PIN provided is incorrect",
+            AccountErrorType::PinTimeout => "PIN checking is currently in timeout",
+            AccountErrorType::AccountBlocked => "The requested account is blocked",
+            AccountErrorType::InstructionValidation => "Could not validate instruction",
+        };
+
+        title.to_string()
+    }
+
+    fn status_code(&self) -> StatusCode {
+        match self.as_ref() {
+            AccountErrorType::Unexpected => StatusCode::INTERNAL_SERVER_ERROR,
+            AccountErrorType::ChallengeValidation => StatusCode::UNAUTHORIZED,
+            AccountErrorType::RegistrationParsing => StatusCode::BAD_REQUEST,
+            AccountErrorType::IncorrectPin => StatusCode::FORBIDDEN,
+            AccountErrorType::PinTimeout => StatusCode::FORBIDDEN,
+            AccountErrorType::AccountBlocked => StatusCode::UNAUTHORIZED,
+            AccountErrorType::InstructionValidation => StatusCode::FORBIDDEN,
+        }
     }
 }
 
-/// This allows `axum` to interpret the [`WalletProviderError`] and
-/// turn it into a response. We make use of the [`IntoResponse`] implementation
-/// of the `(StatusCode, X: IntoResponseParts, Y: IntoResponse)` tuple.
+impl From<WalletProviderError> for AccountError {
+    fn from(value: WalletProviderError) -> Self {
+        match value {
+            WalletProviderError::Challenge(error) => match error {
+                ChallengeError::WalletCertificate(WalletCertificateError::UserBlocked) => Self::AccountBlocked,
+                ChallengeError::WalletCertificate(_) => Self::ChallengeValidation,
+                _ => Self::ChallengeValidation,
+            },
+            WalletProviderError::Registration(error) => match error {
+                RegistrationError::ChallengeDecoding(_) => Self::ChallengeValidation,
+                RegistrationError::ChallengeValidation(_) => Self::ChallengeValidation,
+                RegistrationError::MessageParsing(_) => Self::RegistrationParsing,
+                RegistrationError::MessageValidation(_) => Self::RegistrationParsing,
+                RegistrationError::SerialNumberMismatch { .. } => Self::RegistrationParsing,
+                RegistrationError::PinPubKeyEncoding(_) => Self::Unexpected,
+                RegistrationError::JwtSigning(_) => Self::Unexpected,
+                RegistrationError::CertificateStorage(_) => Self::Unexpected,
+                RegistrationError::WalletCertificate(_) => Self::Unexpected,
+                RegistrationError::HsmError(_) => Self::Unexpected,
+            },
+            WalletProviderError::Instruction(error) => match error {
+                InstructionError::IncorrectPin(data) => Self::IncorrectPin(data),
+                InstructionError::PinTimeout(data) => Self::PinTimeout(data),
+                InstructionError::AccountBlocked => Self::AccountBlocked,
+                InstructionError::Validation(_) => Self::InstructionValidation,
+                InstructionError::Signing(_)
+                | InstructionError::Storage(_)
+                | InstructionError::WalletCertificate(_)
+                | InstructionError::HsmError(_) => Self::Unexpected,
+            },
+            WalletProviderError::Hsm(_) => Self::Unexpected,
+        }
+    }
+}
+
+impl From<WalletProviderError> for HttpJsonError<WalletProviderErrorType> {
+    fn from(value: WalletProviderError) -> Self {
+        let description = value.to_string();
+        let account_error = AccountError::from(value);
+
+        HttpJsonError::new(
+            AccountErrorType::from(&account_error).into(),
+            description,
+            account_error.into(),
+        )
+    }
+}
+
 impl IntoResponse for WalletProviderError {
     fn into_response(self) -> Response {
-        debug!("error result: {:?}", self);
-
-        // Panic because the JSON encoding should always succeed.
-        let bytes = serde_json::to_vec(&self.body).expect("Could not encode ErrorData to JSON.");
-
-        (
-            self.status_code,
-            [(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static(APPLICATION_PROBLEM_JSON.as_ref()),
-            )],
-            bytes,
-        )
-            .into_response()
-    }
-}
-
-/// Allows conversion from any [`Error`] that implements the
-/// [`ConvertibleError`] to [`WalletProviderError`]. This makes
-/// automatic conversion through the `?` operator possible.
-impl<E> From<E> for WalletProviderError
-where
-    E: ConvertibleError,
-{
-    fn from(value: E) -> Self {
-        let error_type = value.error_type();
-
-        WalletProviderError {
-            status_code: (&error_type).into(),
-            body: ErrorData {
-                typ: error_type,
-                title: value.error_title(),
-            },
-        }
-    }
-}
-
-// Implementations of ConvertibleError for all top-level errors.
-
-impl ConvertibleError for ChallengeError {
-    fn error_type(&self) -> ErrorType {
-        match self {
-            ChallengeError::WalletCertificate(WalletCertificateError::UserBlocked) => ErrorType::AccountBlocked,
-            ChallengeError::WalletCertificate(_) => ErrorType::ChallengeValidation,
-            _ => ErrorType::ChallengeValidation,
-        }
-    }
-}
-
-impl ConvertibleError for RegistrationError {
-    fn error_type(&self) -> ErrorType {
-        match self {
-            RegistrationError::ChallengeDecoding(_) => ErrorType::ChallengeValidation,
-            RegistrationError::ChallengeValidation(_) => ErrorType::ChallengeValidation,
-            RegistrationError::MessageParsing(_) => ErrorType::RegistrationParsing,
-            RegistrationError::MessageValidation(_) => ErrorType::RegistrationParsing,
-            RegistrationError::SerialNumberMismatch {
-                expected: _,
-                received: _,
-            } => ErrorType::RegistrationParsing,
-            RegistrationError::PinPubKeyEncoding(_) => ErrorType::Unexpected,
-            RegistrationError::JwtSigning(_) => ErrorType::Unexpected,
-            RegistrationError::CertificateStorage(_) => ErrorType::Unexpected,
-            RegistrationError::WalletCertificate(_) => ErrorType::Unexpected,
-            RegistrationError::HsmError(_) => ErrorType::Unexpected,
-        }
-    }
-}
-
-impl ConvertibleError for InstructionError {
-    fn error_type(&self) -> ErrorType {
-        match self {
-            InstructionError::IncorrectPin(data) => ErrorType::IncorrectPin(*data),
-            InstructionError::PinTimeout(data) => ErrorType::PinTimeout(*data),
-            InstructionError::AccountBlocked => ErrorType::AccountBlocked,
-            InstructionError::Validation(_) => ErrorType::InstructionValidation,
-            InstructionError::KeyNotFound(data) => ErrorType::KeyNotFound(data.to_string()),
-            InstructionError::Signing(_)
-            | InstructionError::Storage(_)
-            | InstructionError::WalletCertificate(_)
-            | InstructionError::HsmError(_) => ErrorType::Unexpected,
-        }
-    }
-}
-
-impl ConvertibleError for hsm::HsmError {
-    fn error_type(&self) -> ErrorType {
-        ErrorType::Unexpected
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    use wallet_common::account::messages::errors::IncorrectPinData;
-
-    use super::*;
-
-    #[test]
-    fn test_json_encoding() {
-        let error = WalletProviderError {
-            status_code: StatusCode::OK,
-            body: ErrorData {
-                typ: ErrorType::IncorrectPin(IncorrectPinData {
-                    attempts_left_in_round: 8,
-                    is_final_round: false,
-                }),
-                title: "Error title".to_string(),
-            },
-        };
-        let error_body = serde_json::to_value(error.body).expect("Could not encode error to JSON");
-
-        let expected_body = json!({
-            "type": "IncorrectPin",
-            "title": "Error title",
-            "data": {
-                "attempts_left_in_round": 8,
-                "is_final_round": false,
-            }
-        });
-        assert_eq!(error_body, expected_body);
-    }
-
-    #[test]
-    fn test_error_conversion() {
-        let error = RegistrationError::SerialNumberMismatch {
-            expected: 1,
-            received: 2,
-        };
-        let wp_error = WalletProviderError::from(error);
-
-        assert_eq!(wp_error.status_code, StatusCode::BAD_REQUEST);
-
-        let wp_error_body = serde_json::to_value(wp_error.body).expect("Could not encode error to JSON");
-
-        let expected_body = json!({
-                "type": "RegistrationParsing",
-                "title": "incorrect registration serial number (expected: 1, received: 2)"
-        });
-        assert_eq!(wp_error_body, expected_body);
+        HttpJsonError::<WalletProviderErrorType>::from(self).into_response()
     }
 }

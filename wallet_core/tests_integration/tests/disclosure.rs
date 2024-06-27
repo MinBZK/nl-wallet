@@ -16,7 +16,7 @@ use nl_wallet_mdoc::{
 use openid4vc::{token::TokenRequest, verifier::StatusResponse};
 use tests_integration::common::*;
 use wallet::{errors::DisclosureError, mock::MockDigidSession, DisclosureUriSource};
-use wallet_common::utils;
+use wallet_common::{http_error::HttpJsonErrorBody, utils};
 use wallet_server::verifier::{
     DisclosedAttributesParams, StartDisclosureRequest, StartDisclosureResponse, StatusParams,
 };
@@ -207,8 +207,20 @@ async fn test_disclosure_usecases_ok(
     };
     assert_eq!(return_url.is_some(), should_have_return_url);
 
-    // Copy the nonce from the received return URL to the disclosed attributes request.
     if let Some(url) = return_url {
+        // If we have a return URL, test that requesting the disclosed attributes
+        // without the nonce contained in it will result in an error.
+        let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let body = serde_json::from_slice::<HttpJsonErrorBody<String>>(&response.bytes().await.unwrap())
+            .expect("response body should deserialize to HttpJsonErrorBody");
+
+        assert_eq!(body.r#type, "nonce");
+        assert_eq!(body.status, Some(StatusCode::UNAUTHORIZED));
+
+        // Copy the nonce from the received return URL to the disclosed attributes request.
         let nonce = url
             .query_pairs()
             .find(|(key, _)| key == "nonce")

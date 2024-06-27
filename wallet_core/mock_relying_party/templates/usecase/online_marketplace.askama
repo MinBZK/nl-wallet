@@ -1,0 +1,20 @@
+<header>
+    <h1>Marktplek</h1>
+</header>
+<main>
+    <h2>Meld je aan of log in</h2>
+    <section class="buttons">
+        <nl-wallet-button
+            text="Verder met NL Wallet"
+            usecase="{{ usecase }}"
+            base-url="../"
+        ></nl-wallet-button>
+        <button id="google" disabled>Verder met Google</button>
+        <button id="email" disabled>Verder met email</button>
+        <p class="small">
+            Door op "Verder" te klikken, ga je akkoord met de
+            <a href="#">Algemene Voorwaarden</a> en het
+            <a href="#">Privacybeleid</a>.
+        </p>
+    </section>
+</main>

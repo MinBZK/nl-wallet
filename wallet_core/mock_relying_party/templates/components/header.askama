@@ -1,0 +1,10 @@
+{% macro header(title, username) %}
+<header>
+    <div>
+        <h1>{{ title }}</h1>
+        {% if username.len() > 0 %}
+        <span class="username">{{ username }}</span>
+        {% endif %}
+    </div>
+</header>
+{% endmacro %}
