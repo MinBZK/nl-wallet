@@ -11,7 +11,7 @@
         <nl-wallet-button
             text="Inloggen met NL Wallet"
             usecase="{{ usecase }}"
-            base-url="/"
+            base-url="../"
         ></nl-wallet-button>
         <button id="digid" disabled><span>Inloggen met DigiD</span></button>
     </section>

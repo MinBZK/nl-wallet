@@ -10,7 +10,7 @@
         <nl-wallet-button
             text="Gebruik NL Wallet"
             usecase="{{ usecase }}"
-            base-url="/"
+            base-url="../"
         ></nl-wallet-button>
         <a href="#">Kies een ander middel</a>
     </section>

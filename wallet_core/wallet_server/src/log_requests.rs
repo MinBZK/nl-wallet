@@ -7,6 +7,8 @@ use axum::{
 use base64::prelude::*;
 use http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, Version};
 
+use wallet_common::http_error::APPLICATION_PROBLEM_JSON;
+
 pub(crate) async fn log_request_response(req: Request, next: Next) -> Result<impl IntoResponse, (StatusCode, String)> {
     let (parts, body) = req.into_parts();
     let bytes = log_request(body, &parts.method, &parts.uri, &parts.headers, &parts.version).await?;
@@ -45,13 +47,17 @@ fn body_to_string(bytes: &Bytes, headers: &HeaderMap<HeaderValue>) -> String {
         .map(|header| header.as_bytes())
         .unwrap_or_default();
 
-    if ["application/json", "application/x-www-form-urlencoded", "text/plain"]
-        .into_iter()
-        .any(|header| match std::str::from_utf8(content_type) {
-            Ok(content_type) => content_type.starts_with(header),
-            Err(_) => false,
-        })
-    {
+    if [
+        "application/json",
+        "application/x-www-form-urlencoded",
+        "text/plain",
+        APPLICATION_PROBLEM_JSON.as_ref(),
+    ]
+    .into_iter()
+    .any(|header| match std::str::from_utf8(content_type) {
+        Ok(content_type) => content_type.starts_with(header),
+        Err(_) => false,
+    }) {
         std::str::from_utf8(bytes).unwrap_or("[non-utf8 body]").to_string()
     } else {
         "[base64] ".to_string() + &BASE64_URL_SAFE.encode(bytes)

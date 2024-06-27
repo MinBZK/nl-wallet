@@ -46,6 +46,7 @@ verifier_test = [
     "dep:assert_matches",
     "dep:indexmap",
     "dep:parking_lot",
+    "dep:reqwest",
     "dep:serde_urlencoded",
     "tokio/macros",
     "tokio/test-util",
@@ -64,7 +65,7 @@ issuance = [
     "dep:openid4vc",
 ]
 # Enable disclosure
-disclosure = ["serde_with/hex", "dep:ring"]
+disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:strum"]
 # Enable mock PID issuance
 mock = ["dep:rand", "issuance"]
 

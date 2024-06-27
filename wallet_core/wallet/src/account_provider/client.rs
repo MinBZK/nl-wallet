@@ -1,4 +1,4 @@
-use http::{header, HeaderMap, HeaderValue};
+use http::{header, HeaderMap, HeaderValue, StatusCode};
 use mime::Mime;
 use reqwest::{Client, Request};
 use serde::{de::DeserializeOwned, Serialize};
@@ -8,7 +8,7 @@ use wallet_common::{
     account::{
         messages::{
             auth::{Certificate, Challenge, Registration, WalletCertificate},
-            errors::ErrorType,
+            errors::{AccountError, AccountErrorType},
             instructions::{
                 Instruction, InstructionChallengeRequestMessage, InstructionEndpoint, InstructionResult,
                 InstructionResultMessage,
@@ -17,7 +17,7 @@ use wallet_common::{
         signed::SignedDouble,
     },
     config::wallet_config::BaseUrl,
-    http_error::ErrorData,
+    http_error::HttpJsonErrorBody,
     reqwest::default_reqwest_client_builder,
 };
 
@@ -25,6 +25,17 @@ use super::{AccountProviderClient, AccountProviderError, AccountProviderResponse
 
 pub struct HttpAccountProviderClient {
     http_client: Client,
+}
+
+impl AccountProviderResponseError {
+    fn from_json_body(status: StatusCode, body: String) -> Self {
+        serde_json::from_str::<HttpJsonErrorBody<AccountErrorType>>(&body)
+            .and_then(|error_body| {
+                AccountError::try_from_type_and_data(error_body.r#type, error_body.extra)
+                    .map(|account_error| Self::Account(account_error, error_body.detail))
+            })
+            .unwrap_or(Self::Text(status, body))
+    }
 }
 
 impl HttpAccountProviderClient {
@@ -76,13 +87,14 @@ impl HttpAccountProviderClient {
                 // we can stop early and return `AccountServerResponseError::Status`.
                 (Some(0), _) => AccountProviderResponseError::Status(status),
                 // When the `Content-Type` header is either `application/json` or `application/???+json`,
-                // attempt to parse the body as `ErrorData`. If this fails, just return
-                // `AccountServerResponseError::Status`.
+                // attempt to parse the body as `HttpJsonErrorBody<AccountErrorType>`. If this fails,
+                // fall back on either`AccountServerResponseError::Text` or `AccountProviderResponseError::Status`
                 (_, Some((mime::APPLICATION, mime::JSON, _))) | (_, Some((mime::APPLICATION, _, Some(mime::JSON)))) => {
-                    match response.json::<ErrorData<ErrorType>>().await {
-                        Ok(error_data) => AccountProviderResponseError::Data(status, error_data),
-                        Err(_) => AccountProviderResponseError::Status(status),
-                    }
+                    response
+                        .text()
+                        .await
+                        .map(|body| AccountProviderResponseError::from_json_body(status, body))
+                        .unwrap_or_else(|_| AccountProviderResponseError::Status(status))
                 }
                 // When the `Content-Type` header is `text/plain`, attempt to get the body as text
                 // and return `AccountServerResponseError::Text`. If this fails or the body is empty,
@@ -163,16 +175,17 @@ impl AccountProviderClient for HttpAccountProviderClient {
 /// Its goal is mostly to validate that HTTP error responses get converted to the right variant
 /// of `RemoteAccountServerClient` and `AccountServerResponseError`.
 mod tests {
+    use assert_matches::assert_matches;
     use http::HeaderValue;
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
-    use serde_json::json;
+    use serde_json::{json, Value};
     use wiremock::{
         matchers::{method, path},
         Mock, MockServer, ResponseTemplate,
     };
 
-    use wallet_common::{account::messages::errors::ErrorType, config::wallet_config::BaseUrl};
+    use wallet_common::config::wallet_config::BaseUrl;
 
     use super::*;
 
@@ -237,10 +250,10 @@ mod tests {
             .await
             .expect_err("No error received from server");
 
-        assert!(matches!(
+        assert_matches!(
             error,
             AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::NOT_FOUND))
-        ))
+        )
     }
 
     #[tokio::test]
@@ -259,14 +272,16 @@ mod tests {
             .await
             .expect_err("No error received from server");
 
-        assert!(matches!(
+        assert_matches!(
             error,
-            AccountProviderError::Response(AccountProviderResponseError::Text(StatusCode::BAD_GATEWAY, body))
-       if body == "Your gateway is bad and you should feel bad!"))
+            AccountProviderError::Response(
+                AccountProviderResponseError::Text(StatusCode::BAD_GATEWAY, body)
+            ) if body == "Your gateway is bad and you should feel bad!"
+        )
     }
 
     #[tokio::test]
-    async fn test_http_account_server_client_send_json_request_error_data() {
+    async fn test_http_account_server_client_send_json_request_error_type() {
         let (server, base_url) = create_mock_server().await;
 
         Mock::given(method("POST"))
@@ -279,8 +294,8 @@ mod tests {
                     )
                     .set_body_bytes(
                         serde_json::to_vec(&json!({
-                            "type": "ChallengeValidation",
-                            "title": "Error title",
+                            "type": "challenge_validation",
+                            "detail": "Error description.",
                         }))
                         .unwrap(),
                     ),
@@ -294,11 +309,12 @@ mod tests {
             .await
             .expect_err("No error received from server");
 
-        if let AccountProviderError::Response(AccountProviderResponseError::Data(StatusCode::BAD_REQUEST, data)) = error
-        {
-            assert!(matches!(data.typ, ErrorType::ChallengeValidation));
-            assert_eq!(data.title, "Error title");
-        }
+        assert_matches!(
+            error,
+            AccountProviderError::Response(
+                AccountProviderResponseError::Account(AccountError::ChallengeValidation, detail)
+            ) if detail == Some("Error description.".to_string())
+        );
     }
 
     #[tokio::test]
@@ -320,9 +336,19 @@ mod tests {
             .await
             .expect_err("No error received from server");
 
-        assert!(matches!(
-            error,
-            AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::SERVICE_UNAVAILABLE))
-        ));
+        let expected_json = json!({
+            "status": "503",
+            "text": "Service Unavailable",
+        });
+
+        match error {
+            AccountProviderError::Response(AccountProviderResponseError::Text(
+                StatusCode::SERVICE_UNAVAILABLE,
+                body,
+            )) => {
+                assert_eq!(serde_json::from_str::<Value>(&body).unwrap(), expected_json);
+            }
+            _ => panic!("should have received expected error"),
+        }
     }
 }
