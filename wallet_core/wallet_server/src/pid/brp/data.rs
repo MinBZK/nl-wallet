@@ -3,7 +3,7 @@ use std::{num::NonZeroU8, ops::Add};
 use chrono::{Days, NaiveDate, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 
 use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
 
@@ -259,29 +259,17 @@ pub struct BrpName {
     name_usage: Option<BrpNameUsage>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(tag = "code")]
 pub enum BrpNameUsage {
+    #[serde(rename = "E")]
     Own,
+    #[serde(rename = "P")]
     Partner,
+    #[serde(rename = "V")]
     PartnerThenOwn,
+    #[serde(rename = "N")]
     OwnThenPartner,
-}
-
-impl<'de> Deserialize<'de> for BrpNameUsage {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = BrpCode::deserialize(deserializer)?;
-        let status = match value.code.as_str() {
-            "E" => BrpNameUsage::Own,
-            "P" => BrpNameUsage::Partner,
-            "V" => BrpNameUsage::PartnerThenOwn,
-            "N" => BrpNameUsage::OwnThenPartner,
-            _ => BrpNameUsage::Own,
-        };
-        Ok(status)
-    }
 }
 
 impl BrpName {
@@ -396,31 +384,15 @@ pub struct GbaMarriagePartnershipStart {}
 #[derive(Deserialize)]
 pub struct GbaMarriagePartnershipEnd {}
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(tag = "code")]
 pub enum BrpMaritalStatus {
+    #[serde(rename = "H")]
     Huwelijk,
+    #[serde(rename = "P")]
     GeregistreerdPartnerschap,
+    #[serde(rename = ".")]
     Onbekend,
-}
-
-impl<'de> Deserialize<'de> for BrpMaritalStatus {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = BrpCode::deserialize(deserializer)?;
-        let status = match value.code.as_str() {
-            "H" => BrpMaritalStatus::Huwelijk,
-            "P" => BrpMaritalStatus::GeregistreerdPartnerschap,
-            _ => BrpMaritalStatus::Onbekend,
-        };
-        Ok(status)
-    }
-}
-
-#[derive(Deserialize)]
-pub struct BrpCode {
-    code: String,
 }
 
 #[cfg(test)]
