@@ -36,12 +36,15 @@ spec:
               memory: "512Mi"
               cpu: "300m"
           ports:
-            - containerPort: 3007
+            - name: pid-issuer-port
+              containerPort: 3007
           volumeMounts:
             - name: config-volume
               mountPath: /pid_issuer.toml
               subPath: config.toml
           env:
+            - name: PID_ISSUER_WALLET_SERVER__PORT
+              value: "3007"
             - name: PID_ISSUER_PUBLIC_URL
               value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
             - name: PID_ISSUER_ISSUER__DIGID__ISSUER_URL

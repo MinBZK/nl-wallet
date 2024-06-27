@@ -36,13 +36,17 @@ spec:
               memory: "512Mi"
               cpu: "300m"
           ports:
-            - containerPort: 3001
-            - containerPort: 3002
+            - name: mrp-wallet-server-wallet-port
+              containerPort: 3001
+            - name: mrp-wallet-server-requester-port
+              containerPort: 3002
           volumeMounts:
             - name: config-volume
               mountPath: /wallet_server.toml
               subPath: config.toml
           env:
+            - name: WALLET_SERVER_WALLET_SERVER__PORT
+              value: "3001"
             - name: WALLET_SERVER_REQUESTER_SERVER__IP
               value: "0.0.0.0"
             - name: WALLET_SERVER_REQUESTER_SERVER__PORT

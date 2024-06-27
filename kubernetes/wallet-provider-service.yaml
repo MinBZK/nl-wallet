@@ -11,5 +11,5 @@ spec:
   ports:
     - name: wallet-provider-http
       port: 3000
-      targetPort: 3000
+      targetPort: wallet-provider-port
       protocol: TCP
