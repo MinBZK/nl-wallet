@@ -15,8 +15,6 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=cancel_button]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
 
-    expect(wrapper.find("[data-testid=website_link]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 
@@ -27,8 +25,6 @@ describe("ModalFooter", () => {
         provide: { [isMobileKey as symbol]: true },
       },
     })
-    expect(wrapper.find("[data-testid=website_link]").exists()).toBe(true)
-    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 
@@ -40,8 +36,6 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=cancel_button]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
 
-    expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(true)
   })
 
@@ -53,9 +47,7 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=cancel_button]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
 
-    expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
+    expect(wrapper.find("[data-testid=help]").exists()).toBe(true)
   })
 
   it("should render footer for retry state", async () => {
@@ -66,8 +58,6 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=cancel_button]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(true)
 
-    expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 
@@ -79,8 +69,6 @@ describe("ModalFooter", () => {
     expect(wrapper.find("[data-testid=cancel_button]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=retry_button]").exists()).toBe(false)
 
-    expect(wrapper.find("[data-testid=website_link]").exists()).toBe(false)
-    expect(wrapper.find("[data-testid=no_wallet_app_text]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=help]").exists()).toBe(false)
   })
 })
