@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import LoadingIndicator from "@/components/LoadingIndicator.vue"
+import HelpSection from "@/components/HelpSection.vue"
 import ModalFooter from "@/components/ModalFooter.vue"
 import { FooterState } from "@/models/footer-state"
 import { SessionType } from "@/models/status"
-import { onMounted, ref } from "vue"
 
 defineProps<{
   engagementUrl: string
@@ -14,35 +13,22 @@ const emit = defineEmits<{
   choice: [session_type: SessionType]
 }>()
 
-const chosen = ref(false)
-
 function handleChoice(sessionType: SessionType) {
-  chosen.value = true
   emit("choice", sessionType)
 }
-
-onMounted(() => {
-  chosen.value = false
-})
 </script>
 
 <template>
-  <article>
+  <main data-testid="device_choice">
     <h2>Op welk apparaat staat je NL Wallet app?</h2>
-    <section class="device-choice" data-testid="device_choice">
+    <section class="buttons">
       <a
         :href="engagementUrl"
         target="_blank"
-        class="button primary full-width"
-        :class="{ disabled: chosen }"
+        class="button primary"
         data-testid="same_device_button"
         @click="() => handleChoice(SessionType.SameDevice)"
       >
-        <loading-indicator
-          v-if="chosen"
-          size="small"
-          data-testid="same_device_loading_indicator"
-        ></loading-indicator>
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
           <path d="M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4z" />
         </svg>
@@ -50,24 +36,19 @@ onMounted(() => {
       </a>
       <button
         type="button"
-        class="secondary full-width"
-        :class="{ loading: chosen }"
-        :disabled="chosen"
+        class="button secondary"
         data-testid="cross_device_button"
         @click="() => handleChoice(SessionType.CrossDevice)"
       >
-        <loading-indicator
-          v-if="chosen"
-          size="small"
-          data-testid="cross_device_loading_indicator"
-        ></loading-indicator>
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
           <path d="M4 11h12.17l-5.59-5.59L12 4l8 8-8 8-1.41-1.41L16.17 13H4z" />
         </svg>
         <span>Op een ander apparaat</span>
       </button>
     </section>
-  </article>
+  </main>
+
+  <help-section></help-section>
 
   <modal-footer :state="FooterState.Close" @close="emit('close')"></modal-footer>
 </template>

@@ -14,7 +14,6 @@ use ring::hmac;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as};
 use strfmt::strfmt;
-use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
 use url::Url;
@@ -84,8 +83,8 @@ pub enum VerificationError {
     IncorrectOriginInfo,
     #[error("missing verifier URL params")]
     MissingVerifierUrlParameters,
-    #[error("session is done")]
-    SessionIsDone,
+    #[error("session is done: {0}")]
+    SessionIsDone(SessionResultState),
     #[error("unknown use case: {0}")]
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
@@ -156,7 +155,13 @@ pub struct Done {
 
 /// The outcome of a session: the disclosed attributes if they have been successfully received and verified.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "UPPERCASE", tag = "status")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
+#[derive(strum::EnumDiscriminants)]
+#[strum_discriminants(
+    name(SessionResultState),
+    derive(strum::Display),
+    strum(serialize_all = "SCREAMING_SNAKE_CASE")
+)]
 pub enum SessionResult {
     Done {
         disclosed_attributes: DisclosedAttributes,
@@ -434,7 +439,7 @@ where
             return Err(VerificationError::ReturnUrlConfigurationMismatch.into());
         }
 
-        let (session_token, session_state) = Session::<Created>::new(items_requests, usecase_id, return_url_template)?;
+        let (session_token, session_state) = Session::<Created>::new(items_requests, usecase_id, return_url_template);
         self.sessions
             .write(session_state.state.into(), true)
             .await
@@ -503,7 +508,9 @@ where
                 );
                 Ok((response, session.state.into()))
             }
-            DisclosureData::Done(_) => Err(VerificationError::SessionIsDone),
+            DisclosureData::Done(Done { session_result }) => {
+                Err(VerificationError::SessionIsDone(session_result.into()))
+            }
         }?;
 
         self.sessions
@@ -732,7 +739,7 @@ impl Session<Created> {
         items_requests: ItemsRequests,
         usecase_id: String,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<(SessionToken, Session<Created>)> {
+    ) -> (SessionToken, Session<Created>) {
         let session_token = SessionToken::new_random();
         let ephemeral_privkey = SecretKey::random(&mut OsRng);
         let session = Session::<Created> {
@@ -747,7 +754,7 @@ impl Session<Created> {
             ),
         };
 
-        Ok((session_token, session))
+        (session_token, session)
     }
 
     /// Process the device's [`DeviceEngagement`],

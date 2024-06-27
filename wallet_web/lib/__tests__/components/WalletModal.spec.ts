@@ -6,6 +6,7 @@ import WalletModal from "@/components/WalletModal.vue"
 import { isMobileKey } from "@/util/projection_keys"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { EngagementUrl } from "@/models/status"
 
 await import("../setup")
 
@@ -36,6 +37,23 @@ describe("WalletModal", () => {
       },
     })
     await flushPromises()
+    expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+  })
+
+  it("should show loading screen after choosing", async () => {
+    const wrapper = mount(WalletModal, {
+      props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: {
+        provide: { [isMobileKey as symbol]: true },
+      },
+    })
+
+    await flushPromises()
+    await wrapper.find("[data-testid=cross_device_button]").trigger("click")
+
+    expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
+    await vi.advanceTimersToNextTimerAsync()
+    expect(wrapper.find("[data-testid=loading]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
   })
 

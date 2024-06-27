@@ -124,8 +124,6 @@ pub enum InstructionError {
     Signing(#[source] JwtError),
     #[error("persistence error: {0}")]
     Storage(#[from] PersistenceError),
-    #[error("key not found: {0}")]
-    KeyNotFound(String),
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
 }

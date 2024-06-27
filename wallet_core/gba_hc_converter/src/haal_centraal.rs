@@ -1,6 +1,5 @@
 use std::{collections::HashMap, env, path::PathBuf, str::FromStr};
 
-use http::StatusCode;
 use nutype::nutype;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -81,14 +80,6 @@ pub fn initialize_eager() {
 pub enum Error {
     #[error("GBA-V error: {0}")]
     Gba(#[from] gba::error::Error),
-}
-
-impl From<&Error> for StatusCode {
-    fn from(value: &Error) -> Self {
-        match value {
-            Error::Gba(e) => e.into(),
-        }
-    }
 }
 
 fn read_csv(name: &str) -> Result<HashMap<String, String>, csv::Error> {

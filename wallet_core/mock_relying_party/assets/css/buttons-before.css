@@ -34,15 +34,15 @@
     line-height: 20px;
 }
 
-.buttons nl-wallet-button::part(button)::before,
-.buttons button::before {
+.buttons button::before,
+.buttons nl-wallet-button::part(button)::before {
     content: " ";
     width: 20px;
     height: 20px;
 }
 
-.buttons nl-wallet-button::part(button):hover,
-.buttons button:hover:not(:disabled) {
+.buttons button:hover:not(:disabled),
+.buttons nl-wallet-button::part(button):hover:not(:disabled) {
     background: #f1f1f1;
 }
 

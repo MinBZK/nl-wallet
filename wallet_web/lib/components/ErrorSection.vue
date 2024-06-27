@@ -11,15 +11,13 @@ const emit = defineEmits(["close", "retry"])
 </script>
 
 <template>
-  <article>
-    <section class="error status-update">
-      <div>
-        <svg width="24" height="24" fill="currentColor">
-          <path
-            d="m13 8.2-1-1-4 4-4-4-1 1 4 4-4 4 1 1 4-4 4 4 1-1-4-4zM19 1H9c-1.1 0-2 .9-2 2v3h2V4h10v16H9v-2H7v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2"
-          />
-        </svg>
-      </div>
+  <main class="error">
+    <svg width="24" height="24" fill="currentColor">
+      <path
+        d="m13 8.2-1-1-4 4-4-4-1 1 4 4-4 4 1 1 4-4 4 4 1-1-4-4zM19 1H9c-1.1 0-2 .9-2 2v3h2V4h10v16H9v-2H7v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2"
+      />
+    </svg>
+    <section class="text">
       <template v-if="error_type === 'expired'">
         <h2 data-testid="expired_header">Sorry, de tijd is voorbij</h2>
         <p>
@@ -36,7 +34,7 @@ const emit = defineEmits(["close", "retry"])
         <p>Omdat je bent gestopt zijn er geen gegevens gedeeld.</p>
       </template>
     </section>
-  </article>
+  </main>
 
   <modal-footer
     :state="FooterState.Retry"

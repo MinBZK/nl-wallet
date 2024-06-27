@@ -1,7 +1,7 @@
 mod client;
 mod keys;
 
-use wallet_common::{account::messages::errors::ErrorType, jwt::JwtError};
+use wallet_common::{account::messages::errors::AccountError, jwt::JwtError};
 
 use crate::{
     account_provider::{AccountProviderError, AccountProviderResponseError},
@@ -40,21 +40,28 @@ pub enum InstructionError {
 
 impl From<AccountProviderError> for InstructionError {
     fn from(value: AccountProviderError) -> Self {
-        if let AccountProviderError::Response(AccountProviderResponseError::Data(_, errordata)) = &value {
-            match errordata.typ {
-                ErrorType::PinTimeout(data) => Self::Timeout {
-                    timeout_millis: data.time_left_in_ms,
-                },
-                ErrorType::IncorrectPin(data) => Self::IncorrectPin {
-                    attempts_left_in_round: data.attempts_left_in_round,
-                    is_final_round: data.is_final_round,
-                },
-                ErrorType::AccountBlocked => Self::Blocked,
-                ErrorType::InstructionValidation => Self::InstructionValidation,
-                _ => Self::ServerError(value),
+        match value {
+            AccountProviderError::Response(AccountProviderResponseError::Account(
+                AccountError::IncorrectPin(data),
+                _,
+            )) => Self::IncorrectPin {
+                attempts_left_in_round: data.attempts_left_in_round,
+                is_final_round: data.is_final_round,
+            },
+            AccountProviderError::Response(AccountProviderResponseError::Account(
+                AccountError::PinTimeout(data),
+                _,
+            )) => Self::Timeout {
+                timeout_millis: data.time_left_in_ms,
+            },
+            AccountProviderError::Response(AccountProviderResponseError::Account(AccountError::AccountBlocked, _)) => {
+                Self::Blocked
             }
-        } else {
-            Self::ServerError(value)
+            AccountProviderError::Response(AccountProviderResponseError::Account(
+                AccountError::InstructionValidation,
+                _,
+            )) => Self::InstructionValidation,
+            value => Self::ServerError(value),
         }
     }
 }
