@@ -36,7 +36,7 @@ async fn create_example_device_response(
     .unwrap();
     let proposed_document = match request_match {
         DisclosureRequestMatch::Candidates(mut candidates) => {
-            candidates.remove(EXAMPLE_DOC_TYPE).unwrap().pop().unwrap()
+            candidates.swap_remove(EXAMPLE_DOC_TYPE).unwrap().pop().unwrap()
         }
         _ => panic!("should have found a valid candidate in DeviceRequest"),
     };

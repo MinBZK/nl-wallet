@@ -1,17 +1,17 @@
 use axum::{
-    http::{HeaderMap, HeaderValue, Method, Request, StatusCode, Uri, Version},
+    body::{self, Body, Bytes},
+    extract::Request,
     middleware::Next,
     response::{IntoResponse, Response},
 };
 use base64::prelude::*;
-use hyper::{body::Bytes, Body};
+use http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, Version};
 
 use wallet_common::http_error::APPLICATION_PROBLEM_JSON;
 
-pub(crate) async fn log_request_response(
-    req: Request<Body>,
-    next: Next<Body>,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
+const MAX_BODY_SIZE: usize = 8 * 1024 * 1024; // 8 MiB
+
+pub(crate) async fn log_request_response(req: Request, next: Next) -> Result<impl IntoResponse, (StatusCode, String)> {
     let (parts, body) = req.into_parts();
     let bytes = log_request(body, &parts.method, &parts.uri, &parts.headers, &parts.version).await?;
     let req = Request::from_parts(parts, Body::from(bytes));
@@ -25,12 +25,8 @@ pub(crate) async fn log_request_response(
     Ok(res)
 }
 
-async fn body_to_bytes<B>(body: B) -> Result<Bytes, (StatusCode, String)>
-where
-    B: axum::body::HttpBody<Data = Bytes>,
-    B::Error: std::fmt::Display,
-{
-    hyper::body::to_bytes(body)
+async fn body_to_bytes(body: Body) -> Result<Bytes, (StatusCode, String)> {
+    body::to_bytes(body, MAX_BODY_SIZE)
         .await
         .map_err(|err| (StatusCode::BAD_REQUEST, format!("failed to read body: {}", err)))
 }
@@ -70,17 +66,13 @@ fn body_to_string(bytes: &Bytes, headers: &HeaderMap<HeaderValue>) -> String {
     }
 }
 
-async fn log_request<B>(
-    body: B,
+async fn log_request(
+    body: Body,
     method: &Method,
     uri: &Uri,
     headers: &HeaderMap<HeaderValue>,
     version: &Version,
-) -> Result<Bytes, (StatusCode, String)>
-where
-    B: axum::body::HttpBody<Data = Bytes>,
-    B::Error: std::fmt::Display,
-{
+) -> Result<Bytes, (StatusCode, String)> {
     let bytes = body_to_bytes(body).await?;
     let body = body_to_string(&bytes, headers);
 
@@ -95,16 +87,12 @@ where
     Ok(bytes)
 }
 
-async fn log_response<B>(
-    body: B,
+async fn log_response(
+    body: Body,
     status: StatusCode,
     headers: &HeaderMap<HeaderValue>,
     version: &Version,
-) -> Result<Bytes, (StatusCode, String)>
-where
-    B: axum::body::HttpBody<Data = Bytes>,
-    B::Error: std::fmt::Display,
-{
+) -> Result<Bytes, (StatusCode, String)> {
     let bytes = body_to_bytes(body).await?;
     let body = body_to_string(&bytes, headers);
 

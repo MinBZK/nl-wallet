@@ -1,8 +1,5 @@
-use axum::{
-    headers::HeaderValue,
-    response::{IntoResponse, Response},
-};
-use http::{header, StatusCode};
+use axum::response::{IntoResponse, Response};
+use http::{header, HeaderValue, StatusCode};
 use serde::Serialize;
 
 use nl_wallet_mdoc::utils::serialization::cbor_serialize;

@@ -48,12 +48,14 @@ verifier_test = [
     "dep:parking_lot",
     "dep:reqwest",
     "dep:serde_urlencoded",
+    "tokio/macros",
     "tokio/test-util",
     "nl_wallet_mdoc/mock_time",
 ] # Include and run test that depend on a valid configuration file
 # Enable issuance
 issuance = [
     "axum/form",
+    "dep:axum-extra",
     "dep:ciborium",
     "dep:futures",
     "dep:indexmap",
@@ -69,26 +71,16 @@ mock = ["dep:rand", "issuance"]
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = [
-    "headers",
-    "http1",
-    "json",
-    "query",
-    "tokio",
-    "tower-log",
-    "tracing",
-    "original-uri",
-] }
+axum = { workspace = true, features = ["http1", "json", "query", "tokio", "tower-log", "tracing", "original-uri"] }
+axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 base64.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
-hyper.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-openssl = { workspace = true, features = ["vendored"] }
-p256 = { workspace = true, features = ["ecdsa"] }
+p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 sentry = { workspace = true, features = [
     "backtrace",
     "contexts",
@@ -100,18 +92,18 @@ sentry = { workspace = true, features = [
     "tracing",
     "log",
 ] }
-serde = { workspace = true, features = ["serde_derive"] }
+serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["macros", "parking_lot", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["auth", "cors", "trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["parking_lot"] }
+tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
 assert_matches = { workspace = true, optional = true }
 ciborium = { workspace = true, optional = true }
-futures = { workspace = true, optional = true }
+futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 parking_lot = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }

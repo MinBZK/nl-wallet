@@ -1,7 +1,7 @@
 use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 
-use axum::{headers::HeaderValue, http::header::InvalidHeaderValue};
 use config::{Config, ConfigError, Environment, File};
+use http::{header::InvalidHeaderValue, HeaderValue};
 use nutype::nutype;
 use serde::Deserialize;
 use url::Url;

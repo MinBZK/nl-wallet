@@ -155,9 +155,10 @@ mod axum {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    use http::StatusCode;
+    use serde_json::{json, Value};
 
-    use super::*;
+    use super::{HttpJsonErrorBody, HttpJsonErrorType};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
     #[strum(serialize_all = "snake_case")]
@@ -246,7 +247,7 @@ mod tests {
     #[cfg(feature = "axum")]
     #[tokio::test]
     async fn test_http_json_error_body_into_response() {
-        use ::axum::response::IntoResponse;
+        use axum::{body, response::IntoResponse};
 
         let error_body = HttpJsonErrorBody {
             r#type: "foobar".to_string(),
@@ -264,7 +265,7 @@ mod tests {
             "application/problem+json"
         );
 
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = body::to_bytes(response.into_body(), 1024).await.unwrap();
         let json = serde_json::from_slice::<Value>(&body).unwrap();
         let expected_json = json!({
             "type": "foobar",
@@ -291,7 +292,9 @@ mod tests {
     #[cfg(feature = "axum")]
     #[tokio::test]
     async fn test_http_json_error_into_response() {
-        use ::axum::response::IntoResponse;
+        use axum::{body, response::IntoResponse};
+
+        use super::HttpJsonError;
 
         let error = HttpJsonError::new(
             TestErrorType::Loop,
@@ -306,7 +309,7 @@ mod tests {
             "application/problem+json"
         );
 
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = body::to_bytes(response.into_body(), 1024).await.unwrap();
         let json = serde_json::from_slice::<Value>(&body).unwrap();
         let expected_json = json!({
             "type": "loop",
