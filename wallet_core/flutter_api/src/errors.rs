@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use wallet::errors::{
     mdoc::{self, HolderError},
-    openid4vc::{IssuanceSessionError, OidcError},
+    openid4vc::{IssuanceSessionError, OidcError, VpClientError},
     reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
     PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
 };
@@ -202,8 +202,14 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::DisclosureUriSourceMismatch(
                 _,
                 _,
-            ))) => FlutterApiErrorType::DisclosureSourceMismatch,
+            )))
+            | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
+                FlutterApiErrorType::DisclosureSourceMismatch
+            }
             DisclosureError::IsoDisclosureSession(error) => {
+                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
+            }
+            DisclosureError::VpDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
@@ -216,7 +222,8 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::DisclosureUriSourceMismatch(
                 session_type,
                 _,
-            ))) => {
+            )))
+            | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
                 [("session_type", serde_json::to_value(session_type).unwrap())] // This conversion should never fail.
                     .into_iter()
                     .collect::<serde_json::Value>()

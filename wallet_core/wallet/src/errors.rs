@@ -8,7 +8,7 @@ pub mod mdoc {
 }
 
 pub mod openid4vc {
-    pub use openid4vc::{issuance_session::IssuanceSessionError, oidc::OidcError};
+    pub use openid4vc::{disclosure_session::VpClientError, issuance_session::IssuanceSessionError, oidc::OidcError};
 }
 
 pub use crate::{
