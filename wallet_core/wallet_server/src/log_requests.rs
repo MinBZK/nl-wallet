@@ -9,6 +9,8 @@ use http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, Version};
 
 use wallet_common::http_error::APPLICATION_PROBLEM_JSON;
 
+const MAX_BODY_SIZE: usize = 8 * 1024 * 1024; // 8 MiB
+
 pub(crate) async fn log_request_response(req: Request, next: Next) -> Result<impl IntoResponse, (StatusCode, String)> {
     let (parts, body) = req.into_parts();
     let bytes = log_request(body, &parts.method, &parts.uri, &parts.headers, &parts.version).await?;
@@ -24,7 +26,7 @@ pub(crate) async fn log_request_response(req: Request, next: Next) -> Result<imp
 }
 
 async fn body_to_bytes(body: Body) -> Result<Bytes, (StatusCode, String)> {
-    body::to_bytes(body, 1)
+    body::to_bytes(body, MAX_BODY_SIZE)
         .await
         .map_err(|err| (StatusCode::BAD_REQUEST, format!("failed to read body: {}", err)))
 }
