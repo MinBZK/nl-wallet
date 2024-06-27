@@ -17,7 +17,7 @@ use nl_wallet_mdoc::{
     verifier::SessionType,
 };
 use openid4vc::disclosure_session::{HttpVpMessageClient, VpClientError};
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::default_reqwest_client_builder};
+use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use nl_wallet_mdoc::holder::DisclosureUriSource;
 
@@ -70,11 +70,10 @@ pub trait MdocDisclosureMissingAttributes {
 }
 
 pub trait MdocDisclosureProposal {
-    fn return_url(&self) -> Option<&Url>;
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey;
@@ -152,10 +151,6 @@ impl MdocDisclosureMissingAttributes for VpDisclosureMissingAttributes {
 }
 
 impl MdocDisclosureProposal for VpDisclosureProposal {
-    fn return_url(&self) -> Option<&Url> {
-        None
-    }
-
     fn proposed_source_identifiers(&self) -> Vec<Uuid> {
         self.proposed_source_identifiers().into_iter().copied().collect()
     }
@@ -164,7 +159,7 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
@@ -173,7 +168,7 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
             .disclose(key_factory)
             .await
             .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
-        Ok(redirect_uri)
+        Ok(redirect_uri.map(|u| u.into_inner()))
     }
 }
 
@@ -247,10 +242,6 @@ impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpCli
 }
 
 impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
-    fn return_url(&self) -> Option<&Url> {
-        self.return_url()
-    }
-
     fn proposed_source_identifiers(&self) -> Vec<Uuid> {
         self.proposed_source_identifiers().into_iter().copied().collect()
     }
@@ -259,7 +250,7 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
@@ -267,7 +258,8 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.disclose(key_factory)
             .await
             .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
-        Ok(None)
+
+        Ok(self.return_url().cloned())
     }
 }
 
@@ -324,10 +316,6 @@ mod mock {
     }
 
     impl MdocDisclosureProposal for MockMdocDisclosureProposal {
-        fn return_url(&self) -> Option<&Url> {
-            self.return_url.as_ref()
-        }
-
         fn proposed_source_identifiers(&self) -> Vec<Uuid> {
             self.proposed_source_identifiers.clone()
         }
@@ -336,7 +324,7 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<BaseUrl>, MdocDisclosureError>
+        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
         where
             KF: KeyFactory<Key = K>,
             K: MdocEcdsaKey,
@@ -348,7 +336,7 @@ mod mock {
             self.disclosure_count
                 .store(self.disclosure_count.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
 
-            Ok(None)
+            Ok(self.return_url.clone())
         }
     }
 

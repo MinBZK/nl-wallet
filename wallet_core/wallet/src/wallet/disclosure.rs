@@ -409,9 +409,6 @@ where
         let proposed_attributes = session_proposal.proposed_attributes();
         let disclosure_type = DisclosureType::from_proposed_attributes(&proposed_attributes);
         let rp_certificate = session.rp_certificate().clone();
-        let return_url = return_url
-            .map(|u| u.as_ref().clone())
-            .or(session_proposal.return_url().cloned());
 
         self.disclosure_session.take();
 
