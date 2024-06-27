@@ -34,7 +34,7 @@
 }
 
 .buttons button:hover:not(:disabled) > span,
-.buttons nl-wallet-button::part(button):hover {
+.buttons nl-wallet-button::part(button):hover:not(:disabled) {
     background: var(--hover-color);
 }
 
