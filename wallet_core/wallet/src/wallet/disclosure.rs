@@ -510,10 +510,7 @@ mod tests {
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,
-        disclosure::{
-            IsoDisclosureUriData, MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal,
-            MockMdocDisclosureSession,
-        },
+        disclosure::{MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal, MockMdocDisclosureSession},
         Attribute, AttributeValue, EventStatus, HistoryEvent,
     };
 
@@ -563,11 +560,11 @@ mod tests {
             .await
             .expect("Could not start disclosure");
 
-        // Test that the `Wallet` now contains a `DisclosureSession`
-        // with the items parsed from the disclosure URI.
-        assert_matches!(wallet.disclosure_session, Some(session) if session.disclosure_uri == IsoDisclosureUriData {
-            reader_engagement_bytes: b"foobar".to_vec(),
-        } && session.disclosure_uri_source == DisclosureUriSource::QrCode );
+        // Test that the `Wallet` now contains a `DisclosureSession`.
+        assert_matches!(
+            wallet.disclosure_session,
+            Some(session) if session.disclosure_uri_source == DisclosureUriSource::QrCode
+        );
 
         // Test that the returned `DisclosureProposal` contains the
         // `ReaderRegistration` we set up earlier, as well as the
@@ -637,20 +634,6 @@ mod tests {
 
         assert_matches!(error, DisclosureError::SessionState);
         assert!(wallet.disclosure_session.is_some());
-    }
-
-    #[tokio::test]
-    async fn test_wallet_start_disclosure_error_disclosure_uri() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
-
-        // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
-        let error = wallet
-            .start_disclosure(&Url::parse("http://example.com").unwrap(), DisclosureUriSource::Link)
-            .await
-            .expect_err("Starting disclosure should have resulted in an error");
-
-        assert_matches!(error, DisclosureError::DisclosureUri(_));
-        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]

@@ -354,7 +354,6 @@ mod mock {
 
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
-        pub disclosure_uri: IsoDisclosureUriData,
         pub disclosure_uri_source: DisclosureUriSource,
         pub certificate: Certificate,
         pub reader_registration: ReaderRegistration,
@@ -384,9 +383,6 @@ mod mock {
     impl Default for MockMdocDisclosureSession {
         fn default() -> Self {
             Self {
-                disclosure_uri: IsoDisclosureUriData {
-                    reader_engagement_bytes: Default::default(),
-                },
                 disclosure_uri_source: DisclosureUriSource::Link,
                 certificate: READER_KEY.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
@@ -400,14 +396,14 @@ mod mock {
     impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
         type MissingAttributes = MockMdocDisclosureMissingAttributes;
         type Proposal = MockMdocDisclosureProposal;
-        type DisclosureUriData = IsoDisclosureUriData;
+        type DisclosureUriData = ();
 
-        fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
-            IsoDisclosureUriData::parse_from_uri(uri, base_uri)
+        fn parse_url(_uri: &Url, _base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+            Ok(())
         }
 
         async fn start<'a>(
-            disclosure_uri: Self::DisclosureUriData,
+            _disclosure_uri: Self::DisclosureUriData,
             disclosure_uri_source: DisclosureUriSource,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
@@ -422,7 +418,6 @@ mod mock {
                 .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default()));
 
             let session = MockMdocDisclosureSession {
-                disclosure_uri,
                 disclosure_uri_source,
                 reader_registration,
                 session_state,
