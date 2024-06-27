@@ -180,7 +180,7 @@ impl Default for MockAttributesLookup {
                     bsn: "999991772".to_owned(),
                     given_name: "Willeke Liselotte".to_owned(),
                     family_name: "De Bruijn".to_owned(),
-                    own_family_name: "De Bruijn".to_owned(),
+                    own_family_name: "Molenaar".to_owned(),
                     gender: Some(Gender::Female),
                     birth_date: NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
                     age_over_18: true,

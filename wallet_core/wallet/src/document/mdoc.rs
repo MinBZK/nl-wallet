@@ -404,7 +404,7 @@ pub mod tests {
             },
             Entry {
                 name: "own_family_name".to_string(),
-                value: DataElementValue::Text("De Bruijn".to_string()),
+                value: DataElementValue::Text("Molenaar".to_string()),
             },
             Entry {
                 name: "given_name".to_string(),
@@ -564,7 +564,7 @@ pub mod tests {
             Attribute {
                 key_labels: _,
                 value: AttributeValue::String(own_family_name),
-            } if own_family_name == "De Bruijn"
+            } if own_family_name == "Molenaar"
         );
         assert_matches!(
             document.attributes.get("birth_date").unwrap(),
@@ -799,7 +799,7 @@ pub mod tests {
             Attribute {
                 key_labels: _,
                 value: AttributeValue::String(own_family_name),
-            } if own_family_name == "De Bruijn"
+            } if own_family_name == "Molenaar"
         );
         assert_matches!(
             disclosure_document.attributes.get("birth_date").unwrap(),
