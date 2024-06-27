@@ -19,13 +19,23 @@ flutter_rust_bridge.workspace = true
 itertools.workspace = true
 once_cell = { workspace = true, features = ["parking_lot"] }
 parking_lot.workspace = true
-sentry = { workspace = true, features = ["backtrace", "contexts", "debug-images", "panic", "anyhow", "reqwest", "rustls", "tracing", "log"] }
+sentry = { workspace = true, features = [
+    "backtrace",
+    "contexts",
+    "debug-images",
+    "panic",
+    "anyhow",
+    "reqwest",
+    "rustls",
+    "tracing",
+    "log",
+] }
 sentry-panic.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["parking_lot"] }
+tracing-subscriber = { workspace = true, features = ["std", "fmt", "tracing-log", "parking_lot"] }
 url.workspace = true
 
 flutter_api_macros.path = "flutter_api_macros"

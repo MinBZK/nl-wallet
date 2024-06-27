@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 
 use crate::{
     engagement::{DeviceAuthenticationKeyed, SessionTranscript},
@@ -65,7 +68,7 @@ impl<I> DisclosureRequestMatch<I> {
         // than once in a `DeviceRequest`, so we combine all attributes and then split
         // them out by `doc_type`.
         let mut requested_attributes_by_doc_type = items_requests.attribute_identifiers().into_iter().fold(
-            IndexMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
+            HashMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
             |mut requested_attributes, attribute_identifier| {
                 // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
                 let doc_type = *doc_types.get(attribute_identifier.doc_type.as_str()).unwrap();
@@ -164,7 +167,20 @@ impl<I> DisclosureRequestMatch<I> {
             let missing_attributes = all_missing_attributes
                 .into_iter()
                 .flatten()
-                .chain(requested_attributes_by_doc_type.into_values().flatten())
+                .chain(
+                    // Get the `doc_type`s from the original request so that we
+                    // can preserve the original order as much as possible.
+                    items_requests
+                        .into_iter()
+                        .map(|items_request| items_request.doc_type.as_str())
+                        .unique()
+                        // Get all of the requested attributes that are still remaining from
+                        // `requested_attributes_by_doc_type`, ignoring any `None` entries.
+                        // Note that this removes the attributes from that `HashMap`, so that
+                        // we can take ownership and avoid cloning the `AttributeIdentifier`s.
+                        .flat_map(|doc_type| requested_attributes_by_doc_type.remove(doc_type))
+                        .flatten(),
+                )
                 .collect();
 
             return Ok(DisclosureRequestMatch::MissingAttributes(missing_attributes));

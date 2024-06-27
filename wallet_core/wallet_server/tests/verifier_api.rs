@@ -416,7 +416,7 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time;
 
     time::pause();
-    time::advance(CLEANUP_INTERVAL_SECONDS).await;
+    time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.
@@ -440,7 +440,7 @@ async fn test_disclosure_expired<S>(
     *mock_time.write() = expiry_time + timeouts.failed_deletion + Duration::from_millis(1);
 
     time::pause();
-    time::advance(CLEANUP_INTERVAL_SECONDS).await;
+    time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
     time::resume();
 
     // Wait for the database to have run the cleanup.

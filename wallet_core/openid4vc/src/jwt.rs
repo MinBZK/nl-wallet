@@ -4,12 +4,14 @@
 //!   such as an ECDSA public key.
 //! - Bulk signing of JWTs.
 
+use std::collections::HashSet;
+
 use base64::{prelude::*, DecodeError};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
 use jsonwebtoken::{
     jwk::{self, EllipticCurve, Jwk},
-    Algorithm, Header,
+    Algorithm, Header, Validation,
 };
 use p256::{
     ecdsa::{signature, VerifyingKey},
@@ -28,7 +30,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     account::serialization::DerVerifyingKey,
     generator::Generator,
-    jwt::{self, Jwt, JwtError},
+    jwt::{Jwt, JwtError},
     keys::EcdsaKey,
 };
 
@@ -159,8 +161,9 @@ pub enum JwtX5cError {
 }
 
 /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT header.
-pub fn verify_against_trust_anchors<T: DeserializeOwned>(
+pub fn verify_against_trust_anchors<T: DeserializeOwned, A: ToString>(
     jwt: &Jwt<T>,
+    audience: &[A],
     trust_anchors: &[TrustAnchor],
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(T, Certificate), JwtX5cError> {
@@ -187,7 +190,17 @@ pub fn verify_against_trust_anchors<T: DeserializeOwned>(
 
     // The leaf certificate is trusted, we can now use its public key to verify the JWS.
     let pubkey = leaf_cert.public_key().map_err(JwtX5cError::CertificatePublicKey)?;
-    let payload = jwt.parse_and_verify(&DerVerifyingKey(pubkey).into(), &jwt::validations())?;
+
+    let validation_options = {
+        let mut validation = Validation::new(Algorithm::ES256);
+
+        validation.required_spec_claims = HashSet::default();
+        validation.set_audience(audience);
+
+        validation
+    };
+
+    let payload = jwt.parse_and_verify(&DerVerifyingKey(pubkey).into(), &validation_options)?;
 
     Ok((payload, leaf_cert))
 }
@@ -247,8 +260,10 @@ mod tests {
         let payload = json!({"hello": "world"});
         let jwt = sign_with_certificate(&payload, &keypair).await.unwrap();
 
+        let audience: &[String] = &[];
         let (deserialized, leaf_cert) =
-            verify_against_trust_anchors(&jwt, &[ca.certificate().try_into().unwrap()], &TimeGenerator).unwrap();
+            verify_against_trust_anchors(&jwt, audience, &[ca.certificate().try_into().unwrap()], &TimeGenerator)
+                .unwrap();
 
         assert_eq!(deserialized, payload);
         assert_eq!(leaf_cert, *keypair.certificate());
@@ -264,8 +279,14 @@ mod tests {
 
         let other_ca = KeyPair::generate_ca("myca", Default::default()).unwrap();
 
-        let err = verify_against_trust_anchors(&jwt, &[other_ca.certificate().try_into().unwrap()], &TimeGenerator)
-            .unwrap_err();
+        let audience: &[String] = &[];
+        let err = verify_against_trust_anchors(
+            &jwt,
+            audience,
+            &[other_ca.certificate().try_into().unwrap()],
+            &TimeGenerator,
+        )
+        .unwrap_err();
         assert_matches!(
             err,
             JwtX5cError::CertificateValidation(CertificateError::Verification(_))

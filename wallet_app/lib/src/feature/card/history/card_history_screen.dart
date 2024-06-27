@@ -90,10 +90,7 @@ class CardHistoryScreen extends StatelessWidget {
     Navigator.pushNamed(
       context,
       WalletRoutes.historyDetailRoute,
-      arguments: HistoryDetailScreenArgument(
-        walletEvent: event,
-        docType: card.docType,
-      ).toMap(),
+      arguments: HistoryDetailScreenArgument(walletEvent: event).toMap(),
     );
   }
 

@@ -12,7 +12,7 @@ pub fn init_tracing_subscriber() {
     #[cfg(debug_assertions)]
     let builder = builder.with_max_level(Level::DEBUG);
 
-    // For Android and iOS, disable ANSI colours and use a custom log writer instead of stdout.
+    // For Android and iOS, use a custom log writer instead of stdout.
     #[cfg(target_os = "android")]
     type WriterMaker = super::android::WriterMaker;
 
@@ -20,7 +20,7 @@ pub fn init_tracing_subscriber() {
     type WriterMaker = super::ios::WriterMaker;
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
-    let builder = builder.with_ansi(false).with_writer(WriterMaker::default());
+    let builder = builder.with_writer(WriterMaker::default());
 
     // Set the result of the builder as global default subscriber.
     builder.init();

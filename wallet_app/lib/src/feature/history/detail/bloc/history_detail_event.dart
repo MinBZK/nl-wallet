@@ -6,10 +6,9 @@ abstract class HistoryDetailEvent extends Equatable {
 
 class HistoryDetailLoadTriggered extends HistoryDetailEvent {
   final WalletEvent event;
-  final String? docType;
 
-  const HistoryDetailLoadTriggered({required this.event, required this.docType});
+  const HistoryDetailLoadTriggered({required this.event});
 
   @override
-  List<Object?> get props => [event, docType];
+  List<Object?> get props => [event];
 }

@@ -17,14 +17,12 @@ allow_http_return_url = ["wallet_server/allow_http_return_url"]
 [dependencies]
 anyhow.workspace = true
 askama.workspace = true
-axum = { workspace = true, features = ["form", "headers", "http1", "query", "tokio", "tower-log", "tracing"] }
-axum-extra.workspace = true
-base64.workspace = true
-config.workspace = true
-dashmap.workspace = true
-futures.workspace = true
+axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
+config = { workspace = true, features = ["toml"] }
+futures = { workspace = true, features = ["std"] }
+http.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 sentry = { workspace = true, features = [
     "backtrace",
     "contexts",
@@ -40,10 +38,10 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 strum = { workspace = true, features = ["derive"] }
-tokio = { workspace = true, features = ["macros", "parking_lot", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["trace", "fs"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["parking_lot"] }
+tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 url = { workspace = true, features = ["serde"] }
 
 nl_wallet_mdoc.path = "../mdoc"

@@ -14,6 +14,12 @@ extension WalletEventExtensions on WalletEvent {
         IssuanceEvent() => (this as IssuanceEvent).card.issuer,
         SignEvent() => (this as SignEvent).relyingParty,
       };
+
+  bool get wasSuccess => status == EventStatus.success;
+
+  bool get wasCancelled => status == EventStatus.cancelled;
+
+  bool get wasFailure => status == EventStatus.error;
 }
 
 extension WalletEventListExtensions on List<WalletEvent> {

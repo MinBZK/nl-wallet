@@ -20,7 +20,7 @@ const EMPTY_RESULT_LETTER: &str = "G";
 
 fn parse_response_xml(xml: &str) -> Result<GbaResponse, Error> {
     let mut reader = NsReader::from_str(xml);
-    reader.trim_text(true);
+    reader.config_mut().trim_text(true);
 
     let mut voorkomens_xml = Vec::new();
     let mut result_xml: Option<String> = None;
