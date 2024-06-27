@@ -10,7 +10,7 @@ class WalletEventStatusIconMapper extends Mapper<WalletEvent, IconData?> {
   IconData? map(WalletEvent input) {
     return switch (input.status) {
       EventStatus.success => null,
-      EventStatus.cancelled => Icons.block_outlined,
+      EventStatus.cancelled => Icons.block_flipped,
       EventStatus.error => Icons.error_outline_outlined,
     };
   }

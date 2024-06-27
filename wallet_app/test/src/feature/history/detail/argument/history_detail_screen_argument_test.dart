@@ -14,7 +14,6 @@ void main() {
           card: WalletMockData.card,
           status: EventStatus.success,
         ),
-        docType: 'com.example.docType',
       );
       final serialized = expected.toMap();
       final result = HistoryDetailScreenArgument.fromMap(serialized);
