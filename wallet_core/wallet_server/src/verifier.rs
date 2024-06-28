@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, Query, State},
-    routing::{get, on, post, MethodFilter},
+    routing::{get, post},
     Form, Json, Router,
 };
 use http::{header, HeaderMap, HeaderValue, Method, Uri};
@@ -68,10 +68,8 @@ where
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
     // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
     let wallet_router = Router::new()
-        .route(
-            "/:session_token/request_uri",
-            on(MethodFilter::GET | MethodFilter::POST, retrieve_request::<S>),
-        )
+        .route("/:session_token/request_uri", get(retrieve_request::<S>))
+        .route("/:session_token/request_uri", post(retrieve_request::<S>))
         .route("/:session_token/response_uri", post(post_response::<S>))
         .route(
             "/:session_token/status",
