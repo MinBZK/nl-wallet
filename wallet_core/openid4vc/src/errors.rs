@@ -250,29 +250,29 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
 #[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
-    InvalidRequest,
-    ExpiredSession,
-    SessionUnknown,
-    Nonce,
     ServerError,
+    InvalidRequest,
+    UnknownSession,
+    Nonce,
+    SessionState,
 }
 
 impl HttpJsonErrorType for VerificationErrorCode {
     fn title(&self) -> String {
         match self {
-            VerificationErrorCode::InvalidRequest => "Invalid request".to_string(),
-            VerificationErrorCode::ExpiredSession => "Session has expired".to_string(),
-            VerificationErrorCode::SessionUnknown => "Unknown session".to_string(),
-            VerificationErrorCode::Nonce => "Redirect URI nonce incorrect or missing".to_string(),
             VerificationErrorCode::ServerError => "Internal server error occurred".to_string(),
+            VerificationErrorCode::InvalidRequest => "Invalid request".to_string(),
+            VerificationErrorCode::UnknownSession => "Unknown session".to_string(),
+            VerificationErrorCode::Nonce => "Redirect URI nonce incorrect or missing".to_string(),
+            VerificationErrorCode::SessionState => "Session is not in the required state".to_string(),
         }
     }
 
     fn status_code(&self) -> StatusCode {
         match self {
             VerificationErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            VerificationErrorCode::SessionUnknown | VerificationErrorCode::ExpiredSession => StatusCode::NOT_FOUND,
-            VerificationErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+            VerificationErrorCode::UnknownSession => StatusCode::NOT_FOUND,
+            VerificationErrorCode::InvalidRequest | VerificationErrorCode::SessionState => StatusCode::BAD_REQUEST,
 
             // See the other comment on `StatusCode::UNAUTHORIZED`
             VerificationErrorCode::Nonce => StatusCode::UNAUTHORIZED,
@@ -283,16 +283,16 @@ impl HttpJsonErrorType for VerificationErrorCode {
 impl From<VerificationError> for VerificationErrorCode {
     fn from(err: VerificationError) -> Self {
         match err {
-            VerificationError::Session(SessionError::Expired) => VerificationErrorCode::ExpiredSession,
-            VerificationError::Session(SessionError::UnknownSession(_)) => VerificationErrorCode::SessionUnknown,
+            VerificationError::Session(SessionError::Expired)
+            | VerificationError::Session(SessionError::UnexpectedState)
+            | VerificationError::SessionNotDone => VerificationErrorCode::SessionState,
+            VerificationError::Session(SessionError::UnknownSession(_)) => VerificationErrorCode::UnknownSession,
             VerificationError::Session(SessionError::SessionStore(_)) | VerificationError::UrlEncoding(_) => {
                 VerificationErrorCode::ServerError
             }
-            VerificationError::Session(SessionError::UnexpectedState) => VerificationErrorCode::InvalidRequest,
             VerificationError::UnknownUseCase(_)
             | VerificationError::ReturnUrlConfigurationMismatch
             | VerificationError::NoItemsRequests
-            | VerificationError::SessionNotDone
             | VerificationError::MissingSAN
             | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,
             VerificationError::RedirectUriNonceMismatch(_) | VerificationError::RedirectUriNonceMissing => {

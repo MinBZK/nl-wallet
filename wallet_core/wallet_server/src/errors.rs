@@ -26,6 +26,7 @@ impl<T: ErrorStatusCode + Serialize + std::fmt::Debug> IntoResponse for ErrorRes
 }
 
 impl<T> ErrorResponse<T> {
+    #[cfg(feature = "issuance")]
     pub(crate) fn new(err: impl Into<openid4vc::ErrorResponse<T>>) -> Self {
         Self {
             error_response: err.into(),

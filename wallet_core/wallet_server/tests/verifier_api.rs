@@ -306,7 +306,7 @@ async fn test_new_session_parameters_error() {
             .await
             .unwrap();
 
-        test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_parameters").await;
+        test_http_json_error_body(response, StatusCode::BAD_REQUEST, "invalid_request").await;
     }
 }
 
@@ -347,7 +347,6 @@ async fn test_disclosure_not_found() {
     let response = client.get(request_uri).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    assert_eq!(response.content_length(), Some(0));
 
     // check if a non-existent token returns a 404 on the disclosed_attributes URL
     let response = client
