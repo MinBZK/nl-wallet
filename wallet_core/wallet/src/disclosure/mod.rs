@@ -386,8 +386,12 @@ mod mock {
         type Proposal = MockMdocDisclosureProposal;
         type DisclosureUriData = ();
 
-        fn parse_url(_uri: &Url, _base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
-            Ok(())
+        fn parse_url(uri: &Url, _base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+            if uri.query_pairs().any(|(param, _)| param == "invalid") {
+                Err(DisclosureUriError::Malformed(uri.clone()))
+            } else {
+                Ok(())
+            }
         }
 
         async fn start<'a>(

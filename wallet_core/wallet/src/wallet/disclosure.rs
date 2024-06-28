@@ -634,6 +634,25 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_wallet_start_disclosure_error_disclosure_uri() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
+        // (The `MockMdocDisclosureSession` used by `WalletWithMocks` rejects URLs containing an `invalid`
+        // query parameter.)
+        let error = wallet
+            .start_disclosure(
+                &Url::parse("http://example.com?invalid").unwrap(),
+                DisclosureUriSource::Link,
+            )
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::DisclosureUri(_));
+        assert!(wallet.disclosure_session.is_none());
+    }
+
+    #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_disclosure_session() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
