@@ -18,6 +18,7 @@ import '../../../common/widget/text/body_text.dart';
 import '../../../info/info_screen.dart';
 import '../../../organization/detail/organization_detail_screen.dart';
 import '../../../policy/policy_screen.dart';
+import '../request_details_screen.dart';
 import 'wallet_event_status_header.dart';
 
 class HistoryDetailCommonBuilders {
@@ -177,11 +178,11 @@ class HistoryDetailCommonBuilders {
     );
   }
 
-  static Widget buildShowDetailsSliver(BuildContext context, WalletEvent event) {
+  static Widget buildShowDetailsSliver(BuildContext context, DisclosureEvent event) {
     return SliverToBoxAdapter(
       child: ListButton(
         text: Text(context.l10n.historyDetailScreenShowDetailsCta),
-        onPressed: () => PlaceholderScreen.showGeneric(context),
+        onPressed: () => RequestDetailsScreen.show(context, event),
         dividerSide: DividerSide.bottom,
       ),
     );
