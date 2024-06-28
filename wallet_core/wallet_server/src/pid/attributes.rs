@@ -98,20 +98,19 @@ impl AttributeService for BrpPidAttributeService {
         };
 
         let bsn = self.openid_client.bsn(openid_token_request).await?;
-        let persons = self.brp_client.get_person_by_bsn(&bsn).await?;
+        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await?;
 
-        persons
-            .persons
-            .first()
-            .map(|person| {
-                let unsigned_mdocs: Vec<UnsignedMdoc> = person.try_into()?;
-                let previews = unsigned_mdocs
-                    .into_iter()
-                    .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
-                    .collect::<Result<Vec<AttestationPreview>, Error>>()?;
-                previews.try_into().map_err(|_| Error::NoAttributesFound)
-            })
-            .unwrap_or(Err(Error::NoAttributesFound))
+        if persons.persons.len() != 1 {
+            return Err(Error::NoAttributesFound);
+        }
+
+        let person = persons.persons.remove(0);
+        let unsigned_mdocs: Vec<UnsignedMdoc> = person.try_into()?;
+        let previews = unsigned_mdocs
+            .into_iter()
+            .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
+            .collect::<Result<Vec<AttestationPreview>, Error>>()?;
+        previews.try_into().map_err(|_| Error::NoAttributesFound)
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {
