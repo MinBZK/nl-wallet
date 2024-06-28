@@ -4,6 +4,7 @@ import { isMobileKey } from "@/util/projection_keys"
 import { isDesktop } from "@/util/useragent"
 import { computed, provide, ref } from "vue"
 import WalletModal from "./WalletModal.vue"
+import { RO_SANS_BOLD, RO_SANS_REGULAR } from "../non-free/fonts"
 
 export interface Props {
   usecase: string
@@ -48,7 +49,16 @@ provide(isMobileKey, isMobile)
 let fontFaceSheet = new CSSStyleSheet()
 fontFaceSheet.replaceSync(`@font-face {
   font-family: "RO Sans";
-  SSSS format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  src: url(data:application/font-woff2;charset=utf-8;base64,${RO_SANS_REGULAR}) format('woff2');
+}
+
+@font-face {
+  font-family: "RO Sans";
+  font-weight: bold;
+  font-style: normal;
+  src: url(data:application/font-woff2;charset=utf-8;base64,${RO_SANS_BOLD}) format('woff2');
 }`)
 document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
 </script>

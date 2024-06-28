@@ -8,7 +8,7 @@
 :root {
     --primary-color: #da2e20;
     --hover-color: #85150b;
-    --logo-url: url("../images/mijn_amsterdam_text.svg");
+    --logo-url: url("../non-free/images/mijn_amsterdam_text.svg");
 }
 
 header {

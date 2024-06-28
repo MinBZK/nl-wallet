@@ -47,14 +47,13 @@
 }
 
 nl-wallet-button::part(button)::before {
-    background: url("../images/nl-wallet-trans.svg") no-repeat center center /
-        cover;
+    background: url("../non-free/images/nl-wallet-trans.svg") no-repeat center center / cover;
 }
 
 .buttons #google::before {
-    background: url("../images/google.svg") no-repeat center center / 70%;
+    background: url("../non-free/images/google.svg") no-repeat center center / 70%;
 }
 
 .buttons #email::before {
-    background: url("../images/email.svg") no-repeat center center / 70%;
+    background: url("../non-free/images/email.svg") no-repeat center center / 70%;
 }
