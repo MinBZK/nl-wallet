@@ -12,7 +12,7 @@ metadata:
       more_set_headers "Referrer-Policy: no-referrer";
       more_set_headers "X-Content-Options: nosniff";
       more_set_headers "X-Frame-Options: deny";
-      more_set_headers "Permissions-Policy: camera=(), geolocation=(), microphone=()";
+      more_set_headers "Permissions-Policy: camera=(), microphone=()";
 spec:
   ingressClassName: nginx
   rules:
