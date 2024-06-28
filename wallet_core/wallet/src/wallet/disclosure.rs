@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
-use openid4vc::disclosure_session::VpClientError;
 use tracing::{error, info, instrument};
 use url::Url;
 use uuid::Uuid;
@@ -12,6 +11,7 @@ use nl_wallet_mdoc::{
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
     verifier::SessionType,
 };
+use openid4vc::disclosure_session::VpClientError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
 use wallet_common::config::wallet_config::WalletConfiguration;
 
