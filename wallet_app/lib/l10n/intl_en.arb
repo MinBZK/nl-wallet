@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-06-27T11:28:48+02:00",
+    "@@last_modified": "2024-06-28T11:18:53+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -781,6 +781,7 @@
     "reportOptionUnknownOrganization": "I do not know this organization",
     "reportOptionUnreasonableTerms": "I disagree with the terms",
     "reportOptionUntrusted": "I do not trust this",
+    "requestDetailScreenTitle": "Request details",
     "resetWalletDialogBody": "This will delete all your data in the app. You will return to the app introduction, and then you could create your wallet again.",
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",

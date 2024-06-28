@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-27T11:28:48+02:00",
+    "@@last_modified": "2024-06-28T11:18:53+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -777,6 +777,7 @@
     "reportOptionUnknownOrganization": "Ik ken deze organisatie niet",
     "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
     "reportOptionUntrusted": "Ik vertrouw het niet",
+    "requestDetailScreenTitle": "Aanvraag details",
     "resetWalletDialogBody": "Hiermee verwijder je alle gegevens in de app. Vervolgens begin je opnieuw met de app-inleiding en kun je opnieuw je wallet aanmaken.",
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
