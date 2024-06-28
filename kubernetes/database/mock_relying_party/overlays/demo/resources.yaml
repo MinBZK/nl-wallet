@@ -5,16 +5,16 @@ metadata:
 spec:
   resources:
     requests:
-      memory: "128Mi"
+      memory: "256Mi"
       cpu: "0.2"
     limits:
-      memory: "128Mi"
+      memory: "256Mi"
       cpu: "0.2"
   storage:
-    size: 10Gi
+    size: 1Gi
   walStorage:
-    size: 10Gi
+    size: 1Gi
 
   postgresql:
     parameters:
-      shared_buffers: "128MB"
+      shared_buffers: "256MB"

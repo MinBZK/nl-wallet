@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-pid-issuer-public
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: $PID_ISSUER_EXTERNAL_HOSTNAME
+      http:
+        paths:
+          - backend:
+              service:
+                name: pid-issuer
+                port:
+                  number: 3007
+            path: /$PID_ISSUER_EXTERNAL_CONTEXT_PATH/(.*)
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - $PID_ISSUER_EXTERNAL_HOSTNAME
+      secretName: nl-wallet-letsencrypt-live-cert

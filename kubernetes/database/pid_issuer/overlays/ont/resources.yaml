@@ -1,7 +1,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: db-cluster-mrp
+  name: db-cluster-pi
 spec:
   resources:
     requests:
