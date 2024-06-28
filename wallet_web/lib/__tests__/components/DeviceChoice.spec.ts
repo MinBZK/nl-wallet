@@ -22,7 +22,7 @@ describe("DeviceChoice", () => {
 
   it("should emit choice", async () => {
     const wrapper = mount(DeviceChoice, {
-      props: { engagementUrl: "engagement_url_123" },
+      props: { ul: "ul_123" },
     })
 
     await wrapper.find("[data-testid=cross_device_button]").trigger("click")

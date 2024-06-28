@@ -6,7 +6,6 @@ import WalletModal from "@/components/WalletModal.vue"
 import { isMobileKey } from "@/util/projection_keys"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { EngagementUrl } from "@/models/status"
 
 await import("../setup")
 
