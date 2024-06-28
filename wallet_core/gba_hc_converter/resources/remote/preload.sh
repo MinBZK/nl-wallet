@@ -26,11 +26,16 @@ while [ "$input" != "$iter" ] ;do
     # Fill in the bsn in the template that will be sent to the GBA-V.
     sed s/\{\{bsn\}\}/"$iter"/g /tmp/bsn_zoeken_template.xml > /tmp/bsn_zoeken.xml
 
-    curl -v --tls-max 1.2 --user "${GBAV_USERNAME}:${GBAV_PASSWORD}" \
+    BRP_CREDENTIALS=$(printf '%s' "${GBAV_USERNAME}:${GBAV_PASSWORD}" | base64)
+
+    curl -v --tls-max 1.2 \
+      --proxy "${GBAV_PROXY_IP}:${GBAV_PROXY_PORT}" --proxy-user "${GBAV_PROXY_USERNAME}:${GBAV_PROXY_PASSWORD}" \
       --cacert /tmp/trust_anchor.pem \
       --cert /tmp/client_cert.der --cert-type DER \
       --key /tmp/client_cert_key.der --key-type DER \
       --header "Accept-Charset: UTF-8" --header "Content-Type: application/xml;charset=UTF-8" \
+      --header "authorization: CA ${GBAV_CA_API_KEY}" \
+      --header "x-brp-credentials: Basic ${BRP_CREDENTIALS}" \
       --data-binary @/tmp/bsn_zoeken.xml \
       --output /data/"$iter".xml \
       "$GBAV_ADHOC_URL"
