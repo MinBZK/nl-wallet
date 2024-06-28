@@ -371,9 +371,17 @@ where
                 }
 
                 let error = match error.error {
-                    MdocDisclosureError::Iso(err) => check_key_error(err),
+                    MdocDisclosureError::Iso(err) => match check_key_error(err) {
+                        MdocOrInstructionError::Instruction(err) => DisclosureError::Instruction(err),
+                        MdocOrInstructionError::Mdoc(err) => DisclosureError::IsoDisclosureSession(err),
+                    },
                     MdocDisclosureError::Vp(err) => match err {
-                        VpClientError::DeviceResponse(err) => check_key_error(err),
+                        VpClientError::DeviceResponse(err) => match check_key_error(err) {
+                            MdocOrInstructionError::Instruction(err) => DisclosureError::Instruction(err),
+                            MdocOrInstructionError::Mdoc(err) => {
+                                DisclosureError::VpDisclosureSession(VpClientError::DeviceResponse(err))
+                            }
+                        },
                         _ => DisclosureError::VpDisclosureSession(err),
                     },
                 };
@@ -427,19 +435,24 @@ where
     }
 }
 
-/// Transform the error into the appropriate variant if it involves remote ECDSA attestation keys.
-fn check_key_error(error: nl_wallet_mdoc::Error) -> DisclosureError {
+enum MdocOrInstructionError {
+    Mdoc(nl_wallet_mdoc::Error),
+    Instruction(InstructionError),
+}
+
+/// Unpack the error in a dedicated variant if it involves remote ECDSA attestation keys.
+fn check_key_error(error: nl_wallet_mdoc::Error) -> MdocOrInstructionError {
     match error {
         nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
             // This `unwrap()` is safe because of the `is()` check above.
             match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                RemoteEcdsaKeyError::Instruction(error) => DisclosureError::Instruction(error),
-                error => DisclosureError::IsoDisclosureSession(nl_wallet_mdoc::Error::KeysError(
-                    KeysError::KeyGeneration(error.into()),
-                )),
+                RemoteEcdsaKeyError::Instruction(error) => MdocOrInstructionError::Instruction(error),
+                error => MdocOrInstructionError::Mdoc(nl_wallet_mdoc::Error::KeysError(KeysError::KeyGeneration(
+                    error.into(),
+                ))),
             }
         }
-        _ => DisclosureError::IsoDisclosureSession(error),
+        _ => MdocOrInstructionError::Mdoc(error),
     }
 }
 
