@@ -13,10 +13,11 @@ proc-macro = true
 [dependencies]
 proc-macro2.workspace = true
 quote.workspace = true
-syn.workspace = true
+syn = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
 rstest.workspace = true
+thiserror.workspace = true
 trybuild.workspace = true
 
-wallet_common.path = "../"
+wallet_common = { path = "../", features = [ "sentry" ] }

@@ -30,20 +30,21 @@ impl Sentry {
     }
 }
 
-pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: &T) {
+pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: T) -> T {
     match error.category() {
         Category::Expected => {}
         Category::Critical => {
-            let _uuid = sentry::capture_error(error);
+            let _uuid = sentry::capture_error(&error);
         }
         Category::PersonalData => {
             let event = Event {
                 event_id: Uuid::new_v4(),
-                message: Some(std::any::type_name_of_val(error).to_string()),
+                message: Some(std::any::type_name_of_val(&error).to_string()),
                 level: Level::Error,
                 ..Default::default()
             };
             let _uuid = sentry::capture_event(event);
         }
     }
+    error
 }

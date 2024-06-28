@@ -5337,6 +5337,7 @@ dependencies = [
  "quote",
  "rstest",
  "syn 2.0.68",
+ "thiserror",
  "trybuild",
  "wallet_common",
 ]

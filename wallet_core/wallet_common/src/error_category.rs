@@ -1,4 +1,4 @@
-pub use wallet_common_macros::ErrorCategory;
+pub use wallet_common_macros::{handle_error_category, ErrorCategory};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Category {
