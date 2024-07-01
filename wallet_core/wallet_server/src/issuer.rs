@@ -2,11 +2,14 @@ use std::{collections::HashMap, fmt::Display, str::FromStr, sync::Arc};
 
 use axum::{
     extract::State,
-    headers::{authorization::Credentials, Authorization, Header},
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
     response::{IntoResponse, Response},
     routing::{delete, get, post},
-    Form, Json, Router, TypedHeader,
+    Form, Json, Router,
+};
+use axum_extra::{
+    headers::{self, authorization::Credentials, Authorization, Header},
+    TypedHeader,
 };
 use nutype::nutype;
 use serde::Serialize;
@@ -223,18 +226,18 @@ impl Header for DpopHeader {
         &DPOP_HEADER_NAME_LOWERCASE
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, axum::headers::Error>
+    fn decode<'i, I>(values: &mut I) -> Result<Self, axum_extra::headers::Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
     {
         // Exactly one value must be provided
-        let value = values.next().ok_or(axum::headers::Error::invalid())?;
+        let value = values.next().ok_or(headers::Error::invalid())?;
         if values.next().is_some() {
-            return Err(axum::headers::Error::invalid());
+            return Err(headers::Error::invalid());
         }
 
-        let value = value.to_str().map_err(|_| axum::headers::Error::invalid())?.to_string();
+        let value = value.to_str().map_err(|_| headers::Error::invalid())?.to_string();
         Ok(DpopHeader(value.into()))
     }
 

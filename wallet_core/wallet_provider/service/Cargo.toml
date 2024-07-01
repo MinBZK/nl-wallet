@@ -27,7 +27,7 @@ db_test = ["software_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provid
 chrono = { workspace = true, features = ["std", "clock"] }
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
-futures.workspace = true
+futures = { workspace = true, features = ["std", "async-await"] }
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
 r2d2-cryptoki.workspace = true
@@ -38,7 +38,13 @@ serde_with = { workspace = true, features = ["base64"] }
 sha2.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-tracing-subscriber = { workspace = true, optional = true, features = ["env-filter", "parking_lot"] }
+tracing-subscriber = { workspace = true, optional = true, features = [
+    "std",
+    "fmt",
+    "ansi",
+    "tracing-log",
+    "parking_lot",
+] }
 uuid = { workspace = true, features = ["v4"] }
 
 hmac = { workspace = true, optional = true, features = ["std"] }

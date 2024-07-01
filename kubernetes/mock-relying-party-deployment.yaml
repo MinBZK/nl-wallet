@@ -35,12 +35,15 @@ spec:
               memory: "512Mi"
               cpu: "300m"
           ports:
-            - containerPort: 3004
+            - name: mrp-port
+              containerPort: 3004
           volumeMounts:
             - name: config-volume
               mountPath: /mock_relying_party.toml
               subPath: config.toml
           env:
+            - name: MOCK_RELYING_PARTY_WEBSERVER__PORT
+              value: "3004"
             - name: MOCK_RELYING_PARTY_PUBLIC_WALLET_SERVER_URL
               value: "https://${MRP_WALLET_SERVER_EXTERNAL_HOSTNAME}/${MRP_WALLET_SERVER_EXTERNAL_CONTEXT_PATH}/"
             - name: MOCK_RELYING_PARTY_INTERNAL_WALLET_SERVER_URL

@@ -1,7 +1,8 @@
 {% extends "../base.askama" %}
+{%- import "components/demo_bar.askama" as demo_bar -%}
 {%- import "components/header.askama" as header -%}
-{%- import "components/products.askama" as products -%}
 {%- import "components/attributes.askama" as attributes -%}
+{%- import "components/products.askama" as products -%}
 
 {% block styles %}
 <link rel="stylesheet" href="../css/demo_bar.css" />
@@ -13,7 +14,7 @@
 {% endblock %}
 
 {% block content %}
-{% include "../demo_bar.askama" %}
+{% call demo_bar::demo_bar("Bekijk andere", "../../", "voorbeelden") %}
 {% match usecase %}
     {% when "mijn_amsterdam" %}
         {% include "mijn_amsterdam.askama" %}

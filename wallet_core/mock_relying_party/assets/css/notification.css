@@ -20,8 +20,7 @@
 
 .notification span::before {
     content: " ";
-    background: transparent url("../images/checkmark.svg") center center /
-        contain;
+    background: transparent url("../non-free/images/checkmark.svg") center center / contain;
     width: 32px;
     height: 32px;
 }

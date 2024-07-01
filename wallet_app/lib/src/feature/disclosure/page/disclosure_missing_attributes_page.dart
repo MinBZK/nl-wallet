@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/sliver_divider.dart';
@@ -12,6 +11,7 @@ import '../../common/widget/wallet_scrollbar.dart';
 
 class DisclosureMissingAttributesPage extends StatelessWidget {
   final VoidCallback onDecline;
+  final VoidCallback onReportIssuePressed;
   final Organization organization;
   final List<Attribute> missingAttributes;
 
@@ -19,6 +19,7 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
     required this.organization,
     required this.missingAttributes,
     required this.onDecline,
+    required this.onReportIssuePressed,
     super.key,
   });
 
@@ -82,8 +83,8 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
 
   Widget _buildHowToProceedButton(BuildContext context) {
     return ListButton(
-      onPressed: () => PlaceholderScreen.showGeneric(context),
-      text: Text(context.l10n.disclosureMissingAttributesPageHowToProceedCta),
+      onPressed: onReportIssuePressed,
+      text: Text(context.l10n.disclosureMissingAttributesPageReportIssueCta),
     );
   }
 

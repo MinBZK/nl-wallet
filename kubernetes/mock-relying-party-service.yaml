@@ -11,5 +11,5 @@ spec:
   ports:
     - name: mock-relying-party-http
       port: 3004
-      targetPort: 3004
+      targetPort: mrp-port
       protocol: TCP

@@ -14,6 +14,5 @@ input[name="search"] {
     width: 100%;
 
     /* icon */
-    background: url("../images/search.svg") no-repeat right center / 18px
-        content-box;
+    background: url("../non-free/images/search.svg") no-repeat right center / 18px content-box;
 }

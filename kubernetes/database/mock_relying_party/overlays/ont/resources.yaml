@@ -11,9 +11,9 @@ spec:
       memory: "256Mi"
       cpu: "0.5"
   storage:
-    size: 10Gi
+    size: 1Gi
   walStorage:
-    size: 10Gi
+    size: 1Gi
 
   postgresql:
     parameters:

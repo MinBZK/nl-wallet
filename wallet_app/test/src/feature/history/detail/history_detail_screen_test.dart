@@ -1,10 +1,17 @@
+import 'dart:ui';
+
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
-import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 import 'package:wallet/src/feature/history/detail/history_detail_screen.dart';
+import 'package:wallet/src/feature/history/detail/widget/page/history_detail_disclose_page.dart';
+import 'package:wallet/src/feature/history/detail/widget/page/history_detail_issue_page.dart';
+import 'package:wallet/src/feature/history/detail/widget/page/history_detail_login_page.dart';
+import 'package:wallet/src/feature/history/detail/widget/page/history_detail_sign_page.dart';
+import 'package:wallet/src/util/mapper/context_mapper.dart';
+import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -64,7 +71,20 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('card details are visible', (tester) async {
+    testWidgets('Disclose event is rendered with DisclosePage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen()
+            .withState<HistoryDetailBloc, HistoryDetailState>(
+              MockHistoryDetailBloc(),
+              HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
+            )
+            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+      );
+
+      expect(find.byType(HistoryDetailDisclosePage), findsOneWidget);
+    });
+
+    testWidgets('Issuance event is rendered with IssuePage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
@@ -72,12 +92,33 @@ void main() {
         ),
       );
 
-      // Validate that the card details are rendered
-      expect(find.text(WalletMockData.cardFront.title.testValue), findsOneWidget);
-      for (final attribute in WalletMockData.issuanceEvent.attributes) {
-        expect(find.textContaining(attribute.label.testValue), findsOneWidget);
-        expect(find.textContaining(attribute.value.toString()), findsOneWidget);
-      }
+      expect(find.byType(HistoryDetailIssuePage), findsOneWidget);
+    });
+
+    testWidgets('Login event is rendered with LoginPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen()
+            .withState<HistoryDetailBloc, HistoryDetailState>(
+              MockHistoryDetailBloc(),
+              HistoryDetailLoadSuccess(WalletMockData.loginEvent, [WalletMockData.card]),
+            )
+            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+      );
+
+      expect(find.byType(HistoryDetailLoginPage), findsOneWidget);
+    });
+
+    testWidgets('Sign event is rendered with SignPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen()
+            .withState<HistoryDetailBloc, HistoryDetailState>(
+              MockHistoryDetailBloc(),
+              HistoryDetailLoadSuccess(WalletMockData.signEvent, [WalletMockData.card]),
+            )
+            .withDependency<ContextMapper<Policy, String>>((context) => PolicyBodyTextMapper()),
+      );
+
+      expect(find.byType(HistoryDetailSignPage), findsOneWidget);
     });
   });
 }

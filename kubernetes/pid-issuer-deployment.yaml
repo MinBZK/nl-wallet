@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pid-issuer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pid-issuer
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: pid-issuer
+        tier: vertrouwd
+        egress-frontoffice-policy: allow
+        ingress-controller-frontoffice-policy: allow
+        db-pi-in-zeer-vertrouwd: allow
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: pid-issuer
+          image: $PID_ISSUER_IMAGE
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "512Mi"
+              cpu: "300m"
+          ports:
+            - name: pid-issuer-port
+              containerPort: 3007
+          volumeMounts:
+            - name: config-volume
+              mountPath: /pid_issuer.toml
+              subPath: config.toml
+          env:
+            - name: PID_ISSUER_WALLET_SERVER__PORT
+              value: "3007"
+            - name: PID_ISSUER_PUBLIC_URL
+              value: "https://${PID_ISSUER_EXTERNAL_HOSTNAME}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}/"
+            - name: PID_ISSUER_ISSUER__DIGID__ISSUER_URL
+              value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
+            - name: PID_ISSUER_ISSUER__BRP_SERVER
+              value: "http://brpproxy:5001/"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-pi-app
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-pi-app
+                  key: password
+            - name: PID_ISSUER_STORAGE__URL
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-pi-rw:5432/pid_issuer"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+      volumes:
+        - name: config-volume
+          secret:
+            secretName: nl-pid-issuer-config

@@ -92,10 +92,11 @@ pub struct VpAuthorizationRequest {
     pub response_uri: Option<BaseUrl>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, strum::Display)]
 pub enum VpAuthorizationRequestAudience {
     #[default]
     #[serde(rename = "https://self-issued.me/v2")]
+    #[strum(to_string = "https://self-issued.me/v2")]
     SelfIssued,
 }
 
@@ -270,7 +271,12 @@ impl VpAuthorizationRequest {
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(IsoVpAuthorizationRequest, Certificate), AuthRequestError> {
-        let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(jws, trust_anchors, &TimeGenerator)?;
+        let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(
+            jws,
+            &[VpAuthorizationRequestAudience::SelfIssued],
+            trust_anchors,
+            &TimeGenerator,
+        )?;
 
         let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestError::MissingSAN)?;
         if dns_san != auth_request.oauth_request.client_id {

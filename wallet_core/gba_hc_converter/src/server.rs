@@ -1,7 +1,4 @@
-use std::{
-    net::{IpAddr, SocketAddr, TcpListener},
-    sync::Arc,
-};
+use std::{net::IpAddr, sync::Arc};
 
 use axum::{
     extract::State,
@@ -9,6 +6,7 @@ use axum::{
     Json, Router,
 };
 use http::StatusCode;
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, info};
 
@@ -28,9 +26,8 @@ pub async fn serve<T>(ip: IpAddr, port: u16, gbav_client: T) -> Result<(), Box<d
 where
     T: GbavClient + Send + Sync + 'static,
 {
-    let socket = SocketAddr::new(ip, port);
-    let listener = TcpListener::bind(socket)?;
-    debug!("listening on {}", socket);
+    let listener = TcpListener::bind((ip, port)).await?;
+    debug!("listening on {}:{}", ip, port);
 
     let app_state = Arc::new(ApplicationState { gbav_client });
 
@@ -44,7 +41,7 @@ where
         )
         .layer(TraceLayer::new_for_http());
 
-    axum::Server::from_tcp(listener)?.serve(app.into_make_service()).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }

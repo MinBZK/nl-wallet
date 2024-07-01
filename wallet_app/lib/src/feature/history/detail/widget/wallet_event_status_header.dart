@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../util/extension/build_context_extension.dart';
-import '../../../../util/formatter/history_details_time_formatter.dart';
 import '../../../../util/mapper/event/wallet_event_status_color_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_description_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_icon_mapper.dart';
@@ -25,44 +24,27 @@ class WalletEventStatusHeader extends StatelessWidget {
     final IconData? errorStatusIcon = WalletEventStatusIconMapper().map(event);
     final Color statusColor = WalletEventStatusColorMapper().map(context, event);
 
+    Widget? icon;
+    if (errorStatusIcon != null) {
+      icon = Icon(
+        errorStatusIcon,
+        color: statusColor,
+        size: _kStatusIconSize,
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              if (errorStatusIcon != null)
-                Icon(
-                  errorStatusIcon,
-                  color: statusColor,
-                  size: _kStatusIconSize,
-                )
-              else
-                const SizedBox(
-                  width: _kStatusIconSize,
-                  height: _kStatusIconSize,
-                ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      titleText,
-                      style: context.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      HistoryDetailsTimeFormatter.format(context, event.dateTime),
-                      style: context.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          icon ?? const SizedBox.shrink(),
+          SizedBox(height: icon == null ? 0 : 16),
+          Text(
+            titleText,
+            style: context.textTheme.titleMedium?.copyWith(color: statusColor),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
           Text(
             descriptionText,
             style: context.textTheme.bodyLarge,
