@@ -36,9 +36,9 @@ spec:
               memory: "512Mi"
               cpu: "300m"
           ports:
-            - name: mrp-wallet-server-wallet-port
+            - name: wallet-port
               containerPort: 3001
-            - name: mrp-wallet-server-requester-port
+            - name: requester-port
               containerPort: 3002
           volumeMounts:
             - name: config-volume
