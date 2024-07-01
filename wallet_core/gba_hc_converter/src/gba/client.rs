@@ -1,8 +1,9 @@
 use std::{env, path::PathBuf};
 
+use base64::prelude::*;
 use http::header;
 use pem::Pem;
-use reqwest::{tls, Certificate, Identity, Proxy};
+use reqwest::{tls, Certificate, Identity};
 use tracing::info;
 
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::tls_pinned_client_builder};
@@ -10,7 +11,6 @@ use wallet_common::{config::wallet_config::BaseUrl, reqwest::tls_pinned_client_b
 use crate::{
     gba::{data::GbaResponse, error::Error},
     haal_centraal::Bsn,
-    settings::ProxySettings,
 };
 
 #[trait_variant::make(GbavClient: Send)]
@@ -50,7 +50,7 @@ impl HttpGbavClient {
             .join("resources/remote/bsn_zoeken_template.xml");
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
 
-        let http_client_builder = tls_pinned_client_builder(vec![trust_anchor])
+        let http_client = tls_pinned_client_builder(vec![trust_anchor])
             // TLS_1_3 is currently not supported and version negotiation seems broken
             .max_tls_version(tls::Version::TLS_1_2)
             .identity(Identity::from_pem(cert_buf.as_bytes())?)
@@ -76,12 +76,15 @@ impl GbavClient for HttpGbavClient {
 
         let mut request_builder = self.http_client.post(self.base_url.clone().into_inner());
 
-        if let Some(ca_api_key) = self.ca_api_key {
+        if let Some(ca_api_key) = &self.ca_api_key {
             request_builder = request_builder
                 .header(header::AUTHORIZATION, format!("CA {}", ca_api_key))
                 .header(
                     HttpGbavClient::BRP_CREDENTIALS_HEADER,
-                    reqwest::util::basic_auth(self.username.clone(), Some(self.password.clone())),
+                    format!(
+                        "Basic {}",
+                        BASE64_STANDARD.encode(format!("{}:{}", self.username.clone(), self.password.clone()))
+                    ),
                 )
         } else {
             request_builder = request_builder.basic_auth(self.username.clone(), Some(self.password.clone()))

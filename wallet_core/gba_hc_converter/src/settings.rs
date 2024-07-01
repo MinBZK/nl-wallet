@@ -51,6 +51,7 @@ impl HttpGbavClient {
             settings.trust_anchor,
             settings.client_cert,
             settings.client_cert_key,
+            settings.ca_api_key,
         )
         .await
     }
