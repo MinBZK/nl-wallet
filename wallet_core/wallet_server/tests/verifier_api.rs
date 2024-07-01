@@ -276,7 +276,7 @@ async fn test_error_response(response: Response, status_code: StatusCode, error_
     assert_eq!(response.status(), status_code);
 
     let body = serde_json::from_slice::<ErrorResponse<String>>(&response.bytes().await.unwrap())
-        .expect("response body should deserialize to HttpJsonErrorBody");
+        .expect("response body should deserialize to ErrorResponse");
 
     assert_eq!(body.error, error_type);
 }
