@@ -1,4 +1,5 @@
 {% extends "../base.askama" %}
+{%- import "components/demo_bar.askama" as demo_bar -%}
 {%- import "components/header.askama" as header -%}
 
 {% block styles %}
@@ -12,7 +13,7 @@
 {% endblock %}
 
 {% block content %}
-{% include "../demo_bar.askama" %}
+{% call demo_bar::demo_bar("Volg de ontwikkelingen op", "https://edi.pleio.nl", "edi.pleio.nl") %}
 {% match usecase %}
     {% when "mijn_amsterdam" %}
         {% include "mijn_amsterdam.askama" %}

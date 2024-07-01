@@ -1,0 +1,12 @@
+{% macro demo_bar(text, url, url_text) %}
+<aside>
+    <span class="logo"></span>
+    <div class="text">
+        <b>NL Wallet Demo</b>
+        <p>
+            {{ text }}
+            <a href="{{ url }}">{{ url_text }}</a>
+        </p>
+    </div>
+</aside>
+{% endmacro %}
