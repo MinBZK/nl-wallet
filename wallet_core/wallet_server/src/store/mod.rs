@@ -19,7 +19,7 @@ pub trait SessionDataType {
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
-        use nl_wallet_mdoc::verifier::DisclosureData;
+        use openid4vc::verifier::DisclosureData;
         impl SessionDataType for DisclosureData {
             const TYPE: &'static str = "mdoc_disclosure";
         }

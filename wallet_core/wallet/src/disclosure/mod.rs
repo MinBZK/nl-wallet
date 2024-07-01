@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use nl_wallet_mdoc::{
     holder::{
-        CborHttpClient, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult, DisclosureSession,
-        MdocDataSource, ProposedAttributes, ReaderEngagementSource, TrustAnchor,
+        CborHttpClient, DisclosureError, DisclosureMissingAttributes, DisclosureProposal, DisclosureResult,
+        DisclosureSession, MdocDataSource, ProposedAttributes, TrustAnchor,
     },
     identifiers::AttributeIdentifier,
     utils::{
@@ -16,14 +16,15 @@ use nl_wallet_mdoc::{
     },
     verifier::SessionType,
 };
+use openid4vc::disclosure_session::{HttpVpMessageClient, VpClientError};
 use wallet_common::reqwest::default_reqwest_client_builder;
 
-pub use self::uri::{DisclosureUriData, DisclosureUriError};
+pub use nl_wallet_mdoc::holder::DisclosureUriSource;
+
+pub use self::uri::{DisclosureUriError, IsoDisclosureUriData, VpDisclosureUriData};
 
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::{MockMdocDisclosureProposal, MockMdocDisclosureSession};
-
-pub type DisclosureUriSource = ReaderEngagementSource;
 
 #[derive(Debug)]
 pub enum MdocDisclosureSessionState<M, P> {
@@ -31,16 +32,27 @@ pub enum MdocDisclosureSessionState<M, P> {
     Proposal(P),
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum MdocDisclosureError {
+    #[error("error in mdoc disclosure session: {0}")]
+    Iso(#[from] nl_wallet_mdoc::Error),
+    #[error("error in OpenID4VP disclosure session: {0}")]
+    Vp(#[from] VpClientError),
+}
+
 pub trait MdocDisclosureSession<D> {
     type MissingAttributes: MdocDisclosureMissingAttributes;
     type Proposal: MdocDisclosureProposal;
+    type DisclosureUriData;
+
+    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError>;
 
     async fn start<'a>(
-        disclosure_uri: DisclosureUriData,
-        reader_engagement_source: DisclosureUriSource,
+        disclosure_uri: Self::DisclosureUriData,
+        disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> nl_wallet_mdoc::Result<Self>
+    ) -> Result<Self, MdocDisclosureError>
     where
         Self: Sized;
 
@@ -49,7 +61,7 @@ pub trait MdocDisclosureSession<D> {
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
     fn session_type(&self) -> SessionType;
 
-    async fn terminate(self) -> nl_wallet_mdoc::Result<()>;
+    async fn terminate(self) -> Result<(), MdocDisclosureError>;
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -58,14 +70,106 @@ pub trait MdocDisclosureMissingAttributes {
 }
 
 pub trait MdocDisclosureProposal {
-    fn return_url(&self) -> Option<&Url>;
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey;
+}
+
+type VpDisclosureSession = openid4vc::disclosure_session::DisclosureSession<HttpVpMessageClient, Uuid>;
+type VpDisclosureMissingAttributes = openid4vc::disclosure_session::DisclosureMissingAttributes<HttpVpMessageClient>;
+type VpDisclosureProposal = openid4vc::disclosure_session::DisclosureProposal<HttpVpMessageClient, Uuid>;
+
+impl<D> MdocDisclosureSession<D> for VpDisclosureSession
+where
+    D: MdocDataSource<MdocIdentifier = Uuid>,
+{
+    type MissingAttributes = VpDisclosureMissingAttributes;
+    type Proposal = VpDisclosureProposal;
+    type DisclosureUriData = VpDisclosureUriData;
+
+    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+        VpDisclosureUriData::parse_from_uri(uri, base_uri)
+    }
+
+    async fn start<'a>(
+        disclosure_uri: VpDisclosureUriData,
+        uri_source: DisclosureUriSource,
+        mdoc_data_source: &D,
+        trust_anchors: &[TrustAnchor<'a>],
+    ) -> Result<Self, MdocDisclosureError>
+    where
+        Self: Sized,
+    {
+        let client = default_reqwest_client_builder()
+            .build()
+            .expect("Could not build reqwest HTTP client")
+            .into();
+        let session = Self::start(
+            client,
+            &disclosure_uri.query,
+            uri_source,
+            mdoc_data_source,
+            trust_anchors,
+        )
+        .await?;
+
+        Ok(session)
+    }
+
+    fn rp_certificate(&self) -> &Certificate {
+        self.verifier_certificate()
+    }
+
+    fn reader_registration(&self) -> &ReaderRegistration {
+        self.reader_registration()
+    }
+
+    fn session_state(&self) -> MdocDisclosureSessionState<&VpDisclosureMissingAttributes, &VpDisclosureProposal> {
+        match self {
+            Self::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
+            Self::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
+        }
+    }
+
+    fn session_type(&self) -> SessionType {
+        self.session_type()
+    }
+
+    async fn terminate(self) -> Result<(), MdocDisclosureError> {
+        Ok(self.terminate().await?)
+    }
+}
+
+impl MdocDisclosureMissingAttributes for VpDisclosureMissingAttributes {
+    fn missing_attributes(&self) -> &[AttributeIdentifier] {
+        self.missing_attributes()
+    }
+}
+
+impl MdocDisclosureProposal for VpDisclosureProposal {
+    fn proposed_source_identifiers(&self) -> Vec<Uuid> {
+        self.proposed_source_identifiers().into_iter().copied().collect()
+    }
+
+    fn proposed_attributes(&self) -> ProposedAttributes {
+        self.proposed_attributes()
+    }
+
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
+    where
+        KF: KeyFactory<Key = K>,
+        K: MdocEcdsaKey,
+    {
+        let redirect_uri = self
+            .disclose(key_factory)
+            .await
+            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
+        Ok(redirect_uri.map(|u| u.into_inner()))
+    }
 }
 
 impl<D> MdocDisclosureSession<D> for DisclosureSession<CborHttpClient, Uuid>
@@ -74,25 +178,32 @@ where
 {
     type MissingAttributes = DisclosureMissingAttributes<CborHttpClient>;
     type Proposal = DisclosureProposal<CborHttpClient, Uuid>;
+    type DisclosureUriData = IsoDisclosureUriData;
+
+    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+        IsoDisclosureUriData::parse_from_uri(uri, base_uri)
+    }
 
     async fn start<'a>(
-        disclosure_uri: DisclosureUriData,
-        reader_engagement_source: DisclosureUriSource,
+        disclosure_uri: Self::DisclosureUriData,
+        disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'a>],
-    ) -> nl_wallet_mdoc::Result<Self> {
+    ) -> Result<Self, MdocDisclosureError> {
         let http_client = default_reqwest_client_builder()
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        Self::start(
+        let session = Self::start(
             CborHttpClient(http_client),
             &disclosure_uri.reader_engagement_bytes,
-            reader_engagement_source,
+            disclosure_uri_source,
             mdoc_data_source,
             trust_anchors,
         )
-        .await
+        .await?;
+
+        Ok(session)
     }
 
     fn rp_certificate(&self) -> &Certificate {
@@ -115,8 +226,8 @@ where
         }
     }
 
-    async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
-        self.terminate().await
+    async fn terminate(self) -> Result<(), MdocDisclosureError> {
+        Ok(self.terminate().await?)
     }
 
     fn session_type(&self) -> SessionType {
@@ -131,10 +242,6 @@ impl MdocDisclosureMissingAttributes for DisclosureMissingAttributes<CborHttpCli
 }
 
 impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
-    fn return_url(&self) -> Option<&Url> {
-        self.return_url()
-    }
-
     fn proposed_source_identifiers(&self) -> Vec<Uuid> {
         self.proposed_source_identifiers().into_iter().copied().collect()
     }
@@ -143,12 +250,16 @@ impl MdocDisclosureProposal for DisclosureProposal<CborHttpClient, Uuid> {
         self.proposed_attributes()
     }
 
-    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<()>
+    async fn disclose<KF, K>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
     {
-        self.disclose(key_factory).await
+        self.disclose(key_factory)
+            .await
+            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
+
+        Ok(self.return_url().cloned())
     }
 }
 
@@ -205,10 +316,6 @@ mod mock {
     }
 
     impl MdocDisclosureProposal for MockMdocDisclosureProposal {
-        fn return_url(&self) -> Option<&Url> {
-            self.return_url.as_ref()
-        }
-
         fn proposed_source_identifiers(&self) -> Vec<Uuid> {
             self.proposed_source_identifiers.clone()
         }
@@ -217,26 +324,25 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<()>
+        async fn disclose<KF, K>(&self, _key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
         where
             KF: KeyFactory<Key = K>,
             K: MdocEcdsaKey,
         {
             if let Some(error) = self.next_error.lock().take() {
-                return Err(DisclosureError::new(self.attributes_shared, error));
+                return Err(DisclosureError::new(self.attributes_shared, error.into()));
             }
 
             self.disclosure_count
                 .store(self.disclosure_count.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
 
-            Ok(())
+            Ok(self.return_url.clone())
         }
     }
 
     #[derive(Debug)]
     pub struct MockMdocDisclosureSession {
-        pub disclosure_uri: DisclosureUriData,
-        pub reader_engagement_source: DisclosureUriSource,
+        pub disclosure_uri_source: DisclosureUriSource,
         pub certificate: Certificate,
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
@@ -265,10 +371,7 @@ mod mock {
     impl Default for MockMdocDisclosureSession {
         fn default() -> Self {
             Self {
-                disclosure_uri: DisclosureUriData {
-                    reader_engagement_bytes: Default::default(),
-                },
-                reader_engagement_source: DisclosureUriSource::Link,
+                disclosure_uri_source: DisclosureUriSource::Link,
                 certificate: READER_KEY.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
                 session_state: Default::default(),
@@ -281,15 +384,24 @@ mod mock {
     impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
         type MissingAttributes = MockMdocDisclosureMissingAttributes;
         type Proposal = MockMdocDisclosureProposal;
+        type DisclosureUriData = ();
+
+        fn parse_url(uri: &Url, _base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+            if uri.query_pairs().any(|(param, _)| param == "invalid") {
+                Err(DisclosureUriError::Malformed(uri.clone()))
+            } else {
+                Ok(())
+            }
+        }
 
         async fn start<'a>(
-            disclosure_uri: DisclosureUriData,
-            reader_engagement_source: DisclosureUriSource,
+            _disclosure_uri: Self::DisclosureUriData,
+            disclosure_uri_source: DisclosureUriSource,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'a>],
-        ) -> nl_wallet_mdoc::Result<Self> {
+        ) -> Result<Self, MdocDisclosureError> {
             if let Some(error) = NEXT_START_ERROR.lock().take() {
-                return Err(error);
+                Err(error)?;
             }
 
             let (reader_registration, session_state) = NEXT_MOCK_FIELDS
@@ -298,8 +410,7 @@ mod mock {
                 .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default()));
 
             let session = MockMdocDisclosureSession {
-                disclosure_uri,
-                reader_engagement_source,
+                disclosure_uri_source,
                 reader_registration,
                 session_state,
                 ..Default::default()
@@ -321,7 +432,7 @@ mod mock {
             &self.reader_registration
         }
 
-        async fn terminate(self) -> nl_wallet_mdoc::Result<()> {
+        async fn terminate(self) -> Result<(), MdocDisclosureError> {
             self.was_terminated.store(true, Ordering::Relaxed);
 
             Ok(())

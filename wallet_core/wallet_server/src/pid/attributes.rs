@@ -4,8 +4,8 @@ use nl_wallet_mdoc::{server_state::SessionState, unsigned::UnsignedMdoc, utils::
 use openid4vc::{
     issuer::{AttributeService, Created},
     oidc,
-    token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
-    ErrorResponse,
+    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+    ErrorResponse, TokenErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 

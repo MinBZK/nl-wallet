@@ -5,7 +5,7 @@ import { FooterState } from "@/models/footer-state"
 import { SessionType } from "@/models/status"
 
 defineProps<{
-  engagementUrl: string
+  ul: string
 }>()
 
 const emit = defineEmits<{
@@ -23,7 +23,7 @@ function handleChoice(sessionType: SessionType) {
     <h2>Op welk apparaat staat je NL Wallet app?</h2>
     <section class="buttons">
       <a
-        :href="engagementUrl"
+        :href="ul"
         target="_blank"
         class="button primary"
         data-testid="same_device_button"

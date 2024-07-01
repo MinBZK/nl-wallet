@@ -28,8 +28,8 @@ pub enum HolderError {
     MissingSessionType,
     #[error("malformed session_type query parameter in verifier URL: {0}")]
     MalformedSessionType(serde_urlencoded::de::Error),
-    #[error("mismatch between session type and reader engagement source: {0} not allowed from {1}")]
-    ReaderEnagementSourceMismatch(SessionType, ReaderEngagementSource),
+    #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
+    DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
     #[error("readerAuth not present for all documents")]
     ReaderAuthMissing,
     #[error("document requests were signed by different readers")]
@@ -56,29 +56,29 @@ pub enum HolderError {
     DisclosureResponse(SessionStatus),
 }
 
-pub type DisclosureResult<T> = std::result::Result<T, DisclosureError>;
+pub type DisclosureResult<T, E> = std::result::Result<T, DisclosureError<E>>;
 
 #[derive(thiserror::Error, Debug)]
 #[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
-pub struct DisclosureError {
+pub struct DisclosureError<E: std::error::Error> {
     pub data_shared: bool,
     #[source]
-    pub error: Error,
+    pub error: E,
 }
 
-impl DisclosureError {
-    pub fn new(data_shared: bool, error: Error) -> Self {
+impl<E: std::error::Error> DisclosureError<E> {
+    pub fn new(data_shared: bool, error: E) -> Self {
         Self { data_shared, error }
     }
 
-    pub fn before_sharing(error: Error) -> Self {
+    pub fn before_sharing(error: E) -> Self {
         Self {
             data_shared: false,
             error,
         }
     }
 
-    pub fn after_sharing(error: Error) -> Self {
+    pub fn after_sharing(error: E) -> Self {
         Self {
             data_shared: true,
             error,
@@ -86,7 +86,7 @@ impl DisclosureError {
     }
 }
 
-impl From<HttpClientError> for DisclosureError {
+impl From<HttpClientError> for DisclosureError<Error> {
     fn from(source: HttpClientError) -> Self {
         let data_shared = match source {
             // Cbor serialization happens before sharing

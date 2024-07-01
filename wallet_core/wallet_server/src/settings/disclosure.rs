@@ -5,7 +5,8 @@ use ring::hmac;
 use serde::Deserialize;
 use serde_with::{hex::Hex, serde_as};
 
-use nl_wallet_mdoc::verifier::{SessionTypeReturnUrl, UseCase, UseCases};
+use nl_wallet_mdoc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::{UseCase, UseCases};
 use wallet_common::trust_anchor::DerTrustAnchor;
 
 use super::*;
@@ -36,7 +37,7 @@ pub struct VerifierUseCase {
 }
 
 impl TryFrom<VerifierUseCases> for UseCases {
-    type Error = p256::pkcs8::Error;
+    type Error = anyhow::Error;
 
     fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
         let use_cases = value
@@ -55,13 +56,10 @@ impl TryFrom<VerifierUseCases> for UseCases {
 }
 
 impl TryFrom<&VerifierUseCase> for UseCase {
-    type Error = p256::pkcs8::Error;
+    type Error = anyhow::Error;
 
     fn try_from(value: &VerifierUseCase) -> Result<Self, Self::Error> {
-        let use_case = UseCase {
-            key_pair: (&value.key_pair).try_into()?,
-            session_type_return_url: value.session_type_return_url,
-        };
+        let use_case = UseCase::new((&value.key_pair).try_into()?, value.session_type_return_url)?;
 
         Ok(use_case)
     }

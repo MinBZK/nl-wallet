@@ -62,7 +62,6 @@ issuance = [
     "dep:reqwest",
     "dep:serde_json",
     "dep:serde_urlencoded",
-    "dep:openid4vc",
 ]
 # Enable disclosure
 disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:strum"]
@@ -71,7 +70,7 @@ mock = ["dep:rand", "issuance"]
 
 [dependencies]
 anyhow.workspace = true
-axum = { workspace = true, features = ["http1", "json", "query", "tokio", "tower-log", "tracing", "original-uri"] }
+axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 base64.workspace = true
 cfg-if.workspace = true
@@ -122,7 +121,7 @@ serial_test = { workspace = true, optional = true }
 strum = { workspace = true, optional = true, features = ["derive"] }
 
 nl_wallet_mdoc.path = "../mdoc"
-openid4vc = { path = "../openid4vc", optional = true }
+openid4vc.path = "../openid4vc"
 wallet_common = { path = "../wallet_common", features = ["sentry"] }
 
 [dev-dependencies]
