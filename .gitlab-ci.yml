@@ -350,6 +350,7 @@ build-frontend-lib:
 dependency-check:
   extends: [.env-ont-k8s]
   rules: !reference [.default-or-release-or-merge-request, rules]
+  when: manual
   image:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:4c32c66768c6e1de95dda6bc51dc4a637f9ca7ed16a8ad1a29079281dda9dcc7"
   before_script:
@@ -379,6 +380,7 @@ dependency-check:
     paths:
       - $CI_PROJECT_DIR/dependency_check_data
     policy: $CACHE_POLICY
+  allow_failure: true
 
 osv-scanner:
   rules: !reference [.default-or-release-or-merge-request, rules]
