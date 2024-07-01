@@ -14,7 +14,7 @@
 {% endblock %}
 
 {% block content %}
-{% call demo_bar::demo_bar("Bekijk andere", "/", "voorbeelden") %}
+{% call demo_bar::demo_bar("Bekijk andere", "../../", "voorbeelden") %}
 {% match usecase %}
     {% when "mijn_amsterdam" %}
         {% include "mijn_amsterdam.askama" %}
