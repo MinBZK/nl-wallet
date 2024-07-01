@@ -13,7 +13,7 @@ spec:
       port: 3001
       targetPort: wallet-port
       protocol: TCP
-    - name: requester-port
+    - name: mrp-requester-server-http
       port: 3002
-      targetPort: mrp-wallet-server-requester-port
+      targetPort: requester-port
       protocol: TCP
