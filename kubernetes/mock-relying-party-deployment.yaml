@@ -35,7 +35,7 @@ spec:
               memory: "512Mi"
               cpu: "300m"
           ports:
-            - name: mock-relying-party-port
+            - name: mrp-port
               containerPort: 3004
           volumeMounts:
             - name: config-volume
