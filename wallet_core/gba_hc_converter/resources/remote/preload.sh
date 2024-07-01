@@ -9,7 +9,7 @@ cleanup() {
 
 trap cleanup INT HUP TERM
 
-input=$1
+input="$1"
 iter=
 
 # Curl doesn't support the DER format for the cacert option, so we construct a PEM file manually.
@@ -19,7 +19,7 @@ echo "$GBAV_CLIENT_CERT_KEY" | base64 -d > /tmp/client_cert_key.der
 
 while [ "$input" != "$iter" ] ;do
     # Extract the substring from start of string up to delimiter.
-    iter=${input%%,*}
+    iter="${input%%,*}"
     # Delete this first "element" AND its separator from $input.
     input="${input#"$iter",}"
 
@@ -28,7 +28,7 @@ while [ "$input" != "$iter" ] ;do
 
     BRP_CREDENTIALS=$(printf '%s' "${GBAV_USERNAME}:${GBAV_PASSWORD}" | base64)
 
-    curl -v --tls-max 1.2 \
+    curl -v \
       --proxy "${GBAV_PROXY_IP}:${GBAV_PROXY_PORT}" --proxy-user "${GBAV_PROXY_USERNAME}:${GBAV_PROXY_PASSWORD}" \
       --cacert /tmp/trust_anchor.pem \
       --cert /tmp/client_cert.der --cert-type DER \
