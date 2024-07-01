@@ -7,6 +7,6 @@ spec:
     app: gba-hc-converter
     tier: vertrouwd
   ports:
-    - name: "gba-hc-converter-http"
+    - name: "gba-hc-http"
       port: 3006
       targetPort: 3006
