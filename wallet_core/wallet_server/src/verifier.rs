@@ -1,132 +1,31 @@
 use std::sync::Arc;
 
 use axum::{
-    body::Bytes,
-    extract::{OriginalUri, Path, Query, State},
-    http::StatusCode,
-    response::{IntoResponse, Response},
+    extract::{Path, Query, State},
     routing::{get, post},
-    Json, Router,
+    Form, Json, Router,
 };
-use http::Method;
+use http::{header, HeaderMap, HeaderValue, Method, Uri};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 use nl_wallet_mdoc::{
     server_state::{SessionStore, SessionToken},
-    verifier::{
-        DisclosedAttributes, DisclosureData, ItemsRequests, ReturnUrlTemplate, SessionType, StatusResponse,
-        VerificationError, Verifier,
-    },
-    SessionData,
+    verifier::{DisclosedAttributes, ItemsRequests, ReturnUrlTemplate, SessionType},
 };
-use wallet_common::{
-    config::wallet_config::BaseUrl,
-    generator::TimeGenerator,
-    http_error::{HttpJsonError, HttpJsonErrorType},
+use openid4vc::{
+    disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
+    openid4vp::{VpResponse, WalletRequest},
+    verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
+    GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
+use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonError};
 
 use crate::{
-    cbor::Cbor,
+    errors::ErrorResponse,
     settings::{self, Urls},
 };
-
-/// The error returned from the sessions endpoint that the wallet
-/// communicates with. As opposed to [`RequesterError`], this
-/// results in a simple HTTP status code without a body, in
-/// order to conform to ISO 23220-4.
-#[derive(Debug, thiserror::Error)]
-#[error("process mdoc message error: {0}")]
-pub struct ProcessMdocError(#[from] nl_wallet_mdoc::Error);
-
-impl IntoResponse for ProcessMdocError {
-    fn into_response(self) -> Response {
-        match self.0 {
-            nl_wallet_mdoc::Error::Verification(error) => match error {
-                VerificationError::UnknownSessionId(_) => StatusCode::NOT_FOUND,
-                VerificationError::SessionStore(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                _ => StatusCode::BAD_REQUEST,
-            },
-            _ => StatusCode::BAD_REQUEST,
-        }
-        .into_response()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum RequesterErrorType {
-    Server,
-    SessionParameters,
-    UnknownSession,
-    Nonce,
-    SessionState,
-}
-
-/// The error returned by the endpoints that the RP can query.
-/// It results in a HTTP response containing a JSON body
-/// formatted according to RFC 7807.
-#[derive(Debug, thiserror::Error)]
-pub enum RequesterError {
-    #[error("starting mdoc session failed: {0}")]
-    StartSession(#[source] nl_wallet_mdoc::Error),
-    #[error("retrieving status error: {0}")]
-    SessionStatus(#[source] nl_wallet_mdoc::Error),
-    #[error("retrieving disclosed attributes error: {0}")]
-    DisclosedAttributes(#[source] nl_wallet_mdoc::Error),
-}
-
-impl HttpJsonErrorType for RequesterErrorType {
-    fn title(&self) -> String {
-        match self {
-            Self::Server => "A server error occurred".to_string(),
-            Self::SessionParameters => "Incorrect session parameters provided".to_string(),
-            Self::UnknownSession => "Unkown session for provided ID".to_string(),
-            Self::Nonce => "Nonce is missing or incorrect".to_string(),
-            Self::SessionState => "Session is not in the required state".to_string(),
-        }
-    }
-
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::Server => StatusCode::INTERNAL_SERVER_ERROR,
-            Self::SessionParameters => StatusCode::BAD_REQUEST,
-            Self::UnknownSession => StatusCode::NOT_FOUND,
-            Self::Nonce => StatusCode::UNAUTHORIZED,
-            Self::SessionState => StatusCode::BAD_REQUEST,
-        }
-    }
-}
-
-impl From<RequesterError> for RequesterErrorType {
-    fn from(value: RequesterError) -> Self {
-        match value {
-            RequesterError::StartSession(nl_wallet_mdoc::Error::Verification(error)) => match error {
-                VerificationError::UnknownUseCase(_)
-                | VerificationError::NoItemsRequests
-                | VerificationError::ReturnUrlConfigurationMismatch => Self::SessionParameters,
-                _ => Self::Server,
-            },
-            RequesterError::SessionStatus(nl_wallet_mdoc::Error::Verification(
-                VerificationError::UnknownSessionId(_),
-            )) => Self::UnknownSession,
-            RequesterError::DisclosedAttributes(nl_wallet_mdoc::Error::Verification(error)) => match error {
-                VerificationError::UnknownSessionId(_) => Self::UnknownSession,
-                VerificationError::ReturnUrlNonceMissing | VerificationError::ReturnUrlNonceMismatch(_) => Self::Nonce,
-                VerificationError::SessionNotDone => Self::SessionState,
-                _ => Self::Server,
-            },
-            _ => Self::Server,
-        }
-    }
-}
-
-impl From<RequesterError> for HttpJsonError<RequesterErrorType> {
-    fn from(value: RequesterError) -> Self {
-        Self::from_error(value)
-    }
-}
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,
@@ -165,8 +64,13 @@ where
 {
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
+    // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
+    // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
+    // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
     let wallet_router = Router::new()
-        .route("/:session_token", post(session::<S>))
+        .route("/:session_token/request_uri", get(retrieve_request::<S>))
+        .route("/:session_token/request_uri", post(retrieve_request::<S>))
+        .route("/:session_token/response_uri", post(post_response::<S>))
         .route(
             "/:session_token/status",
             get(status::<S>)
@@ -184,32 +88,60 @@ where
     Ok((wallet_router, requester_router))
 }
 
-async fn session<S>(
+async fn retrieve_request<S>(
+    uri: Uri,
     State(state): State<Arc<ApplicationState<S>>>,
-    OriginalUri(uri): OriginalUri,
     Path(session_token): Path<SessionToken>,
-    msg: Bytes,
-) -> Result<Cbor<SessionData>, ProcessMdocError>
+    Form(wallet_request): Form<WalletRequest>,
+) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
-    // Since axum does not include the scheme and authority in the original URI, we need
-    // to rebuild the full URI by combining it with the configured public base URL.
-    let verifier_url = state.public_url.join(&uri.to_string());
-
-    info!("process received message");
+    info!("process request for Authorization Request JWT");
 
     let response = state
         .verifier
-        .process_message(&msg, &session_token, verifier_url)
+        .process_get_request(
+            &session_token,
+            state
+                .public_url
+                .join_base_url(&format!("disclosure/{session_token}/response_uri")),
+            uri.query(),
+            wallet_request.wallet_nonce,
+        )
         .await
-        .inspect_err(|error| {
-            warn!("processing message failed: {}", error);
-        })?;
+        .inspect_err(|error| warn!("processing request for Authorization Request JWT failed, returning error: {error}"))
+        .map_err(ErrorResponse::with_uri)?;
 
-    info!("message processed successfully, returning response");
+    info!("processing request for Authorization Request JWT successful, returning response");
 
-    Ok(Cbor(response))
+    let headers = HeaderMap::from_iter([(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
+    )]);
+    Ok((headers, response.0))
+}
+
+async fn post_response<S>(
+    State(state): State<Arc<ApplicationState<S>>>,
+    Path(session_token): Path<SessionToken>,
+    Form(wallet_response): Form<WalletAuthResponse>,
+) -> Result<Json<VpResponse>, ErrorResponse<PostAuthResponseErrorCode>>
+where
+    S: SessionStore<DisclosureData>,
+{
+    info!("process Verifiable Presentation");
+
+    let response = state
+        .verifier
+        .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
+        .await
+        .inspect_err(|error| warn!("processing Verifiable Presentation failed, returning error: {error}"))
+        .map_err(ErrorResponse::with_uri)?;
+
+    info!("Verifiable Presentation processed successfully, returning response");
+
+    Ok(Json(response))
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -221,7 +153,7 @@ async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<StatusParams>,
-) -> Result<Json<StatusResponse>, HttpJsonError<RequesterErrorType>>
+) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -231,14 +163,13 @@ where
             &session_token,
             params.session_type,
             &state.universal_link_base_url.join_base_url("disclosure"),
-            &state.public_url.join_base_url("disclosure"),
+            state
+                .public_url
+                .join_base_url(&format!("disclosure/{session_token}/request_uri")),
             &TimeGenerator,
         )
         .await
-        .inspect_err(|error| {
-            warn!("querying session status failed: {}", error);
-        })
-        .map_err(RequesterError::SessionStatus)?;
+        .inspect_err(|error| warn!("querying session status failed: {error}"))?;
 
     Ok(Json(response))
 }
@@ -258,7 +189,7 @@ pub struct StartDisclosureResponse {
 async fn start<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Json(start_request): Json<StartDisclosureRequest>,
-) -> Result<Json<StartDisclosureResponse>, HttpJsonError<RequesterErrorType>>
+) -> Result<Json<StartDisclosureResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -270,10 +201,7 @@ where
             start_request.return_url_template,
         )
         .await
-        .inspect_err(|error| {
-            warn!("starting new session failed: {}", error);
-        })
-        .map_err(RequesterError::StartSession)?;
+        .inspect_err(|error| warn!("starting new session failed: {error}"))?;
 
     Ok(Json(StartDisclosureResponse { session_token }))
 }
@@ -287,7 +215,7 @@ async fn disclosed_attributes<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
-) -> Result<Json<DisclosedAttributes>, HttpJsonError<RequesterErrorType>>
+) -> Result<Json<DisclosedAttributes>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -295,10 +223,7 @@ where
         .verifier
         .disclosed_attributes(&session_token, params.nonce)
         .await
-        .inspect_err(|error| {
-            warn!("fetching disclosed attributes failed: {}", error);
-        })
-        .map_err(RequesterError::DisclosedAttributes)?;
+        .inspect_err(|error| warn!("fetching disclosed attributes failed: {error}"))?;
 
     Ok(Json(disclosed_attributes))
 }

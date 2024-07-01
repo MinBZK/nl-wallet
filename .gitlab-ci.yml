@@ -1217,6 +1217,7 @@ deploy-pid-issuer-demo:
     - kubectl create configmap nl-wallet-gba-hc-converter-xml-files --dry-run=client --from-file wallet_core/gba_hc_converter/resources/gba-v-responses -o yaml | kubectl apply -f -
     - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
     - envsubst < kubernetes/${ENV}/gba-hc-converter-deployment.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/gba-hc-converter-network-policies.yaml
     - kubectl apply -f kubernetes/gba-hc-converter-service.yaml
     - kubectl rollout status deployment/gba-hc-converter
 
@@ -1232,7 +1233,7 @@ deploy-gba-hc-converter-demo:
   variables:
     ENV: demo
 
-.run-preload-gba-v-job:
+run-preload-gba-v-job:
   extends: [.env-demo-k8s]
   when: manual
   script:
@@ -1240,20 +1241,6 @@ deploy-gba-hc-converter-demo:
     - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
     - envsubst < kubernetes/preload-gba-v-data-job.yaml | kubectl apply -f -
     - kubectl wait --for=condition=complete --timeout=300s job -l app=/preload-gba-v-data
-
-.run-preload-gba-v-job:
-  when: manual
-  script:
-    - kubectl create configmap nl-wallet-gba-hc-converter-preload-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/preload.sh -o yaml | kubectl apply -f -
-    - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
-    - envsubst < kubernetes/preload-gba-v-data-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=/preload-gba-v-data
-
-run-preload-gba-v-job-ont:
-  extends: [.env-ont-k8s, .run-preload-gba-v-job]
-
-run-preload-gba-v-job-demo:
-  extends: [.env-demo-k8s, .run-preload-gba-v-job]
 
 check-gitlab-ci-changed:
   rules:

@@ -9,11 +9,11 @@ spec:
     app: mrp-wallet-server
     tier: vertrouwd
   ports:
-    - name: mrp-wallet-server-http
+    - name: mrp-ws-http
       port: 3001
-      targetPort: mrp-wallet-server-wallet-port
+      targetPort: wallet-port
       protocol: TCP
-    - name: mrp-requester-server-http
+    - name: mrp-ws-req-http
       port: 3002
-      targetPort: mrp-wallet-server-requester-port
+      targetPort: requester-port
       protocol: TCP

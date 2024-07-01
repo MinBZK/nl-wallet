@@ -26,15 +26,14 @@ use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jw
 
 use crate::{
     credential::{
-        CredentialErrorCode, CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse,
-        CredentialResponses,
+        CredentialRequest, CredentialRequestProof, CredentialRequests, CredentialResponse, CredentialResponses,
     },
     dpop::{Dpop, DpopError, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     jwt::JwkConversionError,
     metadata::IssuerMetadata,
     oidc,
-    token::{AccessToken, AttestationPreview, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
-    ErrorResponse, Format, NL_WALLET_CLIENT_ID,
+    token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
+    CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
 
 #[derive(Debug, thiserror::Error)]

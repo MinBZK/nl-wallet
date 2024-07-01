@@ -40,7 +40,7 @@ spec:
               memory: "512Mi"
               cpu: "300m"
           ports:
-            - name: wallet-provider-port
+            - name: wp-port
               containerPort: 3000
           envFrom:
             - configMapRef:

@@ -118,19 +118,6 @@ pub struct AuthorizationResponse {
     pub state: Option<String>,
 }
 
-/// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AuthorizationErrorCode {
-    InvalidRequest,
-    UnauthorizedClient,
-    AccessDenied,
-    UnsupportedResponseType,
-    InvalidScope,
-    ServerError,
-    TemporarilyUnavailable,
-}
-
 #[cfg(test)]
 mod tests {
     use crate::authorization::{AuthorizationDetails, AuthorizationDetailsFormatData};

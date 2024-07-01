@@ -3,7 +3,6 @@ use std::time::Duration;
 use derive_more::From;
 use indexmap::IndexSet;
 
-use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::{formats::SpaceSeparator, serde_as, skip_serializing_none, DurationSeconds, StringWithSeparator};
 use url::Url;
@@ -21,7 +20,7 @@ use wallet_common::{
     utils::{random_string, sha256},
 };
 
-use crate::{authorization::AuthorizationDetails, ErrorStatusCode};
+use crate::authorization::AuthorizationDetails;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -204,51 +203,6 @@ pub enum TokenType {
     #[default]
     Bearer,
     DPoP,
-}
-
-/// https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-6.3
-/// and https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2.
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TokenErrorCode {
-    InvalidRequest,
-    InvalidClient,
-    InvalidGrant,
-    UnauthorizedClient,
-    UnsupportedGrantType,
-    InvalidScope,
-    AuthorizationPending, // OpenID4VCI-specific error type
-    SlowDown,             // OpenID4VCI-specific error type
-
-    /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
-    /// This error type is not defined in the specs, but then again the entire HTTP response in case
-    /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
-    ServerError,
-}
-
-impl ErrorStatusCode for TokenErrorCode {
-    fn status_code(&self) -> reqwest::StatusCode {
-        match self {
-            TokenErrorCode::InvalidRequest
-            | TokenErrorCode::InvalidGrant
-            | TokenErrorCode::UnauthorizedClient
-            | TokenErrorCode::UnsupportedGrantType
-            | TokenErrorCode::InvalidScope
-            | TokenErrorCode::AuthorizationPending
-            | TokenErrorCode::SlowDown => StatusCode::BAD_REQUEST,
-            TokenErrorCode::InvalidClient => StatusCode::UNAUTHORIZED,
-            TokenErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-
-/// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AuthBearerErrorCode {
-    InvalidRequest,
-    InvalidToken,
-    InsufficientScope,
 }
 
 #[cfg(test)]

@@ -18,8 +18,12 @@ use tokio::time;
 use nl_wallet_mdoc::{
     server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS},
     utils::mock_time::MockTimeGenerator,
-    verifier::{DisclosureData, ReturnUrlTemplate, SessionType, StatusResponse},
+    verifier::{ReturnUrlTemplate, SessionType},
     ItemsRequest,
+};
+use openid4vc::{
+    verifier::{DisclosureData, StatusResponse, VerifierUrlParameters},
+    ErrorResponse,
 };
 use wallet_common::{
     config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody, reqwest::default_reqwest_client_builder,
@@ -268,6 +272,15 @@ async fn test_http_json_error_body(response: Response, status_code: StatusCode, 
     assert_eq!(body.status, Some(status_code));
 }
 
+async fn test_error_response(response: Response, status_code: StatusCode, error_type: &str) {
+    assert_eq!(response.status(), status_code);
+
+    let body = serde_json::from_slice::<ErrorResponse<String>>(&response.bytes().await.unwrap())
+        .expect("response body should deserialize to ErrorResponse");
+
+    assert_eq!(body.error, error_type);
+}
+
 #[tokio::test]
 async fn test_new_session_parameters_error() {
     let settings = wallet_server_settings();
@@ -305,7 +318,7 @@ async fn test_new_session_parameters_error() {
             .await
             .unwrap();
 
-        test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_parameters").await;
+        test_http_json_error_body(response, StatusCode::BAD_REQUEST, "invalid_request").await;
     }
 }
 
@@ -316,29 +329,36 @@ async fn test_disclosure_not_found() {
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
+
     // check if a non-existent token returns a 404 on the status URL
-    let response = client
-        .get(
-            settings
-                .urls
-                .public_url
-                .join("disclosure/nonexistent_session/status?session_type=same_device"),
-        )
-        .send()
-        .await
-        .unwrap();
+    let mut status_url = settings.urls.public_url.join("disclosure/nonexistent_session/status");
+    let status_query = serde_urlencoded::to_string(StatusParams {
+        session_type: SessionType::SameDevice,
+    })
+    .unwrap();
+    status_url.set_query(status_query.as_str().into());
+    let response = client.get(status_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the wallet URL
-    let response = client
-        .post(settings.urls.public_url.join("disclosure/nonexistent_session"))
-        .send()
-        .await
-        .unwrap();
+    let mut request_uri = settings
+        .urls
+        .public_url
+        .join("disclosure/nonexistent_session/request_uri");
+    request_uri.set_query(
+        serde_urlencoded::to_string(VerifierUrlParameters {
+            session_type: SessionType::SameDevice,
+            ephemeral_id: vec![42],
+            time: Utc::now(),
+        })
+        .unwrap()
+        .as_str()
+        .into(),
+    );
+    let response = client.get(request_uri).send().await.unwrap();
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    assert_eq!(response.content_length(), Some(0));
+    test_error_response(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the disclosed_attributes URL
     let response = client
@@ -347,6 +367,7 @@ async fn test_disclosure_not_found() {
         .await
         .unwrap();
 
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await
 }
 

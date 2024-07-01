@@ -24,13 +24,13 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     config::wallet_config::BaseUrl,
     generator::{Generator, TimeGenerator},
-    jwt::{Jwt, JwtError},
+    jwt::Jwt,
     utils::random_string,
 };
 
 use crate::{
-    authorization::{AuthorizationErrorCode, AuthorizationRequest, ResponseMode, ResponseType},
-    jwt::{self, JwkConversionError, JwtX5cError},
+    authorization::{AuthorizationRequest, ResponseMode, ResponseType},
+    jwt::{self, JwtX5cError},
     presentation_exchange::{
         InputDescriptorMappingObject, PdConversionError, PresentationDefinition, PresentationSubmission, PsError,
     },
@@ -39,32 +39,33 @@ use crate::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthRequestError {
-    #[error("error validating Authorization Request: {0}")]
-    Validation(#[from] AuthRequestValidationError),
     #[error("error parsing X.509 certificate: {0}")]
     CertificateParsing(#[from] CertificateError),
-    #[error("failed to verify Authorization Request JWT: {0}")]
-    JwtVerification(#[from] JwtError),
     #[error("Subject Alternative Name missing from X.509 certificate")]
     MissingSAN,
-    #[error("failed to convert encryption key to JWK format")]
-    JwkConversion(#[from] JwkConversionError),
-    #[error("error verifying Authorization Request JWT: {0}")]
-    AuthRequestJwtVerification(#[from] JwtX5cError),
-    #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
-    UnauthorizedClientId { client_id: String, dns_san: String },
 }
 
 /// A Request URI object, as defined in RFC 9101.
 /// Contains URL from which the wallet is to retrieve the Authorization Request.
 /// To be URL-encoded in the wallet's UL, which can then be put on a website directly, or in a QR code.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct VpRequestUriObject {
     /// URL at which the full Authorization Request is to be retrieved.
     pub request_uri: BaseUrl,
 
+    /// Whether or not the `request_uri` supports `POST`, instead of only `GET` as defined by RFC 9101.
+    pub request_uri_method: Option<RequestUriMethod>,
+
     /// MUST equal the client_id from the full Authorization Request.
     pub client_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")] // SCREAMING_SNAKE_CASE might make more sense but the spec says lowercase
+pub enum RequestUriMethod {
+    #[default]
+    GET,
+    POST,
 }
 
 /// An OpenID4VP Authorization Request, allowing an RP to request a set of attestations/attributes from a wallet.
@@ -90,6 +91,8 @@ pub struct VpAuthorizationRequest {
     /// REQUIRED if the ResponseMode `direct_post` or `direct_post.jwt` is used.
     /// In that case, the Authorization Response is to be posted to this URL by the wallet.
     pub response_uri: Option<BaseUrl>,
+
+    pub wallet_nonce: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, strum::Display)]
@@ -203,6 +206,11 @@ pub enum FormatAlg {
     ES256,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WalletRequest {
+    pub wallet_nonce: Option<String>,
+}
+
 use nutype::nutype;
 #[nutype(
     derive(Debug, Clone, TryFrom, AsRef, Serialize, Deserialize),
@@ -259,6 +267,16 @@ pub enum AuthRequestValidationError {
     NoAttributesRequested,
     #[error("unsupported Presentation Definition: {0}")]
     UnsupportedPresentationDefinition(#[from] PdConversionError),
+    #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
+    UnauthorizedClientId { client_id: String, dns_san: String },
+    #[error("Subject Alternative Name missing from X.509 certificate")]
+    MissingSAN,
+    #[error("error parsing X.509 certificate: {0}")]
+    CertificateParsing(#[from] CertificateError),
+    #[error("failed to verify Authorization Request JWT: {0}")]
+    JwtVerification(#[from] JwtX5cError),
+    #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
+    WalletNonceMismatch,
 }
 
 impl VpAuthorizationRequest {
@@ -270,7 +288,8 @@ impl VpAuthorizationRequest {
     pub fn verify(
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(IsoVpAuthorizationRequest, Certificate), AuthRequestError> {
+        wallet_nonce: Option<String>,
+    ) -> Result<(IsoVpAuthorizationRequest, Certificate), AuthRequestValidationError> {
         let (auth_request, rp_cert) = jwt::verify_against_trust_anchors(
             jws,
             &[VpAuthorizationRequestAudience::SelfIssued],
@@ -278,12 +297,16 @@ impl VpAuthorizationRequest {
             &TimeGenerator,
         )?;
 
-        let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestError::MissingSAN)?;
+        let dns_san = rp_cert.san_dns_name()?.ok_or(AuthRequestValidationError::MissingSAN)?;
         if dns_san != auth_request.oauth_request.client_id {
-            return Err(AuthRequestError::UnauthorizedClientId {
+            return Err(AuthRequestValidationError::UnauthorizedClientId {
                 client_id: auth_request.oauth_request.client_id,
                 dns_san,
             });
+        }
+
+        if wallet_nonce != auth_request.wallet_nonce {
+            return Err(AuthRequestValidationError::WalletNonceMismatch);
         }
 
         let validated_auth_request = IsoVpAuthorizationRequest::try_from(auth_request)?;
@@ -309,6 +332,7 @@ pub struct IsoVpAuthorizationRequest {
     pub presentation_definition: PresentationDefinition,
     pub client_metadata: ClientMetadata,
     pub state: Option<String>,
+    pub wallet_nonce: Option<String>,
 }
 
 impl IsoVpAuthorizationRequest {
@@ -318,6 +342,7 @@ impl IsoVpAuthorizationRequest {
         nonce: String,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Self, AuthRequestError> {
         let encryption_pubkey = encryption_pubkey.into_inner();
 
@@ -342,6 +367,7 @@ impl IsoVpAuthorizationRequest {
                 authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
             },
             state: None,
+            wallet_nonce,
         })
     }
 }
@@ -366,6 +392,7 @@ impl From<IsoVpAuthorizationRequest> for VpAuthorizationRequest {
             client_metadata: Some(VpClientMetadata::Direct(value.client_metadata)),
             client_id_scheme: Some(ClientIdScheme::X509SanDns),
             response_uri: Some(value.response_uri),
+            wallet_nonce: value.wallet_nonce,
         }
     }
 }
@@ -470,6 +497,7 @@ impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
             presentation_definition,
             client_metadata,
             state: vp_auth_request.oauth_request.state,
+            wallet_nonce: vp_auth_request.wallet_nonce,
         })
     }
 }
@@ -696,18 +724,6 @@ pub struct VpResponse {
     pub redirect_uri: Option<BaseUrl>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum VpAuthorizationErrorCode {
-    VpFormatsNotSupported,
-    InvalidPresentationDefinitionUri,
-    InvalidPresentationDefinitionReference,
-    InvalidRequestUriMethod,
-
-    #[serde(untagged)]
-    AuthorizationError(AuthorizationErrorCode),
-}
-
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
@@ -725,10 +741,7 @@ mod tests {
     };
     use wallet_common::keys::software::SoftwareEcdsaKey;
 
-    use crate::{
-        authorization::AuthorizationErrorCode,
-        openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationErrorCode},
-    };
+    use crate::{openid4vp::IsoVpAuthorizationRequest, AuthorizationErrorCode, VpAuthorizationErrorCode};
 
     use super::{jwt, VerifiablePresentation, VpAuthorizationRequest, VpAuthorizationResponse};
 
@@ -757,6 +770,7 @@ mod tests {
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
             "https://example.com/response_uri".parse().unwrap(),
+            None,
         )
         .unwrap()
         .into();
@@ -799,7 +813,7 @@ mod tests {
 
         let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
-        VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()]).unwrap();
+        VpAuthorizationRequest::verify(&auth_request_jwt, &[ca.certificate().try_into().unwrap()], None).unwrap();
     }
 
     #[test]

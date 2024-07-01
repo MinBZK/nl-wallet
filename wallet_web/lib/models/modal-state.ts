@@ -1,4 +1,4 @@
-import { type EngagementUrl, SessionType } from "./status"
+import { type AppUL, SessionType } from "./status"
 
 export type ErrorType = "failed" | "cancelled" | "expired"
 
@@ -8,7 +8,7 @@ export type ModalState =
   | { kind: "loading" }
   | {
       kind: "created"
-      engagement_url: EngagementUrl
+      ul: AppUL
       status_url: StatusUrl
       session_type: SessionType
       session_token: string

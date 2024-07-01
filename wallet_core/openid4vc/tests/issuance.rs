@@ -14,13 +14,14 @@ use nl_wallet_mdoc::{
     Tdate,
 };
 use openid4vc::{
-    credential::{CredentialErrorCode, CredentialRequestProof, CredentialRequests, CredentialResponses},
+    credential::{CredentialRequestProof, CredentialRequests, CredentialResponses},
     dpop::Dpop,
     issuance_session::{HttpIssuanceSession, IssuanceSession, IssuanceSessionError, VcMessageClient},
     issuer::{AttributeService, Created, IssuanceData, Issuer},
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, AttestationPreview, TokenRequest, TokenResponseWithPreviews},
+    CredentialErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
