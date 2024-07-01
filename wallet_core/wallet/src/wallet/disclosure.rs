@@ -7,7 +7,6 @@ use uuid::Uuid;
 
 use nl_wallet_mdoc::{
     holder::{MdocDataSource, ProposedAttributes, StoredMdoc},
-    server_keys::KeysError,
     utils::{cose::CoseError, reader_auth::ReaderRegistration, x509::Certificate},
     verifier::SessionType,
 };
@@ -76,42 +75,27 @@ impl From<MdocDisclosureError> for DisclosureError {
     // in both the ISO and VP protocols, so it occurs in both variants, and in either case we need to
     // handle WP instruction separately.
     fn from(error: MdocDisclosureError) -> Self {
-        enum MdocOrInstructionError {
-            Mdoc(nl_wallet_mdoc::Error),
-            Instruction(InstructionError),
-        }
-
-        /// Unpack the error in a dedicated variant if it involves a WP instruction error.
-        fn check_instruction_error(error: nl_wallet_mdoc::Error) -> MdocOrInstructionError {
-            match error {
-                nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)) if error.is::<RemoteEcdsaKeyError>() => {
-                    // This `unwrap()` is safe because of the `is()` check above.
-                    match *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                        RemoteEcdsaKeyError::Instruction(error) => MdocOrInstructionError::Instruction(error),
-                        error => MdocOrInstructionError::Mdoc(nl_wallet_mdoc::Error::KeysError(
-                            KeysError::KeyGeneration(error.into()),
-                        )),
-                    }
-                }
-                _ => MdocOrInstructionError::Mdoc(error),
-            }
-        }
-
-        // Map ISO errors to ISO errors, and VP errors to VP errors, but separate WP instruction errors.
+        // Note that the `.unwrap()` and `panic!()` statements below are safe,
+        // as checking is performed within the guard statements.
         match error {
-            MdocDisclosureError::Iso(err) => match check_instruction_error(err) {
-                MdocOrInstructionError::Instruction(err) => DisclosureError::Instruction(err),
-                MdocOrInstructionError::Mdoc(err) => DisclosureError::IsoDisclosureSession(err),
-            },
-            MdocDisclosureError::Vp(err) => match err {
-                VpClientError::DeviceResponse(err) => match check_instruction_error(err) {
-                    MdocOrInstructionError::Instruction(err) => DisclosureError::Instruction(err),
-                    MdocOrInstructionError::Mdoc(err) => {
-                        DisclosureError::VpDisclosureSession(VpClientError::DeviceResponse(err))
-                    }
-                },
-                _ => DisclosureError::VpDisclosureSession(err),
-            },
+            // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
+            MdocDisclosureError::Iso(nl_wallet_mdoc::Error::Cose(CoseError::Signing(error)))
+            | MdocDisclosureError::Vp(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
+                CoseError::Signing(error),
+            ))) if matches!(
+                error.downcast_ref::<RemoteEcdsaKeyError>(),
+                Some(RemoteEcdsaKeyError::Instruction(_))
+            ) =>
+            {
+                if let RemoteEcdsaKeyError::Instruction(error) = *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
+                    DisclosureError::Instruction(error)
+                } else {
+                    panic!()
+                }
+            }
+            // Any other error should result in its generic top-level error variant.
+            MdocDisclosureError::Iso(error) => DisclosureError::IsoDisclosureSession(error),
+            MdocDisclosureError::Vp(error) => DisclosureError::VpDisclosureSession(error),
         }
     }
 }
