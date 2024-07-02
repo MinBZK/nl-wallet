@@ -382,7 +382,7 @@ pub enum BrpMaritalStatus {
     Onbekend,
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "issuance"))]
 mod tests {
     use std::{env, fs, path::PathBuf};
 
