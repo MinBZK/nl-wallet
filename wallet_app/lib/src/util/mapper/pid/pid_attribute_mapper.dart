@@ -85,11 +85,18 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
   }
 
   String getBirthDetails(BuildContext context, List<T> attributes) {
-    return context.l10n.walletPersonalizeCheckDataOfferingPageBirthInfoValue(
-      getBirthCountry(context, attributes),
-      getBirthDate(context, attributes),
-      getBirthCity(context, attributes),
-    );
+    final birthCountry = getBirthCountry(context, attributes);
+    final birthCity = getBirthCity(context, attributes);
+    final birthDate = getBirthDate(context, attributes);
+    if (birthCountry != null && birthCity != null) {
+      return context.l10n.walletPersonalizeCheckDataOfferingPageBirthInfoValue(
+        birthCountry,
+        birthDate,
+        birthCity,
+      );
+    } else {
+      return birthDate;
+    }
   }
 
   String getResidentialAddress(BuildContext context, List<T> attributes) {
@@ -109,9 +116,9 @@ abstract class PidAttributeMapper<T extends Attribute> extends ContextMapper<Lis
 
   String getBirthDate(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthDateKey)!;
 
-  String getBirthCity(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCityKey)!;
+  String? getBirthCity(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCityKey);
 
-  String getBirthCountry(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCountryKey)!;
+  String? getBirthCountry(BuildContext context, List<T> attributes) => findByKey(context, attributes, birthCountryKey);
 
   GenderValue getGenderValue(List<T> attributes) =>
       attributes.whereType<DataAttribute>().firstWhere((attribute) => attribute.key == genderKey).value as GenderValue;

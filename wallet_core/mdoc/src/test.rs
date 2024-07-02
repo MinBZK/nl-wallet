@@ -346,6 +346,10 @@ pub mod data {
         vec![(PID, PID, vec![("family_name", "De Bruijn".into())]).into()].into()
     }
 
+    pub fn pid_own_family_name() -> TestDocuments {
+        vec![(PID, PID, vec![("own_family_name", "Molenaar".into())]).into()].into()
+    }
+
     pub fn pid_full_name() -> TestDocuments {
         vec![(
             PID,
@@ -353,6 +357,7 @@ pub mod data {
             vec![
                 ("given_name", "Willeke Liselotte".into()),
                 ("family_name", "De Bruijn".into()),
+                ("own_family_name", "Molenaar".into()),
             ],
         )
             .into()]

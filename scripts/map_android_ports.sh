@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-export SCRIPTS_DIR=$(dirname $(realpath $(command -v ${BASH_SOURCE[0]})))
+SCRIPTS_DIR=$(dirname "$(realpath "$(command -v "${BASH_SOURCE[0]}")")")
+export SCRIPTS_DIR
 
 source "${SCRIPTS_DIR}/configuration.sh"
 

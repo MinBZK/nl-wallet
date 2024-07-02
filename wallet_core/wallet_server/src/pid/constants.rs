@@ -3,7 +3,8 @@ pub const MOCK_ADDRESS_DOCTYPE: &str = "com.example.address";
 
 pub const PID_BSN: &str = "bsn";
 pub const PID_FAMILY_NAME: &str = "family_name";
-pub const PID_FAMILY_NAME_PREFIX: &str = "family_name_prefix";
+pub const PID_OWN_FAMILY_NAME: &str = "own_family_name";
+pub const PID_FAMILY_NAME_BIRTH: &str = "family_name_birth";
 pub const PID_GIVEN_NAME: &str = "given_name";
 pub const PID_BIRTH_DATE: &str = "birth_date";
 pub const PID_AGE_OVER_18: &str = "age_over_18";
