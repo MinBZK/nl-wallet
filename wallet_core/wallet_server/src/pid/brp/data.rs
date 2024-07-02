@@ -54,14 +54,14 @@ impl BrpPerson {
     }
 
     fn partner(&self) -> Option<&BrpPartner> {
-        self.partners
-            .iter()
-            .find(|partner| partner.start.is_some() && partner.end.is_none())
+        self.partners.first()
     }
 
     fn has_spouse_or_partner(&self) -> bool {
         self.partner()
-            .map(|partner| partner.kind != BrpMaritalStatus::Onbekend)
+            .map(|partner| {
+                partner.start.is_some() && partner.end.is_none() && partner.kind != BrpMaritalStatus::Onbekend
+            })
             .unwrap_or(false)
     }
 }
@@ -423,6 +423,7 @@ mod tests {
     #[case("frouke", "Jansen", "Jansen")]
     #[case("naamgebruik-eigen", "van Buren", "van Buren")]
     #[case("naamgebruik-partner", "Postma", "van Buren")]
+    #[case("naamgebruik-partner-divorced", "Postma", "van Buren")]
     #[case("naamgebruik-partner-first", "ten Hag-van Buren", "van Buren")]
     #[case("naamgebruik-partner-last", "van Buren-ten Hag", "van Buren")]
     #[case("prefix-family-name", "van Buren", "van Buren")]
