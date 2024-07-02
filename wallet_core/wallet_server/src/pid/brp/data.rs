@@ -70,6 +70,17 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
     type Error = BrpDataError;
 
     fn try_from(value: BrpPerson) -> Result<Self, Self::Error> {
+        let family_name = value
+            .name
+            .clone()
+            .info_family_name(value.partner().cloned().map(|p| p.name))?;
+        let given_names = value.name.given_names.clone();
+        let is_over_18 = value.is_over_18();
+        let has_spouse_or_partner = value.has_spouse_or_partner();
+        let birth_country = value.birth.country;
+        let birth_place = value.birth.place;
+        let street = value.residence.address.street();
+
         let mdocs = vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
@@ -81,54 +92,49 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_BSN),
-                            value: ciborium::Value::Text(value.bsn.clone()),
+                            value: ciborium::Value::Text(value.bsn),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_FAMILY_NAME),
-                            value: ciborium::Value::Text(
-                                value
-                                    .name
-                                    .clone()
-                                    .info_family_name(value.partner().cloned().map(|p| p.name))?,
-                            ),
+                            value: ciborium::Value::Text(family_name),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_OWN_FAMILY_NAME),
-                            value: ciborium::Value::Text(value.name.clone().into_name_with_prefix()),
+                            value: ciborium::Value::Text(value.name.into_name_with_prefix()),
                         }
                         .into(),
-                        value.name.given_names.as_ref().map(|names| unsigned::Entry {
+                        given_names.map(|names| unsigned::Entry {
                             name: String::from(PID_GIVEN_NAME),
-                            value: ciborium::Value::Text(names.clone()),
+                            value: ciborium::Value::Text(names),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_BIRTH_DATE),
                             value: ciborium::Value::Text(value.birth.date.date.format("%Y-%m-%d").to_string()),
                         }
                         .into(),
-                        value.birth.country.as_ref().map(|country| unsigned::Entry {
+                        birth_country.map(|country| unsigned::Entry {
                             name: String::from(PID_BIRTH_COUNTRY),
-                            value: ciborium::Value::Text(country.name.clone()),
+                            value: ciborium::Value::Text(country.name),
                         }),
-                        value.birth.place.as_ref().map(|place| unsigned::Entry {
+                        birth_place.map(|place| unsigned::Entry {
                             name: String::from(PID_BIRTH_CITY),
-                            value: ciborium::Value::Text(place.name.clone()),
+                            value: ciborium::Value::Text(place.name),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_AGE_OVER_18),
-                            value: ciborium::Value::Bool(value.is_over_18()),
+                            value: ciborium::Value::Bool(is_over_18),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_GENDER),
-                            value: value.gender.code.clone().into(),
+                            value: value.gender.code.into(),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_SPOUSE_OR_PARTNER),
-                            value: ciborium::Value::Bool(value.has_spouse_or_partner()),
+                            value: ciborium::Value::Bool(has_spouse_or_partner),
                         }
                         .into(),
                     ]
@@ -149,16 +155,16 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_COUNTRY),
-                            value: ciborium::Value::Text(value.residence.address.country.name.clone()),
+                            value: ciborium::Value::Text(value.residence.address.country.name),
                         }
                         .into(),
-                        value.residence.address.street().map(|street| unsigned::Entry {
+                        street.map(|street| unsigned::Entry {
                             name: String::from(PID_RESIDENT_STREET),
                             value: ciborium::Value::Text(street),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_POSTAL_CODE),
-                            value: ciborium::Value::Text(value.residence.address.postal_code.clone()),
+                            value: ciborium::Value::Text(value.residence.address.postal_code),
                         }
                         .into(),
                         unsigned::Entry {
@@ -168,7 +174,7 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_CITY),
-                            value: ciborium::Value::Text(value.residence.address.city.clone()),
+                            value: ciborium::Value::Text(value.residence.address.city),
                         }
                         .into(),
                     ]
