@@ -29,5 +29,5 @@ spec:
                   name: db-cluster-mrp-app
                   key: password
             - name: DATABASE_URL
-              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/wallet_server"
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/verification_server"
       restartPolicy: Never

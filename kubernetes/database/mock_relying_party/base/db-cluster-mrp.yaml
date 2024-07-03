@@ -35,8 +35,8 @@ spec:
 
   bootstrap:
     initdb:
-      database: wallet_server
-      owner: db-wallet-server-user
+      database: verification_server
+      owner: db-verification-server-user
 
   walStorage:
     size: 2Gi
