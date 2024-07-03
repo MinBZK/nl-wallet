@@ -1,0 +1,40 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "burgerservicenummer": "999990196",
+      "geslacht": {
+        "code": "V"
+      },
+      "leeftijd": 79,
+      "naam": {
+        "aanduidingNaamgebruik": {
+          "code": "E"
+        },
+        "voornamen": "Anna Maria Petra",
+        "geslachtsnaam": "Wesseling",
+        "voorletters": "A.M.P.",
+        "volledigeNaam": "Anna Maria Petra Wesseling"
+      },
+      "geboorte": {
+        "datum": {
+          "type": "Datum",
+          "datum": "1945-04-18",
+          "langFormaat": "18 april 1945"
+        }
+      },
+      "verblijfplaats": {
+        "type": "Adres",
+        "verblijfadres": {
+          "officieleStraatnaam": "Eemhavenweg",
+          "korteStraatnaam": "Eemhavenweg",
+          "huisnummer": 20,
+          "huisletter": "A",
+          "postcode": "3089KG",
+          "woonplaats": "Rotterdam"
+        }
+      },
+      "partners": []
+    }
+  ]
+}
