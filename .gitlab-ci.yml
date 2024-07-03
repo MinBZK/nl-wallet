@@ -1124,7 +1124,8 @@ run-ws-migrations-demo:
 
 deploy-mock-relying-party-ont:
   extends: [.env-ont-k8s, .deploy-mock-relying-party]
-  rules: !reference [.default-or-merge-request, rules]
+  # rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - !reference [.deploy-mock-relying-party, needs]
     - job: run-ws-migrations-ont
