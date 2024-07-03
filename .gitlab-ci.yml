@@ -1079,7 +1079,7 @@ deploy-wallet-provider-demo:
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
 
-.run-ws-migrations:
+.run-mrp-vs-migrations:
   needs:
     - job: build-ws-migrations-image
       artifacts: false
@@ -1089,12 +1089,13 @@ deploy-wallet-provider-demo:
     - envsubst < kubernetes/mrp-verification-server-migration-job.yaml | kubectl apply -f -
     - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-verification-server-migrations
 
-run-ws-migrations-ont:
-  extends: [.env-ont-k8s, .run-ws-migrations]
-  rules: !reference [.default-or-merge-request, rules]
+run-mrp-vs-migrations-ont:
+  extends: [.env-ont-k8s, .run-mrp-vs-migrations]
+  # rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
 
-run-ws-migrations-demo:
-  extends: [.env-demo-k8s, .run-ws-migrations]
+run-mrp-vs-migrations-demo:
+  extends: [.env-demo-k8s, .run-mrp-vs-migrations]
   rules: !reference [.demo-release-tag, rules]
 
 .deploy-mock-relying-party:
@@ -1128,7 +1129,7 @@ deploy-mock-relying-party-ont:
   rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
   needs:
     - !reference [.deploy-mock-relying-party, needs]
-    - job: run-ws-migrations-ont
+    - job: run-mrp-vs-migrations-ont
       artifacts: false
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
@@ -1141,7 +1142,7 @@ deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
   needs:
     - !reference [.deploy-mock-relying-party, needs]
-    - job: run-ws-migrations-demo
+    - job: run-mrp-vs-migrations-demo
       artifacts: false
   rules: !reference [.demo-release-tag, rules]
   variables:
