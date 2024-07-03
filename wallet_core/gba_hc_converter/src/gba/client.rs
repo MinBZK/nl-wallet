@@ -29,7 +29,7 @@ pub struct HttpGbavClient {
 }
 
 impl HttpGbavClient {
-    const BRP_CREDENTIALS_HEADER: &'static str = "x-brp-credentials";
+    const BRP_CREDENTIALS_HEADER_NAME: &'static str = "x-brp-credentials";
 
     pub async fn new(
         base_url: BaseUrl,
