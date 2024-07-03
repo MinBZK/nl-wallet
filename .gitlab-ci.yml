@@ -1086,8 +1086,8 @@ deploy-wallet-provider-demo:
   variables:
     WALLET_SERVER_MIGRATION_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
   script:
-    - envsubst < kubernetes/mrp-wallet-server-migration-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-wallet-server-migrations
+    - envsubst < kubernetes/mrp-verification-server-migration-job.yaml | kubectl apply -f -
+    - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-verification-server-migrations
 
 run-ws-migrations-ont:
   extends: [.env-ont-k8s, .run-ws-migrations]
@@ -1105,18 +1105,18 @@ run-ws-migrations-demo:
       artifacts: false
   variables:
     MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
-    MRP_WALLET_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server:${CI_COMMIT_SHORT_SHA}
+    MRP_VERIFICATION_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-verification-server:${CI_COMMIT_SHORT_SHA}
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
     - envsubst < kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/gbamock-deployment.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/brpproxy-service.yaml
     - kubectl apply -f kubernetes/gbamock-service.yaml
-    - envsubst < kubernetes/mrp-wallet-server-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/mrp-wallet-server-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f kubernetes/mrp-wallet-server-service.yaml
-    - kubectl apply -f kubernetes/mrp-wallet-server-network-policies.yaml
-    - kubectl rollout status deployment/mrp-wallet-server
+    - envsubst < kubernetes/mrp-verification-server-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/mrp-verification-server-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/mrp-verification-server-service.yaml
+    - kubectl apply -f kubernetes/mrp-verification-server-network-policies.yaml
+    - kubectl rollout status deployment/mrp-verification-server
     - envsubst < kubernetes/mock-relying-party-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mock-relying-party-service.yaml
@@ -1131,8 +1131,8 @@ deploy-mock-relying-party-ont:
       artifacts: false
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
-    MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
-    MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_ONT
+    MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT
+    MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_ONT
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
 
@@ -1145,8 +1145,8 @@ deploy-mock-relying-party-demo:
   rules: !reference [.demo-release-tag, rules]
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
-    MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
-    MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
+    MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_DEMO
+    MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
 

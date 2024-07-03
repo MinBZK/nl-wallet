@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mrp-wallet-server
+  name: mrp-verification-server
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: mrp-wallet-server
+      app: mrp-verification-server
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       labels:
-        app: mrp-wallet-server
+        app: mrp-verification-server
         tier: vertrouwd
         egress-frontoffice-policy: allow
         ingress-controller-frontoffice-policy: allow
@@ -26,8 +26,8 @@ spec:
       imagePullSecrets:
         - name: harbor-puller
       containers:
-        - name: mrp-wallet-server
-          image: $MRP_WALLET_SERVER_IMAGE
+        - name: mrp-verification-server
+          image: $MRP_VERIFICATION_SERVER_IMAGE
           resources:
             limits:
               memory: "512Mi"
@@ -52,7 +52,7 @@ spec:
             - name: WALLET_SERVER_REQUESTER_SERVER__PORT
               value: "3002"
             - name: WALLET_SERVER_PUBLIC_URL
-              value: "https://${MRP_WALLET_SERVER_EXTERNAL_HOSTNAME}/${MRP_WALLET_SERVER_EXTERNAL_CONTEXT_PATH}/"
+              value: "https://${MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
             - name: WALLET_SERVER_UNIVERSAL_LINK_BASE_URL
               value: "${UNIVERSAL_LINK_BASE}"
             - name: WALLET_SERVER_ISSUER__DIGID__ISSUER_URL
@@ -78,4 +78,4 @@ spec:
       volumes:
         - name: config-volume
           secret:
-            secretName: nl-mrp-wallet-server-config
+            secretName: nl-mrp-verification-server-config

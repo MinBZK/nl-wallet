@@ -71,7 +71,7 @@ graph
         `"]
         pid_issuer["`
             PID Issuer
-            _[Container: Rust (wallet_server)]_
+            _[Container: Rust (pid_issuer)]_
         `"]
         cache[("`
             Cache
@@ -99,7 +99,7 @@ graph
     subgraph RP[Relying Party]
         relying_party_server["`
             Relying Party Server
-            _[Container: Rust (wallet_server)]_
+            _[Container: Rust (verification_server)]_
         `"]
         relying_party_migrations["`
             Relying Party Migrations
