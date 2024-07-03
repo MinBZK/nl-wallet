@@ -80,7 +80,7 @@ impl GbavClient for HttpGbavClient {
             request_builder = request_builder
                 .header(header::AUTHORIZATION, format!("CA {}", ca_api_key))
                 .header(
-                    HttpGbavClient::BRP_CREDENTIALS_HEADER,
+                    HttpGbavClient::BRP_CREDENTIALS_HEADER_NAME,
                     format!(
                         "Basic {}",
                         BASE64_STANDARD.encode(format!("{}:{}", self.username.clone(), self.password.clone()))
