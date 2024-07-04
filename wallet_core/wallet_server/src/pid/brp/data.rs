@@ -79,8 +79,7 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
         let has_spouse_or_partner = value.has_spouse_or_partner();
         let birth_country = value.birth.country;
         let birth_place = value.birth.place;
-        let country = value.residence.address.country.description.clone();
-        let street = value.residence.address.street();
+        let street = value.residence.address.street().map(String::from);
         let house_number = value.residence.address.locator_designator();
 
         let mdocs = vec![
@@ -157,12 +156,12 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_COUNTRY),
-                            value: ciborium::Value::Text(country),
+                            value: ciborium::Value::Text(value.residence.address.country.description),
                         }
                         .into(),
                         street.map(|street| unsigned::Entry {
                             name: String::from(PID_RESIDENT_STREET),
-                            value: ciborium::Value::Text(String::from(street)),
+                            value: ciborium::Value::Text(street),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_POSTAL_CODE),
