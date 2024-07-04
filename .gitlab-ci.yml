@@ -1091,8 +1091,7 @@ deploy-wallet-provider-demo:
 
 run-mrp-vs-migrations-ont:
   extends: [.env-ont-k8s, .run-mrp-vs-migrations]
-  # rules: !reference [.default-or-merge-request, rules]
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request, rules]
 
 run-mrp-vs-migrations-demo:
   extends: [.env-demo-k8s, .run-mrp-vs-migrations]
@@ -1125,8 +1124,7 @@ run-mrp-vs-migrations-demo:
 
 deploy-mock-relying-party-ont:
   extends: [.env-ont-k8s, .deploy-mock-relying-party]
-  # rules: !reference [.default-or-merge-request, rules]
-  rules: !reference [.default-or-demo-release-or-merge-request-manual, rules]
+  rules: !reference [.default-or-merge-request, rules]
   needs:
     - !reference [.deploy-mock-relying-party, needs]
     - job: run-mrp-vs-migrations-ont
