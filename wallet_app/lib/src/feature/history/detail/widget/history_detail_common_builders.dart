@@ -10,6 +10,7 @@ import '../../../../util/extension/wallet_event_extension.dart';
 import '../../../../util/mapper/context_mapper.dart';
 import '../../../check_attributes/check_attributes_screen.dart';
 import '../../../common/screen/placeholder_screen.dart';
+import '../../../common/widget/app_image.dart';
 import '../../../common/widget/button/list_button.dart';
 import '../../../common/widget/card/shared_attributes_card.dart';
 import '../../../common/widget/sliver_divider.dart';
@@ -174,6 +175,11 @@ class HistoryDetailCommonBuilders {
           onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
         ),
         dividerSide: DividerSide.bottom,
+        trailing: SizedBox(
+          height: 36,
+          width: 36,
+          child: AppImage(asset: organization.logo),
+        ),
       ),
     );
   }
