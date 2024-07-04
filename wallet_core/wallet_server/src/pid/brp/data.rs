@@ -79,7 +79,8 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
         let has_spouse_or_partner = value.has_spouse_or_partner();
         let birth_country = value.birth.country;
         let birth_place = value.birth.place;
-        let street = value.residence.address.street();
+        let street = value.residence.address.street().map(String::from);
+        let house_number = value.residence.address.locator_designator();
 
         let mdocs = vec![
             UnsignedMdoc {
@@ -116,11 +117,11 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                         .into(),
                         birth_country.map(|country| unsigned::Entry {
                             name: String::from(PID_BIRTH_COUNTRY),
-                            value: ciborium::Value::Text(country.name),
+                            value: ciborium::Value::Text(country.description),
                         }),
                         birth_place.map(|place| unsigned::Entry {
                             name: String::from(PID_BIRTH_CITY),
-                            value: ciborium::Value::Text(place.name),
+                            value: ciborium::Value::Text(place.description),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_AGE_OVER_18),
@@ -155,7 +156,7 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_COUNTRY),
-                            value: ciborium::Value::Text(value.residence.address.country.name),
+                            value: ciborium::Value::Text(value.residence.address.country.description),
                         }
                         .into(),
                         street.map(|street| unsigned::Entry {
@@ -169,7 +170,7 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_HOUSE_NUMBER),
-                            value: ciborium::Value::Text(value.residence.address.house_number.to_string()),
+                            value: ciborium::Value::Text(house_number),
                         }
                         .into(),
                         unsigned::Entry {
@@ -279,10 +280,10 @@ pub struct BrpBirth {
     date: BrpDate,
 
     #[serde(rename = "land")]
-    country: Option<BrpBirthCountry>,
+    country: Option<BrpDescription>,
 
     #[serde(rename = "plaats")]
-    place: Option<BrpBirthPlace>,
+    place: Option<BrpDescription>,
 }
 
 #[derive(Deserialize)]
@@ -292,15 +293,9 @@ pub struct BrpDate {
 }
 
 #[derive(Clone, Deserialize)]
-pub struct BrpBirthCountry {
+pub struct BrpDescription {
     #[serde(rename = "omschrijving")]
-    name: String,
-}
-
-#[derive(Deserialize)]
-pub struct BrpBirthPlace {
-    #[serde(rename = "omschrijving")]
-    name: String,
+    description: String,
 }
 
 #[derive(Deserialize)]
@@ -320,32 +315,49 @@ pub struct BrpAddress {
     #[serde(rename = "huisnummer")]
     house_number: u32,
 
+    #[serde(rename = "huisletter")]
+    house_letter: Option<String>,
+
+    #[serde(rename = "huisnummertoevoeging")]
+    house_number_addition: Option<String>,
+
+    #[serde(rename = "aanduidingbijHuisnummer")]
+    house_number_designation: Option<BrpDescription>,
+
     #[serde(rename = "postcode")]
     postal_code: String,
 
     #[serde(rename = "woonplaats")]
     city: String,
 
-    #[serde(rename = "land", default)]
-    country: BrpCountry,
+    #[serde(rename = "land", default = "default_country")]
+    country: BrpDescription,
 }
 
-impl BrpAddress {
-    fn street(&self) -> Option<String> {
-        self.official_street_name.clone().or(self.short_street_name.clone())
+fn default_country() -> BrpDescription {
+    BrpDescription {
+        description: String::from("Nederland"),
     }
 }
 
-#[derive(Deserialize)]
-pub struct BrpCountry {
-    #[serde(rename = "omschrijving")]
-    name: String,
-}
+impl BrpAddress {
+    fn street(&self) -> Option<&str> {
+        self.official_street_name
+            .as_deref()
+            .or(self.short_street_name.as_deref())
+    }
 
-impl Default for BrpCountry {
-    fn default() -> Self {
-        Self {
-            name: String::from("Nederland"),
+    fn locator_designator(&self) -> String {
+        let house_letter = self.house_letter.as_deref().unwrap_or_default();
+        let house_number_addition = self.house_number_addition.as_deref().unwrap_or_default();
+
+        // According to Logisch Ontwerp BRP 2024 Q2, elements 11.40 and 11.50 are mutually exclusive.
+        // This implementation is according to "Bijlage 3 Vertaaltabel" describing the GBA-V translations regarding
+        // the EAD eIDAS attributes.
+        if let Some(designation) = &self.house_number_designation {
+            format!("{} {}{}", designation.description, self.house_number, house_letter)
+        } else {
+            format!("{}{}{}", self.house_number, house_letter, house_number_addition)
         }
     }
 }
@@ -497,6 +509,19 @@ mod tests {
         } else {
             panic!("should fail deserializing JSON");
         }
+    }
+
+    #[rstest]
+    #[case("huisletter", "20A")]
+    #[case("huisletter-en-toevoeging", "1Abis")]
+    #[case("huisnummertoevoeging", "38BIS1")]
+    #[case("huisnummeraanduiding", "tegenover 38")]
+    #[case("huisletter-en-aanduiding", "bij 38c")]
+    #[case("huisletter-en-aanduiding-en-toevoeging-illegal-combination", "bij 38c")]
+    fn should_handle_house_number(#[case] json_file_name: &str, #[case] expected_house_number: &str) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert_eq!(expected_house_number, brp_person.residence.address.locator_designator());
     }
 
     #[test]

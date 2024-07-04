@@ -1,0 +1,42 @@
+{
+  "type": "RaadpleegMetBurgerservicenummer",
+  "personen": [
+    {
+      "burgerservicenummer": "999991000",
+      "geslacht": {
+        "code": "V"
+      },
+      "leeftijd": 33,
+      "naam": {
+        "aanduidingNaamgebruik": {
+          "code": "E"
+        },
+        "voornamen": "Liselotte-Anne Daniëlle Celèste Elise 26 Avril Stéphane Maroni jr. Isiah dé Maria de las Mercedes Rosalía J'adore Grace a Dieu Rhiannon San-che-he-ray Lou'Lou Elona L'vovna d'Alessandra Ariëlle",
+        "voorvoegsel": "voor in 't",
+        "geslachtsnaam": "C",
+        "voorletters": "L.D.C.E.2.A.S.M.j.I.d.M.d.l.M.R.J.G.a D.R.S.L.E.L.d.A.",
+        "volledigeNaam": "Liselotte-Anne Daniëlle Celèste Elise 26 Avril Stéphane Maroni jr. Isiah dé Maria de las Mercedes Rosalía J'adore Grace a Dieu Rhiannon San-che-he-ray Lou'Lou Elona L'vovna d'Alessandra Ariëlle voor in 't C"
+      },
+      "geboorte": {
+        "datum": {
+          "type": "Datum",
+          "datum": "1990-07-07",
+          "langFormaat": "7 juli 1990"
+        }
+      },
+      "verblijfplaats": {
+        "type": "Adres",
+        "verblijfadres": {
+          "officieleStraatnaam": "Burgemeester Jonkheer Hesselt van Dinterstraat",
+          "korteStraatnaam": "Hesselt v Dinterstr",
+          "huisnummer": 1,
+          "huisletter": "A",
+          "huisnummertoevoeging": "bis",
+          "postcode": "2631BR",
+          "woonplaats": "Nootdorp"
+        }
+      },
+      "partners": []
+    }
+  ]
+}
