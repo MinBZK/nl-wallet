@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mrp-wallet-server
+  name: mrp-verification-server
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: mrp-wallet-server
+      app: mrp-verification-server
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -17,7 +17,7 @@ spec:
   template:
     metadata:
       labels:
-        app: mrp-wallet-server
+        app: mrp-verification-server
         tier: vertrouwd
         egress-frontoffice-policy: allow
         ingress-controller-frontoffice-policy: allow
@@ -26,8 +26,8 @@ spec:
       imagePullSecrets:
         - name: harbor-puller
       containers:
-        - name: mrp-wallet-server
-          image: $MRP_WALLET_SERVER_IMAGE
+        - name: mrp-verification-server
+          image: $MRP_VERIFICATION_SERVER_IMAGE
           resources:
             limits:
               memory: "512Mi"
@@ -42,24 +42,24 @@ spec:
               containerPort: 3002
           volumeMounts:
             - name: config-volume
-              mountPath: /wallet_server.toml
+              mountPath: /verification_server.toml
               subPath: config.toml
           env:
-            - name: WALLET_SERVER_WALLET_SERVER__PORT
+            - name: VERIFICATION_SERVER_WALLET_SERVER__PORT
               value: "3001"
-            - name: WALLET_SERVER_REQUESTER_SERVER__IP
+            - name: VERIFICATION_SERVER_REQUESTER_SERVER__IP
               value: "0.0.0.0"
-            - name: WALLET_SERVER_REQUESTER_SERVER__PORT
+            - name: VERIFICATION_SERVER_REQUESTER_SERVER__PORT
               value: "3002"
-            - name: WALLET_SERVER_PUBLIC_URL
-              value: "https://${MRP_WALLET_SERVER_EXTERNAL_HOSTNAME}/${MRP_WALLET_SERVER_EXTERNAL_CONTEXT_PATH}/"
-            - name: WALLET_SERVER_UNIVERSAL_LINK_BASE_URL
+            - name: VERIFICATION_SERVER_PUBLIC_URL
+              value: "https://${MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
+            - name: VERIFICATION_SERVER_UNIVERSAL_LINK_BASE_URL
               value: "${UNIVERSAL_LINK_BASE}"
-            - name: WALLET_SERVER_ISSUER__DIGID__ISSUER_URL
+            - name: VERIFICATION_SERVER_ISSUER__DIGID__ISSUER_URL
               value: "https://${DIGID_CONNECTOR_EXTERNAL_HOSTNAME}/${DIGID_CONNECTOR_EXTERNAL_CONTEXT_PATH}/digid-connector"
-            - name: WALLET_SERVER_ISSUER__DIGID__CLIENT_ID
+            - name: VERIFICATION_SERVER_ISSUER__DIGID__CLIENT_ID
               value: "SSSS"
-            - name: WALLET_SERVER_ISSUER__BRP_SERVER
+            - name: VERIFICATION_SERVER_ISSUER__BRP_SERVER
               value: "http://brpproxy:5001/"
             - name: DB_USERNAME
               valueFrom:
@@ -71,11 +71,11 @@ spec:
                 secretKeyRef:
                   name: db-cluster-mrp-app
                   key: password
-            - name: WALLET_SERVER_STORAGE__URL
-              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/wallet_server"
+            - name: VERIFICATION_SERVER_STORAGE__URL
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/verification_server"
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
         - name: config-volume
           secret:
-            secretName: nl-mrp-wallet-server-config
+            secretName: nl-mrp-verification-server-config

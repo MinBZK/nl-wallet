@@ -10,6 +10,6 @@ spec:
               db-mrp-in-zeer-vertrouwd: allow
   podSelector:
     matchLabels:
-      app: mrp-wallet-server-database
+      app: mrp-verification-server-database
   policyTypes:
     - Ingress
