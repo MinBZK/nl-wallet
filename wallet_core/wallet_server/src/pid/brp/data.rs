@@ -79,6 +79,7 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
         let has_spouse_or_partner = value.has_spouse_or_partner();
         let birth_country = value.birth.country;
         let birth_place = value.birth.place;
+        let country = value.residence.address.country.description.clone();
         let street = value.residence.address.street();
         let house_number = value.residence.address.locator_designator();
 
@@ -156,12 +157,12 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_COUNTRY),
-                            value: ciborium::Value::Text(value.residence.address.country.description),
+                            value: ciborium::Value::Text(country),
                         }
                         .into(),
                         street.map(|street| unsigned::Entry {
                             name: String::from(PID_RESIDENT_STREET),
-                            value: ciborium::Value::Text(street),
+                            value: ciborium::Value::Text(String::from(street)),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_POSTAL_CODE),
@@ -341,8 +342,10 @@ fn default_country() -> BrpDescription {
 }
 
 impl BrpAddress {
-    fn street(&self) -> Option<String> {
-        self.official_street_name.clone().or(self.short_street_name.clone())
+    fn street(&self) -> Option<&str> {
+        self.official_street_name
+            .as_deref()
+            .or(self.short_street_name.as_deref())
     }
 
     fn locator_designator(&self) -> String {
