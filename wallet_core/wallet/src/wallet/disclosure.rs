@@ -215,10 +215,11 @@ where
 
         Ok(proposal)
     }
+
     /// When we have missing attributes, we don't have a proposal -> empty proposed_attributes.
     /// When we do have a proposal, give us the proposed attributes then. In both cases, empty
     /// or "real", use from_proposed_attributes to determine the disclosure_type.
-    async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<(), DisclosureError> {
+    async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<Option<Url>, DisclosureError> {
         let proposed_attributes = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(_) => None,
             MdocDisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
@@ -236,13 +237,18 @@ where
             disclosure_type,
         );
 
-        session.terminate().await?;
+        let return_url = session.terminate().await?;
+
+        info!(
+            "CANCEL RETURN URL: {}",
+            return_url.as_ref().map(|url| url.as_str()).unwrap_or("<NONE>")
+        );
 
         self.store_history_event(event)
             .await
             .map_err(DisclosureError::EventStorage)?;
 
-        Ok(())
+        Ok(return_url)
     }
 
     #[instrument(skip_all)]
@@ -265,7 +271,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn cancel_disclosure(&mut self) -> Result<(), DisclosureError> {
+    pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError> {
         info!("Cancelling disclosure");
 
         info!("Checking if registered");
@@ -547,6 +553,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             reader_registration,
             MdocDisclosureSessionState::Proposal(proposal_session),
+            None,
         );
 
         // Starting disclosure should not fail.
@@ -683,6 +690,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            None,
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
@@ -720,6 +728,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            None,
         );
 
         // Starting disclosure where an attribute that is both unavailable
@@ -768,6 +777,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::Proposal(proposal_session),
+            None,
         );
 
         // Starting disclosure where unknown attributes are requested should result in an error.
@@ -817,9 +827,12 @@ mod tests {
             ..Default::default()
         };
 
+        let return_url = Url::parse("https://example.com/return/here").unwrap();
+
         MockMdocDisclosureSession::next_fields(
             reader_registration,
             MdocDisclosureSessionState::Proposal(proposal_session),
+            Some(return_url.clone()),
         );
 
         // Start a disclosure session, to ensure a proper session exists that can be cancelled.
@@ -839,7 +852,9 @@ mod tests {
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure
         // session, while the session that was there should be terminated.
-        wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+        let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+        assert_eq!(cancel_return_url, Some(return_url));
 
         // Verify disclosure session is terminated
         assert!(wallet.disclosure_session.is_none());
@@ -878,9 +893,12 @@ mod tests {
             .expect_missing_attributes()
             .return_const(missing_attributes);
 
+        let return_url = Url::parse("https://example.com/return/here").unwrap();
+
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            Some(return_url.clone()),
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
@@ -902,7 +920,9 @@ mod tests {
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure
         // session, while the session that was there should be terminated.
-        wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+        let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+        assert_eq!(cancel_return_url, Some(return_url));
 
         // Verify disclosure session is terminated
         assert!(wallet.disclosure_session.is_none());
@@ -996,7 +1016,7 @@ mod tests {
             },
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
-            return_url: return_url.clone().into(),
+            disclose_return_url: return_url.clone().into(),
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()

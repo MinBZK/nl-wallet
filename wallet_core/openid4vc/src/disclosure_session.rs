@@ -447,10 +447,15 @@ where
         &self.data().certificate
     }
 
-    pub async fn terminate(self) -> Result<(), VpClientError> {
-        let data = self.data();
-        data.client.terminate(data.auth_request.response_uri.clone()).await?;
-        Ok(())
+    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
+        let data = match self {
+            DisclosureSession::MissingAttributes(session) => session.data,
+            DisclosureSession::Proposal(session) => session.data,
+        };
+
+        let return_url = data.client.terminate(data.auth_request.response_uri).await?;
+
+        Ok(return_url)
     }
 
     pub fn session_type(&self) -> SessionType {

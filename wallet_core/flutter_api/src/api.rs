@@ -274,12 +274,12 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> Result<StartDisc
 
 #[async_runtime]
 #[flutter_api_error]
-pub async fn cancel_disclosure() -> Result<()> {
+pub async fn cancel_disclosure() -> Result<Option<String>> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_disclosure().await?;
+    let return_url = wallet.cancel_disclosure().await?.map(String::from);
 
-    Ok(())
+    Ok(return_url)
 }
 
 #[async_runtime]

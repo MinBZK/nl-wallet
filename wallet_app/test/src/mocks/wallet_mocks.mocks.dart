@@ -3039,15 +3039,15 @@ class MockWalletCore extends _i1.Mock implements _i7.WalletCore {
       ) as _i9.Future<_i7.StartDisclosureResult>);
 
   @override
-  _i9.Future<void> cancelDisclosure({dynamic hint}) => (super.noSuchMethod(
+  _i9.Future<String?> cancelDisclosure({dynamic hint}) => (super.noSuchMethod(
         Invocation.method(
           #cancelDisclosure,
           [],
           {#hint: hint},
         ),
-        returnValue: _i9.Future<void>.value(),
-        returnValueForMissingStub: _i9.Future<void>.value(),
-      ) as _i9.Future<void>);
+        returnValue: _i9.Future<String?>.value(),
+        returnValueForMissingStub: _i9.Future<String?>.value(),
+      ) as _i9.Future<String?>);
 
   @override
   _i9.Future<_i7.AcceptDisclosureResult> acceptDisclosure({
