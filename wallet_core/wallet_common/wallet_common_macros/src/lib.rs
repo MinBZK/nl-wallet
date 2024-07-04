@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote, ToTokens};
 use syn::{
     parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::Comma, AttrStyle, Attribute, Block, Data,
     DataEnum, DataStruct, DeriveInput, Error, Field, Fields, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, Meta,
@@ -13,6 +13,9 @@ const EXPECTED: &str = "expected";
 const PD: &str = "pd";
 const DEFER: &str = "defer";
 
+/// Attribute macro to classify errors and report to Sentry.
+/// This macro can be set on `fn` and `impl` blocks.
+/// Setting this macro on an `impl` block is the same as setting this on all `fn`s in the impl block.
 #[proc_macro_attribute]
 pub fn handle_error_category(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item = syn::parse::<Item>(item);
@@ -21,15 +24,11 @@ pub fn handle_error_category(_attr: proc_macro::TokenStream, item: proc_macro::T
         Ok(Item::Impl(item_impl)) => handle_error_category_impl_block(item_impl).into(),
         Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
         Ok(item) => {
-            let mut token_stream = TokenStream::new();
-            // Raise compilation error
-            token_stream.append_all(
-                Error::new(
-                    item.span(),
-                    "attribute macro `handle_error_category` not supported here",
-                )
-                .into_compile_error(),
-            );
+            let mut token_stream = Error::new(
+                item.span(),
+                "attribute macro `handle_error_category` not supported here",
+            )
+            .into_compile_error();
             // Copy the original item, to prevent new/other compilation errors
             item.to_tokens(&mut token_stream);
             token_stream.into()
@@ -37,23 +36,13 @@ pub fn handle_error_category(_attr: proc_macro::TokenStream, item: proc_macro::T
     }
 }
 
-fn handle_error_category_impl_fn(
-    ImplItemFn {
-        attrs,
-        vis,
-        defaultness,
-        sig,
-        block,
-    }: ImplItemFn,
-) -> TokenStream {
-    handle_error_category_function(&attrs, &vis, &defaultness, &sig, &block)
-}
-
+/// Generate code for a `fn`.
 fn handle_error_category_fn(ItemFn { attrs, vis, sig, block }: ItemFn) -> TokenStream {
     let defaultness = None;
     handle_error_category_function(&attrs, &vis, &defaultness, &sig, &block)
 }
 
+/// Generate code for functions, can be used both for regular functions and associated functions.
 fn handle_error_category_function(
     attrs: &[Attribute],
     vis: &Visibility,
@@ -74,6 +63,7 @@ fn handle_error_category_function(
     }
 }
 
+/// Generate code for an `impl` block.
 fn handle_error_category_impl_block(
     ItemImpl {
         attrs,
@@ -87,15 +77,12 @@ fn handle_error_category_impl_block(
         items,
     }: ItemImpl,
 ) -> TokenStream {
+    // Handle all functions
     let items = items
         .into_iter()
         .map(|item| match item {
             ImplItem::Fn(item_fn) => handle_error_category_impl_fn(item_fn),
-            item => {
-                let mut token_stream = TokenStream::new();
-                item.to_tokens(&mut token_stream);
-                token_stream
-            }
+            item => item.into_token_stream(),
         })
         .collect::<Vec<_>>();
     match trait_ {
@@ -112,6 +99,19 @@ fn handle_error_category_impl_block(
             }
         },
     }
+}
+
+/// Generate code for an associated `fn`.
+fn handle_error_category_impl_fn(
+    ImplItemFn {
+        attrs,
+        vis,
+        defaultness,
+        sig,
+        block,
+    }: ImplItemFn,
+) -> TokenStream {
+    handle_error_category_function(&attrs, &vis, &defaultness, &sig, &block)
 }
 
 /// Derive `wallet_common::error_category::ErrorCategory` for Error types.
