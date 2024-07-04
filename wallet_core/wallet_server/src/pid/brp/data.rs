@@ -352,7 +352,7 @@ impl BrpAddress {
         let house_number_addition = self.house_number_addition.as_deref().unwrap_or_default();
 
         // According to Logisch Ontwerp BRP 2024 Q2, elements 11.40 and 11.50 are mutually exclusive.
-        // This implementation is according to "Bijlage 3 Vertaaltable" describing the GBA-V translations regarding
+        // This implementation is according to "Bijlage 3 Vertaaltabel" describing the GBA-V translations regarding
         // the EAD eIDAS attributes.
         if let Some(designation) = &self.house_number_designation {
             format!("{} {}{}", designation.description, self.house_number, house_letter)
