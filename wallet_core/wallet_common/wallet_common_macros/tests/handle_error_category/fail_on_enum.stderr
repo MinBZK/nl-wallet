@@ -1,0 +1,5 @@
+error: attribute macro `handle_error_category` not supported here
+ --> tests/handle_error_category/fail_on_enum.rs:4:1
+  |
+4 | enum Foo {}
+  | ^^^^

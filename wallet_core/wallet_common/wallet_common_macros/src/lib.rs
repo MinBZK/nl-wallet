@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens};
+use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{
     parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::Comma, AttrStyle, Attribute, Block, Data,
     DataEnum, DataStruct, DeriveInput, Error, Field, Fields, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, Meta,
@@ -20,28 +20,19 @@ pub fn handle_error_category(_attr: proc_macro::TokenStream, item: proc_macro::T
         Ok(Item::Fn(item_fn)) => handle_error_category_fn(item_fn).into(),
         Ok(Item::Impl(item_impl)) => handle_error_category_impl_block(item_impl).into(),
         Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
-        _ => {
-            todo!()
-            // proc_macro::TokenStream::from(err.to_compile_error())
-        }
-    }
-}
-
-fn handle_error_category_function(
-    attrs: &[Attribute],
-    vis: &Visibility,
-    defaultness: &Option<syn::token::Default>,
-    sig: &Signature,
-    block: &Block,
-) -> TokenStream {
-    let stmts = &block.stmts;
-
-    quote! {
-        #(#attrs)* #vis #defaultness #sig {
-            {
-                #(#stmts)*
-            }
-            .map_err(::wallet_common::sentry::classify_and_report_to_sentry)
+        Ok(item) => {
+            let mut token_stream = TokenStream::new();
+            // Raise compilation error
+            token_stream.append_all(
+                Error::new(
+                    item.span(),
+                    "attribute macro `handle_error_category` not supported here",
+                )
+                .into_compile_error(),
+            );
+            // Copy the original item, to prevent new/other compilation errors
+            item.to_tokens(&mut token_stream);
+            token_stream.into()
         }
     }
 }
@@ -61,6 +52,26 @@ fn handle_error_category_impl_fn(
 fn handle_error_category_fn(ItemFn { attrs, vis, sig, block }: ItemFn) -> TokenStream {
     let defaultness = None;
     handle_error_category_function(&attrs, &vis, &defaultness, &sig, &block)
+}
+
+fn handle_error_category_function(
+    attrs: &[Attribute],
+    vis: &Visibility,
+    defaultness: &Option<syn::token::Default>,
+    sig: &Signature,
+    block: &Block,
+) -> TokenStream {
+    let stmts = &block.stmts;
+
+    quote! {
+        #(#attrs)* #vis #defaultness #sig {
+            Result::map_err(
+                {
+                    #(#stmts)*
+                }
+                , ::wallet_common::sentry::classify_and_report_to_sentry)
+        }
+    }
 }
 
 fn handle_error_category_impl_block(
