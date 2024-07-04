@@ -117,11 +117,11 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                         .into(),
                         birth_country.map(|country| unsigned::Entry {
                             name: String::from(PID_BIRTH_COUNTRY),
-                            value: ciborium::Value::Text(country.name),
+                            value: ciborium::Value::Text(country.description),
                         }),
                         birth_place.map(|place| unsigned::Entry {
                             name: String::from(PID_BIRTH_CITY),
-                            value: ciborium::Value::Text(place.name),
+                            value: ciborium::Value::Text(place.description),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_AGE_OVER_18),
@@ -156,7 +156,7 @@ impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_COUNTRY),
-                            value: ciborium::Value::Text(value.residence.address.country.name),
+                            value: ciborium::Value::Text(value.residence.address.country.description),
                         }
                         .into(),
                         street.map(|street| unsigned::Entry {
@@ -295,7 +295,7 @@ pub struct BrpDate {
 #[derive(Clone, Deserialize)]
 pub struct BrpDescription {
     #[serde(rename = "omschrijving")]
-    name: String,
+    description: String,
 }
 
 #[derive(Deserialize)]
@@ -336,7 +336,7 @@ pub struct BrpAddress {
 
 fn default_country() -> BrpDescription {
     BrpDescription {
-        name: String::from("Nederland"),
+        description: String::from("Nederland"),
     }
 }
 
@@ -346,11 +346,14 @@ impl BrpAddress {
     }
 
     fn locator_designator(&self) -> String {
-        let house_letter = self.house_letter.as_deref().unwrap_or("");
-        let house_number_addition = self.house_number_addition.as_deref().unwrap_or("");
+        let house_letter = self.house_letter.as_deref().unwrap_or_default();
+        let house_number_addition = self.house_number_addition.as_deref().unwrap_or_default();
 
+        // According to Logisch Ontwerp BRP 2024 Q2, elements 11.40 and 11.50 are mutually exclusive.
+        // This implementation is according to "Bijlage 3 Vertaaltable" describing the GBA-V translations regarding
+        // the EAD eIDAS attributes.
         if let Some(designation) = &self.house_number_designation {
-            format!("{} {}{}", designation.name, self.house_number, house_letter)
+            format!("{} {}{}", designation.description, self.house_number, house_letter)
         } else {
             format!("{}{}{}", self.house_number, house_letter, house_number_addition)
         }
@@ -512,6 +515,7 @@ mod tests {
     #[case("huisnummertoevoeging", "38BIS1")]
     #[case("huisnummeraanduiding", "tegenover 38")]
     #[case("huisletter-en-aanduiding", "bij 38c")]
+    #[case("huisletter-en-aanduiding-en-toevoeging-illegal-combination", "bij 38c")]
     fn should_handle_house_number(#[case] json_file_name: &str, #[case] expected_house_number: &str) {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
         let brp_person = brp_persons.persons.first().unwrap();
