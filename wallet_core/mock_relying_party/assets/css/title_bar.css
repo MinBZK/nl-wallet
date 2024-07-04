@@ -72,10 +72,9 @@ header h1 {
     .username::before {
         content: " ";
         background-color: var(--primary-color);
-        mask: url("../images/account.svg") no-repeat center center / cover;
+        mask: url("../non-free/images/account.svg") no-repeat center center / cover;
         mask-size: 24px;
-        -webkit-mask: url("../images/account.svg") no-repeat center center /
-            cover;
+        -webkit-mask: url("../non-free/images/account.svg") no-repeat center center / cover;
         -webkit-mask-size: 24px;
         width: 24px;
         height: 24px;

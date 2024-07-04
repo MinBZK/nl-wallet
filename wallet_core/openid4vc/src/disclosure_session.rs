@@ -1,8 +1,9 @@
-use std::collections::HashMap;
-
+use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
-use reqwest::Response;
+use mime::Mime;
+use once_cell::sync::Lazy;
+use reqwest::{header::ACCEPT, Method, Response};
 use tracing::{info, warn};
 
 use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
@@ -10,22 +11,26 @@ use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_stri
 use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
     engagement::SessionTranscript,
-    holder::{DisclosureRequestMatch, MdocDataSource, ProposedAttributes, ProposedDocument, TrustAnchor},
+    holder::{
+        DisclosureError, DisclosureRequestMatch, DisclosureUriSource, MdocDataSource, ProposedAttributes,
+        ProposedDocument, TrustAnchor,
+    },
     identifiers::AttributeIdentifier,
     utils::{
         keys::{KeyFactory, MdocEcdsaKey},
         reader_auth::{ReaderRegistration, ValidationError},
         x509::{Certificate, CertificateError, CertificateType},
     },
+    verifier::SessionType,
 };
 
 use crate::{
-    authorization::AuthorizationErrorCode,
     openid4vp::{
-        AuthRequestError, AuthResponseError, IsoVpAuthorizationRequest, VpAuthorizationErrorCode,
-        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse,
+        AuthRequestValidationError, AuthResponseError, IsoVpAuthorizationRequest, RequestUriMethod,
+        VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
-    ErrorResponse,
+    verifier::{VerifierUrlParameters, VpToken},
+    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -35,7 +40,7 @@ pub enum VpClientError {
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] nl_wallet_mdoc::Error),
     #[error("error verifying Authorization Request: {0}")]
-    AuthorizationRequest(#[from] AuthRequestError),
+    AuthRequestValidation(#[from] AuthRequestValidationError),
     #[error("incorrect client_id: expected {expected}, found {found}")]
     IncorrectClientId { expected: String, found: String },
     #[error("no reader registration in RP certificate")]
@@ -50,6 +55,14 @@ pub enum VpClientError {
     MultipleCandidates(Vec<String>),
     #[error("error encrypting Authorization Response: {0}")]
     AuthResponseEncryption(#[from] AuthResponseError),
+    #[error("error deserializing request_uri object: {0}")]
+    RequestUri(#[source] serde_urlencoded::de::Error),
+    #[error("missing session_type query parameter in request URI")]
+    MissingSessionType,
+    #[error("malformed session_type query parameter in request URI: {0}")]
+    MalformedSessionType(#[source] serde_urlencoded::de::Error),
+    #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
+    DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -67,6 +80,7 @@ pub trait VpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError>;
 
     async fn send_authorization_response(
@@ -94,6 +108,13 @@ pub trait VpMessageClient {
     }
 }
 
+pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: Lazy<Mime> = Lazy::new(|| {
+    "application/oauth-authz-req+jwt"
+        .parse()
+        .expect("could not parse MIME type")
+});
+
+#[derive(From)]
 pub struct HttpVpMessageClient {
     http_client: reqwest::Client,
 }
@@ -102,9 +123,23 @@ impl VpMessageClient for HttpVpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
-        self.http_client
-            .get(url.into_inner())
+        let method = match wallet_nonce {
+            Some(_) => Method::POST,
+            None => Method::GET,
+        };
+
+        let mut request = self
+            .http_client
+            .request(method, url.into_inner())
+            .header(ACCEPT, APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref());
+
+        if wallet_nonce.is_some() {
+            request = request.form(&WalletRequest { wallet_nonce });
+        }
+
+        request
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
@@ -114,7 +149,7 @@ impl VpMessageClient for HttpVpMessageClient {
                     let error = response.json::<ErrorResponse<String>>().await?;
                     Err(VpMessageClientError::ErrorResponse(error))
                 } else {
-                    Ok(response.json().await?)
+                    Ok(response.text().await?.into())
                 }
             })
             .await
@@ -127,7 +162,7 @@ impl VpMessageClient for HttpVpMessageClient {
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.http_client
             .post(url.into_inner())
-            .form(&HashMap::from([("response", jwe)]))
+            .form(&VpToken { vp_token: jwe })
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
@@ -199,6 +234,7 @@ struct CommonDisclosureData<H> {
     certificate: Certificate,
     reader_registration: ReaderRegistration,
     auth_request: IsoVpAuthorizationRequest,
+    session_type: SessionType,
 }
 
 enum VerifierSessionDataCheckResult<I> {
@@ -212,7 +248,8 @@ where
 {
     pub async fn start<'a, S>(
         client: H,
-        request_uri_object: VpRequestUriObject,
+        request_uri_query: &str,
+        uri_source: DisclosureUriSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'a>],
     ) -> Result<Self, VpClientError>
@@ -221,11 +258,38 @@ where
     {
         info!("start disclosure session");
 
+        let request_uri_object: VpRequestUriObject =
+            serde_urlencoded::from_str(request_uri_query).map_err(VpClientError::RequestUri)?;
+
+        // Parse the `SessionType` from the verifier URL.
+        let VerifierUrlParameters { session_type, .. } = serde_urlencoded::from_str(
+            request_uri_object
+                .request_uri
+                .as_ref()
+                .query()
+                .ok_or(VpClientError::MissingSessionType)?,
+        )
+        .map_err(VpClientError::MalformedSessionType)?;
+
+        // Check the `SessionType` that was contained in the verifier URL against the source of the URI.
+        // A same-device session is expected to come from a Universal Link,
+        // while a cross-device session should come from a scanned QR code.
+        if uri_source.session_type() != session_type {
+            return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source));
+        }
+
+        // If the server supports it, require it to include a nonce in the Authorization Request JWT
+        let method = request_uri_object.request_uri_method.unwrap_or_default();
+        let request_nonce = match method {
+            RequestUriMethod::GET => None,
+            RequestUriMethod::POST => Some(random_string(32)),
+        };
+
         let jws = client
-            .get_authorization_request(request_uri_object.request_uri.clone())
+            .get_authorization_request(request_uri_object.request_uri.clone(), request_nonce.clone())
             .await?;
 
-        let (auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors)?;
+        let (auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors, request_nonce)?;
 
         let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
@@ -250,6 +314,7 @@ where
             certificate,
             reader_registration,
             auth_request,
+            session_type,
         };
 
         // Create the appropriate `DisclosureSession` invariant, which contains
@@ -387,6 +452,10 @@ where
         data.client.terminate(data.auth_request.response_uri.clone()).await?;
         Ok(())
     }
+
+    pub fn session_type(&self) -> SessionType {
+        self.data().session_type
+    }
 }
 
 impl<H> DisclosureMissingAttributes<H> {
@@ -416,7 +485,7 @@ where
             .collect()
     }
 
-    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError>
+    pub async fn disclose<KF, K>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
         KF: KeyFactory<Key = K>,
         K: MdocEcdsaKey,
@@ -454,28 +523,7 @@ where
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error("could not perform disclosure, attributes were shared: {data_shared}, error: {error}")]
-pub struct DisclosureError {
-    pub data_shared: bool,
-    #[source]
-    pub error: VpClientError,
-}
-
-impl DisclosureError {
-    pub fn new(data_shared: bool, error: VpClientError) -> Self {
-        Self { data_shared, error }
-    }
-
-    pub fn before_sharing(error: VpClientError) -> Self {
-        Self {
-            data_shared: false,
-            error,
-        }
-    }
-}
-
-impl From<VpMessageClientError> for DisclosureError {
+impl From<VpMessageClientError> for DisclosureError<VpClientError> {
     fn from(source: VpMessageClientError) -> Self {
         let data_shared = match source {
             VpMessageClientError::Http(ref reqwest_error) => !reqwest_error.is_connect(),

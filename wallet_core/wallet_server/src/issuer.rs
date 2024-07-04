@@ -3,7 +3,6 @@ use std::{collections::HashMap, fmt::Display, str::FromStr, sync::Arc};
 use axum::{
     extract::State,
     http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Uri},
-    response::{IntoResponse, Response},
     routing::{delete, get, post},
     Form, Json, Router,
 };
@@ -19,16 +18,18 @@ use nl_wallet_mdoc::{
     server_state::SessionStore,
 };
 use openid4vc::{
-    credential::{CredentialErrorCode, CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
+    credential::{CredentialRequest, CredentialRequests, CredentialResponse, CredentialResponses},
     dpop::{Dpop, DPOP_HEADER_NAME, DPOP_NONCE_HEADER_NAME},
     metadata::IssuerMetadata,
     oidc,
-    token::{AccessToken, TokenErrorCode, TokenRequest, TokenResponseWithPreviews},
-    ErrorStatusCode,
+    token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
+    CredentialErrorCode, ErrorStatusCode, TokenErrorCode,
 };
-use tracing::warn;
 
-use crate::settings::{self, Urls};
+use crate::{
+    errors::ErrorResponse,
+    settings::{self, Urls},
+};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
@@ -110,11 +111,7 @@ where
     K: KeyRing,
     S: SessionStore<IssuanceData>,
 {
-    let metadata = state
-        .issuer
-        .oauth_metadata()
-        .await
-        .map_err(|e| Box::new(e) as Box<dyn Display>)?;
+    let metadata = state.issuer.oauth_metadata().await?;
     Ok(Json(metadata))
 }
 
@@ -136,7 +133,7 @@ where
         .issuer
         .process_token_request(token_request, dpop)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
@@ -160,7 +157,7 @@ where
         .issuer
         .process_credential(access_token, dpop, credential_request)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     Ok(Json(response))
 }
 
@@ -180,7 +177,7 @@ where
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     Ok(Json(response))
 }
 
@@ -202,19 +199,8 @@ where
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
         .await
-        .map_err(|err| ErrorResponse(err.into()))?;
+        .map_err(ErrorResponse::new)?;
     Ok(StatusCode::NO_CONTENT)
-}
-
-/// Newtype of [`openid4vc::ErrorResponse`] so that we can implement [`IntoResponse`] on it.
-#[derive(Serialize, Debug)]
-struct ErrorResponse<T>(openid4vc::ErrorResponse<T>);
-
-impl<T: ErrorStatusCode + Serialize + std::fmt::Debug> IntoResponse for ErrorResponse<T> {
-    fn into_response(self) -> Response {
-        warn!("{:?}", &self);
-        (self.0.error.status_code(), Json(self)).into_response()
-    }
 }
 
 static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");
@@ -283,12 +269,18 @@ impl ErrorStatusCode for MetadataError {
     }
 }
 
-impl From<Box<dyn Display>> for ErrorResponse<MetadataError> {
-    fn from(error: Box<dyn Display>) -> Self {
-        ErrorResponse(openid4vc::ErrorResponse {
-            error: MetadataError::Metadata,
-            error_description: Some(error.to_string()),
-            error_uri: None,
-        })
+impl<T> From<T> for ErrorResponse<MetadataError>
+where
+    T: Display,
+{
+    fn from(error: T) -> Self {
+        ErrorResponse {
+            error_response: openid4vc::ErrorResponse {
+                error: MetadataError::Metadata,
+                error_description: Some(error.to_string()),
+                error_uri: None,
+            },
+            redirect_uri: None,
+        }
     }
 }

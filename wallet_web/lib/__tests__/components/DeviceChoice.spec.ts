@@ -11,18 +11,18 @@ vi.mock("@/api/status")
 await import("../setup")
 
 describe("DeviceChoice", () => {
-  it("should show same device link with engagement url", async () => {
+  it("should show same device link with UL", async () => {
     const wrapper = mount(DeviceChoice, {
-      props: { engagementUrl: "engagement_url_123" },
+      props: { ul: "ul_123" },
     })
     const button = wrapper.find("[data-testid=same_device_button]")
     expect(button.exists()).toBe(true)
-    expect(button.attributes("href")).toEqual("engagement_url_123")
+    expect(button.attributes("href")).toEqual("ul_123")
   })
 
   it("should emit choice", async () => {
     const wrapper = mount(DeviceChoice, {
-      props: { engagementUrl: "engagement_url_123" },
+      props: { ul: "ul_123" },
     })
 
     await wrapper.find("[data-testid=cross_device_button]").trigger("click")
@@ -32,7 +32,7 @@ describe("DeviceChoice", () => {
 
   it("should emit close", async () => {
     const wrapper = mount(DeviceChoice, {
-      props: { engagementUrl: "engagement_url_123" },
+      props: { ul: "ul_123" },
     })
     await wrapper.find("[data-testid=close_button]").trigger("click")
     expect(wrapper.emitted()).toHaveProperty("close")

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
+use chrono::Utc;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
 use ring::{hmac, rand};
@@ -7,7 +8,7 @@ use rstest::rstest;
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
-    holder::{DisclosureRequestMatch, TrustAnchor},
+    holder::{DisclosureRequestMatch, DisclosureUriSource, TrustAnchor},
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
@@ -20,14 +21,13 @@ use openid4vc::{
     disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
     jwt,
     mock::MockMdocDataSource,
-    openid4vp::{
-        IsoVpAuthorizationRequest, VpAuthorizationErrorCode, VpAuthorizationRequest, VpAuthorizationResponse,
-        VpRequestUriObject,
-    },
-    verifier::{DisclosureData, StatusResponse, UseCase, Verifier, WalletAuthResponse},
-    ErrorResponse,
+    openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
+    verifier::{DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken, WalletAuthResponse},
+    ErrorResponse, VpAuthorizationErrorCode,
 };
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, trust_anchor::OwnedTrustAnchor};
+use wallet_common::{
+    config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,
+};
 
 #[tokio::test]
 async fn disclosure_direct() {
@@ -44,6 +44,7 @@ async fn disclosure_direct() {
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
         response_uri,
+        None,
     )
     .unwrap();
     let auth_request = iso_auth_request.clone().into();
@@ -80,7 +81,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
-    let (auth_request, _) = VpAuthorizationRequest::verify(&auth_request, trust_anchors).unwrap();
+    let (auth_request, _) = VpAuthorizationRequest::verify(&auth_request, trust_anchors, None).unwrap();
 
     // Check if we have the requested attributes.
     let session_transcript = SessionTranscript::new_oid4vp(
@@ -126,12 +127,18 @@ async fn disclosure_using_message_client() {
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair);
-    let request_uri_object = message_client.start_session();
+    let request_uri = message_client.start_session();
 
     // Perform the first part of the session, resulting in the proposed disclosure.
-    let session = DisclosureSession::start(message_client, request_uri_object, &mdocs, trust_anchors)
-        .await
-        .unwrap();
+    let session = DisclosureSession::start(
+        message_client,
+        &request_uri,
+        DisclosureUriSource::Link,
+        &mdocs,
+        trust_anchors,
+    )
+    .await
+    .unwrap();
 
     let DisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
@@ -154,8 +161,17 @@ struct DirectMockVpMessageClient {
 
 impl DirectMockVpMessageClient {
     fn new(auth_keypair: KeyPair) -> Self {
+        let query = serde_urlencoded::to_string(VerifierUrlParameters {
+            session_type: SessionType::SameDevice,
+            ephemeral_id: vec![42],
+            time: Utc::now(),
+        })
+        .unwrap();
+        let request_uri = ("https://example.com/request_uri?".to_string() + &query)
+            .parse()
+            .unwrap();
+
         let nonce = "nonce".to_string();
-        let request_uri = "https://example.com/request_uri".parse().unwrap();
         let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
@@ -165,6 +181,7 @@ impl DirectMockVpMessageClient {
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
             response_uri.clone(),
+            None,
         )
         .unwrap()
         .into();
@@ -179,11 +196,13 @@ impl DirectMockVpMessageClient {
         }
     }
 
-    fn start_session(&self) -> VpRequestUriObject {
-        VpRequestUriObject {
+    fn start_session(&self) -> String {
+        serde_urlencoded::to_string(VpRequestUriObject {
             request_uri: self.request_uri.clone(),
             client_id: self.auth_keypair.certificate().san_dns_name().unwrap().unwrap(),
-        }
+            request_uri_method: Default::default(),
+        })
+        .unwrap()
     }
 }
 
@@ -191,6 +210,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
+        _request_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
@@ -241,10 +261,10 @@ impl VpMessageClient for DirectMockVpMessageClient {
 }
 
 #[rstest]
-#[case(SessionType::SameDevice)]
-#[case(SessionType::CrossDevice)]
+#[case(SessionType::SameDevice, DisclosureUriSource::Link)]
+#[case(SessionType::CrossDevice, DisclosureUriSource::QrCode)]
 #[tokio::test]
-async fn test_client_and_server(#[case] session_type: SessionType) {
+async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_source: DisclosureUriSource) {
     let items_requests = Examples::items_requests();
 
     // Initialize key material
@@ -280,13 +300,13 @@ async fn test_client_and_server(#[case] session_type: SessionType) {
         .unwrap();
 
     // frontend receives the UL to feed to the wallet when fetching the session status
-    let request_uri_object = request_uri_from_status_endpoint(verifier.as_ref(), &session_token, session_type).await;
+    let request_uri = request_uri_from_status_endpoint(verifier.as_ref(), &session_token, session_type).await;
 
     // Start session in the wallet
     let mdocs = MockMdocDataSource::default();
     let key_factory = SoftwareKeyFactory::default();
     let message_client = VerifierMockVpMessageClient::new(Arc::clone(&verifier));
-    let session = DisclosureSession::start(message_client, request_uri_object, &mdocs, trust_anchors)
+    let session = DisclosureSession::start(message_client, &request_uri, uri_source, &mdocs, trust_anchors)
         .await
         .unwrap();
 
@@ -326,13 +346,16 @@ async fn request_uri_from_status_endpoint(
     verifier: &MockVerifier,
     session_token: &SessionToken,
     session_type: SessionType,
-) -> VpRequestUriObject {
+) -> String {
     let StatusResponse::Created { ul } = verifier
         .status_response(
             session_token,
-            &"https://example.com/ul".parse().unwrap(),
-            &"https://example.com/verifier_base_url".parse().unwrap(),
             session_type,
+            &"https://example.com/ul".parse().unwrap(),
+            format!("https://example.com/verifier_base_url/{session_token}/request_uri")
+                .parse()
+                .unwrap(),
+            &TimeGenerator,
         )
         .await
         .unwrap()
@@ -340,7 +363,7 @@ async fn request_uri_from_status_endpoint(
         panic!("unexpected state")
     };
 
-    serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap()
+    ul.as_ref().query().unwrap().to_string()
 }
 
 type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;
@@ -359,14 +382,21 @@ impl VpMessageClient for VerifierMockVpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
+        wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
-        let session_token = SessionToken::new(url.as_ref().path_segments().unwrap().last().unwrap());
-
-        let url_params = serde_urlencoded::from_str(url.as_ref().query().unwrap()).unwrap();
+        let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
+        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
 
         let jws = self
             .verifier
-            .process_get_request(&session_token, &"https://example.com".parse().unwrap(), url_params)
+            .process_get_request(
+                &session_token,
+                format!("https://example.com/verifier_base_url/{session_token}/response_uri")
+                    .parse()
+                    .unwrap(),
+                url.as_ref().query(),
+                wallet_nonce,
+            )
             .await
             .unwrap();
 
@@ -378,11 +408,16 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         url: BaseUrl,
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        let session_token = SessionToken::new(url.as_ref().path_segments().unwrap().last().unwrap());
+        let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
+        let session_token = SessionToken::new(path_segments[path_segments.len() - 2]);
 
         let response = self
             .verifier
-            .process_authorization_response(&session_token, WalletAuthResponse::Response(jwe), &IsoCertTimeGenerator)
+            .process_authorization_response(
+                &session_token,
+                WalletAuthResponse::Response(VpToken { vp_token: jwe }),
+                &IsoCertTimeGenerator,
+            )
             .await
             .unwrap();
 

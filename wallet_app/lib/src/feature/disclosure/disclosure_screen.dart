@@ -191,6 +191,10 @@ class DisclosureScreen extends StatelessWidget {
       onDecline: () => context.bloc.add(const DisclosureStopRequested()),
       missingAttributes: state.missingAttributes,
       organization: state.relyingParty,
+      onReportIssuePressed: () {
+        final options = _resolveReportingOptionsForState(context);
+        _onReportIssuePressed(context, options);
+      },
     );
   }
 
@@ -310,6 +314,11 @@ class DisclosureScreen extends StatelessWidget {
           ReportingOption.suspiciousOrganization,
           ReportingOption.unreasonableTerms,
         ];
+      case DisclosureMissingAttributes():
+        return [
+          ReportingOption.overAskingOrganization,
+          ReportingOption.suspiciousOrganization,
+        ];
       case DisclosureInitial():
       case DisclosureLoadInProgress():
       case DisclosureExternalScannerError():
@@ -318,7 +327,6 @@ class DisclosureScreen extends StatelessWidget {
       case DisclosureNetworkError():
       case DisclosureSuccess():
       case DisclosureStopped():
-      case DisclosureMissingAttributes():
       case DisclosureLeftFeedback():
         Fimber.d('No ReportingOptions provided for $state');
         return <ReportingOption>[];

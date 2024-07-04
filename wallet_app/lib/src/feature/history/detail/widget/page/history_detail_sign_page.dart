@@ -33,7 +33,6 @@ class HistoryDetailSignPage extends StatelessWidget {
         HistoryDetailCommonBuilders.buildStatusHeaderSliver(context, event).takeIf((_) => !event.wasSuccess),
         HistoryDetailCommonBuilders.buildPolicySliver(context, event.policy).takeIf((_) => event.wasSuccess),
         HistoryDetailCommonBuilders.buildAboutOrganizationSliver(context, event.relyingParty),
-        HistoryDetailCommonBuilders.buildShowDetailsSliver(context, event).takeIf((_) => !event.wasSuccess),
         HistoryDetailCommonBuilders.buildReportIssueSliver(context),
         const SliverSizedBox(height: 24),
       ].nonNulls.toList(),

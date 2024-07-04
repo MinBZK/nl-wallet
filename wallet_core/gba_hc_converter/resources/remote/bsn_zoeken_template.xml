@@ -1,0 +1,41 @@
+<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap-env:Body>
+    <ns0:vraag xmlns:ns0="http://www.bprbzk.nl/GBA/LRDPlus/version1.1">
+      <ns0:in0>
+        <ns0:indicatieAdresvraag xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                 xsi:nil="true"/>
+        <ns0:indicatieZoekenInHistorie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                       xsi:nil="true"/>
+        <ns0:masker>
+          <ns0:item>10120</ns0:item>
+          <ns0:item>10210</ns0:item>
+          <ns0:item>10230</ns0:item>
+          <ns0:item>10240</ns0:item>
+          <ns0:item>10310</ns0:item>
+          <ns0:item>10410</ns0:item>
+          <ns0:item>16110</ns0:item>
+          <ns0:item>50230</ns0:item>
+          <ns0:item>50240</ns0:item>
+          <ns0:item>50610</ns0:item>
+          <ns0:item>50710</ns0:item>
+          <ns0:item>51510</ns0:item>
+          <ns0:item>81110</ns0:item>
+          <ns0:item>81115</ns0:item>
+          <ns0:item>81120</ns0:item>
+          <ns0:item>81130</ns0:item>
+          <ns0:item>81140</ns0:item>
+          <ns0:item>81150</ns0:item>
+          <ns0:item>81160</ns0:item>
+          <ns0:item>81170</ns0:item>
+          <ns0:item>81210</ns0:item>
+        </ns0:masker>
+        <ns0:parameters>
+          <ns0:item>
+            <ns0:rubrieknummer>10120</ns0:rubrieknummer>
+            <ns0:zoekwaarde>{{bsn}}</ns0:zoekwaarde>
+          </ns0:item>
+        </ns0:parameters>
+      </ns0:in0>
+    </ns0:vraag>
+  </soap-env:Body>
+</soap-env:Envelope>

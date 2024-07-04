@@ -10,6 +10,7 @@ import '../../../../util/extension/wallet_event_extension.dart';
 import '../../../../util/mapper/context_mapper.dart';
 import '../../../check_attributes/check_attributes_screen.dart';
 import '../../../common/screen/placeholder_screen.dart';
+import '../../../common/widget/app_image.dart';
 import '../../../common/widget/button/list_button.dart';
 import '../../../common/widget/card/shared_attributes_card.dart';
 import '../../../common/widget/sliver_divider.dart';
@@ -18,6 +19,7 @@ import '../../../common/widget/text/body_text.dart';
 import '../../../info/info_screen.dart';
 import '../../../organization/detail/organization_detail_screen.dart';
 import '../../../policy/policy_screen.dart';
+import '../request_details_screen.dart';
 import 'wallet_event_status_header.dart';
 
 class HistoryDetailCommonBuilders {
@@ -173,15 +175,20 @@ class HistoryDetailCommonBuilders {
           onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
         ),
         dividerSide: DividerSide.bottom,
+        trailing: SizedBox(
+          height: 36,
+          width: 36,
+          child: AppImage(asset: organization.logo),
+        ),
       ),
     );
   }
 
-  static Widget buildShowDetailsSliver(BuildContext context, WalletEvent event) {
+  static Widget buildShowDetailsSliver(BuildContext context, DisclosureEvent event) {
     return SliverToBoxAdapter(
       child: ListButton(
         text: Text(context.l10n.historyDetailScreenShowDetailsCta),
-        onPressed: () => PlaceholderScreen.showGeneric(context),
+        onPressed: () => RequestDetailsScreen.show(context, event),
         dividerSide: DividerSide.bottom,
       ),
     );

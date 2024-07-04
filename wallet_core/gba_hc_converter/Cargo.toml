@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
+base64.workspace = true
 config = { workspace = true, features = ["toml"] }
 csv.workspace = true
 http.workspace = true

@@ -4,12 +4,15 @@ use nl_wallet_mdoc::{server_state::SessionState, unsigned::UnsignedMdoc, utils::
 use openid4vc::{
     issuer::{AttributeService, Created},
     oidc,
-    token::{AttestationPreview, TokenErrorCode, TokenRequest, TokenRequestGrantType},
-    ErrorResponse,
+    token::{AttestationPreview, TokenRequest, TokenRequestGrantType},
+    ErrorResponse, TokenErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, nonempty::NonEmpty};
 
-use crate::pid::brp::client::{BrpClient, BrpError, HttpBrpClient};
+use crate::pid::brp::{
+    client::{BrpClient, BrpError, HttpBrpClient},
+    data::BrpDataError,
+};
 
 use super::digid::{self, OpenIdClient};
 
@@ -29,8 +32,10 @@ pub enum Error {
     NoAttributesFound,
     #[error("missing certificate for issuance of doctype {0}")]
     MissingCertificate(String),
-    #[error("error retrieving from BRP")]
+    #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
+    #[error("error mapping BRP data to PID data: {0}")]
+    BrpData(#[from] BrpDataError),
 }
 
 pub struct AttributeCertificates {
@@ -93,20 +98,19 @@ impl AttributeService for BrpPidAttributeService {
         };
 
         let bsn = self.openid_client.bsn(openid_token_request).await?;
-        let persons = self.brp_client.get_person_by_bsn(bsn).await?;
+        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await?;
 
-        persons
-            .persons
-            .first()
-            .map(|person| {
-                let unsigned_mdocs: Vec<UnsignedMdoc> = person.into();
-                let previews = unsigned_mdocs
-                    .into_iter()
-                    .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
-                    .collect::<Result<Vec<AttestationPreview>, Error>>()?;
-                previews.try_into().map_err(|_| Error::NoAttributesFound)
-            })
-            .unwrap_or(Err(Error::NoAttributesFound))
+        if persons.persons.len() != 1 {
+            return Err(Error::NoAttributesFound);
+        }
+
+        let person = persons.persons.remove(0);
+        let unsigned_mdocs: Vec<UnsignedMdoc> = person.try_into()?;
+        let previews = unsigned_mdocs
+            .into_iter()
+            .map(|unsigned| self.certificates.try_unsigned_mdoc_to_attestion_preview(unsigned))
+            .collect::<Result<Vec<AttestationPreview>, Error>>()?;
+        previews.try_into().map_err(|_| Error::NoAttributesFound)
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {

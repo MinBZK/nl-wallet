@@ -40,7 +40,8 @@ spec:
               memory: "512Mi"
               cpu: "300m"
           ports:
-            - containerPort: 3000
+            - name: wp-port
+              containerPort: 3000
           envFrom:
             - configMapRef:
                 name: wallet-provider-config
@@ -49,6 +50,8 @@ spec:
               mountPath: /cs_pkcs11_R3.cfg
               subPath: cs_pkcs11_R3.cfg
           env:
+            - name: WALLET_PROVIDER_WEBSERVER__PORT
+              value: "3000"
             - name: WALLET_PROVIDER_DATABASE__NAME
               value: wallet_provider
             - name: WALLET_PROVIDER_DATABASE__HOST

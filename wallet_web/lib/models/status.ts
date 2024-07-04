@@ -1,7 +1,7 @@
-export type EngagementUrl = string & { __typename: "engagement_url" }
+export type AppUL = string & { __typename: "app_ul" }
 
 export type StatusResponse =
-  | { status: "CREATED"; engagement_url: EngagementUrl }
+  | { status: "CREATED"; ul: AppUL }
   | { status: "WAITING_FOR_RESPONSE" }
   | { status: "DONE" }
   | { status: "FAILED" }

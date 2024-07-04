@@ -7,13 +7,13 @@ use url::Url;
 
 use nl_wallet_mdoc::{
     test::{
-        data::{addr_street, pid_family_name, pid_full_name, pid_given_name},
+        data::{addr_street, pid_family_name, pid_full_name, pid_given_name, pid_own_family_name},
         TestDocuments,
     },
-    verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType, StatusResponse},
+    verifier::{DisclosedAttributes, ReturnUrlTemplate, SessionType},
     ItemsRequest,
 };
-use openid4vc::token::TokenRequest;
+use openid4vc::{token::TokenRequest, verifier::StatusResponse};
 use tests_integration::common::*;
 use wallet::{errors::DisclosureError, mock::MockDigidSession, DisclosureUriSource};
 use wallet_common::{http_error::HttpJsonErrorBody, utils};
@@ -73,7 +73,7 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
 #[case(SessionType::SameDevice,
     None,
     "xyz_bank_no_return_url",
-    pid_family_name() + pid_given_name(),
+    pid_family_name() + pid_own_family_name() + pid_given_name(),
     pid_full_name()
 )]
 #[case(
@@ -164,9 +164,8 @@ async fn test_disclosure_usecases_ok(
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     // after creating the session it should have status "Created"
-    let engagement_url = match get_verifier_status(&client, status_url.clone()).await {
-        StatusResponse::Created { engagement_url } => engagement_url,
-        _ => panic!("should match StatusResponse::Created"),
+    let StatusResponse::Created { ul } = get_verifier_status(&client, status_url.clone()).await else {
+        panic!("should match StatusResponse::Created")
     };
 
     // Determine the correct source for the session type.
@@ -176,7 +175,7 @@ async fn test_disclosure_usecases_ok(
     };
 
     let proposal = wallet
-        .start_disclosure(&engagement_url, source)
+        .start_disclosure(&ul.into_inner(), source)
         .await
         .expect("should start disclosure");
     assert_eq!(proposal.documents.len(), expected_documents.len());
@@ -314,16 +313,12 @@ async fn test_disclosure_without_pid() {
     let response = client.get(status_url.clone()).send().await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let res = response.json::<StatusResponse>().await.unwrap();
-    let engagement_url = match res {
-        StatusResponse::Created { engagement_url } => engagement_url,
-        _ => panic!("should match StatusResponse::Created"),
+    let StatusResponse::Created { ul } = res else {
+        panic!("should match StatusResponse::Created")
     };
 
-    let mut url = engagement_url.clone();
-    url.set_query(Some("session_type=same_device"));
-
     let error = wallet
-        .start_disclosure(&url, DisclosureUriSource::Link)
+        .start_disclosure(&ul.into_inner(), DisclosureUriSource::Link)
         .await
         .expect_err("Should return error that attributes are not available");
 

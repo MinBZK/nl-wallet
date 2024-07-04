@@ -1,15 +1,15 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: db-mrp-in-zeer-vertrouwd
+  name: db-pi-in-zeer-vertrouwd
 spec:
   ingress:
     - from:
         - podSelector:
             matchLabels:
-              db-mrp-in-zeer-vertrouwd: allow
+              db-pi-in-zeer-vertrouwd: allow
   podSelector:
     matchLabels:
-      app: mrp-wallet-server-database
+      app: pid-issuer-database
   policyTypes:
     - Ingress

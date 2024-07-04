@@ -14,15 +14,10 @@ use url::Url;
 use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils};
 
 use crate::{
-    authorization::{
-        AuthorizationErrorCode, AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType,
-    },
+    authorization::{AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType},
     pkce::{PkcePair, S256PkcePair},
-    token::{
-        AccessToken, AuthBearerErrorCode, AuthorizationCode, TokenErrorCode, TokenRequest, TokenRequestGrantType,
-        TokenResponse,
-    },
-    ErrorResponse,
+    token::{AccessToken, AuthorizationCode, TokenRequest, TokenRequestGrantType, TokenResponse},
+    AuthBearerErrorCode, AuthorizationErrorCode, ErrorResponse, TokenErrorCode,
 };
 
 use super::Config;
@@ -301,10 +296,10 @@ mod tests {
     use wallet_common::config::wallet_config::BaseUrl;
 
     use crate::{
-        authorization::AuthorizationErrorCode,
         oidc::tests::start_discovery_server,
         pkce::{MockPkcePair, S256PkcePair},
         token::TokenRequestGrantType,
+        AuthorizationErrorCode,
     };
 
     use super::{Config, HttpOidcClient, OidcClient, OidcError};

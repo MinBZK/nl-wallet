@@ -6,7 +6,6 @@ import WalletModal from "@/components/WalletModal.vue"
 import { isMobileKey } from "@/util/projection_keys"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { EngagementUrl } from "@/models/status"
 
 await import("../setup")
 
@@ -129,7 +128,7 @@ describe("WalletModal", () => {
     await flushPromises()
 
     const sameDeviceButton = wrapper.find("[data-testid=same_device_button]")
-    expect(sameDeviceButton.attributes("href")).toEqual("engagement_url_123")
+    expect(sameDeviceButton.attributes("href")).toEqual("ul_123")
   })
 
   describe("error screens for status", () => {

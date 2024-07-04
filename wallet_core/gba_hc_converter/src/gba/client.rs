@@ -1,5 +1,6 @@
 use std::{env, path::PathBuf};
 
+use base64::prelude::*;
 use http::header;
 use pem::Pem;
 use reqwest::{tls, Certificate, Identity};
@@ -23,31 +24,46 @@ pub struct HttpGbavClient {
     base_url: BaseUrl,
     username: String,
     password: String,
+    ca_api_key: Option<String>,
+    vraag_request_template: String,
 }
 
 impl HttpGbavClient {
-    pub fn new(
+    const BRP_CREDENTIALS_HEADER_NAME: &'static str = "x-brp-credentials";
+
+    pub async fn new(
         base_url: BaseUrl,
         username: String,
         password: String,
         trust_anchor: Certificate,
         client_cert: Vec<u8>,
         client_cert_key: Vec<u8>,
+        ca_api_key: Option<String>,
     ) -> Result<Self, Error> {
         let cert = Pem::new("CERTIFICATE", client_cert);
         let key = Pem::new("PRIVATE KEY", client_cert_key);
         let cert_buf = pem::encode(&key) + &pem::encode(&cert);
 
+        let vraag_request_template_path = env::var("CARGO_MANIFEST_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_default()
+            .join("resources/remote/bsn_zoeken_template.xml");
+        let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
+
+        let http_client = tls_pinned_client_builder(vec![trust_anchor])
+            // TLS_1_3 is currently not supported and version negotiation seems broken
+            .max_tls_version(tls::Version::TLS_1_2)
+            .identity(Identity::from_pem(cert_buf.as_bytes())?)
+            .build()
+            .expect("Could not build reqwest HTTP client");
+
         let client = Self {
-            http_client: tls_pinned_client_builder(vec![trust_anchor])
-                // TLS_1_3 is currently not supported and version negotiation seems broken
-                .max_tls_version(tls::Version::TLS_1_2)
-                .identity(Identity::from_pem(cert_buf.as_bytes())?)
-                .build()
-                .expect("Could not build reqwest HTTP client"),
+            http_client,
             base_url,
             username,
             password,
+            ca_api_key,
+            vraag_request_template,
         };
 
         Ok(client)
@@ -58,13 +74,26 @@ impl GbavClient for HttpGbavClient {
     async fn vraag(&self, bsn: &Bsn) -> Result<GbaResponse, Error> {
         info!("Sending GBA-V request to: {}", &self.base_url.clone().into_inner());
 
-        let response = self
-            .http_client
-            .post(self.base_url.clone().into_inner())
-            .basic_auth(self.username.clone(), Some(self.password.clone()))
+        let mut request_builder = self.http_client.post(self.base_url.clone().into_inner());
+
+        if let Some(ca_api_key) = &self.ca_api_key {
+            request_builder = request_builder
+                .header(header::AUTHORIZATION, format!("CA {}", ca_api_key))
+                .header(
+                    HttpGbavClient::BRP_CREDENTIALS_HEADER_NAME,
+                    format!(
+                        "Basic {}",
+                        BASE64_STANDARD.encode(format!("{}:{}", self.username.clone(), self.password.clone()))
+                    ),
+                )
+        } else {
+            request_builder = request_builder.basic_auth(self.username.clone(), Some(self.password.clone()))
+        }
+
+        let response = request_builder
             .header(header::CONTENT_TYPE, "application/xml;charset=UTF-8")
             .header(header::ACCEPT_CHARSET, "UTF-8")
-            .body(VRAAG_REQUEST.replace("{{bsn}}", &bsn.to_string()))
+            .body(self.vraag_request_template.replace("{{bsn}}", &bsn.to_string()))
             .send()
             .await?;
 
@@ -111,60 +140,3 @@ impl GbavClient for NoopGbavClient {
         Ok(GbaResponse::empty())
     }
 }
-
-const VRAAG_REQUEST: &str = r#"
-<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
-    <soap-env:Body>
-        <ns0:vraag xmlns:ns0="http://www.bprbzk.nl/GBA/LRDPlus/version1.1">
-            <ns0:in0>
-                <ns0:indicatieAdresvraag xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    xsi:nil="true" />
-                <ns0:indicatieZoekenInHistorie xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    xsi:nil="true" />
-                <ns0:masker>
-                    <ns0:item>10120</ns0:item>
-                    <ns0:item>10210</ns0:item>
-                    <ns0:item>10230</ns0:item>
-                    <ns0:item>10240</ns0:item>
-                    <ns0:item>10310</ns0:item>
-                    <ns0:item>10320</ns0:item>
-                    <ns0:item>10330</ns0:item>
-                    <ns0:item>10410</ns0:item>
-                    <ns0:item>16110</ns0:item>
-                    <ns0:item>18310</ns0:item>
-                    <ns0:item>18320</ns0:item>
-                    <ns0:item>40510</ns0:item>
-                    <ns0:item>46310</ns0:item>
-                    <ns0:item>46410</ns0:item>
-                    <ns0:item>46510</ns0:item>
-                    <ns0:item>48210</ns0:item>
-                    <ns0:item>48220</ns0:item>
-                    <ns0:item>48230</ns0:item>
-                    <ns0:item>48310</ns0:item>
-                    <ns0:item>48320</ns0:item>
-                    <ns0:item>48510</ns0:item>
-                    <ns0:item>50230</ns0:item>
-                    <ns0:item>50240</ns0:item>
-                    <ns0:item>50610</ns0:item>
-                    <ns0:item>50710</ns0:item>
-                    <ns0:item>51510</ns0:item>
-                    <ns0:item>81110</ns0:item>
-                    <ns0:item>81115</ns0:item>
-                    <ns0:item>81120</ns0:item>
-                    <ns0:item>81130</ns0:item>
-                    <ns0:item>81140</ns0:item>
-                    <ns0:item>81160</ns0:item>
-                    <ns0:item>81170</ns0:item>
-                    <ns0:item>87210</ns0:item>
-                </ns0:masker>
-                <ns0:parameters>
-                    <ns0:item>
-                        <ns0:rubrieknummer>10120</ns0:rubrieknummer>
-                        <ns0:zoekwaarde>{{bsn}}</ns0:zoekwaarde>
-                    </ns0:item>
-                </ns0:parameters>
-            </ns0:in0>
-        </ns0:vraag>
-    </soap-env:Body>
-</soap-env:Envelope>
-"#;

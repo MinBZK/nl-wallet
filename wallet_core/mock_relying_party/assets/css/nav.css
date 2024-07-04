@@ -32,7 +32,7 @@ aside {
 
 header {
     content: " ";
-    background: url("../images/nl-wallet.svg") no-repeat center center / cover;
+    background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
     width: 64px;
     height: 64px;
 }
@@ -110,13 +110,11 @@ nav a::before {
 
 /* use case icons */
 #mijn_amsterdam::before {
-    background: url("../images/mijn_amsterdam.svg") no-repeat center center /
-        cover;
+    background: url("../non-free/images/mijn_amsterdam.svg") no-repeat center center / cover;
 }
 
 #online_marketplace::before {
-    background: url("../images/online_marketplace.svg") no-repeat center center /
-        cover;
+    background: url("../images/online_marketplace.svg") no-repeat center center / cover;
 }
 
 #xyz_bank::before {

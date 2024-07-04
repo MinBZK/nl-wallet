@@ -1,9 +1,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: mrp-wallet-server-migrations-$CI_COMMIT_SHORT_SHA
+  name: mrp-verification-server-migrations-$CI_COMMIT_SHORT_SHA
   labels:
-    app: mrp-wallet-server-migrations
+    app: mrp-verification-server-migrations
 spec:
   backoffLimit: 1
   template:
@@ -14,7 +14,7 @@ spec:
       imagePullSecrets:
         - name: harbor-puller
       containers:
-        - name: mrp-wallet-server-migrations
+        - name: mrp-verification-server-migrations
           image: $WALLET_SERVER_MIGRATION_IMAGE
           args: ["fresh"]
           env:
@@ -29,5 +29,5 @@ spec:
                   name: db-cluster-mrp-app
                   key: password
             - name: DATABASE_URL
-              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/wallet_server"
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/verification_server"
       restartPolicy: Never

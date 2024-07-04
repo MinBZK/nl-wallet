@@ -49,6 +49,7 @@
       "com.example.pid": {
         "given_name": {},
         "family_name": {},
+        "own_family_name": {},
         "birth_date": {},
         "bsn": {}
       }

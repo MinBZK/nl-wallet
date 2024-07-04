@@ -27,6 +27,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
         caps.setCapability("appium:language", TestInfoHandler.language)
         caps.setCapability("appium:locale", TestInfoHandler.locale)
         caps.setCapability("appium:retryBackoffTime", APPIUM_RETRY_BACKOFF_TIME_MILLIS)
+        caps.setCapability("appium:disableSuppressAccessibilityService", APPIUM_DISABLE_SUPPRESS_ACCESSIBILITY_SERVICE)
 
         // Set other BrowserStack capabilities
         val browserstackOptions = HashMap<String, Any>()
@@ -75,5 +76,6 @@ class BrowserStackMobileDriver : WebDriverProvider {
             "https://api-cloud.browserstack.com/app-automate/recent_apps/"
         private const val BROWSER_STACK_IDLE_TIMEOUT_SECONDS = 60 // Default: 90 seconds
         private const val APPIUM_RETRY_BACKOFF_TIME_MILLIS = 500 // Default: 3000 milliseconds
+        private const val APPIUM_DISABLE_SUPPRESS_ACCESSIBILITY_SERVICE = false
     }
 }

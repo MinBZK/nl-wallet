@@ -7,6 +7,7 @@ use axum::{
 use base64::prelude::*;
 use http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, Version};
 
+use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use wallet_common::http_error::APPLICATION_PROBLEM_JSON;
 
 const MAX_BODY_SIZE: usize = 8 * 1024 * 1024; // 8 MiB
@@ -53,6 +54,7 @@ fn body_to_string(bytes: &Bytes, headers: &HeaderMap<HeaderValue>) -> String {
         "application/json",
         "application/x-www-form-urlencoded",
         "text/plain",
+        APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref(),
         APPLICATION_PROBLEM_JSON.as_ref(),
     ]
     .into_iter()

@@ -202,7 +202,7 @@ mod tests {
         server_keys::KeyPair,
         software_key_factory::SoftwareKeyFactory,
         test::{
-            data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name},
+            data::{addr_street, empty, pid_family_name, pid_full_name, pid_given_name, pid_own_family_name},
             TestDocument, TestDocuments,
         },
         unsigned::Entry,
@@ -226,7 +226,7 @@ mod tests {
         pid_given_name() + addr_street(),
         missing_attributes(pid_given_name() + addr_street())
     )]
-    #[case(pid_given_name(), pid_full_name(), missing_attributes(pid_family_name()))]
+    #[case(pid_given_name(), pid_full_name(), missing_attributes(pid_family_name() + pid_own_family_name()))]
     #[case(pid_full_name(), addr_street(), missing_attributes(addr_street()))]
     #[tokio::test]
     async fn test_match_stored_documents(
