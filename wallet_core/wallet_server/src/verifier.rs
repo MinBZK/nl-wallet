@@ -111,7 +111,7 @@ where
         )
         .await
         .inspect_err(|error| warn!("processing request for Authorization Request JWT failed, returning error: {error}"))
-        .map_err(ErrorResponse::with_uri)?;
+        .map_err(ErrorResponse::new_redirect)?;
 
     info!("processing request for Authorization Request JWT successful, returning response");
 
@@ -137,7 +137,7 @@ where
         .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
         .await
         .inspect_err(|error| warn!("processing Verifiable Presentation failed, returning error: {error}"))
-        .map_err(ErrorResponse::with_uri)?;
+        .map_err(ErrorResponse::new_redirect)?;
 
     info!("Verifiable Presentation processed successfully, returning response");
 
