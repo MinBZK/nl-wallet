@@ -5336,6 +5336,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rstest",
+ "sentry",
  "syn 2.0.68",
  "thiserror",
  "trybuild",

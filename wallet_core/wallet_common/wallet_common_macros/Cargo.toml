@@ -17,6 +17,7 @@ syn = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
 rstest.workspace = true
+sentry = { workspace = true, features = ["test"] }
 thiserror.workspace = true
 trybuild.workspace = true
 
