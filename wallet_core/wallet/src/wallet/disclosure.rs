@@ -505,7 +505,6 @@ mod tests {
     use itertools::Itertools;
     use mockall::predicate::*;
     use once_cell::sync::Lazy;
-    use openid4vc::{disclosure_session::VpMessageClientError, ErrorResponse, RedirectErrorResponse};
     use parking_lot::Mutex;
     use rstest::rstest;
     use serial_test::serial;
@@ -518,6 +517,7 @@ mod tests {
         verifier::SessionType,
         DataElementValue,
     };
+    use openid4vc::{disclosure_session::VpMessageClientError, ErrorResponse, RedirectErrorResponse};
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,
