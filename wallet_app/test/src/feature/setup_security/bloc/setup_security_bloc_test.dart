@@ -25,7 +25,9 @@ void main() {
       createWalletUseCase,
       unlockWalletWithPinUseCase,
     ),
-    verify: (bloc) => bloc.state == const SetupSecuritySelectPinInProgress(0),
+    verify: (bloc) {
+      expect(bloc.state, const SetupSecuritySelectPinInProgress(0));
+    },
   );
 
   blocTest(
