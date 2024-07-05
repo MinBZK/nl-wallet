@@ -70,6 +70,15 @@ pub enum DisclosureError {
     EventStorage(#[source] EventStorageError),
 }
 
+impl DisclosureError {
+    pub fn return_url(&self) -> Option<&Url> {
+        match self {
+            Self::VpDisclosureSession(VpClientError::Request(error)) => error.redirect_uri().map(AsRef::as_ref),
+            _ => None,
+        }
+    }
+}
+
 impl From<MdocDisclosureError> for DisclosureError {
     // This error handling is more complicated than usual because an nl_wallet_mdoc::Error can happen
     // in both the ISO and VP protocols, so it occurs in both variants, and in either case we need to
@@ -496,6 +505,7 @@ mod tests {
     use itertools::Itertools;
     use mockall::predicate::*;
     use once_cell::sync::Lazy;
+    use openid4vc::{disclosure_session::VpMessageClientError, ErrorResponse, RedirectErrorResponse};
     use parking_lot::Mutex;
     use rstest::rstest;
     use serial_test::serial;
@@ -663,7 +673,9 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(HolderError::NoAttributesRequested.into());
+        MockMdocDisclosureSession::next_start_error(
+            nl_wallet_mdoc::Error::Holder(HolderError::NoAttributesRequested).into(),
+        );
 
         // Starting disclosure with a malformed disclosure URI should result in an error.
         let error = wallet
@@ -672,6 +684,40 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
+        assert!(wallet.disclosure_session.is_none());
+    }
+
+    #[tokio::test]
+    #[serial(MockMdocDisclosureSession)]
+    async fn test_wallet_start_disclosure_error_return_url() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Set up an `MdocDisclosureSession` start to return the following error.
+        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        MockMdocDisclosureSession::next_start_error(
+            VpClientError::Request(VpMessageClientError::Response(
+                RedirectErrorResponse {
+                    error_response: ErrorResponse {
+                        error: "error".to_string(),
+                        error_description: None,
+                        error_uri: None,
+                    },
+                    redirect_uri: Some(return_url.clone().try_into().unwrap()),
+                }
+                .into(),
+            ))
+            .into(),
+        );
+
+        // Starting disclosure where the verifier returns responds with a HTTP error body containing
+        // a redirect URI should result in that URI being available on the returned error.
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::VpDisclosureSession(_));
+        assert_eq!(error.return_url(), Some(&return_url));
         assert!(wallet.disclosure_session.is_none());
     }
 

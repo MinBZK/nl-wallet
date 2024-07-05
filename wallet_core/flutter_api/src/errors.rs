@@ -2,12 +2,18 @@ use std::{error::Error, fmt::Display};
 
 use anyhow::Chain;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
+use url::Url;
 
-use wallet::errors::{
-    mdoc::{self, HolderError},
-    openid4vc::{IssuanceSessionError, OidcError, VpClientError},
-    reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
-    PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError, WalletUnlockError,
+use wallet::{
+    errors::{
+        mdoc::{self, HolderError},
+        openid4vc::{IssuanceSessionError, OidcError, VpClientError},
+        reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
+        PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
+        WalletUnlockError,
+    },
+    mdoc::SessionType,
 };
 
 /// A type encapsulating data about a Flutter error that
@@ -193,6 +199,13 @@ impl FlutterApiErrorFields for PidIssuanceError {
     }
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize)]
+struct DisclosureErrorData<'a> {
+    session_type: Option<SessionType>,
+    return_url: Option<&'a Url>,
+}
+
 impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
@@ -218,19 +231,25 @@ impl FlutterApiErrorFields for DisclosureError {
     }
 
     fn data(&self) -> Option<serde_json::Value> {
-        match self {
+        let session_type = match self {
             DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::DisclosureUriSourceMismatch(
                 session_type,
                 _,
             )))
             | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
-                [("session_type", serde_json::to_value(session_type).unwrap())] // This conversion should never fail.
-                    .into_iter()
-                    .collect::<serde_json::Value>()
-                    .into()
+                Some(*session_type)
             }
             _ => None,
-        }
+        };
+        let return_url = self.return_url();
+
+        (session_type.is_some() || return_url.is_some()).then(|| {
+            serde_json::to_value(DisclosureErrorData {
+                session_type,
+                return_url,
+            })
+            .unwrap() // This conversion should never fail.
+        })
     }
 }
 

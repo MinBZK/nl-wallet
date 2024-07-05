@@ -285,7 +285,7 @@ mod mock {
     type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
     type MockFields = (ReaderRegistration, SessionState, Option<Url>);
 
-    pub static NEXT_START_ERROR: Lazy<Mutex<Option<nl_wallet_mdoc::Error>>> = Lazy::new(|| Mutex::new(None));
+    pub static NEXT_START_ERROR: Lazy<Mutex<Option<MdocDisclosureError>>> = Lazy::new(|| Mutex::new(None));
     pub static NEXT_MOCK_FIELDS: Lazy<Mutex<Option<MockFields>>> = Lazy::new(|| Mutex::new(None));
 
     // For convenience, the default `SessionState` is a proposal.
@@ -367,7 +367,7 @@ mod mock {
                 .replace((reader_registration, session_state, terminate_return_url));
         }
 
-        pub fn next_start_error(error: nl_wallet_mdoc::Error) {
+        pub fn next_start_error(error: MdocDisclosureError) {
             NEXT_START_ERROR.lock().replace(error);
         }
     }
