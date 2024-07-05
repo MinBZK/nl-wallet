@@ -15,13 +15,48 @@ header {
     border-bottom: 0;
 }
 
+header div {
+    position: relative;
+    height: 40px;
+}
+
+header h1 {
+    display: grid;
+    grid-template-columns: 1;
+    grid-template-rows: 1fr;
+}
+
+header h1 span {
+    grid-area: 1 / 1;
+    width: 108px;
+    height: 40px;
+    font-size: 1.2rem;
+    color: transparent;
+    overflow: hidden;
+    line-height: 1;
+    z-index: -1;
+}
+
 header h1::before {
-    width: 100px;
+    grid-area: 1 / 1;
+    width: 108px;
     height: 40px;
     background-position-x: left;
+    background-color: white;
+    z-index: 1;
 }
 
 @media only screen and (min-width: 1145px) {
+    header div {
+        height: 74px;
+    }
+
+    header h1 span {
+        width: 200px;
+        height: 74px;
+        font-size: 2.2rem;
+    }
+
     header h1::before {
         width: 200px;
         height: 74px;

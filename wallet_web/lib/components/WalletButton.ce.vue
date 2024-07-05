@@ -20,26 +20,25 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  success: [session_token: string, session_type: string]
+  success: [sessionToken: string, sessionType: string]
 }>()
 
 const isVisible = ref(false)
+const button = ref<HTMLDivElement | null>(null)
+
 const isMobile = !isDesktop(window.navigator.userAgent)
 const absoluteBaseUrl = computed(() =>
   createAbsoluteUrl(props.baseUrl, window.location.href, window.location.pathname),
 )
 
-function show() {
-  isVisible.value = true
+const success = (sessionToken: string, sessionType: string) => {
+  close()
+  emit("success", sessionToken, sessionType)
 }
 
-function hide() {
+const close = () => {
   isVisible.value = false
-}
-
-function success(session_token: string, session_type: string) {
-  isVisible.value = false
-  emit("success", session_token, session_type)
+  button.value && button.value.focus()
 }
 
 provide(isMobileKey, isMobile)
@@ -68,22 +67,22 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
     part="button"
     type="button"
     class="nl-wallet-button"
+    ref="button"
+    :aria-hidden="isVisible"
     :id="id"
     :style="style"
-    @click="show"
+    @click="isVisible = true"
     data-testid="wallet_button"
   >
-    {{ text }}
+    <span part="button-span">{{ text }}</span>
   </button>
-  <Transition name="fade">
-    <wallet-modal
-      v-if="isVisible"
-      :base-url="absoluteBaseUrl"
-      :usecase
-      @close="hide"
-      @success="success"
-    ></wallet-modal>
-  </Transition>
+  <wallet-modal
+    v-if="isVisible"
+    :base-url="absoluteBaseUrl"
+    :usecase
+    @close="close"
+    @success="success"
+  ></wallet-modal>
 </template>
 
 <style>

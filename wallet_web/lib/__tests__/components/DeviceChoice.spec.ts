@@ -29,12 +29,4 @@ describe("DeviceChoice", () => {
     expect(wrapper.emitted()).toHaveProperty("choice")
     expect(wrapper.emitted().choice[0]).toEqual([SessionType.CrossDevice])
   })
-
-  it("should emit close", async () => {
-    const wrapper = mount(DeviceChoice, {
-      props: { ul: "ul_123" },
-    })
-    await wrapper.find("[data-testid=close_button]").trigger("click")
-    expect(wrapper.emitted()).toHaveProperty("close")
-  })
 })

@@ -2,7 +2,7 @@
 
 {% call header::header("Marktplek", username) %}
 <main>
-    <div class="notification"><span>Welkom {{ username }}</span></div>
-    <input name="search" type="text" placeholder="Zoek product..."></input>
+    {% call notification::notification(format!("Welkom {username}"), "") %}
+    {% call search::search("Zoek product...") %}
     {% call products::products(6) %}
 </main>

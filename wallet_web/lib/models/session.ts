@@ -1,4 +1,4 @@
-import { type StatusUrl } from "./modal-state"
+import { type StatusUrl } from "./state"
 
 export interface SessionResponse {
   status_url: StatusUrl
