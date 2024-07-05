@@ -23,7 +23,8 @@ pub struct FlutterApiError {
     #[serde(rename = "type")]
     typ: FlutterApiErrorType,
     description: String,
-    data: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "serde_json::Value::is_null")]
+    data: serde_json::Value,
     /// This property is present only for debug logging purposes and will not be encoded to JSON.
     #[serde(skip)]
     source: Box<dyn Error>,
@@ -58,8 +59,8 @@ trait FlutterApiErrorFields {
         FlutterApiErrorType::Generic
     }
 
-    fn data(&self) -> Option<serde_json::Value> {
-        None
+    fn data(&self) -> serde_json::Value {
+        serde_json::Value::Null
     }
 }
 
@@ -186,15 +187,14 @@ impl FlutterApiErrorFields for PidIssuanceError {
         }
     }
 
-    fn data(&self) -> Option<serde_json::Value> {
+    fn data(&self) -> serde_json::Value {
         match self {
             Self::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(err))) => {
                 [("redirect_error", format!("{:?}", &err.error))]
                     .into_iter()
                     .collect::<serde_json::Value>()
-                    .into()
             }
-            _ => None,
+            _ => serde_json::Value::Null,
         }
     }
 }
@@ -230,7 +230,7 @@ impl FlutterApiErrorFields for DisclosureError {
         }
     }
 
-    fn data(&self) -> Option<serde_json::Value> {
+    fn data(&self) -> serde_json::Value {
         let session_type = match self {
             DisclosureError::IsoDisclosureSession(mdoc::Error::Holder(HolderError::DisclosureUriSourceMismatch(
                 session_type,
@@ -243,13 +243,15 @@ impl FlutterApiErrorFields for DisclosureError {
         };
         let return_url = self.return_url();
 
-        (session_type.is_some() || return_url.is_some()).then(|| {
+        if session_type.is_some() || return_url.is_some() {
             serde_json::to_value(DisclosureErrorData {
                 session_type,
                 return_url,
             })
             .unwrap() // This conversion should never fail.
-        })
+        } else {
+            serde_json::Value::Null
+        }
     }
 }
 
