@@ -1260,7 +1260,7 @@ mod tests {
             _ => unreachable!(),
         };
 
-        // Accepting disclosure when the Wallet Provider responds that key with
+        // Accepting disclosure when the verifier responds that key with
         // a particular identifier is not present should result in an error.
         let error = wallet
             .accept_disclosure(PIN.to_string())
@@ -1336,7 +1336,7 @@ mod tests {
         let was_terminated = Arc::clone(&wallet.disclosure_session.as_ref().unwrap().was_terminated);
         assert!(!was_terminated.load(Ordering::Relaxed));
 
-        // Accepting disclosure when the Wallet Provider responds with an `InstructionError` indicating
+        // Accepting disclosure when the verifier responds with an `InstructionError` indicating
         // that the account is blocked should result in a `DisclosureError::Instruction` error.
         let error = wallet
             .accept_disclosure(PIN.to_string())
@@ -1429,8 +1429,8 @@ mod tests {
 
         wallet.disclosure_session = disclosure_session.into();
 
-        // Accepting disclosure when the Wallet Provider responds with an `InstructionError` indicating
-        // that the account is blocked should result in a `DisclosureError::Instruction` error.
+        // Accepting disclosure when the verifier responds with an error indicating that
+        // attributes were shared should result in a disclosure event being recorded.
         let error = wallet
             .accept_disclosure(PIN.to_string())
             .await
