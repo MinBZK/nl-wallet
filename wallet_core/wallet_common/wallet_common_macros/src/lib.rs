@@ -20,15 +20,12 @@ const DEFER: &str = "defer";
 pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item = syn::parse::<Item>(item);
     match item {
-        Ok(Item::Fn(item_fn)) => handle_error_category_fn(item_fn).into(),
-        Ok(Item::Impl(item_impl)) => handle_error_category_impl_block(item_impl).into(),
+        Ok(Item::Fn(item_fn)) => sentry_capture_error_fn(item_fn).into(),
+        Ok(Item::Impl(item_impl)) => sentry_capture_error_impl_block(item_impl).into(),
         Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
         Ok(item) => {
-            let mut token_stream = Error::new(
-                item.span(),
-                "attribute macro `handle_error_category` not supported here",
-            )
-            .into_compile_error();
+            let mut token_stream = Error::new(item.span(), "attribute macro `sentry_capture_error` not supported here")
+                .into_compile_error();
             // Copy the original item, to prevent new/other compilation errors
             item.to_tokens(&mut token_stream);
             token_stream.into()
@@ -37,13 +34,13 @@ pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::To
 }
 
 /// Generate code for a `fn`.
-fn handle_error_category_fn(ItemFn { attrs, vis, sig, block }: ItemFn) -> TokenStream {
+fn sentry_capture_error_fn(ItemFn { attrs, vis, sig, block }: ItemFn) -> TokenStream {
     let defaultness = None;
-    handle_error_category_function(&attrs, &vis, &defaultness, &sig, &block)
+    sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
 }
 
 /// Generate code for functions, can be used both for regular functions and associated functions.
-fn handle_error_category_function(
+fn sentry_capture_error_function(
     attrs: &[Attribute],
     vis: &Visibility,
     defaultness: &Option<syn::token::Default>,
@@ -64,7 +61,7 @@ fn handle_error_category_function(
 }
 
 /// Generate code for an `impl` block.
-fn handle_error_category_impl_block(
+fn sentry_capture_error_impl_block(
     ItemImpl {
         attrs,
         defaultness,
@@ -81,7 +78,7 @@ fn handle_error_category_impl_block(
     let items = items
         .into_iter()
         .map(|item| match item {
-            ImplItem::Fn(item_fn) => handle_error_category_impl_fn(item_fn),
+            ImplItem::Fn(item_fn) => sentry_capture_error_impl_fn(item_fn),
             item => item.into_token_stream(),
         })
         .collect::<Vec<_>>();
@@ -102,7 +99,7 @@ fn handle_error_category_impl_block(
 }
 
 /// Generate code for an associated `fn`.
-fn handle_error_category_impl_fn(
+fn sentry_capture_error_impl_fn(
     ImplItemFn {
         attrs,
         vis,
@@ -111,7 +108,7 @@ fn handle_error_category_impl_fn(
         block,
     }: ImplItemFn,
 ) -> TokenStream {
-    handle_error_category_function(&attrs, &vis, &defaultness, &sig, &block)
+    sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
 }
 
 /// Derive `wallet_common::error_category::ErrorCategory` for Error types.

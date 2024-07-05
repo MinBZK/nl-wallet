@@ -1,6 +1,6 @@
-use wallet_common::error_category::handle_error_category;
+use wallet_common::error_category::sentry_capture_error;
 
-#[handle_error_category]
+#[sentry_capture_error]
 enum Foo {}
 
 fn main() {}

@@ -68,7 +68,7 @@ fn test_bar() {
 }
 
 #[test]
-fn handle_error_category() {
+fn sentry_capture_error() {
     let t = trybuild::TestCases::new();
-    t.compile_fail("tests/handle_error_category/fail_*.rs");
+    t.compile_fail("tests/sentry_capture_error/fail_*.rs");
 }

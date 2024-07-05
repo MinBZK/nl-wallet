@@ -1,5 +1,5 @@
-error: attribute macro `handle_error_category` not supported here
- --> tests/handle_error_category/fail_on_trait.rs:4:1
+error: attribute macro `sentry_capture_error` not supported here
+ --> tests/sentry_capture_error/fail_on_trait.rs:4:1
   |
 4 | trait Foo {}
   | ^^^^^
