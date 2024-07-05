@@ -5326,7 +5326,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "uuid",
  "wallet_common_macros",
 ]
 

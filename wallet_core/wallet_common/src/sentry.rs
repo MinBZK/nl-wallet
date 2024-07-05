@@ -1,8 +1,7 @@
 use std::{borrow::Cow, error::Error};
 
-use sentry::{protocol::Event, ClientInitGuard, ClientOptions, Level};
+use sentry::{event_from_error, ClientInitGuard, ClientOptions};
 use serde::Deserialize;
-use uuid::Uuid;
 
 use crate::error_category::{Category, ErrorCategory};
 
@@ -37,14 +36,70 @@ pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: T) -> T {
             let _uuid = sentry::capture_error(&error);
         }
         Category::PersonalData => {
-            let event = Event {
-                event_id: Uuid::new_v4(),
-                message: Some(std::any::type_name_of_val(&error).to_string()),
-                level: Level::Error,
-                ..Default::default()
-            };
+            let mut event = event_from_error(&error);
+            // Clear all exception values, to remove privacy sensitive data
+            event.exception.values.iter_mut().for_each(|value| value.value = None);
             let _uuid = sentry::capture_event(event);
         }
     }
     error
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use sentry::{test::with_captured_events, Level};
+    use thiserror::Error;
+
+    #[derive(Debug, Error)]
+    #[error("Something wrong")]
+    struct Error {
+        category: Category,
+    }
+
+    impl ErrorCategory for Error {
+        fn category(&self) -> Category {
+            self.category
+        }
+    }
+
+    #[test]
+    fn test_classify_and_report_to_sentry_expected() {
+        let error = Error {
+            category: Category::Expected,
+        };
+        let events = with_captured_events(|| {
+            classify_and_report_to_sentry(error);
+        });
+        assert_eq!(events.len(), 0);
+    }
+
+    #[test]
+    fn test_classify_and_report_to_sentry_critical() {
+        let error = Error {
+            category: Category::Critical,
+        };
+        let events = with_captured_events(|| {
+            classify_and_report_to_sentry(error);
+        });
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].level, Level::Error);
+        assert_eq!(events[0].exception.values[0].ty, "Error".to_string());
+        assert_eq!(events[0].exception.values[0].value, Some("Something wrong".to_string()));
+    }
+
+    #[test]
+    fn test_classify_and_report_to_sentry_personal_data() {
+        let error = Error {
+            category: Category::PersonalData,
+        };
+        let events = with_captured_events(|| {
+            classify_and_report_to_sentry(error);
+        });
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].level, Level::Error);
+        assert_eq!(events[0].exception.values[0].ty, "Error".to_string());
+        assert_eq!(events[0].exception.values[0].value, None);
+    }
 }
