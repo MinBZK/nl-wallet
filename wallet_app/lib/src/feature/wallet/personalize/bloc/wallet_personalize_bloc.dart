@@ -14,6 +14,7 @@ import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../../../util/extension/bloc_extension.dart';
 import '../../../../wallet_constants.dart';
 import '../../../../wallet_core/error/core_error.dart';
@@ -26,12 +27,14 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
   final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
   final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
+  final IsWalletInitializedWithPidUseCase isWalletInitializedWithPidUseCase;
 
   WalletPersonalizeBloc(
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
     this.cancelPidIssuanceUseCase,
     this.continuePidIssuanceUseCase,
+    this.isWalletInitializedWithPidUseCase,
   ) : super(const WalletPersonalizeInitial()) {
     on<WalletPersonalizeLoginWithDigidClicked>(_onLoginWithDigidClicked);
     on<WalletPersonalizeLoginWithDigidSucceeded>(_onLoginWithDigidSucceeded);
@@ -44,6 +47,14 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeRetryPressed>(_onRetryPressed);
     on<WalletPersonalizeUpdateState>(_onStateUpdate);
     on<WalletPersonalizeContinuePidIssuance>(_continuePidIssuance);
+
+    // PID sanity check (PVW-2742)
+    isWalletInitializedWithPidUseCase.invoke().then(
+      (initialized) async {
+        if (initialized) await _loadCardsAndEmitSuccessState();
+      },
+      onError: (_) {}, /* consume any errors */
+    );
   }
 
   Future<void> _continuePidIssuance(WalletPersonalizeContinuePidIssuance event, emit) async {
@@ -162,7 +173,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     if (state is WalletPersonalizeConfirmPin) {
       emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
       try {
-        await _loadCardsAndEmitSuccessState(event, emit);
+        await _loadCardsAndEmitSuccessState();
       } catch (ex, stack) {
         Fimber.e('Failed to add cards to wallet', ex: ex, stacktrace: stack);
         emit(WalletPersonalizeFailure());
@@ -170,13 +181,13 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     }
   }
 
-  Future<void> _loadCardsAndEmitSuccessState(event, emit) async {
+  Future<void> _loadCardsAndEmitSuccessState() async {
     try {
       final cards = await getWalletCardsUseCase.invoke();
-      emit(WalletPersonalizeSuccess(cards));
+      add(WalletPersonalizeUpdateState(WalletPersonalizeSuccess(cards)));
     } catch (ex, stack) {
       Fimber.e('Failed to fetch cards from wallet', ex: ex, stacktrace: stack);
-      emit(WalletPersonalizeFailure());
+      add(WalletPersonalizeUpdateState(WalletPersonalizeFailure()));
     }
   }
 }

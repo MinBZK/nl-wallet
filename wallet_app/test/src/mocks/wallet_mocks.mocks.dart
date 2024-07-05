@@ -29,6 +29,7 @@ import 'package:wallet/src/domain/model/event/wallet_event.dart' as _i22;
 import 'package:wallet/src/domain/model/pin/check_pin_result.dart' as _i33;
 import 'package:wallet/src/domain/model/wallet_card.dart' as _i8;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i29;
+import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart' as _i49;
 import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart' as _i43;
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i39;
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart' as _i42;
@@ -39,6 +40,9 @@ import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisi
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i27;
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart' as _i35;
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i37;
+import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart' as _i51;
+import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i52;
+import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i50;
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i45;
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i32;
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i47;
@@ -2299,6 +2303,90 @@ class MockResetWalletUseCase extends _i1.Mock implements _i48.ResetWalletUseCase
         returnValue: _i9.Future<void>.value(),
         returnValueForMissingStub: _i9.Future<void>.value(),
       ) as _i9.Future<void>);
+}
+
+/// A class which mocks [GetWalletCardsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetWalletCardsUseCase extends _i1.Mock implements _i49.GetWalletCardsUseCase {
+  @override
+  _i9.Future<List<_i8.WalletCard>> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i9.Future<List<_i8.WalletCard>>.value(<_i8.WalletCard>[]),
+        returnValueForMissingStub: _i9.Future<List<_i8.WalletCard>>.value(<_i8.WalletCard>[]),
+      ) as _i9.Future<List<_i8.WalletCard>>);
+}
+
+/// A class which mocks [GetPidIssuanceUrlUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetPidIssuanceUrlUseCase extends _i1.Mock implements _i50.GetPidIssuanceUrlUseCase {
+  @override
+  _i9.Future<String> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i9.Future<String>.value(_i11.dummyValue<String>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<String>.value(_i11.dummyValue<String>(
+          this,
+          Invocation.method(
+            #invoke,
+            [],
+          ),
+        )),
+      ) as _i9.Future<String>);
+}
+
+/// A class which mocks [CancelPidIssuanceUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCancelPidIssuanceUseCase extends _i1.Mock implements _i51.CancelPidIssuanceUseCase {
+  @override
+  _i9.Future<void> invoke() => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [],
+        ),
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
+}
+
+/// A class which mocks [ContinuePidIssuanceUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockContinuePidIssuanceUseCase extends _i1.Mock implements _i52.ContinuePidIssuanceUseCase {
+  @override
+  _i9.Future<_i15.PidIssuanceStatus> invoke(String? uri) => (super.noSuchMethod(
+        Invocation.method(
+          #invoke,
+          [uri],
+        ),
+        returnValue: _i9.Future<_i15.PidIssuanceStatus>.value(_i11.dummyValue<_i15.PidIssuanceStatus>(
+          this,
+          Invocation.method(
+            #invoke,
+            [uri],
+          ),
+        )),
+        returnValueForMissingStub: _i9.Future<_i15.PidIssuanceStatus>.value(_i11.dummyValue<_i15.PidIssuanceStatus>(
+          this,
+          Invocation.method(
+            #invoke,
+            [uri],
+          ),
+        )),
+      ) as _i9.Future<_i15.PidIssuanceStatus>);
 }
 
 /// A class which mocks [WalletCore].

@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { FooterState } from "@/models/footer-state"
+import { SessionState } from "@/models/state"
+import { SessionType } from "@/models/status"
 
 defineProps<{
-  state: FooterState
+  state: SessionState
+  type: SessionType | null
 }>()
 
-const emit = defineEmits(["close", "stop", "retry"])
+const emit = defineEmits(["close", "stop", "retry", "success"])
 </script>
 
 <template>
   <footer>
     <a
-      v-if="state === FooterState.Stop || state === FooterState.Cancel"
+      v-if="state === SessionState.Loading || state === SessionState.InProgress"
       href="/help"
       class="button link"
       data-testid="help"
@@ -23,7 +25,7 @@ const emit = defineEmits(["close", "stop", "retry"])
     </a>
 
     <button
-      v-if="state === FooterState.Stop || state === FooterState.Cancel"
+      v-if="state === SessionState.Loading || state === SessionState.InProgress"
       type="button"
       class="button secondary"
       data-testid="cancel_button"
@@ -38,7 +40,7 @@ const emit = defineEmits(["close", "stop", "retry"])
     </button>
 
     <button
-      v-if="state === FooterState.Retry"
+      v-if="state === SessionState.Error"
       type="button"
       class="button primary"
       data-testid="retry_button"
@@ -53,15 +55,22 @@ const emit = defineEmits(["close", "stop", "retry"])
     </button>
 
     <button
-      v-if="state === FooterState.Close || state === FooterState.Ok || state === FooterState.Retry"
+      v-if="
+        state === SessionState.Created ||
+        state === SessionState.Error ||
+        state === SessionState.Success
+      "
       type="button"
       class="button"
       :class="{
-        link: state === FooterState.Close || state === FooterState.Retry,
-        primary: state === FooterState.Ok,
+        link:
+          state === SessionState.Created ||
+          state === SessionState.Error ||
+          (state === SessionState.Success && type === SessionType.CrossDevice),
+        primary: state === SessionState.Success && type === SessionType.SameDevice,
       }"
       data-testid="close_button"
-      @click="emit('close')"
+      @click="state === SessionState.Success ? emit('success') : emit('close')"
     >
       <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
         <path

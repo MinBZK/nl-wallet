@@ -12,6 +12,6 @@
             usecase="{{ usecase }}"
             base-url="../"
         ></nl-wallet-button>
-        <a href="#">Kies een ander middel</a>
+        <a href="#" disabled>Kies een ander middel</a>
     </section>
 </main>

@@ -10,6 +10,7 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
@@ -20,6 +21,9 @@ import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisi
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
 import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
@@ -78,6 +82,10 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CreateWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<UnlockWalletWithPinUseCase>()])
 @GenerateNiceMocks([MockSpec<ResetWalletUseCase>()])
+@GenerateNiceMocks([MockSpec<GetWalletCardsUseCase>()])
+@GenerateNiceMocks([MockSpec<GetPidIssuanceUrlUseCase>()])
+@GenerateNiceMocks([MockSpec<CancelPidIssuanceUseCase>()])
+@GenerateNiceMocks([MockSpec<ContinuePidIssuanceUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCore>()])

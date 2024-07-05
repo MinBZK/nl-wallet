@@ -80,6 +80,8 @@ describe("WalletModal", () => {
     await flushPromises()
     const qr = wrapper.getComponent(QrCode)
 
+    // twice needed because of "focus-hack"
+    await vi.advanceTimersToNextTimerAsync()
     await vi.advanceTimersToNextTimerAsync()
     expect(qr.find("[data-testid=qr]").exists()).toBe(true)
 
@@ -97,6 +99,8 @@ describe("WalletModal", () => {
     await vi.mocked(getStatus).withImplementation(
       async () => ({ status: "WAITING_FOR_RESPONSE" }),
       async () => {
+        // twice needed because of "focus-hack"
+        await vi.advanceTimersToNextTimerAsync()
         await vi.advanceTimersToNextTimerAsync()
         await vi.waitFor(() => {
           expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(true)
@@ -144,24 +148,32 @@ describe("WalletModal", () => {
 
     it("should show error for expired state", async () => {
       vi.mocked(getStatus).mockResolvedValueOnce({ status: "EXPIRED" })
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(true)
     })
 
     it("should show error for canceled state", async () => {
       vi.mocked(getStatus).mockResolvedValueOnce({ status: "CANCELLED" })
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=cancelled_header]").exists()).toBe(true)
     })
 
     it("should show error for failed state", async () => {
       vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
 
     it("should show error for get status failure", async () => {
       vi.mocked(getStatus).mockRejectedValueOnce(new Error("mock http error"))
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
@@ -187,6 +199,8 @@ describe("WalletModal", () => {
     expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
 
     vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+    // twice needed because of "focus-hack"
+    await vi.advanceTimersToNextTimerAsync()
     await vi.advanceTimersToNextTimerAsync()
 
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)

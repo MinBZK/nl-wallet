@@ -13,7 +13,6 @@
 {% endblock %}
 
 {% block content %}
-{% call demo_bar::demo_bar("Volg de ontwikkelingen op", "https://edi.pleio.nl", "edi.pleio.nl") %}
 {% match usecase %}
     {% when "mijn_amsterdam" %}
         {% include "mijn_amsterdam.askama" %}
@@ -26,4 +25,7 @@
     {% else %}
         Usecase not found
 {% endmatch %}
+
+{# should be last for accessibility purposes #}
+{% call demo_bar::demo_bar("Volg de ontwikkelingen op", "https://edi.pleio.nl", "edi.pleio.nl") %}
 {% endblock %}
