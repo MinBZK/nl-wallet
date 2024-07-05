@@ -29,20 +29,19 @@ impl Sentry {
     }
 }
 
-pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: T) -> T {
+pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: &T) {
     match error.category() {
         Category::Expected => {}
         Category::Critical => {
-            let _uuid = sentry::capture_error(&error);
+            let _uuid = sentry::capture_error(error);
         }
         Category::PersonalData => {
-            let mut event = event_from_error(&error);
+            let mut event = event_from_error(error);
             // Clear all exception values, to remove privacy sensitive data
             event.exception.values.iter_mut().for_each(|value| value.value = None);
             let _uuid = sentry::capture_event(event);
         }
     }
-    error
 }
 
 #[cfg(test)]
@@ -70,7 +69,7 @@ mod tests {
             category: Category::Expected,
         };
         let events = with_captured_events(|| {
-            classify_and_report_to_sentry(error);
+            classify_and_report_to_sentry(&error);
         });
         assert_eq!(events.len(), 0);
     }
@@ -81,7 +80,7 @@ mod tests {
             category: Category::Critical,
         };
         let events = with_captured_events(|| {
-            classify_and_report_to_sentry(error);
+            classify_and_report_to_sentry(&error);
         });
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].level, Level::Error);
@@ -95,7 +94,7 @@ mod tests {
             category: Category::PersonalData,
         };
         let events = with_captured_events(|| {
-            classify_and_report_to_sentry(error);
+            classify_and_report_to_sentry(&error);
         });
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].level, Level::Error);

@@ -51,7 +51,7 @@ fn sentry_capture_error_function(
 
     quote! {
         #(#attrs)* #vis #defaultness #sig {
-            Result::map_err(
+            Result::inspect_err(
                 {
                     #(#stmts)*
                 }
