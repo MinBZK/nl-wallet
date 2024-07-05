@@ -17,7 +17,7 @@ const DEFER: &str = "defer";
 /// This macro can be set on `fn` and `impl` blocks.
 /// Setting this macro on an `impl` block is the same as setting this on all `fn`s in the impl block.
 #[proc_macro_attribute]
-pub fn handle_error_category(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item = syn::parse::<Item>(item);
     match item {
         Ok(Item::Fn(item_fn)) => handle_error_category_fn(item_fn).into(),

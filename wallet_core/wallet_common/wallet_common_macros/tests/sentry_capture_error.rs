@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use wallet_common::error_category::{handle_error_category, ErrorCategory};
+use wallet_common::error_category::{sentry_capture_error, ErrorCategory};
 
 struct Wallet;
 
@@ -12,7 +12,7 @@ enum Error {
     Unit,
 }
 
-#[handle_error_category]
+#[sentry_capture_error]
 impl Wallet {
     pub fn do_something(&self) -> Result<(), Error> {
         Err(Error::Unit)
@@ -23,14 +23,14 @@ trait Foo {
     fn foo(&self) -> Result<(), Error>;
 }
 
-#[handle_error_category]
+#[sentry_capture_error]
 impl Foo for Wallet {
     fn foo(&self) -> Result<(), Error> {
         Err(Error::Unit)
     }
 }
 
-#[handle_error_category]
+#[sentry_capture_error]
 fn bar() -> Result<(), Error> {
     Err(Error::Unit)
 }
