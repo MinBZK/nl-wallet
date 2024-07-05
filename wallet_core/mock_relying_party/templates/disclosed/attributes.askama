@@ -2,6 +2,8 @@
 {%- import "components/demo_bar.askama" as demo_bar -%}
 {%- import "components/header.askama" as header -%}
 {%- import "components/attributes.askama" as attributes -%}
+{%- import "components/notification.askama" as notification -%}
+{%- import "components/search.askama" as search -%}
 {%- import "components/products.askama" as products -%}
 
 {% block styles %}
@@ -14,7 +16,6 @@
 {% endblock %}
 
 {% block content %}
-{% call demo_bar::demo_bar("Bekijk andere", "../", "voorbeelden") %}
 {% match usecase %}
     {% when "mijn_amsterdam" %}
         {% include "mijn_amsterdam.askama" %}
@@ -27,4 +28,7 @@
     {% else %}
         Usecase not found
 {% endmatch %}
+
+{# should be last for accessibility purposes #}
+{% call demo_bar::demo_bar("Bekijk andere", "../", "voorbeelden") %}
 {% endblock %}

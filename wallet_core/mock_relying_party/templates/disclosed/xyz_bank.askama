@@ -5,7 +5,7 @@
     <section>
         <h4>Bankrekening openen</h4>
         <h2>Stap 1. Identificeer uzelf</h2>
-        <div class="notification"><span>Identificatie gelukt</span></div>
+        {% call notification::notification("Identificatie gelukt", "") %}
     </section>
     <section>
         {% call attributes::attributes(attributes) %}

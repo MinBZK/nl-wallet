@@ -1,4 +1,6 @@
 aside {
+    order: -1;
+
     width: 100vw;
     display: flex;
     flex-direction: row;
@@ -29,7 +31,7 @@ aside a:hover {
     text-decoration: none;
 }
 
-aside .logo {
+aside::before {
     content: " ";
     background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
     width: 40px;

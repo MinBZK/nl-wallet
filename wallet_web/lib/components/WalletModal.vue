@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import { createSession } from "@/api/session"
 import { getStatus } from "@/api/status"
-import DeviceChoice from "@/components/DeviceChoice.vue"
-import ErrorSection from "@/components/ErrorSection.vue"
-import InProgressSection from "@/components/InProgressSection.vue"
-import LoadingSection from "@/components/LoadingSection.vue"
+import ModalFooter from "@/components/ModalFooter.vue"
 import ModalHeader from "@/components/ModalHeader.vue"
-import QrCode from "@/components/QrCode.vue"
-import SuccessSection from "@/components/SuccessSection.vue"
-import { type ModalState, type StatusUrl } from "@/models/modal-state"
+import ModalMain from "@/components/ModalMain.vue"
+import { SessionState, type ModalState, type StatusUrl } from "@/models/state"
 import { SessionType } from "@/models/status"
 import { isMobileKey } from "@/util/projection_keys"
 import { inject, onMounted, onUnmounted, ref, watch } from "vue"
@@ -27,50 +23,50 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   close: []
-  success: [session_token: string, session_type: SessionType]
+  success: [sessionToken: string, sessionType: SessionType]
 }>()
 
 const isMobile = inject(isMobileKey)
 
 const pollHandle = ref<NodeJS.Timeout>()
-const modalState = ref<ModalState>({ kind: "loading" })
+const modalState = ref<ModalState>({ kind: SessionState.Loading })
 
 watch(modalState, (state) => {
   switch (state.kind) {
-    case "created":
-    case "in-progress": {
-      pollStatus(state.status_url, state.session_type, state.session_token)
+    case SessionState.Created:
+    case SessionState.InProgress: {
+      pollStatus(state.statusUrl, state.sessionType, state.sessionToken)
       break
     }
-    case "loading":
-    case "success":
-    case "error": {
+    case SessionState.Loading:
+    case SessionState.Success:
+    case SessionState.Error: {
       cancelPolling()
       break
     }
   }
 })
 
-function pollStatus(statusUrl: StatusUrl, sessionType: SessionType, session_token: string) {
+const pollStatus = (statusUrl: StatusUrl, sessionType: SessionType, sessionToken: string) => {
   if (pollHandle.value) {
     cancelPolling()
   }
 
   pollHandle.value = setTimeout(
-    async () => await checkStatus(statusUrl, sessionType, session_token),
+    async () => await checkStatus(statusUrl, sessionType, sessionToken),
     props.pollIntervalInMs,
   )
 }
 
-function cancelPolling() {
+const cancelPolling = () => {
   if (pollHandle.value) {
     clearTimeout(pollHandle.value)
   }
 }
 
-async function startSession() {
+const startSession = async () => {
   try {
-    modalState.value = { kind: "loading" }
+    modalState.value = { kind: SessionState.Loading }
 
     let response = await createSession(props.baseUrl, {
       usecase: props.usecase,
@@ -82,135 +78,127 @@ async function startSession() {
     )
   } catch (e) {
     console.error(e)
-    modalState.value = { kind: "error", error_type: "failed" }
+    modalState.value = { kind: SessionState.Error, errorType: "failed" }
   }
 }
 
-async function checkStatus(statusUrl: StatusUrl, sessionType: SessionType, session_token: string) {
+const checkStatus = async (
+  statusUrl: StatusUrl,
+  sessionType: SessionType,
+  sessionToken: string,
+) => {
   try {
     let statusResponse = await getStatus(statusUrl, sessionType)
 
     switch (statusResponse.status) {
       case "CREATED":
         modalState.value = {
-          kind: "created",
+          kind: SessionState.Created,
           ul: statusResponse.ul,
-          status_url: statusUrl,
-          session_type: sessionType,
-          session_token,
+          statusUrl,
+          sessionType,
+          sessionToken,
         }
         break
       case "WAITING_FOR_RESPONSE":
         modalState.value = {
-          kind: "in-progress",
-          status_url: statusUrl,
-          session_type: sessionType,
-          session_token,
+          kind: SessionState.InProgress,
+          statusUrl,
+          sessionType,
+          sessionToken,
         }
         break
       case "DONE":
         modalState.value = {
-          kind: "success",
-          session_type: sessionType,
-          session_token,
+          kind: SessionState.Success,
+          sessionType,
+          sessionToken,
         }
         break
       case "EXPIRED":
         modalState.value = {
-          kind: "error",
-          error_type: "expired",
+          kind: SessionState.Error,
+          errorType: "expired",
         }
         break
       case "CANCELLED":
         modalState.value = {
-          kind: "error",
-          error_type: "cancelled",
+          kind: SessionState.Error,
+          errorType: "cancelled",
         }
         break
       case "FAILED":
         modalState.value = {
-          kind: "error",
-          error_type: "failed",
+          kind: SessionState.Error,
+          errorType: "failed",
         }
         break
     }
   } catch (e) {
     console.error(e)
     modalState.value = {
-      kind: "error",
-      error_type: "failed",
+      kind: SessionState.Error,
+      errorType: "failed",
     }
   }
 }
 
-async function handleChoice(choice: SessionType) {
+const handleChoice = async (choice: SessionType) => {
   if (modalState.value.kind === "created") {
     cancelPolling()
 
-    let status_url = modalState.value.status_url
-    let session_token = modalState.value.session_token
+    let statusUrl = modalState.value.statusUrl
+    let sessionToken = modalState.value.sessionToken
     if (choice === SessionType.CrossDevice) {
-      modalState.value = { kind: "loading" }
+      modalState.value = { kind: SessionState.Loading }
     }
-    await checkStatus(status_url, choice, session_token)
+    await checkStatus(statusUrl, choice, sessionToken)
   } else {
     modalState.value = {
-      kind: "error",
-      error_type: "failed",
+      kind: SessionState.Error,
+      errorType: "failed",
     }
   }
 }
 
-function success(session_token: string, session_type: SessionType) {
-  emit("success", session_token, session_type)
-}
-
-function close() {
+const success = (sessionToken: string, sessionType: SessionType) =>
+  emit("success", sessionToken, sessionType)
+const stop = async () => {
+  await cancelPolling()
   emit("close")
-}
-
-async function retry() {
-  await startSession()
-}
+} // TODO implement cancelsession
+const retry = async () => await startSession()
 
 onMounted(async () => {
   await startSession()
 })
+
 onUnmounted(cancelPolling)
 </script>
 
 <template>
   <div class="modal-anchor">
-    <aside class="modal" :class="modalState.kind" data-testid="wallet_modal">
+    <aside
+      aria-modal="true"
+      role="dialog"
+      aria-label="NL Wallet"
+      class="modal"
+      :class="[modalState.kind, modalState.kind == SessionState.Success && modalState.sessionType]"
+      data-testid="wallet_modal"
+    >
       <modal-header></modal-header>
-
-      <loading-section v-if="modalState.kind === 'loading'" @stop="close"></loading-section>
-      <device-choice
-        v-if="modalState.kind === 'created' && modalState.session_type === SessionType.SameDevice"
-        :ul="modalState.ul"
-        @choice="handleChoice"
-        @close="close"
-      ></device-choice>
-      <qr-code
-        v-if="modalState.kind === 'created' && modalState.session_type === SessionType.CrossDevice"
-        :text="modalState.ul"
-        @close="close"
-      ></qr-code>
-      <in-progress-section
-        v-if="modalState.kind === 'in-progress'"
-        @stop="close"
-      ></in-progress-section>
-      <success-section
-        v-if="modalState.kind === 'success'"
-        :sessionType="modalState.session_type"
-        @close="success(modalState.session_token, modalState.session_type)"
-      ></success-section>
-      <error-section
-        v-if="modalState.kind === 'error'"
-        :error_type="modalState.error_type"
-        @close="close"
+      <modal-main :modalState="modalState" @choice="handleChoice"></modal-main>
+      <modal-footer
+        :state="modalState.kind"
+        :type="modalState.kind == SessionState.Success ? modalState.sessionType : null"
         @retry="retry"
-      ></error-section>
+        @close="emit('close')"
+        @stop="stop"
+        @success="
+          modalState.kind == SessionState.Success &&
+            success(modalState.sessionToken, modalState.sessionType)
+        "
+      ></modal-footer>
     </aside>
   </div>
 </template>

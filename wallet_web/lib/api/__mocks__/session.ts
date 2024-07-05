@@ -1,4 +1,4 @@
-import { type StatusUrl } from "@/models/modal-state"
+import { type StatusUrl } from "@/models/state"
 import { type SessionResponse } from "@/models/session"
 import { vi } from "vitest"
 

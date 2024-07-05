@@ -1,0 +1,3 @@
+{% macro search(text) %}
+<input name="search" type="search" placeholder="{{ text }}"></input>
+{% endmacro %}

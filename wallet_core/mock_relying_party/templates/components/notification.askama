@@ -1,0 +1,3 @@
+{% macro notification(span_text, text) %}
+<div role="alert" class="notification"><span>{{ span_text }}</span>{{ text }}</div>
+{% endmacro %}
