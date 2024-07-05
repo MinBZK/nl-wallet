@@ -68,6 +68,7 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
     assert(disclosure != null, 'No ongoing disclosure to deny');
     _ongoingDisclosure = null;
     _eventLog.logDisclosure(disclosure!, DisclosureStatus.Cancelled);
+    return null;
   }
 
   @override
