@@ -7,7 +7,7 @@ class CardDetailScreen : MobileActions() {
     private val screen = find.byValueKey("cardDetailScreen")
 
     private val pidIdTitleText = find.byText(l10n.getString("pidIdCardTitle"))
-    private val cardDataStateText = find.byText("Rijksdienst voor Identiteitsgegevens")
+    private val cardIssuerStateText = find.byText("RiVG")
     private val cardHistoryStateText = find.byText(l10n.getString("cardDetailScreenLatestSuccessInteractionUnknown"))
 
     private val cardDataButton = find.byText(l10n.getString("cardDetailScreenCardDataCta"))
@@ -18,8 +18,8 @@ class CardDetailScreen : MobileActions() {
 
     fun cardFaceElements() = isElementVisible(pidIdTitleText, false)
 
-    fun dataAndHistoryStates() =
-        isElementVisible(cardDataStateText, false) && isElementVisible(cardHistoryStateText, false)
+    fun issuerAndHistoryStates() =
+        isElementVisible(cardIssuerStateText, false) && isElementVisible(cardHistoryStateText, false)
 
     fun clickCardDataButton() = clickElement(cardDataButton, false)
 
