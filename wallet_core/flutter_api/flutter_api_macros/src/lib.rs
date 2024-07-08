@@ -32,7 +32,7 @@ pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
                     async {
                         #(#stmts)*
                     },
-                    sentry::Hub::new_from_top(sentry::Hub::current())
+                    ::sentry::Hub::new_from_top(::sentry::Hub::current())
                 )
             )
         }
