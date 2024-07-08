@@ -517,7 +517,9 @@ mod tests {
         verifier::SessionType,
         DataElementValue,
     };
-    use openid4vc::{disclosure_session::VpMessageClientError, ErrorResponse, RedirectErrorResponse};
+    use openid4vc::{
+        disclosure_session::VpMessageClientError, ErrorResponse, GetRequestErrorCode, RedirectErrorResponse,
+    };
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,
@@ -695,17 +697,14 @@ mod tests {
         // Set up an `MdocDisclosureSession` start to return the following error.
         let return_url = Url::parse("https://example.com/return/here").unwrap();
         MockMdocDisclosureSession::next_start_error(
-            VpClientError::Request(VpMessageClientError::Response(
-                RedirectErrorResponse {
-                    error_response: ErrorResponse {
-                        error: "error".to_string(),
-                        error_description: None,
-                        error_uri: None,
-                    },
-                    redirect_uri: Some(return_url.clone().try_into().unwrap()),
-                }
-                .into(),
-            ))
+            VpClientError::Request(VpMessageClientError::AuthGetResponse(RedirectErrorResponse {
+                error_response: ErrorResponse {
+                    error: GetRequestErrorCode::ServerError,
+                    error_description: None,
+                    error_uri: None,
+                },
+                redirect_uri: Some(return_url.clone().try_into().unwrap()),
+            }))
             .into(),
         );
 

@@ -30,7 +30,8 @@ use crate::{
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
-    AuthorizationErrorCode, ErrorResponse, RedirectErrorResponse, VpAuthorizationErrorCode,
+    AuthorizationErrorCode, ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, RedirectErrorResponse,
+    VpAuthorizationErrorCode,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -71,14 +72,45 @@ pub enum VpMessageClientError {
     Http(#[from] reqwest::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("error response: {0:?}")]
-    Response(Box<RedirectErrorResponse<String>>),
+    #[error("auth request server error response: {0:?}")]
+    AuthGetResponse(RedirectErrorResponse<GetRequestErrorCode>),
+    #[error("auth request server error response: {0:?}")]
+    AuthPostResponse(RedirectErrorResponse<PostAuthResponseErrorCode>),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VpMessageClientErrorType {
+    Expired { can_retry: bool },
+    Other,
 }
 
 impl VpMessageClientError {
+    pub fn error_type(&self) -> VpMessageClientErrorType {
+        match self {
+            Self::AuthGetResponse(response)
+                if [
+                    GetRequestErrorCode::ExpiredEphemeralId,
+                    GetRequestErrorCode::ExpiredSession,
+                ]
+                .contains(&response.error_response.error) =>
+            {
+                VpMessageClientErrorType::Expired {
+                    can_retry: response.error_response.error == GetRequestErrorCode::ExpiredEphemeralId,
+                }
+            }
+            Self::AuthPostResponse(response)
+                if response.error_response.error == PostAuthResponseErrorCode::ExpiredSession =>
+            {
+                VpMessageClientErrorType::Expired { can_retry: false }
+            }
+            _ => VpMessageClientErrorType::Other,
+        }
+    }
+
     pub fn redirect_uri(&self) -> Option<&BaseUrl> {
-        match &self {
-            Self::Response(response) => response.redirect_uri.as_ref(),
+        match self {
+            Self::AuthGetResponse(response) => response.redirect_uri.as_ref(),
+            Self::AuthPostResponse(response) => response.redirect_uri.as_ref(),
             _ => None,
         }
     }
@@ -155,8 +187,8 @@ impl VpMessageClient for HttpVpMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<RedirectErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::Response(error.into()))
+                    let error = response.json::<RedirectErrorResponse<GetRequestErrorCode>>().await?;
+                    Err(VpMessageClientError::AuthGetResponse(error))
                 } else {
                     Ok(response.text().await?.into())
                 }
@@ -178,8 +210,10 @@ impl VpMessageClient for HttpVpMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<RedirectErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::Response(error.into()))
+                    let error = response
+                        .json::<RedirectErrorResponse<PostAuthResponseErrorCode>>()
+                        .await?;
+                    Err(VpMessageClientError::AuthPostResponse(error))
                 } else {
                     Self::deserialize_vp_response(response).await
                 }
@@ -541,7 +575,7 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
     fn from(source: VpMessageClientError) -> Self {
         let data_shared = match source {
             VpMessageClientError::Http(ref reqwest_error) => !reqwest_error.is_connect(),
-            VpMessageClientError::Response(_) | VpMessageClientError::Json(_) => true,
+            _ => true,
         };
         Self::new(data_shared, VpClientError::Request(source))
     }
