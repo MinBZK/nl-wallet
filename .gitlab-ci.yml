@@ -1106,9 +1106,7 @@ run-mrp-vs-migrations-demo:
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
     - envsubst < kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/gbamock-deployment.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/brpproxy-service.yaml
-    - kubectl apply -f kubernetes/gbamock-service.yaml
     - envsubst < kubernetes/mrp-verification-server-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mrp-verification-server-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mrp-verification-server-service.yaml
