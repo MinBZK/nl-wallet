@@ -66,9 +66,27 @@ class HistoryDetailCommonBuilders {
     );
   }
 
-  static Widget buildAttributesSliver(BuildContext context, DisclosureEvent event) {
+  static Widget buildSharedAttributesSliver(BuildContext context, DisclosureEvent event) {
+    final totalNrOfAttributes = event.attributes.length;
+    final String title = context.l10n.historyDetailScreenSharedAttributesTitle;
+    final subtitle = context.l10n.historyDetailScreenSharedAttributesSubtitle(totalNrOfAttributes);
+    return _buildAttributesSliver(context, event, title: title, subtitle: subtitle);
+  }
+
+  static Widget buildRequestedAttributesSliver(BuildContext context, DisclosureEvent event) {
+    final totalNrOfAttributes = event.attributes.length;
+    final String title = context.l10n.requestDetailsScreenAttributesTitle;
+    final subtitle = context.l10n.requestDetailsScreenAttributesSubtitle(totalNrOfAttributes);
+    return _buildAttributesSliver(context, event, title: title, subtitle: subtitle);
+  }
+
+  static Widget _buildAttributesSliver(
+    BuildContext context,
+    DisclosureEvent event, {
+    required String title,
+    required String subtitle,
+  }) {
     final attributesByDocType = event.attributesByDocType;
-    final totalNrOfAttributes = attributesByDocType.values.fold(0, (prev, element) => prev + element.length);
     final attributesSliver = SliverList.separated(
       itemCount: attributesByDocType.length,
       itemBuilder: (context, i) {
@@ -102,12 +120,12 @@ class HistoryDetailCommonBuilders {
                 ),
                 const SizedBox(height: 16),
                 BodyText(
-                  context.l10n.historyDetailScreenSharedAttributesTitle,
+                  title,
                   style: context.textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
                 BodyText(
-                  context.l10n.historyDetailScreenSharedAttributesSubtitle(totalNrOfAttributes),
+                  subtitle,
                 ),
               ],
             ),
