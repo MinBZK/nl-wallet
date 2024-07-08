@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, Query, State},
-    routing::{get, post},
+    routing::{delete, get, post},
     Form, Json, Router,
 };
-use http::{header, HeaderMap, HeaderValue, Method, Uri};
+use http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
@@ -78,6 +78,7 @@ where
                 // but only on this endpoint
                 .layer(CorsLayer::new().allow_methods([Method::GET]).allow_origin(Any)),
         )
+        .route("/:session_token", delete(cancel::<S>))
         .with_state(application_state.clone());
 
     let requester_router = Router::new()
@@ -172,6 +173,22 @@ where
         .inspect_err(|error| warn!("querying session status failed: {error}"))?;
 
     Ok(Json(response))
+}
+
+async fn cancel<S>(
+    State(state): State<Arc<ApplicationState<S>>>,
+    Path(session_token): Path<SessionToken>,
+) -> Result<StatusCode, HttpJsonError<VerificationErrorCode>>
+where
+    S: SessionStore<DisclosureData>,
+{
+    state
+        .verifier
+        .cancel(&session_token)
+        .await
+        .inspect_err(|error| warn!("cancelling session failed: {error}"))?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

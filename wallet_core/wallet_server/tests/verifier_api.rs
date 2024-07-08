@@ -16,7 +16,7 @@ use rstest::rstest;
 use tokio::time;
 
 use nl_wallet_mdoc::{
-    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS},
+    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::mock_time::MockTimeGenerator,
     verifier::{ReturnUrlTemplate, SessionType},
     ItemsRequest,
@@ -25,6 +25,7 @@ use openid4vc::{
     verifier::{DisclosureData, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };
+use url::Url;
 use wallet_common::{
     config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody, reqwest::default_reqwest_client_builder,
 };
@@ -151,7 +152,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     let start_request = start_disclosure_request();
 
-    // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
+    // Check if using no token returns a 401 on the (public) start URL if an API key is used and a 405 otherwise,
+    // because it is served on the internal URL and the routing matches the cancel endpoint with an empty session_token.
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
         .json(&start_request)
@@ -161,7 +163,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     match auth {
         RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
-        _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
+        _ => assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED),
     };
 
     // check if using no token returns a 401 on the (internal) start URL if an API key is used and a 200 otherwise
@@ -177,7 +179,8 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
         _ => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
     };
 
-    // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
+    // Check if using a token returns a 200 on the (public) start URL if an API key is used and a 405 otherwise,
+    // because it is served on the internal URL and the routing matches the cancel endpoint with an empty session_token.
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
@@ -188,7 +191,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     match auth {
         RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::OK),
-        _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
+        _ => assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED),
     };
 
     // check if using a token returns a 200 on the (internal) start URL (even if none is required)
@@ -341,6 +344,12 @@ async fn test_disclosure_not_found() {
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
+    // check if a non-existent token returns a 404 on the cancel URL
+    let cancel_url = settings.urls.public_url.join("disclosure/nonexistent_session");
+    let response = client.delete(cancel_url).send().await.unwrap();
+
+    test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
+
     // check if a non-existent token returns a 404 on the wallet URL
     let mut request_uri = settings
         .urls
@@ -371,6 +380,60 @@ async fn test_disclosure_not_found() {
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await
 }
 
+fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: SessionType) -> Url {
+    let mut status_url = public_url.join(&format!("disclosure/{session_token}/status"));
+
+    let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
+    status_url.set_query(status_query.as_str().into());
+
+    status_url
+}
+
+#[tokio::test]
+async fn test_disclosure_cancel() {
+    let settings = wallet_server_settings();
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+
+    start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
+
+    // Create a new disclosure session, which should return 200.
+    let client = default_reqwest_client_builder().build().unwrap();
+    let response = client
+        .post(internal_url.join("disclosure/sessions"))
+        .json(&start_disclosure_request())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
+    let session_token = disclosure_response.session_token;
+
+    // Cancel the newly created session, which should return 204 and no body.
+    let cancel_url = settings.urls.public_url.join(&format!("disclosure/{session_token}"));
+    let response = client.delete(cancel_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    assert_eq!(response.content_length(), Some(0));
+
+    // Fetching the status should return OK and be in the Failed state.
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, SessionType::SameDevice);
+    let response = client.get(status_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let status = response.json::<StatusResponse>().await.unwrap();
+
+    assert_matches!(status, StatusResponse::Failed);
+
+    // Cancelling the session again should return a 400.
+    let cancel_url = settings.urls.public_url.join(&format!("disclosure/{session_token}"));
+    let response = client.delete(cancel_url).send().await.unwrap();
+
+    test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
+}
+
 async fn test_disclosure_expired<S>(
     settings: Settings,
     session_store: S,
@@ -397,15 +460,7 @@ async fn test_disclosure_expired<S>(
 
     let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
     let session_token = disclosure_response.session_token;
-    let mut status_url = settings
-        .urls
-        .public_url
-        .join(&format!("disclosure/{session_token}/status"));
-    let status_query = serde_urlencoded::to_string(StatusParams {
-        session_type: SessionType::SameDevice,
-    })
-    .unwrap();
-    status_url.set_query(status_query.as_str().into());
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, SessionType::SameDevice);
     let disclosed_attributes_url =
         internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
@@ -438,6 +493,8 @@ async fn test_disclosure_expired<S>(
 
     // Fetching the status should return OK and be in the Expired state.
     let response = client.get(status_url.clone()).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
 
     let status = response.json::<StatusResponse>().await.unwrap();
 
