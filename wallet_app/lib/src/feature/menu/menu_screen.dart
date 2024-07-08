@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../common/mixin/lock_state_mixin.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -16,10 +17,15 @@ import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/menu_bloc.dart';
 import 'widget/menu_row.dart';
 
-class MenuScreen extends StatelessWidget {
-  bool get showDesignSystemRow => kDebugMode;
-
+class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
+
+  @override
+  State<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen> {
+  bool get showDesignSystemRow => kDebugMode;
 
   @override
   Widget build(BuildContext context) {
@@ -137,5 +143,13 @@ class MenuScreen extends StatelessWidget {
       return defaultMenuItems..add(designSystemItem);
     }
     return defaultMenuItems;
+  }
+
+  @override
+  void onLock() {
+    /// PVW-3104: Pop the MenuScreen if it's visible while the app gets locked
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      Navigator.maybePop(context);
+    }
   }
 }

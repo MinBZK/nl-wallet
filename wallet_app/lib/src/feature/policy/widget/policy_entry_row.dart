@@ -38,6 +38,7 @@ class PolicyEntryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      link: semanticsOnTap != null,
       onTap: semanticsOnTap,
       onTapHint: semanticOnTapHint,
       child: Padding(

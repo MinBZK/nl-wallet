@@ -1,5 +1,10 @@
+import 'dart:io';
+
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:intl/locale.dart' as intl;
 
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_constants.dart';
@@ -47,6 +52,7 @@ class ChangeLanguageScreen extends StatelessWidget {
   }
 
   Widget _buildSuccessSliver(BuildContext context, ChangeLanguageSuccess state) {
+    final systemL10n = _lookupSystemLocalizations(context);
     return SliverMainAxisGroup(
       slivers: [
         const SliverDivider(),
@@ -65,7 +71,7 @@ class ChangeLanguageScreen extends StatelessWidget {
                     },
               excludeSemantics: true,
               label: language.name,
-              onTapHint: context.l10n.generalWCAGChangeLanguage,
+              onTapHint: systemL10n.generalWCAGChangeLanguage,
               child: InkWell(
                 onTap: isSelectedLanguage
                     ? null
@@ -106,6 +112,16 @@ class ChangeLanguageScreen extends StatelessWidget {
         const SliverDivider(),
       ],
     );
+  }
+
+  /// Looks up the system Locale (so NOT the locale that is currently selected in the app) and
+  /// uses that to provide the corresponding [AppLocalizations]. Falls back to the default
+  /// [AppLocalizations] when the system's Locale does not match any of the supportedLocales.
+  AppLocalizations _lookupSystemLocalizations(BuildContext context) {
+    final locale = intl.Locale.tryParse(Platform.localeName);
+    final supportedLocale = AppLocalizations.supportedLocales
+        .firstWhereOrNull((supported) => supported.languageCode == locale?.languageCode);
+    return supportedLocale == null ? context.l10n : lookupAppLocalizations(supportedLocale);
   }
 
   TextStyle _getRowTextStyle(BuildContext context, bool isSelected) {
