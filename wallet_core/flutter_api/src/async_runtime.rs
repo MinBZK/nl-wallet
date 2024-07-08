@@ -20,8 +20,6 @@ pub fn get_async_runtime() -> &'static Runtime {
 
 #[cfg(test)]
 mod tests {
-    use sentry::SentryFutureExt;
-
     use flutter_api_macros::async_runtime;
 
     async fn plus(left: i32, right: i32) -> i32 {

@@ -28,9 +28,13 @@ pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
     quote! {
         #(#attrs)* #vis #sig {
             crate::async_runtime::get_async_runtime().block_on(
-                async {
-                    #(#stmts)*
-                }.bind_hub(sentry::Hub::new_from_top(sentry::Hub::current())))
+                ::sentry::SentryFutureExt::bind_hub(
+                    async {
+                        #(#stmts)*
+                    },
+                    sentry::Hub::new_from_top(sentry::Hub::current())
+                )
+            )
         }
     }
     .into()
