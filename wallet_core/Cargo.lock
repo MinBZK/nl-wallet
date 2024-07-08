@@ -5339,6 +5339,7 @@ dependencies = [
  "sentry",
  "syn 2.0.68",
  "thiserror",
+ "tokio",
  "trybuild",
  "wallet_common",
 ]

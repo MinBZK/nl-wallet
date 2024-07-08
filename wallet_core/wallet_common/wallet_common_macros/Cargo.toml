@@ -19,6 +19,7 @@ syn = { workspace = true, features = ["full"] }
 rstest.workspace = true
 sentry = { workspace = true, features = ["test"] }
 thiserror.workspace = true
+tokio = { workspace = true, features = ["rt"] }
 trybuild.workspace = true
 
 wallet_common = { path = "../", features = [ "sentry" ] }
