@@ -1395,6 +1395,7 @@ dependencies = [
  "sentry-panic",
  "serde",
  "serde_json",
+ "serde_with",
  "tokio",
  "tracing",
  "tracing-subscriber",

@@ -133,7 +133,7 @@ where
         .issuer
         .process_token_request(token_request, dpop)
         .await
-        .map_err(ErrorResponse::new)?;
+        .map_err(ErrorResponse::new_basic)?;
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
@@ -157,7 +157,7 @@ where
         .issuer
         .process_credential(access_token, dpop, credential_request)
         .await
-        .map_err(ErrorResponse::new)?;
+        .map_err(ErrorResponse::new_basic)?;
     Ok(Json(response))
 }
 
@@ -177,7 +177,7 @@ where
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
         .await
-        .map_err(ErrorResponse::new)?;
+        .map_err(ErrorResponse::new_basic)?;
     Ok(Json(response))
 }
 
@@ -199,7 +199,7 @@ where
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
         .await
-        .map_err(ErrorResponse::new)?;
+        .map_err(ErrorResponse::new_basic)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -274,13 +274,12 @@ where
     T: Display,
 {
     fn from(error: T) -> Self {
-        ErrorResponse {
-            error_response: openid4vc::ErrorResponse {
-                error: MetadataError::Metadata,
-                error_description: Some(error.to_string()),
-                error_uri: None,
-            },
-            redirect_uri: None,
-        }
+        let response = openid4vc::ErrorResponse {
+            error: MetadataError::Metadata,
+            error_description: Some(error.to_string()),
+            error_uri: None,
+        };
+
+        ErrorResponse::new_basic(response)
     }
 }

@@ -70,6 +70,15 @@ pub enum DisclosureError {
     EventStorage(#[source] EventStorageError),
 }
 
+impl DisclosureError {
+    pub fn return_url(&self) -> Option<&Url> {
+        match self {
+            Self::VpDisclosureSession(VpClientError::Request(error)) => error.redirect_uri().map(AsRef::as_ref),
+            _ => None,
+        }
+    }
+}
+
 impl From<MdocDisclosureError> for DisclosureError {
     // This error handling is more complicated than usual because an nl_wallet_mdoc::Error can happen
     // in both the ISO and VP protocols, so it occurs in both variants, and in either case we need to
@@ -215,10 +224,11 @@ where
 
         Ok(proposal)
     }
+
     /// When we have missing attributes, we don't have a proposal -> empty proposed_attributes.
     /// When we do have a proposal, give us the proposed attributes then. In both cases, empty
     /// or "real", use from_proposed_attributes to determine the disclosure_type.
-    async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<(), DisclosureError> {
+    async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<Option<Url>, DisclosureError> {
         let proposed_attributes = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(_) => None,
             MdocDisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
@@ -236,13 +246,18 @@ where
             disclosure_type,
         );
 
-        session.terminate().await?;
+        let return_url = session.terminate().await?;
+
+        info!(
+            "CANCEL RETURN URL: {}",
+            return_url.as_ref().map(|url| url.as_str()).unwrap_or("<NONE>")
+        );
 
         self.store_history_event(event)
             .await
             .map_err(DisclosureError::EventStorage)?;
 
-        Ok(())
+        Ok(return_url)
     }
 
     #[instrument(skip_all)]
@@ -265,7 +280,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub async fn cancel_disclosure(&mut self) -> Result<(), DisclosureError> {
+    pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError> {
         info!("Cancelling disclosure");
 
         info!("Checking if registered");
@@ -502,6 +517,7 @@ mod tests {
         verifier::SessionType,
         DataElementValue,
     };
+    use openid4vc::{disclosure_session::VpMessageClientError, ErrorResponse, RedirectErrorResponse};
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,
@@ -547,6 +563,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             reader_registration,
             MdocDisclosureSessionState::Proposal(proposal_session),
+            None,
         );
 
         // Starting disclosure should not fail.
@@ -656,7 +673,9 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
 
         // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(HolderError::NoAttributesRequested.into());
+        MockMdocDisclosureSession::next_start_error(
+            nl_wallet_mdoc::Error::Holder(HolderError::NoAttributesRequested).into(),
+        );
 
         // Starting disclosure with a malformed disclosure URI should result in an error.
         let error = wallet
@@ -665,6 +684,40 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::IsoDisclosureSession(_));
+        assert!(wallet.disclosure_session.is_none());
+    }
+
+    #[tokio::test]
+    #[serial(MockMdocDisclosureSession)]
+    async fn test_wallet_start_disclosure_error_return_url() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked().await;
+
+        // Set up an `MdocDisclosureSession` start to return the following error.
+        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        MockMdocDisclosureSession::next_start_error(
+            VpClientError::Request(VpMessageClientError::Response(
+                RedirectErrorResponse {
+                    error_response: ErrorResponse {
+                        error: "error".to_string(),
+                        error_description: None,
+                        error_uri: None,
+                    },
+                    redirect_uri: Some(return_url.clone().try_into().unwrap()),
+                }
+                .into(),
+            ))
+            .into(),
+        );
+
+        // Starting disclosure where the verifier returns responds with a HTTP error body containing
+        // a redirect URI should result in that URI being available on the returned error.
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::VpDisclosureSession(_));
+        assert_eq!(error.return_url(), Some(&return_url));
         assert!(wallet.disclosure_session.is_none());
     }
 
@@ -683,6 +736,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            None,
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
@@ -720,6 +774,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            None,
         );
 
         // Starting disclosure where an attribute that is both unavailable
@@ -768,6 +823,7 @@ mod tests {
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::Proposal(proposal_session),
+            None,
         );
 
         // Starting disclosure where unknown attributes are requested should result in an error.
@@ -817,9 +873,12 @@ mod tests {
             ..Default::default()
         };
 
+        let return_url = Url::parse("https://example.com/return/here").unwrap();
+
         MockMdocDisclosureSession::next_fields(
             reader_registration,
             MdocDisclosureSessionState::Proposal(proposal_session),
+            Some(return_url.clone()),
         );
 
         // Start a disclosure session, to ensure a proper session exists that can be cancelled.
@@ -839,7 +898,9 @@ mod tests {
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure
         // session, while the session that was there should be terminated.
-        wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+        let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+        assert_eq!(cancel_return_url, Some(return_url));
 
         // Verify disclosure session is terminated
         assert!(wallet.disclosure_session.is_none());
@@ -878,9 +939,12 @@ mod tests {
             .expect_missing_attributes()
             .return_const(missing_attributes);
 
+        let return_url = Url::parse("https://example.com/return/here").unwrap();
+
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            Some(return_url.clone()),
         );
 
         // Starting disclosure where an unavailable attribute is requested should result in an error.
@@ -902,7 +966,9 @@ mod tests {
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure
         // session, while the session that was there should be terminated.
-        wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+        let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+
+        assert_eq!(cancel_return_url, Some(return_url));
 
         // Verify disclosure session is terminated
         assert!(wallet.disclosure_session.is_none());
@@ -996,7 +1062,7 @@ mod tests {
             },
         )]);
         let disclosure_session = MockMdocDisclosureProposal {
-            return_url: return_url.clone().into(),
+            disclose_return_url: return_url.clone().into(),
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
@@ -1240,7 +1306,7 @@ mod tests {
             _ => unreachable!(),
         };
 
-        // Accepting disclosure when the Wallet Provider responds that key with
+        // Accepting disclosure when the verifier responds that key with
         // a particular identifier is not present should result in an error.
         let error = wallet
             .accept_disclosure(PIN.to_string())
@@ -1316,7 +1382,7 @@ mod tests {
         let was_terminated = Arc::clone(&wallet.disclosure_session.as_ref().unwrap().was_terminated);
         assert!(!was_terminated.load(Ordering::Relaxed));
 
-        // Accepting disclosure when the Wallet Provider responds with an `InstructionError` indicating
+        // Accepting disclosure when the verifier responds with an `InstructionError` indicating
         // that the account is blocked should result in a `DisclosureError::Instruction` error.
         let error = wallet
             .accept_disclosure(PIN.to_string())
@@ -1409,8 +1475,8 @@ mod tests {
 
         wallet.disclosure_session = disclosure_session.into();
 
-        // Accepting disclosure when the Wallet Provider responds with an `InstructionError` indicating
-        // that the account is blocked should result in a `DisclosureError::Instruction` error.
+        // Accepting disclosure when the verifier responds with an error indicating that
+        // attributes were shared should result in a disclosure event being recorded.
         let error = wallet
             .accept_disclosure(PIN.to_string())
             .await

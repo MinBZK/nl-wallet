@@ -2,20 +2,33 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
-use wallet_common::http_error::{HttpJsonError, HttpJsonErrorType};
+
+use wallet_common::{
+    config::wallet_config::BaseUrl,
+    http_error::{HttpJsonError, HttpJsonErrorType},
+};
 
 use crate::{
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
-    verifier::{GetAuthRequestError, PostAuthResponseError, SessionError, VerificationError},
+    verifier::{GetAuthRequestError, PostAuthResponseError, SessionError, VerificationError, WithRedirectUri},
 };
 
-/// Describes an error that occured when processing an HTTP endpoint from the OAuth/OpenID protocol family.
+/// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ErrorResponse<T> {
     pub error: T,
     pub error_description: Option<String>,
     pub error_uri: Option<Url>,
+}
+
+/// Wrapper of [`ErrorResponse`] that has an optional redirect URI.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RedirectErrorResponse<T> {
+    #[serde(flatten)]
+    pub error_response: ErrorResponse<T>,
+    pub redirect_uri: Option<BaseUrl>,
 }
 
 pub trait ErrorStatusCode {
@@ -236,6 +249,18 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
             }
             PostAuthResponseErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             PostAuthResponseErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
+        }
+    }
+}
+
+impl<E, T> From<WithRedirectUri<E>> for RedirectErrorResponse<T>
+where
+    E: Into<ErrorResponse<T>> + std::error::Error,
+{
+    fn from(value: WithRedirectUri<E>) -> Self {
+        RedirectErrorResponse {
+            error_response: value.error.into(),
+            redirect_uri: value.redirect_uri,
         }
     }
 }
