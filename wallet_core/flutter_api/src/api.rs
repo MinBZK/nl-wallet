@@ -1,4 +1,5 @@
 use anyhow::Result;
+use sentry::SentryFutureExt;
 use tokio::sync::{OnceCell, RwLock};
 use url::Url;
 
