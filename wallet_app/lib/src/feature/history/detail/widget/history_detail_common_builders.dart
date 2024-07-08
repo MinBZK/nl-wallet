@@ -51,12 +51,20 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                BodyText(
-                  context.l10n.historyDetailScreenPurposeTitle,
-                  style: context.textTheme.headlineMedium,
+                MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BodyText(
+                        context.l10n.historyDetailScreenPurposeTitle,
+                        style: context.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      BodyText(event.purpose.l10nValue(context)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                BodyText(event.purpose.l10nValue(context)),
               ],
             ),
           ),
@@ -119,13 +127,21 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                BodyText(
-                  title,
-                  style: context.textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                BodyText(
-                  subtitle,
+                MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BodyText(
+                        title,
+                        style: context.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      BodyText(
+                        subtitle,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -158,13 +174,21 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                BodyText(
-                  context.l10n.historyDetailScreenTermsTitle,
-                  style: context.textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                BodyText(
-                  policyTextMapper.map(context, policy),
+                MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BodyText(
+                        context.l10n.historyDetailScreenTermsTitle,
+                        style: context.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      BodyText(
+                        policyTextMapper.map(context, policy),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

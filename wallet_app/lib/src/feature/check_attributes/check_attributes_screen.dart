@@ -69,6 +69,7 @@ class CheckAttributesScreen extends StatelessWidget {
                   context: context,
                   front: card.front,
                   scaleText: false,
+                  showText: false,
                 ),
               ),
             ),

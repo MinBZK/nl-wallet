@@ -40,14 +40,22 @@ class WalletEventStatusHeader extends StatelessWidget {
         children: [
           icon ?? const SizedBox.shrink(),
           SizedBox(height: icon == null ? 0 : 16),
-          Text(
-            titleText,
-            style: context.textTheme.titleMedium?.copyWith(color: statusColor),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            descriptionText,
-            style: context.textTheme.bodyLarge,
+          MergeSemantics(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  titleText,
+                  style: context.textTheme.titleMedium?.copyWith(color: statusColor),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  descriptionText,
+                  style: context.textTheme.bodyLarge,
+                ),
+              ],
+            ),
           ),
         ],
       ),

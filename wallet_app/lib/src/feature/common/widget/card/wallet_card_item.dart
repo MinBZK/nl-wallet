@@ -5,6 +5,7 @@ import '../../../../domain/model/card_front.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/object_extension.dart';
 import '../animated_fade_in.dart';
 import '../animated_fade_out.dart';
 import '../svg_or_image.dart';
@@ -58,6 +59,9 @@ class WalletCardItem extends StatelessWidget {
   /// Worth disabling if widget is used as a thumbnail.
   final bool scaleText;
 
+  /// Show the title & subtitle, defaults to true.
+  final bool showText;
+
   const WalletCardItem({
     super.key,
     required this.title,
@@ -70,6 +74,7 @@ class WalletCardItem extends StatelessWidget {
     this.onPressed,
     this.ctaAnimation,
     this.scaleText = true,
+    this.showText = true,
   });
 
   WalletCardItem.fromCardFront({
@@ -78,6 +83,7 @@ class WalletCardItem extends StatelessWidget {
     this.onPressed,
     this.ctaAnimation,
     this.scaleText = true,
+    this.showText = true,
     super.key,
   })  : title = front.title.l10nValue(context),
         background = front.backgroundImage,
@@ -159,14 +165,14 @@ class WalletCardItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  title.takeIf((_) => showText) ?? '',
                   style: context.textTheme.displaySmall,
                   semanticsLabel: context.l10n.cardTitleSemanticsLabel(title),
                 ),
                 const SizedBox(height: 4),
-                Text(subtitle1 ?? '', style: context.textTheme.bodyLarge),
+                Text(subtitle1.takeIf((_) => showText) ?? '', style: context.textTheme.bodyLarge),
                 const SizedBox(height: 4),
-                Text(subtitle2 ?? '', style: context.textTheme.bodyLarge),
+                Text(subtitle2.takeIf((_) => showText) ?? '', style: context.textTheme.bodyLarge),
                 const SizedBox(height: 16),
                 const Opacity(
                   /* guarantees correct spacing to 'show details' cta rendered at the bottom of the card */
