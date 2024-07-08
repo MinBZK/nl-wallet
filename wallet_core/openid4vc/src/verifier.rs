@@ -658,6 +658,33 @@ where
         Ok(response)
     }
 
+    pub async fn cancel(&self, session_token: &SessionToken) -> Result<(), VerificationError> {
+        let session_state = self.get_session_state(session_token).await?;
+
+        match session_state.data {
+            DisclosureData::Created(_) => {
+                self.cancel_active_session(Session::<Created>::try_from(session_state)?)
+                    .await?;
+            }
+            DisclosureData::WaitingForResponse(_) => {
+                self.cancel_active_session(Session::<WaitingForResponse>::try_from(session_state)?)
+                    .await?;
+            }
+            _ => return Err(SessionError::UnexpectedState)?,
+        };
+
+        Ok(())
+    }
+
+    async fn cancel_active_session<T: DisclosureState>(&self, session: Session<T>) -> Result<(), SessionError> {
+        let failed_session = session.transition_fail(&"user cancelled");
+
+        self.sessions
+            .write(failed_session.into(), false)
+            .await
+            .map_err(SessionError::SessionStore)
+    }
+
     /// Returns the disclosed attributes for a session with status `Done` and an error otherwise
     pub async fn disclosed_attributes(
         &self,
