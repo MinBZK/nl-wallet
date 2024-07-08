@@ -54,8 +54,8 @@ fn sentry_capture_error_function(
             Result::inspect_err(
                 {
                     #(#stmts)*
-                }
-                , ::wallet_common::sentry::classify_and_report_to_sentry)
+                },
+                ::wallet_common::sentry::classify_and_report_to_sentry)
         }
     }
 }
