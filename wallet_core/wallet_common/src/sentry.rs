@@ -51,8 +51,10 @@ mod tests {
     use sentry::{test::with_captured_events, Level};
     use thiserror::Error;
 
+    const ERROR_MSG: &str = "My error message";
+
     #[derive(Debug, Error)]
-    #[error("Something wrong")]
+    #[error("My error message")]
     struct Error {
         category: Category,
     }
@@ -85,7 +87,8 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].level, Level::Error);
         assert_eq!(events[0].exception.values[0].ty, "Error".to_string());
-        assert_eq!(events[0].exception.values[0].value, Some("Something wrong".to_string()));
+        assert_eq!(events[0].exception.values[0].value, Some(ERROR_MSG.to_string()));
+        assert!(format!("{:?}", events[0]).contains(ERROR_MSG));
     }
 
     #[test]
@@ -100,5 +103,6 @@ mod tests {
         assert_eq!(events[0].level, Level::Error);
         assert_eq!(events[0].exception.values[0].ty, "Error".to_string());
         assert_eq!(events[0].exception.values[0].value, None);
+        assert!(!format!("{:?}", events[0]).contains(ERROR_MSG));
     }
 }
