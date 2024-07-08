@@ -13,6 +13,5 @@ FROM scratch
 COPY --from=builder /usr/src/target/x86_64-unknown-linux-musl/release/mock_relying_party .
 COPY --from=builder /etc/ssl/certs/ /etc/ssl/certs/
 COPY mock_relying_party/assets/ ./assets/
-COPY mock_relying_party/web-vue/dist ./assets/vue
 
 ENTRYPOINT ["./mock_relying_party"]
