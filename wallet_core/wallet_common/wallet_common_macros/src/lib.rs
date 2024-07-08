@@ -22,7 +22,6 @@ pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::To
     match item {
         Ok(Item::Fn(item_fn)) => sentry_capture_error_fn(item_fn).into(),
         Ok(Item::Impl(item_impl)) => sentry_capture_error_impl_block(item_impl).into(),
-        Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
         Ok(item) => {
             let mut token_stream = Error::new(item.span(), "attribute macro `sentry_capture_error` not supported here")
                 .into_compile_error();
@@ -30,6 +29,7 @@ pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::To
             item.to_tokens(&mut token_stream);
             token_stream.into()
         }
+        Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
     }
 }
 
