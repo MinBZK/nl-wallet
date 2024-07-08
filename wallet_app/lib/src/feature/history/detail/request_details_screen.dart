@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/object_extension.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
@@ -29,10 +30,11 @@ class RequestDetailsScreen extends StatelessWidget {
                       scrollController: PrimaryScrollController.maybeOf(context),
                     ),
                     HistoryDetailCommonBuilders.buildPurposeSliver(context, event),
-                    HistoryDetailCommonBuilders.buildAttributesSliver(context, event),
+                    HistoryDetailCommonBuilders.buildRequestedAttributesSliver(context, event)
+                        .takeIf((_) => event.attributes.isNotEmpty),
                     HistoryDetailCommonBuilders.buildPolicySliver(context, event.policy),
                     const SliverSizedBox(height: 24),
-                  ],
+                  ].nonNulls.toList(),
                 ),
               ),
             ),

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2024-06-28T13:58:42+02:00",
+    "@@last_modified": "2024-07-04T10:18:36+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacybeleid",
     "aboutScreenTermsCta": "Gebruiksvoorwaarden",
@@ -442,7 +442,7 @@
     "historyDetailScreenOperationStatusRenewedDescription": "Kaart vernieuwd",
     "historyDetailScreenPurposeTitle": "Reden voor delen",
     "historyDetailScreenReportIssueCta": "Wil je een probleem melden?",
-    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven wordt gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens worden gedeeld. Niet meer.}}",
+    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven werd gedeeld. Niet meer.} other {Alleen deze volgende {count} gegevens werden gedeeld. Niet meer.}}",
     "@historyDetailScreenSharedAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -778,6 +778,16 @@
     "reportOptionUnreasonableTerms": "Ik ben het niet eens met de voorwaarden",
     "reportOptionUntrusted": "Ik vertrouw het niet",
     "requestDetailScreenTitle": "Aanvraag details",
+    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Alleen het volgende gegeven werd gevraagd. Niet meer.} other {Alleen deze volgende {count} gegevens werden gevraagd. Niet meer.}}",
+    "@requestDetailsScreenAttributesSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "requestDetailsScreenAttributesTitle": "Gevraagde gegevens",
     "resetWalletDialogBody": "Hiermee verwijder je alle gegevens in de app. Vervolgens begin je opnieuw met de app-inleiding en kun je opnieuw je wallet aanmaken.",
     "resetWalletDialogCancelCta": "ANNULEREN",
     "resetWalletDialogConfirmCta": "JA, VERWIJDEREN",
