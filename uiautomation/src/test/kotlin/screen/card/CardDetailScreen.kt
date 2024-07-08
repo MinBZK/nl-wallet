@@ -7,7 +7,7 @@ class CardDetailScreen : MobileActions() {
     private val screen = find.byValueKey("cardDetailScreen")
 
     private val pidIdTitleText = find.byText(l10n.getString("pidIdCardTitle"))
-    private val cardIssuerStateText = find.byText("RiVG")
+    private val cardIssuerStateText = find.byText("RvIG")
     private val cardHistoryStateText = find.byText(l10n.getString("cardDetailScreenLatestSuccessInteractionUnknown"))
 
     private val cardDataButton = find.byText(l10n.getString("cardDetailScreenCardDataCta"))
