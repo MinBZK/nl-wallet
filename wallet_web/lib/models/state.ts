@@ -1,31 +1,25 @@
-import { type AppUL, SessionType } from "./status"
+import { type AppUL, type SessionType } from "./status"
 
 export type ErrorType = "failed" | "cancelled" | "expired"
 
 export type StatusUrl = string & { __typename: "status_url" }
 
-export enum SessionState {
-  Loading = "loading",
-  Created = "created",
-  InProgress = "in-progress",
-  Success = "success",
-  Error = "error",
-}
+export type SessionState = "loading" | "created" | "in-progress" | "success" | "error"
 
 export type ModalState =
-  | { kind: SessionState.Loading }
+  | { kind: "loading" }
   | {
-      kind: SessionState.Created
+      kind: "created"
       ul: AppUL
       statusUrl: StatusUrl
       sessionType: SessionType
       sessionToken: string
     }
   | {
-      kind: SessionState.InProgress
+      kind: "in-progress"
       statusUrl: StatusUrl
       sessionType: SessionType
       sessionToken: string
     }
-  | { kind: SessionState.Success; sessionType: SessionType; sessionToken: string }
-  | { kind: SessionState.Error; errorType: ErrorType }
+  | { kind: "success"; sessionType: SessionType; sessionToken: string }
+  | { kind: "error"; errorType: ErrorType }

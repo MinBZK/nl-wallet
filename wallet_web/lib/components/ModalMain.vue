@@ -5,9 +5,9 @@ import HelpSection from "@/components/HelpSection.vue"
 import InProgressSection from "@/components/InProgressSection.vue"
 import LoadingSection from "@/components/LoadingSection.vue"
 import SuccessSection from "@/components/SuccessSection.vue"
-import { type ModalState, SessionState } from "@/models/state"
-import { SessionType } from "@/models/status"
-import { onMounted, onUnmounted, ref } from "vue"
+import { type ModalState } from "@/models/state"
+import { type SessionType } from "@/models/status"
+import { onMounted, ref } from "vue"
 
 defineProps<{
   modalState: ModalState
@@ -25,23 +25,23 @@ onMounted(async () => setTimeout(() => main.value && main.value.focus(), 0))
 
 <template>
   <main ref="main" tabindex="0">
-    <loading-section v-if="modalState.kind === SessionState.Loading"></loading-section>
+    <loading-section v-if="modalState.kind === 'loading'"></loading-section>
     <created-section
-      v-if="modalState.kind === SessionState.Created"
+      v-if="modalState.kind === 'created'"
       :ul="modalState.ul"
       :sessionType="modalState.sessionType"
       @choice="handleChoice"
     ></created-section>
-    <in-progress-section v-if="modalState.kind === SessionState.InProgress"></in-progress-section>
+    <in-progress-section v-if="modalState.kind === 'in-progress'"></in-progress-section>
     <success-section
-      v-if="modalState.kind === SessionState.Success"
+      v-if="modalState.kind === 'success'"
       :sessionType="modalState.sessionType"
     ></success-section>
     <error-section
-      v-if="modalState.kind === SessionState.Error"
+      v-if="modalState.kind === 'error'"
       :errorType="modalState.errorType"
     ></error-section>
   </main>
 
-  <help-section v-if="modalState.kind === SessionState.Created"></help-section>
+  <help-section v-if="modalState.kind === 'created'"></help-section>
 </template>
