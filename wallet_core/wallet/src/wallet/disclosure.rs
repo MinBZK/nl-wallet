@@ -248,11 +248,6 @@ where
 
         let return_url = session.terminate().await?;
 
-        info!(
-            "CANCEL RETURN URL: {}",
-            return_url.as_ref().map(|url| url.as_str()).unwrap_or("<NONE>")
-        );
-
         self.store_history_event(event)
             .await
             .map_err(DisclosureError::EventStorage)?;
