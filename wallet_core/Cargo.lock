@@ -5327,7 +5327,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "uuid",
  "wallet_common_macros",
 ]
 
@@ -5338,7 +5337,10 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rstest",
+ "sentry",
  "syn 2.0.68",
+ "thiserror",
+ "tokio",
  "trybuild",
  "wallet_common",
 ]

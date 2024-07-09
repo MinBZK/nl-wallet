@@ -33,7 +33,7 @@ class HistoryDetailDisclosePage extends StatelessWidget {
         const SliverDivider(),
         HistoryDetailCommonBuilders.buildStatusHeaderSliver(context, event).takeIf((_) => !event.wasSuccess),
         HistoryDetailCommonBuilders.buildPurposeSliver(context, event).takeIf((_) => event.wasSuccess),
-        HistoryDetailCommonBuilders.buildAttributesSliver(context, event).takeIf((_) => event.wasSuccess),
+        HistoryDetailCommonBuilders.buildSharedAttributesSliver(context, event).takeIf((_) => event.wasSuccess),
         HistoryDetailCommonBuilders.buildPolicySliver(context, event.policy).takeIf((_) => event.wasSuccess),
         HistoryDetailCommonBuilders.buildAboutOrganizationSliver(context, event.relyingParty),
         HistoryDetailCommonBuilders.buildShowDetailsSliver(context, event).takeIf((_) => !event.wasSuccess),

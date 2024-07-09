@@ -51,12 +51,20 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                BodyText(
-                  context.l10n.historyDetailScreenPurposeTitle,
-                  style: context.textTheme.headlineMedium,
+                MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BodyText(
+                        context.l10n.historyDetailScreenPurposeTitle,
+                        style: context.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      BodyText(event.purpose.l10nValue(context)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                BodyText(event.purpose.l10nValue(context)),
               ],
             ),
           ),
@@ -66,9 +74,27 @@ class HistoryDetailCommonBuilders {
     );
   }
 
-  static Widget buildAttributesSliver(BuildContext context, DisclosureEvent event) {
+  static Widget buildSharedAttributesSliver(BuildContext context, DisclosureEvent event) {
+    final totalNrOfAttributes = event.attributes.length;
+    final String title = context.l10n.historyDetailScreenSharedAttributesTitle;
+    final subtitle = context.l10n.historyDetailScreenSharedAttributesSubtitle(totalNrOfAttributes);
+    return _buildAttributesSliver(context, event, title: title, subtitle: subtitle);
+  }
+
+  static Widget buildRequestedAttributesSliver(BuildContext context, DisclosureEvent event) {
+    final totalNrOfAttributes = event.attributes.length;
+    final String title = context.l10n.requestDetailsScreenAttributesTitle;
+    final subtitle = context.l10n.requestDetailsScreenAttributesSubtitle(totalNrOfAttributes);
+    return _buildAttributesSliver(context, event, title: title, subtitle: subtitle);
+  }
+
+  static Widget _buildAttributesSliver(
+    BuildContext context,
+    DisclosureEvent event, {
+    required String title,
+    required String subtitle,
+  }) {
     final attributesByDocType = event.attributesByDocType;
-    final totalNrOfAttributes = attributesByDocType.values.fold(0, (prev, element) => prev + element.length);
     final attributesSliver = SliverList.separated(
       itemCount: attributesByDocType.length,
       itemBuilder: (context, i) {
@@ -101,13 +127,21 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                BodyText(
-                  context.l10n.historyDetailScreenSharedAttributesTitle,
-                  style: context.textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                BodyText(
-                  context.l10n.historyDetailScreenSharedAttributesSubtitle(totalNrOfAttributes),
+                MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BodyText(
+                        title,
+                        style: context.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      BodyText(
+                        subtitle,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -140,13 +174,21 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                BodyText(
-                  context.l10n.historyDetailScreenTermsTitle,
-                  style: context.textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                BodyText(
-                  policyTextMapper.map(context, policy),
+                MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BodyText(
+                        context.l10n.historyDetailScreenTermsTitle,
+                        style: context.textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      BodyText(
+                        policyTextMapper.map(context, policy),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

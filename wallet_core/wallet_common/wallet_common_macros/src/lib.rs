@@ -1,8 +1,9 @@
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
-    parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::Comma, AttrStyle, Attribute, Data, DataEnum,
-    DataStruct, DeriveInput, Error, Field, Fields, Ident, Meta, MetaList, Path, Result, Variant,
+    parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::Comma, AttrStyle, Attribute, Block, Data,
+    DataEnum, DataStruct, DeriveInput, Error, Field, Fields, Ident, ImplItem, ImplItemFn, Item, ItemFn, ItemImpl, Meta,
+    MetaList, Path, Result, Signature, Variant, Visibility,
 };
 
 const CATEGORY: &str = "category";
@@ -11,6 +12,104 @@ const CRITICAL: &str = "critical";
 const EXPECTED: &str = "expected";
 const PD: &str = "pd";
 const DEFER: &str = "defer";
+
+/// Attribute macro to classify errors and report to Sentry.
+/// This macro can be set on `fn` and `impl` blocks.
+/// Setting this macro on an `impl` block is the same as setting this on all `fn`s in the impl block.
+#[proc_macro_attribute]
+pub fn sentry_capture_error(_attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let item = syn::parse::<Item>(item);
+    match item {
+        Ok(Item::Fn(item_fn)) => sentry_capture_error_fn(item_fn).into(),
+        Ok(Item::Impl(item_impl)) => sentry_capture_error_impl_block(item_impl).into(),
+        Ok(item) => {
+            let mut token_stream = Error::new(item.span(), "attribute macro `sentry_capture_error` not supported here")
+                .into_compile_error();
+            // Copy the original item, to prevent new/other compilation errors
+            item.to_tokens(&mut token_stream);
+            token_stream.into()
+        }
+        Err(err) => proc_macro::TokenStream::from(err.to_compile_error()),
+    }
+}
+
+/// Generate code for a `fn`.
+fn sentry_capture_error_fn(ItemFn { attrs, vis, sig, block }: ItemFn) -> TokenStream {
+    let defaultness = None;
+    sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
+}
+
+/// Generate code for functions, can be used both for regular functions and associated functions.
+fn sentry_capture_error_function(
+    attrs: &[Attribute],
+    vis: &Visibility,
+    defaultness: &Option<syn::token::Default>,
+    sig: &Signature,
+    block: &Block,
+) -> TokenStream {
+    let stmts = &block.stmts;
+
+    quote! {
+        #(#attrs)* #vis #defaultness #sig {
+            Result::inspect_err(
+                {
+                    #(#stmts)*
+                },
+                ::wallet_common::sentry::classify_and_report_to_sentry)
+        }
+    }
+}
+
+/// Generate code for an `impl` block.
+fn sentry_capture_error_impl_block(
+    ItemImpl {
+        attrs,
+        defaultness,
+        unsafety,
+        impl_token,
+        generics,
+        trait_,
+        self_ty,
+        brace_token: _brace_token,
+        items,
+    }: ItemImpl,
+) -> TokenStream {
+    // Handle all functions
+    let items = items
+        .into_iter()
+        .map(|item| match item {
+            ImplItem::Fn(item_fn) => sentry_capture_error_impl_fn(item_fn),
+            item => item.into_token_stream(),
+        })
+        .collect::<Vec<_>>();
+    match trait_ {
+        Some((not_, path_, for_)) => quote! {
+            #(#attrs)*
+            #defaultness #unsafety #impl_token #generics #not_ #path_ #for_ #self_ty {
+                #(#items)*
+            }
+        },
+        None => quote! {
+            #(#attrs)*
+            #defaultness #unsafety #impl_token #generics #self_ty {
+                #(#items)*
+            }
+        },
+    }
+}
+
+/// Generate code for an associated `fn`.
+fn sentry_capture_error_impl_fn(
+    ImplItemFn {
+        attrs,
+        vis,
+        defaultness,
+        sig,
+        block,
+    }: ImplItemFn,
+) -> TokenStream {
+    sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
+}
 
 /// Derive `wallet_common::error_category::ErrorCategory` for Error types.
 ///

@@ -6,7 +6,7 @@ import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
-import '../../common/widget/paragraphed_list.dart';
+import '../../common/widget/paragraphed_sliver_list.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
@@ -33,10 +33,8 @@ class WalletPersonalizeNoDigidScreen extends StatelessWidget {
                     ),
                     SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      sliver: SliverToBoxAdapter(
-                        child: ParagraphedList.splitContent(
-                          context.l10n.walletPersonalizeNoDigidPageDescription,
-                        ),
+                      sliver: ParagraphedSliverList.splitContent(
+                        context.l10n.walletPersonalizeNoDigidPageDescription,
                       ),
                     ),
                   ],

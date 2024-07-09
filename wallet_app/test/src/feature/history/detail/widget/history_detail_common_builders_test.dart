@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,10 +46,10 @@ void main() {
     expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
   });
 
-  testWidgets('buildAttributesSliver', (WidgetTester tester) async {
+  testWidgets('buildSharedAttributesSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildAttributesSliver(
+        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildSharedAttributesSliver(
           context,
           WalletMockData.disclosureEvent,
         ),
@@ -60,7 +59,24 @@ void main() {
     final l10n = await TestUtils.englishLocalizations;
     expect(find.byType(SharedAttributesCard), findsNWidgets(WalletMockData.disclosureEvent.cards.length));
     expect(find.text(l10n.historyDetailScreenSharedAttributesTitle), findsOneWidget);
-    final totalNrOfAttributes = WalletMockData.disclosureEvent.cards.map((card) => card.attributes).flattened.length;
+    final totalNrOfAttributes = WalletMockData.disclosureEvent.attributes.length;
+    expect(find.textContaining(totalNrOfAttributes.toString()), findsOneWidget);
+  });
+
+  testWidgets('buildRequestedAttributesSliver', (WidgetTester tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      _SliverTestWrapper(
+        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildRequestedAttributesSliver(
+          context,
+          WalletMockData.disclosureEvent,
+        ),
+      ),
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.byType(SharedAttributesCard), findsNWidgets(WalletMockData.disclosureEvent.cards.length));
+    expect(find.text(l10n.requestDetailsScreenAttributesTitle), findsOneWidget);
+    final totalNrOfAttributes = WalletMockData.disclosureEvent.attributes.length;
     expect(find.textContaining(totalNrOfAttributes.toString()), findsOneWidget);
   });
 

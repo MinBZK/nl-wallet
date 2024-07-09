@@ -6,6 +6,7 @@ import '../../../wallet_assets.dart';
 import '../page/page_illustration.dart';
 import '../widget/button/bottom_back_button.dart';
 import '../widget/paragraphed_list.dart';
+import '../widget/paragraphed_sliver_list.dart';
 import '../widget/sliver_wallet_app_bar.dart';
 import '../widget/wallet_scrollbar.dart';
 
@@ -38,11 +39,9 @@ class PlaceholderScreen extends StatelessWidget {
                       scrollController: PrimaryScrollController.maybeOf(context),
                       automaticallyImplyLeading: true,
                     ),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: ParagraphedList.splitContent(description),
-                      ),
+                    SliverPadding(
+                      sliver: ParagraphedSliverList.splitContent(description),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
                     SliverToBoxAdapter(
                       child: Padding(

@@ -54,7 +54,8 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
     if (scrollOffset == null && !_afterFirstLayout) return const SizedBox.shrink();
     final scrollControllerHasClients = _scrollController?.hasClients ?? false;
     final offset = scrollOffset?.offset ?? (scrollControllerHasClients ? _scrollController!.offset : 0);
-    final maxScrollExtent = scrollControllerHasClients ? _scrollController!.position.maxScrollExtent : double.infinity;
+    final maxScrollExtent = scrollOffset?.maxScrollExtent ??
+        (scrollControllerHasClients ? _scrollController!.position.maxScrollExtent : double.infinity);
 
     // When the maxScrollExtent is smaller then where the child would appear, simply never show the child.
     if (maxScrollExtent <= widget.appearOffset) return const SizedBox.shrink();
@@ -125,7 +126,10 @@ class ScrollOffsetProvider extends StatelessWidget {
           if (!observeScrollNotifications) return child;
           return NotificationListener<ScrollNotification>(
             onNotification: (notification) {
-              context.read<ScrollOffset>().offset = notification.metrics.pixels;
+              final scrollOffset = context.read<ScrollOffset>();
+              scrollOffset.offset = notification.metrics.hasPixels ? notification.metrics.pixels : 0;
+              scrollOffset.maxScrollExtent =
+                  notification.metrics.hasContentDimensions ? notification.metrics.maxScrollExtent : 0;
               return false;
             },
             child: child,
@@ -146,10 +150,13 @@ class ScrollOffset extends ChangeNotifier {
   final String debugLabel;
 
   double _offset = 0;
+  double _maxScrollExtent = 0;
 
   ScrollOffset(this.debugLabel);
 
   double get offset => _offset;
+
+  double get maxScrollExtent => _maxScrollExtent;
 
   set offset(double value) {
     if (_offset == value) return;
@@ -157,6 +164,21 @@ class ScrollOffset extends ChangeNotifier {
     notifyListeners();
   }
 
+  set maxScrollExtent(double value) {
+    if (_maxScrollExtent == value) return;
+    _maxScrollExtent = value;
+    notifyListeners();
+  }
+
   @override
-  String toString() => 'ScrollOffset for $debugLabel. Offset: $_offset';
+  String toString() => 'ScrollOffset for $debugLabel. Offset: $_offset, MaxScrollExtent: $maxScrollExtent';
+
+  /// Resets the [ScrollOffset] to it's initial values (i.e. 0)
+  /// Can be useful when scrolling happens within a [PageView], as
+  /// navigating to the next page might not trigger an automatic update.
+  void reset() {
+    _offset = 0;
+    _maxScrollExtent = 0;
+    notifyListeners();
+  }
 }
