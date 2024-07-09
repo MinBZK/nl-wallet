@@ -512,7 +512,7 @@ mod tests {
         verifier::SessionType,
         DataElementValue,
     };
-    use openid4vc::{disclosure_session::VpMessageClientError, ErrorResponse, RedirectErrorResponse};
+    use openid4vc::{disclosure_session::VpMessageClientError, DisclosureErrorResponse, ErrorResponse};
 
     use crate::{
         config::UNIVERSAL_LINK_BASE_URL,
@@ -691,7 +691,7 @@ mod tests {
         let return_url = Url::parse("https://example.com/return/here").unwrap();
         MockMdocDisclosureSession::next_start_error(
             VpClientError::Request(VpMessageClientError::Response(
-                RedirectErrorResponse {
+                DisclosureErrorResponse {
                     error_response: ErrorResponse {
                         error: "error".to_string(),
                         error_description: None,

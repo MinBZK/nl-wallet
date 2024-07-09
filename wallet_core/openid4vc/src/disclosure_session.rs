@@ -30,7 +30,7 @@ use crate::{
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
-    AuthorizationErrorCode, ErrorResponse, RedirectErrorResponse, VpAuthorizationErrorCode,
+    AuthorizationErrorCode, ErrorResponse, DisclosureErrorResponse, VpAuthorizationErrorCode,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -72,7 +72,7 @@ pub enum VpMessageClientError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("error response: {0:?}")]
-    Response(Box<RedirectErrorResponse<String>>),
+    Response(Box<DisclosureErrorResponse<String>>),
 }
 
 impl VpMessageClientError {
@@ -155,7 +155,7 @@ impl VpMessageClient for HttpVpMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<RedirectErrorResponse<String>>().await?;
+                    let error = response.json::<DisclosureErrorResponse<String>>().await?;
                     Err(VpMessageClientError::Response(error.into()))
                 } else {
                     Ok(response.text().await?.into())
@@ -178,7 +178,7 @@ impl VpMessageClient for HttpVpMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<RedirectErrorResponse<String>>().await?;
+                    let error = response.json::<DisclosureErrorResponse<String>>().await?;
                     Err(VpMessageClientError::Response(error.into()))
                 } else {
                     Self::deserialize_vp_response(response).await

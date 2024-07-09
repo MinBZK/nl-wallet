@@ -13,7 +13,7 @@ pub(crate) enum ErrorResponse<T> {
     #[cfg(feature = "issuance")]
     Basic(openid4vc::ErrorResponse<T>),
     #[cfg(feature = "disclosure")]
-    Redirect(openid4vc::RedirectErrorResponse<T>),
+    Redirect(openid4vc::DisclosureErrorResponse<T>),
 }
 
 impl<T> ErrorResponse<T> {
@@ -23,7 +23,7 @@ impl<T> ErrorResponse<T> {
     }
 
     #[cfg(feature = "disclosure")]
-    pub(crate) fn new_redirect(error: impl Into<openid4vc::RedirectErrorResponse<T>>) -> Self {
+    pub(crate) fn new_redirect(error: impl Into<openid4vc::DisclosureErrorResponse<T>>) -> Self {
         Self::Redirect(error.into())
     }
 }

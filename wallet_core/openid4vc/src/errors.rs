@@ -22,10 +22,11 @@ pub struct ErrorResponse<T> {
     pub error_uri: Option<Url>,
 }
 
-/// Wrapper of [`ErrorResponse`] that has an optional redirect URI.
+/// Wrapper of [`ErrorResponse`] that has an optional redirect URI
+/// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RedirectErrorResponse<T> {
+pub struct DisclosureErrorResponse<T> {
     #[serde(flatten)]
     pub error_response: ErrorResponse<T>,
     pub redirect_uri: Option<BaseUrl>,
@@ -253,12 +254,12 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
     }
 }
 
-impl<E, T> From<WithRedirectUri<E>> for RedirectErrorResponse<T>
+impl<E, T> From<WithRedirectUri<E>> for DisclosureErrorResponse<T>
 where
     E: Into<ErrorResponse<T>> + std::error::Error,
 {
     fn from(value: WithRedirectUri<E>) -> Self {
-        RedirectErrorResponse {
+        DisclosureErrorResponse {
             error_response: value.error.into(),
             redirect_uri: value.redirect_uri,
         }
