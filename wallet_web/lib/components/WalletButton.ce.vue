@@ -1,22 +1,25 @@
 <script setup lang="ts">
 import { createAbsoluteUrl } from "@/util/base_url"
-import { isMobileKey } from "@/util/projection_keys"
-import { isDesktop } from "@/util/useragent"
+import { translations, translationsKey, type Language } from "@/util/translations"
+import { isDesktop, isMobileKey } from "@/util/useragent"
 import { computed, provide, ref } from "vue"
 import WalletModal from "./WalletModal.vue"
 import { RO_SANS_BOLD, RO_SANS_REGULAR } from "../non-free/fonts"
 
 export interface Props {
   usecase: string
-  id?: string
-  text?: string
   baseUrl?: string
-  style?: string
+  text?: string
+  lang?: Language
+  // ignored, but needed for the browser not giving a warning
+  id?: string
+  class?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  text: (): string => "Inloggen met NL Wallet",
+  text: (props): string => translations(props.lang as Language)("wallet_button_text"),
   baseUrl: (): string => "",
+  lang: (): Language => "nl",
 })
 
 const emit = defineEmits<{
@@ -42,6 +45,7 @@ const close = () => {
 }
 
 provide(isMobileKey, isMobile)
+provide(translationsKey, translations(props.lang))
 
 // @font-face doesn't seem to be working in the shadow DOM, so we insert it into the parent
 // document instead.
@@ -69,8 +73,6 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
     class="nl-wallet-button"
     ref="button"
     :aria-hidden="isVisible"
-    :id="id"
-    :style="style"
     @click="isVisible = true"
     data-testid="wallet_button"
   >

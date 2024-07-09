@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
-import { SessionType } from "@/models/status"
+import { type SessionType } from "@/models/status"
 
 defineProps<{
   ul: string
@@ -17,9 +17,9 @@ const handleChoice = (sessionType: SessionType) => emit("choice", sessionType)
 
 <template>
   <device-choice
-    v-if="sessionType === SessionType.SameDevice"
+    v-if="sessionType === 'same_device'"
     :ul="ul"
     @choice="handleChoice"
   ></device-choice>
-  <qr-code v-if="sessionType === SessionType.CrossDevice" :text="ul"></qr-code>
+  <qr-code v-if="sessionType === 'cross_device'" :text="ul"></qr-code>
 </template>
