@@ -42,6 +42,8 @@ services:
       - "${BRP_SERVER_PORT}:3007"
     networks:
       - brp-api-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   gbamock:
     container_name: gbamock
