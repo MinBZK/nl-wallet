@@ -30,7 +30,7 @@ use crate::{
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
-    AuthorizationErrorCode, ErrorResponse, DisclosureErrorResponse, VpAuthorizationErrorCode,
+    AuthorizationErrorCode, DisclosureErrorResponse, ErrorResponse, VpAuthorizationErrorCode,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -448,6 +448,13 @@ where
         }
     }
 
+    fn into_data(self) -> CommonDisclosureData<H> {
+        match self {
+            DisclosureSession::MissingAttributes(session) => session.data,
+            DisclosureSession::Proposal(session) => session.data,
+        }
+    }
+
     pub fn reader_registration(&self) -> &ReaderRegistration {
         &self.data().reader_registration
     }
@@ -456,19 +463,15 @@ where
         &self.data().certificate
     }
 
-    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
-        let data = match self {
-            DisclosureSession::MissingAttributes(session) => session.data,
-            DisclosureSession::Proposal(session) => session.data,
-        };
+    pub fn session_type(&self) -> SessionType {
+        self.data().session_type
+    }
 
+    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
+        let data = self.into_data();
         let return_url = data.client.terminate(data.auth_request.response_uri).await?;
 
         Ok(return_url)
-    }
-
-    pub fn session_type(&self) -> SessionType {
-        self.data().session_type
     }
 }
 
