@@ -22,10 +22,11 @@ pub struct ErrorResponse<T> {
     pub error_uri: Option<Url>,
 }
 
-/// Wrapper of [`ErrorResponse`] that has an optional redirect URI.
+/// Wrapper of [`ErrorResponse`] that has an optional redirect URI
+/// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RedirectErrorResponse<T> {
+pub struct DisclosureErrorResponse<T> {
     #[serde(flatten)]
     pub error_response: ErrorResponse<T>,
     pub redirect_uri: Option<BaseUrl>,
@@ -253,12 +254,12 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
     }
 }
 
-impl<E, T> From<WithRedirectUri<E>> for RedirectErrorResponse<T>
+impl<E, T> From<WithRedirectUri<E>> for DisclosureErrorResponse<T>
 where
     E: Into<ErrorResponse<T>> + std::error::Error,
 {
     fn from(value: WithRedirectUri<E>) -> Self {
-        RedirectErrorResponse {
+        DisclosureErrorResponse {
             error_response: value.error.into(),
             redirect_uri: value.redirect_uri,
         }
@@ -365,4 +366,40 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
+}
+
+#[cfg(feature = "axum")]
+mod axum {
+    use std::fmt::Debug;
+
+    use axum::{
+        response::{IntoResponse, Response},
+        Json,
+    };
+    use serde::Serialize;
+    use tracing::warn;
+
+    use super::{DisclosureErrorResponse, ErrorResponse, ErrorStatusCode};
+
+    impl<T> IntoResponse for ErrorResponse<T>
+    where
+        T: ErrorStatusCode + Serialize + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error body: {:?}", &self);
+
+            (self.error.status_code(), Json(self)).into_response()
+        }
+    }
+
+    impl<T> IntoResponse for DisclosureErrorResponse<T>
+    where
+        T: ErrorStatusCode + Serialize + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error body: {:?}", &self);
+
+            (self.error_response.error.status_code(), Json(self)).into_response()
+        }
+    }
 }

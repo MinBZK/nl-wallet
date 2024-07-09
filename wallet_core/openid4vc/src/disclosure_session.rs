@@ -30,7 +30,7 @@ use crate::{
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
-    AuthorizationErrorCode, ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, RedirectErrorResponse,
+    AuthorizationErrorCode, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode,
     VpAuthorizationErrorCode,
 };
 
@@ -73,9 +73,9 @@ pub enum VpMessageClientError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("auth request server error response: {0:?}")]
-    AuthGetResponse(RedirectErrorResponse<GetRequestErrorCode>),
+    AuthGetResponse(DisclosureErrorResponse<GetRequestErrorCode>),
     #[error("auth request server error response: {0:?}")]
-    AuthPostResponse(RedirectErrorResponse<PostAuthResponseErrorCode>),
+    AuthPostResponse(DisclosureErrorResponse<PostAuthResponseErrorCode>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -187,7 +187,7 @@ impl VpMessageClient for HttpVpMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<RedirectErrorResponse<GetRequestErrorCode>>().await?;
+                    let error = response.json::<DisclosureErrorResponse<GetRequestErrorCode>>().await?;
                     Err(VpMessageClientError::AuthGetResponse(error))
                 } else {
                     Ok(response.text().await?.into())
@@ -211,7 +211,7 @@ impl VpMessageClient for HttpVpMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response
-                        .json::<RedirectErrorResponse<PostAuthResponseErrorCode>>()
+                        .json::<DisclosureErrorResponse<PostAuthResponseErrorCode>>()
                         .await?;
                     Err(VpMessageClientError::AuthPostResponse(error))
                 } else {
@@ -482,6 +482,13 @@ where
         }
     }
 
+    fn into_data(self) -> CommonDisclosureData<H> {
+        match self {
+            DisclosureSession::MissingAttributes(session) => session.data,
+            DisclosureSession::Proposal(session) => session.data,
+        }
+    }
+
     pub fn reader_registration(&self) -> &ReaderRegistration {
         &self.data().reader_registration
     }
@@ -490,19 +497,15 @@ where
         &self.data().certificate
     }
 
-    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
-        let data = match self {
-            DisclosureSession::MissingAttributes(session) => session.data,
-            DisclosureSession::Proposal(session) => session.data,
-        };
+    pub fn session_type(&self) -> SessionType {
+        self.data().session_type
+    }
 
+    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
+        let data = self.into_data();
         let return_url = data.client.terminate(data.auth_request.response_uri).await?;
 
         Ok(return_url)
-    }
-
-    pub fn session_type(&self) -> SessionType {
-        self.data().session_type
     }
 }
 

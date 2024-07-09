@@ -2610,6 +2610,7 @@ name = "openid4vc"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
+ "axum",
  "base64 0.22.1",
  "biscuit",
  "chrono",

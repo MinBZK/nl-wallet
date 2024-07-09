@@ -248,11 +248,6 @@ where
 
         let return_url = session.terminate().await?;
 
-        info!(
-            "CANCEL RETURN URL: {}",
-            return_url.as_ref().map(|url| url.as_str()).unwrap_or("<NONE>")
-        );
-
         self.store_history_event(event)
             .await
             .map_err(DisclosureError::EventStorage)?;
@@ -518,7 +513,7 @@ mod tests {
         DataElementValue,
     };
     use openid4vc::{
-        disclosure_session::VpMessageClientError, ErrorResponse, GetRequestErrorCode, RedirectErrorResponse,
+        disclosure_session::VpMessageClientError, DisclosureErrorResponse, ErrorResponse, GetRequestErrorCode,
     };
 
     use crate::{
@@ -697,7 +692,7 @@ mod tests {
         // Set up an `MdocDisclosureSession` start to return the following error.
         let return_url = Url::parse("https://example.com/return/here").unwrap();
         MockMdocDisclosureSession::next_start_error(
-            VpClientError::Request(VpMessageClientError::AuthGetResponse(RedirectErrorResponse {
+            VpClientError::Request(VpMessageClientError::AuthGetResponse(DisclosureErrorResponse {
                 error_response: ErrorResponse {
                     error: GetRequestErrorCode::ServerError,
                     error_description: None,
