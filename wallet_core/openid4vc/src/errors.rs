@@ -367,3 +367,39 @@ pub enum AuthorizationErrorCode {
     ServerError,
     TemporarilyUnavailable,
 }
+
+#[cfg(feature = "axum")]
+mod axum {
+    use std::fmt::Debug;
+
+    use axum::{
+        response::{IntoResponse, Response},
+        Json,
+    };
+    use serde::Serialize;
+    use tracing::warn;
+
+    use super::{DisclosureErrorResponse, ErrorResponse, ErrorStatusCode};
+
+    impl<T> IntoResponse for ErrorResponse<T>
+    where
+        T: ErrorStatusCode + Serialize + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error body: {:?}", &self);
+
+            (self.error.status_code(), Json(self)).into_response()
+        }
+    }
+
+    impl<T> IntoResponse for DisclosureErrorResponse<T>
+    where
+        T: ErrorStatusCode + Serialize + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error body: {:?}", &self);
+
+            (self.error_response.error.status_code(), Json(self)).into_response()
+        }
+    }
+}

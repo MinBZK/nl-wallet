@@ -18,14 +18,11 @@ use openid4vc::{
     disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT,
     openid4vp::{VpResponse, WalletRequest},
     verifier::{DisclosureData, StatusResponse, Verifier, WalletAuthResponse},
-    GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
+    DisclosureErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VerificationErrorCode,
 };
 use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, http_error::HttpJsonError};
 
-use crate::{
-    errors::ErrorResponse,
-    settings::{self, Urls},
-};
+use crate::settings::{self, Urls};
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,
@@ -93,7 +90,7 @@ async fn retrieve_request<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Form(wallet_request): Form<WalletRequest>,
-) -> Result<(HeaderMap, String), ErrorResponse<GetRequestErrorCode>>
+) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -110,8 +107,9 @@ where
             wallet_request.wallet_nonce,
         )
         .await
-        .inspect_err(|error| warn!("processing request for Authorization Request JWT failed, returning error: {error}"))
-        .map_err(ErrorResponse::new_redirect)?;
+        .inspect_err(|error| {
+            warn!("processing request for Authorization Request JWT failed, returning error: {error}")
+        })?;
 
     info!("processing request for Authorization Request JWT successful, returning response");
 
@@ -126,7 +124,7 @@ async fn post_response<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
     Form(wallet_response): Form<WalletAuthResponse>,
-) -> Result<Json<VpResponse>, ErrorResponse<PostAuthResponseErrorCode>>
+) -> Result<Json<VpResponse>, DisclosureErrorResponse<PostAuthResponseErrorCode>>
 where
     S: SessionStore<DisclosureData>,
 {
@@ -136,8 +134,7 @@ where
         .verifier
         .process_authorization_response(&session_token, wallet_response, &TimeGenerator)
         .await
-        .inspect_err(|error| warn!("processing Verifiable Presentation failed, returning error: {error}"))
-        .map_err(ErrorResponse::new_redirect)?;
+        .inspect_err(|error| warn!("processing Verifiable Presentation failed, returning error: {error}"))?;
 
     info!("Verifiable Presentation processed successfully, returning response");
 

@@ -18,6 +18,8 @@ path = "tests/disclosure.rs"
 required-features = ["integration"]
 
 [features]
+# Include implementations of the axum IntoResponse trait.
+axum = ["dep:axum"]
 # Include mock implementations for testing
 mock = ["dep:mockall", "nl_wallet_mdoc/examples", "nl_wallet_mdoc/software_keys", "nl_wallet_mdoc/mock"]
 # All features needed to run the integration test
@@ -27,7 +29,6 @@ integration = ["mock", "dep:ciborium"]
 base64.workspace = true
 biscuit.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
-ciborium = { workspace = true, optional = true }
 derive_more = { workspace = true, features = ["from"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
@@ -36,7 +37,6 @@ itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
 jsonwebtoken.workspace = true
 mime.workspace = true
-mockall = { workspace = true, optional = true }
 nutype = { workspace = true, features = ["serde"] }
 once_cell.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
@@ -55,6 +55,10 @@ tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
+
+axum = { workspace = true, optional = true, features = ["json"] }
+ciborium = { workspace = true, optional = true }
+mockall = { workspace = true, optional = true }
 
 wallet_common.path = "../wallet_common"
 nl_wallet_mdoc.path = "../mdoc"
