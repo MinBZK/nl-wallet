@@ -2615,6 +2615,7 @@ dependencies = [
  "derive_more",
  "futures",
  "hex",
+ "http",
  "indexmap 2.2.6",
  "itertools",
  "josekit",

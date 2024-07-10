@@ -289,7 +289,13 @@ where
             .get_authorization_request(request_uri_object.request_uri.clone(), request_nonce.clone())
             .await?;
 
-        let (auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors, request_nonce)?;
+        let (vp_auth_request, certificate) = VpAuthorizationRequest::verify(&jws, trust_anchors)?;
+        let response_uri = vp_auth_request.response_uri.clone().unwrap();
+
+        // Use async here so we get the async-version of .or_else(), as report_error_back() is async.
+        let auth_request = async { vp_auth_request.validate(&certificate, request_nonce) }
+            .or_else(|error| Self::report_error_back(error.into(), &client, response_uri))
+            .await?;
 
         let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
@@ -338,11 +344,14 @@ where
         Ok(session)
     }
 
+    /// Report an error back to the RP. Note: this function only reports errors that are the RP's fault.
     async fn report_error_back<T>(error: VpClientError, client: &H, url: BaseUrl) -> Result<T, VpClientError> {
         let error_code = match error {
             VpClientError::IncorrectClientId { .. }
             | VpClientError::MissingReaderRegistration
             | VpClientError::RequestedAttributesValidation(_)
+            | VpClientError::AuthRequestValidation(_)
+            | VpClientError::Request(VpMessageClientError::Json(_))
             | VpClientError::RpCertificate(_) => {
                 VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
             }
@@ -530,5 +539,831 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
             VpMessageClientError::ErrorResponse(_) | VpMessageClientError::Json(_) => true,
         };
         Self::new(data_shared, VpClientError::Request(source))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::convert::identity;
+
+    use assert_matches::assert_matches;
+    use indexmap::{IndexMap, IndexSet};
+    use p256::ecdsa::VerifyingKey;
+    use reqwest::StatusCode;
+    use rstest::rstest;
+    use serde::ser::Error;
+
+    use nl_wallet_mdoc::{
+        examples::{EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE},
+        holder::{
+            test::{
+                create_example_proposed_document, emtpy_items_request, example_identifiers_from_attributes,
+                MdocDataSourceError, MdocIdentifier, ReaderCertificateKind, EXAMPLE_ATTRIBUTES, VERIFIER_URL,
+            },
+            DisclosureError, DisclosureUriSource, HolderError,
+        },
+        identifiers::AttributeIdentifierHolder,
+        software_key_factory::SoftwareKeyFactory,
+        utils::{
+            cose::ClonePayload,
+            reader_auth::{ReaderRegistration, ValidationError},
+            serialization::{cbor_deserialize, cbor_serialize, CborBase64, CborSeq, TaggedBytes},
+            x509::CertificateError,
+        },
+        verifier::SessionType,
+        DeviceAuth, DeviceAuthenticationKeyed, ItemsRequest, MobileSecurityObject, SessionTranscript,
+    };
+    use wallet_common::utils::random_string;
+
+    use crate::{
+        jwt::JwtX5cError,
+        openid4vp::{
+            AuthRequestValidationError, VerifiablePresentation, VpAuthorizationResponse, VpClientMetadata, VpJwks,
+            VpRequestUriObject,
+        },
+        test::{
+            disclosure_session_start, iso_auth_request, test_disclosure_session_start_error_http_client,
+            test_disclosure_session_terminate, MockVpMessageClient, WalletMessages,
+        },
+    };
+
+    use super::{
+        CommonDisclosureData, DisclosureMissingAttributes, DisclosureProposal, DisclosureSession, VpClientError,
+        VpMessageClientError,
+    };
+
+    // This is the full happy path test of `DisclosureSession`.
+    #[tokio::test]
+    async fn test_disclosure_session() {
+        // Starting a disclosure session should succeed.
+        let (disclosure_session, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect("Could not start DisclosureSession");
+
+        // Remember the `AttributeIdentifier`s that were in the request,
+        // as well as what is needed to reconstruct the `SessionTranscript`.
+        let request_identifiers = verifier_session
+            .items_requests
+            .as_ref()
+            .iter()
+            .flat_map(|items_request| items_request.attribute_identifiers())
+            .collect::<IndexSet<_>>();
+
+        // Make sure starting the session resulted in a proposal.
+        let DisclosureSession::Proposal(proposal) = disclosure_session else {
+            panic!("Disclosure session should not have missing attributes");
+        };
+
+        // Extract the public keys from the `MobileSecurityObject` to verify the disclosed documents against later.
+        let public_keys: Vec<VerifyingKey> = proposal
+            .proposed_documents
+            .iter()
+            .map(|proposed_document| {
+                // Can't use MdocCose::dangerous_parse_unverified() here as it is private
+                let TaggedBytes(mso): TaggedBytes<MobileSecurityObject> = cbor_deserialize(
+                    proposed_document
+                        .issuer_signed
+                        .issuer_auth
+                        .0
+                        .payload
+                        .as_ref()
+                        .unwrap()
+                        .as_slice(),
+                )
+                .unwrap();
+
+                (&mso.device_key_info.device_key).try_into().unwrap()
+            })
+            .collect();
+
+        let redirect_uri = proposal
+            .disclose(&SoftwareKeyFactory::default())
+            .await
+            .expect("Could not disclose DisclosureSession");
+
+        // Test if the return `Url` matches the input.
+        let redirect_uri = redirect_uri.as_ref().unwrap();
+        let expected_redirect_uri = verifier_session.redirect_uri.as_ref().unwrap();
+        assert_eq!(redirect_uri, expected_redirect_uri);
+
+        // Decrypt the disclosure and extract the contained disclosed documents.
+        let jwe = verifier_session.disclosure_jwe.lock().unwrap();
+        let jwe = jwe.as_ref().unwrap();
+        let (mut response, mdoc_nonce) =
+            VpAuthorizationResponse::decrypt(jwe, &verifier_session.encryption_keypair, &verifier_session.nonce)
+                .unwrap();
+        let device_response = match response.vp_token.pop().unwrap() {
+            VerifiablePresentation::MsoMdoc(CborBase64(device_response)) => device_response,
+        };
+        let documents = device_response
+            .documents
+            .expect("No documents contained in DeviceResponse");
+        assert_eq!(documents.len(), public_keys.len());
+
+        // Check that the attributes contained in the response match those in the request.
+        let response_identifiers = documents
+            .iter()
+            .flat_map(|document| document.issuer_signed_attribute_identifiers())
+            .collect::<IndexSet<_>>();
+        assert_eq!(response_identifiers, request_identifiers);
+
+        let session_transcript = SessionTranscript::new_oid4vp(
+            &verifier_session.response_uri,
+            &verifier_session.client_id(),
+            verifier_session.nonce.clone(),
+            &mdoc_nonce,
+        );
+
+        // Use the `SessionTranscript` to reconstruct the `DeviceAuthentication`
+        // for every `Document` received in order to verify the signatures received
+        // for each of these.
+        documents
+            .into_iter()
+            .zip(public_keys)
+            .for_each(|(document, public_key)| {
+                let device_authentication = DeviceAuthenticationKeyed::new(&document.doc_type, &session_transcript);
+                let device_authentication_bytes = cbor_serialize(&TaggedBytes(CborSeq(device_authentication))).unwrap();
+
+                match document.device_signed.device_auth {
+                    DeviceAuth::DeviceSignature(signature) => signature
+                        .clone_with_payload(device_authentication_bytes)
+                        .verify(&public_key)
+                        .expect("Device authentication for document does not match public key"),
+                    _ => panic!("Unexpected device authentication in DeviceResponse"),
+                }
+            });
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_proposal() {
+        // Starting a disclosure session should succeed with a disclosure proposal.
+        let (disclosure_session, verifier_session) = disclosure_session_start(
+            SessionType::CrossDevice,
+            DisclosureUriSource::QrCode,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect("Could not start disclosure session");
+
+        // Check that the correct session type is returned.
+        let DisclosureSession::Proposal(ref proposal_session) = disclosure_session else {
+            panic!("Disclosure session should not have missing attributes")
+        };
+
+        // Check that the wallet sent a nonce to be included in the Authorization Request JWT.
+        let wallet_request = verifier_session.wallet_request.lock().unwrap();
+        assert!(wallet_request.as_ref().unwrap().wallet_nonce.is_some());
+
+        // Test that the proposal session contains the example mdoc identifier.
+        assert_eq!(proposal_session.proposed_source_identifiers(), ["id_1"]);
+
+        // Test that the proposal for disclosure contains the example attributes, in order.
+        // Note that `swap_remove()` is used to quickly gain ownership of the `Entry`s
+        // contained within the proposed attributes for the example doc_type and namespace.
+        let entry_keys = proposal_session
+            .proposed_attributes()
+            .swap_remove(EXAMPLE_DOC_TYPE)
+            .and_then(|mut name_space| name_space.attributes.swap_remove(EXAMPLE_NAMESPACE))
+            .map(|entries| entries.into_iter().map(|entry| entry.name).collect::<Vec<_>>())
+            .unwrap_or_default();
+
+        assert_eq!(entry_keys, EXAMPLE_ATTRIBUTES);
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_missing_attributes_one() {
+        // Starting a disclosure session should succeed with missing attributes.
+        let (disclosure_session, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            |mut mdoc_source| {
+                // Remove the last attribute from the first mdoc.
+                mdoc_source
+                    .mdocs
+                    .first_mut()
+                    .unwrap()
+                    .modify_attributes(EXAMPLE_NAMESPACE, |attributes| {
+                        attributes.pop();
+                    });
+
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect("Could not start disclosure session");
+
+        // Check that the correct session type is returned.
+        let DisclosureSession::MissingAttributes(ref missing_attr_session) = disclosure_session else {
+            panic!("Disclosure session should have missing attributes")
+        };
+
+        // Test if `ReaderRegistration` matches the input.
+        assert_eq!(
+            disclosure_session.reader_registration(),
+            verifier_session.reader_registration.as_ref().unwrap()
+        );
+
+        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+
+        let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
+
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_missing_attributes_all() {
+        // Starting a disclosure session should succeed with missing attributes.
+        let (disclosure_session, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            |mut mdoc_source| {
+                mdoc_source.mdocs.clear();
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect("Could not start disclosure session");
+
+        // Check that the correct session type is returned.
+        let DisclosureSession::MissingAttributes(ref missing_attr_session) = disclosure_session else {
+            panic!("Disclosure session should have missing attributes")
+        };
+
+        // Test if `ReaderRegistration` matches the input.
+        assert_eq!(
+            disclosure_session.reader_registration(),
+            verifier_session.reader_registration.as_ref().unwrap()
+        );
+
+        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+
+        let expected_missing_attributes = example_identifiers_from_attributes([
+            "family_name",
+            "issue_date",
+            "expiry_date",
+            "document_number",
+            "driving_privileges",
+        ]);
+
+        itertools::assert_equal(
+            missing_attr_session.missing_attributes().iter(),
+            expected_missing_attributes.iter(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_decode_request_uri() {
+        // Starting a `DisclosureSession` with an invalid request URI object should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                verifier_session.request_uri_override = Some("".to_string());
+
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, VpClientError::RequestUri(_));
+        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_verifier_url_mising() {
+        // Starting a `DisclosureSession` with a request URI object that
+        // does not contain a request URI should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                let mut params: IndexMap<String, String> =
+                    serde_urlencoded::from_str(&verifier_session.request_uri_query()).unwrap();
+                params.swap_remove("request_uri");
+
+                verifier_session.request_uri_override = Some(serde_urlencoded::to_string(params).unwrap());
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, VpClientError::RequestUri(_));
+        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_missing_session_type() {
+        // Starting a `DisclosureSession` with a request URI object that contains
+        // a request URI without a session_type should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                // Overwrite the verifier URL with a version that does not have the `session_type` added.
+                let mut request_uri_object: VpRequestUriObject =
+                    serde_urlencoded::from_str(&verifier_session.request_uri_query()).unwrap();
+                let mut request_uri_params: IndexMap<String, String> =
+                    serde_urlencoded::from_str(request_uri_object.request_uri.as_ref().query().unwrap()).unwrap();
+                request_uri_params.swap_remove("session_type");
+                let mut request_uri = request_uri_object.request_uri.clone().into_inner();
+                request_uri.set_query(Some(&serde_urlencoded::to_string(request_uri_params).unwrap()));
+                request_uri_object.request_uri = request_uri.try_into().unwrap();
+
+                verifier_session.request_uri_object = request_uri_object;
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, VpClientError::MalformedSessionType(_));
+        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_malformed_session_type() {
+        // Starting a `DisclosureSession` with a request URI object that contains
+        // a request URI with an invalid session_type should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                let mut request_uri_object: VpRequestUriObject =
+                    serde_urlencoded::from_str(&verifier_session.request_uri_query()).unwrap();
+                request_uri_object.request_uri = format!("{}?session_type=invalid", VERIFIER_URL).parse().unwrap();
+
+                verifier_session.request_uri_object = request_uri_object;
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, VpClientError::MalformedSessionType(_));
+        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+    }
+
+    #[rstest]
+    #[case(SessionType::SameDevice, DisclosureUriSource::QrCode)]
+    #[case(SessionType::CrossDevice, DisclosureUriSource::Link)]
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_reader_engagement_source_mismatch(
+        #[case] session_type: SessionType,
+        #[case] uri_source: DisclosureUriSource,
+    ) {
+        // Starting a `DisclosureSession` with a request URI object that contains a
+        // `SessionType` that is incompatible with its source should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            session_type,
+            uri_source,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::DisclosureUriSourceMismatch(
+                typ,
+                source
+            ) if typ == session_type && source == uri_source);
+        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_http_client_data_serialization() {
+        let (error, wallet_request, _) =
+            test_disclosure_session_start_error_http_client(|| Some(serde_json::Error::custom("").into())).await;
+
+        // Trying to start a session in which the transport gives a JSON error
+        // should result in the error being forwarded.
+        assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
+        assert!(wallet_request.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_http_client_request() {
+        let (error, wallet_request, _) = test_disclosure_session_start_error_http_client(|| {
+            let response = http::Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("")
+                .unwrap();
+            let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
+
+            Some(VpMessageClientError::Http(reqwest_error))
+        })
+        .await;
+
+        // Trying to start a session in which the transport gives a JSON error
+        // should result in the error being forwarded.
+        assert_matches!(error, VpClientError::Request(VpMessageClientError::Http(_)));
+        assert!(wallet_request.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_verifier_encryption_missing() {
+        // Starting a `DisclosureSession` with a `VpAuthorizationRequest` without an encryption public key
+        // should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            identity,
+            |mut auth_request| {
+                let VpClientMetadata::Direct(ref mut client_metadata) = auth_request.client_metadata.as_mut().unwrap()
+                else {
+                    panic!("client_metadata should not be indirect");
+                };
+                client_metadata.jwks = VpJwks::Direct { keys: vec![] };
+
+                auth_request
+            },
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::AuthRequestValidation(AuthRequestValidationError::UnexpectedJwkAmount(0))
+        );
+        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+
+        // This RP error should be reported back to the RP.
+        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+    }
+
+    #[rstest]
+    #[case(vec![])]
+    #[case(vec![emtpy_items_request()])]
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_no_attributes_requested(#[case] items_requests: Vec<ItemsRequest>) {
+        // Starting a `DisclosureSession` with an Authorization Request with no
+        // `DocRequest` entries is received should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                verifier_session.items_requests = items_requests.into();
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::AuthRequestValidation(AuthRequestValidationError::NoAttributesRequested)
+        );
+        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+
+        // This RP error should be reported back to the RP.
+        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_reader_auth_invalid() {
+        // Starting a `DisclosureSession` without trust anchors should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                verifier_session.trust_anchors.clear();
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::AuthRequestValidation(AuthRequestValidationError::JwtVerification(
+                JwtX5cError::CertificateValidation(CertificateError::Verification(_))
+            ))
+        );
+
+        // This RP error should be reported back to the RP.
+        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_reader_registration_validation() {
+        // Starting a `DisclosureSession` where the Authorization Request contains an attribute
+        // that is not in the `ReaderRegistration` should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            |mut verifier_session| {
+                verifier_session
+                    .items_requests
+                    .0
+                    .first_mut()
+                    .unwrap()
+                    .name_spaces
+                    .get_mut(EXAMPLE_NAMESPACE)
+                    .unwrap()
+                    .insert("foobar".to_string(), false);
+
+                verifier_session
+            },
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::RequestedAttributesValidation(ValidationError::UnregisteredAttributes(_))
+        );
+        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+
+        // This RP error should be reported back to the RP.
+        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_mdoc_data_source() {
+        // Starting a `DisclosureSession` when the database returns
+        // an error should result in that error being forwarded.
+        let (error, _) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            |mut mdoc_source| {
+                mdoc_source.has_error = true;
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::MatchRequestedAttributes(nl_wallet_mdoc::Error::Holder(
+                HolderError::MdocDataSource(mdoc_error)
+            )) if mdoc_error.is::<MdocDataSourceError>()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_multiple_candidates() {
+        // Starting a `DisclosureSession` when the database contains multiple
+        // candidates for the same `doc_type` should result in an error.
+        let (error, _) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::WithReaderRegistration,
+            identity,
+            |mut mdoc_source| {
+                mdoc_source.mdocs.push(mdoc_source.mdocs.first().unwrap().clone());
+                mdoc_source
+            },
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(
+            error,
+            VpClientError::MultipleCandidates(doc_types) if doc_types == vec![EXAMPLE_DOC_TYPE.to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_start_error_no_reader_registration() {
+        // Starting a `DisclosureSession` with an Authorization Request JWT that contains a valid
+        // reader certificate but no `ReaderRegistration` should result in an error.
+        let (error, verifier_session) = disclosure_session_start(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            ReaderCertificateKind::NoReaderRegistration,
+            identity,
+            identity,
+            identity,
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        assert_matches!(error, VpClientError::MissingReaderRegistration);
+        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+
+        // This RP error should be reported back to the RP.
+        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+    }
+
+    fn create_disclosure_session_proposal<F>(
+        response_factory: F,
+    ) -> (
+        DisclosureSession<MockVpMessageClient<F>, MdocIdentifier>,
+        WalletMessages,
+    )
+    where
+        F: Fn() -> Option<VpMessageClientError>,
+    {
+        let session_type = SessionType::SameDevice;
+
+        let wallet_messages = WalletMessages::new();
+        let client = MockVpMessageClient {
+            response_factory,
+            wallet_messages: wallet_messages.clone(),
+        };
+
+        let mdoc_nonce = random_string(32);
+
+        let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
+            data: CommonDisclosureData {
+                client,
+                certificate: vec![].into(),
+                reader_registration: ReaderRegistration::new_mock(),
+                session_type,
+                auth_request: iso_auth_request(),
+            },
+            proposed_documents: vec![create_example_proposed_document()],
+            mdoc_nonce,
+        });
+
+        (proposal_session, wallet_messages)
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_terminate() {
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None);
+
+        // Terminating a `DisclosureSession` with a proposal should succeed.
+        test_disclosure_session_terminate(proposal_session, wallet_messages.error)
+            .await
+            .expect("Could not terminate DisclosureSession with proposal");
+
+        let (proposal_session, wallet_messages) =
+            create_disclosure_session_proposal(|| Some(VpMessageClientError::Json(serde_json::Error::custom(""))));
+
+        // Terminating a `DisclosureSession` with a proposal where the `VpMessageClient`
+        // gives an error should result in that error being forwarded.
+        let error = test_disclosure_session_terminate(proposal_session, wallet_messages.error)
+            .await
+            .expect_err("Terminating DisclosureSession with proposal should have resulted in an error");
+
+        assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_missing_attributes_terminate() {
+        let wallet_messages = WalletMessages::new();
+        let client = MockVpMessageClient {
+            response_factory: || None,
+            wallet_messages: wallet_messages.clone(),
+        };
+
+        // Terminating a `DisclosureSession` with missing attributes should succeed.
+        let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+            data: CommonDisclosureData {
+                client,
+                certificate: vec![].into(),
+                reader_registration: ReaderRegistration::new_mock(),
+                session_type: SessionType::SameDevice,
+                auth_request: iso_auth_request(),
+            },
+            missing_attributes: Default::default(),
+        });
+
+        test_disclosure_session_terminate(missing_attr_session, wallet_messages.error)
+            .await
+            .expect("Could not terminate DisclosureSession with missing attributes");
+
+        let wallet_messages = WalletMessages::new();
+        let client = MockVpMessageClient {
+            response_factory: || Some(VpMessageClientError::Json(serde_json::Error::custom(""))),
+            wallet_messages: wallet_messages.clone(),
+        };
+
+        let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+            data: CommonDisclosureData {
+                client,
+                certificate: vec![].into(),
+                reader_registration: ReaderRegistration::new_mock(),
+                session_type: SessionType::SameDevice,
+                auth_request: iso_auth_request(),
+            },
+            missing_attributes: Default::default(),
+        });
+
+        // Terminating a `DisclosureSession` with missing attributes where the
+        // `VpMessageClient` gives an error should result in that error being forwarded.
+        let error = test_disclosure_session_terminate(missing_attr_session, wallet_messages.error)
+            .await
+            .expect_err("Terminating DisclosureSession with missing attributes should have resulted in an error");
+
+        assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_http_client_request() {
+        // Create a `DisclosureSession` containing a proposal
+        // and a `VpMessageClient` that will return a `reqwest::Error`.
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| {
+            let response = http::Response::builder()
+                .status(StatusCode::NOT_FOUND)
+                .body("")
+                .unwrap();
+            let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
+
+            Some(VpMessageClientError::Http(reqwest_error))
+        });
+
+        // Disclosing this session should result in the payload
+        // being sent while returning the wrapped HTTP error.
+        let error = match proposal_session {
+            DisclosureSession::Proposal(proposal) => proposal
+                .disclose(&SoftwareKeyFactory::default())
+                .await
+                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+            _ => unreachable!(),
+        };
+
+        assert!(wallet_messages.disclosure.lock().unwrap().is_some());
+        assert_matches!(
+            error,
+            DisclosureError {
+                data_shared,
+                error: VpClientError::Request(VpMessageClientError::Http(_))
+            } if data_shared
+        );
+    }
+
+    #[tokio::test]
+    async fn test_disclosure_session_proposal_disclose_error_http_client_connection() {
+        // Create a `DisclosureSession` containing a proposal
+        // and a `VpMessageClient` that will return an error.
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| {
+            Some(VpMessageClientError::Http(futures::executor::block_on(async {
+                // This seems to be the only way to create a reqwest::Error whose is_connect() method returns true.
+                reqwest::get("http://asdfasdf-nonexisting-domain-name")
+                    .await
+                    .unwrap_err()
+            })))
+        });
+
+        // Disclosing this session should result in the payload
+        // being sent while returning the wrapped HTTP error.
+        let error = match proposal_session {
+            DisclosureSession::Proposal(proposal) => proposal
+                .disclose(&SoftwareKeyFactory::default())
+                .await
+                .expect_err("Disclosing DisclosureSession should have resulted in an error"),
+            _ => unreachable!(),
+        };
+
+        assert!(wallet_messages.disclosure.lock().unwrap().is_some());
+
+        // No data should have been shared in this case
+        assert_matches!(error, DisclosureError {
+            data_shared, error: VpClientError::Request(VpMessageClientError::Http(_))
+        } if !data_shared);
     }
 }
