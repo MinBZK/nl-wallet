@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use axum::{
     extract::State,
@@ -23,13 +23,10 @@ use openid4vc::{
     metadata::IssuerMetadata,
     oidc,
     token::{AccessToken, TokenRequest, TokenResponseWithPreviews},
-    CredentialErrorCode, ErrorStatusCode, TokenErrorCode,
+    CredentialErrorCode, ErrorResponse, ErrorStatusCode, TokenErrorCode,
 };
 
-use crate::{
-    errors::ErrorResponse,
-    settings::{self, Urls},
-};
+use crate::settings::{self, Urls};
 
 use openid4vc::issuer::{AttributeService, IssuanceData, Issuer};
 
@@ -111,7 +108,16 @@ where
     K: KeyRing,
     S: SessionStore<IssuanceData>,
 {
-    let metadata = state.issuer.oauth_metadata().await?;
+    let metadata = state
+        .issuer
+        .oauth_metadata()
+        .await
+        .map_err(|error| openid4vc::ErrorResponse {
+            error: MetadataError::Metadata,
+            error_description: Some(error.to_string()),
+            error_uri: None,
+        })?;
+
     Ok(Json(metadata))
 }
 
@@ -129,11 +135,7 @@ where
     K: KeyRing,
     S: SessionStore<IssuanceData>,
 {
-    let (response, dpop_nonce) = state
-        .issuer
-        .process_token_request(token_request, dpop)
-        .await
-        .map_err(ErrorResponse::new)?;
+    let (response, dpop_nonce) = state.issuer.process_token_request(token_request, dpop).await?;
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
         HeaderValue::from_str(&dpop_nonce).unwrap(),
@@ -156,8 +158,7 @@ where
     let response = state
         .issuer
         .process_credential(access_token, dpop, credential_request)
-        .await
-        .map_err(ErrorResponse::new)?;
+        .await?;
     Ok(Json(response))
 }
 
@@ -176,8 +177,7 @@ where
     let response = state
         .issuer
         .process_batch_credential(access_token, dpop, credential_requests)
-        .await
-        .map_err(ErrorResponse::new)?;
+        .await?;
     Ok(Json(response))
 }
 
@@ -198,8 +198,7 @@ where
     state
         .issuer
         .process_reject_issuance(access_token, dpop, uri_path)
-        .await
-        .map_err(ErrorResponse::new)?;
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -266,21 +265,5 @@ enum MetadataError {
 impl ErrorStatusCode for MetadataError {
     fn status_code(&self) -> StatusCode {
         StatusCode::INTERNAL_SERVER_ERROR
-    }
-}
-
-impl<T> From<T> for ErrorResponse<MetadataError>
-where
-    T: Display,
-{
-    fn from(error: T) -> Self {
-        ErrorResponse {
-            error_response: openid4vc::ErrorResponse {
-                error: MetadataError::Metadata,
-                error_description: Some(error.to_string()),
-                error_uri: None,
-            },
-            redirect_uri: None,
-        }
     }
 }

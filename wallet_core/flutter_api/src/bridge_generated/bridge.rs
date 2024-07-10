@@ -298,7 +298,7 @@ fn wire_start_disclosure_impl(
     )
 }
 fn wire_cancel_disclosure_impl(port_: MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, (), _>(
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap::<_, _, _, Option<String>, _>(
         WrapInfo {
             debug_name: "cancel_disclosure",
             port: Some(port_),

@@ -30,7 +30,7 @@ use crate::{
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
-    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
+    AuthorizationErrorCode, DisclosureErrorResponse, ErrorResponse, VpAuthorizationErrorCode,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -72,7 +72,16 @@ pub enum VpMessageClientError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("error response: {0:?}")]
-    ErrorResponse(ErrorResponse<String>),
+    Response(Box<DisclosureErrorResponse<String>>),
+}
+
+impl VpMessageClientError {
+    pub fn redirect_uri(&self) -> Option<&BaseUrl> {
+        match &self {
+            Self::Response(response) => response.redirect_uri.as_ref(),
+            _ => None,
+        }
+    }
 }
 
 /// Contract for sending OpenID4VP protocol messages.
@@ -146,8 +155,8 @@ impl VpMessageClient for HttpVpMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::ErrorResponse(error))
+                    let error = response.json::<DisclosureErrorResponse<String>>().await?;
+                    Err(VpMessageClientError::Response(error.into()))
                 } else {
                     Ok(response.text().await?.into())
                 }
@@ -169,8 +178,8 @@ impl VpMessageClient for HttpVpMessageClient {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::ErrorResponse(error))
+                    let error = response.json::<DisclosureErrorResponse<String>>().await?;
+                    Err(VpMessageClientError::Response(error.into()))
                 } else {
                     Self::deserialize_vp_response(response).await
                 }
@@ -439,6 +448,13 @@ where
         }
     }
 
+    fn into_data(self) -> CommonDisclosureData<H> {
+        match self {
+            DisclosureSession::MissingAttributes(session) => session.data,
+            DisclosureSession::Proposal(session) => session.data,
+        }
+    }
+
     pub fn reader_registration(&self) -> &ReaderRegistration {
         &self.data().reader_registration
     }
@@ -447,14 +463,15 @@ where
         &self.data().certificate
     }
 
-    pub async fn terminate(self) -> Result<(), VpClientError> {
-        let data = self.data();
-        data.client.terminate(data.auth_request.response_uri.clone()).await?;
-        Ok(())
-    }
-
     pub fn session_type(&self) -> SessionType {
         self.data().session_type
+    }
+
+    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
+        let data = self.into_data();
+        let return_url = data.client.terminate(data.auth_request.response_uri).await?;
+
+        Ok(return_url)
     }
 }
 
@@ -527,7 +544,7 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
     fn from(source: VpMessageClientError) -> Self {
         let data_shared = match source {
             VpMessageClientError::Http(ref reqwest_error) => !reqwest_error.is_connect(),
-            VpMessageClientError::ErrorResponse(_) | VpMessageClientError::Json(_) => true,
+            VpMessageClientError::Response(_) | VpMessageClientError::Json(_) => true,
         };
         Self::new(data_shared, VpClientError::Request(source))
     }
