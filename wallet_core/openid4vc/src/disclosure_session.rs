@@ -100,22 +100,35 @@ impl From<DisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClien
 impl VpMessageClientError {
     pub fn error_type(&self) -> VpMessageClientErrorType {
         match self {
-            Self::AuthGetResponse(response)
-                if [
-                    GetRequestErrorCode::ExpiredEphemeralId,
-                    GetRequestErrorCode::ExpiredSession,
-                ]
-                .contains(&response.error_response.error) =>
-            {
-                VpMessageClientErrorType::Expired {
-                    can_retry: response.error_response.error == GetRequestErrorCode::ExpiredEphemeralId,
-                }
-            }
-            Self::AuthPostResponse(response)
-                if response.error_response.error == PostAuthResponseErrorCode::ExpiredSession =>
-            {
-                VpMessageClientErrorType::Expired { can_retry: false }
-            }
+            // When the verifier reports that the ephemeral session id is expired,
+            // the user could retry getting the request with a new ephemeral id.
+            Self::AuthGetResponse(DisclosureErrorResponse {
+                error_response:
+                    ErrorResponse {
+                        error: GetRequestErrorCode::ExpiredEphemeralId,
+                        ..
+                    },
+                ..
+            }) => VpMessageClientErrorType::Expired { can_retry: true },
+            // When the verifier reports that the session is expired, either when getting
+            // the request or posting the response, the user cannot retry the operation.
+            Self::AuthGetResponse(DisclosureErrorResponse {
+                error_response:
+                    ErrorResponse {
+                        error: GetRequestErrorCode::ExpiredSession,
+                        ..
+                    },
+                ..
+            })
+            | Self::AuthPostResponse(DisclosureErrorResponse {
+                error_response:
+                    ErrorResponse {
+                        error: PostAuthResponseErrorCode::ExpiredSession,
+                        ..
+                    },
+                ..
+            }) => VpMessageClientErrorType::Expired { can_retry: false },
+            // Any other reported error is classified under `VpMessageClientErrorType::Other`.
             _ => VpMessageClientErrorType::Other,
         }
     }
