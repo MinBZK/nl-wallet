@@ -19,12 +19,12 @@ use nl_wallet_mdoc::{
     DeviceResponse, SessionTranscript,
 };
 use openid4vc::{
-    disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
+    disclosure_session::{DisclosureSession, VpClientError, VpMessageClient, VpMessageClientError},
     jwt,
     mock::MockMdocDataSource,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
     verifier::{DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken, WalletAuthResponse},
-    ErrorResponse, VpAuthorizationErrorCode,
+    ErrorResponse, GetRequestErrorCode, PostAuthResponseErrorCode, VpAuthorizationErrorCode,
 };
 use wallet_common::{
     config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::Jwt, trust_anchor::OwnedTrustAnchor,
@@ -277,7 +277,9 @@ async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_s
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Start session in the wallet
-    let session = start_disclosure_session(Arc::clone(&verifier), uri_source, &request_uri, &trust_anchor).await;
+    let session = start_disclosure_session(Arc::clone(&verifier), uri_source, &request_uri, &trust_anchor)
+        .await
+        .unwrap();
 
     let DisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
@@ -316,15 +318,14 @@ async fn test_client_and_server_cancel_after_created() {
     let items_requests = Examples::items_requests();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, _) = setup_verifier(&items_requests);
+    let (verifier, trust_anchor) = setup_verifier(&items_requests);
 
     // Start the session
     let session_token = new_session(&verifier, items_requests).await;
 
-    // The session should now be created
-    let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
-
-    assert_matches!(status_response, StatusResponse::Created { .. });
+    // The front-end receives the UL to feed to the wallet when fetching the session status
+    // (this also verifies that the status is Created)
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Cancel the session
     verifier
@@ -336,6 +337,22 @@ async fn test_client_and_server_cancel_after_created() {
     let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
 
     assert_matches!(status_response, StatusResponse::Cancelled);
+
+    // Starting the session in the wallet should result in an error
+    let error = start_disclosure_session(
+        Arc::clone(&verifier),
+        DisclosureUriSource::Link,
+        &request_uri,
+        &trust_anchor,
+    )
+    .await
+    .expect_err("should not be able to start the disclosure session in the wallet");
+
+    assert_matches!(
+        error,
+        VpClientError::Request(VpMessageClientError::AuthGetResponse(error))
+            if error.error_response.error == GetRequestErrorCode::InvalidRequest
+    );
 }
 
 #[tokio::test]
@@ -353,13 +370,14 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Start session in the wallet
-    let _ = start_disclosure_session(
+    let session = start_disclosure_session(
         Arc::clone(&verifier),
         DisclosureUriSource::Link,
         &request_uri,
         &trust_anchor,
     )
-    .await;
+    .await
+    .unwrap();
 
     // Cancel the session
     verifier
@@ -371,6 +389,22 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
 
     assert_matches!(status_response, StatusResponse::Cancelled);
+
+    // Disclosing attributes at this point should result in an error.
+    let DisclosureSession::Proposal(proposal) = session else {
+        panic!("should have requested attributes")
+    };
+
+    let error = proposal
+        .disclose(&SoftwareKeyFactory::default())
+        .await
+        .expect_err("should not be able to disclose attributes");
+
+    assert_matches!(
+        error.error,
+        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+            if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
+    );
 }
 
 fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor) {
@@ -415,7 +449,7 @@ async fn start_disclosure_session(
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: &OwnedTrustAnchor,
-) -> DisclosureSession<VerifierMockVpMessageClient, String> {
+) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpClientError> {
     let mdocs = MockMdocDataSource::default();
     let message_client = VerifierMockVpMessageClient::new(verifier);
 
@@ -427,7 +461,6 @@ async fn start_disclosure_session(
         &[(trust_anchor).into()],
     )
     .await
-    .unwrap()
 }
 
 async fn request_uri_from_status_endpoint(
@@ -463,6 +496,7 @@ async fn request_status_endpoint(
 
 type MockVerifier = Verifier<MemorySessionStore<DisclosureData>>;
 
+#[derive(Debug)]
 struct VerifierMockVpMessageClient {
     verifier: Arc<MockVerifier>,
 }
@@ -493,7 +527,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
                 wallet_nonce,
             )
             .await
-            .unwrap();
+            .map_err(|error| VpMessageClientError::AuthGetResponse(error.into()))?;
 
         Ok(jws)
     }
@@ -514,7 +548,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
                 &IsoCertTimeGenerator,
             )
             .await
-            .unwrap();
+            .map_err(|error| VpMessageClientError::AuthPostResponse(error.into()))?;
 
         Ok(response.redirect_uri)
     }

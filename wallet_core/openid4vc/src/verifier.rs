@@ -402,6 +402,7 @@ impl UseCase {
     }
 }
 
+#[derive(Debug)]
 pub struct Verifier<S> {
     use_cases: UseCases,
     sessions: Arc<S>,
