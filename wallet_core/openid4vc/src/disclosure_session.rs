@@ -544,7 +544,10 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::identity;
+    use std::{
+        convert::identity,
+        sync::{Arc, Mutex},
+    };
 
     use assert_matches::assert_matches;
     use indexmap::{IndexMap, IndexSet};
@@ -583,7 +586,7 @@ mod tests {
         },
         test::{
             disclosure_session_start, iso_auth_request, test_disclosure_session_start_error_http_client,
-            test_disclosure_session_terminate, MockVpMessageClient, WalletMessages,
+            test_disclosure_session_terminate, MockFactoryVpMessageClient, WalletMessages,
         },
     };
 
@@ -654,8 +657,8 @@ mod tests {
         assert_eq!(redirect_uri, expected_redirect_uri);
 
         // Decrypt the disclosure and extract the contained disclosed documents.
-        let jwe = verifier_session.disclosure_jwe.lock().unwrap();
-        let jwe = jwe.as_ref().unwrap();
+        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        let jwe = wallet_messages.disclosure.as_ref().unwrap();
         let (mut response, mdoc_nonce) =
             VpAuthorizationResponse::decrypt(jwe, &verifier_session.encryption_keypair, &verifier_session.nonce)
                 .unwrap();
@@ -721,8 +724,8 @@ mod tests {
         };
 
         // Check that the wallet sent a nonce to be included in the Authorization Request JWT.
-        let wallet_request = verifier_session.wallet_request.lock().unwrap();
-        assert!(wallet_request.as_ref().unwrap().wallet_nonce.is_some());
+        let wallet_messages = verifier_session.wallet_messages.lock().unwrap();
+        assert!(wallet_messages.request.as_ref().unwrap().wallet_nonce.is_some());
 
         // Test that the proposal session contains the example mdoc identifier.
         assert_eq!(proposal_session.proposed_source_identifiers(), ["id_1"]);
@@ -776,7 +779,7 @@ mod tests {
             verifier_session.reader_registration.as_ref().unwrap()
         );
 
-        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_some());
 
         let expected_missing_attributes = example_identifiers_from_attributes(["driving_privileges"]);
 
@@ -814,7 +817,7 @@ mod tests {
             verifier_session.reader_registration.as_ref().unwrap()
         );
 
-        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_some());
 
         let expected_missing_attributes = example_identifiers_from_attributes([
             "family_name",
@@ -849,7 +852,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::RequestUri(_));
-        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_none());
     }
 
     #[tokio::test]
@@ -875,7 +878,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::RequestUri(_));
-        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_none());
     }
 
     #[tokio::test]
@@ -907,7 +910,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::MalformedSessionType(_));
-        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_none());
     }
 
     #[tokio::test]
@@ -933,7 +936,7 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::MalformedSessionType(_));
-        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_none());
     }
 
     #[rstest]
@@ -963,7 +966,7 @@ mod tests {
                 typ,
                 source
             ) if typ == session_type && source == uri_source);
-        assert!(verifier_session.wallet_request.lock().unwrap().is_none());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_none());
     }
 
     #[tokio::test]
@@ -1023,10 +1026,10 @@ mod tests {
             error,
             VpClientError::AuthRequestValidation(AuthRequestValidationError::UnexpectedJwkAmount(0))
         );
-        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_some());
 
         // This RP error should be reported back to the RP.
-        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().error.is_some());
     }
 
     #[rstest]
@@ -1054,10 +1057,10 @@ mod tests {
             error,
             VpClientError::AuthRequestValidation(AuthRequestValidationError::NoAttributesRequested)
         );
-        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_some());
 
         // This RP error should be reported back to the RP.
-        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().error.is_some());
     }
 
     #[tokio::test]
@@ -1085,7 +1088,7 @@ mod tests {
         );
 
         // This RP error should be reported back to the RP.
-        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_some());
     }
 
     #[tokio::test]
@@ -1119,10 +1122,10 @@ mod tests {
             error,
             VpClientError::RequestedAttributesValidation(ValidationError::UnregisteredAttributes(_))
         );
-        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_some());
 
         // This RP error should be reported back to the RP.
-        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().error.is_some());
     }
 
     #[tokio::test]
@@ -1191,27 +1194,27 @@ mod tests {
         .expect_err("Starting disclosure session should have resulted in an error");
 
         assert_matches!(error, VpClientError::MissingReaderRegistration);
-        assert!(verifier_session.wallet_request.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().request.is_some());
 
         // This RP error should be reported back to the RP.
-        assert!(verifier_session.wallet_error.lock().unwrap().is_some());
+        assert!(verifier_session.wallet_messages.lock().unwrap().error.is_some());
     }
 
     fn create_disclosure_session_proposal<F>(
         response_factory: F,
     ) -> (
-        DisclosureSession<MockVpMessageClient<F>, MdocIdentifier>,
-        WalletMessages,
+        DisclosureSession<MockFactoryVpMessageClient<F>, MdocIdentifier>,
+        Arc<Mutex<WalletMessages>>,
     )
     where
         F: Fn() -> Option<VpMessageClientError>,
     {
         let session_type = SessionType::SameDevice;
 
-        let wallet_messages = WalletMessages::new();
-        let client = MockVpMessageClient {
+        let wallet_messages = Arc::new(Mutex::new(WalletMessages::new()));
+        let client = MockFactoryVpMessageClient {
             response_factory,
-            wallet_messages: wallet_messages.clone(),
+            wallet_messages: Arc::clone(&wallet_messages),
         };
 
         let mdoc_nonce = random_string(32);
@@ -1236,7 +1239,7 @@ mod tests {
         let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None);
 
         // Terminating a `DisclosureSession` with a proposal should succeed.
-        test_disclosure_session_terminate(proposal_session, wallet_messages.error)
+        test_disclosure_session_terminate(proposal_session, wallet_messages)
             .await
             .expect("Could not terminate DisclosureSession with proposal");
 
@@ -1245,7 +1248,7 @@ mod tests {
 
         // Terminating a `DisclosureSession` with a proposal where the `VpMessageClient`
         // gives an error should result in that error being forwarded.
-        let error = test_disclosure_session_terminate(proposal_session, wallet_messages.error)
+        let error = test_disclosure_session_terminate(proposal_session, wallet_messages)
             .await
             .expect_err("Terminating DisclosureSession with proposal should have resulted in an error");
 
@@ -1254,10 +1257,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_missing_attributes_terminate() {
-        let wallet_messages = WalletMessages::new();
-        let client = MockVpMessageClient {
+        let wallet_messages = Arc::new(Mutex::new(WalletMessages::new()));
+        let client = MockFactoryVpMessageClient {
             response_factory: || None,
-            wallet_messages: wallet_messages.clone(),
+            wallet_messages: Arc::clone(&wallet_messages),
         };
 
         // Terminating a `DisclosureSession` with missing attributes should succeed.
@@ -1272,14 +1275,14 @@ mod tests {
             missing_attributes: Default::default(),
         });
 
-        test_disclosure_session_terminate(missing_attr_session, wallet_messages.error)
+        test_disclosure_session_terminate(missing_attr_session, wallet_messages)
             .await
             .expect("Could not terminate DisclosureSession with missing attributes");
 
-        let wallet_messages = WalletMessages::new();
-        let client = MockVpMessageClient {
+        let wallet_messages = Arc::new(Mutex::new(WalletMessages::new()));
+        let client = MockFactoryVpMessageClient {
             response_factory: || Some(VpMessageClientError::Json(serde_json::Error::custom(""))),
-            wallet_messages: wallet_messages.clone(),
+            wallet_messages: Arc::clone(&wallet_messages),
         };
 
         let missing_attr_session = DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
@@ -1295,7 +1298,7 @@ mod tests {
 
         // Terminating a `DisclosureSession` with missing attributes where the
         // `VpMessageClient` gives an error should result in that error being forwarded.
-        let error = test_disclosure_session_terminate(missing_attr_session, wallet_messages.error)
+        let error = test_disclosure_session_terminate(missing_attr_session, wallet_messages)
             .await
             .expect_err("Terminating DisclosureSession with missing attributes should have resulted in an error");
 
@@ -1326,7 +1329,7 @@ mod tests {
             _ => unreachable!(),
         };
 
-        assert!(wallet_messages.disclosure.lock().unwrap().is_some());
+        assert!(wallet_messages.lock().unwrap().disclosure.is_some());
         assert_matches!(
             error,
             DisclosureError {
@@ -1359,7 +1362,7 @@ mod tests {
             _ => unreachable!(),
         };
 
-        assert!(wallet_messages.disclosure.lock().unwrap().is_some());
+        assert!(wallet_messages.lock().unwrap().disclosure.is_some());
 
         // No data should have been shared in this case
         assert_matches!(error, DisclosureError {
