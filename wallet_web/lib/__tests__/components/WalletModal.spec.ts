@@ -3,7 +3,8 @@ import { getStatus } from "@/api/status"
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
 import WalletModal from "@/components/WalletModal.vue"
-import { isMobileKey } from "@/util/projection_keys"
+import { translations, translationsKey } from "@/util/translations"
+import { isMobileKey } from "@/util/useragent"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -21,6 +22,7 @@ describe("WalletModal", () => {
   it("should show loading screen", async () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
 
     expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
@@ -32,7 +34,10 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: false },
+        provide: {
+          [isMobileKey as symbol]: false,
+          [translationsKey as symbol]: translations("nl"),
+        },
       },
     })
     await flushPromises()
@@ -43,7 +48,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
 
@@ -60,7 +65,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()
@@ -76,6 +81,7 @@ describe("WalletModal", () => {
     const status = vi.mocked(getStatus)
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
     const qr = wrapper.getComponent(QrCode)
@@ -91,6 +97,7 @@ describe("WalletModal", () => {
   it("should show in progress when qr code is scanned", async () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
     const qr = wrapper.getComponent(QrCode)
@@ -113,7 +120,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()
@@ -126,7 +133,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()
@@ -141,6 +148,7 @@ describe("WalletModal", () => {
     beforeEach(async () => {
       wrapper = mount(WalletModal, {
         props: { baseUrl: "http://localhost", usecase: "test123" },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
       })
       await flushPromises()
       expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
@@ -184,6 +192,7 @@ describe("WalletModal", () => {
 
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
 
@@ -193,6 +202,7 @@ describe("WalletModal", () => {
   it("should show qr code again after retrying for desktop mode", async () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
 
@@ -217,7 +227,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()

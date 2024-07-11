@@ -1395,6 +1395,7 @@ dependencies = [
  "sentry-panic",
  "serde",
  "serde_json",
+ "serde_with",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2609,6 +2610,7 @@ name = "openid4vc"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
+ "axum",
  "base64 0.22.1",
  "biscuit",
  "chrono",

@@ -30,7 +30,7 @@ use crate::{
         VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject, VpResponse, WalletRequest,
     },
     verifier::{VerifierUrlParameters, VpToken},
-    AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
+    AuthorizationErrorCode, DisclosureErrorResponse, ErrorResponse, VpAuthorizationErrorCode,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -72,7 +72,16 @@ pub enum VpMessageClientError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("error response: {0:?}")]
-    ErrorResponse(ErrorResponse<String>),
+    Response(Box<DisclosureErrorResponse<String>>),
+}
+
+impl VpMessageClientError {
+    pub fn redirect_uri(&self) -> Option<&BaseUrl> {
+        match &self {
+            Self::Response(response) => response.redirect_uri.as_ref(),
+            _ => None,
+        }
+    }
 }
 
 /// Contract for sending OpenID4VP protocol messages.
@@ -143,14 +152,9 @@ impl VpMessageClient for HttpVpMessageClient {
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
-                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
-                let status = response.status();
-                if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::ErrorResponse(error))
-                } else {
-                    Ok(response.text().await?.into())
-                }
+                let jwt = Self::get_body_from_response(response).await?.into();
+
+                Ok(jwt)
             })
             .await
     }
@@ -166,14 +170,9 @@ impl VpMessageClient for HttpVpMessageClient {
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
-                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
-                let status = response.status();
-                if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::ErrorResponse(error))
-                } else {
-                    Self::deserialize_vp_response(response).await
-                }
+                let redirect_uri = Self::handle_vp_response(response).await?;
+
+                Ok(redirect_uri)
             })
             .await
     }
@@ -183,28 +182,43 @@ impl VpMessageClient for HttpVpMessageClient {
         url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        let response = self
-            .http_client
+        self.http_client
             .post(url.into_inner())
             .form(&error)
             .send()
-            .await?
-            .error_for_status()?;
+            .map_err(VpMessageClientError::from)
+            .and_then(|response| async {
+                let redirect_uri = Self::handle_vp_response(response).await?;
 
-        let response = Self::deserialize_vp_response(response).await?;
-        Ok(response)
+                Ok(redirect_uri)
+            })
+            .await
     }
 }
 
 impl HttpVpMessageClient {
+    async fn get_body_from_response(response: Response) -> Result<String, VpMessageClientError> {
+        // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+        let status = response.status();
+        if status.is_client_error() || status.is_server_error() {
+            let error = response.json::<DisclosureErrorResponse<String>>().await?;
+
+            return Err(VpMessageClientError::Response(error.into()));
+        }
+        let body = response.text().await?;
+
+        Ok(body)
+    }
+
     /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
     /// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
-    async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        let response_bytes = response.bytes().await?;
-        if response_bytes.is_empty() {
+    async fn handle_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
+        let response_body = Self::get_body_from_response(response).await?;
+
+        if response_body.is_empty() {
             return Ok(None);
         }
-        let response: VpResponse = serde_json::from_slice(&response_bytes)?;
+        let response: VpResponse = serde_json::from_str(&response_body)?;
         Ok(response.redirect_uri)
     }
 }
@@ -439,6 +453,13 @@ where
         }
     }
 
+    fn into_data(self) -> CommonDisclosureData<H> {
+        match self {
+            DisclosureSession::MissingAttributes(session) => session.data,
+            DisclosureSession::Proposal(session) => session.data,
+        }
+    }
+
     pub fn reader_registration(&self) -> &ReaderRegistration {
         &self.data().reader_registration
     }
@@ -447,14 +468,15 @@ where
         &self.data().certificate
     }
 
-    pub async fn terminate(self) -> Result<(), VpClientError> {
-        let data = self.data();
-        data.client.terminate(data.auth_request.response_uri.clone()).await?;
-        Ok(())
-    }
-
     pub fn session_type(&self) -> SessionType {
         self.data().session_type
+    }
+
+    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
+        let data = self.into_data();
+        let return_url = data.client.terminate(data.auth_request.response_uri).await?;
+
+        Ok(return_url)
     }
 }
 
@@ -527,7 +549,7 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
     fn from(source: VpMessageClientError) -> Self {
         let data_shared = match source {
             VpMessageClientError::Http(ref reqwest_error) => !reqwest_error.is_connect(),
-            VpMessageClientError::ErrorResponse(_) | VpMessageClientError::Json(_) => true,
+            VpMessageClientError::Response(_) | VpMessageClientError::Json(_) => true,
         };
         Self::new(data_shared, VpClientError::Request(source))
     }

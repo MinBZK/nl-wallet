@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { type ErrorType } from "@/models/state"
+import { injectStrict, translationsKey } from "@/util/translations"
 
 defineProps<{
   errorType: ErrorType
 }>()
+
+const t = injectStrict(translationsKey)
 </script>
 
 <template>
@@ -14,19 +17,18 @@ defineProps<{
   </svg>
   <section class="text">
     <template v-if="errorType === 'expired'">
-      <h2 data-testid="expired_header">Sorry, de tijd is voorbij</h2>
+      <h2 data-testid="expired_header">{{ t("expired_title") }}</h2>
       <p>
-        Deze actie is gestopt omdat er teveel tijd voorbij is gegaan. Dit is bedoeld om je gegevens
-        veilig te houden. Probeer het opnieuw.
+        {{ t("expired_body") }}
       </p>
     </template>
     <template v-else-if="errorType === 'failed'">
-      <h2 data-testid="failed_header">Sorry, er gaat iets mis</h2>
-      <p>Deze actie is niet gelukt. Dit kan verschillende redenen hebben. Probeer het opnieuw.</p>
+      <h2 data-testid="failed_header">{{ t("failed_title") }}</h2>
+      <p>{{ t("failed_body") }}</p>
     </template>
     <template v-else-if="errorType === 'cancelled'">
-      <h2 data-testid="cancelled_header">Gestopt</h2>
-      <p>Omdat je bent gestopt zijn er geen gegevens gedeeld.</p>
+      <h2 data-testid="cancelled_header">{{ t("cancelled_title") }}</h2>
+      <p>{{ t("cancelled_body") }}</p>
     </template>
   </section>
 </template>

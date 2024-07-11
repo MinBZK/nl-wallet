@@ -2,7 +2,7 @@ import { qrcodegen } from "@/util/qrcodegen"
 
 // Draws the given QR Code and sets the canvas size to equel the QR size. The drawn image is purely
 // black and white.
-export function drawCanvas(qr: qrcodegen.QrCode, canvas: HTMLCanvasElement): void {
+export const drawCanvas = (qr: qrcodegen.QrCode, canvas: HTMLCanvasElement): void => {
   canvas.width = qr.size
   canvas.height = qr.size
 
