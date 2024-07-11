@@ -82,7 +82,10 @@ where
         .route("/:session_token/disclosed_attributes", get(disclosed_attributes::<S>))
         .with_state(application_state);
 
-    Ok((wallet_router, requester_router))
+    Ok((
+        Router::new().nest("/sessions", wallet_router),
+        Router::new().nest("/sessions", requester_router),
+    ))
 }
 
 async fn retrieve_request<S>(
@@ -102,7 +105,7 @@ where
             &session_token,
             state
                 .public_url
-                .join_base_url(&format!("disclosure/{session_token}/response_uri")),
+                .join_base_url(&format!("disclosure/sessions/{session_token}/response_uri")),
             uri.query(),
             wallet_request.wallet_nonce,
         )
@@ -159,10 +162,10 @@ where
         .status_response(
             &session_token,
             params.session_type,
-            &state.universal_link_base_url.join_base_url("disclosure"),
+            &state.universal_link_base_url.join_base_url("disclosure/sessions"),
             state
                 .public_url
-                .join_base_url(&format!("disclosure/{session_token}/request_uri")),
+                .join_base_url(&format!("disclosure/sessions/{session_token}/request_uri")),
             &TimeGenerator,
         )
         .await

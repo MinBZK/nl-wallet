@@ -170,7 +170,7 @@ async fn create_session(
     let result = SessionResponse {
         status_url: state
             .public_wallet_server_url
-            .join(&format!("disclosure/{session_token}/status"))
+            .join(&format!("disclosure/sessions/{session_token}/status"))
             .to_string(),
         session_token,
     };

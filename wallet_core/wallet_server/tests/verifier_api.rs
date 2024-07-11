@@ -152,8 +152,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     let start_request = start_disclosure_request();
 
-    // Check if using no token returns a 401 on the (public) start URL if an API key is used and a 405 otherwise,
-    // because it is served on the internal URL and the routing matches the cancel endpoint with an empty session_token.
+    // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
         .json(&start_request)
@@ -163,7 +162,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     match auth {
         RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
-        _ => assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED),
+        _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
     };
 
     // check if using no token returns a 401 on the (internal) start URL if an API key is used and a 200 otherwise
@@ -179,8 +178,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
         _ => assert_eq!(response.status(), StatusCode::UNAUTHORIZED),
     };
 
-    // Check if using a token returns a 200 on the (public) start URL if an API key is used and a 405 otherwise,
-    // because it is served on the internal URL and the routing matches the cancel endpoint with an empty session_token.
+    // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because it is served on the internal URL)
     let response = client
         .post(settings.urls.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
@@ -191,7 +189,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     match auth {
         RequesterAuth::Authentication(_) => assert_eq!(response.status(), StatusCode::OK),
-        _ => assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED),
+        _ => assert_eq!(response.status(), StatusCode::NOT_FOUND),
     };
 
     // check if using a token returns a 200 on the (internal) start URL (even if none is required)
@@ -334,7 +332,10 @@ async fn test_disclosure_not_found() {
     let client = default_reqwest_client_builder().build().unwrap();
 
     // check if a non-existent token returns a 404 on the status URL
-    let mut status_url = settings.urls.public_url.join("disclosure/nonexistent_session/status");
+    let mut status_url = settings
+        .urls
+        .public_url
+        .join("disclosure/sessions/nonexistent_session/status");
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
@@ -345,7 +346,7 @@ async fn test_disclosure_not_found() {
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the cancel URL
-    let cancel_url = settings.urls.public_url.join("disclosure/nonexistent_session");
+    let cancel_url = settings.urls.public_url.join("disclosure/sessions/nonexistent_session");
     let response = client.delete(cancel_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
@@ -354,7 +355,7 @@ async fn test_disclosure_not_found() {
     let mut request_uri = settings
         .urls
         .public_url
-        .join("disclosure/nonexistent_session/request_uri");
+        .join("disclosure/sessions/nonexistent_session/request_uri");
     request_uri.set_query(
         serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
@@ -381,7 +382,7 @@ async fn test_disclosure_not_found() {
 }
 
 fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: SessionType) -> Url {
-    let mut status_url = public_url.join(&format!("disclosure/{session_token}/status"));
+    let mut status_url = public_url.join(&format!("disclosure/sessions/{session_token}/status"));
 
     let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
     status_url.set_query(status_query.as_str().into());
@@ -427,7 +428,10 @@ async fn test_disclosure_cancel() {
     );
 
     // Cancel the newly created session, which should return 204 and no body.
-    let cancel_url = settings.urls.public_url.join(&format!("disclosure/{session_token}"));
+    let cancel_url = settings
+        .urls
+        .public_url
+        .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
 
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
@@ -437,7 +441,10 @@ async fn test_disclosure_cancel() {
     assert_matches!(get_status_ok(&client, status_url).await, StatusResponse::Cancelled);
 
     // Cancelling the session again should return a 400.
-    let cancel_url = settings.urls.public_url.join(&format!("disclosure/{session_token}"));
+    let cancel_url = settings
+        .urls
+        .public_url
+        .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;

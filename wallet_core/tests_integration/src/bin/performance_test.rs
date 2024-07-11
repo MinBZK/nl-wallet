@@ -134,7 +134,9 @@ async fn main() {
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
-    let mut status_url = mrp_url.join(&format!("disclosure/{session_token}/status")).unwrap();
+    let mut status_url = mrp_url
+        .join(&format!("disclosure/sessions/{session_token}/status"))
+        .unwrap();
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
