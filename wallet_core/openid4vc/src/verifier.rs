@@ -1169,9 +1169,8 @@ mod tests {
             .await
             .expect("should result in status response for session");
 
-        let ul = match response {
-            StatusResponse::Created { ul } => ul,
-            _ => panic!("should match DisclosureData::Created"),
+        let StatusResponse::Created { ul } = response else {
+            panic!("should match DisclosureData::Created")
         };
 
         let request_query_object: VpRequestUriObject =
@@ -1184,7 +1183,7 @@ mod tests {
     async fn disclosure() {
         let (verifier, session_token, request_uri_object) = init_and_start_disclosure(&TimeGenerator).await;
 
-        // send first device protocol message
+        // sending first device protocol message should succeed
         verifier
             .process_get_request(
                 &session_token,
@@ -1207,8 +1206,14 @@ mod tests {
             .process_authorization_response(&session_token, end_session_message, &TimeGenerator)
             .await
             .unwrap();
-
         assert!(ended_session_response.redirect_uri.is_some());
+
+        // Session state should show the session has been cancelled
+        let DisclosureData::Done(session_state) = verifier.sessions.get(&session_token).await.unwrap().unwrap().data
+        else {
+            panic!("unexpected session state")
+        };
+        assert_matches!(session_state.session_result, SessionResult::Cancelled);
     }
 
     struct ExpiredEphemeralIdGenerator;
@@ -1371,7 +1376,7 @@ mod tests {
         );
         assert_matches!(
             verifier
-                .disclosed_attributes(&"token3".into(), "noncesense".to_string().into())
+                .disclosed_attributes(&"token3".into(), "nonsense".to_string().into())
                 .await
                 .expect_err("should fail to return disclosed attributes"),
             VerificationError::SessionNotDone
@@ -1517,7 +1522,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verifier_url() {
-        // This creates a time-based session cleanup job using `tokio` code, which makes this
+        // The verifier contains a time-based session cleanup job using `tokio` code, which makes this
         // test function fail if it is not async, even though it contains no async code.
         let verifier = create_verifier();
 
