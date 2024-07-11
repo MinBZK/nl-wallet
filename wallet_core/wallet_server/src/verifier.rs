@@ -61,6 +61,12 @@ where
 {
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
+    let wallet_web = Router::new()
+        .route("/:session_token/status", get(status::<S>))
+        .route("/:session_token", delete(cancel::<S>))
+        // The CORS headers should be set for these routes, so that any web browser may call them.
+        .layer(CorsLayer::new().allow_methods([Method::GET]).allow_origin(Any));
+
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
     // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
@@ -68,15 +74,8 @@ where
         .route("/:session_token/request_uri", get(retrieve_request::<S>))
         .route("/:session_token/request_uri", post(retrieve_request::<S>))
         .route("/:session_token/response_uri", post(post_response::<S>))
-        .route(
-            "/:session_token/status",
-            get(status::<S>)
-                // to be able to request the status from a browser, the cors headers should be set
-                // but only on this endpoint
-                .layer(CorsLayer::new().allow_methods([Method::GET]).allow_origin(Any)),
-        )
-        .route("/:session_token", delete(cancel::<S>))
-        .with_state(application_state.clone());
+        .merge(wallet_web)
+        .with_state(Arc::clone(&application_state));
 
     let requester_router = Router::new()
         .route("/", post(start::<S>))
