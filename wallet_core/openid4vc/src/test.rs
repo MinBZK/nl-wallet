@@ -431,7 +431,7 @@ pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
             .to_jwk_public_key()
             .try_into()
             .unwrap(),
-        BaseUrl::from_str(VERIFIER_URL).unwrap(),
+        VERIFIER_URL.parse().unwrap(),
         Some(random_string(32)),
     )
     .unwrap()
