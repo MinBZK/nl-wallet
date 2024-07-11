@@ -2,11 +2,13 @@
 import { drawCanvas } from "@/util/draw_qr"
 import { qrcodegen } from "@/util/qrcodegen"
 import { ref, watch } from "vue"
+import { injectStrict, translationsKey } from "@/util/translations"
 
 const props = defineProps<{
   text: string
 }>()
 
+const t = injectStrict(translationsKey)
 const canvas = ref<HTMLCanvasElement | null>()
 
 watch(
@@ -23,9 +25,9 @@ watch(
 </script>
 
 <template>
-  <h2>Scan de QR-code met je NL Wallet app</h2>
+  <h2>{{ t("qr_code_title") }}</h2>
   <div class="qr" data-testid="qr">
     <canvas ref="canvas"></canvas>
-    <div role="img" class="logo" aria-label="QR code"></div>
+    <div role="img" class="logo" aria-label='{{ t("qr_code_label") }}'></div>
   </div>
 </template>

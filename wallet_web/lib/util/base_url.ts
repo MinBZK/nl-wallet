@@ -1,4 +1,4 @@
-export function createAbsoluteUrl(baseUrl: string, href: string, pathname: string) {
+export const createAbsoluteUrl = (baseUrl: string, href: string, pathname: string) => {
   let base = href
 
   /* Strip document from path, if any */
