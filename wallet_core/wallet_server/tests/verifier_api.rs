@@ -417,7 +417,7 @@ async fn test_disclosure_cancel() {
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
     assert_eq!(response.content_length(), Some(0));
 
-    // Fetching the status should return OK and be in the Failed state.
+    // Fetching the status should return OK and be in the Cancelled state.
     let status_url = format_status_url(&settings.urls.public_url, &session_token, SessionType::SameDevice);
     let response = client.get(status_url).send().await.unwrap();
 
@@ -425,7 +425,7 @@ async fn test_disclosure_cancel() {
 
     let status = response.json::<StatusResponse>().await.unwrap();
 
-    assert_matches!(status, StatusResponse::Failed);
+    assert_matches!(status, StatusResponse::Cancelled);
 
     // Cancelling the session again should return a 400.
     let cancel_url = settings.urls.public_url.join(&format!("disclosure/{session_token}"));

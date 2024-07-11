@@ -326,10 +326,10 @@ async fn test_client_and_server_cancel_after_created() {
         .await
         .expect("should be able to cancel newly created session");
 
-    // The session should now be failed
+    // The session should now be cancelled
     let status_response = request_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
 
-    assert_matches!(status_response, StatusResponse::Failed);
+    assert_matches!(status_response, StatusResponse::Cancelled);
 }
 
 #[tokio::test]
@@ -360,10 +360,10 @@ async fn test_client_and_server_cancel_after_wallet_start() {
         .await
         .expect("should be able to cancel session that is waiting for response");
 
-    // The session should now be failed
+    // The session should now be cancelled
     let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
 
-    assert_matches!(status_response, StatusResponse::Failed);
+    assert_matches!(status_response, StatusResponse::Cancelled);
 }
 
 fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, OwnedTrustAnchor) {

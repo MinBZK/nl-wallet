@@ -677,10 +677,12 @@ where
     }
 
     async fn cancel_active_session<T: DisclosureState>(&self, session: Session<T>) -> Result<(), SessionError> {
-        let failed_session = session.transition_fail(&"user cancelled");
+        let cancelled_session = session.transition(Done {
+            session_result: SessionResult::Cancelled,
+        });
 
         self.sessions
-            .write(failed_session.into(), false)
+            .write(cancelled_session.into(), false)
             .await
             .map_err(SessionError::SessionStore)
     }
