@@ -1,6 +1,13 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    convert::Infallible,
+    num::NonZeroU8,
+    sync::Arc,
+};
 
+use assert_matches::assert_matches;
 use chrono::Utc;
+use futures::future;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::{EcCurve, EcKeyPair};
 use ring::{hmac, rand};
@@ -8,20 +15,30 @@ use rstest::rstest;
 
 use nl_wallet_mdoc::{
     examples::{Examples, IsoCertTimeGenerator},
-    holder::{test::MockMdocDataSource, DisclosureRequestMatch, DisclosureUriSource, TrustAnchor},
+    holder::{
+        test::MockMdocDataSource as IsoMockMdocDataSource, DisclosureRequestMatch, DisclosureUriSource, Mdoc,
+        MdocCopies, MdocDataSource, StoredMdoc, TrustAnchor,
+    },
     server_keys::KeyPair,
     server_state::{MemorySessionStore, SessionToken},
     software_key_factory::SoftwareKeyFactory,
+    test::{
+        data::{addr_street, pid_full_name, pid_given_name},
+        TestDocuments,
+    },
     unsigned::Entry,
     utils::reader_auth::ReaderRegistration,
-    verifier::{ReturnUrlTemplate, SessionType, SessionTypeReturnUrl},
-    DeviceResponse, SessionTranscript,
+    verifier::{ItemsRequests, ReturnUrlTemplate, SessionType, SessionTypeReturnUrl},
+    DeviceResponse, DocType, SessionTranscript,
 };
 use openid4vc::{
     disclosure_session::{DisclosureSession, VpMessageClient, VpMessageClientError},
     jwt,
     openid4vp::{IsoVpAuthorizationRequest, VpAuthorizationRequest, VpAuthorizationResponse, VpRequestUriObject},
-    verifier::{DisclosureData, StatusResponse, UseCase, Verifier, VerifierUrlParameters, VpToken, WalletAuthResponse},
+    verifier::{
+        DisclosureData, StatusResponse, UseCase, VerificationError, Verifier, VerifierUrlParameters, VpToken,
+        WalletAuthResponse,
+    },
     ErrorResponse, VpAuthorizationErrorCode,
 };
 use wallet_common::{
@@ -76,7 +93,7 @@ async fn disclosure_direct() {
 
 /// The wallet side: verify the Authorization Request, compute the disclosure, and encrypt it into a JWE.
 async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors: &[TrustAnchor<'_>]) -> String {
-    let mdocs = MockMdocDataSource::default();
+    let mdocs = IsoMockMdocDataSource::default();
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -122,7 +139,7 @@ async fn disclosure_using_message_client() {
         .unwrap();
 
     // Initialize the "wallet"
-    let mdocs = MockMdocDataSource::default();
+    let mdocs = IsoMockMdocDataSource::default();
     let key_factory = &SoftwareKeyFactory::default();
 
     // Start a session at the "RP"
@@ -260,53 +277,234 @@ impl VpMessageClient for DirectMockVpMessageClient {
     }
 }
 
-#[rstest]
-#[case(SessionType::SameDevice, DisclosureUriSource::Link)]
-#[case(SessionType::CrossDevice, DisclosureUriSource::QrCode)]
-#[tokio::test]
-async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_source: DisclosureUriSource) {
-    let items_requests = Examples::items_requests();
+const NO_RETURN_URL_USE_CASE: &str = "no_return_url";
+const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
+const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 
+struct MockMdocDataSource(HashMap<DocType, MdocCopies>);
+
+impl From<Vec<Mdoc>> for MockMdocDataSource {
+    fn from(value: Vec<Mdoc>) -> Self {
+        MockMdocDataSource(
+            value
+                .into_iter()
+                .map(|mdoc| (mdoc.doc_type.clone(), vec![mdoc].into()))
+                .collect(),
+        )
+    }
+}
+
+impl MdocDataSource for MockMdocDataSource {
+    type MdocIdentifier = String;
+    type Error = Infallible;
+
+    async fn mdoc_by_doc_types(
+        &self,
+        doc_types: &HashSet<&str>,
+    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
+        let stored_mdocs = self
+            .0
+            .iter()
+            .filter_map(|(doc_type, mdoc_copies)| {
+                if doc_types.contains(doc_type.as_str()) {
+                    return vec![StoredMdoc {
+                        id: format!("{}_id", doc_type.clone()),
+                        mdoc: mdoc_copies.cred_copies.first().unwrap().clone(),
+                    }]
+                    .into();
+                }
+
+                None
+            })
+            .collect();
+
+        Ok(stored_mdocs)
+    }
+}
+
+#[rstest]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    ALL_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::CrossDevice,
+    Some("https://example.com/return_url".parse().unwrap()),
+    ALL_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_full_name().into(),
+    pid_full_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    pid_given_name().into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name(),
+    pid_given_name().into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + addr_street(),
+    (pid_given_name() + addr_street()).into(),
+    pid_given_name() + addr_street()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + addr_street(),
+    (pid_given_name() + addr_street()).into(),
+    pid_given_name() + addr_street()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name() + addr_street(),
+    pid_given_name().into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_full_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name()
+)]
+#[case(
+    SessionType::SameDevice,
+    None,
+    NO_RETURN_URL_USE_CASE,
+    pid_given_name(),
+    (pid_given_name() + pid_given_name()).into(),
+    pid_given_name()
+)]
+#[tokio::test]
+async fn test_client_and_server(
+    #[case] session_type: SessionType,
+    #[case] return_url_template: Option<ReturnUrlTemplate>,
+    #[case] use_case: &str,
+    #[case] stored_documents: TestDocuments,
+    #[case] requested_documents: ItemsRequests,
+    #[case] expected_documents: TestDocuments,
+) {
     // Initialize key material
-    let ca = KeyPair::generate_reader_mock_ca().unwrap();
-    let disclosure_key = ca
-        .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(&items_requests)))
-        .unwrap();
-    let trust_anchors = &[ca.certificate().try_into().unwrap()];
+    let issuer_ca = KeyPair::generate_issuer_mock_ca().unwrap();
+    let rp_ca = KeyPair::generate_reader_mock_ca().unwrap();
+    let rp_trust_anchors = &[rp_ca.certificate().try_into().unwrap()];
 
     // Initialize the verifier
+    let reader_registration = Some(ReaderRegistration::new_mock_from_requests(&requested_documents));
+    let usecases = HashMap::from([
+        (
+            NO_RETURN_URL_USE_CASE.to_string(),
+            UseCase::new(
+                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                SessionTypeReturnUrl::Neither,
+            )
+            .unwrap(),
+        ),
+        (
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            UseCase::new(
+                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                SessionTypeReturnUrl::SameDevice,
+            )
+            .unwrap(),
+        ),
+        (
+            ALL_RETURN_URL_USE_CASE.to_string(),
+            UseCase::new(
+                rp_ca.generate_reader_mock(reader_registration).unwrap(),
+                SessionTypeReturnUrl::Both,
+            )
+            .unwrap(),
+        ),
+    ])
+    .into();
     let verifier = Arc::new(MockVerifier::new(
-        HashMap::from([(
-            "usecase_id".to_string(),
-            UseCase::new(disclosure_key, SessionTypeReturnUrl::SameDevice).unwrap(),
-        )])
-        .into(),
+        usecases,
         MemorySessionStore::default(),
-        Examples::iaca_trust_anchors()
-            .iter()
-            .map(OwnedTrustAnchor::from)
-            .collect_vec(),
+        vec![OwnedTrustAnchor::from(&(issuer_ca.certificate().try_into().unwrap()))],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));
 
     // Start the session
     let session_token = verifier
-        .new_session(
-            items_requests,
-            "usecase_id".to_string(),
-            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
-        )
+        .new_session(requested_documents, use_case.to_string(), return_url_template)
         .await
         .unwrap();
 
     // frontend receives the UL to feed to the wallet when fetching the session status
     let request_uri = request_uri_from_status_endpoint(verifier.as_ref(), &session_token, session_type).await;
 
-    // Start session in the wallet
-    let mdocs = MockMdocDataSource::default();
+    // Determine the correct source for the session type
+    let uri_source = match session_type {
+        SessionType::SameDevice => DisclosureUriSource::Link,
+        SessionType::CrossDevice => DisclosureUriSource::QrCode,
+    };
+
+    // Prepare the wallet
     let key_factory = SoftwareKeyFactory::default();
+    let mdocs = future::join_all(
+        stored_documents
+            .into_iter()
+            .map(|doc| async { doc.sign(&issuer_ca, &key_factory, NonZeroU8::new(1).unwrap()).await }),
+    )
+    .await;
+    let mdocs = MockMdocDataSource::from(mdocs);
+
+    // Start session in the wallet
     let message_client = VerifierMockVpMessageClient::new(Arc::clone(&verifier));
-    let session = DisclosureSession::start(message_client, &request_uri, uri_source, &mdocs, trust_anchors)
+    let session = DisclosureSession::start(message_client, &request_uri, uri_source, &mdocs, rp_trust_anchors)
         .await
         .unwrap();
 
@@ -317,29 +515,46 @@ async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_s
     // Finish the disclosure.
     let redirect_uri = proposal.disclose(&key_factory).await.unwrap();
 
-    // If a redirect URI is present then the wallet would navigate to it, informing the RP of the
-    // redirect URI nonce which it will need when retrieving the disclosed attributes.
+    // Check if we received a redirect URI when we should have, based on the use case and session type.
+    let should_have_redirect_uri = match (use_case, session_type) {
+        (use_case, _) if use_case == NO_RETURN_URL_USE_CASE => false,
+        (use_case, _) if use_case == ALL_RETURN_URL_USE_CASE => true,
+        (_, SessionType::SameDevice) => true,
+        (_, SessionType::CrossDevice) => false,
+    };
+    assert_eq!(redirect_uri.is_some(), should_have_redirect_uri);
+
     let redirect_uri_nonce = redirect_uri.and_then(|uri| {
         uri.as_ref()
             .query_pairs()
-            .find_map(|(name, val)| if name == "nonce" { Some(val.to_string()) } else { None })
+            .find_map(|(name, val)| (name == "nonce").then(|| val.to_string()))
     });
 
+    // If we have a redirect URI (nonce), then fetching the attributes without a nonce or with a wrong one should fail.
+    if redirect_uri_nonce.is_some() {
+        let error = verifier
+            .disclosed_attributes(&session_token, None)
+            .await
+            .expect_err("fetching disclosed attributes without a return URL nonce should fail");
+        assert_matches!(error, VerificationError::RedirectUriNonceMissing);
+
+        let error = verifier
+            .disclosed_attributes(&session_token, "incorrect".to_string().into())
+            .await
+            .expect_err("fetching disclosed attributes with incorrect return URL nonce should fail");
+        assert_matches!(
+            error,
+            VerificationError::RedirectUriNonceMismatch(nonce) if nonce == "incorrect"
+        );
+    }
+
     // Retrieve the attributes disclosed by the wallet
-    let disclosed = verifier
+    let disclosed_documents = verifier
         .disclosed_attributes(&session_token, redirect_uri_nonce)
         .await
         .unwrap();
 
-    assert_eq!(
-        *disclosed["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]
-            .first()
-            .unwrap(),
-        Entry {
-            name: "family_name".to_string(),
-            value: "Doe".into()
-        }
-    );
+    expected_documents.assert_matches(&disclosed_documents);
 }
 
 async fn request_uri_from_status_endpoint(
@@ -416,7 +631,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
             .process_authorization_response(
                 &session_token,
                 WalletAuthResponse::Response(VpToken { vp_token: jwe }),
-                &IsoCertTimeGenerator,
+                &TimeGenerator,
             )
             .await
             .unwrap();
