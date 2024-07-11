@@ -23,6 +23,15 @@ enum ChildError {
 
 #[derive(ErrorCategory)]
 #[allow(dead_code)]
+#[category(expected)]
+enum ErrorWithDefaultCategory {
+    Expected,
+    #[category(critical)]
+    Critical,
+}
+
+#[derive(ErrorCategory)]
+#[allow(dead_code)]
 enum RootError {
     #[category(defer)]
     SingleTuple(ChildError),
@@ -128,6 +137,8 @@ fn derive_error_category() {
 #[case(DoubleTupleRoot(ChildError::Unit, 42), Category::Expected)]
 #[case(SingleStructRoot { field: ChildError::Unit }, Category::Expected)]
 #[case(DoubleStructRoot { field_1: 42, field_2: ChildError::Unit }, Category::Expected)]
+#[case(ErrorWithDefaultCategory::Expected, Category::Expected)]
+#[case(ErrorWithDefaultCategory::Critical, Category::Critical)]
 fn derive_error_category_pass<T: ErrorCategory>(#[case] error: T, #[case] expected: Category) {
     assert_eq!(error.category(), expected)
 }
