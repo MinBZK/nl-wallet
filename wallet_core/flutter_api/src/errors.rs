@@ -8,7 +8,7 @@ use url::Url;
 use wallet::{
     errors::{
         mdoc::{self, HolderError},
-        openid4vc::{IssuanceSessionError, OidcError, VpClientError},
+        openid4vc::{IssuanceSessionError, OidcError, VpClientError, VpMessageClientErrorType},
         reqwest, AccountProviderError, DigidSessionError, DisclosureError, HistoryError, InstructionError,
         PidIssuanceError, ResetError, UriIdentificationError, WalletInitError, WalletRegistrationError,
         WalletUnlockError,
@@ -49,6 +49,9 @@ enum FlutterApiErrorType {
 
     /// The disclosure URI source (universal link or QR code) does not match the received session type.
     DisclosureSourceMismatch,
+
+    /// A remote session is expired, the user may or may not be able to retry the operation.
+    ExpiredSession,
 
     /// Indicating something unexpected went wrong.
     Generic,
@@ -203,6 +206,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
 #[derive(Debug, Clone, Serialize)]
 struct DisclosureErrorData<'a> {
     session_type: Option<SessionType>,
+    can_retry: Option<bool>,
     return_url: Option<&'a Url>,
 }
 
@@ -218,6 +222,11 @@ impl FlutterApiErrorFields for DisclosureError {
             )))
             | DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
+            }
+            DisclosureError::VpDisclosureSession(VpClientError::Request(error))
+                if matches!(error.error_type(), VpMessageClientErrorType::Expired { .. }) =>
+            {
+                FlutterApiErrorType::ExpiredSession
             }
             DisclosureError::IsoDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
@@ -241,11 +250,19 @@ impl FlutterApiErrorFields for DisclosureError {
             }
             _ => None,
         };
+        let can_retry = match self {
+            DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
+                VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
+                VpMessageClientErrorType::Other => None,
+            },
+            _ => None,
+        };
         let return_url = self.return_url();
 
-        if session_type.is_some() || return_url.is_some() {
+        if session_type.is_some() || can_retry.is_some() || return_url.is_some() {
             serde_json::to_value(DisclosureErrorData {
                 session_type,
+                can_retry,
                 return_url,
             })
             .unwrap() // This conversion should never fail.
