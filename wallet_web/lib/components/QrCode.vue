@@ -1,17 +1,14 @@
 <script setup lang="ts">
-import HelpSection from "@/components/HelpSection.vue"
-import ModalFooter from "@/components/ModalFooter.vue"
-import { FooterState } from "@/models/footer-state"
 import { drawCanvas } from "@/util/draw_qr"
 import { qrcodegen } from "@/util/qrcodegen"
 import { ref, watch } from "vue"
+import { injectStrict, translationsKey } from "@/util/translations"
 
 const props = defineProps<{
   text: string
 }>()
 
-const emit = defineEmits(["close"])
-
+const t = injectStrict(translationsKey)
 const canvas = ref<HTMLCanvasElement | null>()
 
 watch(
@@ -20,7 +17,7 @@ watch(
     if (cv) {
       const QRC = qrcodegen.QrCode
       const qr = QRC.encodeText(text, QRC.Ecc.LOW)
-      drawCanvas(qr, cv, 22)
+      drawCanvas(qr, cv)
     }
   },
   { immediate: true },
@@ -28,14 +25,9 @@ watch(
 </script>
 
 <template>
-  <main>
-    <h2>Scan de QR-code met je NL Wallet app</h2>
-    <div class="qr" data-testid="qr">
-      <canvas ref="canvas"></canvas>
-    </div>
-  </main>
-
-  <help-section></help-section>
-
-  <modal-footer :state="FooterState.Close" @close="emit('close')"></modal-footer>
+  <h2>{{ t("qr_code_title") }}</h2>
+  <div class="qr" data-testid="qr">
+    <canvas ref="canvas"></canvas>
+    <div role="img" class="logo" aria-label='{{ t("qr_code_label") }}'></div>
+  </div>
 </template>

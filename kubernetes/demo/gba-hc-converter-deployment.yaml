@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gba-hc-converter
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gba-hc-converter
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app: gba-hc-converter
+        tier: zeer-vertrouwd
+        egress-frontoffice-policy: allow
+    spec:
+      imagePullSecrets:
+        - name: harbor-puller
+      containers:
+        - name: gba-hc-converter
+          image: $CONVERTER_IMAGE
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "400m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+          volumeMounts:
+            - name: gba-hc-converter-xml-files-volume
+              mountPath: /resources/gba-v-responses
+              readOnly: true
+            - name: config-volume
+              mountPath: /gba_hc_converter.toml
+              subPath: gba_hc_converter.toml
+          env:
+            - name: RUST_BACKTRACE
+              value: "1"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+            - name: GBA_HC_CONVERTER_STRUCTURED_LOGGING
+              value: "true"
+            - name: GBA_HC_CONVERTER_PORT
+              value: "3006"
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__ADHOC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: adhoc_url
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: username
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: password
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__CLIENT_CERT
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: client_cert
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__CLIENT_CERT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: client_cert_key
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__TRUST_ANCHOR
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: trust_anchor
+            - name: GBA_HC_CONVERTER_RUN_MODE__ALL__GBAV__CA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: ca_api_key
+            - name: GBAV_PROXY_IP
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_ip
+            - name: GBAV_PROXY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_port
+            - name: GBAV_PROXY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_username
+            - name: GBAV_PROXY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_password
+            - name: HTTP_PROXY
+              value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
+            - name: HTTPS_PROXY
+              value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
+      volumes:
+        - name: preloaded-gba-v-data-volume
+          persistentVolumeClaim:
+            claimName: preloaded-gba-v-data-pvc
+            readOnly: true
+        - name: gba-hc-converter-xml-files-volume
+          configMap:
+            name: nl-wallet-gba-hc-converter-xml-files
+        - name: config-volume
+          secret:
+            secretName: nl-wallet-gba-hc-converter-config

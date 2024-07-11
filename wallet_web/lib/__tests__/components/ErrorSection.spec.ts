@@ -1,4 +1,5 @@
 import ErrorSection from "@/components/ErrorSection.vue"
+import { translations, translationsKey } from "@/util/translations"
 import { mount } from "@vue/test-utils"
 import { describe, expect, it } from "vitest"
 
@@ -7,7 +8,8 @@ await import("../setup")
 describe("ErrorSection", () => {
   it("should render error for failed status", async () => {
     const wrapper = mount(ErrorSection, {
-      props: { error_type: "failed" },
+      props: { errorType: "failed" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
@@ -16,7 +18,8 @@ describe("ErrorSection", () => {
 
   it("should render error for cancelled status", async () => {
     const wrapper = mount(ErrorSection, {
-      props: { error_type: "cancelled" },
+      props: { errorType: "cancelled" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(false)
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(false)
@@ -25,7 +28,8 @@ describe("ErrorSection", () => {
 
   it("should render error for expired status", async () => {
     const wrapper = mount(ErrorSection, {
-      props: { error_type: "expired" },
+      props: { errorType: "expired" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(true)
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(false)

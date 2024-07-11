@@ -44,7 +44,7 @@ class CardDetailTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The Card detail page shows: issuer name, empty history state. [${JIRA_ID}]")
     fun verifyDataAndHistoryState() {
-        assertTrue(cardDetailScreen.dataAndHistoryStates(), "data and/or history state not not visible and/or correct")
+        assertTrue(cardDetailScreen.issuerAndHistoryStates(), "issuer and/or history state not not visible and/or correct")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

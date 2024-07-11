@@ -870,7 +870,7 @@ mod tests {
         assert_matches!(
             error,
             IssuanceSessionError::IssuedAttributesMismatch(IssuedAttributesMismatch { missing, unexpected })
-                if missing.len() == 1 && unexpected.is_empty()
+                if missing.len() == 2 && unexpected.is_empty()
         )
     }
 }

@@ -3,7 +3,8 @@ import { getStatus } from "@/api/status"
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
 import WalletModal from "@/components/WalletModal.vue"
-import { isMobileKey } from "@/util/projection_keys"
+import { translations, translationsKey } from "@/util/translations"
+import { isMobileKey } from "@/util/useragent"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -21,6 +22,7 @@ describe("WalletModal", () => {
   it("should show loading screen", async () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
 
     expect(wrapper.find("[data-testid=loading]").exists()).toBe(true)
@@ -32,7 +34,10 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: false },
+        provide: {
+          [isMobileKey as symbol]: false,
+          [translationsKey as symbol]: translations("nl"),
+        },
       },
     })
     await flushPromises()
@@ -43,7 +48,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
 
@@ -60,7 +65,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()
@@ -76,10 +81,13 @@ describe("WalletModal", () => {
     const status = vi.mocked(getStatus)
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
     const qr = wrapper.getComponent(QrCode)
 
+    // twice needed because of "focus-hack"
+    await vi.advanceTimersToNextTimerAsync()
     await vi.advanceTimersToNextTimerAsync()
     expect(qr.find("[data-testid=qr]").exists()).toBe(true)
 
@@ -89,6 +97,7 @@ describe("WalletModal", () => {
   it("should show in progress when qr code is scanned", async () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
     const qr = wrapper.getComponent(QrCode)
@@ -97,6 +106,8 @@ describe("WalletModal", () => {
     await vi.mocked(getStatus).withImplementation(
       async () => ({ status: "WAITING_FOR_RESPONSE" }),
       async () => {
+        // twice needed because of "focus-hack"
+        await vi.advanceTimersToNextTimerAsync()
         await vi.advanceTimersToNextTimerAsync()
         await vi.waitFor(() => {
           expect(wrapper.find("[data-testid=in_progress]").exists()).toBe(true)
@@ -109,7 +120,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()
@@ -122,7 +133,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()
@@ -137,6 +148,7 @@ describe("WalletModal", () => {
     beforeEach(async () => {
       wrapper = mount(WalletModal, {
         props: { baseUrl: "http://localhost", usecase: "test123" },
+        global: { provide: { [translationsKey as symbol]: translations("nl") } },
       })
       await flushPromises()
       expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
@@ -144,24 +156,32 @@ describe("WalletModal", () => {
 
     it("should show error for expired state", async () => {
       vi.mocked(getStatus).mockResolvedValueOnce({ status: "EXPIRED" })
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=expired_header]").exists()).toBe(true)
     })
 
     it("should show error for canceled state", async () => {
       vi.mocked(getStatus).mockResolvedValueOnce({ status: "CANCELLED" })
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=cancelled_header]").exists()).toBe(true)
     })
 
     it("should show error for failed state", async () => {
       vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
 
     it("should show error for get status failure", async () => {
       vi.mocked(getStatus).mockRejectedValueOnce(new Error("mock http error"))
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
       await vi.advanceTimersToNextTimerAsync()
       expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
@@ -172,6 +192,7 @@ describe("WalletModal", () => {
 
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
 
@@ -181,12 +202,15 @@ describe("WalletModal", () => {
   it("should show qr code again after retrying for desktop mode", async () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
+      global: { provide: { [translationsKey as symbol]: translations("nl") } },
     })
     await flushPromises()
 
     expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
 
     vi.mocked(getStatus).mockResolvedValueOnce({ status: "FAILED" })
+    // twice needed because of "focus-hack"
+    await vi.advanceTimersToNextTimerAsync()
     await vi.advanceTimersToNextTimerAsync()
 
     expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
@@ -203,7 +227,7 @@ describe("WalletModal", () => {
     const wrapper = mount(WalletModal, {
       props: { baseUrl: "http://localhost", usecase: "test123" },
       global: {
-        provide: { [isMobileKey as symbol]: true },
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
       },
     })
     await flushPromises()

@@ -13,12 +13,16 @@
       color: green;
     }
 
+    .blue {
+      background: blue !important;
+    }
+
     nl-wallet-button::part(button) {
       background: var(--primary-color);
       border: 0;
     }
 
-    .nl-wallet-button {
+    nl-wallet-button {
       background: yellow !important;
     }
 
@@ -46,9 +50,17 @@
       <button>test123</button>
       <nl-wallet-button
         id="mijn_amsterdam_button"
-        text="18+ bewijzen met NL Wallet"
+        text="18+ met NL Wallet"
         usecase="mijn_amsterdam"
-        base-url="http://localhost:3004"
+        base-url="http://192.168.1.66:3004"
+      ></nl-wallet-button>
+      <nl-wallet-button
+        id="mijn_amsterdam_button_en"
+        class="blue"
+        text="18+ with NL Wallet"
+        usecase="mijn_amsterdam"
+        base-url="http://192.168.1.66:3004"
+        lang="en"
       ></nl-wallet-button>
       <p>
         Gravida quis blandit turpis cursus. Porttitor massa id neque aliquam. In nisl nisi
@@ -66,21 +78,23 @@
   </body>
 
   <script>
-    const wallet_button = document.getElementById("mijn_amsterdam_button")
-    wallet_button.addEventListener(
-      "success",
-      (e) => {
-        if (e.detail && e.detail.length > 1) {
-          const session_token = e.detail[0]
-          const session_type = e.detail[1]
-          if (session_type === "cross_device") {
-            window.open(
-              "http://localhost:3004/mijn_amsterdam/return?session_token=" + session_token,
-            )
+    const buttons = document.getElementsByClassName("nl-wallet-button")
+    for (const button of buttons) {
+      button.addEventListener(
+        "success",
+        (e) => {
+          if (e.detail && e.detail.length > 1) {
+            const sessionToken = e.detail[0]
+            const sessionType = e.detail[1]
+            if (sessionType === "cross_device") {
+              window.open(
+                "http://localhost:3004/mijn_amsterdam/return?session_token=" + sessionToken,
+              )
+            }
           }
-        }
-      },
-      false,
-    )
+        },
+        false,
+      )
+    }
   </script>
 </html>

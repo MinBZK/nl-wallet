@@ -1,19 +1,14 @@
 <script setup lang="ts">
 import LoadingIndicator from "@/components/LoadingIndicator.vue"
-import ModalFooter from "@/components/ModalFooter.vue"
-import { FooterState } from "@/models/footer-state"
+import { injectStrict, translationsKey } from "@/util/translations"
 
-const emit = defineEmits(["stop"])
+const t = injectStrict(translationsKey)
 </script>
 
 <template>
-  <main class="loading" data-testid="loading">
-    <section class="text">
-      <h2>Even geduld</h2>
-      <p>De gegevens worden opgehaald</p>
-    </section>
-    <loading-indicator></loading-indicator>
-  </main>
-
-  <modal-footer :state="FooterState.Cancel" @stop="emit('stop')"></modal-footer>
+  <section data-testid="loading" class="text">
+    <h2>{{ t("loading_title") }}</h2>
+    <p>{{ t("loading_body") }}</p>
+  </section>
+  <loading-indicator></loading-indicator>
 </template>

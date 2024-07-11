@@ -2,20 +2,34 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use url::Url;
-use wallet_common::http_error::{HttpJsonError, HttpJsonErrorType};
+
+use wallet_common::{
+    config::wallet_config::BaseUrl,
+    http_error::{HttpJsonError, HttpJsonErrorType},
+};
 
 use crate::{
     issuer::{CredentialRequestError, IssuanceError, TokenRequestError},
-    verifier::{GetAuthRequestError, PostAuthResponseError, SessionError, VerificationError},
+    verifier::{GetAuthRequestError, PostAuthResponseError, SessionError, VerificationError, WithRedirectUri},
 };
 
-/// Describes an error that occured when processing an HTTP endpoint from the OAuth/OpenID protocol family.
+/// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ErrorResponse<T> {
     pub error: T,
     pub error_description: Option<String>,
     pub error_uri: Option<Url>,
+}
+
+/// Wrapper of [`ErrorResponse`] that has an optional redirect URI
+/// and is as an error response for disclosure endpoints.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DisclosureErrorResponse<T> {
+    #[serde(flatten)]
+    pub error_response: ErrorResponse<T>,
+    pub redirect_uri: Option<BaseUrl>,
 }
 
 pub trait ErrorStatusCode {
@@ -240,6 +254,18 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
     }
 }
 
+impl<E, T> From<WithRedirectUri<E>> for DisclosureErrorResponse<T>
+where
+    E: Into<ErrorResponse<T>> + std::error::Error,
+{
+    fn from(value: WithRedirectUri<E>) -> Self {
+        DisclosureErrorResponse {
+            error_response: value.error.into(),
+            redirect_uri: value.redirect_uri,
+        }
+    }
+}
+
 // The `VerificationError` and `VerificationErrorCode` is handled differently from the errors above:
 // instead of returning them as an `ErrorResponse`, they are returned as a `HttpJsonErrorBody`.
 // This is because the endpoints that return these errors are not part of a protocol from the
@@ -340,4 +366,40 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
+}
+
+#[cfg(feature = "axum")]
+mod axum {
+    use std::fmt::Debug;
+
+    use axum::{
+        response::{IntoResponse, Response},
+        Json,
+    };
+    use serde::Serialize;
+    use tracing::warn;
+
+    use super::{DisclosureErrorResponse, ErrorResponse, ErrorStatusCode};
+
+    impl<T> IntoResponse for ErrorResponse<T>
+    where
+        T: ErrorStatusCode + Serialize + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error body: {:?}", &self);
+
+            (self.error.status_code(), Json(self)).into_response()
+        }
+    }
+
+    impl<T> IntoResponse for DisclosureErrorResponse<T>
+    where
+        T: ErrorStatusCode + Serialize + Debug,
+    {
+        fn into_response(self) -> Response {
+            warn!("Responding with error body: {:?}", &self);
+
+            (self.error_response.error.status_code(), Json(self)).into_response()
+        }
+    }
 }

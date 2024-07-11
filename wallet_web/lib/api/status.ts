@@ -1,4 +1,4 @@
-import { SessionType, type StatusResponse } from "@/models/status"
+import { type SessionType, type StatusResponse } from "@/models/status"
 import axios from "axios"
 import { REQUEST_TIMEOUT } from "./base"
 

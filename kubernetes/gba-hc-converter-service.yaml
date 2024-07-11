@@ -5,7 +5,7 @@ metadata:
 spec:
   selector:
     app: gba-hc-converter
-    tier: vertrouwd
+    tier: zeer-vertrouwd
   ports:
     - name: "gba-hc-http"
       port: 3006

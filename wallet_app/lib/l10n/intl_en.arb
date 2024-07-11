@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2024-06-28T13:58:42+02:00",
+    "@@last_modified": "2024-07-05T16:50:06+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -211,7 +211,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Only the following data is shared. Nothing more.} other {Only these following {count} pieces of data are shared. Nothing more.}}",
+    "disclosureConfirmDataAttributesSharedAttributesInfo": "{count, plural, one {Only the following data is shared. Nothing more.} other {Only the following {count} pieces of data are shared. Nothing more.}}",
     "@disclosureConfirmDataAttributesSharedAttributesInfo": {
         "placeholders": {
             "count": {
@@ -446,7 +446,7 @@
     "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
     "historyDetailScreenPurposeTitle": "Sharing reason",
     "historyDetailScreenReportIssueCta": "Would you like to report a problem?",
-    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following data is shared. Nothing more.} other {Only these following {count} pieces of data are shared. Nothing more.}}",
+    "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following data was shared. Nothing more.} other {Only the following {count} pieces of data were shared. Nothing more.}}",
     "@historyDetailScreenSharedAttributesSubtitle": {
         "placeholders": {
             "count": {
@@ -782,6 +782,16 @@
     "reportOptionUnreasonableTerms": "I disagree with the terms",
     "reportOptionUntrusted": "I do not trust this",
     "requestDetailScreenTitle": "Request details",
+    "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Only the following data was requested. Nothing more.} other {Only the following {count} pieces of data were requested. Nothing more.}}",
+    "@requestDetailsScreenAttributesSubtitle": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "requestDetailsScreenAttributesTitle": "Requested attributes",
     "resetWalletDialogBody": "This will delete all your data in the app. You will return to the app introduction, and then you could create your wallet again.",
     "resetWalletDialogCancelCta": "CANCEL",
     "resetWalletDialogConfirmCta": "YES, DELETE",

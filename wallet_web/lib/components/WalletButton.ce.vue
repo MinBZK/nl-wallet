@@ -1,48 +1,51 @@
 <script setup lang="ts">
 import { createAbsoluteUrl } from "@/util/base_url"
-import { isMobileKey } from "@/util/projection_keys"
-import { isDesktop } from "@/util/useragent"
+import { translations, translationsKey, type Language } from "@/util/translations"
+import { isDesktop, isMobileKey } from "@/util/useragent"
 import { computed, provide, ref } from "vue"
 import WalletModal from "./WalletModal.vue"
 import { RO_SANS_BOLD, RO_SANS_REGULAR } from "../non-free/fonts"
 
 export interface Props {
   usecase: string
-  id?: string
-  text?: string
   baseUrl?: string
-  style?: string
+  text?: string
+  lang?: Language
+  // ignored, but needed for the browser not giving a warning
+  id?: string
+  class?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  text: (): string => "Inloggen met NL Wallet",
+  text: (props): string => translations(props.lang as Language)("wallet_button_text"),
   baseUrl: (): string => "",
+  lang: (): Language => "nl",
 })
 
 const emit = defineEmits<{
-  success: [session_token: string, session_type: string]
+  success: [sessionToken: string, sessionType: string]
 }>()
 
 const isVisible = ref(false)
+const button = ref<HTMLDivElement | null>(null)
+
 const isMobile = !isDesktop(window.navigator.userAgent)
 const absoluteBaseUrl = computed(() =>
   createAbsoluteUrl(props.baseUrl, window.location.href, window.location.pathname),
 )
 
-function show() {
-  isVisible.value = true
+const success = (sessionToken: string, sessionType: string) => {
+  close()
+  emit("success", sessionToken, sessionType)
 }
 
-function hide() {
+const close = () => {
   isVisible.value = false
-}
-
-function success(session_token: string, session_type: string) {
-  isVisible.value = false
-  emit("success", session_token, session_type)
+  button.value && button.value.focus()
 }
 
 provide(isMobileKey, isMobile)
+provide(translationsKey, translations(props.lang))
 
 // @font-face doesn't seem to be working in the shadow DOM, so we insert it into the parent
 // document instead.
@@ -68,22 +71,20 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
     part="button"
     type="button"
     class="nl-wallet-button"
-    :id="id"
-    :style="style"
-    @click="show"
+    ref="button"
+    :aria-hidden="isVisible"
+    @click="isVisible = true"
     data-testid="wallet_button"
   >
-    {{ text }}
+    <span part="button-span">{{ text }}</span>
   </button>
-  <Transition name="fade">
-    <wallet-modal
-      v-if="isVisible"
-      :base-url="absoluteBaseUrl"
-      :usecase
-      @close="hide"
-      @success="success"
-    ></wallet-modal>
-  </Transition>
+  <wallet-modal
+    v-if="isVisible"
+    :base-url="absoluteBaseUrl"
+    :usecase
+    @close="close"
+    @success="success"
+  ></wallet-modal>
 </template>
 
 <style>

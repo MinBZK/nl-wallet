@@ -159,10 +159,11 @@ wallet_server = { path = "../wallet_server", optional = true, features = ["issua
 dotenvy = { workspace = true, optional = true }
 
 [dev-dependencies]
-# This enables the automatic running of integration tests for these crates when tests
+# This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
 nl_wallet_mdoc = { path = "../mdoc", features = ["integration"] }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 wallet_provider_service.path = "../wallet_provider/service"
+wallet_server = { path = "../wallet_server", features = ["issuance"] }

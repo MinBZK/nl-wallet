@@ -24,7 +24,9 @@ void main() {
       observeRecentHistoryUseCase,
       null,
     ),
-    verify: (bloc) => bloc.state == const DashboardStateInitial(),
+    verify: (bloc) {
+      expect(bloc.state, const DashboardStateInitial());
+    },
   );
 
   blocTest(
@@ -34,7 +36,9 @@ void main() {
       observeRecentHistoryUseCase,
       [WalletMockData.card],
     ),
-    verify: (bloc) => bloc.state == DashboardLoadSuccess(cards: [WalletMockData.card]),
+    verify: (bloc) {
+      expect(bloc.state, DashboardLoadSuccess(cards: [WalletMockData.card]));
+    },
   );
 
   blocTest(

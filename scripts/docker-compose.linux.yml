@@ -1,0 +1,69 @@
+services:
+  postgresql:
+    image: docker.io/bitnami/postgresql
+    ports:
+      - "5432:5432"
+    environment:
+      # ALLOW_EMPTY_PASSWORD is recommended only for development.
+      - ALLOW_EMPTY_PASSWORD=yes
+      - POSTGRESQL_USERNAME=${DB_USERNAME}
+      - POSTGRESQL_PASSWORD=${DB_PASSWORD}
+      - POSTGRESQL_DATABASE=${DB_NAME}
+    volumes:
+      - postgresql_data:/bitnami/postgresql
+      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    networks:
+      wallet_provider_network:
+        ipv4_address: 172.20.20.2
+
+  pgadmin4:
+    image: "dpage/pgadmin4"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@wallet.com"
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "9090:80"
+    depends_on:
+      - postgresql
+    networks:
+      wallet_provider_network:
+        ipv4_address: 172.20.20.3
+
+  brpproxy:
+    container_name: brpproxy
+    image: ghcr.io/brp-api/haal-centraal-brp-bevragen-proxy:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Release
+      - ASPNETCORE_URLS=http://+:3007
+      - Routes__0__DownstreamScheme=http
+      - Routes__0__DownstreamHostAndPorts__0__Host=host.docker.internal
+      - Routes__0__DownstreamHostAndPorts__0__Port=${GBA_HC_CONV_PORT}
+    ports:
+      - "${BRP_SERVER_PORT}:3007"
+    networks:
+      - brp-api-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  gbamock:
+    container_name: gbamock
+    image: ghcr.io/brp-api/haal-centraal-brp-bevragen-gba-mock:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Release
+      - ASPNETCORE_URLS=http://+:5010
+    ports:
+      - "5010:5010"
+    networks:
+      - brp-api-network
+
+volumes:
+  postgresql_data:
+    driver: local
+
+networks:
+  brp-api-network:
+    name: brp-api-network
+  wallet_provider_network:
+    ipam:
+      config:
+        - subnet: 172.20.20.0/24

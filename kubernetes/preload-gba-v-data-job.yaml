@@ -55,6 +55,31 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-gba-hc-converter-secrets
                   key: client_cert_key
+            - name: GBAV_CA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: ca_api_key
+            - name: GBAV_PROXY_IP
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_ip
+            - name: GBAV_PROXY_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_port
+            - name: GBAV_PROXY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_username
+            - name: GBAV_PROXY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-gba-hc-converter-secrets
+                  key: proxy_password
             - name: GBAV_TRUST_ANCHOR
               valueFrom:
                 secretKeyRef:

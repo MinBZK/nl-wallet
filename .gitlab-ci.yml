@@ -342,23 +342,19 @@ build-frontend-lib:
     - set -euxo pipefail
     - (cd wallet_web; npm ci && npm run type-check && npm run test -- --run && npm run build)
     - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/
-    - (cd wallet_core/mock_relying_party/web-vue; npm ci && npm run type-check && npx vite build --base="/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/vue")
   artifacts:
     paths:
       - wallet_web/dist
-      - wallet_core/mock_relying_party/web-vue/dist
       - wallet_core/mock_relying_party/assets/nl-wallet-web.iife.js
 
 dependency-check:
   extends: [.env-ont-k8s]
   rules: !reference [.default-or-release-or-merge-request, rules]
-  when: manual
   image:
-    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:4c32c66768c6e1de95dda6bc51dc4a637f9ca7ed16a8ad1a29079281dda9dcc7"
+    name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-dependency-check@sha256:7578d0177b3ddba58d619a4a03dd0afa0427bf05e72d1a57e11db93a69211ad8"
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - (cd wallet_web; npm ci)
-    - (cd wallet_core/mock_relying_party/web-vue; npm ci)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
   script:
     - dependency-check.sh
@@ -1079,44 +1075,42 @@ deploy-wallet-provider-demo:
     WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_DEMO
     WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_DEMO
 
-.run-ws-migrations:
+.run-mrp-vs-migrations:
   needs:
     - job: build-ws-migrations-image
       artifacts: false
   variables:
     WALLET_SERVER_MIGRATION_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
   script:
-    - envsubst < kubernetes/mrp-wallet-server-migration-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-wallet-server-migrations
+    - envsubst < kubernetes/mrp-verification-server-migration-job.yaml | kubectl apply -f -
+    - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-verification-server-migrations
 
-run-ws-migrations-ont:
-  extends: [.env-ont-k8s, .run-ws-migrations]
+run-mrp-vs-migrations-ont:
+  extends: [.env-ont-k8s, .run-mrp-vs-migrations]
   rules: !reference [.default-or-merge-request, rules]
 
-run-ws-migrations-demo:
-  extends: [.env-demo-k8s, .run-ws-migrations]
+run-mrp-vs-migrations-demo:
+  extends: [.env-demo-k8s, .run-mrp-vs-migrations]
   rules: !reference [.demo-release-tag, rules]
 
 .deploy-mock-relying-party:
   needs:
     - job: build-mock-relying-party-image
       artifacts: false
-    - job: build-wallet-server-image
+    - job: build-verification-server-image
       artifacts: false
   variables:
     MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
-    MRP_WALLET_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server:${CI_COMMIT_SHORT_SHA}
+    MRP_VERIFICATION_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-verification-server:${CI_COMMIT_SHORT_SHA}
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
     - envsubst < kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/gbamock-deployment.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/brpproxy-service.yaml
-    - kubectl apply -f kubernetes/gbamock-service.yaml
-    - envsubst < kubernetes/mrp-wallet-server-deployment.yaml | kubectl apply -f -
-    - envsubst < kubernetes/mrp-wallet-server-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f kubernetes/mrp-wallet-server-service.yaml
-    - kubectl apply -f kubernetes/mrp-wallet-server-network-policies.yaml
-    - kubectl rollout status deployment/mrp-wallet-server
+    - envsubst < kubernetes/mrp-verification-server-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/mrp-verification-server-ingress.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/mrp-verification-server-service.yaml
+    - kubectl apply -f kubernetes/mrp-verification-server-network-policies.yaml
+    - kubectl rollout status deployment/mrp-verification-server
     - envsubst < kubernetes/mock-relying-party-deployment.yaml | kubectl apply -f -
     - envsubst < kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mock-relying-party-service.yaml
@@ -1127,12 +1121,12 @@ deploy-mock-relying-party-ont:
   rules: !reference [.default-or-merge-request, rules]
   needs:
     - !reference [.deploy-mock-relying-party, needs]
-    - job: run-ws-migrations-ont
+    - job: run-mrp-vs-migrations-ont
       artifacts: false
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
-    MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_ONT
-    MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_ONT
+    MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT
+    MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_ONT
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
 
@@ -1140,13 +1134,13 @@ deploy-mock-relying-party-demo:
   extends: [.env-demo-k8s, .deploy-mock-relying-party]
   needs:
     - !reference [.deploy-mock-relying-party, needs]
-    - job: run-ws-migrations-demo
+    - job: run-mrp-vs-migrations-demo
       artifacts: false
   rules: !reference [.demo-release-tag, rules]
   variables:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO
-    MRP_WALLET_SERVER_INTERNAL_HOSTNAME: $MRP_WALLET_SERVER_INTERNAL_HOSTNAME_DEMO
-    MRP_WALLET_SERVER_EXTERNAL_HOSTNAME: $MRP_WALLET_SERVER_EXTERNAL_HOSTNAME_DEMO
+    MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_DEMO
+    MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_DEMO
     DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_DEMO
     UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_DEMO
 
@@ -1216,31 +1210,31 @@ deploy-pid-issuer-demo:
   script:
     - kubectl create configmap nl-wallet-gba-hc-converter-xml-files --dry-run=client --from-file wallet_core/gba_hc_converter/resources/gba-v-responses -o yaml | kubectl apply -f -
     - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
-    - envsubst < kubernetes/gba-hc-converter-deployment.yaml | kubectl apply -f -
+    - envsubst < kubernetes/${ENV}/gba-hc-converter-deployment.yaml | kubectl apply -f -
+    - kubectl apply -f kubernetes/gba-hc-converter-network-policies.yaml
     - kubectl apply -f kubernetes/gba-hc-converter-service.yaml
     - kubectl rollout status deployment/gba-hc-converter
 
 deploy-gba-hc-converter-ont:
   extends: [.env-ont-k8s, .deploy-gba-hc-converter]
   rules: !reference [.default-or-merge-request, rules]
+  variables:
+    ENV: ont
 
 deploy-gba-hc-converter-demo:
   extends: [.env-demo-k8s, .deploy-gba-hc-converter]
   rules: !reference [.demo-release-tag, rules]
+  variables:
+    ENV: demo
 
-.run-preload-gba-v-job:
+run-preload-gba-v-job:
+  extends: [.env-demo-k8s]
   when: manual
   script:
     - kubectl create configmap nl-wallet-gba-hc-converter-preload-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/preload.sh -o yaml | kubectl apply -f -
     - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
     - envsubst < kubernetes/preload-gba-v-data-job.yaml | kubectl apply -f -
     - kubectl wait --for=condition=complete --timeout=300s job -l app=/preload-gba-v-data
-
-run-preload-gba-v-job-ont:
-  extends: [.env-ont-k8s, .run-preload-gba-v-job]
-
-run-preload-gba-v-job-demo:
-  extends: [.env-demo-k8s, .run-preload-gba-v-job]
 
 check-gitlab-ci-changed:
   rules:

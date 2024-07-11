@@ -436,7 +436,7 @@ pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
 pub async fn test_disclosure_session_terminate<H>(
     session: DisclosureSession<H, MdocIdentifier>,
     wallet_messages: Arc<Mutex<WalletMessages>>,
-) -> Result<(), VpClientError>
+) -> Result<Option<BaseUrl>, VpClientError>
 where
     H: VpMessageClient,
 {

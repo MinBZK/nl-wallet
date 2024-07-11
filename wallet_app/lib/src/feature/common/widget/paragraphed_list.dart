@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'text/body_text.dart';
 
 /// Renders the provided [paragraphs] as [BodyText] with a 8dp separator
+/// Check out the [ParagraphedSliverList] for use with slivers.
 class ParagraphedList extends StatelessWidget {
   final List<String> paragraphs;
 

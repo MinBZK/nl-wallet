@@ -1,7 +1,7 @@
 import { config } from "@vue/test-utils"
 import { setupJestCanvasMock } from "jest-canvas-mock"
 import { vi } from "vitest"
-import { isMobileKey } from "../util/projection_keys"
+import { isMobileKey } from "@/util/useragent"
 
 vi.hoisted(() => {
   vi.stubGlobal("jest", vi)

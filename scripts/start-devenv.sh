@@ -28,6 +28,13 @@ export BASE_DIR
 source "${SCRIPTS_DIR}/utils.sh"
 source "${SCRIPTS_DIR}/configuration.sh"
 
+if is_macos
+then
+    DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.yml
+else
+    DOCKER_COMPOSE_FILE=${SCRIPTS_DIR}/docker-compose.linux.yml
+fi
+
 ########################################################################
 # Functions
 ########################################################################
@@ -226,12 +233,12 @@ then
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Stopping postgres services${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down postgresql pgadmin4 || true
+        docker compose --file "${DOCKER_COMPOSE_FILE}" down postgresql pgadmin4 || true
     fi
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Starting postgres services${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach postgresql pgadmin4
+        docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach postgresql pgadmin4
     fi
 fi
 
@@ -417,12 +424,12 @@ then
     if [ "${STOP}" == "0" ]
     then
         echo -e "${INFO}Stopping ${ORANGE}brpproxy${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" down brpproxy || true
+        docker compose --file "${DOCKER_COMPOSE_FILE}" down brpproxy || true
     fi
     if [ "${START}" == "0" ]
     then
         echo -e "Building and starting ${ORANGE}brpproxy${NC}"
-        docker compose --file "${SCRIPTS_DIR}/docker-compose.yml" up --detach brpproxy
+        docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach brpproxy
     fi
 fi
 

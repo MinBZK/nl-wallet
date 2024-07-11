@@ -38,6 +38,8 @@ pub struct GbavSettings {
 
     #[serde(deserialize_with = "deserialize_certificate")]
     pub trust_anchor: reqwest::Certificate,
+
+    pub ca_api_key: Option<String>,
 }
 
 impl HttpGbavClient {
@@ -49,6 +51,7 @@ impl HttpGbavClient {
             settings.trust_anchor,
             settings.client_cert,
             settings.client_cert_key,
+            settings.ca_api_key,
         )
         .await
     }

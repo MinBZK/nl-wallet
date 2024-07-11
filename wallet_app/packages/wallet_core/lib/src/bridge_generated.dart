@@ -102,7 +102,7 @@ abstract class WalletCore {
 
   FlutterRustBridgeTaskConstMeta get kStartDisclosureConstMeta;
 
-  Future<void> cancelDisclosure({dynamic hint});
+  Future<String?> cancelDisclosure({dynamic hint});
 
   FlutterRustBridgeTaskConstMeta get kCancelDisclosureConstMeta;
 
@@ -748,10 +748,10 @@ class WalletCoreImpl implements WalletCore {
         argNames: ["uri", "isQrCode"],
       );
 
-  Future<void> cancelDisclosure({dynamic hint}) {
+  Future<String?> cancelDisclosure({dynamic hint}) {
     return _platform.executeNormal(FlutterRustBridgeTask(
       callFfi: (port_) => _platform.inner.wire_cancel_disclosure(port_),
-      parseSuccessData: _wire2api_unit,
+      parseSuccessData: _wire2api_opt_String,
       parseErrorData: _wire2api_FrbAnyhowException,
       constMeta: kCancelDisclosureConstMeta,
       argValues: [],

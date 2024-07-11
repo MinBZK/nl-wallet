@@ -3,11 +3,17 @@ use std::{num::NonZeroU8, ops::Add};
 use chrono::{Days, NaiveDate, Utc};
 use ciborium::Value;
 use indexmap::IndexMap;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 
 use nl_wallet_mdoc::{unsigned, unsigned::UnsignedMdoc, Tdate};
 
 use crate::pid::constants::*;
+
+#[derive(Debug, thiserror::Error)]
+pub enum BrpDataError {
+    #[error("missing partner")]
+    MissingPartner,
+}
 
 #[derive(Deserialize)]
 pub struct BrpPersons {
@@ -47,18 +53,35 @@ impl BrpPerson {
         self.age >= 18
     }
 
+    fn partner(&self) -> Option<&BrpPartner> {
+        self.partners.first()
+    }
+
     fn has_spouse_or_partner(&self) -> bool {
-        self.partners
-            .first()
+        self.partner()
             .map(|partner| {
-                partner.kind != BrpMaritalStatus::Onbekend && partner.start.is_some() && partner.end.is_none()
+                partner.start.is_some() && partner.end.is_none() && partner.kind != BrpMaritalStatus::Onbekend
             })
             .unwrap_or(false)
     }
 }
 
-impl From<&BrpPerson> for Vec<UnsignedMdoc> {
-    fn from(value: &BrpPerson) -> Self {
+impl TryFrom<BrpPerson> for Vec<UnsignedMdoc> {
+    type Error = BrpDataError;
+
+    fn try_from(value: BrpPerson) -> Result<Self, Self::Error> {
+        let family_name = value
+            .name
+            .clone()
+            .info_family_name(value.partner().cloned().map(|p| p.name))?;
+        let given_names = value.name.given_names.clone();
+        let is_over_18 = value.is_over_18();
+        let has_spouse_or_partner = value.has_spouse_or_partner();
+        let birth_country = value.birth.country;
+        let birth_place = value.birth.place;
+        let street = value.residence.address.street().map(String::from);
+        let house_number = value.residence.address.locator_designator();
+
         let mdocs = vec![
             UnsignedMdoc {
                 doc_type: String::from(MOCK_PID_DOCTYPE),
@@ -70,19 +93,20 @@ impl From<&BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_BSN),
-                            value: ciborium::Value::Text(value.bsn.clone()),
+                            value: ciborium::Value::Text(value.bsn),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_FAMILY_NAME),
-                            value: ciborium::Value::Text(value.name.family_name.clone()),
+                            value: ciborium::Value::Text(family_name),
                         }
                         .into(),
-                        value.name.family_name_prefix.clone().map(|prefix| unsigned::Entry {
-                            name: String::from(PID_FAMILY_NAME_PREFIX),
-                            value: ciborium::Value::Text(prefix),
-                        }),
-                        value.name.given_names.clone().map(|names| unsigned::Entry {
+                        unsigned::Entry {
+                            name: String::from(PID_OWN_FAMILY_NAME),
+                            value: ciborium::Value::Text(value.name.into_name_with_prefix()),
+                        }
+                        .into(),
+                        given_names.map(|names| unsigned::Entry {
                             name: String::from(PID_GIVEN_NAME),
                             value: ciborium::Value::Text(names),
                         }),
@@ -91,29 +115,27 @@ impl From<&BrpPerson> for Vec<UnsignedMdoc> {
                             value: ciborium::Value::Text(value.birth.date.date.format("%Y-%m-%d").to_string()),
                         }
                         .into(),
-                        unsigned::Entry {
+                        birth_country.map(|country| unsigned::Entry {
                             name: String::from(PID_BIRTH_COUNTRY),
-                            value: ciborium::Value::Text(value.birth.country.name.clone()),
-                        }
-                        .into(),
-                        unsigned::Entry {
+                            value: ciborium::Value::Text(country.description),
+                        }),
+                        birth_place.map(|place| unsigned::Entry {
                             name: String::from(PID_BIRTH_CITY),
-                            value: ciborium::Value::Text(value.birth.place.name.clone()),
-                        }
-                        .into(),
+                            value: ciborium::Value::Text(place.description),
+                        }),
                         unsigned::Entry {
                             name: String::from(PID_AGE_OVER_18),
-                            value: ciborium::Value::Bool(value.is_over_18()),
+                            value: ciborium::Value::Bool(is_over_18),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_GENDER),
-                            value: value.gender.code.clone().into(),
+                            value: value.gender.code.into(),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_SPOUSE_OR_PARTNER),
-                            value: ciborium::Value::Bool(value.has_spouse_or_partner()),
+                            value: ciborium::Value::Bool(has_spouse_or_partner),
                         }
                         .into(),
                     ]
@@ -134,26 +156,26 @@ impl From<&BrpPerson> for Vec<UnsignedMdoc> {
                     vec![
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_COUNTRY),
-                            value: ciborium::Value::Text(value.residence.address.country.name.clone()),
+                            value: ciborium::Value::Text(value.residence.address.country.description),
                         }
                         .into(),
-                        value.residence.address.street().map(|street| unsigned::Entry {
+                        street.map(|street| unsigned::Entry {
                             name: String::from(PID_RESIDENT_STREET),
                             value: ciborium::Value::Text(street),
                         }),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_POSTAL_CODE),
-                            value: ciborium::Value::Text(value.residence.address.postal_code.clone()),
+                            value: ciborium::Value::Text(value.residence.address.postal_code),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_HOUSE_NUMBER),
-                            value: ciborium::Value::Text(value.residence.address.house_number.to_string()),
+                            value: ciborium::Value::Text(house_number),
                         }
                         .into(),
                         unsigned::Entry {
                             name: String::from(PID_RESIDENT_CITY),
-                            value: ciborium::Value::Text(value.residence.address.city.clone()),
+                            value: ciborium::Value::Text(value.residence.address.city),
                         }
                         .into(),
                     ]
@@ -166,7 +188,7 @@ impl From<&BrpPerson> for Vec<UnsignedMdoc> {
             },
         ];
 
-        mdocs
+        Ok(mdocs)
     }
 }
 
@@ -194,7 +216,7 @@ impl From<BrpGenderCode> for ciborium::Value {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct BrpName {
     #[serde(rename = "voornamen")]
     given_names: Option<String>,
@@ -204,6 +226,52 @@ pub struct BrpName {
 
     #[serde(rename = "geslachtsnaam")]
     family_name: String,
+
+    #[serde(rename = "aanduidingNaamgebruik")]
+    name_usage: Option<BrpNameUsage>,
+}
+
+impl BrpName {
+    fn info_family_name(self, partner_name: Option<BrpName>) -> Result<String, BrpDataError> {
+        let name = match self.name_usage.unwrap_or(BrpNameUsage::Own) {
+            BrpNameUsage::Own => self.into_name_with_prefix(),
+            BrpNameUsage::Partner => partner_name
+                .ok_or(BrpDataError::MissingPartner)?
+                .into_name_with_prefix(),
+            BrpNameUsage::OwnThenPartner => {
+                self.into_combined_name_with_prefix(partner_name.ok_or(BrpDataError::MissingPartner)?)
+            }
+            BrpNameUsage::PartnerThenOwn => partner_name
+                .ok_or(BrpDataError::MissingPartner)?
+                .into_combined_name_with_prefix(self),
+        };
+        Ok(name)
+    }
+
+    fn into_name_with_prefix(self) -> String {
+        if let Some(prefix) = self.family_name_prefix {
+            format!("{} {}", prefix, self.family_name)
+        } else {
+            self.family_name
+        }
+    }
+
+    fn into_combined_name_with_prefix(self, other: BrpName) -> String {
+        format!("{}-{}", self.into_name_with_prefix(), other.into_name_with_prefix())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[serde(tag = "code")]
+pub enum BrpNameUsage {
+    #[serde(rename = "E")]
+    Own,
+    #[serde(rename = "P")]
+    Partner,
+    #[serde(rename = "V")]
+    PartnerThenOwn,
+    #[serde(rename = "N")]
+    OwnThenPartner,
 }
 
 #[derive(Deserialize)]
@@ -212,10 +280,10 @@ pub struct BrpBirth {
     date: BrpDate,
 
     #[serde(rename = "land")]
-    country: BrpBirthCountry,
+    country: Option<BrpDescription>,
 
     #[serde(rename = "plaats")]
-    place: BrpBirthPlace,
+    place: Option<BrpDescription>,
 }
 
 #[derive(Deserialize)]
@@ -224,16 +292,10 @@ pub struct BrpDate {
     date: NaiveDate,
 }
 
-#[derive(Deserialize)]
-pub struct BrpBirthCountry {
+#[derive(Clone, Deserialize)]
+pub struct BrpDescription {
     #[serde(rename = "omschrijving")]
-    name: String,
-}
-
-#[derive(Deserialize)]
-pub struct BrpBirthPlace {
-    #[serde(rename = "omschrijving")]
-    name: String,
+    description: String,
 }
 
 #[derive(Deserialize)]
@@ -253,40 +315,60 @@ pub struct BrpAddress {
     #[serde(rename = "huisnummer")]
     house_number: u32,
 
+    #[serde(rename = "huisletter")]
+    house_letter: Option<String>,
+
+    #[serde(rename = "huisnummertoevoeging")]
+    house_number_addition: Option<String>,
+
+    #[serde(rename = "aanduidingbijHuisnummer")]
+    house_number_designation: Option<BrpDescription>,
+
     #[serde(rename = "postcode")]
     postal_code: String,
 
     #[serde(rename = "woonplaats")]
     city: String,
 
-    #[serde(rename = "land", default)]
-    country: BrpCountry,
+    #[serde(rename = "land", default = "default_country")]
+    country: BrpDescription,
 }
 
-impl BrpAddress {
-    fn street(&self) -> Option<String> {
-        self.official_street_name.clone().or(self.short_street_name.clone())
+fn default_country() -> BrpDescription {
+    BrpDescription {
+        description: String::from("Nederland"),
     }
 }
 
-#[derive(Deserialize)]
-pub struct BrpCountry {
-    #[serde(rename = "omschrijving")]
-    name: String,
-}
+impl BrpAddress {
+    fn street(&self) -> Option<&str> {
+        self.official_street_name
+            .as_deref()
+            .or(self.short_street_name.as_deref())
+    }
 
-impl Default for BrpCountry {
-    fn default() -> Self {
-        Self {
-            name: String::from("Nederland"),
+    fn locator_designator(&self) -> String {
+        let house_letter = self.house_letter.as_deref().unwrap_or_default();
+        let house_number_addition = self.house_number_addition.as_deref().unwrap_or_default();
+
+        // According to Logisch Ontwerp BRP 2024 Q2, elements 11.40 and 11.50 are mutually exclusive.
+        // This implementation is according to "Bijlage 3 Vertaaltabel" describing the GBA-V translations regarding
+        // the EAD eIDAS attributes.
+        if let Some(designation) = &self.house_number_designation {
+            format!("{} {}{}", designation.description, self.house_number, house_letter)
+        } else {
+            format!("{}{}{}", self.house_number, house_letter, house_number_addition)
         }
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct BrpPartner {
     #[serde(rename = "soortVerbintenis")]
     kind: BrpMaritalStatus,
+
+    #[serde(rename = "naam")]
+    name: BrpName,
 
     #[serde(rename = "aangaanHuwelijkPartnerschap")]
     start: Option<GbaMarriagePartnershipStart>,
@@ -295,37 +377,21 @@ pub struct BrpPartner {
     end: Option<GbaMarriagePartnershipEnd>,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct GbaMarriagePartnershipStart {}
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct GbaMarriagePartnershipEnd {}
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(tag = "code")]
 pub enum BrpMaritalStatus {
+    #[serde(rename = "H")]
     Huwelijk,
+    #[serde(rename = "P")]
     GeregistreerdPartnerschap,
+    #[serde(rename = ".")]
     Onbekend,
-}
-
-impl<'de> Deserialize<'de> for BrpMaritalStatus {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let value = BrpCode::deserialize(deserializer)?;
-        let status = match value.code.as_str() {
-            "H" => BrpMaritalStatus::Huwelijk,
-            "P" => BrpMaritalStatus::GeregistreerdPartnerschap,
-            _ => BrpMaritalStatus::Onbekend,
-        };
-        Ok(status)
-    }
-}
-
-#[derive(Deserialize)]
-pub struct BrpCode {
-    code: String,
 }
 
 #[cfg(test)]
@@ -337,10 +403,10 @@ mod tests {
 
     use nl_wallet_mdoc::{
         unsigned::{Entry, UnsignedMdoc},
-        NameSpace,
+        DataElementValue, NameSpace,
     };
 
-    use crate::pid::brp::data::BrpPersons;
+    use crate::pid::brp::data::{BrpDataError, BrpPersons};
 
     fn read_json(name: &str) -> String {
         fs::read_to_string(
@@ -352,14 +418,10 @@ mod tests {
         .unwrap()
     }
 
-    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> Vec<(&str, &str)> {
+    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> Vec<(&str, DataElementValue)> {
         attrs
             .iter()
-            .flat_map(|(_ns, entries)| {
-                entries
-                    .iter()
-                    .map(|entry| (entry.name.as_str(), entry.value.as_text().unwrap_or("")))
-            })
+            .flat_map(|(_ns, entries)| entries.iter().map(|entry| (entry.name.as_str(), entry.value.clone())))
             .collect::<Vec<_>>()
     }
 
@@ -367,6 +429,48 @@ mod tests {
     fn should_deserialize_empty_response() {
         let brp_persons: BrpPersons = serde_json::from_str(&read_json("empty")).unwrap();
         assert!(brp_persons.persons.is_empty());
+    }
+
+    #[rstest]
+    #[case("frouke", "Jansen", "Jansen")]
+    #[case("naamgebruik-eigen", "van Buren", "van Buren")]
+    #[case("naamgebruik-partner", "Postma", "van Buren")]
+    #[case("naamgebruik-partner-divorced", "Postma", "van Buren")]
+    #[case("naamgebruik-partner-first", "ten Hag-van Buren", "van Buren")]
+    #[case("naamgebruik-partner-last", "van Buren-ten Hag", "van Buren")]
+    #[case("prefix-family-name", "van Buren", "van Buren")]
+    fn should_handle_family_name(
+        #[case] json_file_name: &str,
+        #[case] expected_family_name: &str,
+        #[case] expected_own_family_name: &str,
+    ) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert_eq!(
+            expected_family_name,
+            brp_person
+                .name
+                .clone()
+                .info_family_name(brp_person.partner().cloned().map(|p| p.name))
+                .unwrap()
+        );
+        assert_eq!(
+            expected_own_family_name,
+            brp_person.name.clone().into_name_with_prefix()
+        );
+    }
+
+    #[test]
+    fn should_error_for_naamgebruik_partner_without_partner() {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json("naamgebruik-illegal")).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert!(matches!(
+            brp_person
+                .name
+                .clone()
+                .info_family_name(brp_person.partner().cloned().map(|p| p.name)),
+            Err(BrpDataError::MissingPartner)
+        ));
     }
 
     #[test]
@@ -407,10 +511,23 @@ mod tests {
         }
     }
 
+    #[rstest]
+    #[case("huisletter", "20A")]
+    #[case("huisletter-en-toevoeging", "1Abis")]
+    #[case("huisnummertoevoeging", "38BIS1")]
+    #[case("huisnummeraanduiding", "tegenover 38")]
+    #[case("huisletter-en-aanduiding", "bij 38c")]
+    #[case("huisletter-en-aanduiding-en-toevoeging-illegal-combination", "bij 38c")]
+    fn should_handle_house_number(#[case] json_file_name: &str, #[case] expected_house_number: &str) {
+        let brp_persons: BrpPersons = serde_json::from_str(&read_json(json_file_name)).unwrap();
+        let brp_person = brp_persons.persons.first().unwrap();
+        assert_eq!(expected_house_number, brp_person.residence.address.locator_designator());
+    }
+
     #[test]
     fn should_convert_brp_person_to_mdoc() {
-        let brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.first().unwrap().into();
+        let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
+        let unsigned_mdoc: Vec<UnsignedMdoc> = brp_persons.persons.remove(0).try_into().unwrap();
 
         assert_eq!(2, unsigned_mdoc.len());
 
@@ -419,26 +536,27 @@ mod tests {
 
         assert_eq!(
             vec![
-                ("bsn", "999991772"),
-                ("family_name", "Jansen"),
-                ("given_name", "Frouke"),
-                ("birth_date", "2000-03-24"),
-                ("birth_country", "België"),
-                ("birth_city", "Luik"),
-                ("age_over_18", ""),
-                ("gender", ""),
-                ("has_spouse_or_partner", ""),
+                ("bsn", "999991772".into()),
+                ("family_name", "Jansen".into()),
+                ("own_family_name", "Jansen".into()),
+                ("given_name", "Frouke".into()),
+                ("birth_date", "2000-03-24".into()),
+                ("birth_country", "België".into()),
+                ("birth_city", "Luik".into()),
+                ("age_over_18", true.into()),
+                ("gender", 2.into()),
+                ("has_spouse_or_partner", false.into()),
             ],
             readable_attrs(pid_card.attributes.as_ref())
         );
 
         assert_eq!(
             vec![
-                ("resident_country", "Nederland"),
-                ("resident_street", "Van Wijngaerdenstraat"),
-                ("resident_postal_code", "2596TW"),
-                ("resident_house_number", "1"),
-                ("resident_city", "Toetsoog"),
+                ("resident_country", "Nederland".into()),
+                ("resident_street", "Van Wijngaerdenstraat".into()),
+                ("resident_postal_code", "2596TW".into()),
+                ("resident_house_number", "1".into()),
+                ("resident_city", "Toetsoog".into()),
             ],
             readable_attrs(address_card.attributes.as_ref())
         );

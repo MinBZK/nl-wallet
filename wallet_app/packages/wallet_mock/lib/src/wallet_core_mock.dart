@@ -63,11 +63,12 @@ class WalletCoreMock extends _FlutterRustBridgeTasksMeta implements WalletCore {
   }
 
   @override
-  Future<void> cancelDisclosure({hint}) async {
+  Future<String?> cancelDisclosure({hint}) async {
     final disclosure = _ongoingDisclosure;
     assert(disclosure != null, 'No ongoing disclosure to deny');
     _ongoingDisclosure = null;
     _eventLog.logDisclosure(disclosure!, DisclosureStatus.Cancelled);
+    return null;
   }
 
   @override

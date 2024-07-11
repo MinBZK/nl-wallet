@@ -14,22 +14,3 @@
 main h4 {
     color: var(--primary-color);
 }
-
-/* buttons for xyz_bank */
-.buttons nl-wallet-button::part(button) {
-    border-radius: 12px;
-    padding: 16px 24px;
-}
-
-.buttons nl-wallet-button::after,
-.buttons button::after {
-    width: 52px;
-    height: 52px;
-}
-
-/* buttons for xyz_bank */
-button > span,
-.buttons nl-wallet-button::part(button) {
-    border-radius: 12px;
-    padding: 16px 24px;
-}

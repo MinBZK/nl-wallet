@@ -342,11 +342,12 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
 }
 
 WidgetBuilder _createWalletPersonalizeScreenBuilder(RouteSettings settings) {
+  final argument = Consumable(tryCast<String>(settings.arguments));
   return (context) {
-    final argument = Consumable(tryCast<String>(settings.arguments));
     return BlocProvider<WalletPersonalizeBloc>(
       create: (BuildContext context) {
         final bloc = WalletPersonalizeBloc(
+          context.read(),
           context.read(),
           context.read(),
           context.read(),

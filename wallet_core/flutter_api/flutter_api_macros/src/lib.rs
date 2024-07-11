@@ -4,6 +4,8 @@ use syn::{parse_macro_input, spanned::Spanned, ItemFn};
 
 /// Converts the body of a function to an asynchronous task and executes it on the flutter_api's tokio runtime.
 /// This macro can only be applied in the `flutter_api` crate, because it generates code using `crate::async_runtime`.
+/// This macro also binds the Sentry [`Hub`], to mitigate the concerns raised in
+/// https://docs.rs/sentry-core/0.34.0/sentry_core/index.html#parallelism-concurrency-and-async
 #[proc_macro_attribute]
 pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let ItemFn {
@@ -25,9 +27,14 @@ pub fn async_runtime(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     quote! {
         #(#attrs)* #vis #sig {
-            crate::async_runtime::get_async_runtime().block_on(async {
-                #(#stmts)*
-            })
+            crate::async_runtime::get_async_runtime().block_on(
+                ::sentry::SentryFutureExt::bind_hub(
+                    async {
+                        #(#stmts)*
+                    },
+                    ::sentry::Hub::new_from_top(::sentry::Hub::current())
+                )
+            )
         }
     }
     .into()

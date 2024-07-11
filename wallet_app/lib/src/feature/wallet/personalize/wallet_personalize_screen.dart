@@ -80,6 +80,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildPage() {
     return BlocConsumer<WalletPersonalizeBloc, WalletPersonalizeState>(
       listener: (context, state) {
+        context.read<ScrollOffset>().reset(); // Reset provided scrollOffset between pages
         _closeOpenDialogs(context); // Make sure the StopDigidLoginDialog is dismissed on state changes.
         if (state is WalletPersonalizeConnectDigid) _loginWithDigid(context, state.authUrl);
       },

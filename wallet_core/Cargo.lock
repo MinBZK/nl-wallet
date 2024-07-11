@@ -1395,6 +1395,7 @@ dependencies = [
  "sentry-panic",
  "serde",
  "serde_json",
+ "serde_with",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1597,6 +1598,7 @@ version = "0.1.0"
 dependencies = [
  "assert-json-diff",
  "axum",
+ "base64 0.22.1",
  "config",
  "csv",
  "ctor",
@@ -2608,6 +2610,7 @@ name = "openid4vc"
 version = "0.1.0"
 dependencies = [
  "assert_matches",
+ "axum",
  "base64 0.22.1",
  "biscuit",
  "chrono",
@@ -5326,7 +5329,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "url",
- "uuid",
  "wallet_common_macros",
 ]
 
@@ -5337,7 +5339,10 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rstest",
+ "sentry",
  "syn 2.0.68",
+ "thiserror",
+ "tokio",
  "trybuild",
  "wallet_common",
 ]
