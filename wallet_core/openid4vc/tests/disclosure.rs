@@ -314,11 +314,17 @@ async fn test_client_and_server(#[case] session_type: SessionType, #[case] uri_s
 #[tokio::test]
 async fn test_client_and_server_cancel_after_created() {
     let items_requests = Examples::items_requests();
+    let session_type = SessionType::SameDevice;
 
     let (verifier, _) = setup_verifier(&items_requests);
 
     // Start the session
     let session_token = new_session(&verifier, items_requests).await;
+
+    // The session should now be created
+    let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
+
+    assert_matches!(status_response, StatusResponse::Created { .. });
 
     // Cancel the session
     verifier
@@ -327,7 +333,7 @@ async fn test_client_and_server_cancel_after_created() {
         .expect("should be able to cancel newly created session");
 
     // The session should now be cancelled
-    let status_response = request_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
+    let status_response = request_status_endpoint(&verifier, &session_token, session_type).await;
 
     assert_matches!(status_response, StatusResponse::Cancelled);
 }
@@ -342,7 +348,8 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     // Start the session
     let session_token = new_session(&verifier, items_requests).await;
 
-    // frontend receives the UL to feed to the wallet when fetching the session status
+    // The front-end receives the UL to feed to the wallet when fetching the session status
+    // (this also verifies that the status is Created)
     let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, session_type).await;
 
     // Start session in the wallet
