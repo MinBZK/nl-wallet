@@ -1,4 +1,4 @@
-use wallet_common::error_category::ErrorCategory;
+use wallet_common::ErrorCategory;
 
 #[derive(ErrorCategory)]
 #[category(defer)]

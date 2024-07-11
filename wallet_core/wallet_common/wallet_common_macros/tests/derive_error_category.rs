@@ -1,6 +1,6 @@
 use rstest::rstest;
 
-use wallet_common::error_category::{Category, ErrorCategory};
+use wallet_common::{Category, ErrorCategory};
 
 #[derive(ErrorCategory)]
 #[allow(dead_code)]

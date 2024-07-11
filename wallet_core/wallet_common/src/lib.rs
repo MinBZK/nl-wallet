@@ -12,3 +12,5 @@ pub mod sentry;
 pub mod spawn;
 pub mod trust_anchor;
 pub mod utils;
+
+pub use error_category::*;
