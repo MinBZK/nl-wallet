@@ -152,14 +152,9 @@ impl VpMessageClient for HttpVpMessageClient {
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
-                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
-                let status = response.status();
-                if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<DisclosureErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::Response(error.into()))
-                } else {
-                    Ok(response.text().await?.into())
-                }
+                let jwt = Self::get_body_from_response(response).await?.into();
+
+                Ok(jwt)
             })
             .await
     }
@@ -175,14 +170,9 @@ impl VpMessageClient for HttpVpMessageClient {
             .send()
             .map_err(VpMessageClientError::from)
             .and_then(|response| async {
-                // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
-                let status = response.status();
-                if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<DisclosureErrorResponse<String>>().await?;
-                    Err(VpMessageClientError::Response(error.into()))
-                } else {
-                    Self::deserialize_vp_response(response).await
-                }
+                let redirect_uri = Self::handle_vp_response(response).await?;
+
+                Ok(redirect_uri)
             })
             .await
     }
@@ -192,28 +182,43 @@ impl VpMessageClient for HttpVpMessageClient {
         url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        let response = self
-            .http_client
+        self.http_client
             .post(url.into_inner())
             .form(&error)
             .send()
-            .await?
-            .error_for_status()?;
+            .map_err(VpMessageClientError::from)
+            .and_then(|response| async {
+                let redirect_uri = Self::handle_vp_response(response).await?;
 
-        let response = Self::deserialize_vp_response(response).await?;
-        Ok(response)
+                Ok(redirect_uri)
+            })
+            .await
     }
 }
 
 impl HttpVpMessageClient {
+    async fn get_body_from_response(response: Response) -> Result<String, VpMessageClientError> {
+        // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
+        let status = response.status();
+        if status.is_client_error() || status.is_server_error() {
+            let error = response.json::<DisclosureErrorResponse<String>>().await?;
+
+            return Err(VpMessageClientError::Response(error.into()));
+        }
+        let body = response.text().await?;
+
+        Ok(body)
+    }
+
     /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not say
     /// whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts both.
-    async fn deserialize_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        let response_bytes = response.bytes().await?;
-        if response_bytes.is_empty() {
+    async fn handle_vp_response(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError> {
+        let response_body = Self::get_body_from_response(response).await?;
+
+        if response_body.is_empty() {
             return Ok(None);
         }
-        let response: VpResponse = serde_json::from_slice(&response_bytes)?;
+        let response: VpResponse = serde_json::from_str(&response_body)?;
         Ok(response.redirect_uri)
     }
 }
