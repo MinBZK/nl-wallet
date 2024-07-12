@@ -2,6 +2,7 @@ package helper
 
 import com.codeborne.selenide.Configuration
 import com.codeborne.selenide.Selenide
+import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import data.TestConfigRepository.Companion.testConfig
 import driver.BrowserStackMobileDriver
 import driver.LocalMobileDriver
@@ -27,7 +28,7 @@ open class TestBase {
     }
 
     @AfterEach
-    fun afterEach() {
+    fun closeDriver() {
         // Close browser tab
         try {
             Selenide.closeWindow()
@@ -38,6 +39,13 @@ open class TestBase {
         // Close web driver
         if (!testConfig.remote) {
             Selenide.closeWebDriver()
+        }
+
+        // Quit driver
+        try {
+            getWebDriver().quit()
+        } catch (e: Exception) {
+            // Ignore
         }
     }
 
