@@ -11,4 +11,3 @@ nameSpaces = { "com.example.pid" = { given_name = false, family_name = true } }
 [[usecases.parking_permit]]
 docType = "com.example.address"
 nameSpaces = { "com.example.address" = { resident_street = true, resident_house_number = true, resident_city = true } }
-
