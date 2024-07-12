@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, net::IpAddr, path::PathBuf};
 use config::{Config, ConfigError, Environment, File};
 use http::{header::InvalidHeaderValue, HeaderValue};
 use nutype::nutype;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use nl_wallet_mdoc::verifier::ItemsRequests;
@@ -17,8 +17,16 @@ pub struct Settings {
     pub public_url: BaseUrl,
     #[serde(default)]
     pub allow_origins: Vec<Origin>,
+    pub wallet_web: WalletWeb,
     pub usecases: HashMap<String, Usecase>,
     pub sentry: Option<Sentry>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WalletWeb {
+    // relative to /assets
+    pub filename: PathBuf,
+    pub sha256: String,
 }
 
 #[derive(Deserialize, Clone)]

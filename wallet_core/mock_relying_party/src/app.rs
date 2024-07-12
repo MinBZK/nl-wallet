@@ -9,6 +9,8 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use base64::prelude::*;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -18,12 +20,12 @@ use tower_http::{
 use tracing::warn;
 
 use nl_wallet_mdoc::{server_state::SessionToken, verifier::DisclosedAttributes};
-use wallet_common::config::wallet_config::BaseUrl;
+use wallet_common::{config::wallet_config::BaseUrl, utils::sha256};
 
 use crate::{
     askama_axum,
     client::WalletServerClient,
-    settings::{Origin, ReturnUrlMode, Settings, Usecase},
+    settings::{Origin, ReturnUrlMode, Settings, Usecase, WalletWeb},
 };
 
 #[derive(Debug)]
@@ -51,6 +53,7 @@ struct ApplicationState {
     public_wallet_server_url: BaseUrl,
     public_url: BaseUrl,
     usecases: HashMap<String, Usecase>,
+    wallet_web: WalletWeb,
 }
 
 fn cors_layer(allow_origins: Vec<Origin>) -> Option<CorsLayer> {
@@ -80,6 +83,7 @@ pub fn create_router(settings: Settings) -> Router {
         public_wallet_server_url: settings.public_wallet_server_url,
         public_url: settings.public_url,
         usecases: settings.usecases,
+        wallet_web: settings.wallet_web,
     });
 
     let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
@@ -123,6 +127,9 @@ struct DisclosureTemplate<'a> {
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
+    usecase_js_sha256: &'a str,
+    wallet_web_filename: &'a str,
+    wallet_web_sha256: &'a str,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -177,8 +184,16 @@ async fn create_session(
     Ok(result.into())
 }
 
-async fn usecase(Path(usecase): Path<String>) -> Result<Response> {
-    let result = UsecaseTemplate { usecase: &usecase };
+static USECASE_JS_SHA256: Lazy<String> =
+    Lazy::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
+
+async fn usecase(State(state): State<Arc<ApplicationState>>, Path(usecase): Path<String>) -> Result<Response> {
+    let result = UsecaseTemplate {
+        usecase: &usecase,
+        usecase_js_sha256: &USECASE_JS_SHA256,
+        wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
+        wallet_web_sha256: &state.wallet_web.sha256,
+    };
 
     Ok(askama_axum::into_response(&result))
 }

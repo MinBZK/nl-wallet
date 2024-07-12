@@ -11,10 +11,6 @@
 <link rel="stylesheet" href="../css/{{ usecase }}-return.css" />
 {% endblock %}
 
-{% block scripts %}
-<script type="module" src="../nl-wallet-web.iife.js"></script>
-{% endblock %}
-
 {% block content %}
 {% match usecase %}
     {% when "mijn_amsterdam" %}

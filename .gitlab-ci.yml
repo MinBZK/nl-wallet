@@ -213,6 +213,7 @@ test-rust:
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
+    SKIP_MOCK_RELYING_PARTY: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
@@ -340,12 +341,16 @@ build-frontend-lib:
     name: "$HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/nl-wallet-app-builder-node@sha256:e39c667e35c85a7ddb6af091ae79c64e5455e11495ca2d441e0e41e3a45248e8"
   script:
     - set -euxo pipefail
-    - (cd wallet_web; npm ci && npm run type-check && npm run test -- --run && npm run build)
-    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/
+    - (cd wallet_web; npm ci && npm run type-check && npm run test -- --run)
+    - (cd wallet_web; EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=false npm run build)
+    - (cd wallet_web; CUSTOM_ELEMENT=true npm run build)
+    - WALLET_WEB_SHA256=$(cat wallet_web/dist/nl-wallet-web.iife.js | sha256sum | cut -d " " -f 1 | base64 | tr '/+' '_-' | tr -d '=\n')
+    - export WALLET_WEB_SHA256
+    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/nl-wallet-web.${WALLET_WEB_SHA256}.iife.js
   artifacts:
     paths:
       - wallet_web/dist
-      - wallet_core/mock_relying_party/assets/nl-wallet-web.iife.js
+      - wallet_core/mock_relying_party/assets/nl-wallet-web.*
 
 dependency-check:
   extends: [.env-ont-k8s]
@@ -1097,6 +1102,8 @@ run-mrp-vs-migrations-demo:
     MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
     MRP_VERIFICATION_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-verification-server:${CI_COMMIT_SHORT_SHA}
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
+    CSP_SCRIPT_SRC_MRP: \'none\'
+    CSP_STYLE_SRC_MRP: \'self\'
   script:
     - envsubst < kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/brpproxy-service.yaml
@@ -1106,6 +1113,14 @@ run-mrp-vs-migrations-demo:
     - kubectl apply -f kubernetes/mrp-verification-server-network-policies.yaml
     - kubectl rollout status deployment/mrp-verification-server
     - envsubst < kubernetes/mock-relying-party-deployment.yaml | kubectl apply -f -
+    # take the sha256 hash of every JS files and format them accordingly
+    - JS_HASHES=$(find wallet_core/mock_relying_party/assets -regex '.*\.js' -exec bash -c 'echo sha256-`sha256sum "$1" | cut -d " " -f 1`' _ {} \; | tr '\n' ';' | sed "s/;$/'\n/; s/^/'/; s/;/' '/g")
+    - CSP_SCRIPT_SRC_MRP=${JS_HASHES:-$CSP_SCRIPT_SRC_MRP}
+    - export CSP_SCRIPT_SRC_MRP
+    # take the sha256 hash of the inlined style and add it to the default directive
+    - STYLE_INJECTED_HASH=$(echo \'sha256-`cat ../wallet_web/dist/style.css | tr -d "\n" | sha256sum | cut -d " " -f 1 | xxd -r -p | base64`\')
+    - CSP_STYLE_SRC_MRP="${CSP_STYLE_SRC_MRP} ${STYLE_INJECTED_HASH}"
+    - export CSP_STYLE_SRC_MRP
     - envsubst < kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
     - kubectl apply -f kubernetes/mock-relying-party-service.yaml
     - kubectl rollout status deployment/mock-relying-party
