@@ -1,9 +1,10 @@
+#![allow(dead_code)]
+
 use rstest::rstest;
 
-use wallet_common::error_category::{Category, ErrorCategory};
+use wallet_common::{Category, ErrorCategory};
 
 #[derive(ErrorCategory)]
-#[allow(dead_code)]
 enum ChildError {
     #[category(expected)]
     Unit,
@@ -22,7 +23,14 @@ enum ChildError {
 }
 
 #[derive(ErrorCategory)]
-#[allow(dead_code)]
+#[category(expected)]
+enum ErrorWithDefaultCategory {
+    Expected,
+    #[category(critical)]
+    Critical,
+}
+
+#[derive(ErrorCategory)]
 enum RootError {
     #[category(defer)]
     SingleTuple(ChildError),
@@ -43,29 +51,31 @@ enum RootError {
 #[derive(ErrorCategory)]
 #[category(expected)]
 struct Unit;
+
 #[derive(ErrorCategory)]
 #[category(expected)]
 struct EmptyTuple();
+
 #[derive(ErrorCategory)]
 #[category(critical)]
-#[allow(dead_code)]
 struct SingleTuple(u32);
+
 #[derive(ErrorCategory)]
 #[category(pd)]
-#[allow(dead_code)]
 struct DoubleTuple(u32, u32);
+
 #[derive(ErrorCategory)]
 #[category(expected)]
 struct EmptyStruct {}
+
 #[derive(ErrorCategory)]
 #[category(critical)]
-#[allow(dead_code)]
 struct SingleStruct {
     field: u32,
 }
+
 #[derive(ErrorCategory)]
 #[category(pd)]
-#[allow(dead_code)]
 struct DoubleStruct {
     field_1: u32,
     field_2: u32,
@@ -74,18 +84,19 @@ struct DoubleStruct {
 #[derive(ErrorCategory)]
 #[category(defer)]
 struct SingleTupleRoot(ChildError);
+
 #[derive(ErrorCategory)]
 #[category(defer)]
-#[allow(dead_code)]
 struct DoubleTupleRoot(#[defer] ChildError, u32);
+
 #[derive(ErrorCategory)]
 #[category(defer)]
 struct SingleStructRoot {
     field: ChildError,
 }
+
 #[derive(ErrorCategory)]
 #[category(defer)]
-#[allow(dead_code)]
 struct DoubleStructRoot {
     field_1: u32,
     #[defer]
@@ -128,6 +139,8 @@ fn derive_error_category() {
 #[case(DoubleTupleRoot(ChildError::Unit, 42), Category::Expected)]
 #[case(SingleStructRoot { field: ChildError::Unit }, Category::Expected)]
 #[case(DoubleStructRoot { field_1: 42, field_2: ChildError::Unit }, Category::Expected)]
+#[case(ErrorWithDefaultCategory::Expected, Category::Expected)]
+#[case(ErrorWithDefaultCategory::Critical, Category::Critical)]
 fn derive_error_category_pass<T: ErrorCategory>(#[case] error: T, #[case] expected: Category) {
     assert_eq!(error.category(), expected)
 }

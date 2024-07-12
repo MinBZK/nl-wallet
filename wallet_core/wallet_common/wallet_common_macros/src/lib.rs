@@ -111,7 +111,7 @@ fn sentry_capture_error_impl_fn(
     sentry_capture_error_function(&attrs, &vis, &defaultness, &sig, &block)
 }
 
-/// Derive `wallet_common::error_category::ErrorCategory` for Error types.
+/// Derive `wallet_common::ErrorCategory` for Error types.
 ///
 /// Errors can be classified using the `category` attribute, which can have the following values:
 ///
@@ -120,20 +120,23 @@ fn sentry_capture_error_impl_fn(
 /// - `pd`: This is a critical error that must be reported, but the contents may contain privacy sensitive data.
 /// - `defer`: Analysis of categorization is deferred to one of the fields of this variant.
 ///
+/// The `category` attribute for enums can be set on the `enum` variants, or on the `enum` to set a default for variants
+/// that are not annotated.
+///
 /// A flat error hierarchy may look like this:
 ///
 /// ```
 /// # use std::io::{self, ErrorKind};
-/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # use wallet_common::{Category, ErrorCategory};
 /// # struct Attribute;
 /// #[derive(ErrorCategory)]
+/// #[category(expected)] // default category
 /// enum AttributeError {
 ///   #[category(pd)]
 ///   UnexpectedAttributes(Vec<Attribute>),
 ///   #[category(critical)]
 ///   IoError(io::Error),
-///   #[category(expected)]
-///   NotFound,
+///   NotFound, // default applies here
 /// }
 ///
 /// assert_eq!(AttributeError::UnexpectedAttributes(vec![]).category(), Category::PersonalData);
@@ -145,7 +148,7 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # use wallet_common::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -168,7 +171,7 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # use wallet_common::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -194,7 +197,7 @@ fn sentry_capture_error_impl_fn(
 ///
 /// ```
 /// # use std::io;
-/// # use wallet_common::error_category::{Category, ErrorCategory};
+/// # use wallet_common::{Category, ErrorCategory};
 /// # struct Attribute;
 /// # #[derive(ErrorCategory)]
 /// # enum AttributeError {
@@ -222,7 +225,7 @@ pub fn error_category(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 fn expand(input: DeriveInput) -> Result<TokenStream> {
     let body = match input.data {
-        Data::Enum(ref data) => expand_enum(data),
+        Data::Enum(ref data) => expand_enum(&input, data),
         Data::Struct(ref data) => expand_struct(&input, data),
         Data::Union(ref data) => Err(Error::new(
             data.union_token.span(),
@@ -234,8 +237,8 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
 
     let expanded = quote! {
         #[automatically_derived]
-        impl ::wallet_common::error_category::ErrorCategory for #name {
-            fn category(&self) -> ::wallet_common::error_category::Category {
+        impl ::wallet_common::ErrorCategory for #name {
+            fn category(&self) -> ::wallet_common::Category {
                 #body
             }
         }
@@ -245,11 +248,12 @@ fn expand(input: DeriveInput) -> Result<TokenStream> {
 }
 
 /// Generate code for the implementation of `ErrorCategory` for the given `enum_data`.
-fn expand_enum(enum_data: &DataEnum) -> Result<TokenStream> {
+fn expand_enum(input: &DeriveInput, enum_data: &DataEnum) -> Result<TokenStream> {
+    let default_category = find_list_attribute(&input.attrs, CATEGORY);
     let (variants, errors): (Vec<_>, Vec<_>) = enum_data
         .variants
         .iter()
-        .map(enum_variant_category)
+        .map(|variant| enum_variant_category(default_category, variant))
         .partition(Result::is_ok);
     if errors.is_empty() {
         let variants = variants.into_iter().map(Result::unwrap);
@@ -297,11 +301,13 @@ fn expand_struct(input: &DeriveInput, struct_data: &DataStruct) -> Result<TokenS
 }
 
 /// Generate code for this enum  `variant`.
-fn enum_variant_category(variant: &Variant) -> Result<TokenStream> {
-    let category = find_list_attribute(&variant.attrs, CATEGORY).ok_or(Error::new(
-        variant.ident.span(),
-        format!("enum variant is missing `{}` attribute", CATEGORY),
-    ))?;
+fn enum_variant_category(default_category: Option<&MetaList>, variant: &Variant) -> Result<TokenStream> {
+    let category = find_list_attribute(&variant.attrs, CATEGORY)
+        .or(default_category)
+        .ok_or(Error::new(
+            variant.ident.span(),
+            format!("enum variant is missing `{}` attribute", CATEGORY),
+        ))?;
 
     let variant_pattern = enum_variant_category_pattern(variant, category)?;
     let variant_code = category_code(category)?;
@@ -392,10 +398,10 @@ fn category_defer_pattern(span: Span, fields: &Fields) -> Result<TokenStream> {
 fn category_code(category: &MetaList) -> Result<TokenStream> {
     let cat = category.tokens.to_string();
     let result = match cat.as_str() {
-        CRITICAL => quote! { ::wallet_common::error_category::Category::Critical },
-        EXPECTED => quote! { ::wallet_common::error_category::Category::Expected },
-        PD => quote! { ::wallet_common::error_category::Category::PersonalData },
-        DEFER => quote! { ::wallet_common::error_category::ErrorCategory::category(defer) },
+        CRITICAL => quote! { ::wallet_common::Category::Critical },
+        EXPECTED => quote! { ::wallet_common::Category::Expected },
+        PD => quote! { ::wallet_common::Category::PersonalData },
+        DEFER => quote! { ::wallet_common::ErrorCategory::category(defer) },
         _ => Err(Error::new(category.tokens.span(), invalid_category_error(&cat)))?,
     };
 
