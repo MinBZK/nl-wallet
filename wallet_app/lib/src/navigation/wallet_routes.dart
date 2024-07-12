@@ -383,7 +383,8 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
 
 Widget _createChangeLanguageScreenBuilder(BuildContext context) {
   return BlocProvider<ChangeLanguageBloc>(
-    create: (BuildContext context) => ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context)),
+    create: (BuildContext context) =>
+        ChangeLanguageBloc(context.read(), () => Localizations.localeOf(context))..add(ChangeLanguageLoadTriggered()),
     child: const ChangeLanguageScreen(),
   );
 }

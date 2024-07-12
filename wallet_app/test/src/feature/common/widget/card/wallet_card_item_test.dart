@@ -1,10 +1,13 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../util/test_utils.dart';
 
 void _voidCallback() {}
@@ -173,5 +176,37 @@ void main() {
         await screenMatchesGolden(tester, 'wallet_card_item/content');
       },
     );
+  });
+
+  group('widgets', () {
+    testWidgets('verify title, subtitle, subtitle2 are shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        WalletCardItem(
+          title: 'title',
+          background: WalletAssets.svg_rijks_card_bg_dark,
+          brightness: Brightness.light,
+          onPressed: () {},
+          ctaAnimation: CtaAnimation.visible,
+          holograph: WalletAssets.svg_rijks_card_holo,
+          logo: WalletAssets.logo_card_rijksoverheid,
+          subtitle1: 'subtitle1',
+          subtitle2: 'subtitle2',
+        ),
+      );
+      expect(find.text('title'), findsOneWidget);
+      expect(find.text('subtitle1'), findsOneWidget);
+      expect(find.text('subtitle2'), findsOneWidget);
+    });
+
+    testWidgets('verify title, subtitle are shown in shuttle card', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        WalletCardItem.buildShuttleCard(
+          const AlwaysStoppedAnimation(0),
+          WalletMockData.cardFront,
+        ),
+      );
+      expect(find.text(WalletMockData.cardFront.title.testValue), findsOneWidget);
+      expect(find.text(WalletMockData.cardFront.subtitle!.testValue), findsOneWidget);
+    });
   });
 }

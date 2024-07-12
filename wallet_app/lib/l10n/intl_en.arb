@@ -925,7 +925,6 @@
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Stop login",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Are you sure you want to stop?",
     "walletPersonalizeScreenStopDigidDialogTitle": "Stop DigiD login?",
-    "walletPersonalizeScreenTitle": "Create wallet",
     "walletPersonalizeSetupFailedScreenCta": "Try again",
     "walletPersonalizeSetupFailedScreenDescription": "You have entered the invalid PIN code too many times. Select a new PIN code and try again.",
     "walletPersonalizeSetupFailedScreenHeadline": "Setup failed",

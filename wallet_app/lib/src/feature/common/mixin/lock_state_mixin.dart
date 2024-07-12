@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:rxdart/rxdart.dart';
 
 import '../../../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 
@@ -16,7 +15,7 @@ mixin LockStateMixin<T extends StatefulWidget> on State<T> {
     _lockSubscription = context
         .read<ObserveWalletLockedUseCase>()
         .invoke()
-        .distinctUnique(/* only track changes */)
+        .distinct(/* only track changes */)
         .skip(1 /* skip initial value */)
         .listen(_onLockChanged);
   }
@@ -35,7 +34,7 @@ mixin LockStateMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  FutureOr<void> onLock() {}
+  FutureOr<void> onLock();
 
-  FutureOr<void> onUnlock() {}
+  FutureOr<void> onUnlock();
 }

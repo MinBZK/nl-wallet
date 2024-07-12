@@ -921,7 +921,6 @@
     "walletPersonalizeScreenStopDigidDialogPositiveCta": "Inloggen stoppen",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Weet je zeker dat je wil stoppen?",
     "walletPersonalizeScreenStopDigidDialogTitle": "DigiD inloggen stoppen?",
-    "walletPersonalizeScreenTitle": "Maak wallet aan",
     "walletPersonalizeSetupFailedScreenCta": "Probeer opnieuw",
     "walletPersonalizeSetupFailedScreenDescription": "Je hebt te vaak een ongeldige pincode ingevuld. Kies een nieuwe pincode en begin opnieuw.",
     "walletPersonalizeSetupFailedScreenHeadline": "Aanmaken mislukt",

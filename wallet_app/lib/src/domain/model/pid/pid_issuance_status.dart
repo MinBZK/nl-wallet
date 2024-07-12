@@ -3,10 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../wallet_core/error/core_error.dart';
 import '../attribute/attribute.dart';
 
-sealed class PidIssuanceStatus extends Equatable {
-  @override
-  List<Object?> get props => [];
-}
+sealed class PidIssuanceStatus extends Equatable {}
 
 class PidIssuanceSuccess extends PidIssuanceStatus {
   final List<Attribute> previews;

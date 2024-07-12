@@ -100,5 +100,21 @@ void main() {
       expect(labelFinder, findsOneWidget);
       expect(valueFinder, findsOneWidget);
     });
+
+    testWidgets('error is rendered when card cant be loaded', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardDataScreen(cardTitle: 'Card Title').withState<CardDataBloc, CardDataState>(
+          MockCardDataBloc(),
+          const CardDataLoadFailure(),
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+
+      final errorFinder = find.text(l10n.errorScreenGenericDescription);
+      final ctaFinder = find.text(l10n.generalRetry);
+      expect(errorFinder, findsAtLeastNWidgets(1));
+      expect(ctaFinder, findsOneWidget);
+    });
   });
 }
