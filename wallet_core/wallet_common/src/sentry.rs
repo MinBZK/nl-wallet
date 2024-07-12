@@ -6,6 +6,7 @@ use sentry::{
     ClientInitGuard, ClientOptions, Level,
 };
 use serde::Deserialize;
+use tracing::debug;
 
 use crate::error_category::{Category, ErrorCategory};
 
@@ -35,18 +36,25 @@ impl Sentry {
 
 pub fn classify_and_report_to_sentry<T: ErrorCategory + Error>(error: &T) {
     match error.category() {
-        Category::Expected => {}
+        Category::Expected => {
+            debug!("expected error, not reporting to sentry: {}", error);
+        }
         Category::Critical => {
+            debug!("critical error, reporting to sentry: {}", error);
             let _uuid = sentry::capture_error(error);
         }
         Category::PersonalData => {
+            debug!(
+                "critical error with possible PII, reporting to sentry without data: {}",
+                error
+            );
             let event = privacy_sensitive_event_from_error(error);
             let _uuid = sentry::capture_event(event);
         }
     }
 }
 
-/// Create a sentry `Event` from a `std::error::Error`, without any PII data.
+/// Create a sentry `Event` from a `std::error::Error`, without any PII.
 ///
 /// Copied from `sentry::event_from_error`.
 ///

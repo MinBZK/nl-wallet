@@ -61,14 +61,14 @@ pub enum VpClientError {
     AuthResponseEncryption(#[from] AuthResponseError),
     #[error("error deserializing request_uri object: {0}")]
     #[category(pd)] // we cannot be sure that the URL is not included in the error.
-    // TODO: Does the URL contain PII data?
+    // TODO: Does the URL contain PII?
     RequestUri(#[source] serde_urlencoded::de::Error),
     #[error("missing session_type query parameter in request URI")]
     #[category(critical)]
     MissingSessionType,
     #[error("malformed session_type query parameter in request URI: {0}")]
     #[category(pd)] // we cannot be sure that the URL is not included in the error
-    // TODO: Does the URL contain PII data?
+    // TODO: Does the URL contain PII?
     MalformedSessionType(#[source] serde_urlencoded::de::Error),
     #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
     #[category(critical)]
@@ -88,7 +88,7 @@ pub enum VpMessageClientError {
 }
 
 /// Remove url, which can contain privacy sensitive data
-// TODO: Does the URL contain PII data for OIDC4VC?
+// TODO: Does the URL contain PII for OIDC4VC?
 impl From<reqwest::Error> for VpMessageClientError {
     fn from(source: reqwest::Error) -> Self {
         VpMessageClientError::Http(source.without_url())

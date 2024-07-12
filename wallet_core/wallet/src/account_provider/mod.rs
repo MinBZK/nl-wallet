@@ -31,7 +31,7 @@ pub enum AccountProviderError {
     BaseUrl(#[from] ParseError),
 }
 
-/// Remove URL which might contain PII data.
+/// Remove URL which might contain PII.
 impl From<reqwest::Error> for AccountProviderError {
     fn from(source: reqwest::Error) -> Self {
         AccountProviderError::Networking(source.without_url())
