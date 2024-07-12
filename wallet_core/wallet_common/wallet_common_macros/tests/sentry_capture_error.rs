@@ -25,7 +25,6 @@ mod my_module {
     pub struct Wallet;
 
     #[derive(ErrorCategory, Debug, Error)]
-    #[allow(dead_code)]
     pub enum Error {
         #[error("Just some error")]
         #[category(critical)]
