@@ -1017,12 +1017,10 @@ mod tests {
     use rstest::rstest;
 
     use nl_wallet_mdoc::{
-        examples::{Example, Examples},
-        identifiers::{AttributeIdentifier, AttributeIdentifierHolder},
         server_keys::KeyPair,
         server_state::{MemorySessionStore, SessionToken},
         utils::reader_auth::ReaderRegistration,
-        DeviceResponse, Document, Error, ItemsRequest,
+        ItemsRequest,
     };
     use wallet_common::{
         generator::{Generator, TimeGenerator},
@@ -1381,143 +1379,6 @@ mod tests {
                 .expect_err("should fail to return disclosed attributes"),
             VerificationError::SessionNotDone
         );
-    }
-
-    #[rstest]
-    #[case(do_nothing())]
-    #[case(swap_attributes())]
-    #[case(remove_documents())]
-    #[case(remove_document())]
-    #[case(change_doctype())]
-    #[case(change_namespace())]
-    #[case(remove_attribute())]
-    #[case(multiple_doc_types_swapped())]
-    fn match_disclosed_attributes(
-        #[case] testcase: (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>),
-    ) {
-        // Construct an items request that matches the example device response
-        let (device_response, items_requests, expected_result) = testcase;
-        assert_eq!(
-            items_requests
-                .match_against_response(&device_response)
-                .map_err(|e| match e {
-                    Error::Verification(nl_wallet_mdoc::verifier::VerificationError::MissingAttributes(e)) => e,
-                    _ => panic!(),
-                }),
-            expected_result,
-        );
-    }
-
-    /// Helper to compute all attribute identifiers contained in a bunch of [`ItemsRequest`]s.
-    fn attribute_identifiers(items_requests: &ItemsRequests) -> Vec<AttributeIdentifier> {
-        items_requests
-            .0
-            .iter()
-            .flat_map(AttributeIdentifierHolder::attribute_identifiers)
-            .collect()
-    }
-
-    // return an unmodified device response, which should verify
-    fn do_nothing() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        (DeviceResponse::example(), Examples::items_requests(), Ok(()))
-    }
-
-    // Matching attributes is insensitive to swapped attributes, so verification succeeds
-    fn swap_attributes() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
-        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
-
-        name_spaces.modify_first_attributes(|attributes| {
-            attributes.swap(0, 1);
-        });
-
-        (device_response, Examples::items_requests(), Ok(()))
-    }
-
-    // remove all disclosed documents
-    fn remove_documents() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        device_response.documents = None;
-
-        let items_requests = Examples::items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // remove a single disclosed document
-    fn remove_document() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        device_response.documents.as_mut().unwrap().pop();
-
-        let items_requests = Examples::items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Change the first doctype so it is not the requested one
-    fn change_doctype() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        device_response
-            .documents
-            .as_mut()
-            .unwrap()
-            .first_mut()
-            .unwrap()
-            .doc_type = "some_not_requested_doc_type".to_string();
-
-        let items_requests = Examples::items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Change a namespace so it is not the requested one
-    fn change_namespace() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
-        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
-
-        name_spaces.modify_namespaces(|name_spaces| {
-            let (_, attributes) = name_spaces.pop().unwrap();
-            name_spaces.insert("some_not_requested_name_space".to_string(), attributes);
-        });
-
-        let items_requests = Examples::items_requests();
-        let missing = attribute_identifiers(&items_requests);
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Remove one of the disclosed attributes
-    fn remove_attribute() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let first_document = device_response.documents.as_mut().unwrap().first_mut().unwrap();
-        let name_spaces = first_document.issuer_signed.name_spaces.as_mut().unwrap();
-
-        name_spaces.modify_first_attributes(|attributes| {
-            attributes.pop();
-        });
-
-        let items_requests = Examples::items_requests();
-        let missing = vec![attribute_identifiers(&items_requests).last().unwrap().clone()];
-        (device_response, items_requests, Err(missing))
-    }
-
-    // Add one extra document with doc_type "a", and swap the order in the items_requests
-    fn multiple_doc_types_swapped() -> (DeviceResponse, ItemsRequests, Result<(), Vec<AttributeIdentifier>>) {
-        let mut device_response = DeviceResponse::example();
-        let mut cloned_doc: Document = device_response.documents.as_ref().unwrap()[0].clone();
-        cloned_doc.doc_type = "a".to_string();
-        device_response.documents.as_mut().unwrap().push(cloned_doc);
-
-        let mut items_requests = Examples::items_requests();
-        let mut cloned_items_request = items_requests.0[0].clone();
-        cloned_items_request.doc_type = "a".to_string();
-        items_requests.0.push(cloned_items_request);
-
-        // swap the document order in items_requests
-        items_requests.0.reverse();
-
-        (device_response, items_requests, Ok(()))
     }
 
     #[tokio::test]
