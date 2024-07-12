@@ -1,4 +1,4 @@
-use wallet_common::error_category::sentry_capture_error;
+use wallet_common::sentry_capture_error;
 
 #[sentry_capture_error]
 fn foo() -> u8 {

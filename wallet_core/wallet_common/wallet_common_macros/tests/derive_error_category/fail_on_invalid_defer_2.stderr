@@ -1,5 +1,5 @@
 error: expected a field to defer into, found none
- --> tests/derive_error_category/fail_on_invalid_defer_2.rs:7:5
+ --> tests/derive_error_category/fail_on_invalid_defer_2.rs:6:5
   |
-7 |     SingleStruct {},
+6 |     SingleStruct {},
   |     ^^^^^^^^^^^^

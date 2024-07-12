@@ -5,6 +5,7 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/attribute/data_attribute.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../mocks/wallet_mocks.dart';
 
@@ -29,6 +30,19 @@ void main() {
 
       final result = await usecase.invoke(samplePidIssuanceUri);
       expect(result, PidIssuanceSuccess([sampleAttribute]));
+    });
+
+    test('PidIssuanceError is emitted with the thrown redirectError', () async {
+      const samplePidIssuanceUri = 'https://example.org';
+      when(mockRepo.continuePidIssuance(samplePidIssuanceUri)).thenAnswer(
+        (_) async => throw const CoreRedirectUriError(
+          'expected error',
+          redirectError: RedirectError.accessDenied,
+        ),
+      );
+
+      final result = await usecase.invoke(samplePidIssuanceUri);
+      expect(result, PidIssuanceError(RedirectError.accessDenied));
     });
   });
 }

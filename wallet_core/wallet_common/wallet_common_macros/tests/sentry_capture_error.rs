@@ -4,7 +4,7 @@ use sentry::{test::with_captured_events, Level};
 mod my_module {
     use thiserror::Error;
 
-    use wallet_common::error_category::{sentry_capture_error, ErrorCategory};
+    use wallet_common::{sentry_capture_error, ErrorCategory};
 
     // Test `sentry_capture_error` on regular functions
     #[sentry_capture_error]
@@ -25,7 +25,6 @@ mod my_module {
     pub struct Wallet;
 
     #[derive(ErrorCategory, Debug, Error)]
-    #[allow(dead_code)]
     pub enum Error {
         #[error("Just some error")]
         #[category(critical)]

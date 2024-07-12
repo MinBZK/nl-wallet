@@ -7,6 +7,10 @@ allow_origins = ["http://localhost:5175", "http://localhost:5174", "http://local
 ip = '0.0.0.0'
 port = ${MOCK_RP_PORT}
 
+[wallet_web]
+filename = "${WALLET_WEB_FILENAME}"
+sha256 = "${WALLET_WEB_SHA256}"
+
 [[usecases.mijn_amsterdam.items_requests]]
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { bsn = true } }

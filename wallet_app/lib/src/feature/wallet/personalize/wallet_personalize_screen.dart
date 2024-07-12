@@ -273,7 +273,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
         description: context.l10n.walletPersonalizeDigidCancelledPageDescription,
         onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-        onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
+        onHelpPressed: () => DigidHelpScreen.show(context),
       ),
     );
   }
@@ -287,7 +287,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         title: context.l10n.walletPersonalizeDigidErrorPageTitle,
         description: context.l10n.walletPersonalizeDigidErrorPageDescription,
         onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-        onHelpPressed: () => DigidHelpScreen.show(context, title: context.l10n.walletPersonalizeScreenTitle),
+        onHelpPressed: () => DigidHelpScreen.show(context),
       ),
     );
   }

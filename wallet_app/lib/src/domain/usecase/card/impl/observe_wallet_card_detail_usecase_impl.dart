@@ -19,7 +19,7 @@ class ObserveWalletCardDetailUseCaseImpl implements ObserveWalletCardDetailUseCa
     return _walletCardRepository
         .observeWalletCards()
         .map((cards) => cards.firstWhere((card) => card.id == cardId))
-        .asyncMap((card) async => _getWalletCardDetail(card));
+        .asyncMap(_getWalletCardDetail);
   }
 
   Future<WalletCardDetail> _getWalletCardDetail(WalletCard card) async {
