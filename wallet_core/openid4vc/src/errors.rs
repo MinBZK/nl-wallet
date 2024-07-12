@@ -161,7 +161,7 @@ impl ErrorStatusCode for TokenErrorCode {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GetRequestErrorCode {
     InvalidRequest,
@@ -211,7 +211,7 @@ impl ErrorStatusCode for GetRequestErrorCode {
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PostAuthResponseErrorCode {
     InvalidRequest,
