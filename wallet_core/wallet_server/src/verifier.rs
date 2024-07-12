@@ -65,7 +65,11 @@ where
         .route("/:session_token/status", get(status::<S>))
         .route("/:session_token", delete(cancel::<S>))
         // The CORS headers should be set for these routes, so that any web browser may call them.
-        .layer(CorsLayer::new().allow_methods([Method::GET]).allow_origin(Any));
+        .layer(
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::DELETE])
+                .allow_origin(Any),
+        );
 
     // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
