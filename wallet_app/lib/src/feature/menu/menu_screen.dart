@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -151,5 +153,10 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
     if (ModalRoute.of(context)?.isCurrent ?? false) {
       Navigator.maybePop(context);
     }
+  }
+
+  @override
+  FutureOr<void> onUnlock() {
+    /* unused */
   }
 }

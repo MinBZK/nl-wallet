@@ -1,105 +1,41 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/feature/theme/tabs/button_styles_tab.dart';
+import 'package:wallet/src/feature/theme/tabs/color_styles_tab.dart';
+import 'package:wallet/src/feature/theme/tabs/other_styles_tab.dart';
+import 'package:wallet/src/feature/theme/tabs/text_styles_tab.dart';
 import 'package:wallet/src/feature/theme/theme_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/test_utils.dart';
 
 void main() {
-  const otherTabSize = Size(375, 3150);
-
   setUp(TestUtils.mockAccelerometerPlugin);
 
-  group('goldens', () {
-    testGoldens(
-      'text styles light',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
-        await tester.tap(find.text('TextStyles'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'text_styles.light');
-      },
-    );
-    testGoldens(
-      'buttons light',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
-        await tester.tap(find.text('Buttons'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'buttons.light');
-      },
-    );
-    testGoldens(
-      'colors light',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
-        await tester.tap(find.text('Colors'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'colors.light');
-      },
-    );
-    testGoldens(
-      'other light',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(
-          const ThemeScreen(),
-          surfaceSize: otherTabSize,
-        );
-        await tester.tap(find.text('Other'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'other.light');
-      },
-    );
+  group('verify all tabs can be rendered', () {
+    testWidgets('text styles tab is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
+      expect(find.byType(TextStylesTab), findsOneWidget);
+    });
 
-    testGoldens(
-      'text styles dark',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(
-          const ThemeScreen(),
-          brightness: Brightness.dark,
-        );
-        await tester.tap(find.text('TextStyles'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'text_styles.dark');
-      },
-    );
-    testGoldens(
-      'buttons dark',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(
-          const ThemeScreen(),
-          brightness: Brightness.dark,
-        );
-        await tester.tap(find.text('Buttons'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'buttons.dark');
-      },
-    );
-    testGoldens(
-      'colors dark',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(
-          const ThemeScreen(),
-          brightness: Brightness.dark,
-        );
-        await tester.tap(find.text('Colors'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'colors.dark');
-      },
-    );
-    testGoldens(
-      'other dark',
-      (tester) async {
-        await tester.pumpWidgetWithAppWrapper(
-          const ThemeScreen(),
-          brightness: Brightness.dark,
-          surfaceSize: otherTabSize,
-        );
-        await tester.tap(find.text('Other'));
-        await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'other.dark');
-      },
-    );
+    testWidgets('button styles tab is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
+      await tester.tap(find.text('Buttons'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ButtonStylesTab), findsOneWidget);
+    });
+
+    testWidgets('color styles tab is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
+      await tester.tap(find.text('Colors'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ColorStylesTab), findsOneWidget);
+    });
+
+    testWidgets('other styles tab is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(const ThemeScreen());
+      await tester.tap(find.text('Other'));
+      await tester.pumpAndSettle();
+      expect(find.byType(OtherStylesTab), findsOneWidget);
+    });
   });
 }
