@@ -594,9 +594,9 @@ build-gba-hc-converter-image:
         file_format:"${APP_FILE_FORMAT}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        universal_link_base:"${UL_HOSTNAME}" \
+        universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION}"
+        version:"${RELEASE_VERSION:-}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -715,7 +715,7 @@ build-android-app-demo-profile:
         app_name:"${APP_NAME}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        universal_link_base:"${UL_HOSTNAME}" \
+        universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${RELEASE_VERSION:-}"
 
@@ -745,7 +745,8 @@ build-ios-app-latest-profile:
     APP_BUILD_MODE: "profile"
 
 .build-ios-app-demo:
-  extends: [.demo-release-tag, .build-ios-app]
+  extends: .build-ios-app
+  rules: !reference [.demo-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
@@ -768,12 +769,17 @@ build-ios-app-demo-profile:
   variables:
     APP_BUILD_MODE: "profile"
 
-build-ios-app-mock:
-  extends: [.mock-release-tag, .build-ios-app]
+.build-ios-app-mock:
+  extends: .build-ios-app
+  rules: !reference [.mock-release-tag, rules]
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
     APP_MOCK: "true"
+
+build-ios-app-mock-release:
+  extends: .build-ios-app-mock
+  variables:
     APP_BUILD_MODE: "release"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
@@ -785,9 +791,6 @@ build-ios-app-mock:
 ### Android deploying
 .deploy-android-app:
   extends: .ruby-cache
-  # needs:
-  #   - job: build-ios-app # only deploy apps when both apps have been built successfully
-  #     artifacts: false
   image:
     name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ruby@sha256:72cb1ff2a511f4eb1c29a7feed1470444997d243e3b613222495100b152a4200"
   variables:
@@ -795,9 +798,9 @@ build-ios-app-mock:
     LANG: "C.UTF-8"
     FASTLANE_OPT_OUT_USAGE: "YES"
   script:
-    - bundle install
     - JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
     - export JSON_KEY_DATA
+    - bundle install
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
@@ -877,41 +880,33 @@ upload-browserstack-android-app-demo:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
 ## iOS Deploying
-# .deploy-ios-app:
-#  extends: .env-macos-runner
-#  rules: !reference [.default-or-release, rules]
-#  needs:
-#    - job: build-ios-app
-#      artifacts: true
-#   # Only deploy apps when both apps have been built successfully
-#   #  - job: build-android-app
-#   #    artifacts: false
-#  tags:
-#    - macos
-#  image: sonoma-wallet:latest
-#  variables:
-#    FASTLANE_OPT_OUT_USAGE: "YES"
-#  script:
-#    - bundle install
-#    - bundle exec fastlane disable_flutter_analytics
-#    # TODO: Authentication
-#    - |
-#      bundle exec fastlane ios ci_deploy \
-#        package_name:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-#        version:"${RELEASE_VERSION}"
+.deploy-ios-app:
+ extends: [.env-macos-runner, .ruby-cache-macos]
+ tags:
+   - macos
+ image: sonoma-wallet:latest
+ variables:
+   FASTLANE_OPT_OUT_USAGE: "YES"
+ before_script:
+   - !reference [.env-macos-runner, before_script]
+   - !reference [.ruby-cache-macos, before_script]
+ script:
+   - APP_STORE_CONNECT_SECRETS_BASE64_JSON="$(kubectl get secret nl-wallet-app-store-api-key -o jsonpath='{.data}')"
+   - export APP_STORE_CONNECT_SECRETS_BASE64_JSON
+   - bundle install
+   - |
+     bundle exec fastlane ios ci_deploy \
+       app_identifier:"${INTERNAL_APP_IDENTIFIER}.${APP_PACKAGE_IDENTIFIER_SUFFIX}"
 
-# deploy-ios-app-latest:
-#   extends: .deploy-ios-app
-#   rules: !reference [.default-branch, rules]
-#   needs:
-#     - job: build-ios-app-latest-release
-#       artifacts: true
-#   environment:
-#     action: start
-#   variables:
-#     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
+deploy-ios-app-latest:
+  extends: .deploy-ios-app
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-ios-app-latest-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
 
-# TODO: Decide if we have an iOS mock version of the app
 # deploy-ios-app-mock:
 #   extends: .deploy-ios-app
 #   rules: !reference [.mock-release-tag, rules]
@@ -921,15 +916,14 @@ upload-browserstack-android-app-demo:
 #   variables:
 #     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
 
-# TODO: Probably need another environment for demo app deployment
-# deploy-ios-app-demo:
-#   extends: .deploy-ios-app
-#   rules: !reference [.demo-release-tag, rules]
-#   needs:
-#     - job: build-ios-app-demo-release
-#       artifacts: true
-#   variables:
-#     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
+deploy-ios-app-demo:
+  extends: .deploy-ios-app
+  rules: !reference [.demo-release-tag, rules]
+  needs:
+    - job: build-ios-app-demo-release
+      artifacts: true
+  variables:
+    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
 
 # .upload-browserstack-ios-app:
 #   extends: .ruby-cache
