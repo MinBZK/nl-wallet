@@ -26,6 +26,7 @@ use wallet_common::{
     generator::{Generator, TimeGenerator},
     jwt::Jwt,
     utils::random_string,
+    ErrorCategory,
 };
 
 use crate::{
@@ -241,41 +242,53 @@ impl JwePublicKey {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum AuthRequestValidationError {
     #[error("unexpected field: {0}")]
+    #[category(critical)]
     UnexpectedField(&'static str),
     #[error("missing required field: {0}")]
+    #[category(critical)]
     ExpectedFieldMissing(&'static str),
     #[error("unsupported value for field {field}: expected {expected}, found {found}")]
+    #[category(pd)]
     UnsupportedFieldValue {
         field: &'static str,
         expected: &'static str,
         found: String,
     },
     #[error("field {0}_uri found, expected field directly")]
+    #[category(critical)]
     UriVariantNotSupported(&'static str),
     #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
+    #[category(critical)]
     UnexpectedJwkAmount(usize),
     #[error("unsupported JWK: expected {expected}, found {found:?} in {field}")]
+    #[category(pd)] // might leak sensitive data
     UnsupportedJwk {
         field: &'static str,
         expected: &'static str,
         found: Option<serde_json::Value>,
     },
     #[error("no attributes were requested")]
+    #[category(critical)]
     NoAttributesRequested,
     #[error("unsupported Presentation Definition: {0}")]
     UnsupportedPresentationDefinition(#[from] PdConversionError),
     #[error("client_id from Authorization Request was {client_id}, should have been equal to SAN DNSName from X.509 certificate ({dns_san})")]
+    #[category(critical)]
     UnauthorizedClientId { client_id: String, dns_san: String },
     #[error("Subject Alternative Name missing from X.509 certificate")]
+    #[category(critical)]
     MissingSAN,
+    #[category(critical)]
     #[error("error parsing X.509 certificate: {0}")]
     CertificateParsing(#[from] CertificateError),
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtX5cError),
     #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
+    #[category(critical)]
     WalletNonceMismatch,
 }
 
@@ -502,36 +515,50 @@ impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum AuthResponseError {
     #[error("error (de)serializing JWE payload: {0}")]
+    #[category(pd)]
     Json(#[from] serde_json::Error),
     #[error("error parsing JWK: {0}")]
+    #[category(pd)]
     JwkConversion(#[source] JoseError),
     #[error("error encrypting/decrypting JWE: {0}")]
+    #[category(pd)]
     Jwe(#[source] JoseError),
     #[error("apv (nonce) field in JWE had incorrect value")]
+    #[category(critical)]
     NonceIncorrect,
     #[error("state had incorrect value: expected {expected:?}, found {found:?}")]
+    #[category(pd)]
     StateIncorrect {
         expected: Option<String>,
         found: Option<String>,
     },
     #[error("failed to base64 decode JWE header fields: {0}")]
+    #[category(critical)]
     Base64(#[from] DecodeError),
     #[error("missing apu field from JWE")]
+    #[category(critical)]
     MissingApu,
     #[error("missing apv field from JWE")]
+    #[category(critical)]
     MissingApv,
     #[error("failed to decode apu/apv field from JWE")]
+    #[category(critical)]
     Utf8(#[from] FromUtf8Error),
     #[error("error verifying disclosed mdoc(s): {0}")]
+    #[category(defer)]
     Verification(#[source] nl_wallet_mdoc::Error),
     #[error("missing requested attributes: {0}")]
+    #[category(defer)]
     MissingAttributes(#[source] nl_wallet_mdoc::Error),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
+    #[category(critical)]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
+    #[category(defer)]
     PresentationSubmission(#[from] PsError),
 }
 

@@ -10,7 +10,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use nl_wallet_mdoc::{verifier::ItemsRequests, Document, ItemsRequest};
-use wallet_common::utils::random_string;
+use wallet_common::{utils::random_string, ErrorCategory};
 
 use crate::{
     openid4vp::{FormatAlg, VpFormat},
@@ -50,7 +50,8 @@ pub enum LimitDisclosure {
     Preferred,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(critical)]
 pub enum PdConversionError {
     #[error("too many paths")]
     TooManyPaths,
@@ -172,9 +173,11 @@ pub struct InputDescriptorMappingObject {
     pub path: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)] // TODO: Not sure if these fields are PII?
 pub enum PsError {
     #[error("unexpected amount of Presentation Submission descriptors: expected {expected}, found {found}")]
+    #[category(critical)]
     UnexpectedDescriptorCount { expected: usize, found: usize },
     #[error("received unexpected Presentation Submission ID: expected '{expected}', found '{found}'")]
     UnexpectedSubmissionId { expected: String, found: String },

@@ -12,7 +12,7 @@ use nl_wallet_mdoc::{
 };
 use openid4vc::disclosure_session::VpClientError;
 use platform_support::hw_keystore::PlatformEcdsaKey;
-use wallet_common::config::wallet_config::WalletConfiguration;
+use wallet_common::{config::wallet_config::WalletConfiguration, sentry_capture_error, ErrorCategory};
 
 use crate::{
     account_provider::AccountProviderClient,
@@ -37,13 +37,17 @@ pub struct DisclosureProposal {
     pub is_login_flow: bool,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum DisclosureError {
     #[error("wallet is not registered")]
+    #[category(expected)]
     NotRegistered,
     #[error("wallet is locked")]
+    #[category(expected)]
     Locked,
     #[error("disclosure session is not in the correct state")]
+    #[category(expected)]
     SessionState,
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUri(#[source] DisclosureUriError),
@@ -54,6 +58,7 @@ pub enum DisclosureError {
     #[error("could not fetch if attributes were shared before: {0}")]
     HistoryRetrieval(#[source] StorageError),
     #[error("not all requested attributes are available, missing: {missing_attributes:?}")]
+    #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
         missing_attributes: Vec<MissingDisclosureAttributes>,
@@ -107,6 +112,7 @@ where
     S: Storage,
 {
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn start_disclosure(
         &mut self,
         uri: &Url,

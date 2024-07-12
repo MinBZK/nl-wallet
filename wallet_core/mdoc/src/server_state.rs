@@ -12,6 +12,7 @@ use tracing::warn;
 use wallet_common::{
     generator::{Generator, TimeGenerator},
     utils::random_string,
+    ErrorCategory,
 };
 
 /// The cleanup task that removes stale sessions runs every so often.
@@ -39,7 +40,8 @@ pub struct SessionState<T> {
     pub last_active: DateTime<Utc>,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum SessionStoreError {
     #[error("token {0} already exists")]
     DuplicateToken(SessionToken),

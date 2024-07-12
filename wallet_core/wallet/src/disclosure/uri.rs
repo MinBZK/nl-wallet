@@ -1,11 +1,15 @@
 use base64::prelude::*;
 use url::Url;
 
-#[derive(Debug, thiserror::Error)]
+use wallet_common::ErrorCategory;
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum DisclosureUriError {
     #[error("URI is malformed: {0}")]
     Malformed(Url),
     #[error("could not decode reader engagement: {0}")]
+    #[category(critical)]
     Base64(#[from] base64::DecodeError),
 }
 

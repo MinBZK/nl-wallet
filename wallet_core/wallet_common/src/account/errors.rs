@@ -1,4 +1,4 @@
-use crate::{account::signed::SignedType, jwt::JwtError};
+use crate::{account::signed::SignedType, jwt::JwtError, Category, ErrorCategory};
 use p256::pkcs8;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -23,4 +23,20 @@ pub enum Error {
     Signing(#[from] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error(transparent)]
     Jwt(#[from] JwtError),
+}
+
+impl ErrorCategory for Error {
+    fn category(&self) -> Category {
+        match self {
+            Error::KeyDeserialization(_) => Category::Critical,
+            Error::TypeMismatch { .. } => Category::Critical,
+            Error::ChallengeMismatch => Category::Critical,
+            Error::SequenceNumberMismatch => Category::Critical,
+            Error::JsonParsing(_) => Category::PersonalData,
+            Error::Ecdsa(_) => Category::Critical,
+            Error::VerifyingKey(_) => todo!(),
+            Error::Signing(_) => todo!(),
+            Error::Jwt(_) => todo!(),
+        }
+    }
 }

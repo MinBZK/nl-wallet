@@ -5,7 +5,10 @@ use p256::{
     pkcs8::DecodePrivateKey,
 };
 
-use wallet_common::keys::{EcdsaKey, SecureEcdsaKey};
+use wallet_common::{
+    keys::{EcdsaKey, SecureEcdsaKey},
+    ErrorCategory,
+};
 
 use crate::{utils::x509::Certificate, Result};
 
@@ -14,7 +17,8 @@ pub struct KeyPair {
     certificate: Certificate,
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(critical)]
 pub enum KeysError {
     #[error("failed to parse DER-encoded private key: {0}")]
     DerParsing(#[from] p256::pkcs8::Error),

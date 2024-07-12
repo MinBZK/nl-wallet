@@ -9,6 +9,7 @@ use nl_wallet_mdoc::{
         x509::{CertificateError, MdocCertificateExtension},
     },
 };
+use wallet_common::ErrorCategory;
 
 pub use crate::storage::EventStatus;
 use crate::{
@@ -30,7 +31,8 @@ pub enum HistoryError {
     EventStorage(#[from] EventStorageError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum EventStorageError {
     #[error("could not access event in history database: {0}")]
     Storage(#[from] StorageError),
@@ -38,15 +40,18 @@ pub enum EventStorageError {
     Conversion(#[from] EventConversionError),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum EventConversionError {
     #[error("could not prepare event for UI: {0}")]
     Mapping(#[from] DocumentMdocError),
     #[error("could not read organization info from certificate: {0}")]
     Certificate(#[from] CertificateError),
     #[error("certificate does not contain reader registration")]
+    #[category(critical)]
     NoReaderRegistrationFound,
     #[error("certificate does not contain issuer registration")]
+    #[category(critical)]
     NoIssuerRegistrationFound,
 }
 

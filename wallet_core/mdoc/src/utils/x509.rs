@@ -18,11 +18,12 @@ use x509_parser::{
     prelude::{ExtendedKeyUsage, FromDer, PEMError, X509Certificate, X509Error},
 };
 
-use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor};
+use wallet_common::{generator::Generator, trust_anchor::DerTrustAnchor, ErrorCategory};
 
 use super::{issuer_auth::IssuerRegistration, reader_auth::ReaderRegistration};
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(critical)]
 pub enum CertificateError {
     #[error("certificate verification failed: {0}")]
     Verification(#[source] webpki::Error),

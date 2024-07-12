@@ -13,23 +13,36 @@ use wallet_common::{
         signed::SignedDouble,
     },
     config::wallet_config::BaseUrl,
+    ErrorCategory,
 };
 
 pub use self::client::HttpAccountProviderClient;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum AccountProviderError {
     #[error("server responded with {0}")]
     Response(#[from] AccountProviderResponseError),
     #[error("networking error: {0}")]
-    Networking(#[from] reqwest::Error),
+    #[category(critical)]
+    Networking(#[source] reqwest::Error),
     #[error("could not parse base URL: {0}")]
+    #[category(pd)]
     BaseUrl(#[from] ParseError),
 }
 
-#[derive(Debug, thiserror::Error)]
+/// Remove URL which might contain PII data.
+impl From<reqwest::Error> for AccountProviderError {
+    fn from(source: reqwest::Error) -> Self {
+        AccountProviderError::Networking(source.without_url())
+    }
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum AccountProviderResponseError {
     #[error("status code {0}")]
+    #[category(critical)]
     Status(StatusCode),
     #[error("status code {0} and contents: {1}")]
     Text(StatusCode, String),

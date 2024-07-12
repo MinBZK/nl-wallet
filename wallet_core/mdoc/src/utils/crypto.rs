@@ -14,7 +14,10 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
-use wallet_common::utils::{hkdf, sha256};
+use wallet_common::{
+    utils::{hkdf, sha256},
+    ErrorCategory,
+};
 
 use crate::{
     utils::{
@@ -26,7 +29,8 @@ use crate::{
 
 use super::serialization::cbor_deserialize;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(critical)]
 pub enum CryptoError {
     #[error("HKDF failed")]
     Hkdf,

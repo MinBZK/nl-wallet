@@ -17,6 +17,7 @@ use nl_wallet_mdoc::{
     holder::{Mdoc, MdocCopies},
     utils::{serialization::CborError, x509::Certificate},
 };
+use wallet_common::ErrorCategory;
 
 pub use self::{
     data::{InstructionData, KeyedData, RegistrationData},
@@ -39,21 +40,28 @@ pub enum StorageState {
     Opened,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum StorageError {
     #[error("storage database is not opened")]
+    #[category(critical)]
     NotOpened,
     #[error("storage database is already opened")]
+    #[category(critical)]
     AlreadyOpened,
     #[error("storage database I/O error: {0}")]
+    #[category(critical)]
     Io(#[from] io::Error),
     #[error("storage database error: {0}")]
+    #[category(critical)]
     Database(#[from] DbErr),
     #[error("storage database JSON error: {0}")]
+    #[category(pd)]
     Json(#[from] serde_json::Error),
     #[error("storage database CBOR error: {0}")]
     Cbor(#[from] CborError),
     #[error("storage database SQLCipher key error: {0}")]
+    #[category(pd)] // we don't want to leak the key
     SqlCipherKey(#[from] TryFromSliceError),
     #[error("{0}")]
     KeyFile(#[from] KeyFileError),

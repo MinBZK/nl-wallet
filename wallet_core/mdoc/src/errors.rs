@@ -1,3 +1,5 @@
+use wallet_common::ErrorCategory;
+
 use crate::{
     holder::HolderError,
     server_keys::KeysError,
@@ -7,7 +9,8 @@ use crate::{
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(defer)]
 pub enum Error {
     #[error("cryptographic error: {0}")]
     Crypto(#[from] CryptoError),

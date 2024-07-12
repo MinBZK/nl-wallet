@@ -13,6 +13,7 @@ use nl_wallet_mdoc::{
     },
     DataElementIdentifier, DataElementValue, NameSpace,
 };
+use wallet_common::ErrorCategory;
 
 use super::{
     mapping::{AttributeMapping, DataElementValueMapping, MappingDocType, MDOC_DOCUMENT_MAPPING},
@@ -20,9 +21,11 @@ use super::{
     GenderAttributeValue, MissingDisclosureAttributes, PID_DOCTYPE,
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum DocumentMdocError {
     #[error("unknown doc type \"{doc_type}\"")]
+    #[category(critical)]
     UnknownDocType { doc_type: String },
     #[error("mandatory attributes for \"{doc_type}\" not found at \"{name_space} / {name}\"")]
     MissingAttribute {
@@ -49,7 +52,12 @@ pub enum DocumentMdocError {
         value: Option<DataElementValue>,
     },
     #[error("certificate error for \"{doc_type}\": {error}")]
-    Certificate { error: CertificateError, doc_type: String },
+    #[category(defer)]
+    Certificate {
+        #[defer]
+        error: CertificateError,
+        doc_type: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]

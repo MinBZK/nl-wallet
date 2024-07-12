@@ -24,7 +24,7 @@ use wallet_common::{
     config::wallet_config::BaseUrl,
     generator::{Generator, TimeGenerator},
     trust_anchor::OwnedTrustAnchor,
-    utils,
+    utils, ErrorCategory,
 };
 
 use crate::{
@@ -57,57 +57,81 @@ pub struct DocumentDisclosedAttributes {
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 pub type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(defer)]
 pub enum VerificationError {
     #[error("errors in device response: {0:#?}")]
+    #[category(critical)]
     DeviceResponseErrors(Vec<DocumentError>),
     #[error("unexpected status: {0}")]
+    #[category(critical)]
     UnexpectedStatus(u64),
     #[error("no documents found in device response")]
+    #[category(critical)]
     NoDocuments,
     #[error("inconsistent doctypes: document contained {document}, mso contained {mso}")]
+    #[category(critical)]
     WrongDocType { document: DocType, mso: DocType },
     #[error("namespace {0} not found in mso")]
+    #[category(critical)]
     MissingNamespace(NameSpace),
     #[error("digest ID {0} not found in mso")]
+    #[category(critical)]
     MissingDigestID(DigestID),
     #[error("attribute verification failed: did not hash to the value in the MSO")]
+    #[category(critical)]
     AttributeVerificationFailed,
     #[error("missing ephemeral key")]
+    #[category(critical)]
     EphemeralKeyMissing,
     #[error("validity error: {0}")]
     Validity(#[from] ValidityError),
     #[error("missing OriginInfo in engagement: {0}")]
+    #[category(critical)]
     MissingOriginInfo(usize),
     #[error("incorrect OriginInfo in engagement")]
+    #[category(critical)]
     IncorrectOriginInfo,
     #[error("missing verifier URL params")]
+    #[category(critical)]
     MissingVerifierUrlParameters,
     #[error("session is done: {0}")]
+    #[category(pd)] // `SessionResultState` contains the disclosed attributes
     SessionIsDone(SessionResultState),
     #[error("unknown use case: {0}")]
+    #[category(critical)]
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
+    #[category(critical)]
     ReturnUrlConfigurationMismatch,
     #[error("unknown session ID: {0}")]
+    #[category(pd)] // `SessionToken` must not be leaked
     UnknownSessionId(SessionToken),
     #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
+    #[category(critical)]
     NoItemsRequests,
     #[error("attributes mismatch: {0:?}")]
+    #[category(pd)] // no information should be leaked about attributes (not) in wallet
     MissingAttributes(Vec<AttributeIdentifier>),
     #[error("error with sessionstore: {0}")]
-    SessionStore(SessionStoreError),
+    SessionStore(#[source] SessionStoreError),
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
+    #[category(critical)]
     SessionNotDone,
     #[error("return URL nonce not provided")]
+    #[category(critical)]
     ReturnUrlNonceMissing,
     #[error("return URL nonce '{0}' does not match expected")]
+    #[category(pd)]
     ReturnUrlNonceMismatch(String),
     #[error("the ephemeral ID {} is invalid", hex::encode(.0))]
+    #[category(pd)]
     InvalidEphemeralId(Vec<u8>),
     #[error("the ephemeral ID {} has expired", hex::encode(.0))]
+    #[category(pd)]
     ExpiredEphemeralId(Vec<u8>),
     #[error("URL encoding error: {0}")]
+    #[category(critical)]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
@@ -1159,7 +1183,8 @@ impl DeviceResponse {
     }
 }
 
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error, ErrorCategory)]
+#[category(critical)]
 pub enum ValidityError {
     #[error("validity parsing failed: {0}")]
     ParsingFailed(#[from] chrono::ParseError),

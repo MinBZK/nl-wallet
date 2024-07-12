@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use base64::prelude::*;
-
 use jsonwebtoken::{Algorithm, DecodingKey, Header, Validation};
 use p256::ecdsa::VerifyingKey;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -9,6 +8,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::{
     account::serialization::DerVerifyingKey,
     keys::{EcdsaKey, SecureEcdsaKey},
+    Category, ErrorCategory,
 };
 
 /// JWT type, generic over its contents.
@@ -38,6 +38,17 @@ pub enum JwtError {
     Validation(#[source] jsonwebtoken::errors::Error),
     #[error("error signing JWT: {0}")]
     Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
+// Must implement manually, as deriving cannot be done in this crate.
+impl ErrorCategory for JwtError {
+    fn category(&self) -> Category {
+        match self {
+            JwtError::JsonParsing(_) => Category::Critical,
+            JwtError::Validation(_) => Category::Critical,
+            JwtError::Signing(_) => Category::Critical,
+        }
+    }
 }
 
 pub trait JwtSubject {

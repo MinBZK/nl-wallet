@@ -5,9 +5,10 @@ use std::{
 
 use tokio::fs;
 
-use wallet_common::{keys::SecureEncryptionKey, utils};
+use wallet_common::{keys::SecureEncryptionKey, utils, ErrorCategory};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum KeyFileError {
     #[error("key file I/O error: {0}")]
     Io(#[from] io::Error),

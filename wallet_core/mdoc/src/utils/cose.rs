@@ -13,7 +13,7 @@ use ring::hmac;
 use serde::{de::DeserializeOwned, Serialize};
 use webpki::TrustAnchor;
 
-use wallet_common::{generator::Generator, keys::SecureEcdsaKey};
+use wallet_common::{generator::Generator, keys::SecureEcdsaKey, ErrorCategory};
 
 use crate::{
     server_keys::KeysError,
@@ -33,27 +33,36 @@ pub trait Cose {
     fn verify(&self, key: &Self::Key) -> Result<(), CoseError>;
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(defer)]
 pub enum CoseError {
     #[error("missing payload")]
+    #[category(critical)]
     MissingPayload,
     #[error("missing label {0:?}")]
+    #[category(critical)]
     MissingLabel(Label),
     #[error("ECDSA signature parsing failed: {0}")]
+    #[category(critical)]
     EcdsaSignatureParsingFailed(p256::ecdsa::Error),
     #[error("ECDSA signature verification failed: {0}")]
+    #[category(critical)]
     EcdsaSignatureVerificationFailed(p256::ecdsa::Error),
     #[error("MAC verification failed")]
+    #[category(critical)]
     MacVerificationFailed,
     #[error(transparent)]
     Cbor(#[from] CborError),
     #[error("signing certificate header did not contain bytes")]
+    #[category(critical)]
     CertificateUnexpectedHeaderType,
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
     #[error("signing failed: {0}")]
+    #[category(critical)]
     Signing(Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("no signature received")]
+    #[category(critical)]
     SignatureMissing(),
 }
 

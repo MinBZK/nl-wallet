@@ -16,6 +16,7 @@ use serde_aux::serde_introspection::serde_introspect;
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
 use url::Url;
+use wallet_common::ErrorCategory;
 
 use crate::{
     iso::*,
@@ -23,7 +24,8 @@ use crate::{
 };
 const CBOR_TAG_ENC_CBOR: u64 = 24;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, ErrorCategory)]
+#[category(pd)] // might leak PII
 pub enum CborError {
     #[error("deserialization failed: {0}")]
     Deserialization(#[from] ciborium::de::Error<std::io::Error>),

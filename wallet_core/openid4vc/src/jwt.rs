@@ -32,6 +32,7 @@ use wallet_common::{
     generator::Generator,
     jwt::{Jwt, JwtError},
     keys::EcdsaKey,
+    ErrorCategory,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -146,13 +147,16 @@ pub async fn sign_jwts<T: Serialize, K: MdocEcdsaKey>(
     Ok(jwts)
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum JwtX5cError {
     #[error("error validating JWT: {0}")]
     Jwt(#[from] JwtError),
     #[error("missing X.509 certificate(s) in JWT header to validate JWT against")]
+    #[category(critical)]
     MissingCertificates,
     #[error("error base64-decoding certificate: {0}")]
+    #[category(critical)]
     CertificateBase64(#[source] DecodeError),
     #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),

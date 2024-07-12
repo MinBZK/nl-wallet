@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use reqwest::{header::ACCEPT, Method, Response};
 use tracing::{info, warn};
 
-use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string};
+use wallet_common::{config::wallet_config::BaseUrl, jwt::Jwt, utils::random_string, ErrorCategory};
 
 use nl_wallet_mdoc::{
     disclosure::DeviceResponse,
@@ -33,7 +33,8 @@ use crate::{
     AuthorizationErrorCode, ErrorResponse, VpAuthorizationErrorCode,
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[from] VpMessageClientError),
@@ -42,8 +43,10 @@ pub enum VpClientError {
     #[error("error verifying Authorization Request: {0}")]
     AuthRequestValidation(#[from] AuthRequestValidationError),
     #[error("incorrect client_id: expected {expected}, found {found}")]
+    #[category(critical)]
     IncorrectClientId { expected: String, found: String },
     #[error("no reader registration in RP certificate")]
+    #[category(critical)]
     MissingReaderRegistration,
     #[error("error validating requested attributes: {0}")]
     RequestedAttributesValidation(#[from] ValidationError),
@@ -52,27 +55,44 @@ pub enum VpClientError {
     #[error("error parsing RP certificate: {0}")]
     RpCertificate(#[from] CertificateError),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
+    #[category(pd)] // we don't want to leak information about what's in the wallet
     MultipleCandidates(Vec<String>),
     #[error("error encrypting Authorization Response: {0}")]
     AuthResponseEncryption(#[from] AuthResponseError),
     #[error("error deserializing request_uri object: {0}")]
+    #[category(pd)] // we cannot be sure that the URL is not included in the error.
+    // TODO: Does the URL contain PII data?
     RequestUri(#[source] serde_urlencoded::de::Error),
     #[error("missing session_type query parameter in request URI")]
+    #[category(critical)]
     MissingSessionType,
     #[error("malformed session_type query parameter in request URI: {0}")]
+    #[category(pd)] // we cannot be sure that the URL is not included in the error
+    // TODO: Does the URL contain PII data?
     MalformedSessionType(#[source] serde_urlencoded::de::Error),
     #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
+    #[category(critical)]
     DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum VpMessageClientError {
     #[error("HTTP request error: {0}")]
-    Http(#[from] reqwest::Error),
+    #[category(critical)]
+    Http(#[source] reqwest::Error),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("error response: {0:?}")]
     ErrorResponse(ErrorResponse<String>),
+}
+
+/// Remove url, which can contain privacy sensitive data
+// TODO: Does the URL contain PII data for OIDC4VC?
+impl From<reqwest::Error> for VpMessageClientError {
+    fn from(source: reqwest::Error) -> Self {
+        VpMessageClientError::Http(source.without_url())
+    }
 }
 
 /// Contract for sending OpenID4VP protocol messages.
