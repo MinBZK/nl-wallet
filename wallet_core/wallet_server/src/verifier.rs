@@ -62,7 +62,7 @@ where
     let application_state = Arc::new(create_application_state(urls, verifier, sessions)?);
 
     let wallet_web = Router::new()
-        .route("/:session_token/status", get(status::<S>))
+        .route("/:session_token", get(status::<S>))
         .route("/:session_token", delete(cancel::<S>))
         // The CORS headers should be set for these routes, so that any web browser may call them.
         .layer(
