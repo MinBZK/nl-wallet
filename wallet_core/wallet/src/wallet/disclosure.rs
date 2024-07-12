@@ -221,6 +221,7 @@ where
 
         Ok(proposal)
     }
+
     /// When we have missing attributes, we don't have a proposal -> empty proposed_attributes.
     /// When we do have a proposal, give us the proposed attributes then. In both cases, empty
     /// or "real", use from_proposed_attributes to determine the disclosure_type.
@@ -252,6 +253,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub fn has_active_disclosure_session(&self) -> Result<bool, DisclosureError> {
         info!("Checking for active disclosure session");
 
@@ -271,6 +273,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn cancel_disclosure(&mut self) -> Result<(), DisclosureError> {
         info!("Cancelling disclosure");
 
@@ -309,6 +312,7 @@ where
     }
 
     #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
