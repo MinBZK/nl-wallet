@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 173
+description: "BSN: 999992533"
+expression: attributes
+---
+given_name:
+  String: Hera
+family_name:
+  String: de Jager
+own_family_name:
+  String: de Jager
+gender:
+  Gender: Female
+birth_date:
+  Date: 2001-12-31
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999992533"
+resident_street:
+  String: Leyweg
+resident_house_number:
+  String: "1485"
+resident_postal_code:
+  String: 2548AE
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

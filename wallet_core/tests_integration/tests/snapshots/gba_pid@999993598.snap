@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 158
+description: "BSN: 999993598"
+expression: attributes
+---
+given_name:
+  String: Tessa
+family_name:
+  String: Wullaert
+own_family_name:
+  String: Wullaert
+gender:
+  Gender: Female
+birth_date:
+  Date: 1950-01-01
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999993598"
+resident_street:
+  String: Laan Copes van Cattenburch
+resident_house_number:
+  String: "38"
+resident_postal_code:
+  String: 2585GB
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

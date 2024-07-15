@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 166
+description: "BSN: 999991772"
+expression: attributes
+---
+given_name:
+  String: Frouke
+family_name:
+  String: Jansen
+own_family_name:
+  String: Jansen
+gender:
+  Gender: Female
+birth_date:
+  Date: 2000-03-24
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991772"
+resident_street:
+  String: Van Wijngaerdenstraat
+resident_house_number:
+  String: "1"
+resident_postal_code:
+  String: 2596TW
+resident_city:
+  String: Toetsoog
+resident_country:
+  String: Nederland

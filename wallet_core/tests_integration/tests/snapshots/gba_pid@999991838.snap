@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 158
+description: "BSN: 999991838"
+expression: attributes
+---
+given_name:
+  String: Patrick
+family_name:
+  String: Braveheart
+own_family_name:
+  String: Braveheart
+gender:
+  Gender: Male
+birth_date:
+  Date: 1993-12-26
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991838"
+resident_street:
+  String: Slaghekstraat
+resident_house_number:
+  String: "5"
+resident_postal_code:
+  String: 3074LA
+resident_city:
+  String: Rotterdam
+resident_country:
+  String: Nederland

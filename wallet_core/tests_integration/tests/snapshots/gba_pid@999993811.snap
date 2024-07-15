@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 158
+description: "BSN: 999993811"
+expression: attributes
+---
+given_name:
+  String: Babette
+family_name:
+  String: Brandweer
+own_family_name:
+  String: Brandweer
+gender:
+  Gender: Female
+birth_date:
+  Date: 1980-01-23
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999993811"
+resident_street:
+  String: Plataanlaan
+resident_house_number:
+  String: "4"
+resident_postal_code:
+  String: 3224TT
+resident_city:
+  String: Hellevoetsluis
+resident_country:
+  String: Nederland

@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 158
+description: "BSN: 999991802"
+expression: attributes
+---
+given_name:
+  String: Frans
+family_name:
+  String: "in 't Veld"
+own_family_name:
+  String: "in 't Veld"
+gender:
+  Gender: Male
+birth_date:
+  Date: 1990-09-20
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991802"
+resident_street:
+  String: Hunzestraat
+resident_house_number:
+  String: "87"
+resident_postal_code:
+  String: 1079VW
+resident_city:
+  String: Amsterdam
+resident_country:
+  String: Nederland

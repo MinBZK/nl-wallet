@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 171
+description: "BSN: 999991516"
+expression: attributes
+---
+given_name:
+  String: Karin
+family_name:
+  String: Holthuizen
+own_family_name:
+  String: Holthuizen
+gender:
+  Gender: Female
+birth_date:
+  Date: 1945-07-01
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991516"
+resident_street:
+  String: Eemhavenweg
+resident_house_number:
+  String: "16"
+resident_postal_code:
+  String: 3089KG
+resident_city:
+  String: Rotterdam
+resident_country:
+  String: Nederland

@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 158
+description: "BSN: 999990159"
+expression: attributes
+---
+given_name:
+  String: Niklas
+family_name:
+  String: Kortum
+own_family_name:
+  String: Kortum
+gender:
+  Gender: Male
+birth_date:
+  Date: 1950-09-19
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999990159"
+resident_street:
+  String: Laan Copes van Cattenburch
+resident_house_number:
+  String: "38"
+resident_postal_code:
+  String: 2585GB
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

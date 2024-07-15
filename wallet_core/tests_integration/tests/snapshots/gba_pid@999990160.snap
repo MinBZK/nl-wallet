@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 171
+description: "BSN: 999990160"
+expression: attributes
+---
+given_name:
+  String: Hendrik Jan Coenraad Maurits
+family_name:
+  String: den Brinck
+own_family_name:
+  String: den Brinck
+gender:
+  Gender: Male
+birth_date:
+  Date: 1971-12-13
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999990160"
+resident_street:
+  String: St.-Jacobsstraat
+resident_house_number:
+  String: "1"
+resident_postal_code:
+  String: 3511BR
+resident_city:
+  String: Utrecht
+resident_country:
+  String: Nederland

@@ -1,8 +1,12 @@
-use std::{error::Error, time::Duration};
+use std::{error::Error, ops::Deref, time::Duration};
 
 use base64::prelude::*;
-use reqwest::{Certificate, Client, ClientBuilder};
+use http::header;
+use mime::Mime;
+use reqwest::{Certificate, Client, ClientBuilder, Response};
 use serde::{Deserialize, Deserializer};
+
+use crate::http_error::APPLICATION_PROBLEM_JSON;
 
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
@@ -36,6 +40,23 @@ where
         .collect::<Result<_, _>>()?;
 
     Ok(certificates)
+}
+
+pub fn parse_content_type(response: &Response) -> Option<Mime> {
+    response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|content_type| content_type.to_str().ok())
+        .and_then(|content_type| content_type.parse::<Mime>().ok())
+}
+
+pub fn is_problem_json_response(response: &Response) -> bool {
+    let content_type = parse_content_type(response);
+    if let Some(ct) = content_type {
+        &ct == APPLICATION_PROBLEM_JSON.deref()
+    } else {
+        false
+    }
 }
 
 pub fn default_reqwest_client_builder() -> ClientBuilder {

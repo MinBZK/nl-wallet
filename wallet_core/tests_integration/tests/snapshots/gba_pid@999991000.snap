@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 166
+description: "BSN: 999991000"
+expression: attributes
+---
+given_name:
+  String: "Liselotte-Anne Daniëlle Celèste Elise 26 Avril Stéphane Maroni jr. Isiah dé Maria de las Mercedes Rosalía J'adore Grace a Dieu Rhiannon San-che-he-ray Lou'Lou Elona L'vovna d'Alessandra Ariëlle"
+family_name:
+  String: "voor in 't C"
+own_family_name:
+  String: "voor in 't C"
+gender:
+  Gender: Female
+birth_date:
+  Date: 1990-07-07
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991000"
+resident_street:
+  String: Burgemeester Jonkheer Hesselt van Dinterstraat
+resident_house_number:
+  String: "1"
+resident_postal_code:
+  String: 2631BR
+resident_city:
+  String: Nootdorp
+resident_country:
+  String: Nederland

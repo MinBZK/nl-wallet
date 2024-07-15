@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 158
+description: "BSN: 999994761"
+expression: attributes
+---
+given_name:
+  String: Jean-Marie
+family_name:
+  String: Blok
+own_family_name:
+  String: Blok
+gender:
+  Gender: Male
+birth_date:
+  Date: 1985-03-17
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999994761"
+resident_street:
+  String: Oostduinlaan
+resident_house_number:
+  String: "50"
+resident_postal_code:
+  String: 2596JP
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland

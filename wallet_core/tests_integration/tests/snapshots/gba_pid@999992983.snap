@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 172
+description: "BSN: 999992983"
+expression: attributes
+---
+given_name:
+  String: Mina
+family_name:
+  String: Dobbelsteen
+own_family_name:
+  String: Dobbelsteen
+gender:
+  Gender: Female
+birth_date:
+  Date: 1999-03-05
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999992983"
+resident_street:
+  String: Poolsestraat
+resident_house_number:
+  String: "36"
+resident_postal_code:
+  String: 3028EN
+resident_city:
+  String: Rotterdam
+resident_country:
+  String: Nederland

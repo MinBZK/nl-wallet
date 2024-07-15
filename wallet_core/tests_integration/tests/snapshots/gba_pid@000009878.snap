@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 171
+description: "BSN: 000009878"
+expression: attributes
+---
+given_name:
+  String: Hendrik
+family_name:
+  String: Derks
+own_family_name:
+  String: Derks
+gender:
+  Gender: Male
+birth_date:
+  Date: 1967-04-04
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "000009878"
+resident_street:
+  String: Eemhavenweg
+resident_house_number:
+  String: "18"
+resident_postal_code:
+  String: 3089KG
+resident_city:
+  String: Rotterdam
+resident_country:
+  String: Nederland

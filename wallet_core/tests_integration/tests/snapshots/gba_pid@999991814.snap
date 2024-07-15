@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 171
+description: "BSN: 999991814"
+expression: attributes
+---
+given_name:
+  String: Martinus
+family_name:
+  String: de Bever
+own_family_name:
+  String: de Bever
+gender:
+  Gender: Male
+birth_date:
+  Date: 1960-10-01
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "999991814"
+resident_street:
+  String: Eemhavenweg
+resident_house_number:
+  String: "42"
+resident_postal_code:
+  String: 9089KH
+resident_city:
+  String: Rotterdam
+resident_country:
+  String: Nederland

@@ -1,0 +1,32 @@
+---
+source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 158
+description: "BSN: 000009842"
+expression: attributes
+---
+given_name:
+  String: Artem
+family_name:
+  String: Sahakian
+own_family_name:
+  String: Sahakian
+gender:
+  Gender: Male
+birth_date:
+  Date: 1993-10-08
+age_over_18:
+  Boolean: true
+has_spouse_or_partner:
+  Boolean: false
+bsn:
+  String: "000009842"
+resident_street:
+  String: Koningskade
+resident_house_number:
+  String: "4"
+resident_postal_code:
+  String: 2596AA
+resident_city:
+  String: "'s-Gravenhage"
+resident_country:
+  String: Nederland
