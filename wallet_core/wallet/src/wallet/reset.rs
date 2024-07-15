@@ -132,7 +132,7 @@ mod tests {
 
         let events = events.lock();
         assert_eq!(events.len(), 1);
-        assert!(documents.first().unwrap().is_empty());
+        assert!(events.first().unwrap().is_empty());
     }
 
     #[tokio::test]
