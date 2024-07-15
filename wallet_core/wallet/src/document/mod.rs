@@ -7,13 +7,6 @@ use chrono::NaiveDate;
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use serde::Serialize;
-
-#[cfg(any(test, feature = "snapshot_test"))]
-use serde::Serialize;
-
-#[cfg(any(test, feature = "snapshot_test"))]
-use serde::Serialize;
 
 #[cfg(feature = "snapshot_test")]
 use serde::Serialize;
