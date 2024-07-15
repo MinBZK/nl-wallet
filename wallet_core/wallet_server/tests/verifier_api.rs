@@ -11,12 +11,12 @@ use chrono::{DateTime, Utc};
 use http::StatusCode;
 use indexmap::IndexMap;
 use parking_lot::RwLock;
-use reqwest::Response;
+use reqwest::{Client, Response};
 use rstest::rstest;
 use tokio::time;
 
 use nl_wallet_mdoc::{
-    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, CLEANUP_INTERVAL_SECONDS},
+    server_state::{MemorySessionStore, SessionStore, SessionStoreTimeouts, SessionToken, CLEANUP_INTERVAL_SECONDS},
     utils::mock_time::MockTimeGenerator,
     verifier::{ReturnUrlTemplate, SessionType},
     ItemsRequest,
@@ -25,6 +25,7 @@ use openid4vc::{
     verifier::{DisclosureData, StatusResponse, VerifierUrlParameters},
     ErrorResponse,
 };
+use url::Url;
 use wallet_common::{
     config::wallet_config::BaseUrl, http_error::HttpJsonErrorBody, reqwest::default_reqwest_client_builder,
 };
@@ -331,7 +332,7 @@ async fn test_disclosure_not_found() {
     let client = default_reqwest_client_builder().build().unwrap();
 
     // check if a non-existent token returns a 404 on the status URL
-    let mut status_url = settings.urls.public_url.join("disclosure/nonexistent_session/status");
+    let mut status_url = settings.urls.public_url.join("disclosure/sessions/nonexistent_session");
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: SessionType::SameDevice,
     })
@@ -341,11 +342,17 @@ async fn test_disclosure_not_found() {
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
+    // check if a non-existent token returns a 404 on the cancel URL
+    let cancel_url = settings.urls.public_url.join("disclosure/sessions/nonexistent_session");
+    let response = client.delete(cancel_url).send().await.unwrap();
+
+    test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
+
     // check if a non-existent token returns a 404 on the wallet URL
     let mut request_uri = settings
         .urls
         .public_url
-        .join("disclosure/nonexistent_session/request_uri");
+        .join("disclosure/sessions/nonexistent_session/request_uri");
     request_uri.set_query(
         serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
@@ -369,6 +376,75 @@ async fn test_disclosure_not_found() {
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await
+}
+
+fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: SessionType) -> Url {
+    let mut status_url = public_url.join(&format!("disclosure/sessions/{session_token}"));
+
+    let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
+    status_url.set_query(status_query.as_str().into());
+
+    status_url
+}
+
+async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
+    let response = client.get(status_url.clone()).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    response.json::<StatusResponse>().await.unwrap()
+}
+
+#[tokio::test]
+async fn test_disclosure_cancel() {
+    let settings = wallet_server_settings();
+    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+
+    start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
+
+    // Create a new disclosure session, which should return 200.
+    let client = default_reqwest_client_builder().build().unwrap();
+    let response = client
+        .post(internal_url.join("disclosure/sessions"))
+        .json(&start_disclosure_request())
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
+    let session_token = disclosure_response.session_token;
+
+    // Fetching the status should return OK and be in the Created state.
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, SessionType::SameDevice);
+
+    assert_matches!(
+        get_status_ok(&client, status_url.clone()).await,
+        StatusResponse::Created { .. }
+    );
+
+    // Cancel the newly created session, which should return 204 and no body.
+    let cancel_url = settings
+        .urls
+        .public_url
+        .join(&format!("disclosure/sessions/{session_token}"));
+    let response = client.delete(cancel_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    assert_eq!(response.content_length(), Some(0));
+
+    // Fetching the status should return OK and be in the Cancelled state.
+    assert_matches!(get_status_ok(&client, status_url).await, StatusResponse::Cancelled);
+
+    // Cancelling the session again should return a 400.
+    let cancel_url = settings
+        .urls
+        .public_url
+        .join(&format!("disclosure/sessions/{session_token}"));
+    let response = client.delete(cancel_url).send().await.unwrap();
+
+    test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;
 }
 
 async fn test_disclosure_expired<S>(
@@ -397,26 +473,15 @@ async fn test_disclosure_expired<S>(
 
     let disclosure_response = response.json::<StartDisclosureResponse>().await.unwrap();
     let session_token = disclosure_response.session_token;
-    let mut status_url = settings
-        .urls
-        .public_url
-        .join(&format!("disclosure/{session_token}/status"));
-    let status_query = serde_urlencoded::to_string(StatusParams {
-        session_type: SessionType::SameDevice,
-    })
-    .unwrap();
-    status_url.set_query(status_query.as_str().into());
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, SessionType::SameDevice);
     let disclosed_attributes_url =
         internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
     // Fetch the status, this should return OK and be in the Created state.
-    let response = client.get(status_url.clone()).send().await.unwrap();
-
-    assert_eq!(response.status(), StatusCode::OK);
-
-    let status = response.json::<StatusResponse>().await.unwrap();
-
-    assert_matches!(status, StatusResponse::Created { .. });
+    assert_matches!(
+        get_status_ok(&client, status_url.clone()).await,
+        StatusResponse::Created { .. }
+    );
 
     // Fetching the disclosed attributes should return 400, since the session is not finished.
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
@@ -437,11 +502,10 @@ async fn test_disclosure_expired<S>(
     }
 
     // Fetching the status should return OK and be in the Expired state.
-    let response = client.get(status_url.clone()).send().await.unwrap();
-
-    let status = response.json::<StatusResponse>().await.unwrap();
-
-    assert_matches!(status, StatusResponse::Expired);
+    assert_matches!(
+        get_status_ok(&client, status_url.clone()).await,
+        StatusResponse::Expired
+    );
 
     // Fetching the disclosed attributes should still return 400, since the session did not succeed.
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();

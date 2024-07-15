@@ -19,7 +19,7 @@ where
         settings.wallet_server,
         settings.requester_server,
         Router::new().nest("/disclosure", wallet_disclosure_router),
-        Router::new().nest("/disclosure/sessions", requester_router),
+        Router::new().nest("/disclosure", requester_router),
         log_requests,
     )
     .await
