@@ -1100,6 +1100,8 @@ run-mrp-vs-migrations-demo:
       artifacts: false
     - job: build-verification-server-image
       artifacts: false
+    - job: build-wallet-web
+      artifacts: true
   variables:
     MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
     MRP_VERIFICATION_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-verification-server:${CI_COMMIT_SHORT_SHA}
