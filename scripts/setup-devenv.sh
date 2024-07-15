@@ -246,7 +246,7 @@ export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
 if [[ -z "${SKIP_MOCK_RELYING_PARTY:-}" ]]; then
     WALLET_WEB_FILENAME="${WALLET_WEB_FILENAME:-nl-wallet-web.iife.js}"
     export WALLET_WEB_FILENAME
-    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(cat $WALLET_WEB_FILENAME | openssl sha256 -binary | ${BASE64})}"
+    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(cat ../wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | ${BASE64})}"
     export WALLET_WEB_SHA256
     render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
 fi
