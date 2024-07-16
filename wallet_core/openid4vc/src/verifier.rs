@@ -77,6 +77,8 @@ pub enum VerificationError {
     NoItemsRequests,
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
+    #[error("session_type should be provided when session is in CREATED state")]
+    SessionTypeMissing,
     #[error("redirect URI nonce '{0}' does not equal the expected nonce")]
     RedirectUriNonceMismatch(String),
     #[error("missing nonce in redirect URI")]
@@ -623,13 +625,14 @@ where
     pub async fn status_response(
         &self,
         session_token: &SessionToken,
-        session_type: SessionType,
+        session_type: Option<SessionType>,
         ul_base: &BaseUrl,
         request_uri: BaseUrl,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusResponse, VerificationError> {
         let response = match self.get_session_state(session_token).await?.data {
             DisclosureData::Created(Created { client_id, .. }) => {
+                let session_type = session_type.ok_or(VerificationError::SessionTypeMissing)?;
                 let time = time.generate();
                 let ul = Self::format_ul(
                     ul_base,

@@ -59,9 +59,9 @@ pub enum IssuanceSessionError {
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
-    TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
+    TokenRequest(ErrorResponse<TokenErrorCode>),
     #[error("error requesting credentials: {0:?}")]
-    CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
+    CredentialRequest(ErrorResponse<CredentialErrorCode>),
     #[error("generating attestation private keys failed: {0}")]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("public key contained in mdoc not equal to expected value")]
@@ -187,7 +187,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
-                    Err(IssuanceSessionError::TokenRequest(error.into()))
+                    Err(IssuanceSessionError::TokenRequest(error))
                 } else {
                     let dpop_nonce = response
                         .headers()
@@ -221,7 +221,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(error.into()))
+                    Err(IssuanceSessionError::CredentialRequest(error))
                 } else {
                     let credential_responses = response.json().await?;
                     Ok(credential_responses)
@@ -247,7 +247,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(error.into()))
+                    Err(IssuanceSessionError::CredentialRequest(error))
                 } else {
                     Ok(())
                 }

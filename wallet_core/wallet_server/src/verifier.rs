@@ -156,7 +156,7 @@ pub struct StatusParams {
 async fn status<S>(
     State(state): State<Arc<ApplicationState<S>>>,
     Path(session_token): Path<SessionToken>,
-    Query(params): Query<StatusParams>,
+    query: Option<Query<StatusParams>>,
 ) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -165,7 +165,7 @@ where
         .verifier
         .status_response(
             &session_token,
-            params.session_type,
+            query.map(|Query(params)| params.session_type),
             &state.universal_link_base_url.join_base_url("disclosure/sessions"),
             state
                 .public_url

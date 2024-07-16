@@ -318,6 +318,7 @@ impl From<VerificationError> for VerificationErrorCode {
             VerificationError::UnknownUseCase(_)
             | VerificationError::ReturnUrlConfigurationMismatch
             | VerificationError::NoItemsRequests
+            | VerificationError::SessionTypeMissing
             | VerificationError::MissingSAN
             | VerificationError::Certificate(_) => VerificationErrorCode::InvalidRequest,
             VerificationError::RedirectUriNonceMismatch(_) | VerificationError::RedirectUriNonceMissing => {

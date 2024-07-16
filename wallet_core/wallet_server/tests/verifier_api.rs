@@ -332,12 +332,7 @@ async fn test_disclosure_not_found() {
     let client = default_reqwest_client_builder().build().unwrap();
 
     // check if a non-existent token returns a 404 on the status URL
-    let mut status_url = settings.urls.public_url.join("disclosure/sessions/nonexistent_session");
-    let status_query = serde_urlencoded::to_string(StatusParams {
-        session_type: SessionType::SameDevice,
-    })
-    .unwrap();
-    status_url.set_query(status_query.as_str().into());
+    let status_url = settings.urls.public_url.join("disclosure/sessions/nonexistent_session");
     let response = client.get(status_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
