@@ -5,6 +5,7 @@ use nl_wallet_mdoc::utils::{
     issuer_auth::IssuerRegistration,
     x509::{CertificateError, MdocCertificateExtension},
 };
+use wallet_common::ErrorCategory;
 
 use crate::{
     document::{Document, DocumentPersistence},
@@ -13,7 +14,8 @@ use crate::{
 
 use super::Wallet;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum DocumentsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
@@ -22,6 +24,7 @@ pub enum DocumentsError {
     #[error("could not interpret X.509 certificate: {0}")]
     Cose(#[from] CoseError),
     #[error("X.509 certificate does not contain IssuerRegistration")]
+    #[category(critical)]
     MissingIssuerRegistration,
 }
 

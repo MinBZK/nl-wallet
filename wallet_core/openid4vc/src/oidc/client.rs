@@ -11,7 +11,7 @@ pub use josekit::{
 use reqwest::header;
 use url::Url;
 
-use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils};
+use wallet_common::{config::wallet_config::BaseUrl, reqwest::trusted_reqwest_client_builder, utils, ErrorCategory};
 
 use crate::{
     authorization::{AuthorizationRequest, AuthorizationResponse, PkceCodeChallenge, ResponseType},
@@ -22,11 +22,14 @@ use crate::{
 
 use super::Config;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum OidcError {
     #[error("transport error: {0}")]
-    Http(#[from] reqwest::Error),
+    #[category(critical)]
+    Http(#[source] reqwest::Error),
     #[error("url: path segments is cannot-be-a-base")]
+    #[category(critical)]
     CannotBeABase,
     #[error("URL encoding error: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
@@ -39,10 +42,13 @@ pub enum OidcError {
     #[error("error requesting userinfo: {0:?}")]
     RequestingUserInfo(Box<ErrorResponse<AuthBearerErrorCode>>),
     #[error("invalid state token received in redirect URI")]
+    #[category(critical)]
     StateTokenMismatch,
     #[error("no authorization code received in redirect URI")]
+    #[category(critical)]
     NoAuthCode,
     #[error("invalid redirect URI received")]
+    #[category(critical)]
     RedirectUriMismatch,
     #[error("JOSE error: {0}")]
     JoseKit(#[from] JoseError),
@@ -51,7 +57,14 @@ pub enum OidcError {
     #[error("JWE validation error: {0}")]
     JweValidation(#[from] biscuit::errors::ValidationError),
     #[error("config has no userinfo url")]
+    #[category(critical)]
     NoUserinfoUrl,
+}
+
+impl From<reqwest::Error> for OidcError {
+    fn from(source: reqwest::Error) -> Self {
+        OidcError::Http(source.without_url())
+    }
 }
 
 const APPLICATION_JWT: &str = "application/jwt";

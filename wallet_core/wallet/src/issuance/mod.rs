@@ -3,31 +3,41 @@ mod app2app;
 use url::Url;
 
 use openid4vc::{oidc::OidcError, token::TokenRequest};
-use wallet_common::config::wallet_config::PidIssuanceConfiguration;
+use wallet_common::{config::wallet_config::PidIssuanceConfiguration, ErrorCategory};
 
 pub use app2app::HttpDigidSession;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum DigidSessionError {
     #[error("OIDC error: {0}")]
     Oidc(#[from] OidcError),
     #[error("HTTP error: {0}")]
+    #[category(critical)] // TODO: DigiD/OIDC urls do not contain sensitive data?
     Http(#[from] reqwest::Error),
     #[error("missing location header")]
+    #[category(critical)]
     MissingLocation,
     #[error("cannot parse location header to str: {0}")]
+    #[category(pd)]
     HeaderNotAStr(#[from] http::header::ToStrError),
     #[error("cannot parse location header to URL: {0}")]
+    #[category(pd)]
     NotAUrl(#[from] url::ParseError),
     #[error("missing query in location header")]
+    #[category(critical)]
     MissingLocationQuery,
     #[error("expected HTTP 307 Temporary Redirect, got: {0}")]
+    #[category(critical)]
     ExpectedRedirect(http::StatusCode),
     #[error("cannot deserialize from URL query: {0}")]
+    #[category(pd)]
     UrlDeserialize(#[from] serde_urlencoded::de::Error),
     #[error("cannot serialize to URL query: {0}")]
+    #[category(pd)]
     UrlSerialize(#[from] serde_urlencoded::ser::Error),
     #[error("error in app2app response: {0}")]
+    #[category(pd)] // TODO: what is in this error?
     App2AppError(String),
 }
 

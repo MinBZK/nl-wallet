@@ -35,17 +35,21 @@ use wallet_common::{
     ErrorCategory,
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(pd)]
 pub enum JwkConversionError {
     #[error("unsupported JWK EC curve: expected P256, found {found:?}")]
+    #[category(critical)]
     UnsupportedJwkEcCurve { found: EllipticCurve },
     #[error("unsupported JWK algorithm")]
+    #[category(critical)]
     UnsupportedJwkAlgorithm,
     #[error("base64 decoding failed: {0}")]
     Base64Error(#[from] base64::DecodeError),
     #[error("failed to construct verifying key: {0}")]
     VerifyingKeyConstruction(#[from] signature::Error),
     #[error("missing coordinate in conversion to P256 public key")]
+    #[category(critical)]
     MissingCoordinate,
     #[error("failed to get public key: {0}")]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),

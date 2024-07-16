@@ -18,6 +18,7 @@ use nl_wallet_mdoc::{
 use wallet_common::{
     nonempty::NonEmpty,
     utils::{random_string, sha256},
+    ErrorCategory,
 };
 
 use crate::authorization::AuthorizationDetails;
@@ -178,11 +179,13 @@ impl From<AttestationPreview> for UnsignedMdoc {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationPreviewError {
     #[error("certificate error: {0}")]
+    #[category(defer)]
     Certificate(#[from] CertificateError),
     #[error("issuer registration not found in certificate")]
+    #[category(critical)]
     NoIssuerRegistration,
 }
 

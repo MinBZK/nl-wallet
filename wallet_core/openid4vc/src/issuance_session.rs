@@ -22,7 +22,7 @@ use nl_wallet_mdoc::{
     },
     ATTR_RANDOM_LENGTH,
 };
-use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError};
+use wallet_common::{config::wallet_config::BaseUrl, generator::TimeGenerator, jwt::JwtError, ErrorCategory};
 
 use crate::{
     credential::{
@@ -36,9 +36,11 @@ use crate::{
     CredentialErrorCode, ErrorResponse, Format, TokenErrorCode, NL_WALLET_CLIENT_ID,
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum IssuanceSessionError {
     #[error("failed to get public key: {0}")]
+    #[category(pd)]
     VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
     #[error("DPoP error: {0}")]
     Dpop(#[from] DpopError),
@@ -47,45 +49,65 @@ pub enum IssuanceSessionError {
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
     #[error("http request failed: {0}")]
-    Network(#[from] reqwest::Error),
+    #[category(critical)]
+    Network(#[source] reqwest::Error),
     #[error("missing c_nonce")]
+    #[category(critical)]
     MissingNonce,
     #[error("CBOR (de)serialization error: {0}")]
     Cbor(#[from] CborError),
     #[error("base64 decoding failed: {0}")]
+    #[category(pd)]
     Base64Error(#[from] base64::DecodeError),
     #[error("mismatch between issued and expected attributes: {0}")]
-    IssuedAttributesMismatch(IssuedAttributesMismatch),
+    IssuedAttributesMismatch(#[source] IssuedAttributesMismatch),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
     #[error("error requesting access token: {0:?}")]
+    #[category(critical)]
     TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
     #[error("error requesting credentials: {0:?}")]
+    #[category(critical)]
     CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
     #[error("generating attestation private keys failed: {0}")]
+    #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("public key contained in mdoc not equal to expected value")]
+    #[category(critical)]
     PublicKeyMismatch,
     #[error("failed to get mdoc public key: {0}")]
     PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
     #[error("received {found} responses, expected {expected}")]
+    #[category(critical)]
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
     #[error("error reading HTTP error: {0}")]
+    #[category(pd)]
     HeaderToStr(#[from] ToStrError),
     #[error("error verifying certificate of attestation preview: {0}")]
     Certificate(#[from] CertificateError),
     #[error("issuer certificate contained in mdoc not equal to expected value")]
+    #[category(critical)]
     IssuerCertificateMismatch,
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     Cose(#[from] CoseError),
     #[error("error discovering Oauth metadata: {0}")]
+    #[category(critical)] // apply without_url()
     OauthDiscovery(#[source] reqwest::Error),
     #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
+    #[category(critical)] // apply without_url()
     OpenId4vciDiscovery(#[source] reqwest::Error),
     #[error("issuer has no batch credential endpoint")]
+    #[category(critical)]
     NoBatchCredentialEndpoint,
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
+    #[category(critical)]
     AttributeRandomLength(usize, usize),
+}
+
+impl From<reqwest::Error> for IssuanceSessionError {
+    fn from(source: reqwest::Error) -> Self {
+        IssuanceSessionError::Network(source.without_url())
+    }
 }
 
 pub trait IssuanceSession<H = HttpVcMessageClient> {
@@ -153,7 +175,7 @@ impl VcMessageClient for HttpVcMessageClient {
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
         let metadata = IssuerMetadata::discover(&self.http_client, url)
             .await
-            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
+            .map_err(|e| IssuanceSessionError::OpenId4vciDiscovery(e.without_url()))?;
         Ok(metadata)
     }
 
@@ -166,7 +188,7 @@ impl VcMessageClient for HttpVcMessageClient {
             .error_for_status()?
             .json()
             .await
-            .map_err(IssuanceSessionError::OauthDiscovery)?;
+            .map_err(|e| IssuanceSessionError::OauthDiscovery(e.without_url()))?;
         Ok(metadata)
     }
 
