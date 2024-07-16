@@ -14,7 +14,7 @@ use josekit::{
 use nutype::nutype;
 use ring::hmac;
 use serde::{Deserialize, Serialize};
-use serde_with::{hex::Hex, serde_as};
+use serde_with::{hex::Hex, serde_as, skip_serializing_none};
 use strum;
 use tokio::task::JoinHandle;
 use tracing::{debug, info, warn};
@@ -77,8 +77,6 @@ pub enum VerificationError {
     NoItemsRequests,
     #[error("disclosed attributes requested for disclosure session with status other than 'Done'")]
     SessionNotDone,
-    #[error("session_type should be provided when session is in CREATED state")]
-    SessionTypeMissing,
     #[error("redirect URI nonce '{0}' does not equal the expected nonce")]
     RedirectUriNonceMismatch(String),
     #[error("missing nonce in redirect URI")]
@@ -369,10 +367,11 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
 }
 
 /// Session status for the frontend.
+#[skip_serializing_none]
 #[derive(Debug, Deserialize, Serialize, strum::Display)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
 pub enum StatusResponse {
-    Created { ul: BaseUrl },
+    Created { ul: Option<BaseUrl> },
     WaitingForResponse,
     Done,
     Failed,
@@ -632,16 +631,20 @@ where
     ) -> Result<StatusResponse, VerificationError> {
         let response = match self.get_session_state(session_token).await?.data {
             DisclosureData::Created(Created { client_id, .. }) => {
-                let session_type = session_type.ok_or(VerificationError::SessionTypeMissing)?;
-                let time = time.generate();
-                let ul = Self::format_ul(
-                    ul_base,
-                    request_uri,
-                    time,
-                    self.generate_ephemeral_id(session_token, &time),
-                    session_type,
-                    client_id,
-                )?;
+                let ul = session_type
+                    .map(|session_type| {
+                        let time = time.generate();
+                        Self::format_ul(
+                            ul_base,
+                            request_uri,
+                            time,
+                            self.generate_ephemeral_id(session_token, &time),
+                            session_type,
+                            client_id,
+                        )
+                    })
+                    .transpose()?;
+
                 StatusResponse::Created { ul }
             }
             DisclosureData::WaitingForResponse(_) => StatusResponse::WaitingForResponse,

@@ -175,7 +175,7 @@ async fn test_disclosure_usecases_ok(
     };
 
     let proposal = wallet
-        .start_disclosure(&ul.into_inner(), source)
+        .start_disclosure(&ul.unwrap().into_inner(), source)
         .await
         .expect("should start disclosure");
     assert_eq!(proposal.documents.len(), expected_documents.len());
@@ -318,7 +318,7 @@ async fn test_disclosure_without_pid() {
     };
 
     let error = wallet
-        .start_disclosure(&ul.into_inner(), DisclosureUriSource::Link)
+        .start_disclosure(&ul.unwrap().into_inner(), DisclosureUriSource::Link)
         .await
         .expect_err("Should return error that attributes are not available");
 

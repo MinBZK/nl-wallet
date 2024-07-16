@@ -373,11 +373,13 @@ async fn test_disclosure_not_found() {
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await
 }
 
-fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: SessionType) -> Url {
+fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: Option<SessionType>) -> Url {
     let mut status_url = public_url.join(&format!("disclosure/sessions/{session_token}"));
 
-    let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
-    status_url.set_query(status_query.as_str().into());
+    if let Some(session_type) = session_type {
+        let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
+        status_url.set_query(status_query.as_str().into());
+    }
 
     status_url
 }
@@ -419,14 +421,13 @@ where
 async fn test_disclosure_missing_session_type() {
     let (settings, client, session_token, _) = start_disclosure(MemorySessionStore::default()).await;
 
-    // Check if requesting the session status without a session_type returns a 400.
-    let status_url = settings
-        .urls
-        .public_url
-        .join(&format!("disclosure/sessions/{}", session_token));
-    let response = client.get(status_url).send().await.unwrap();
+    // Check if requesting the session status without a session_type returns a 200, but without the universal link.
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, None);
 
-    test_http_json_error_body(response, StatusCode::BAD_REQUEST, "invalid_request").await;
+    assert_matches!(
+        get_status_ok(&client, status_url).await,
+        StatusResponse::Created { ul: None }
+    );
 }
 
 #[tokio::test]
@@ -434,11 +435,11 @@ async fn test_disclosure_cancel() {
     let (settings, client, session_token, _) = start_disclosure(MemorySessionStore::default()).await;
 
     // Fetching the status should return OK and be in the Created state.
-    let status_url = format_status_url(&settings.urls.public_url, &session_token, SessionType::SameDevice);
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
 
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
-        StatusResponse::Created { .. }
+        StatusResponse::Created { ul } if ul.is_some()
     );
 
     // Cancel the newly created session, which should return 204 and no body.
@@ -476,17 +477,16 @@ async fn test_disclosure_expired<S>(
 
     let (settings, client, session_token, internal_url) = start_disclosure(session_store).await;
 
-    let status_url = format_status_url(&settings.urls.public_url, &session_token, SessionType::SameDevice);
-    let disclosed_attributes_url =
-        internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
-
     // Fetch the status, this should return OK and be in the Created state.
+    let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
-        StatusResponse::Created { .. }
+        StatusResponse::Created { ul } if ul.is_some()
     );
 
     // Fetching the disclosed attributes should return 400, since the session is not finished.
+    let disclosed_attributes_url =
+        internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;

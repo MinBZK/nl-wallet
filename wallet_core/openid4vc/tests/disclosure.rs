@@ -473,7 +473,7 @@ async fn request_uri_from_status_endpoint(
         panic!("unexpected state")
     };
 
-    ul.as_ref().query().unwrap().to_string()
+    ul.unwrap().as_ref().query().unwrap().to_string()
 }
 
 async fn request_status_endpoint(
